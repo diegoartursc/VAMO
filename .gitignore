@@ -1,6 +1,5 @@
 # Expo
 .expo/
-dist/
 web-build/
 
 # Dependencies
