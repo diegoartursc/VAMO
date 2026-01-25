@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+
 import {
     View,
     Text,
@@ -11,6 +12,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { theme } from '../../src/theme/theme';
 import { getPackageById } from '../../src/data/mockPackages';
+import { getReviewsByPackageId } from '../../src/data/mockReviews';
 import { Alert, Linking } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -19,6 +21,10 @@ export default function PackageDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const packageData = getPackageById(id);
+    const reviews = getReviewsByPackageId(id);
+    const [showAllReviews, setShowAllReviews] = useState(false);
+
+    const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 2);
 
     if (!packageData) {
         return (
@@ -114,6 +120,137 @@ export default function PackageDetailScreen() {
                                 <Text style={styles.listText}>{item}</Text>
                             </View>
                         ))}
+                    </View>
+
+                    {/* Reviews Section */}
+                    {reviews.length > 0 && (
+                        <View style={styles.section}>
+                            <View style={styles.reviewsHeader}>
+                                <Text style={styles.sectionTitle}>
+                                    Avaliações ({reviews.length})
+                                </Text>
+                                <View style={styles.reviewsButtons}>
+                                    <TouchableOpacity style={styles.filterButton}>
+                                        <Text style={styles.filterButtonText}>Ordenar por</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.filterButton}>
+                                        <Text style={styles.filterButtonText}>Filtro</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {displayedReviews.map((review) => (
+                                <View key={review.id} style={styles.reviewCard}>
+                                    <View style={styles.reviewHeader}>
+                                        <View style={styles.reviewUserInfo}>
+                                            <View style={[styles.reviewAvatar, { backgroundColor: review.user.avatar }]}>
+                                                <Text style={styles.reviewAvatarText}>{review.user.initial}</Text>
+                                            </View>
+                                            <View>
+                                                <Text style={styles.reviewUserName}>
+                                                    {review.user.name} - {review.user.location}
+                                                </Text>
+                                                <Text style={styles.reviewDate}>
+                                                    {review.date}{review.verified && ' - Reserva verificada'}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <TouchableOpacity>
+                                            <Text style={styles.reviewMenu}>⋮</Text>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    <View style={styles.reviewRating}>
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <Text key={star} style={styles.starIcon}>
+                                                {star <= review.rating ? '⭐' : '☆'}
+                                            </Text>
+                                        ))}
+                                    </View>
+
+                                    {review.photos && review.photos.length > 0 && (
+                                        <ScrollView
+                                            horizontal
+                                            showsHorizontalScrollIndicator={false}
+                                            style={styles.reviewPhotos}
+                                        >
+                                            {review.photos.map((photo, index) => (
+                                                <Image
+                                                    key={index}
+                                                    source={{ uri: photo }}
+                                                    style={styles.reviewPhoto}
+                                                />
+                                            ))}
+                                        </ScrollView>
+                                    )}
+
+                                    <Text style={styles.reviewText}>{review.text}</Text>
+
+                                    {review.language && review.language !== 'pt' && (
+                                        <TouchableOpacity>
+                                            <Text style={styles.translateLink}>Traduzir</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            ))}
+
+                            {reviews.length > 2 && (
+                                <TouchableOpacity
+                                    style={styles.showMoreButton}
+                                    onPress={() => setShowAllReviews(!showAllReviews)}
+                                >
+                                    <Text style={styles.showMoreButtonText}>
+                                        {showAllReviews ? 'Ver menos' : `Ver todas as ${reviews.length} avaliações`}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+
+                    {/* Cancellation Policy */}
+                    <View style={styles.policySection}>
+                        <Text style={styles.policySectionTitle}>Precisa fazer uma alteração?</Text>
+                        <Text style={styles.policyText}>
+                            O prazo de cancelamento ou remarcação da atividade (25 de novembro de 2023 às 09:00) expirou.
+                        </Text>
+                    </View>
+
+                    {/* Help Section */}
+                    <View style={styles.helpSection}>
+                        <Text style={styles.helpSectionTitle}>Precisa de ajuda?</Text>
+                        <Text style={styles.helpText}>
+                            Caso você tenha alguma dúvida sobre sua reserva ou sobre a atividade, consulte os canais de suporte disponíveis.
+                        </Text>
+
+                        <TouchableOpacity style={styles.helpButton}>
+                            <View style={styles.helpButtonContent}>
+                                <Text style={styles.helpButtonIcon}>?</Text>
+                                <Text style={styles.helpButtonText}>Central de Ajuda</Text>
+                            </View>
+                            <Text style={styles.chevron}>›</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.helpButton}>
+                            <View style={styles.helpButtonContent}>
+                                <Text style={styles.helpButtonIcon}>?</Text>
+                                <Text style={styles.helpButtonText}>Entre em contato com o suporte</Text>
+                            </View>
+                            <Text style={styles.chevron}>›</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Discover More */}
+                    <View style={styles.discoverSection}>
+                        <Text style={styles.discoverSectionTitle}>Descubra mais em</Text>
+                        <TouchableOpacity style={styles.discoverCard}>
+                            <Image
+                                source={{ uri: 'https://images.unsplash.com/photo-1516815231560-8f41ec531527?w=800' }}
+                                style={styles.discoverImage}
+                            />
+                            <View style={styles.discoverBadge}>
+                                <Text style={styles.discoverBadgeText}>{packageData.destination}</Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
 
                     {/* Contact Agency Button */}
@@ -320,5 +457,215 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.sizes.body,
         color: theme.colors.error,
         textAlign: 'center',
+    },
+    // Reviews Section
+    reviewsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing.md,
+    },
+    reviewsButtons: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    filterButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: theme.borderRadius.full,
+        borderWidth: 1.5,
+        borderColor: theme.colors.primary,
+    },
+    filterButtonText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: theme.colors.primary,
+    },
+    reviewCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+    },
+    reviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: theme.spacing.sm,
+    },
+    reviewUserInfo: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    reviewAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    reviewAvatarText: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    reviewUserName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    reviewDate: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
+    },
+    reviewMenu: {
+        fontSize: 24,
+        color: theme.colors.text.secondary,
+    },
+    reviewRating: {
+        flexDirection: 'row',
+        gap: 4,
+        marginBottom: theme.spacing.sm,
+    },
+    starIcon: {
+        fontSize: 16,
+    },
+    reviewPhotos: {
+        marginBottom: theme.spacing.sm,
+    },
+    reviewPhoto: {
+        width: 100,
+        height: 100,
+        borderRadius: theme.borderRadius.md,
+        marginRight: 8,
+        backgroundColor: theme.colors.surface,
+    },
+    reviewText: {
+        fontSize: 14,
+        color: theme.colors.text.primary,
+        lineHeight: 20,
+        marginBottom: theme.spacing.xs,
+    },
+    translateLink: {
+        fontSize: 13,
+        color: theme.colors.primary,
+        fontWeight: '600',
+    },
+    showMoreButton: {
+        backgroundColor: theme.colors.primary,
+        paddingVertical: 14,
+        borderRadius: theme.borderRadius.full,
+        alignItems: 'center',
+        marginTop: theme.spacing.sm,
+    },
+    showMoreButtonText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.text.inverse,
+    },
+    // Policy Section
+    policySection: {
+        backgroundColor: theme.colors.surfaceLight,
+        padding: theme.spacing.md,
+        borderRadius: theme.borderRadius.lg,
+        marginBottom: theme.spacing.lg,
+    },
+    policySectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: theme.spacing.xs,
+    },
+    policyText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+    },
+    // Help Section
+    helpSection: {
+        backgroundColor: theme.colors.surfaceLight,
+        padding: theme.spacing.md,
+        borderRadius: theme.borderRadius.lg,
+        marginBottom: theme.spacing.lg,
+    },
+    helpSectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: theme.spacing.xs,
+    },
+    helpText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+        marginBottom: theme.spacing.md,
+    },
+    helpButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: theme.spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
+    },
+    helpButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    helpButtonIcon: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: theme.colors.background,
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 14,
+        fontWeight: '700',
+        textAlign: 'center',
+        lineHeight: 24,
+    },
+    helpButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    chevron: {
+        fontSize: 24,
+        color: theme.colors.text.secondary,
+    },
+    // Discover Section
+    discoverSection: {
+        marginBottom: theme.spacing.lg,
+    },
+    discoverSectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: theme.spacing.md,
+    },
+    discoverCard: {
+        borderRadius: theme.borderRadius.lg,
+        overflow: 'hidden',
+        ...theme.shadows.small,
+    },
+    discoverImage: {
+        width: '100%',
+        height: 180,
+        backgroundColor: theme.colors.surface,
+    },
+    discoverBadge: {
+        position: 'absolute',
+        top: theme.spacing.md,
+        left: theme.spacing.md,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.xs,
+        borderRadius: theme.borderRadius.sm,
+    },
+    discoverBadgeText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.text.inverse,
     },
 });
