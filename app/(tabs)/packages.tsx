@@ -26,8 +26,6 @@ export default function PackagesScreen() {
     const router = useRouter();
     const { filters, applyFilters, filteredPackages: searchFilteredPackages } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedFilter, setSelectedFilter] = useState<'all' | 'price' | 'rating'>('all');
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
     const [toastVisible, setToastVisible] = useState(false);
     const [toastOpacity] = useState(new Animated.Value(0));
@@ -67,28 +65,7 @@ export default function PackagesScreen() {
     };
 
     // Usa pacotes filtrados do SearchContext ou todos os pacotes
-    const packagesToFilter = searchFilteredPackages.length > 0 ? searchFilteredPackages : mockPackages;
-
-    // Filter packages based on search query local
-    const filteredPackages = packagesToFilter.filter((pkg) => {
-        const query = searchQuery.toLowerCase();
-        return (
-            pkg.title.toLowerCase().includes(query) ||
-            pkg.destination.toLowerCase().includes(query) ||
-            pkg.country.toLowerCase().includes(query)
-        );
-    });
-
-    // Sort packages based on selected filter
-    const sortedPackages = [...filteredPackages].sort((a, b) => {
-        if (selectedFilter === 'price') {
-            return a.price.min - b.price.min;
-        }
-        if (selectedFilter === 'rating') {
-            return b.rating - a.rating;
-        }
-        return 0; // 'all' - no sorting
-    });
+    const displayedPackages = searchFilteredPackages.length > 0 ? searchFilteredPackages : mockPackages;
 
     return (
         <View style={styles.container}>
@@ -101,7 +78,7 @@ export default function PackagesScreen() {
                     <View>
                         <Text style={styles.headerTitle}>Pacotes de Viagem</Text>
                         <Text style={styles.headerSubtitle}>
-                            {sortedPackages.length} viagens selecionadas para você
+                            {displayedPackages.length} viagens selecionadas para você
                         </Text>
                     </View>
                 </View>
@@ -116,73 +93,13 @@ export default function PackagesScreen() {
                 />
             </View>
 
-            {/* Filter Buttons */}
-            <View style={styles.filtersWrapper}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.filterContainer}
-                >
-                    <TouchableOpacity
-                        style={[
-                            styles.filterButton,
-                            selectedFilter === 'all' && styles.filterButtonActive,
-                        ]}
-                        onPress={() => setSelectedFilter('all')}
-                    >
-                        <Text
-                            style={[
-                                styles.filterText,
-                                selectedFilter === 'all' && styles.filterTextActive,
-                            ]}
-                        >
-                            Todos
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.filterButton,
-                            selectedFilter === 'price' && styles.filterButtonActive,
-                        ]}
-                        onPress={() => setSelectedFilter('price')}
-                    >
-                        <Text
-                            style={[
-                                styles.filterText,
-                                selectedFilter === 'price' && styles.filterTextActive,
-                            ]}
-                        >
-                            💰 Mais barato
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.filterButton,
-                            selectedFilter === 'rating' && styles.filterButtonActive,
-                        ]}
-                        onPress={() => setSelectedFilter('rating')}
-                    >
-                        <Text
-                            style={[
-                                styles.filterText,
-                                selectedFilter === 'rating' && styles.filterTextActive,
-                            ]}
-                        >
-                            ⭐ Mais recomendado
-                        </Text>
-                    </TouchableOpacity>
-                </ScrollView>
-            </View>
-
-            {/* Package List */}
+            {/* Packages Grid */}
             <ScrollView
                 style={styles.packageList}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.packageListContent}
             >
-                {sortedPackages.length === 0 ? (
+                {displayedPackages.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyIcon}>🔍</Text>
                         <Text style={styles.emptyTitle}>Nenhum pacote encontrado</Text>
@@ -191,7 +108,7 @@ export default function PackagesScreen() {
                         </Text>
                     </View>
                 ) : (
-                    sortedPackages.map((pkg) => (
+                    displayedPackages.map((pkg: Package) => (
                         <PackageCard
                             key={pkg.id}
                             package={pkg}
