@@ -22,9 +22,13 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
     const router = useRouter();
-    const { applyFilters, filters } = useSearch();
+    const { applyFilters, filters, filteredPackages, hasActiveFilters } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const featuredPackages = getFeaturedPackages();
+
+    // Usa pacotes filtrados se houver filtros ativos, senão usa featured
+    const displayedPackages = hasActiveFilters ? filteredPackages : featuredPackages;
+
     const [isDestinationsExpanded, setIsDestinationsExpanded] = useState(false);
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
 
@@ -172,7 +176,7 @@ export default function HomeScreen() {
                     <Text style={styles.sectionTitle}>Experiências inesquecíveis</Text>
 
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {featuredPackages.slice(0, 3).map((pkg) => (
+                        {displayedPackages.slice(0, 3).map((pkg) => (
                             <PremiumPackageCard
                                 key={pkg.id}
                                 package={pkg}
