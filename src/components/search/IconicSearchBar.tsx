@@ -33,10 +33,6 @@ export function IconicSearchBar({ placeholder, onPress }: IconicSearchBarProps) 
                 </View>
 
                 <Text style={styles.placeholder}>{placeholder}</Text>
-
-                <View style={styles.filterIcon}>
-                    <Text style={styles.filterText}>⚙️</Text>
-                </View>
             </LinearGradient>
         </TouchableOpacity>
     );

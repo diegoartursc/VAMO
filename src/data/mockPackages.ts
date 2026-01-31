@@ -45,8 +45,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
             'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800',
+            'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=800',
         ],
         duration: 7,
         includes: [
@@ -367,3 +367,16 @@ export const getPackagesByDestination = (destination: string) =>
         p.destination.toLowerCase().includes(destination.toLowerCase()) ||
         p.country.toLowerCase().includes(destination.toLowerCase())
     );
+
+// Calculate relevance score for sorting (rating * log(reviews + 1))
+export const calculateRelevance = (rating: number, reviewCount: number): number => {
+    return rating * Math.log(reviewCount + 1);
+};
+
+export const getPackagesByRelevance = () => {
+    return [...mockPackages].sort((a, b) => {
+        const relevanceA = calculateRelevance(a.rating, a.reviewCount);
+        const relevanceB = calculateRelevance(b.rating, b.reviewCount);
+        return relevanceB - relevanceA; // Highest first
+    });
+};

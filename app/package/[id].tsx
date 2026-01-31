@@ -39,11 +39,6 @@ export default function PackageDetailScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Back Button */}
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Text style={styles.backButtonText}>‹ Voltar</Text>
-            </TouchableOpacity>
-
             <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Image Gallery */}
                 <ScrollView

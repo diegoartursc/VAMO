@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
-import { mockPackages } from '../../src/data/mockPackages';
+import { getPackagesByRelevance } from '../../src/data/mockPackages';
 import { Package } from '../../src/types';
 import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
@@ -64,8 +64,9 @@ export default function PackagesScreen() {
         ]).start(() => setToastVisible(false));
     };
 
-    // Usa pacotes filtrados do SearchContext ou todos os pacotes
-    const displayedPackages = searchFilteredPackages.length > 0 ? searchFilteredPackages : mockPackages;
+    // Usa pacotes filtrados do SearchContext ou pacotes ordenados por relevância
+    const packagesByRelevance = getPackagesByRelevance();
+    const displayedPackages = searchFilteredPackages.length > 0 ? searchFilteredPackages : packagesByRelevance;
 
     return (
         <View style={styles.container}>
@@ -91,6 +92,26 @@ export default function PackagesScreen() {
                     placeholder="Encontrar meu pacote de viagem"
                     onPress={() => setSearchModalVisible(true)}
                 />
+            </View>
+
+            {/* Categories Section */}
+            <View style={styles.categoriesSection}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.categoriesScroll}
+                >
+                    {CATEGORIES.map((cat) => (
+                        <TouchableOpacity
+                            key={cat.id}
+                            style={styles.categoryPill}
+                            onPress={() => router.push(`/(tabs)/packages?category=${cat.id}`)}
+                        >
+                            <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                            <Text style={styles.categoryLabel}>{cat.label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
             </View>
 
             {/* Packages Grid */}
@@ -272,6 +293,19 @@ function PackageCard({
         </TouchableOpacity>
     );
 }
+
+// Categorias (same as home page)
+const CATEGORIES = [
+    { id: 'cultura', icon: '🏛️', label: 'Cultura' },
+    { id: 'gastronomia', icon: '🍽️', label: 'Gastronomia' },
+    { id: 'natureza', icon: '🌳', label: 'Natureza' },
+    { id: 'esportes', icon: '⚽', label: 'Esportes' },
+    { id: 'cruzeiros', icon: '🚢', label: 'Cruzeiros' },
+    { id: 'eurotrip', icon: '🌍', label: 'Eurotrip' },
+    { id: 'relax', icon: '🧘', label: 'Relax' },
+    { id: 'familia', icon: '👨‍👩‍👧‍👦', label: 'Família' },
+    { id: 'aventura', icon: '🏔️', label: 'Aventura' },
+];
 
 const styles = StyleSheet.create({
     container: {
@@ -595,5 +629,31 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: '#FFFFFF',
+    },
+    categoriesSection: {
+        marginBottom: theme.spacing.md,
+    },
+    categoriesScroll: {
+        paddingHorizontal: theme.spacing.md,
+        gap: theme.spacing.sm,
+    },
+    categoryPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.borderRadius.full,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    categoryIcon: {
+        fontSize: 16,
+    },
+    categoryLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
     },
 });

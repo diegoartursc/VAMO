@@ -13,6 +13,8 @@ import { Alert } from 'react-native';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
+import { CTACarousel } from '../../src/components/home/CTACarousel';
+import { getFeaturedItineraries } from '../../src/data/mockItineraries';
 
 export default function ItinerariesScreen() {
     const router = useRouter();
@@ -31,7 +33,7 @@ export default function ItinerariesScreen() {
                 <View style={styles.headerContent}>
                     <Text style={styles.headerTitle}>Roteiros de Viajantes</Text>
                     <Text style={styles.headerSubtitle}>
-                        Compre roteiros de quem já viajou
+                        Roteiros testados por viajantes reais
                     </Text>
                 </View>
             </LinearGradient>
@@ -44,12 +46,99 @@ export default function ItinerariesScreen() {
                 />
             </View>
 
+            {/* Categories Section */}
+            <View style={styles.categoriesSection}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.categoriesScroll}
+                >
+                    {CATEGORIES.map((cat) => (
+                        <TouchableOpacity
+                            key={cat.id}
+                            style={styles.categoryPill}
+                            onPress={() => router.push(`/(tabs)/itineraries?category=${cat.id}`)}
+                        >
+                            <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                            <Text style={styles.categoryLabel}>{cat.label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Featured Creators Section */}
+                {/* 1️⃣ Featured Itineraries - PRIORITY */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>🌟 Criadores em Destaque</Text>
+                    <Text style={styles.sectionTitle}>Roteiros mais escolhidos pela comunidade</Text>
+
+                    {getFeaturedItineraries().map((itinerary) => (
+                        <View key={itinerary.id} style={[styles.itineraryCard, { marginBottom: 16 }]}>
+                            <Image
+                                source={{ uri: itinerary.images[0] }}
+                                style={styles.itineraryImage}
+                                resizeMode="cover"
+                            />
+
+                            {/* Badge overlay */}
+                            <View style={styles.cardBadge}>
+                                <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" />
+                            </View>
+
+                            <View style={styles.itineraryContent}>
+                                <View style={styles.authorRow}>
+                                    <Text style={styles.authorAvatar}>{itinerary.creator.avatar}</Text>
+                                    <View style={styles.authorInfo}>
+                                        <View style={styles.authorNameRow}>
+                                            <Text style={styles.authorName}>{itinerary.creator.name}</Text>
+                                            <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
+                                        </View>
+                                        <Text style={styles.authorStats}>
+                                            ⭐ {itinerary.creator.rating} • {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <Text style={styles.itineraryTitle}>
+                                    {itinerary.title}
+                                </Text>
+
+                                <Text style={styles.itineraryDescription}>
+                                    {itinerary.description}
+                                </Text>
+
+                                {/* Inclusions */}
+                                <View style={styles.inclusions}>
+                                    {itinerary.inclusions.map((inclusion, idx) => (
+                                        <View key={idx} style={styles.inclusion}>
+                                            <Text style={styles.inclusionText}>
+                                                {inclusion === 'Planilha' ? '📋' : inclusion === 'Mapa' ? '🗺️' : inclusion === 'Suporte' ? '💬' : '📱'} {inclusion}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+
+                                <View style={styles.itineraryFooter}>
+                                    <View>
+                                        <Text style={styles.priceLabel}>Roteiro completo</Text>
+                                        <Text style={styles.price}>R$ {itinerary.price.toFixed(2).replace('.', ',')}</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.buyButton}
+                                        onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                                    >
+                                        <Text style={styles.buyButtonText}>Saiba mais</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    ))}
+                </View>
+
+                {/* 2️⃣ Featured Creators */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>⭐ Criadores recomendados pela comunidade</Text>
                     <Text style={styles.sectionSubtitle}>
-                        Viajantes verificados com excelentes avaliações
+                        Viajantes verificados com histórico comprovado
                     </Text>
 
                     {featuredCreators.slice(0, 2).map((creator) => (
@@ -62,11 +151,11 @@ export default function ItinerariesScreen() {
                     ))}
                 </View>
 
-                {/* Verification Levels Explanation */}
+                {/* 3️⃣ Verification Levels */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>🏅 Níveis de Verificação</Text>
                     <Text style={styles.sectionSubtitle}>
-                        Diferente de outras plataformas, aqui os criadores são certificados
+                        Aqui você sabe exatamente quem está por trás de cada roteiro
                     </Text>
 
                     <View style={styles.badgesGrid}>
@@ -84,120 +173,7 @@ export default function ItinerariesScreen() {
                     </View>
                 </View>
 
-                {/* Price Comparison Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>💰 Compare e Economize</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Veja quanto você economiza viajando com nossos roteiros
-                    </Text>
-
-                    <TouchableOpacity
-                        style={styles.toggleButton}
-                        onPress={() => setShowComparison(!showComparison)}
-                    >
-                        <Text style={styles.toggleButtonText}>
-                            {showComparison ? 'Ocultar comparativo' : 'Ver exemplo de economia →'}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {showComparison && (
-                        <View style={{ marginTop: theme.spacing.md }}>
-                            <PriceComparison
-                                agencyName="Pacote CVC"
-                                agencyPrice={{
-                                    flight: 2500,
-                                    hotel: 1800,
-                                    tours: 700,
-                                    transfer: 300,
-                                }}
-                                creatorName="Roteiro Diego"
-                                creatorPrice={{
-                                    flight: 2500,
-                                    hotel: 900,
-                                    tours: 200,
-                                    transfer: 0,
-                                }}
-                                itineraryPrice={49}
-                            />
-                        </View>
-                    )}
-                </View>
-
-                {/* Example Itinerary Card */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📋 Exemplo de Roteiro</Text>
-
-                    <View style={styles.itineraryCard}>
-                        <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400' }}
-                            style={styles.itineraryImage}
-                            resizeMode="cover"
-                        />
-
-                        {/* Badge overlay */}
-                        <View style={styles.cardBadge}>
-                            <VerifiedBadge level="ambassador" size="small" />
-                        </View>
-
-                        <View style={styles.itineraryContent}>
-                            <View style={styles.authorRow}>
-                                <Text style={styles.authorAvatar}>👨‍✈️</Text>
-                                <View style={styles.authorInfo}>
-                                    <View style={styles.authorNameRow}>
-                                        <Text style={styles.authorName}>Diego Artur</Text>
-                                        <VerifiedBadge level="ambassador" size="small" showLabel={false} />
-                                    </View>
-                                    <Text style={styles.authorStats}>
-                                        ⭐ 4.9 • 1.234 vendas
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <Text style={styles.itineraryTitle}>
-                                Paris Econômica - 10 dias por R$ 6.000
-                            </Text>
-
-                            <Text style={styles.itineraryDescription}>
-                                Roteiro completo com planilha de gastos, hospedagens baratas, restaurantes locais e atrações gratuitas.
-                            </Text>
-
-                            {/* Inclusions */}
-                            <View style={styles.inclusions}>
-                                <View style={styles.inclusion}>
-                                    <Text style={styles.inclusionText}>📋 Planilha</Text>
-                                </View>
-                                <View style={styles.inclusion}>
-                                    <Text style={styles.inclusionText}>🗺️ Mapa</Text>
-                                </View>
-                                <View style={styles.inclusion}>
-                                    <Text style={styles.inclusionText}>💬 Suporte</Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.itineraryFooter}>
-                                <View>
-                                    <Text style={styles.priceLabel}>Roteiro completo</Text>
-                                    <Text style={styles.price}>R$ 49,90</Text>
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.buyButton}
-                                    onPress={() => Alert.alert(
-                                        '💳 Comprar Roteiro',
-                                        'Este roteiro custa R$ 49,90. Deseja prosseguir para o pagamento?',
-                                        [
-                                            { text: 'Cancelar', style: 'cancel' },
-                                            { text: 'Comprar', onPress: () => Alert.alert('Sucesso! ✅', 'Compra realizada com sucesso! O roteiro foi enviado para seu email.') }
-                                        ]
-                                    )}
-                                >
-                                    <Text style={styles.buyButtonText}>Comprar Roteiro</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Community Chats */}
+                {/* 4️⃣ Community Chats */}
                 <View style={styles.section}>
                     <DestinationChats
                         limit={3}
@@ -212,21 +188,9 @@ export default function ItinerariesScreen() {
                     />
                 </View>
 
-                {/* CTA Section */}
+                {/* CTA Carousel - Auto-Play */}
                 <View style={styles.section}>
-                    <View style={styles.ctaCard}>
-                        <Text style={styles.ctaIcon}>✍️</Text>
-                        <Text style={styles.ctaTitle}>Quer vender seus roteiros?</Text>
-                        <Text style={styles.ctaText}>
-                            Transforme suas experiências de viagem em renda extra. Compartilhe seus roteiros e ajude outros viajantes!
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.ctaButton}
-                            onPress={() => router.push('/(tabs)/profile')}
-                        >
-                            <Text style={styles.ctaButtonText}>Cadastre-se como Criador</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <CTACarousel />
                 </View>
 
                 <View style={{ height: 40 }} />
@@ -245,6 +209,19 @@ export default function ItinerariesScreen() {
         </View>
     );
 }
+
+// Categorias (same as home page)
+const CATEGORIES = [
+    { id: 'cultura', icon: '🏛️', label: 'Cultura' },
+    { id: 'gastronomia', icon: '🍽️', label: 'Gastronomia' },
+    { id: 'natureza', icon: '🌳', label: 'Natureza' },
+    { id: 'esportes', icon: '⚽', label: 'Esportes' },
+    { id: 'cruzeiros', icon: '🚢', label: 'Cruzeiros' },
+    { id: 'eurotrip', icon: '🌍', label: 'Eurotrip' },
+    { id: 'relax', icon: '🧘', label: 'Relax' },
+    { id: 'familia', icon: '👨‍👩‍👧‍👦', label: 'Família' },
+    { id: 'aventura', icon: '🏔️', label: 'Aventura' },
+];
 
 const styles = StyleSheet.create({
     container: {
@@ -415,40 +392,31 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: theme.colors.text.inverse,
     },
-    ctaCard: {
-        backgroundColor: theme.colors.background,
-        padding: theme.spacing.lg,
-        borderRadius: theme.borderRadius.lg,
-        alignItems: 'center',
-        ...theme.shadows.medium,
-    },
-    ctaIcon: {
-        fontSize: 48,
+    categoriesSection: {
         marginBottom: theme.spacing.md,
     },
-    ctaTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-        marginBottom: theme.spacing.sm,
-        textAlign: 'center',
+    categoriesScroll: {
+        paddingHorizontal: theme.spacing.md,
+        gap: theme.spacing.sm,
     },
-    ctaText: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        textAlign: 'center',
-        marginBottom: theme.spacing.lg,
-        lineHeight: 20,
-    },
-    ctaButton: {
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: theme.spacing.xl,
-        paddingVertical: theme.spacing.md,
+    categoryPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
         borderRadius: theme.borderRadius.full,
+        backgroundColor: theme.colors.background,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     },
-    ctaButtonText: {
+    categoryIcon: {
         fontSize: 16,
-        fontWeight: '600',
-        color: theme.colors.text.inverse,
     },
+    categoryLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+    },
+    // CTA styles removed - using CTACarousel component
 });

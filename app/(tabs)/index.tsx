@@ -13,10 +13,12 @@ import { HeroSection } from '../../src/components/home/HeroSection';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { PressableCard } from '../../src/components/common/PressableCard';
-import { getFeaturedPackages } from '../../src/data/mockPackages';
+import { getPackagesByRelevance } from '../../src/data/mockPackages';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { useRouter } from 'expo-router';
 import { useSearch } from '../../src/hooks/useSearch';
+import { CTACarousel } from '../../src/components/home/CTACarousel';
+import { useFavoriteAnimation } from '../../src/components/FavoriteAnimationProvider';
 
 const { width } = Dimensions.get('window');
 
@@ -24,21 +26,29 @@ export default function HomeScreen() {
     const router = useRouter();
     const { applyFilters, filters, filteredPackages, hasActiveFilters } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
-    const featuredPackages = getFeaturedPackages();
+    const packagesByRelevance = getPackagesByRelevance();
 
-    // Usa pacotes filtrados se houver filtros ativos, senão usa featured
-    const displayedPackages = hasActiveFilters ? filteredPackages : featuredPackages;
+    // Usa pacotes filtrados se houver filtros ativos, senão usa por relevância
+    const displayedPackages = hasActiveFilters ? filteredPackages : packagesByRelevance.filter(p => p.featured);
 
-    const [isDestinationsExpanded, setIsDestinationsExpanded] = useState(false);
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
+    const { showAnimation } = useFavoriteAnimation();
 
     // Toggle favorite status
-    const toggleFavorite = (packageId: string) => {
+    const toggleFavorite = (packageId: string, event?: any) => {
+        const isAdding = !favorites.includes(packageId);
+
         setFavorites(prev =>
             prev.includes(packageId)
                 ? prev.filter(id => id !== packageId)
                 : [...prev, packageId]
         );
+
+        // Show animation only when adding to favorites
+        if (isAdding && event) {
+            const { pageX, pageY } = event.nativeEvent;
+            showAnimation(pageX, pageY);
+        }
     };
 
     // Auto-scroll for categories
@@ -171,37 +181,42 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
 
-                {/* Experiências Inesquecíveis */}
+                {/* Pacotes em Destaque */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Experiências inesquecíveis</Text>
+                    <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Viagens completas com as melhores avaliações
+                    </Text>
 
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {displayedPackages.slice(0, 3).map((pkg) => (
+                    {/* Two rows of 3 cards each */}
+                    <View style={styles.packagesGrid}>
+                        {displayedPackages.slice(0, 6).map((pkg) => (
                             <PremiumPackageCard
                                 key={pkg.id}
                                 package={pkg}
                                 onPress={() => router.push(`/package/${pkg.id}`)}
                                 isFavorite={favorites.includes(pkg.id)}
-                                onToggleFavorite={() => toggleFavorite(pkg.id)}
+                                onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
                             />
                         ))}
-                    </ScrollView>
+                    </View>
+                </View>
+
+                {/* CTA Carousel - Auto-Play (moved before destinations) */}
+                <View style={styles.section}>
+                    <CTACarousel />
                 </View>
 
                 {/* Destinos Populares */}
                 <View style={styles.section}>
-                    <TouchableOpacity onPress={() => setIsDestinationsExpanded(!isDestinationsExpanded)} activeOpacity={0.7}>
-                        <Text style={styles.sectionTitle}>
-                            Destinos populares {isDestinationsExpanded ? '▲' : '▼'}
-                        </Text>
-                    </TouchableOpacity>
+                    <Text style={styles.sectionTitle}>Destinos populares</Text>
                     <Text style={styles.sectionSubtitle}>
                         Os lugares mais procurados pelos nossos viajantes
                     </Text>
 
                     {/* Grid de destinos */}
                     <View style={styles.destinationsGrid}>
-                        {(isDestinationsExpanded ? POPULAR_DESTINATIONS : POPULAR_DESTINATIONS.slice(0, 4)).map((dest) => (
+                        {POPULAR_DESTINATIONS.map((dest) => (
                             <TouchableOpacity
                                 key={dest.id}
                                 style={styles.destinationCard}
@@ -218,20 +233,6 @@ export default function HomeScreen() {
                                 </Text>
                             </TouchableOpacity>
                         ))}
-                    </View>
-                </View>
-
-                {/* CTA Torne-se Criador */}
-                <View style={styles.section}>
-                    <View style={styles.ctaCard}>
-                        <Text style={styles.ctaIcon}>✍️</Text>
-                        <Text style={styles.ctaTitle}>Quer vender seus roteiros?</Text>
-                        <Text style={styles.ctaText}>
-                            Transforme suas viagens em renda extra compartilhando seus roteiros
-                        </Text>
-                        <TouchableOpacity style={styles.ctaButton} onPress={() => router.push('/(tabs)/profile')}>
-                            <Text style={styles.ctaButtonText}>Começar agora</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -255,7 +256,7 @@ export default function HomeScreen() {
     );
 }
 
-// Temporary component until we create the full one
+// Enhanced Package Card with rating, reviews, agency, and duration
 function PremiumPackageCard({
     package: pkg,
     onPress,
@@ -274,7 +275,8 @@ function PremiumPackageCard({
             <TouchableOpacity
                 style={styles.favoriteButton}
                 onPress={(e) => {
-                    onToggleFavorite();
+                    e.stopPropagation();
+                    onToggleFavorite(e);
                 }}
                 activeOpacity={0.7}
             >
@@ -285,11 +287,26 @@ function PremiumPackageCard({
 
             <View style={styles.packageInfo}>
                 <Text style={styles.packageTitle} numberOfLines={2}>{pkg.title}</Text>
+
+                {/* Rating & Review Count */}
+                <View style={styles.packageMeta}>
+                    <Text style={styles.packageRating}>⭐ {pkg.rating}</Text>
+                    <Text style={styles.packageReviews}>({pkg.reviewCount})</Text>
+                </View>
+
+                {/* Agency & Duration */}
+                <View style={styles.packageDetails}>
+                    <Text style={styles.packageAgency} numberOfLines={1}>{pkg.agency?.name || 'Agência'}</Text>
+                    <Text style={styles.packageDuration}>• {pkg.duration} dias</Text>
+                </View>
+
                 <Text style={styles.packagePrice}>R$ {pkg.price.min.toLocaleString()}</Text>
             </View>
         </PressableCard>
     );
 }
+
+// Inline CTACarousel removed - using separate component from CTACarousel.tsx
 
 // Categorias de Intenção em Destaque (ajustado em 30/01/2026)
 // Apenas as principais intenções: Luxo e Custo-benefício
@@ -312,7 +329,7 @@ const CATEGORIES = [
 ];
 
 const POPULAR_DESTINATIONS = [
-    { id: 'paris', name: 'Paris', image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800', count: 847 },
+    { id: 'paris', name: 'Paris', image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800', count: 847 },
     { id: 'tokyo', name: 'Tokyo', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800', count: 623 },
     { id: 'nyc', name: 'Nova York', image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800', count: 912 },
     { id: 'london', name: 'Londres', image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800', count: 734 },
@@ -424,8 +441,7 @@ const styles = StyleSheet.create({
 
     // Package Cards (temporary)
     packageCard: {
-        width: 260,
-        marginRight: 16,
+        width: '48%',
         backgroundColor: theme.colors.background,
         borderRadius: theme.borderRadius.lg,
         overflow: 'hidden',
@@ -445,13 +461,49 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: theme.colors.text.primary,
-        marginBottom: 4,
+        marginBottom: 6,
         lineHeight: 22,
+    },
+    packageMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+        gap: 4,
+    },
+    packageRating: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    packageReviews: {
+        fontSize: 14,
+        color: theme.colors.text.tertiary,
+    },
+    packageDetails: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        gap: 6,
+    },
+    packageAgency: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        flex: 1,
+    },
+    packageDuration: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
     },
     packagePrice: {
         fontSize: 18,
         fontWeight: '700',
         color: theme.colors.primary,
+    },
+    packagesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        justifyContent: 'space-between',
     },
 
     // Destinations Grid
@@ -488,46 +540,7 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
     },
 
-    // CTA Card
-    ctaCard: {
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: theme.borderRadius.xl,
-        padding: 28,
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: theme.colors.primaryLight,
-        ...theme.shadows.medium,
-    },
-    ctaIcon: {
-        fontSize: 48,
-        marginBottom: 16,
-    },
-    ctaTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    ctaText: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 20,
-    },
-    ctaButton: {
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 36,
-        paddingVertical: 16,
-        borderRadius: theme.borderRadius.full,
-        ...theme.shadows.button,
-    },
-    ctaButtonText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: theme.colors.text.onPrimary,
-    },
+    // CTA Carousel styles removed - using styles from CTACarousel.tsx
     favoriteButton: {
         position: 'absolute',
         top: 8,

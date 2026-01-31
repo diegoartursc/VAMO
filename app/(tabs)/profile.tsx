@@ -12,8 +12,8 @@ export default function ProfileScreen() {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* User Info Header */}
                 <View style={styles.userHeader}>
-                    <Text style={styles.greeting}>👋 Olá Ana</Text>
-                    <Text style={styles.email}>anapaula_beckencamp@hotmail.com</Text>
+                    <Text style={styles.greeting}>👋 Olá Usuário</Text>
+                    <Text style={styles.email}>usuario@email.com</Text>
                 </View>
 
                 {/* Configurações Section */}
