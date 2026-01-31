@@ -1,56 +1,59 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '../../src/theme/theme';
+import { SearchProvider } from '../../src/contexts/SearchContext';
 
 export default function TabsLayout() {
     return (
-        <Tabs
-            screenOptions={{
-                headerShown: false,
-                tabBarActiveTintColor: theme.colors.primary,
-                tabBarInactiveTintColor: theme.colors.text.secondary,
-                tabBarStyle: styles.tabBar,
-                tabBarItemStyle: styles.tabBarItem,
-                tabBarLabelStyle: styles.tabBarLabel,
-            }}
-        >
+        <SearchProvider>
+            <Tabs
+                screenOptions={{
+                    headerShown: false,
+                    tabBarActiveTintColor: theme.colors.primary,
+                    tabBarInactiveTintColor: theme.colors.text.secondary,
+                    tabBarStyle: styles.tabBar,
+                    tabBarItemStyle: styles.tabBarItem,
+                    tabBarLabelStyle: styles.tabBarLabel,
+                }}
+            >
 
-            <Tabs.Screen
-                name="index"
-                options={{
-                    title: 'Início',
-                    tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
-                name="packages"
-                options={{
-                    title: 'Pacotes',
-                    tabBarIcon: ({ focused }) => <TabIcon name="package" focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
-                name="itineraries"
-                options={{
-                    title: 'Roteiros',
-                    tabBarIcon: ({ focused }) => <TabIcon name="map" focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
-                name="my-trips"
-                options={{
-                    title: 'Minhas Viagens',
-                    tabBarIcon: ({ focused }) => <TabIcon name="trips" focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
-                name="profile"
-                options={{
-                    title: 'Perfil',
-                    tabBarIcon: ({ focused }) => <TabIcon name="user" focused={focused} />,
-                }}
-            />
-        </Tabs>
+                <Tabs.Screen
+                    name="index"
+                    options={{
+                        title: 'Início',
+                        tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
+                    }}
+                />
+                <Tabs.Screen
+                    name="packages"
+                    options={{
+                        title: 'Pacotes',
+                        tabBarIcon: ({ focused }) => <TabIcon name="package" focused={focused} />,
+                    }}
+                />
+                <Tabs.Screen
+                    name="itineraries"
+                    options={{
+                        title: 'Roteiros',
+                        tabBarIcon: ({ focused }) => <TabIcon name="map" focused={focused} />,
+                    }}
+                />
+                <Tabs.Screen
+                    name="my-trips"
+                    options={{
+                        title: 'Minhas Viagens',
+                        tabBarIcon: ({ focused }) => <TabIcon name="trips" focused={focused} />,
+                    }}
+                />
+                <Tabs.Screen
+                    name="profile"
+                    options={{
+                        title: 'Perfil',
+                        tabBarIcon: ({ focused }) => <TabIcon name="user" focused={focused} />,
+                    }}
+                />
+            </Tabs>
+        </SearchProvider>
     );
 }
 

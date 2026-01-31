@@ -54,7 +54,12 @@ export default function ProfileScreen() {
                     <Text style={styles.sectionTitle}>Suporte</Text>
 
                     <SettingItem
-                        title="Sobre o GetYourGuide"
+                        title="Como funciona"
+                        onPress={() => Alert.alert('Como funciona', 'Modal explicativo em breve')}
+                    />
+
+                    <SettingItem
+                        title="Sobre o VAMO"
                         onPress={() => Alert.alert('Sobre', 'Informações sobre o VAMO')}
                     />
 

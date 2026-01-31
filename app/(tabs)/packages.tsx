@@ -8,6 +8,7 @@ import {
     Image,
     TextInput,
     Dimensions,
+    Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,26 +16,61 @@ import { theme } from '../../src/theme/theme';
 import { mockPackages } from '../../src/data/mockPackages';
 import { Package } from '../../src/types';
 import { PackageBadge } from '../../src/components/badges/PackageBadge';
+import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
+import { SearchModal } from '../../src/components/search/SearchModal';
+import { useSearch } from '../../src/hooks/useSearch';
 
 const { width } = Dimensions.get('window');
 
 export default function PackagesScreen() {
     const router = useRouter();
+    const { filters, applyFilters, filteredPackages: searchFilteredPackages } = useSearch();
+    const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFilter, setSelectedFilter] = useState<'all' | 'price' | 'rating'>('all');
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastOpacity] = useState(new Animated.Value(0));
 
     // Toggle favorite status
     const toggleFavorite = (packageId: string) => {
+        const isAdding = !favorites.includes(packageId);
+
         setFavorites(prev =>
             prev.includes(packageId)
                 ? prev.filter(id => id !== packageId)
                 : [...prev, packageId]
         );
+
+        // Show toast only when adding to favorites
+        if (isAdding) {
+            showToast();
+        }
     };
 
-    // Filter packages based on search query
-    const filteredPackages = mockPackages.filter((pkg) => {
+    // Show toast notification
+    const showToast = () => {
+        setToastVisible(true);
+        Animated.sequence([
+            Animated.timing(toastOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.delay(2000),
+            Animated.timing(toastOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+        ]).start(() => setToastVisible(false));
+    };
+
+    // Usa pacotes filtrados do SearchContext ou todos os pacotes
+    const packagesToFilter = searchFilteredPackages.length > 0 ? searchFilteredPackages : mockPackages;
+
+    // Filter packages based on search query local
+    const filteredPackages = packagesToFilter.filter((pkg) => {
         const query = searchQuery.toLowerCase();
         return (
             pkg.title.toLowerCase().includes(query) ||
@@ -65,28 +101,20 @@ export default function PackagesScreen() {
                     <View>
                         <Text style={styles.headerTitle}>Pacotes de Viagem</Text>
                         <Text style={styles.headerSubtitle}>
-                            {sortedPackages.length} pacotes disponíveis
+                            {sortedPackages.length} viagens selecionadas para você
                         </Text>
                     </View>
                 </View>
 
-                {/* Search Bar (Inside Gradient for better aesthetics) */}
-                <View style={styles.searchContainer}>
-                    <Text style={styles.searchIcon}>🔍</Text>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Buscar destino..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholderTextColor={theme.colors.text.secondary}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Text style={styles.clearIcon}>✕</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
             </LinearGradient>
+
+            {/* Iconic Search Bar */}
+            <View style={styles.searchWrapper}>
+                <IconicSearchBar
+                    placeholder="Encontrar meu pacote de viagem"
+                    onPress={() => setSearchModalVisible(true)}
+                />
+            </View>
 
             {/* Filter Buttons */}
             <View style={styles.filtersWrapper}>
@@ -125,7 +153,7 @@ export default function PackagesScreen() {
                                 selectedFilter === 'price' && styles.filterTextActive,
                             ]}
                         >
-                            💰 Menor Preço
+                            💰 Mais barato
                         </Text>
                     </TouchableOpacity>
 
@@ -142,7 +170,7 @@ export default function PackagesScreen() {
                                 selectedFilter === 'rating' && styles.filterTextActive,
                             ]}
                         >
-                            ⭐ Melhor Avaliado
+                            ⭐ Mais recomendado
                         </Text>
                     </TouchableOpacity>
                 </ScrollView>
@@ -175,6 +203,31 @@ export default function PackagesScreen() {
                 )}
                 <View style={{ height: 20 }} />
             </ScrollView>
+
+            {/* Toast Notification */}
+            {toastVisible && (
+                <Animated.View
+                    style={[
+                        styles.toast,
+                        { opacity: toastOpacity }
+                    ]}
+                >
+                    <Text style={styles.toastIcon}>💾</Text>
+                    <Text style={styles.toastText}>Salvo em Minhas Viagens</Text>
+                </Animated.View>
+            )}
+
+            {/* Search Modal */}
+            <SearchModal
+                visible={searchModalVisible}
+                onClose={() => setSearchModalVisible(false)}
+                onSearch={(newFilters) => {
+                    applyFilters(newFilters);
+                    setSearchModalVisible(false);
+                }}
+                context="packages"
+                initialFilters={filters}
+            />
         </View>
     );
 }
@@ -227,9 +280,17 @@ function PackageCard({
 
             <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
-                    <View style={styles.agencyTag}>
-                        <Text style={styles.agencyIcon}>{pkg.agency.logo}</Text>
-                        <Text style={styles.agencyText}>{pkg.agency.name}</Text>
+                    <View style={styles.agencyRow}>
+                        <View style={styles.agencyTag}>
+                            <Text style={styles.agencyIcon}>{pkg.agency.logo}</Text>
+                            <Text style={styles.agencyText}>{pkg.agency.name}</Text>
+                        </View>
+                        {pkg.agency.verified && (
+                            <View style={styles.verifiedBadge}>
+                                <Text style={styles.verifiedIcon}>🛡️</Text>
+                                <Text style={styles.verifiedText}>Agência verificada</Text>
+                            </View>
+                        )}
                     </View>
                     <View style={styles.ratingBadge}>
                         <Text style={styles.ratingIcon}>⭐</Text>
@@ -279,6 +340,11 @@ function PackageCard({
                         <Text style={styles.reviewCount}>
                             ({pkg.reviewCount} avaliações)
                         </Text>
+                        {pkg.recentPurchases && (
+                            <Text style={styles.socialProof}>
+                                Reservado por {pkg.recentPurchases} pessoas este mês
+                            </Text>
+                        )}
                     </View>
                     <TouchableOpacity style={styles.viewButton} onPress={onPress}>
                         <Text style={styles.viewButtonText}>Ver detalhes</Text>
@@ -299,6 +365,10 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
+    },
+    searchWrapper: {
+        marginTop: -28,
+        marginBottom: theme.spacing.md,
     },
     headerContent: {
         paddingHorizontal: theme.spacing.md,
@@ -420,6 +490,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: theme.spacing.sm,
+    },
+    agencyRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flex: 1,
     },
     agencyTag: {
         flexDirection: 'row',
@@ -552,5 +628,49 @@ const styles = StyleSheet.create({
     },
     favoriteIcon: {
         fontSize: 20,
+    },
+    verifiedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: theme.borderRadius.sm,
+    },
+    verifiedIcon: {
+        fontSize: 9,
+    },
+    verifiedText: {
+        fontSize: 9,
+        fontWeight: '500',
+        color: theme.colors.text.secondary,
+    },
+    socialProof: {
+        fontSize: 11,
+        color: theme.colors.text.secondary,
+        marginTop: 4,
+        opacity: 0.8,
+    },
+    toast: {
+        position: 'absolute',
+        bottom: 100,
+        alignSelf: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: theme.borderRadius.full,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        ...theme.shadows.medium,
+    },
+    toastIcon: {
+        fontSize: 16,
+    },
+    toastText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });

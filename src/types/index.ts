@@ -34,6 +34,27 @@ export interface Package {
         extras: string[];
     };
     categories?: string[];
+    // Trust & Conversion Badges
+    hasFreeCancellation?: boolean;
+    isAllInclusive?: boolean;
+    recentPurchases?: number; // How many sold recently
+    priceComparison?: 'below' | 'average' | 'above'; // Compared to market
+    priceDiscount?: number; // Percentage below average
+    itinerary?: {
+        mainStop: string;
+        pickupLocations: string[];
+        transport: {
+            type: string;
+            duration: string;
+        };
+        mainActivity: {
+            location: string;
+            activity: string;
+            duration: string;
+        };
+        returnLocations: string[];
+        mapImageUrl?: string;
+    };
 }
 
 export interface User {

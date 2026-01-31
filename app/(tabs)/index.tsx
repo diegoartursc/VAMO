@@ -10,15 +10,20 @@ import {
 } from 'react-native';
 import { theme } from '../../src/theme/theme';
 import { HeroSection } from '../../src/components/home/HeroSection';
-import { PremiumSearchBar } from '../../src/components/search/PremiumSearchBar';
+import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
+import { SearchModal } from '../../src/components/search/SearchModal';
 import { PressableCard } from '../../src/components/common/PressableCard';
 import { getFeaturedPackages } from '../../src/data/mockPackages';
+import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { useRouter } from 'expo-router';
+import { useSearch } from '../../src/hooks/useSearch';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
     const router = useRouter();
+    const { applyFilters, filters } = useSearch();
+    const [searchModalVisible, setSearchModalVisible] = useState(false);
     const featuredPackages = getFeaturedPackages();
     const [isDestinationsExpanded, setIsDestinationsExpanded] = useState(false);
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
@@ -86,24 +91,57 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
                 bounces={true}
             >
-                {/* Hero Section */}
+                {/* Hero Section - CTA removido, texto movido para search bar */}
                 <HeroSection
                     image="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800"
-                    title="Viagens para ficar na memória"
-                    subtitle="Passeie pelos vastos desertos de Dubai"
+                    title="Viajar é mais simples do que você pensa"
+                    subtitle="Agências verificadas • Pacotes completos • Suporte em português"
                     badge="Originals by VAMO"
-                    ctaText="Saiba mais"
-                    onCtaPress={() => router.push('/(tabs)/packages')}
                 />
 
-                {/* Premium Search Bar */}
-                <PremiumSearchBar
-                    placeholder="Buscar no VAMO"
-                    onPress={() => router.push('/search')}
+                {/* Iconic Search Bar - Novo Design */}
+                <IconicSearchBar
+                    placeholder="Encontrar minha viagem"
+                    onPress={() => setSearchModalVisible(true)}
                 />
 
+                {/* Why Different */}
+                <WhyDifferent />
 
-                {/* Category Pills with Auto-Scroll */}
+                {/* ========================================
+                    NOVA SEÇÃO: Categorias de Intenção
+                    Adicionada ANTES das categorias existentes
+                    ======================================== */}
+                <View style={styles.intentSection}>
+                    <Text style={styles.intentTitle}>Como você quer viajar?</Text>
+                    <Text style={styles.intentSubtitle}>
+                        Escolha o que combina com você e encontre sua viagem ideal
+                    </Text>
+
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.intentScroll}
+                    >
+                        {INTENT_CATEGORIES.map((intent) => (
+                            <TouchableOpacity
+                                key={intent.id}
+                                style={styles.intentChip}
+                                onPress={() => {
+                                    // Aplicar filtro baseado na intenção
+                                    // Por enquanto, navega para pacotes com query parameter
+                                    router.push(`/(tabs)/packages?intent=${intent.id}`);
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.intentEmoji}>{intent.emoji}</Text>
+                                <Text style={styles.intentLabel}>{intent.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* Category Pills with Auto-Scroll (CATEGORIAS EXISTENTES - MANTIDAS) */}
                 <View style={styles.categoriesSection}>
                     <ScrollView
                         ref={scrollViewRef}
@@ -195,6 +233,20 @@ export default function HomeScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Search Modal */}
+            <SearchModal
+                visible={searchModalVisible}
+                onClose={() => setSearchModalVisible(false)}
+                onSearch={(newFilters) => {
+                    applyFilters(newFilters);
+                    setSearchModalVisible(false);
+                    // Navegar para a aba de pacotes com os filtros aplicados
+                    router.push('/(tabs)/packages');
+                }}
+                context="home"
+                initialFilters={filters}
+            />
         </View>
     );
 }
@@ -235,6 +287,14 @@ function PremiumPackageCard({
     );
 }
 
+// Categorias de Intenção em Destaque (ajustado em 30/01/2026)
+// Apenas as principais intenções: Luxo e Custo-benefício
+const INTENT_CATEGORIES = [
+    { id: 'luxo', emoji: '💎', label: 'Luxo' },
+    { id: 'custo-beneficio', emoji: '💰', label: 'Melhor custo-benefício' },
+];
+
+// Categorias Visuais (existentes - NÃO ALTERAR)
 const CATEGORIES = [
     { id: 'cultura', icon: '🏛️', label: 'Cultura' },
     { id: 'gastronomia', icon: '🍽️', label: 'Gastronomia' },
@@ -267,7 +327,52 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 
-    // Categories
+    // Intent Categories (Nova Seção)
+    intentSection: {
+        marginBottom: 32,
+        paddingHorizontal: 20,
+    },
+    intentTitle: {
+        fontSize: theme.typography.sizes.title,
+        fontWeight: theme.typography.weights.heavy,
+        color: theme.colors.text.primary,
+        marginBottom: 6,
+    },
+    intentSubtitle: {
+        fontSize: theme.typography.sizes.caption,
+        color: theme.colors.text.tertiary,
+        marginBottom: 16,
+        lineHeight: 20,
+    },
+    intentScroll: {
+        gap: 12,
+    },
+    intentChip: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderRadius: theme.borderRadius.lg,
+        backgroundColor: theme.colors.background,
+        borderWidth: 2,
+        borderColor: theme.colors.primary,
+        minWidth: 140,
+        ...theme.shadows.small,
+    },
+    intentEmoji: {
+        fontSize: 32,
+        marginBottom: 8,
+    },
+    intentLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        textAlign: 'center',
+        lineHeight: 18,
+    },
+
+    // Categories (Existentes)
     categoriesSection: {
         marginBottom: 24,
     },

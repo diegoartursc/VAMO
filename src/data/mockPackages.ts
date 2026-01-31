@@ -75,6 +75,32 @@ export const mockPackages: Package[] = [
             extras: ['Transfer aeroporto'],
         },
         categories: ['cultural', 'romantic'],
+        hasFreeCancellation: true,
+        isAllInclusive: false,
+        recentPurchases: 24,
+        priceComparison: 'below',
+        priceDiscount: 15,
+        itinerary: {
+            mainStop: 'Torre Eiffel',
+            pickupLocations: [
+                'Louvre', 'Champs-Élysées', 'Montmartre', 'Notre-Dame',
+                'Arc de Triomphe', 'Musée d\'Orsay', 'Sacré-Cœur', 'Latin Quarter'
+            ],
+            transport: {
+                type: 'Ônibus panorâmico',
+                duration: '20 minutos'
+            },
+            mainActivity: {
+                location: 'Torre Eiffel',
+                activity: 'Visita guiada com acesso ao topo',
+                duration: '2 horas'
+            },
+            returnLocations: [
+                'Louvre', 'Champs-Élysées', 'Montmartre', 'Notre-Dame',
+                'Arc de Triomphe', 'Musée d\'Orsay', 'Sacré-Cœur', 'Latin Quarter'
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1524396309943-e03f5249f002?w=800'
+        },
     },
     {
         id: '2',
@@ -117,6 +143,11 @@ export const mockPackages: Package[] = [
             extras: ['All Inclusive', 'Transfer'],
         },
         categories: ['beach', 'relaxation'],
+        hasFreeCancellation: false,
+        isAllInclusive: true,
+        recentPurchases: 67,
+        priceComparison: 'below',
+        priceDiscount: 20,
     },
     {
         id: '3',

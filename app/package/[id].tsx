@@ -14,6 +14,8 @@ import { theme } from '../../src/theme/theme';
 import { getPackageById } from '../../src/data/mockPackages';
 import { getReviewsByPackageId } from '../../src/data/mockReviews';
 import { Alert, Linking } from 'react-native';
+import CollapsibleSection from '../../src/components/CollapsibleSection';
+import ItineraryCard from '../../src/components/cards/ItineraryCard';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +25,7 @@ export default function PackageDetailScreen() {
     const packageData = getPackageById(id);
     const reviews = getReviewsByPackageId(id);
     const [showAllReviews, setShowAllReviews] = useState(false);
+
 
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 2);
 
@@ -94,32 +97,92 @@ export default function PackageDetailScreen() {
                         <Text style={styles.priceNote}>por pessoa</Text>
                     </View>
 
-                    {/* Description */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Sobre este pacote</Text>
-                        <Text style={styles.description}>{packageData.description}</Text>
-                    </View>
+                    {/* Itinerary Card */}
+                    {packageData.itinerary && (
+                        <ItineraryCard
+                            mainStop={packageData.itinerary.mainStop}
+                            pickupLocations={packageData.itinerary.pickupLocations}
+                            transport={packageData.itinerary.transport}
+                            mainActivity={packageData.itinerary.mainActivity}
+                            returnLocations={packageData.itinerary.returnLocations}
+                            mapImageUrl={packageData.itinerary.mapImageUrl}
+                            price={packageData.price}
+                        />
+                    )}
 
-                    {/* Highlights */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Destaques</Text>
-                        {packageData.highlights.map((highlight, index) => (
-                            <View key={index} style={styles.listItem}>
-                                <Text style={styles.bullet}>✨</Text>
-                                <Text style={styles.listText}>{highlight}</Text>
-                            </View>
-                        ))}
-                    </View>
+                    {/* Expandable Sections */}
+                    <View style={styles.collapsibleContainer}>
+                        {/* Itinerário */}
+                        <CollapsibleSection title="Itinerário">
+                            <TouchableOpacity style={styles.itineraryButton}>
+                                <Text style={styles.itineraryButtonText}>Ver itinerário</Text>
+                                <Text style={styles.chevronRight}>›</Text>
+                            </TouchableOpacity>
+                        </CollapsibleSection>
 
-                    {/* Includes */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>O que está incluído</Text>
-                        {packageData.includes.map((item, index) => (
-                            <View key={index} style={styles.listItem}>
-                                <Text style={styles.bullet}>✓</Text>
-                                <Text style={styles.listText}>{item}</Text>
+                        {/* Destaques */}
+                        <CollapsibleSection title="Destaques" defaultExpanded>
+                            {packageData.highlights.map((highlight, index) => (
+                                <View key={index} style={styles.listItem}>
+                                    <Text style={styles.bullet}>✨</Text>
+                                    <Text style={styles.listText}>{highlight}</Text>
+                                </View>
+                            ))}
+                        </CollapsibleSection>
+
+                        {/* Descrição completa */}
+                        <CollapsibleSection title="Descrição completa">
+                            <Text style={styles.description}>{packageData.description}</Text>
+                            <Text style={[styles.description, { marginTop: 12 }]}>
+                                Este pacote oferece uma experiência única e inesquecível,
+                                combinando conforto, aventura e cultura local. Perfeito para
+                                quem busca vivenciar momentos especiais em {packageData.destination}.
+                            </Text>
+                        </CollapsibleSection>
+
+                        {/* Inclui */}
+                        <CollapsibleSection title="Inclui">
+                            {packageData.includes.map((item, index) => (
+                                <View key={index} style={styles.listItem}>
+                                    <Text style={styles.bullet}>✓</Text>
+                                    <Text style={styles.listText}>{item}</Text>
+                                </View>
+                            ))}
+                        </CollapsibleSection>
+
+                        {/* Não indicado para */}
+                        <CollapsibleSection title="Não indicado para">
+                            <View style={styles.listItem}>
+                                <Text style={styles.bullet}>✕</Text>
+                                <Text style={styles.listText}>Menores de 12 anos desacompanhados</Text>
                             </View>
-                        ))}
+                            <View style={styles.listItem}>
+                                <Text style={styles.bullet}>✕</Text>
+                                <Text style={styles.listText}>Pessoas com mobilidade reduzida</Text>
+                            </View>
+                            <View style={styles.listItem}>
+                                <Text style={styles.bullet}>✕</Text>
+                                <Text style={styles.listText}>Gestantes</Text>
+                            </View>
+                        </CollapsibleSection>
+
+                        {/* Informações importantes */}
+                        <CollapsibleSection title="Informações importantes">
+                            <View style={styles.importantInfo}>
+                                <Text style={styles.importantInfoText}>
+                                    • Por favor, esteja no ponto de encontro 15 minutos antes do horário de partida
+                                </Text>
+                                <Text style={styles.importantInfoText}>
+                                    • Traga protetor solar, boné e roupas confortáveis
+                                </Text>
+                                <Text style={styles.importantInfoText}>
+                                    • O passeio pode ser cancelado em caso de condições climáticas adversas
+                                </Text>
+                                <Text style={styles.importantInfoText}>
+                                    • Documentos de identificação são obrigatórios
+                                </Text>
+                            </View>
+                        </CollapsibleSection>
                     </View>
 
                     {/* Reviews Section */}
@@ -667,5 +730,37 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '700',
         color: theme.colors.text.inverse,
+    },
+    // Collapsible Sections
+    collapsibleContainer: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.lg,
+        paddingHorizontal: theme.spacing.md,
+        marginBottom: theme.spacing.lg,
+        overflow: 'hidden',
+    },
+    itineraryButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: theme.spacing.sm,
+    },
+    itineraryButtonText: {
+        fontSize: 15,
+        color: theme.colors.text.primary,
+        fontWeight: '500',
+    },
+    chevronRight: {
+        fontSize: 24,
+        color: theme.colors.text.secondary,
+        fontWeight: '300',
+    },
+    importantInfo: {
+        gap: theme.spacing.sm,
+    },
+    importantInfoText: {
+        fontSize: 14,
+        color: theme.colors.text.primary,
+        lineHeight: 20,
     },
 });

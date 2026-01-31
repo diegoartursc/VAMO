@@ -28,12 +28,12 @@ const MOCK_REVIEWS: Review[] = [
         rating: 5,
         date: '13 de março de 2025',
         verified: true,
-        text: 'A experiência é surreal, andamos cerca de uma hora de trenó com os cães e passamos por paisagens lindíssimas. Achei no entanto que no final estávamos a ser despachados porque entretanto já estavam a chegar mais dois grupos. Devido ao preço da atividade acho que nos poderiam dar mais tempo a confraternizar com os cães que são tão doces e meigos.',
+        text: 'A experiência foi surreal! A visita à Torre Eiffel com acesso prioritário foi incrível, as vistas de Paris são de tirar o fôlego. O guia foi muito atencioso e nos levou pelos melhores pontos da cidade. O único ponto a melhorar seria dar mais tempo livre para explorar Montmartre, que é simplesmente encantador.',
         photos: [
-            'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400',
-            'https://images.unsplash.com/photo-1487014679447-9f8336841d58?w=400',
-            'https://images.unsplash.com/photo-1515343480029-43cdfe6b6268?w=400',
-            'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400',
+            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400',
+            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=400',
+            'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400',
+            'https://images.unsplash.com/photo-1549144511-f099e773c147?w=400',
         ],
         language: 'pt',
     },
@@ -66,8 +66,8 @@ const MOCK_REVIEWS: Review[] = [
         verified: true,
         text: 'Experiência maravilhosa! Os guias foram muito atenciosos e o local é lindo. Único ponto negativo foi o tempo um pouco corrido, mas valeu muito a pena!',
         photos: [
-            'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400',
-            'https://images.unsplash.com/photo-1484417894907-623942c8ee29?w=400',
+            'https://images.unsplash.com/photo-1549144511-f099e773c147?w=400',
+            'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=400',
         ],
     },
     {
@@ -99,7 +99,7 @@ const MOCK_REVIEWS: Review[] = [
         verified: true,
         text: '¡Perfecto! Todo estuvo maravilloso desde el principio hasta el final. Definitivamente lo recomendaría a todos mis amigos.',
         photos: [
-            'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400',
+            'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=400',
         ],
         language: 'es',
     },

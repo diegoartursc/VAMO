@@ -10,9 +10,14 @@ import { DestinationChats } from '../../src/components/community/DestinationChat
 import { mockCreators, getFeaturedCreators } from '../../src/data/mockCreators';
 import { VERIFICATION_CONFIGS } from '../../src/types/creator';
 import { Alert } from 'react-native';
+import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
+import { SearchModal } from '../../src/components/search/SearchModal';
+import { useSearch } from '../../src/hooks/useSearch';
 
 export default function ItinerariesScreen() {
     const router = useRouter();
+    const { filters, applyFilters } = useSearch();
+    const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [showComparison, setShowComparison] = useState(false);
     const featuredCreators = getFeaturedCreators();
 
@@ -30,6 +35,14 @@ export default function ItinerariesScreen() {
                     </Text>
                 </View>
             </LinearGradient>
+
+            {/* Iconic Search Bar */}
+            <View style={styles.searchWrapper}>
+                <IconicSearchBar
+                    placeholder="Encontrar roteiros de viajantes"
+                    onPress={() => setSearchModalVisible(true)}
+                />
+            </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Featured Creators Section */}
@@ -218,6 +231,17 @@ export default function ItinerariesScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+            {/* Search Modal */}
+            <SearchModal
+                visible={searchModalVisible}
+                onClose={() => setSearchModalVisible(false)}
+                onSearch={(newFilters) => {
+                    applyFilters(newFilters);
+                    setSearchModalVisible(false);
+                }}
+                context="itineraries"
+                initialFilters={filters}
+            />
         </View>
     );
 }
@@ -228,10 +252,14 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.surface,
     },
     gradientHeader: {
-        paddingTop: 50,
-        paddingBottom: theme.spacing.xl,
+        paddingTop: 60,
+        paddingBottom: 20,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
+    },
+    searchWrapper: {
+        marginTop: -28,
+        marginBottom: theme.spacing.md,
     },
     headerContent: {
         paddingHorizontal: theme.spacing.md,
