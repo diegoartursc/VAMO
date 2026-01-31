@@ -212,6 +212,7 @@ function PackageCard({
                     <View style={styles.ratingBadge}>
                         <Text style={styles.ratingIcon}>⭐</Text>
                         <Text style={styles.ratingValue}>{pkg.rating}</Text>
+                        <Text style={styles.ratingCount}>({pkg.reviewCount})</Text>
                     </View>
                 </View>
 
@@ -443,6 +444,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: theme.colors.text.primary,
+    },
+    ratingCount: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: theme.colors.text.secondary,
     },
     cardTitle: {
         fontSize: 16, // Reduced from 18px for more compact layout

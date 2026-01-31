@@ -97,6 +97,83 @@ export default function PackageDetailScreen() {
                         <Text style={styles.priceNote}>por pessoa</Text>
                     </View>
 
+                    {/* About This Activity Section */}
+                    <View style={styles.aboutSection}>
+                        <Text style={styles.aboutDescription}>
+                            {packageData.description}
+                        </Text>
+
+                        <Text style={styles.aboutTitle}>Sobre esta atividade</Text>
+
+                        <View style={styles.infoCardsContainer}>
+                            {/* Cancelamento gratuito */}
+                            <View style={styles.infoCard}>
+                                <View style={styles.infoCardIcon}>
+                                    <Text style={styles.infoIconText}>✓</Text>
+                                </View>
+                                <View style={styles.infoCardContent}>
+                                    <Text style={styles.infoCardTitle}>Cancelamento gratuito</Text>
+                                    <Text style={styles.infoCardDesc}>
+                                        Cancele até 24 horas de antecedência para reembolso
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Reserve agora, pague depois */}
+                            <View style={styles.infoCard}>
+                                <View style={styles.infoCardIcon}>
+                                    <Text style={styles.infoIconText}>📅</Text>
+                                </View>
+                                <View style={styles.infoCardContent}>
+                                    <Text style={styles.infoCardTitle}>Reserve agora, pague depois</Text>
+                                    <Text style={styles.infoCardDesc}>
+                                        Mantenha seu plano de viagem flexível - reserve seu lugar sem pagar nada hoje
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Duração */}
+                            <View style={styles.infoCard}>
+                                <View style={styles.infoCardIcon}>
+                                    <Text style={styles.infoIconText}>⏱️</Text>
+                                </View>
+                                <View style={styles.infoCardContent}>
+                                    <Text style={styles.infoCardTitle}>Duração {packageData.duration} dias</Text>
+                                    <Text style={styles.infoCardDesc}>
+                                        Consulte a disponibilidade para ver os horários de início
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Guia */}
+                            <View style={styles.infoCard}>
+                                <View style={styles.infoCardIcon}>
+                                    <Text style={styles.infoIconText}>👥</Text>
+                                </View>
+                                <View style={styles.infoCardContent}>
+                                    <Text style={styles.infoCardTitle}>Guia</Text>
+                                    <Text style={styles.infoCardDesc}>
+                                        Português, Inglês, Espanhol
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Pequenos grupos */}
+                            <View style={styles.infoCard}>
+                                <View style={styles.infoCardIcon}>
+                                    <Text style={styles.infoIconText}>👨‍👩‍👧‍👦</Text>
+                                </View>
+                                <View style={styles.infoCardContent}>
+                                    <Text style={styles.infoCardTitle}>Pequenos grupos</Text>
+                                    <Text style={styles.infoCardDesc}>
+                                        Máximo de 15 participantes
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+
                     {/* Itinerary Card */}
                     {packageData.itinerary && (
                         <ItineraryCard
@@ -185,23 +262,77 @@ export default function PackageDetailScreen() {
                         </CollapsibleSection>
                     </View>
 
-                    {/* Reviews Section */}
+                    {/* Reviews Section - Redesigned */}
                     {reviews.length > 0 && (
                         <View style={styles.section}>
-                            <View style={styles.reviewsHeader}>
-                                <Text style={styles.sectionTitle}>
-                                    Avaliações ({reviews.length})
+                            {/* Reviews Overview Header */}
+                            <Text style={styles.reviewsMainTitle}>Avaliações de clientes</Text>
+
+                            {/* Large Rating Display */}
+                            <View style={styles.ratingOverview}>
+                                <View style={styles.starsRow}>
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Text key={star} style={styles.largeStarIcon}>⭐</Text>
+                                    ))}
+                                </View>
+                                <Text style={styles.largeRatingValue}>4,9/5</Text>
+                                <Text style={styles.ratingBase}>
+                                    com base em {packageData.reviewCount} avaliações
                                 </Text>
-                                <View style={styles.reviewsButtons}>
-                                    <TouchableOpacity style={styles.filterButton}>
-                                        <Text style={styles.filterButtonText}>Ordenar por</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.filterButton}>
-                                        <Text style={styles.filterButtonText}>Filtro</Text>
-                                    </TouchableOpacity>
+                            </View>
+
+                            {/* Category Ratings */}
+                            <View style={styles.categoryRatings}>
+                                <View style={styles.categoryRow}>
+                                    <Text style={styles.categoryLabel}>Guia</Text>
+                                    <View style={styles.ratingBarContainer}>
+                                        <View style={[styles.ratingBarFill, { width: '98%' }]} />
+                                    </View>
+                                    <Text style={styles.categoryValue}>4,9/5</Text>
+                                </View>
+                                <View style={styles.categoryRow}>
+                                    <Text style={styles.categoryLabel}>Transporte</Text>
+                                    <View style={styles.ratingBarContainer}>
+                                        <View style={[styles.ratingBarFill, { width: '98%' }]} />
+                                    </View>
+                                    <Text style={styles.categoryValue}>4,9/5</Text>
+                                </View>
+                                <View style={styles.categoryRow}>
+                                    <Text style={styles.categoryLabel}>Custo-benefício</Text>
+                                    <View style={styles.ratingBarContainer}>
+                                        <View style={[styles.ratingBarFill, { width: '94%' }]} />
+                                    </View>
+                                    <Text style={styles.categoryValue}>4,7/5</Text>
                                 </View>
                             </View>
 
+                            {/* Community Photos */}
+                            <View style={styles.communityPhotos}>
+                                <Text style={styles.communityPhotosTitle}>Fotos da comunidade</Text>
+                                <View style={styles.photosGrid}>
+                                    <Image
+                                        source={{ uri: 'https://images.unsplash.com/photo-1516815231560-8f41ec531527?w=400' }}
+                                        style={styles.largePhoto}
+                                    />
+                                    <View style={styles.smallPhotosColumn}>
+                                        <Image
+                                            source={{ uri: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400' }}
+                                            style={styles.smallPhoto}
+                                        />
+                                        <View style={styles.morePhotosOverlay}>
+                                            <Image
+                                                source={{ uri: 'https://images.unsplash.com/photo-1519834785169-98be25ec3f84?w=400' }}
+                                                style={styles.smallPhoto}
+                                            />
+                                            <View style={styles.morePhotosCount}>
+                                                <Text style={styles.morePhotosText}>+394</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+
+                            {/* Individual Reviews */}
                             {displayedReviews.map((review) => (
                                 <View key={review.id} style={styles.reviewCard}>
                                     <View style={styles.reviewHeader}>
@@ -209,12 +340,13 @@ export default function PackageDetailScreen() {
                                             <View style={[styles.reviewAvatar, { backgroundColor: review.user.avatar }]}>
                                                 <Text style={styles.reviewAvatarText}>{review.user.initial}</Text>
                                             </View>
-                                            <View>
+                                            <View style={styles.reviewUserDetails}>
                                                 <Text style={styles.reviewUserName}>
                                                     {review.user.name} - {review.user.location}
                                                 </Text>
                                                 <Text style={styles.reviewDate}>
-                                                    {review.date}{review.verified && ' - Reserva verificada'}
+                                                    {review.date}
+                                                    {review.verified && ' • Reserva verificada'}
                                                 </Text>
                                             </View>
                                         </View>
@@ -223,6 +355,7 @@ export default function PackageDetailScreen() {
                                         </TouchableOpacity>
                                     </View>
 
+                                    {/* Star Rating */}
                                     <View style={styles.reviewRating}>
                                         {[1, 2, 3, 4, 5].map((star) => (
                                             <Text key={star} style={styles.starIcon}>
@@ -231,6 +364,7 @@ export default function PackageDetailScreen() {
                                         ))}
                                     </View>
 
+                                    {/* Review Photos */}
                                     {review.photos && review.photos.length > 0 && (
                                         <ScrollView
                                             horizontal
@@ -247,8 +381,19 @@ export default function PackageDetailScreen() {
                                         </ScrollView>
                                     )}
 
+                                    {/* Review Text */}
                                     <Text style={styles.reviewText}>{review.text}</Text>
 
+                                    {/* Provider Response */}
+                                    {review.response && (
+                                        <View style={styles.responseContainer}>
+                                            <Text style={styles.responseLabel}>Resposta do fornecedor</Text>
+                                            <Text style={styles.responseDate}>{review.response.date}</Text>
+                                            <Text style={styles.responseText}>{review.response.text}</Text>
+                                        </View>
+                                    )}
+
+                                    {/* Translate Link */}
                                     {review.language && review.language !== 'pt' && (
                                         <TouchableOpacity>
                                             <Text style={styles.translateLink}>Traduzir</Text>
@@ -257,6 +402,7 @@ export default function PackageDetailScreen() {
                                 </View>
                             ))}
 
+                            {/* Show More Button */}
                             {reviews.length > 2 && (
                                 <TouchableOpacity
                                     style={styles.showMoreButton}
@@ -463,6 +609,54 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: theme.colors.text.secondary,
     },
+    aboutSection: {
+        marginBottom: theme.spacing.lg,
+    },
+    aboutDescription: {
+        fontSize: 15,
+        color: theme.colors.text.primary,
+        lineHeight: 22,
+        marginBottom: theme.spacing.lg,
+    },
+    aboutTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: theme.spacing.md,
+    },
+    infoCardsContainer: {
+        gap: theme.spacing.md,
+    },
+    infoCard: {
+        flexDirection: 'row',
+        gap: theme.spacing.md,
+        alignItems: 'flex-start',
+    },
+    infoCardIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: theme.colors.surfaceLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    infoIconText: {
+        fontSize: 20,
+    },
+    infoCardContent: {
+        flex: 1,
+    },
+    infoCardTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    infoCardDesc: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+    },
     section: {
         marginBottom: theme.spacing.lg,
     },
@@ -521,28 +715,112 @@ const styles = StyleSheet.create({
         color: theme.colors.error,
         textAlign: 'center',
     },
-    // Reviews Section
-    reviewsHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    // Reviews Section - Redesigned
+    reviewsMainTitle: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: theme.spacing.lg,
+    },
+    ratingOverview: {
         alignItems: 'center',
+        paddingVertical: theme.spacing.lg,
         marginBottom: theme.spacing.md,
     },
-    reviewsButtons: {
+    starsRow: {
+        flexDirection: 'row',
+        gap: 6,
+        marginBottom: theme.spacing.sm,
+    },
+    largeStarIcon: {
+        fontSize: 28,
+    },
+    largeRatingValue: {
+        fontSize: 48,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    ratingBase: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+    },
+    categoryRatings: {
+        marginBottom: theme.spacing.lg,
+        gap: theme.spacing.md,
+    },
+    categoryRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+    },
+    categoryLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+        width: 110,
+    },
+    ratingBarContainer: {
+        flex: 1,
+        height: 6,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 3,
+        overflow: 'hidden',
+    },
+    ratingBarFill: {
+        height: '100%',
+        backgroundColor: theme.colors.primary,
+    },
+    categoryValue: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        width: 40,
+        textAlign: 'right',
+    },
+    communityPhotos: {
+        marginBottom: theme.spacing.xl,
+    },
+    communityPhotosTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: theme.spacing.md,
+    },
+    photosGrid: {
         flexDirection: 'row',
         gap: 8,
+        height: 200,
     },
-    filterButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: theme.borderRadius.full,
-        borderWidth: 1.5,
-        borderColor: theme.colors.primary,
+    largePhoto: {
+        flex: 1,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.surface,
     },
-    filterButtonText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.colors.primary,
+    smallPhotosColumn: {
+        flex: 1,
+        gap: 8,
+    },
+    smallPhoto: {
+        flex: 1,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.surface,
+    },
+    morePhotosOverlay: {
+        flex: 1,
+        position: 'relative',
+    },
+    morePhotosCount: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        borderRadius: theme.borderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    morePhotosText: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
     reviewCard: {
         backgroundColor: theme.colors.surface,
@@ -560,16 +838,19 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     reviewAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         alignItems: 'center',
         justifyContent: 'center',
     },
     reviewAvatarText: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '700',
         color: '#FFFFFF',
+    },
+    reviewUserDetails: {
+        flex: 1,
     },
     reviewUserName: {
         fontSize: 14,
@@ -613,6 +894,29 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: theme.colors.primary,
         fontWeight: '600',
+    },
+    responseContainer: {
+        marginTop: theme.spacing.md,
+        paddingLeft: theme.spacing.md,
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.primary,
+        paddingVertical: theme.spacing.xs,
+    },
+    responseLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    responseDate: {
+        fontSize: 11,
+        color: theme.colors.text.secondary,
+        marginBottom: theme.spacing.xs,
+    },
+    responseText: {
+        fontSize: 13,
+        color: theme.colors.text.primary,
+        lineHeight: 18,
     },
     showMoreButton: {
         backgroundColor: theme.colors.primary,

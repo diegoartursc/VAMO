@@ -13,7 +13,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../theme/theme';
 import { PriceSlider } from './PriceSlider';
-import { DateRangePicker } from './DateRangePicker';
 import { DurationSlider } from './DurationSlider';
 import { SearchFilters } from '../../contexts/SearchContext';
 
@@ -39,8 +38,6 @@ export function SearchModal({
 
     // Filtros locais (estado do modal)
     const [destination, setDestination] = useState(initialFilters?.destination || '');
-    const [startDate, setStartDate] = useState<Date | undefined>(initialFilters?.startDate);
-    const [endDate, setEndDate] = useState<Date | undefined>(initialFilters?.endDate);
     const [duration, setDuration] = useState<number>(initialFilters?.duration || 7);
     const [priceRange, setPriceRange] = useState<[number, number]>([
         initialFilters?.priceMin || 0,
@@ -88,8 +85,6 @@ export function SearchModal({
 
     const handleClearFilters = () => {
         setDestination('');
-        setStartDate(undefined);
-        setEndDate(undefined);
         setDuration(7);
         setPriceRange([0, 50000]);
     };
@@ -97,9 +92,7 @@ export function SearchModal({
     const handleApplyFilters = () => {
         const filters: SearchFilters = {
             destination,
-            startDate: context === 'itineraries' ? undefined : startDate,
-            endDate: context === 'itineraries' ? undefined : endDate,
-            duration: context === 'itineraries' ? duration : undefined,
+            duration,
             priceMin: priceRange[0],
             priceMax: priceRange[1],
         };
@@ -166,23 +159,14 @@ export function SearchModal({
                         </View>
                     </View>
 
-                    {/* Datas ou Duração (dependendo do contexto) */}
-                    {context === 'itineraries' ? (
-                        <DurationSlider
-                            value={duration}
-                            onChange={setDuration}
-                            min={1}
-                            max={30}
-                            step={1}
-                        />
-                    ) : (
-                        <DateRangePicker
-                            startDate={startDate}
-                            endDate={endDate}
-                            onStartDateChange={setStartDate}
-                            onEndDateChange={setEndDate}
-                        />
-                    )}
+                    {/* Duração */}
+                    <DurationSlider
+                        value={duration}
+                        onChange={setDuration}
+                        min={1}
+                        max={30}
+                        step={1}
+                    />
 
                     {/* Preço */}
                     <PriceSlider

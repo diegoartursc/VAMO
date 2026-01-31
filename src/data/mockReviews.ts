@@ -13,6 +13,10 @@ export interface Review {
     text: string;
     photos?: string[];
     language?: string; // for "Traduzir" feature
+    response?: {
+        date: string;
+        text: string;
+    };
 }
 
 const MOCK_REVIEWS: Review[] = [
@@ -36,6 +40,10 @@ const MOCK_REVIEWS: Review[] = [
             'https://images.unsplash.com/photo-1549144511-f099e773c147?w=400',
         ],
         language: 'pt',
+        response: {
+            date: '27 de janeiro de 2026',
+            text: 'Thank you for your lovely review! We are delighted to hear you had a brilliant adventure with Fabien and Cris and enjoyed the amazing views. We hope to welcome you again soon!',
+        },
     },
     {
         id: '2',
