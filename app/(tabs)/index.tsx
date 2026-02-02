@@ -18,7 +18,8 @@ import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { useRouter } from 'expo-router';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
-import { useFavoriteAnimation } from '../../src/components/FavoriteAnimationProvider';
+import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAnimationProvider';
+import { CATEGORIES } from '../../src/constants/categories';
 
 const { width } = Dimensions.get('window');
 
@@ -181,6 +182,150 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
 
+                {/* Continue sua busca (Seção Personalizada) */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Continue sua busca em Arizona</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Retome de onde parou e descubra mais experiências
+                    </Text>
+
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.horizontalScroll}
+                    >
+                        {CONTINUE_SEARCH_EXPERIENCES.map((exp) => (
+                            <TouchableOpacity
+                                key={exp.id}
+                                style={styles.experienceCard}
+                                onPress={() => router.push(`/package/${exp.id}`)}
+                                activeOpacity={0.9}
+                            >
+                                <Image
+                                    source={{ uri: exp.image }}
+                                    style={styles.experienceImage}
+                                    resizeMode="cover"
+                                />
+
+                                {/* Badge de categoria */}
+                                <View style={styles.experienceBadge}>
+                                    <Text style={styles.experienceBadgeText}>{exp.category}</Text>
+                                </View>
+
+                                {/* Favorite button */}
+                                <TouchableOpacity
+                                    style={styles.experienceFavoriteButton}
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(exp.id, e);
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.favoriteIcon}>
+                                        {favorites.includes(exp.id) ? '❤️' : '♡'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <View style={styles.experienceInfo}>
+                                    <Text style={styles.experienceTitle} numberOfLines={2}>
+                                        {exp.title}
+                                    </Text>
+                                    <Text style={styles.experienceDuration}>
+                                        {exp.duration} • {exp.groupType}
+                                    </Text>
+
+                                    <View style={styles.experienceFooter}>
+                                        <View>
+                                            <View style={styles.experienceRating}>
+                                                <Text style={styles.experienceRatingText}>⭐ {exp.rating}</Text>
+                                                <Text style={styles.experienceReviewCount}>({exp.reviewCount})</Text>
+                                            </View>
+                                            <View style={styles.experiencePrice}>
+                                                <Text style={styles.experiencePriceLabel}>A partir de</Text>
+                                                <Text style={styles.experiencePriceValue}>€ {exp.price}</Text>
+                                                <Text style={styles.experiencePriceUnit}>por adulto</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* Experiências de viagem inesquecíveis */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Experiências de viagem inesquecíveis</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Momentos únicos que você vai guardar para sempre
+                    </Text>
+
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.horizontalScroll}
+                    >
+                        {UNFORGETTABLE_EXPERIENCES.map((exp) => (
+                            <TouchableOpacity
+                                key={exp.id}
+                                style={styles.experienceCard}
+                                onPress={() => router.push(`/package/${exp.id}`)}
+                                activeOpacity={0.9}
+                            >
+                                <Image
+                                    source={{ uri: exp.image }}
+                                    style={styles.experienceImage}
+                                    resizeMode="cover"
+                                />
+
+                                {/* Badge de destaque */}
+                                {exp.badge && (
+                                    <View style={[styles.experienceBadge, styles.experienceBadgeSpecial]}>
+                                        <Text style={styles.experienceBadgeText}>{exp.badge}</Text>
+                                    </View>
+                                )}
+
+                                {/* Favorite button */}
+                                <TouchableOpacity
+                                    style={styles.experienceFavoriteButton}
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(exp.id, e);
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.favoriteIcon}>
+                                        {favorites.includes(exp.id) ? '❤️' : '♡'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <View style={styles.experienceInfo}>
+                                    <Text style={styles.experienceTitle} numberOfLines={2}>
+                                        {exp.title}
+                                    </Text>
+                                    <Text style={styles.experienceDuration}>
+                                        {exp.duration}
+                                    </Text>
+
+                                    <View style={styles.experienceFooter}>
+                                        <View>
+                                            <View style={styles.experienceRating}>
+                                                <Text style={styles.experienceRatingText}>⭐ {exp.rating}</Text>
+                                                <Text style={styles.experienceReviewCount}>({exp.reviewCount})</Text>
+                                            </View>
+                                            <View style={styles.experiencePrice}>
+                                                <Text style={styles.experiencePriceLabel}>A partir de</Text>
+                                                <Text style={styles.experiencePriceValue}>€ {exp.price}</Text>
+                                                <Text style={styles.experiencePriceUnit}>por adulto</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
                 {/* Pacotes em Destaque */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
@@ -315,18 +460,7 @@ const INTENT_CATEGORIES = [
     { id: 'custo-beneficio', emoji: '💰', label: 'Melhor custo-benefício' },
 ];
 
-// Categorias Visuais (existentes - NÃO ALTERAR)
-const CATEGORIES = [
-    { id: 'cultura', icon: '🏛️', label: 'Cultura' },
-    { id: 'gastronomia', icon: '🍽️', label: 'Gastronomia' },
-    { id: 'natureza', icon: '🌳', label: 'Natureza' },
-    { id: 'esportes', icon: '⚽', label: 'Esportes' },
-    { id: 'cruzeiros', icon: '🚢', label: 'Cruzeiros' },
-    { id: 'eurotrip', icon: '🌍', label: 'Eurotrip' },
-    { id: 'relax', icon: '🧘', label: 'Relax' },
-    { id: 'familia', icon: '👨‍👩‍👧‍👦', label: 'Família' },
-    { id: 'aventura', icon: '🏔️', label: 'Aventura' },
-];
+
 
 const POPULAR_DESTINATIONS = [
     { id: 'paris', name: 'Paris', image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800', count: 847 },
@@ -337,6 +471,77 @@ const POPULAR_DESTINATIONS = [
     { id: 'barcelona', name: 'Barcelona', image: 'https://images.unsplash.com/photo-1583422409516-2895a77efbed?w=800', count: 421 },
     { id: 'dubai', name: 'Dubai', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800', count: 312 },
     { id: 'cancun', name: 'Cancún', image: 'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=800', count: 654 },
+];
+
+// Continue sua busca - Experiências personalizadas
+const CONTINUE_SEARCH_EXPERIENCES = [
+    {
+        id: 'antelope-canyon',
+        title: 'Page: Ingresso e Excursão Guiada ao Antelope Canyon Inferior',
+        image: 'https://images.unsplash.com/photo-1444076784383-69ff7bae1b0a?w=800',
+        duration: '1 hora',
+        groupType: 'Pequenos grupos',
+        category: 'AVENTURA',
+        rating: 4.7,
+        reviewCount: 7760,
+        price: 65,
+    },
+    {
+        id: 'grand-canyon-helicopter',
+        title: 'Grand Canyon: Opções de passeio de helicóptero',
+        image: 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800',
+        duration: '30 minutos - 3.5 horas',
+        groupType: 'Tour privado',
+        category: 'AVENTURA',
+        rating: 4.8,
+        reviewCount: 2341,
+        price: 243,
+    },
+    {
+        id: 'sedona-hot-air',
+        title: 'Sedona: Passeio de balão ao nascer do sol',
+        image: 'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=800',
+        duration: '3 horas',
+        groupType: 'Pequenos grupos',
+        category: 'AVENTURA',
+        rating: 4.9,
+        reviewCount: 1523,
+        price: 289,
+    },
+];
+
+// Experiências de viagem inesquecíveis
+const UNFORGETTABLE_EXPERIENCES = [
+    {
+        id: 'milford-sound',
+        title: 'De Manapouri: Viagem de um dia à natureza selvagem de Doubtful Sound',
+        image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
+        duration: '7 horas',
+        badge: 'Esgota rápido',
+        rating: 4.8,
+        reviewCount: 1574,
+        price: 177,
+    },
+    {
+        id: 'santorini-sunset',
+        title: 'Santorini: Cruzeiro ao pôr do sol com jantar',
+        image: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=800',
+        duration: '5 horas',
+        badge: 'Originals by VAMO',
+        rating: 4.9,
+        reviewCount: 2847,
+        price: 95,
+    },
+    {
+        id: 'northern-lights',
+        title: 'Islândia: Caça às Auroras Boreais com guia especializado',
+        image: 'https://images.unsplash.com/photo-1579033461380-adb47c3eb938?w=800',
+        duration: '4 horas',
+        badge: 'Esgota rápido',
+        rating: 4.7,
+        reviewCount: 3201,
+        price: 89,
+    },
 ];
 
 const styles = StyleSheet.create({
@@ -537,6 +742,113 @@ const styles = StyleSheet.create({
     },
     destinationCount: {
         fontSize: 12,
+        color: theme.colors.text.tertiary,
+    },
+
+    // Experiências (Horizontal cards)
+    horizontalScroll: {
+        paddingRight: 20,
+        gap: 16,
+    },
+    experienceCard: {
+        width: 300,
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.lg,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.small,
+        marginLeft: 20,
+    },
+    experienceImage: {
+        width: '100%',
+        height: 180,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    experienceBadge: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+        zIndex: 1,
+    },
+    experienceBadgeSpecial: {
+        backgroundColor: '#FF4D4F',
+    },
+    experienceBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    experienceFavoriteButton: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...theme.shadows.medium,
+        zIndex: 2,
+    },
+    experienceInfo: {
+        padding: 16,
+    },
+    experienceTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: 6,
+        lineHeight: 22,
+    },
+    experienceDuration: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginBottom: 12,
+    },
+    experienceFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+    },
+    experienceRating: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 8,
+    },
+    experienceRatingText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    experienceReviewCount: {
+        fontSize: 14,
+        color: theme.colors.text.tertiary,
+    },
+    experiencePrice: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 4,
+    },
+    experiencePriceLabel: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+    },
+    experiencePriceValue: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
+    experiencePriceUnit: {
+        fontSize: 11,
         color: theme.colors.text.tertiary,
     },
 
