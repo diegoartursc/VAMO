@@ -43,10 +43,12 @@ export const theme = {
       heavy: 'rgba(0, 0, 0, 0.8)',
     },
 
-    // Glass effect
+    // Glass effect - Premium Frosted Glass
     glass: {
-      background: 'rgba(255, 255, 255, 0.1)',
-      border: 'rgba(255, 255, 255, 0.2)',
+      background: 'rgba(255, 255, 255, 0.15)', // Lighter for better visibility
+      border: 'rgba(255, 255, 255, 0.3)',      // Crisper border
+      blur: 20,                                // For reference in style props
+      text: '#FFFFFF',
     },
 
     // Semantic
@@ -70,6 +72,7 @@ export const theme = {
       shimmer: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.8)', 'rgba(255,255,255,0)'],
       featured: ['rgba(40, 201, 191, 0.08)', 'rgba(26, 50, 99, 0.08)'],
       premium: ['rgba(255, 90, 77, 0.06)', 'rgba(40, 201, 191, 0.06)'],
+      heroOverlay: ['transparent', 'rgba(0,0,0,0.3)', 'rgba(26, 50, 99, 0.95)'], // New deep overlay
     },
   },
 
@@ -82,6 +85,7 @@ export const theme = {
     },
 
     sizes: {
+      heroXL: 36,     // New Massive Hero
       hero: 28,
       title: 24,
       heading: 20,
@@ -176,10 +180,10 @@ export const theme = {
     },
     button: {
       shadowColor: '#28C9BF',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
-      elevation: 6,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
+      elevation: 10,
     },
     elevated: {
       shadowColor: '#1A3263',
@@ -191,10 +195,17 @@ export const theme = {
     glow: {
       shadowColor: '#28C9BF',
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 12,
+      shadowOpacity: 0.5,
+      shadowRadius: 20,
       elevation: 0,
     },
+    neon: {
+      shadowColor: '#4DE6DC',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.8,
+      shadowRadius: 10,
+      elevation: 0,
+    }
   },
 } as const;
 

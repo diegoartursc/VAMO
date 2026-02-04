@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 
 const { width } = Dimensions.get('window');
@@ -24,41 +26,41 @@ export function HeroSection({
 }: HeroSectionProps) {
     return (
         <View style={styles.container}>
-            {/* Background Image */}
+            {/* Immersive Background Image */}
             <Image source={{ uri: image }} style={styles.backgroundImage} resizeMode="cover" />
 
-            {/* Gradient Overlay for readability */}
+            {/* Deep Overlay for text readability at bottom */}
             <LinearGradient
-                colors={['transparent', 'rgba(0, 0, 0, 0.4)', 'rgba(0, 0, 0, 0.8)']}
+                colors={theme.colors.gradients.heroOverlay}
                 style={styles.overlay}
                 locations={[0, 0.5, 1]}
             />
 
-            {/* Content */}
+            {/* Floating Glass Search Bar (Visual Rep) */}
+            <View style={styles.searchContainer}>
+                <BlurView intensity={30} tint="light" style={styles.glassSearch}>
+                    <Ionicons name="search" size={20} color="#fff" style={{ opacity: 0.8 }} />
+                    <Text style={styles.searchTextPlaceholder}>Where to next?</Text>
+                    <View style={styles.filterIcon}>
+                        <Ionicons name="options-outline" size={20} color="#fff" />
+                    </View>
+                </BlurView>
+            </View>
+
+            {/* Content at Bottom */}
             <View style={styles.content}>
                 {badge && (
                     <View style={styles.badgeContainer}>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeIcon}>⭕</Text>
+                        <BlurView intensity={20} style={styles.badgeGlass}>
+                            <Text style={styles.badgeIcon}>✨</Text>
                             <Text style={styles.badgeText}>{badge}</Text>
-                        </View>
+                        </BlurView>
                     </View>
                 )}
 
                 <Text style={styles.title}>{title}</Text>
 
                 {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-
-                {ctaText && onCtaPress && (
-                    <TouchableOpacity
-                        style={styles.ctaButton}
-                        onPress={onCtaPress}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.ctaText}>{ctaText}</Text>
-                        <Text style={styles.ctaArrow}>›</Text>
-                    </TouchableOpacity>
-                )}
             </View>
         </View>
     );
@@ -67,7 +69,7 @@ export function HeroSection({
 const styles = StyleSheet.create({
     container: {
         width: width,
-        height: 420,
+        height: 520, // Taller, more immersive
         position: 'relative',
         backgroundColor: theme.colors.background,
     },
@@ -78,25 +80,57 @@ const styles = StyleSheet.create({
     },
     overlay: {
         ...StyleSheet.absoluteFillObject,
+        zIndex: 1,
+    },
+    searchContainer: {
+        position: 'absolute',
+        top: 60, // Safe area inset approx
+        left: 20,
+        right: 20,
+        zIndex: 5,
+        ...theme.shadows.medium,
+    },
+    glassSearch: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 24,
+        gap: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    searchTextPlaceholder: {
+        flex: 1,
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 16,
+    },
+    filterIcon: {
+        padding: 4,
     },
     content: {
         position: 'absolute',
-        bottom: 32,
+        bottom: 40,
         left: 20,
         right: 20,
+        zIndex: 2,
     },
     badgeContainer: {
-        marginBottom: 12,
+        marginBottom: 16,
+        alignSelf: 'flex-start',
     },
-    badge: {
+    badgeGlass: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        alignSelf: 'flex-start',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        backgroundColor: theme.colors.accent,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: 'rgba(40, 201, 191, 0.2)', // Tinted teal
     },
     badgeIcon: {
         fontSize: 14,
@@ -107,47 +141,23 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: theme.colors.text.onPrimary,
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 1,
     },
     title: {
-        fontSize: theme.typography.sizes.hero,
+        fontSize: theme.typography.sizes.heroXL, // Massive text
         fontWeight: theme.typography.weights.heavy,
         color: theme.colors.text.onPrimary,
-        marginBottom: 8,
-        lineHeight: 38,
+        marginBottom: 12,
+        lineHeight: 42,
         textShadowColor: 'rgba(0, 0, 0, 0.5)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
+        textShadowOffset: { width: 0, height: 4 },
+        textShadowRadius: 8,
     },
     subtitle: {
-        fontSize: theme.typography.sizes.body,
-        color: theme.colors.text.secondary,
-        marginBottom: 20,
-        lineHeight: 22,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-    },
-    ctaButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 24,
-        backgroundColor: theme.colors.glass.background,
-        borderWidth: 1,
-        borderColor: theme.colors.glass.border,
-    },
-    ctaText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.onPrimary,
-        marginRight: 4,
-    },
-    ctaArrow: {
-        fontSize: 20,
-        color: theme.colors.text.onPrimary,
-        fontWeight: '300',
+        fontSize: 18,
+        color: 'rgba(255,255,255,0.9)',
+        marginBottom: 8,
+        lineHeight: 26,
+        fontWeight: '500',
     },
 });

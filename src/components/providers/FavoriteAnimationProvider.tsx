@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef } from 'react';
 import { Animated, StyleSheet, View, Text } from 'react-native';
-import { theme } from '../theme/theme';
+import { theme } from '../../theme/theme';
 
 interface FavoriteAnimationContextType {
     showAnimation: (x: number, y: number) => void;

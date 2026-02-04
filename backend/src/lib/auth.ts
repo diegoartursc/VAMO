@@ -17,12 +17,12 @@ export const comparePassword = async (
 };
 
 export const generateAccessToken = (payload: { agencyId: string; email: string }) => {
-    const options: SignOptions = { expiresIn: JWT_EXPIRES_IN as string };
+    const options: SignOptions = { expiresIn: JWT_EXPIRES_IN as any };
     return jwt.sign(payload, JWT_SECRET, options);
 };
 
 export const generateRefreshToken = (payload: { agencyId: string }) => {
-    const options: SignOptions = { expiresIn: JWT_REFRESH_EXPIRES_IN as string };
+    const options: SignOptions = { expiresIn: JWT_REFRESH_EXPIRES_IN as any };
     return jwt.sign(payload, JWT_SECRET, options);
 };
 

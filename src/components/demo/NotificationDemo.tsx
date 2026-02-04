@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { theme } from '../theme/theme';
-import { useNotification } from '../hooks/useNotification';
+import { theme } from '../../theme/theme';
+import { useNotification } from '../../hooks/useNotification';
 
 export default function NotificationDemo() {
     const { showNotification } = useNotification();
