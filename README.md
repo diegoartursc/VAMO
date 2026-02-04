@@ -63,6 +63,8 @@ npx expo start
 ### Documentação Técnica
 
 - 🎨 [Design System](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/design/design_system.md)
+- 🛠️ [Arquitetura Backend](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/backend/ARQUITETURA_BACKEND.md)
+- 📊 [Status do Projeto](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/STATUS_PROJETO.md)
 - 📝 [Changelog](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/changelog/)
 
 ---

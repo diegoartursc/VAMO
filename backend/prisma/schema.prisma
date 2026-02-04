@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Agency {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  passwordHash    String
+  logo            String?
+  contactUrl      String?
+  whatsapp        String?
+  verified        Boolean   @default(false)
+  verificationDoc String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  packages        Package[]
+  
+  @@map("agencies")
+}
+
+model Package {
+  id                  String    @id @default(cuid())
+  agencyId            String
+  title               String
+  destination         String
+  country             String
+  description         String    @db.Text
+  priceMin            Float
+  priceMax            Float
+  currency            String    @default("BRL")
+  duration            Int
+  includes            String[]
+  highlights          String[]
+  rating              Float?
+  reviewCount         Int       @default(0)
+  featured            Boolean   @default(false)
+  hasFreeCancellation Boolean   @default(false)
+  isAllInclusive      Boolean   @default(false)
+  categories          String[]
+  status              String    @default("active")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  agency              Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  images              PackageImage[]
+  reviews             Review[]
+  
+  @@map("packages")
+}
+
+model PackageImage {
+  id          String   @id @default(cuid())
+  packageId   String
+  url         String
+  alt         String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  
+  @@map("package_images")
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  packageId   String
+  userName    String
+  userAvatar  String?
+  rating      Float
+  comment     String   @db.Text
+  images      String[]
+  createdAt   DateTime @default(now())
+  
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  
+  @@map("reviews")
+}

@@ -15,6 +15,7 @@ import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { getFeaturedItineraries } from '../../src/data/mockItineraries';
+import { CATEGORIES } from '../../src/constants/categories';
 
 export default function ItinerariesScreen() {
     const router = useRouter();
@@ -210,18 +211,7 @@ export default function ItinerariesScreen() {
     );
 }
 
-// Categorias (same as home page)
-const CATEGORIES = [
-    { id: 'cultura', icon: '🏛️', label: 'Cultura' },
-    { id: 'gastronomia', icon: '🍽️', label: 'Gastronomia' },
-    { id: 'natureza', icon: '🌳', label: 'Natureza' },
-    { id: 'esportes', icon: '⚽', label: 'Esportes' },
-    { id: 'cruzeiros', icon: '🚢', label: 'Cruzeiros' },
-    { id: 'eurotrip', icon: '🌍', label: 'Eurotrip' },
-    { id: 'relax', icon: '🧘', label: 'Relax' },
-    { id: 'familia', icon: '👨‍👩‍👧‍👦', label: 'Família' },
-    { id: 'aventura', icon: '🏔️', label: 'Aventura' },
-];
+
 
 const styles = StyleSheet.create({
     container: {

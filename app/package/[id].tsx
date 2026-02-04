@@ -14,8 +14,10 @@ import { theme } from '../../src/theme/theme';
 import { getPackageById } from '../../src/data/mockPackages';
 import { getReviewsByPackageId } from '../../src/data/mockReviews';
 import { Alert, Linking } from 'react-native';
-import CollapsibleSection from '../../src/components/CollapsibleSection';
+import CollapsibleSection from '../../src/components/common/CollapsibleSection';
 import ItineraryCard from '../../src/components/cards/ItineraryCard';
+import DatePickerModal from '../../src/components/DatePickerModal';
+import ParticipantsModal from '../../src/components/ParticipantsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +27,11 @@ export default function PackageDetailScreen() {
     const packageData = getPackageById(id);
     const reviews = getReviewsByPackageId(id);
     const [showAllReviews, setShowAllReviews] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showParticipants, setShowParticipants] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [adults, setAdults] = useState(1);
+    const [children, setChildren] = useState(0);
 
 
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 2);
@@ -179,6 +186,7 @@ export default function PackageDetailScreen() {
                             returnLocations={packageData.itinerary.returnLocations}
                             mapImageUrl={packageData.itinerary.mapImageUrl}
                             price={packageData.price}
+                            onAvailabilityPress={() => setShowDatePicker(true)}
                         />
                     )}
 
@@ -457,37 +465,43 @@ export default function PackageDetailScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Contact Agency Button */}
-                    <TouchableOpacity
-                        style={styles.contactButton}
-                        onPress={() => Alert.alert(
-                            `📞 Contato`,
-                            `Deseja entrar em contato com ${packageData.agency.name}?`,
-                            [
-                                { text: 'Cancelar', style: 'cancel' },
-                                { text: 'Ligar', onPress: () => Linking.openURL('tel:+5511999999999') },
-                                { text: 'WhatsApp', onPress: () => Linking.openURL(`https://wa.me/5511999999999?text=Olá! Vi o pacote "${packageData.title}" no VAMO e gostaria de mais informações.`) }
-                            ]
-                        )}
-                    >
-                        <Text style={styles.contactButtonText}>
-                            Entrar em contato com {packageData.agency.name}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Agency Info */}
-                    <View style={styles.agencyInfo}>
-                        <Text style={styles.agencyInfoText}>
-                            Este pacote é oferecido por {packageData.agency.name}.
-                        </Text>
-                        <Text style={styles.agencyInfoText}>
-                            O VAMO conecta você diretamente com a agência.
-                        </Text>
-                    </View>
-
                     <View style={{ height: 40 }} />
                 </View>
             </ScrollView>
+
+            {/* Date Picker Modal */}
+            <DatePickerModal
+                visible={showDatePicker}
+                onClose={() => setShowDatePicker(false)}
+                onSelectDate={(date: Date) => {
+                    setSelectedDate(date);
+                    setShowDatePicker(false);
+                    setShowParticipants(true); // Abre modal de participantes
+                }}
+                packageTitle={packageData.title}
+            />
+
+            {/* Participants Modal */}
+            <ParticipantsModal
+                visible={showParticipants}
+                onClose={() => setShowParticipants(false)}
+                onApply={(adultsCount: number, childrenCount: number) => {
+                    setAdults(adultsCount);
+                    setChildren(childrenCount);
+                    // Navega para tela de disponibilidade
+                    router.push({
+                        pathname: `/availability/${id}` as any,
+                        params: {
+                            date: selectedDate?.toISOString(),
+                            adults: adultsCount.toString(),
+                            children: childrenCount.toString(),
+                            packageId: id,
+                        },
+                    });
+                }}
+                initialAdults={adults}
+                initialChildren={children}
+            />
         </View>
     );
 }

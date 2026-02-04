@@ -19,6 +19,7 @@ import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
+import { CATEGORIES } from '../../src/constants/categories';
 
 const { width } = Dimensions.get('window');
 
@@ -294,18 +295,7 @@ function PackageCard({
     );
 }
 
-// Categorias (same as home page)
-const CATEGORIES = [
-    { id: 'cultura', icon: '🏛️', label: 'Cultura' },
-    { id: 'gastronomia', icon: '🍽️', label: 'Gastronomia' },
-    { id: 'natureza', icon: '🌳', label: 'Natureza' },
-    { id: 'esportes', icon: '⚽', label: 'Esportes' },
-    { id: 'cruzeiros', icon: '🚢', label: 'Cruzeiros' },
-    { id: 'eurotrip', icon: '🌍', label: 'Eurotrip' },
-    { id: 'relax', icon: '🧘', label: 'Relax' },
-    { id: 'familia', icon: '👨‍👩‍👧‍👦', label: 'Família' },
-    { id: 'aventura', icon: '🏔️', label: 'Aventura' },
-];
+
 
 const styles = StyleSheet.create({
     container: {

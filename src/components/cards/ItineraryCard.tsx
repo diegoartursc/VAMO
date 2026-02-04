@@ -20,6 +20,7 @@ interface ItineraryCardProps {
         min: number;
         currency: string;
     };
+    onAvailabilityPress?: () => void;
 }
 
 const ItineraryCard: React.FC<ItineraryCardProps> = ({
@@ -30,6 +31,7 @@ const ItineraryCard: React.FC<ItineraryCardProps> = ({
     returnLocations,
     mapImageUrl,
     price,
+    onAvailabilityPress,
 }) => {
     return (
         <View style={styles.container}>
@@ -135,7 +137,10 @@ const ItineraryCard: React.FC<ItineraryCardProps> = ({
                         <Text style={styles.priceNote}>por adulto</Text>
                     </View>
 
-                    <TouchableOpacity style={styles.availabilityButton}>
+                    <TouchableOpacity
+                        style={styles.availabilityButton}
+                        onPress={onAvailabilityPress}
+                    >
                         <Text style={styles.availabilityButtonText}>Disponibilidade</Text>
                     </TouchableOpacity>
                 </View>
