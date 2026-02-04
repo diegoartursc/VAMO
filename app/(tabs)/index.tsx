@@ -20,6 +20,7 @@ import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAnimationProvider';
 import { CATEGORIES } from '../../src/constants/categories';
+import DecisionAssistant from '../../src/components/home/DecisionAssistant';
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +28,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const { applyFilters, filters, filteredPackages, hasActiveFilters } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
+    const [decisionAssistantVisible, setDecisionAssistantVisible] = useState(false);
     const packagesByRelevance = getPackagesByRelevance();
 
     // Usa pacotes filtrados se houver filtros ativos, senão usa por relevância
@@ -122,6 +124,20 @@ export default function HomeScreen() {
 
                 {/* Why Different */}
                 <WhyDifferent />
+
+                {/* Decision Assistant Trigger */}
+                <TouchableOpacity
+                    style={styles.decisionTrigger}
+                    onPress={() => setDecisionAssistantVisible(true)}
+                    activeOpacity={0.8}
+                >
+                    <Text style={styles.decisionTriggerEmoji}>🤔</Text>
+                    <View style={styles.decisionTriggerContent}>
+                        <Text style={styles.decisionTriggerTitle}>Não sabe por onde começar?</Text>
+                        <Text style={styles.decisionTriggerSubtitle}>Responda 3 perguntas e descubra a opção ideal</Text>
+                    </View>
+                    <Text style={styles.decisionTriggerArrow}>→</Text>
+                </TouchableOpacity>
 
                 {/* ========================================
                     NOVA SEÇÃO: Categorias de Intenção
@@ -396,6 +412,12 @@ export default function HomeScreen() {
                 }}
                 context="home"
                 initialFilters={filters}
+            />
+
+            {/* Decision Assistant Modal */}
+            <DecisionAssistant
+                visible={decisionAssistantVisible}
+                onClose={() => setDecisionAssistantVisible(false)}
             />
         </View>
     );
@@ -868,5 +890,40 @@ const styles = StyleSheet.create({
     },
     favoriteIcon: {
         fontSize: 18,
+    },
+    // Decision Assistant Trigger
+    decisionTrigger: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.surface,
+        marginHorizontal: 20,
+        marginBottom: 24,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        ...theme.shadows.small,
+    },
+    decisionTriggerEmoji: {
+        fontSize: 28,
+        marginRight: 12,
+    },
+    decisionTriggerContent: {
+        flex: 1,
+    },
+    decisionTriggerTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    decisionTriggerSubtitle: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+    },
+    decisionTriggerArrow: {
+        fontSize: 20,
+        color: theme.colors.primary,
+        fontWeight: '600',
     },
 });

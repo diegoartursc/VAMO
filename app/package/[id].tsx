@@ -140,6 +140,29 @@ export default function PackageDetailScreen() {
                         </View>
                     </View>
 
+                    {/* Confirmation Channel Badge - Builds Trust */}
+                    <View style={styles.confirmationBadge}>
+                        <View style={styles.confirmationLeft}>
+                            <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                            <View>
+                                <Text style={styles.confirmationTitle}>Confirmação via WhatsApp</Text>
+                                <Text style={styles.confirmationDesc}>Resposta em até 2h após reserva</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Verification Info Link */}
+                    {packageData.agency.verified && (
+                        <TouchableOpacity
+                            style={styles.verificationLink}
+                            onPress={() => router.push('/verification-explained')}
+                        >
+                            <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
+                            <Text style={styles.verificationLinkText}>Como verificamos as agências</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
+                        </TouchableOpacity>
+                    )}
+
                     {/* Price & CTA Section (Premium) */}
                     <View style={styles.priceSection}>
                         <View>
@@ -556,6 +579,44 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.text.secondary,
         lineHeight: 22,
+    },
+    // Trust-building elements
+    confirmationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(37, 211, 102, 0.08)',
+        padding: 14,
+        borderRadius: 12,
+        marginBottom: 12,
+    },
+    confirmationLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    confirmationTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    confirmationDesc: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+    },
+    verificationLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+        marginBottom: 16,
+    },
+    verificationLinkText: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.verified,
+        fontWeight: '500',
     },
     errorText: { fontSize: 16, color: 'red', textAlign: 'center', marginTop: 100 },
 });
