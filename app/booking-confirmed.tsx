@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     View,
     Text,
@@ -11,19 +11,41 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../src/data/mockPackages';
+import { haptics } from '../src/services/haptics';
+import { analytics } from '../src/services/analytics';
+import { shareService } from '../src/services/sharing';
 
 export default function BookingConfirmedScreen() {
     const router = useRouter();
-    const { packageId, bookingId, fullName, email } = useLocalSearchParams();
+    const { packageId, bookingId, fullName, email, totalPrice } = useLocalSearchParams();
     const packageData = getPackageById(packageId as string);
 
+    // Haptic and analytics on mount
+    useEffect(() => {
+        haptics.bookingConfirmed();
+        analytics.bookingCompleted(
+            bookingId as string,
+            packageId as string,
+            parseFloat(totalPrice as string) || 0
+        );
+    }, []);
+
     const handleWhatsAppContact = () => {
+        haptics.medium();
         const agencyPhone = '5548999999999'; // Mock
         const message = `Olá! Minha reserva ${bookingId} foi confirmada. Gostaria de mais informações.`;
-        const url = `whatsapp://send?phone=${agencyPhone}&text=${encodeURIComponent(message)}`;
-        Linking.openURL(url).catch(() => {
-            alert('Erro ao abrir WhatsApp');
-        });
+        shareService.openWhatsApp(agencyPhone, message);
+    };
+
+    const handleShareBooking = async () => {
+        haptics.light();
+        if (packageData) {
+            await shareService.shareBookingConfirmation(
+                bookingId as string,
+                packageData.title,
+                new Date().toLocaleDateString('pt-BR')
+            );
+        }
     };
 
     if (!packageData) {
@@ -127,16 +149,27 @@ export default function BookingConfirmedScreen() {
                         </Text>
                     </TouchableOpacity>
 
+                    <TouchableOpacity style={styles.shareButton} onPress={handleShareBooking}>
+                        <Ionicons name="share-outline" size={24} color="#fff" />
+                        <Text style={styles.shareButtonText}>Compartilhar minha viagem</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         style={styles.bookingsButton}
-                        onPress={() => router.push('/(tabs)/profile')}
+                        onPress={() => {
+                            haptics.light();
+                            router.push('/(tabs)/profile');
+                        }}
                     >
                         <Text style={styles.bookingsButtonText}>Ver minhas reservas</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         style={styles.homeButton}
-                        onPress={() => router.push('/(tabs)')}
+                        onPress={() => {
+                            haptics.light();
+                            router.push('/(tabs)');
+                        }}
                     >
                         <Text style={styles.homeButtonText}>Voltar para início</Text>
                     </TouchableOpacity>
@@ -303,6 +336,20 @@ const styles = StyleSheet.create({
     whatsappButtonText: {
         color: '#fff',
         fontSize: 17,
+        fontWeight: '700',
+    },
+    shareButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        backgroundColor: '#6366f1',
+        paddingVertical: 16,
+        borderRadius: 12,
+    },
+    shareButtonText: {
+        color: '#fff',
+        fontSize: 16,
         fontWeight: '700',
     },
     bookingsButton: {
