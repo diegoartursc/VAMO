@@ -109,7 +109,60 @@ const MOCK_REVIEWS: Review[] = [
         photos: [
             'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=400',
         ],
-        language: 'es',
+    },
+    // Itinerary Reviews
+    {
+        id: '6',
+        packageId: 'itinerary-1', // Paris Econômica
+        user: {
+            name: 'Roberta',
+            location: 'Brasil',
+            avatar: '#E91E63',
+            initial: 'R',
+        },
+        rating: 5,
+        date: '20 de fevereiro de 2025',
+        verified: true,
+        text: 'Roteiro perfeito! Consegui fazer Paris gastando muito menos do que imaginava. As dicas de restaurantes baratos e os horários para evitar filas foram essenciais. Diego Artur montou tudo com muito carinho!',
+        photos: [
+            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400',
+            'https://images.unsplash.com/photo-1549144511-f099e773c147?w=400',
+        ],
+    },
+    {
+        id: '7',
+        packageId: 'itinerary-1',
+        user: {
+            name: 'Felipe',
+            location: 'Portugal',
+            avatar: '#3F51B5',
+            initial: 'F',
+        },
+        rating: 5,
+        date: '15 de fevereiro de 2025',
+        verified: true,
+        text: 'Comprei o roteiro e valeu cada centavo! Todas as informações estavam detalhadas: voos, hotéis acessíveis, como usar o metrô, restaurantes bons e baratos. Segui tudo à risca e economizei muito.',
+        response: {
+            date: '16 de fevereiro de 2025',
+            text: 'Muito obrigado pelo feedback, Felipe! Fico feliz que tenha aproveitado bem Paris. Qualquer dúvida, estou à disposição! 🗼',
+        },
+    },
+    {
+        id: '8',
+        packageId: 'itinerary-1',
+        user: {
+            name: 'Camila',
+            location: 'Brasil',
+            avatar: '#FF5722',
+            initial: 'C',
+        },
+        rating: 4,
+        date: '10 de fevereiro de 2025',
+        verified: true,
+        text: 'Roteiro muito bom e completo. As dicas de locomoção e os melhores horários para visitar os pontos turísticos me ajudaram muito. Só senti falta de mais opções veganas de restaurantes, mas no geral, super recomendo!',
+        photos: [
+            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=400',
+        ],
     },
 ];
 
@@ -126,4 +179,21 @@ export function getAverageRating(packageId: string): number {
     if (reviews.length === 0) return 0;
     const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
     return Number((sum / reviews.length).toFixed(1));
+}
+
+export function getCategoryRatings(packageId: string) {
+    const avgRating = getAverageRating(packageId);
+    // Simulating category-specific ratings with small variations
+    return {
+        guide: Math.min(5, Number((avgRating + 0.1).toFixed(1))),
+        transport: avgRating,
+        value: Math.max(4, Number((avgRating - 0.2).toFixed(1))),
+    };
+}
+
+export function getCommunityPhotos(packageId: string): string[] {
+    const reviews = getReviewsByPackageId(packageId);
+    return reviews
+        .filter(review => review.photos && review.photos.length > 0)
+        .flatMap(review => review.photos || []);
 }

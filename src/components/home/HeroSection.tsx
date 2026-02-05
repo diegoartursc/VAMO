@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 
 const { width } = Dimensions.get('window');
@@ -35,17 +34,6 @@ export function HeroSection({
                 style={styles.overlay}
                 locations={[0, 0.5, 1]}
             />
-
-            {/* Floating Glass Search Bar (Visual Rep) */}
-            <View style={styles.searchContainer}>
-                <BlurView intensity={30} tint="light" style={styles.glassSearch}>
-                    <Ionicons name="search" size={20} color="#fff" style={{ opacity: 0.8 }} />
-                    <Text style={styles.searchTextPlaceholder}>Where to next?</Text>
-                    <View style={styles.filterIcon}>
-                        <Ionicons name="options-outline" size={20} color="#fff" />
-                    </View>
-                </BlurView>
-            </View>
 
             {/* Content at Bottom */}
             <View style={styles.content}>

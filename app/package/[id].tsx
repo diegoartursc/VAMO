@@ -15,7 +15,8 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme/theme';
 import { getPackageById } from '../../src/data/mockPackages';
-import { getReviewsByPackageId } from '../../src/data/mockReviews';
+import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos } from '../../src/data/mockReviews';
+import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
 import { Alert, Linking } from 'react-native';
 import CollapsibleSection from '../../src/components/common/CollapsibleSection';
 import ItineraryCard from '../../src/components/cards/ItineraryCard';
@@ -229,28 +230,16 @@ export default function PackageDetailScreen() {
                         </View>
                     </View>
 
-                    {/* Reviews Section */}
+                    {/* Premium Reviews Section */}
                     {reviews.length > 0 && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Avaliações ({packageData.reviewCount})</Text>
-                            {displayedReviews.map((review) => (
-                                <View key={review.id} style={styles.reviewItem}>
-                                    <View style={styles.reviewHeader}>
-                                        <View style={[styles.avatar, { backgroundColor: review.user.avatar }]}>
-                                            <Text style={styles.avatarText}>{review.user.initial}</Text>
-                                        </View>
-                                        <View>
-                                            <Text style={styles.reviewerName}>{review.user.name}</Text>
-                                            <Text style={styles.reviewDate}>{review.date}</Text>
-                                        </View>
-                                        <View style={styles.reviewScore}>
-                                            <Text style={styles.starSmall}>⭐</Text>
-                                            <Text style={styles.scoreValue}>{review.rating}</Text>
-                                        </View>
-                                    </View>
-                                    <Text style={styles.reviewText}>{review.text}</Text>
-                                </View>
-                            ))}
+                            <PremiumReviewsSection
+                                reviews={reviews}
+                                averageRating={getAverageRating(id)}
+                                totalReviews={packageData.reviewCount}
+                                categoryRatings={getCategoryRatings(id)}
+                                communityPhotos={getCommunityPhotos(id)}
+                            />
                         </View>
                     )}
 

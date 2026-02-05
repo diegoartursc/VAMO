@@ -113,13 +113,13 @@ export default function HomeScreen() {
                     image="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800"
                     title="Viajar é mais simples do que você pensa"
                     subtitle="Agências verificadas • Pacotes completos • Suporte em português"
-                    badge="Originals by VAMO"
                 />
 
                 {/* Iconic Search Bar - Novo Design */}
                 <IconicSearchBar
                     placeholder="Encontrar minha viagem"
                     onPress={() => setSearchModalVisible(true)}
+                    overlapsHero={true}
                 />
 
                 {/* Why Different */}

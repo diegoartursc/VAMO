@@ -7,19 +7,27 @@ import {
     Image,
     TouchableOpacity,
     Dimensions,
+    StatusBar,
+    Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme/theme';
 import { getItineraryById } from '../../src/data/mockItineraries';
+import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos } from '../../src/data/mockReviews';
 import { Alert, Linking } from 'react-native';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
+import CollapsibleSection from '../../src/components/common/CollapsibleSection';
+import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function ItineraryDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const itinerary = getItineraryById(id);
+    const reviews = getReviewsByPackageId(`itinerary-${id}`);
 
     if (!itinerary) {
         return (
@@ -29,31 +37,36 @@ export default function ItineraryDetailScreen() {
         );
     }
 
+    // Fixed CTA
+    const [showBuyOptions, setShowBuyOptions] = useState(false);
+
     return (
         <View style={styles.container}>
-            <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* Image Gallery */}
-                <ScrollView
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                >
-                    {itinerary.images.map((image, index) => (
-                        <Image
-                            key={index}
-                            source={{ uri: image }}
-                            style={styles.image}
-                        />
-                    ))}
-                </ScrollView>
+            <StatusBar barStyle="light-content" />
 
-                {/* Content */}
-                <View style={styles.content}>
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                {/* Hero Image */}
+                <View style={styles.heroContainer}>
+                    <Image source={{ uri: itinerary.images[0] }} style={styles.heroImage} />
+
+                    {/* Navigation Header with Blur */}
+                    <BlurView intensity={80} tint="dark" style={styles.navBlur}>
+                        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                            <Ionicons name="arrow-back" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.shareButton}>
+                            <Ionicons name="share-outline" size={24} color="#fff" />
+                        </TouchableOpacity>
+                    </BlurView>
+                </View>
+
+                {/* Content Sheet */}
+                <View style={styles.contentSheet}>
                     {/* Creator Badge */}
-                    <View style={styles.header}>
+                    <View style={styles.creatorRow}>
                         <View style={styles.creatorBadge}>
                             <Text style={styles.creatorAvatar}>{itinerary.creator.avatar}</Text>
-                            <View style={styles.creatorInfo}>
+                            <View>
                                 <View style={styles.creatorNameRow}>
                                     <Text style={styles.creatorName}>{itinerary.creator.name}</Text>
                                     <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
@@ -65,114 +78,197 @@ export default function ItineraryDetailScreen() {
                         </View>
                     </View>
 
+                    {/* Title & Location */}
                     <Text style={styles.title}>{itinerary.title}</Text>
-                    <Text style={styles.destination}>
-                        {itinerary.destination}, {itinerary.country}
-                    </Text>
+                    <View style={styles.locationRow}>
+                        <Ionicons name="location" size={16} color={theme.colors.primary} />
+                        <Text style={styles.location}>
+                            {itinerary.destination}, {itinerary.country}
+                        </Text>
+                    </View>
 
-                    <View style={styles.ratingRow}>
-                        <View style={styles.ratingContainer}>
-                            <Text style={styles.ratingIcon}>⭐</Text>
-                            <Text style={styles.ratingText}>{itinerary.rating}</Text>
-                            <Text style={styles.reviewCount}>
-                                ({itinerary.reviewCount} avaliações)
-                            </Text>
+                    {/* Stats Row */}
+                    <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                            <Ionicons name="star" size={18} color="#FFD700" />
+                            <Text style={styles.statText}>{itinerary.rating}</Text>
+                            <Text style={styles.statLabel}>({itinerary.reviewCount})</Text>
                         </View>
-                        <Text style={styles.duration}>📅 {itinerary.duration} dias</Text>
+                        <View style={styles.statItem}>
+                            <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+                            <Text style={styles.statText}>{itinerary.duration} dias</Text>
+                        </View>
+                        <View style={styles.statItem}>
+                            <Ionicons name="eye-outline" size={18} color={theme.colors.primary} />
+                            <Text style={styles.statText}>Digital</Text>
+                        </View>
                     </View>
 
-                    {/* Price */}
-                    <View style={styles.priceCard}>
-                        <Text style={styles.priceLabel}>Roteiro completo</Text>
-                        <Text style={styles.price}>
-                            R$ {itinerary.price.toFixed(2).replace('.', ',')}
-                        </Text>
-                        <Text style={styles.priceNote}>acesso imediato</Text>
+                    {/* Price & CTA */}
+                    <View style={styles.priceSection}>
+                        <View>
+                            <Text style={styles.priceLabel}>Roteiro completo</Text>
+                            <View style={styles.priceRow}>
+                                <Text style={styles.priceSymbol}>R$</Text>
+                                <Text style={styles.priceValue}>{itinerary.price.toFixed(2).replace('.', ',')}</Text>
+                            </View>
+                            <Text style={styles.priceNote}>• Acesso imediato após compra</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.buyButton}
+                            onPress={() => Alert.alert(
+                                '💳 Comprar Roteiro',
+                                `${itinerary.title}\n\nPreço: R$ ${itinerary.price.toFixed(2)}\n\nDeseja prosseguir para o pagamento?`,
+                                [
+                                    { text: 'Voltar', style: 'cancel' },
+                                    { text: 'Comprar', onPress: () => Alert.alert('Sucesso!', 'Roteiro enviado para seu email.') }
+                                ]
+                            )}
+                        >
+                            <Text style={styles.buyButtonText}>Comprar Agora</Text>
+                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                        </TouchableOpacity>
                     </View>
 
-                    {/* About */}
-                    <View style={styles.aboutSection}>
-                        <Text style={styles.aboutDescription}>
-                            {itinerary.description}
+                    {/* Sobre o Roteiro */}
+                    <CollapsibleSection title="Sobre o Roteiro" defaultExpanded>
+                        <Text style={styles.description}>{itinerary.description}</Text>
+                    </CollapsibleSection>
+
+                    {/* O que você vai receber */}
+                    <CollapsibleSection title="O que você vai receber" defaultExpanded>
+                        <Text style={styles.inclusionsIntro}>
+                            Ao comprar este roteiro, você terá acesso a todas as informações necessárias para sua viagem:
                         </Text>
 
-                        <Text style={styles.aboutTitle}>O que está incluído</Text>
-
-                        <View style={styles.infoCardsContainer}>
-                            {itinerary.inclusions.map((inclusion, index) => (
-                                <View key={index} style={styles.infoCard}>
-                                    <View style={styles.infoCardIcon}>
-                                        <Text style={styles.infoIconText}>
-                                            {inclusion === 'Planilha' ? '📋' :
-                                                inclusion === 'Mapa' ? '🗺️' :
-                                                    inclusion === 'Suporte' ? '💬' :
-                                                        inclusion === 'Guia de Frases' ? '💬' :
-                                                            inclusion === 'Guia de Museus' ? '🏛️' :
-                                                                inclusion === 'Guia de Restaurantes' ? '🍽️' : '📱'}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.infoCardContent}>
-                                        <Text style={styles.infoCardTitle}>{inclusion}</Text>
-                                        <Text style={styles.infoCardDesc}>
-                                            {inclusion === 'Planilha' ? 'Planilha completa de gastos e organização' :
-                                                inclusion === 'Mapa' ? 'Mapa interativo com todos os pontos' :
-                                                    inclusion === 'Suporte' ? 'Suporte direto do criador' :
-                                                        inclusion === 'Guia de Frases' ? 'Principais frases úteis no idioma local' :
-                                                            inclusion === 'Guia de Museus' ? 'Melhores museus e atrações culturais' :
-                                                                inclusion === 'Guia de Restaurantes' ? 'Restaurantes aprovados e testados' :
-                                                                    'Conteúdo digital exclusivo'}
-                                        </Text>
-                                    </View>
+                        <View style={styles.inclusionsList}>
+                            <View style={styles.inclusionItem}>
+                                <View style={[styles.inclusionIcon, { backgroundColor: '#E3F2FD' }]}>
+                                    <Ionicons name="airplane" size={24} color="#2196F3" />
                                 </View>
-                            ))}
+                                <View style={styles.inclusionContent}>
+                                    <Text style={styles.inclusionTitle}>Itinerário Completo</Text>
+                                    <Text style={styles.inclusionDesc}>
+                                        Voos recomendados, horários, companhias aéreas e dicas para economizar
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.inclusionItem}>
+                                <View style={[styles.inclusionIcon, { backgroundColor: '#FFF3E0' }]}>
+                                    <Ionicons name="bed" size={24} color="#FF9800" />
+                                </View>
+                                <View style={styles.inclusionContent}>
+                                    <Text style={styles.inclusionTitle}>Hotéis & Hospedagens</Text>
+                                    <Text style={styles.inclusionDesc}>
+                                        Lista com os melhores lugares para se hospedar, faixa de preço e localização estratégica
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.inclusionItem}>
+                                <View style={[styles.inclusionIcon, { backgroundColor: '#F3E5F5' }]}>
+                                    <Ionicons name="map" size={24} color="#9C27B0" />
+                                </View>
+                                <View style={styles.inclusionContent}>
+                                    <Text style={styles.inclusionTitle}>Passeios & Atrações</Text>
+                                    <Text style={styles.inclusionDesc}>
+                                        Todas as atrações imperdíveis, preços de ingressos e como evitar filas
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.inclusionItem}>
+                                <View style={[styles.inclusionIcon, { backgroundColor: '#E8F5E9' }]}>
+                                    <Ionicons name="car" size={24} color="#4CAF50" />
+                                </View>
+                                <View style={styles.inclusionContent}>
+                                    <Text style={styles.inclusionTitle}>Locomoção</Text>
+                                    <Text style={styles.inclusionDesc}>
+                                        Como se locomover na cidade: metrô, ônibus, táxi, apps e passes de transporte
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.inclusionItem}>
+                                <View style={[styles.inclusionIcon, { backgroundColor: '#FFF9C4' }]}>
+                                    <Ionicons name="bulb" size={24} color="#F9A825" />
+                                </View>
+                                <View style={styles.inclusionContent}>
+                                    <Text style={styles.inclusionTitle}>Dicas Exclusivas</Text>
+                                    <Text style={styles.inclusionDesc}>
+                                        Truques de quem já foi: melhores horários, segredos locais e como economizar
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.inclusionItem}>
+                                <View style={[styles.inclusionIcon, { backgroundColor: '#FFEBEE' }]}>
+                                    <Ionicons name="restaurant" size={24} color="#F44336" />
+                                </View>
+                                <View style={styles.inclusionContent}>
+                                    <Text style={styles.inclusionTitle}>Restaurantes & Gastronomia</Text>
+                                    <Text style={styles.inclusionDesc}>
+                                        Onde comer bem, opções para todos os bolsos e pratos típicos que você não pode perder
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.inclusionItem}>
+                                <View style={[styles.inclusionIcon, { backgroundColor: '#E0F2F1' }]}>
+                                    <Ionicons name="chatbubbles" size={24} color="#009688" />
+                                </View>
+                                <View style={styles.inclusionContent}>
+                                    <Text style={styles.inclusionTitle}>Suporte do Criador</Text>
+                                    <Text style={styles.inclusionDesc}>
+                                        Tire suas dúvidas diretamente com {itinerary.creator.name} via mensagem
+                                    </Text>
+                                </View>
+                            </View>
                         </View>
-                    </View>
+                    </CollapsibleSection>
 
-                    {/* Buy Button */}
-                    <TouchableOpacity
-                        style={styles.buyButton}
-                        onPress={() => Alert.alert(
-                            '💳 Comprar Roteiro',
-                            `${itinerary.title}\n\nPreço: R$ ${itinerary.price.toFixed(2)}\nDuração: ${itinerary.duration} dias\n\nDeseja prosseguir para o pagamento?`,
-                            [
-                                { text: 'Voltar', style: 'cancel' },
-                                { text: 'Comprar Agora', onPress: () => Alert.alert('Sucesso! ✅', 'Compra realizada! O roteiro foi enviado para seu email.') }
-                            ]
-                        )}
-                    >
-                        <Text style={styles.buyButtonText}>
-                            Comprar por R$ {itinerary.price.toFixed(2).replace('.', ',')}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Creator Contact */}
+                    {/* Contact Creator */}
                     <TouchableOpacity
                         style={styles.contactButton}
                         onPress={() => Alert.alert(
-                            `💬 Contato`,
-                            `Deseja falar diretamente com ${itinerary.creator.name}?`,
+                            '💬 Contato',
+                            `Deseja falar com ${itinerary.creator.name}?`,
                             [
                                 { text: 'Cancelar', style: 'cancel' },
-                                { text: 'Enviar mensagem', onPress: () => Alert.alert('Em breve!', 'Sistema de mensagens será implementado em breve.') }
+                                { text: 'Enviar mensagem' }
                             ]
                         )}
                     >
-                        <Text style={styles.contactButtonText}>
-                            Falar com {itinerary.creator.name}
-                        </Text>
+                        <Ionicons name="chatbubble-outline" size={20} color={theme.colors.primary} />
+                        <Text style={styles.contactButtonText}>Falar com {itinerary.creator.name}</Text>
                     </TouchableOpacity>
 
-                    {/* Info */}
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoText}>
-                            Este roteiro é criado por {itinerary.creator.name}, viajante verificado.
-                        </Text>
-                        <Text style={styles.infoText}>
-                            O VAMO conecta você diretamente com criadores reais.
-                        </Text>
+                    {/* Premium Reviews Section */}
+                    {reviews.length > 0 && (
+                        <View style={styles.reviewsSection}>
+                            <PremiumReviewsSection
+                                reviews={reviews}
+                                averageRating={getAverageRating(`itinerary-${id}`)}
+                                totalReviews={reviews.length}
+                                categoryRatings={getCategoryRatings(`itinerary-${id}`)}
+                                communityPhotos={getCommunityPhotos(`itinerary-${id}`)}
+                            />
+                        </View>
+                    )}
+
+                    {/* Trust Info */}
+                    <View style={styles.trustBox}>
+                        <Ionicons name="shield-checkmark" size={24} color={theme.colors.verified} />
+                        <View style={styles.trustContent}>
+                            <Text style={styles.trustTitle}>Criador Verificado</Text>
+                            <Text style={styles.trustText}>
+                                {itinerary.creator.name} é um viajante verificado pelo VAMO com {itinerary.creator.salesCount}+ roteiros vendidos
+                            </Text>
+                        </View>
                     </View>
 
-                    <View style={{ height: 40 }} />
+                    <View style={{ height: 100 }} />
                 </View>
             </ScrollView>
         </View>
@@ -184,43 +280,80 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.colors.background,
     },
-    scrollContent: {
+    scrollView: {
         flex: 1,
     },
-    image: {
-        width,
-        height: 300,
-        backgroundColor: theme.colors.surface,
+    heroContainer: {
+        height: 400,
+        position: 'relative',
     },
-    content: {
-        padding: theme.spacing.md,
+    heroImage: {
+        width: '100%',
+        height: '100%',
     },
-    header: {
-        marginBottom: theme.spacing.md,
+    navBlur: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: Platform.OS === 'ios' ? 50 : 20,
+        paddingBottom: 12,
+        paddingHorizontal: 16,
+        overflow: 'hidden',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.1)',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    shareButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    contentSheet: {
+        backgroundColor: theme.colors.background,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        marginTop: -24,
+        paddingTop: 24,
+        paddingHorizontal: 20,
+    },
+    creatorRow: {
+        marginBottom: 20,
     },
     creatorBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: theme.colors.surface,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.borderRadius.lg,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 16,
         alignSelf: 'flex-start',
-        gap: theme.spacing.sm,
+        gap: 12,
+        ...theme.shadows.small,
     },
     creatorAvatar: {
-        fontSize: 28,
-    },
-    creatorInfo: {
-        flex: 1,
+        fontSize: 32,
     },
     creatorNameRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.spacing.xs,
+        gap: 6,
     },
     creatorName: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '600',
         color: theme.colors.text.primary,
     },
@@ -230,154 +363,174 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     title: {
-        fontSize: theme.typography.sizes.title,
-        fontWeight: theme.typography.weights.bold,
+        fontSize: 28,
+        fontWeight: '700',
         color: theme.colors.text.primary,
-        marginBottom: theme.spacing.xs,
+        marginBottom: 8,
+        lineHeight: 36,
     },
-    destination: {
-        fontSize: 16,
-        color: theme.colors.text.secondary,
-        marginBottom: theme.spacing.md,
-    },
-    ratingRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: theme.spacing.lg,
-    },
-    ratingContainer: {
+    locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
+        marginBottom: 16,
     },
-    ratingIcon: {
+    location: {
         fontSize: 16,
+        color: theme.colors.text.secondary,
     },
-    ratingText: {
-        fontSize: 16,
+    statsRow: {
+        flexDirection: 'row',
+        gap: 20,
+        marginBottom: 20,
+    },
+    statItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    statText: {
+        fontSize: 14,
         fontWeight: '600',
         color: theme.colors.text.primary,
     },
-    reviewCount: {
-        fontSize: 14,
+    statLabel: {
+        fontSize: 13,
         color: theme.colors.text.secondary,
     },
-    duration: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-    },
-    priceCard: {
-        backgroundColor: theme.colors.surfaceLight,
-        padding: theme.spacing.md,
-        borderRadius: theme.borderRadius.md,
-        marginBottom: theme.spacing.lg,
+    priceSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        backgroundColor: theme.colors.surface,
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 24,
+        ...theme.shadows.small,
     },
     priceLabel: {
-        fontSize: 14,
+        fontSize: 12,
         color: theme.colors.text.secondary,
         marginBottom: 4,
     },
-    price: {
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        marginBottom: 4,
+    },
+    priceSymbol: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.colors.success,
+        marginRight: 4,
+    },
+    priceValue: {
         fontSize: 32,
         fontWeight: '700',
         color: theme.colors.success,
-        marginBottom: 4,
     },
     priceNote: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
     },
-    aboutSection: {
-        marginBottom: theme.spacing.lg,
+    buyButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 28,
+        ...theme.shadows.button,
     },
-    aboutDescription: {
+    buyButtonText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    description: {
         fontSize: 15,
         color: theme.colors.text.primary,
         lineHeight: 22,
-        marginBottom: theme.spacing.lg,
     },
-    aboutTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-        marginBottom: theme.spacing.md,
+    inclusionsIntro: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        lineHeight: 20,
+        marginBottom: 20,
     },
-    infoCardsContainer: {
-        gap: theme.spacing.md,
+    inclusionsList: {
+        gap: 16,
     },
-    infoCard: {
+    inclusionItem: {
         flexDirection: 'row',
-        gap: theme.spacing.md,
-        alignItems: 'flex-start',
+        gap: 12,
     },
-    infoCardIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: theme.colors.surfaceLight,
+    inclusionIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    infoIconText: {
-        fontSize: 20,
-    },
-    infoCardContent: {
+    inclusionContent: {
         flex: 1,
     },
-    infoCardTitle: {
+    inclusionTitle: {
         fontSize: 15,
         fontWeight: '600',
         color: theme.colors.text.primary,
         marginBottom: 4,
     },
-    infoCardDesc: {
+    inclusionDesc: {
         fontSize: 13,
         color: theme.colors.text.secondary,
         lineHeight: 18,
     },
-    buyButton: {
-        backgroundColor: theme.colors.success,
-        paddingVertical: theme.spacing.md,
-        borderRadius: theme.borderRadius.full,
-        alignItems: 'center',
-        marginBottom: theme.spacing.md,
-        ...theme.shadows.button,
-    },
-    buyButtonText: {
-        color: theme.colors.text.inverse,
-        fontSize: 16,
-        fontWeight: '700',
-    },
     contactButton: {
-        backgroundColor: theme.colors.surface,
-        paddingVertical: theme.spacing.md,
-        borderRadius: theme.borderRadius.full,
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: theme.spacing.md,
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: theme.colors.surface,
+        paddingVertical: 14,
+        borderRadius: 28,
+        marginTop: 24,
         borderWidth: 1,
         borderColor: theme.colors.border,
     },
     contactButtonText: {
-        color: theme.colors.text.primary,
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
+        color: theme.colors.primary,
     },
-    infoBox: {
+    reviewsSection: {
+        marginTop: 24,
+    },
+    trustBox: {
+        flexDirection: 'row',
+        gap: 12,
         backgroundColor: theme.colors.surfaceLight,
-        padding: theme.spacing.md,
-        borderRadius: theme.borderRadius.md,
-        gap: theme.spacing.xs,
+        padding: 16,
+        borderRadius: 12,
+        marginTop: 16,
     },
-    infoText: {
+    trustContent: {
+        flex: 1,
+    },
+    trustTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    trustText: {
         fontSize: 13,
         color: theme.colors.text.secondary,
-        textAlign: 'center',
         lineHeight: 18,
     },
     errorText: {
-        fontSize: theme.typography.sizes.body,
+        fontSize: 16,
         color: theme.colors.error,
         textAlign: 'center',
     },
