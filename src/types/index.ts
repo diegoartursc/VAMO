@@ -51,10 +51,20 @@ export interface Package {
             location: string;
             activity: string;
             duration: string;
+            comfortIndicators?: {
+                freeTimeForPhotos?: boolean;
+                strategicRestStops?: boolean;
+                customMessage?: string;
+            };
         };
         returnLocations: string[];
         mapImageUrl?: string;
     };
+    // Expandable Information Sections
+    fullDescription?: string;
+    includedItems?: string[];
+    notRecommendedFor?: string[];
+    importantInfo?: string[];
 }
 
 export interface User {

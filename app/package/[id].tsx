@@ -14,8 +14,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme/theme';
-import { getPackageById } from '../../src/data/mockPackages';
-import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos } from '../../src/data/mockReviews';
+import { getPackageById, getRelatedPackages } from '../../src/data/mockPackages';
+import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../src/data/mockReviews';
 import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
 import { Alert, Linking } from 'react-native';
 import CollapsibleSection from '../../src/components/common/CollapsibleSection';
@@ -39,6 +39,8 @@ export default function PackageDetailScreen() {
     const [children, setChildren] = useState(0);
 
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 2);
+    const relatedPackages = getRelatedPackages(id, 4);
+
 
     if (!packageData) {
         return (
@@ -166,13 +168,15 @@ export default function PackageDetailScreen() {
 
                     {/* Price & CTA Section (Premium) */}
                     <View style={styles.priceSection}>
-                        <View>
+                        <View style={styles.priceInfoContainer}>
                             <Text style={styles.priceLabel}>Preço total por pessoa</Text>
                             <View style={styles.priceRow}>
                                 <Text style={styles.currencySymbol}>R$</Text>
                                 <Text style={styles.priceValue}>{packageData.price.min.toLocaleString('pt-BR')}</Text>
                             </View>
                         </View>
+
+                        {/* Primary CTA */}
                         <TouchableOpacity
                             style={styles.bookButton}
                             onPress={() => setShowDatePicker(true)}
@@ -181,13 +185,96 @@ export default function PackageDetailScreen() {
                             <Text style={styles.bookButtonText}>Verificar Disponibilidade</Text>
                             <Ionicons name="arrow-forward" size={20} color="#fff" />
                         </TouchableOpacity>
+
+                        {/* Secondary CTA - Price Alert */}
+                        <TouchableOpacity
+                            style={styles.priceAlertButton}
+                            onPress={() => {
+                                // TODO: Check if user is logged in
+                                Alert.alert(
+                                    '🔔 Alerta de Preço',
+                                    'Vamos te avisar quando o preço deste pacote mudar!',
+                                    [
+                                        { text: 'Cancelar', style: 'cancel' },
+                                        {
+                                            text: 'Ativar Alerta',
+                                            onPress: () => {
+                                                // TODO: Save package and activate notification
+                                                Alert.alert('Sucesso!', 'Você receberá um alerta quando o preço mudar.');
+                                            }
+                                        }
+                                    ]
+                                );
+                            }}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.priceAlertButtonText}>🔔 Receba alerta quando o preço mudar</Text>
+                        </TouchableOpacity>
                     </View>
 
                     {/* About Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Sobre a experiência</Text>
+                        <Text style={styles.emotionalIntro}>
+                            Imagine começar o dia respirando o ar puro das montanhas, caminhar por trilhas que revelam paisagens de tirar o fôlego, e sentir a energia vibrante de cada momento inesquecível dessa jornada.
+                        </Text>
                         <Text style={styles.description}>{packageData.description}</Text>
                     </View>
+
+                    {/* Full Description */}
+                    {packageData.fullDescription && (
+                        <CollapsibleSection title="Descrição completa">
+                            <Text style={styles.description}>{packageData.fullDescription}</Text>
+                        </CollapsibleSection>
+                    )}
+
+                    {/* Included Items */}
+                    {packageData.includedItems && packageData.includedItems.length > 0 && (
+                        <CollapsibleSection title="Inclui">
+                            <View style={styles.highlightsContainer}>
+                                {packageData.includedItems.map((item, index) => (
+                                    <View key={index} style={styles.highlightRow}>
+                                        <View style={styles.checkIcon}>
+                                            <Ionicons name="checkmark" size={12} color="#fff" />
+                                        </View>
+                                        <Text style={styles.highlightText}>{item}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </CollapsibleSection>
+                    )}
+
+                    {/* Not Recommended For */}
+                    {packageData.notRecommendedFor && packageData.notRecommendedFor.length > 0 && (
+                        <CollapsibleSection title="Não indicado para">
+                            <View style={styles.highlightsContainer}>
+                                {packageData.notRecommendedFor.map((item, index) => (
+                                    <View key={index} style={styles.highlightRow}>
+                                        <View style={[styles.checkIcon, { backgroundColor: theme.colors.error }]}>
+                                            <Ionicons name="close" size={12} color="#fff" />
+                                        </View>
+                                        <Text style={styles.highlightText}>{item}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </CollapsibleSection>
+                    )}
+
+                    {/* Important Information */}
+                    {packageData.importantInfo && packageData.importantInfo.length > 0 && (
+                        <CollapsibleSection title="Informações importantes">
+                            <View style={styles.highlightsContainer}>
+                                {packageData.importantInfo.map((item, index) => (
+                                    <View key={index} style={styles.highlightRow}>
+                                        <View style={[styles.checkIcon, { backgroundColor: theme.colors.warning || '#F59E0B' }]}>
+                                            <Ionicons name="alert" size={12} color="#fff" />
+                                        </View>
+                                        <Text style={styles.highlightText}>{item}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </CollapsibleSection>
+                    )}
 
                     {/* Itinerary */}
                     {packageData.itinerary && (
@@ -221,6 +308,68 @@ export default function PackageDetailScreen() {
                         </View>
                     </CollapsibleSection>
 
+                    {/* Perfect For Block - User Identification */}
+                    <View style={styles.perfectForContainer}>
+                        <Text style={styles.perfectForTitle}>Para quem essa viagem é perfeita</Text>
+
+                        <View style={styles.perfectForItems}>
+                            {/* Item 1 */}
+                            <View style={styles.perfectForItem}>
+                                <View style={styles.perfectForIconCircle}>
+                                    <Ionicons name="airplane" size={18} color={theme.colors.primary} />
+                                </View>
+                                <Text style={styles.perfectForText}>Vai para a Europa pela primeira vez</Text>
+                            </View>
+
+                            {/* Item 2 */}
+                            <View style={styles.perfectForItem}>
+                                <View style={styles.perfectForIconCircle}>
+                                    <Ionicons name="star" size={18} color={theme.colors.primary} />
+                                </View>
+                                <Text style={styles.perfectForText}>Quer ver os clássicos sem se preocupar com logística</Text>
+                            </View>
+
+                            {/* Item 3 */}
+                            <View style={styles.perfectForItem}>
+                                <View style={styles.perfectForIconCircle}>
+                                    <Ionicons name="calendar-clear" size={18} color={theme.colors.primary} />
+                                </View>
+                                <Text style={styles.perfectForText}>Prefere tudo organizado</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Peace of Mind Block - Reduces Purchase Anxiety */}
+                    <View style={styles.peaceOfMindContainer}>
+                        <Text style={styles.peaceOfMindTitle}>Sua viagem sem preocupações</Text>
+
+                        <View style={styles.peaceOfMindItems}>
+                            {/* Item 1: Tudo Organizado */}
+                            <View style={styles.peaceOfMindItem}>
+                                <View style={styles.peaceOfMindIconCircle}>
+                                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+                                </View>
+                                <Text style={styles.peaceOfMindText}>Tudo organizado pela agência</Text>
+                            </View>
+
+                            {/* Item 2: Sem Filas */}
+                            <View style={styles.peaceOfMindItem}>
+                                <View style={styles.peaceOfMindIconCircle}>
+                                    <Ionicons name="time-outline" size={20} color={theme.colors.success} />
+                                </View>
+                                <Text style={styles.peaceOfMindText}>Sem filas nos principais pontos turísticos</Text>
+                            </View>
+
+                            {/* Item 3: Suporte */}
+                            <View style={styles.peaceOfMindItem}>
+                                <View style={styles.peaceOfMindIconCircle}>
+                                    <Ionicons name="shield-checkmark" size={20} color={theme.colors.success} />
+                                </View>
+                                <Text style={styles.peaceOfMindText}>Suporte antes e durante a viagem</Text>
+                            </View>
+                        </View>
+                    </View>
+
                     {/* Cancellation Policy */}
                     <View style={styles.policyCard}>
                         <Ionicons name="shield-checkmark-outline" size={24} color={theme.colors.success} />
@@ -239,7 +388,87 @@ export default function PackageDetailScreen() {
                                 totalReviews={packageData.reviewCount}
                                 categoryRatings={getCategoryRatings(id)}
                                 communityPhotos={getCommunityPhotos(id)}
+                                topRatedSummary={getTopRatedCategoriesText(id)}
                             />
+                        </View>
+                    )}
+
+                    {/* Related Packages Section */}
+                    {relatedPackages.length > 0 && (
+                        <View style={styles.relatedSection}>
+                            <Text style={styles.relatedTitle}>Você também pode gostar</Text>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.relatedScrollContent}
+                            >
+                                {relatedPackages.map((pkg) => (
+                                    <TouchableOpacity
+                                        key={pkg.id}
+                                        style={styles.relatedCard}
+                                        onPress={() => router.push(`/package/${pkg.id}`)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Image
+                                            source={{ uri: pkg.images[0] }}
+                                            style={styles.relatedImage}
+                                            resizeMode="cover"
+                                        />
+
+                                        {/* Badge */}
+                                        {pkg.badge && (
+                                            <View style={styles.relatedBadge}>
+                                                <Text style={styles.relatedBadgeText}>
+                                                    {pkg.badge === 'bestseller' && 'Melhores avaliações'}
+                                                    {pkg.badge === 'value' && 'Melhor custo-benefício'}
+                                                    {pkg.badge === 'luxury' && 'Experiência premium'}
+                                                    {pkg.badge === 'new' && 'Novidade'}
+                                                </Text>
+                                            </View>
+                                        )}
+
+                                        {/* Favorite Icon */}
+                                        <View style={styles.relatedFavoriteButton}>
+                                            <Ionicons name="heart-outline" size={20} color="#fff" />
+                                        </View>
+
+                                        <View style={styles.relatedCardContent}>
+                                            <Text style={styles.relatedCardTitle} numberOfLines={2}>
+                                                {pkg.title}
+                                            </Text>
+                                            <Text style={styles.relatedCardInfo}>
+                                                {pkg.duration} horas • Serviço de busca disponível
+                                            </Text>
+
+                                            {/* Rating */}
+                                            <View style={styles.relatedRating}>
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <Ionicons
+                                                        key={star}
+                                                        name={star <= Math.floor(pkg.rating) ? "star" : "star-outline"}
+                                                        size={12}
+                                                        color={theme.colors.warning || '#FFB74D'}
+                                                    />
+                                                ))}
+                                                <Text style={styles.relatedRatingText}>
+                                                    {pkg.rating} ({pkg.reviewCount.toLocaleString('pt-BR')})
+                                                </Text>
+                                            </View>
+
+                                            {/* Price */}
+                                            <View style={styles.relatedPriceContainer}>
+                                                <View>
+                                                    <Text style={styles.relatedPriceLabel}>A partir de</Text>
+                                                    <Text style={styles.relatedPriceValue}>
+                                                        € {Math.floor(pkg.price.min * 0.15)}
+                                                    </Text>
+                                                </View>
+                                                <Text style={styles.relatedPriceUnit}>por adulto</Text>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
                         </View>
                     )}
 
@@ -424,9 +653,10 @@ const styles = StyleSheet.create({
         marginBottom: 32,
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        gap: 12,
+    },
+    priceInfoContainer: {
+        marginBottom: 8,
     },
     priceLabel: {
         fontSize: 12,
@@ -452,6 +682,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 8,
         paddingHorizontal: 20,
         paddingVertical: 14,
@@ -463,6 +694,21 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
     },
+    priceAlertButton: {
+        borderWidth: 1.5,
+        borderColor: theme.colors.primary,
+        backgroundColor: 'transparent',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 100,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    priceAlertButtonText: {
+        color: theme.colors.primary,
+        fontWeight: '600',
+        fontSize: 13,
+    },
     section: {
         marginBottom: 32,
     },
@@ -471,6 +717,13 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 16,
+    },
+    emotionalIntro: {
+        fontSize: 16,
+        fontStyle: 'italic',
+        color: theme.colors.text.tertiary,
+        lineHeight: 26,
+        marginBottom: theme.spacing.lg,
     },
     description: {
         fontSize: 16,
@@ -608,4 +861,187 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     errorText: { fontSize: 16, color: 'red', textAlign: 'center', marginTop: 100 },
+    // Related Packages Section
+    relatedSection: {
+        marginTop: 24,
+        marginBottom: 16,
+    },
+    relatedTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 16,
+    },
+    relatedScrollContent: {
+        paddingRight: 24,
+        gap: 16,
+    },
+    relatedCard: {
+        width: 300,
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        overflow: 'hidden',
+        ...theme.shadows.small,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    relatedImage: {
+        width: '100%',
+        height: 180,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    relatedBadge: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        ...theme.shadows.small,
+    },
+    relatedBadgeText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    relatedFavoriteButton: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    relatedCardContent: {
+        padding: 16,
+    },
+    relatedCardTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: 8,
+        lineHeight: 20,
+    },
+    relatedCardInfo: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginBottom: 12,
+    },
+    relatedRating: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 12,
+    },
+    relatedRatingText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginLeft: 4,
+    },
+    relatedPriceContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+    },
+    relatedPriceLabel: {
+        fontSize: 11,
+        color: theme.colors.text.secondary,
+        marginBottom: 2,
+    },
+    relatedPriceValue: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
+    relatedPriceUnit: {
+        fontSize: 11,
+        color: theme.colors.text.secondary,
+    },
+    // Peace of Mind Block - Premium Reassurance Design
+    peaceOfMindContainer: {
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: theme.borderRadius.md,
+        padding: 20,
+        marginTop: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(40, 201, 191, 0.15)',
+        ...theme.shadows.small,
+    },
+    peaceOfMindTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 16,
+        letterSpacing: -0.2,
+    },
+    peaceOfMindItems: {
+        gap: 14,
+    },
+    peaceOfMindItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    peaceOfMindIconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(40, 201, 191, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    peaceOfMindText: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+        lineHeight: 22,
+    },
+    // Perfect For Block - User Identification
+    perfectForContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: theme.borderRadius.md,
+        padding: 20,
+        marginTop: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.small,
+    },
+    perfectForTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 16,
+        letterSpacing: -0.2,
+    },
+    perfectForItems: {
+        gap: 14,
+    },
+    perfectForItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    perfectForIconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(40, 201, 191, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    perfectForText: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+        lineHeight: 22,
+    },
 });

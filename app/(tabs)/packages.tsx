@@ -248,28 +248,25 @@ function PackageCard({
 
                 <Text style={styles.cardDuration}>📅 {pkg.duration} dias</Text>
 
-                {/* Inclusions badges */}
-                {pkg.inclusions && (
-                    <View style={styles.inclusionsBadges}>
-                        {pkg.inclusions.flight && (
-                            <View style={styles.inclusionBadge}>
-                                <Text style={styles.inclusionText}>✈️ Voo</Text>
-                            </View>
-                        )}
-                        {pkg.inclusions.hotel && (
-                            <View style={styles.inclusionBadge}>
-                                <Text style={styles.inclusionText}>
-                                    🏨 Hotel {pkg.inclusions.hotel.stars}⭐
-                                </Text>
-                            </View>
-                        )}
-                        {pkg.inclusions.tours.length > 0 && (
-                            <View style={styles.inclusionBadge}>
-                                <Text style={styles.inclusionText}>🎫 Passeios</Text>
-                            </View>
-                        )}
+                {/* Inclusions badges - Matching detail page */}
+                <View style={styles.inclusionsBadges}>
+                    <View style={styles.inclusionBadge}>
+                        <Text style={styles.inclusionText}>⏱️ {pkg.duration} Dias</Text>
                     </View>
-                )}
+                    <View style={styles.inclusionBadge}>
+                        <Text style={styles.inclusionText}>📶 Wi-Fi</Text>
+                    </View>
+                    <View style={styles.inclusionBadge}>
+                        <Text style={styles.inclusionText}>👥 Guia</Text>
+                    </View>
+                    {pkg.inclusions?.hotel && (
+                        <View style={styles.inclusionBadge}>
+                            <Text style={styles.inclusionText}>
+                                🏨 Hotel {pkg.inclusions.hotel.stars}★
+                            </Text>
+                        </View>
+                    )}
+                </View>
 
                 <View style={styles.cardFooter}>
                     <View>

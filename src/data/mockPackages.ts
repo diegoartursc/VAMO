@@ -93,7 +93,11 @@ export const mockPackages: Package[] = [
             mainActivity: {
                 location: 'Torre Eiffel',
                 activity: 'Visita guiada com acesso ao topo',
-                duration: '2 horas'
+                duration: '4h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                },
             },
             returnLocations: [
                 'Louvre', 'Champs-Élysées', 'Montmartre', 'Notre-Dame',
@@ -101,6 +105,33 @@ export const mockPackages: Package[] = [
             ],
             mapImageUrl: 'https://images.unsplash.com/photo-1524396309943-e03f5249f002?w=800'
         },
+        fullDescription: 'Viva a experiência completa na Cidade Luz com este pacote exclusivo de 7 dias. Explore os monumentos mais icônicos, passeie pelos charmosos bairros parisienses, saboreie a gastronomia francesa e mergulhe na rica história e cultura da capital francesa. Nosso roteiro cuidadosamente planejado equilibra visitas guiadas aos principais pontos turísticos com tempo livre para você descobrir seus próprios tesouros escondidos. Acomodação central em hotel 4 estrelas garante conforto e praticidade para explorar a cidade a pé ou de metrô.',
+        includedItems: [
+            'Passagens aéreas internacionais (ida e volta)',
+            'Transfer privativo aeroporto-hotel-aeroporto',
+            'Hospedagem em hotel 4 estrelas no centro de Paris',
+            'Café da manhã buffet todos os dias',
+            'Ingresso para Torre Eiffel com acesso prioritário',
+            'Cruzeiro turístico no Rio Sena (1 hora)',
+            'City tour guiado em português (dia inteiro)',
+            'Visita ao Museu do Louvre com guia',
+            'Seguro viagem internacional',
+            'Kit de boas-vindas e material informativo',
+            'Assistência 24h em português',
+        ],
+        notRecommendedFor: [
+            'Pessoas com dificuldade de locomoção (muitas escadas e caminhadas)',
+            'Menores de 5 anos (roteiro intenso)',
+            'Pessoas que não gostam de ambientes com muitos turistas',
+        ],
+        importantInfo: [
+            'Passaporte com validade mínima de 6 meses',
+            'Visto não é necessário para brasileiros (permanência até 90 dias)',
+            'Recomendamos contratar seguro viagem com cobertura mínima de €30.000',
+            'Clima: leve roupas para temperaturas entre 5°C e 25°C conforme a estação',
+            'Alguns museus fecham às terças-feiras',
+            'Reserve com antecedência para garantir melhores tarifas aéreas',
+        ],
     },
     {
         id: '2',
@@ -148,6 +179,33 @@ export const mockPackages: Package[] = [
         recentPurchases: 67,
         priceComparison: 'below',
         priceDiscount: 20,
+        fullDescription: 'Desfrute do paraíso caribenho em um resort all-inclusive de categoria superior. Aproveite praias de águas cristalinas, piscinas infinitas, gastronomia internacional e atividades aquáticas ilimitadas. Este pacote oferece a combinação perfeita entre relaxamento total e diversão para toda a família, com estrutura completa de entretenimento diurno e noturno.',
+        includedItems: [
+            'Voo direto São Paulo - Cancún (ida e volta)',
+            'Transfer exclusivo aeroporto-resort-aeroporto',
+            'Hospedagem em resort all-inclusive 5 estrelas',
+            'Todas as refeições (café, almoço, jantar e lanches)',
+            'Bebidas nacionais e internacionais ilimitadas',
+            'Atividades aquáticas não motorizadas (caiaque, stand-up paddle)',
+            'Snorkeling com equipamento incluso',
+            'Entretenimento e shows noturnos',
+            'Acesso a todas as piscinas e áreas de lazer',
+            'Academia e aulas de fitness',
+            'Wi-Fi em todo o resort',
+        ],
+        notRecommendedFor: [
+            'Pessoas que buscam experiências culturais intensas',
+            'Viajantes que preferem explorar destinos por conta própria',
+            'Quem procura ambiente tranquilo e isolado',
+        ],
+        importantInfo: [
+            'Passaporte com validade mínima de 6 meses obrigatório',
+            'Visto não é necessário para permanência de até 180 dias',
+            'Taxa de turismo mexicana (aproximadamente USD 35) paga na chegada',
+            'Protetor solar reef-safe obrigatório nas áreas de snorkeling',
+            'Temperatura média entre 25°C e 32°C durante todo o ano',
+            'Check-in no resort: 15h | Check-out: 12h',
+        ],
     },
     {
         id: '3',
@@ -356,7 +414,77 @@ export const mockPackages: Package[] = [
             'Paisagens de tirar o fôlego',
         ],
     },
+    {
+        id: '9',
+        title: 'Paris Essencial - Weekend Perfeito',
+        destination: 'Paris',
+        country: 'França',
+        agency: agencies[1],
+        price: {
+            min: 5500,
+            max: 8000,
+            currency: 'BRL',
+        },
+        images: [
+            'https://images.unsplash.com/photo-1502809737437-1d85c70dd2ca?w=800',
+            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+        ],
+        duration: 4,
+        includes: [
+            'Passagens aéreas',
+            'Hotel 3 estrelas',
+            'Café da manhã',
+            'City tour',
+        ],
+        rating: 4.6,
+        reviewCount: 145,
+        featured: false,
+        description: 'Descubra Paris em 4 dias com roteiro otimizado pelos principais pontos turísticos.',
+        highlights: [
+            'Torre Eiffel',
+            'Louvre',
+            'Arco do Triunfo',
+            'Champs-Élysées',
+        ],
+        badge: 'value',
+    },
+    {
+        id: '10',
+        title: 'Paris Completa - Experiência de Luxo',
+        destination: 'Paris',
+        country: 'França',
+        agency: agencies[2],
+        price: {
+            min: 12000,
+            max: 18000,
+            currency: 'BRL',
+        },
+        images: [
+            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800',
+        ],
+        duration: 10,
+        includes: [
+            'Passagens em classe executiva',
+            'Hotel 5 estrelas',
+            'Todas as refeições',
+            'Tours privativos',
+            'Transfer VIP',
+        ],
+        rating: 4.9,
+        reviewCount: 89,
+        featured: true,
+        description: 'Experiência premium em Paris com acomodação de luxo e tours exclusivos.',
+        highlights: [
+            'Versailles com guia privado',
+            'Jantar na Torre Eiffel',
+            'Champagne em Reims',
+            'Shopping with personal stylist',
+        ],
+        badge: 'luxury',
+    },
 ];
+
 
 export const getFeaturedPackages = () => mockPackages.filter(p => p.featured);
 
@@ -379,4 +507,22 @@ export const getPackagesByRelevance = () => {
         const relevanceB = calculateRelevance(b.rating, b.reviewCount);
         return relevanceB - relevanceA; // Highest first
     });
+};
+
+// Get related packages from the same destination (excluding the current package)
+export const getRelatedPackages = (currentPackageId: string, limit: number = 4): Package[] => {
+    const currentPackage = getPackageById(currentPackageId);
+    if (!currentPackage) return [];
+
+    return mockPackages
+        .filter(pkg =>
+            pkg.id !== currentPackageId &&
+            (pkg.destination === currentPackage.destination || pkg.country === currentPackage.country)
+        )
+        .sort((a, b) => {
+            const relevanceA = calculateRelevance(a.rating, a.reviewCount);
+            const relevanceB = calculateRelevance(b.rating, b.reviewCount);
+            return relevanceB - relevanceA;
+        })
+        .slice(0, limit);
 };

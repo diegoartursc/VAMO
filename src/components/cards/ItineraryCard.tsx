@@ -13,6 +13,11 @@ interface ItineraryCardProps {
         location: string;
         activity: string;
         duration: string;
+        comfortIndicators?: {
+            freeTimeForPhotos?: boolean;
+            strategicRestStops?: boolean;
+            customMessage?: string;
+        };
     };
     returnLocations: string[];
     mapImageUrl?: string;
@@ -33,6 +38,13 @@ const ItineraryCard: React.FC<ItineraryCardProps> = ({
     price,
     onAvailabilityPress,
 }) => {
+    // Helper to check if activity duration is longer than 3 hours
+    const isLongActivity = (duration: string): boolean => {
+        const match = duration.match(/(\d+\.?\d*)/);
+        if (!match) return false;
+        const hours = parseFloat(match[1]);
+        return hours > 3;
+    };
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Itinerário</Text>
@@ -105,6 +117,36 @@ const ItineraryCard: React.FC<ItineraryCardProps> = ({
                         <Text style={styles.activityDescription}>
                             {mainActivity.activity} ({mainActivity.duration})
                         </Text>
+
+                        {/* Comfort Indicators */}
+                        {isLongActivity(mainActivity.duration) && mainActivity.comfortIndicators && (
+                            <View style={styles.comfortIndicators}>
+                                {mainActivity.comfortIndicators.freeTimeForPhotos && (
+                                    <View style={styles.comfortItem}>
+                                        <Text style={styles.comfortIcon}>⏳</Text>
+                                        <Text style={styles.comfortText}>
+                                            Tempo livre para fotos e explorar a área
+                                        </Text>
+                                    </View>
+                                )}
+                                {mainActivity.comfortIndicators.strategicRestStops && (
+                                    <View style={styles.comfortItem}>
+                                        <Text style={styles.comfortIcon}>☕</Text>
+                                        <Text style={styles.comfortText}>
+                                            Paradas estratégicas para descanso
+                                        </Text>
+                                    </View>
+                                )}
+                                {mainActivity.comfortIndicators.customMessage && (
+                                    <View style={styles.comfortItem}>
+                                        <Text style={styles.comfortIcon}>⏳</Text>
+                                        <Text style={styles.comfortText}>
+                                            {mainActivity.comfortIndicators.customMessage}
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
                     </View>
                 </View>
             </View>
@@ -237,6 +279,24 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: theme.colors.text.secondary,
         lineHeight: 18,
+    },
+    comfortIndicators: {
+        marginTop: 12,
+        gap: 8,
+    },
+    comfortItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    comfortIcon: {
+        fontSize: 14,
+    },
+    comfortText: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        lineHeight: 16,
+        flex: 1,
     },
     footer: {
         marginTop: theme.spacing.sm,

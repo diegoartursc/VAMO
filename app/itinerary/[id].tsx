@@ -15,7 +15,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme/theme';
 import { getItineraryById } from '../../src/data/mockItineraries';
-import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos } from '../../src/data/mockReviews';
+import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../src/data/mockReviews';
 import { Alert, Linking } from 'react-native';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import CollapsibleSection from '../../src/components/common/CollapsibleSection';
@@ -253,6 +253,7 @@ export default function ItineraryDetailScreen() {
                                 totalReviews={reviews.length}
                                 categoryRatings={getCategoryRatings(`itinerary-${id}`)}
                                 communityPhotos={getCommunityPhotos(`itinerary-${id}`)}
+                                topRatedSummary={getTopRatedCategoriesText(`itinerary-${id}`)}
                             />
                         </View>
                     )}

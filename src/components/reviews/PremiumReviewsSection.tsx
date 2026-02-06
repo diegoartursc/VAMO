@@ -32,6 +32,7 @@ interface ReviewsSectionProps {
         value?: number;
     };
     communityPhotos?: string[];
+    topRatedSummary?: string;
 }
 
 export default function PremiumReviewsSection({
@@ -40,6 +41,7 @@ export default function PremiumReviewsSection({
     totalReviews,
     categoryRatings,
     communityPhotos,
+    topRatedSummary,
 }: ReviewsSectionProps) {
     const [showAllReviews, setShowAllReviews] = useState(false);
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
@@ -81,6 +83,14 @@ export default function PremiumReviewsSection({
                     com base em {totalReviews} avaliações
                 </Text>
             </View>
+
+            {/* Top-Rated Summary */}
+            {topRatedSummary && (
+                <View style={styles.summarySection}>
+                    <Text style={styles.summaryIcon}>🧡</Text>
+                    <Text style={styles.summaryText}>{topRatedSummary}</Text>
+                </View>
+            )}
 
             {/* Category Ratings */}
             {categoryRatings && (
@@ -225,6 +235,27 @@ const styles = StyleSheet.create({
     ratingSubtext: {
         fontSize: 14,
         color: theme.colors.text.secondary,
+    },
+    // Top-Rated Summary
+    summarySection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: theme.borderRadius.md,
+        marginBottom: theme.spacing.md,
+        gap: 8,
+    },
+    summaryIcon: {
+        fontSize: 16,
+    },
+    summaryText: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        lineHeight: 22,
     },
     // Category Ratings
     categorySection: {

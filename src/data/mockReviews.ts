@@ -197,3 +197,34 @@ export function getCommunityPhotos(packageId: string): string[] {
         .filter(review => review.photos && review.photos.length > 0)
         .flatMap(review => review.photos || []);
 }
+
+// Category labels mapping
+const categoryLabels: Record<string, string> = {
+    guide: 'o guia',
+    transport: 'o transporte',
+    value: 'o custo-benefício',
+    organization: 'a organização do roteiro',
+};
+
+export function getTopRatedCategoriesText(packageId: string): string {
+    const categoryRatings = getCategoryRatings(packageId);
+
+    // Convert to array and filter categories with rating >= 4.5
+    const topCategories = Object.entries(categoryRatings)
+        .filter(([_, rating]) => rating >= 4.5)
+        .sort(([_, ratingA], [__, ratingB]) => ratingB - ratingA)
+        .map(([category, _]) => categoryLabels[category] || category);
+
+    // Generate natural language text
+    if (topCategories.length === 0) {
+        return 'Viajantes elogiam principalmente a qualidade da experiência';
+    } else if (topCategories.length === 1) {
+        return `Viajantes elogiam principalmente ${topCategories[0]}`;
+    } else if (topCategories.length === 2) {
+        return `Viajantes elogiam principalmente ${topCategories[0]} e ${topCategories[1]}`;
+    } else {
+        const lastCategory = topCategories[topCategories.length - 1];
+        const otherCategories = topCategories.slice(0, -1).join(', ');
+        return `Viajantes elogiam principalmente ${otherCategories} e ${lastCategory}`;
+    }
+}
