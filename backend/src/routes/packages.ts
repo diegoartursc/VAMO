@@ -80,7 +80,7 @@ router.get('/', async (req, res: Response) => {
 // GET /api/packages/:id - Get single package (PUBLIC)
 router.get('/:id', async (req, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
 
         const packageData = await prisma.package.findUnique({
             where: { id },
@@ -156,7 +156,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
 // PUT /api/packages/:id - Update package (PROTECTED)
 router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const validatedData = createPackageSchema.partial().parse(req.body);
 
         // Check if package belongs to agency
@@ -199,7 +199,7 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
 // DELETE /api/packages/:id - Soft delete package (PROTECTED)
 router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
 
         // Check if package belongs to agency
         const existingPackage = await prisma.package.findUnique({

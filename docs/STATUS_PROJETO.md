@@ -4,7 +4,7 @@
 
 **VAMO** é uma plataforma mobile-first que simplifica a decisão de viagem, conectando viajantes a agências verificadas e criadores de roteiros independentes.
 
-**Status Atual:** MVP Frontend Completo ✅ | Backend em Planejamento 📝
+**Status Atual:** MVP Frontend Completo ✅ | Backend MVP Implementado ✅ | Integração em Andamento 🔄
 
 ---
 
@@ -84,6 +84,29 @@
 - ✅ Providers migrados para src/providers
 - ✅ Backup strategy implementada
 
+### 🚀 Novas Features (Fevereiro 2026)
+- ✅ Flow completo de booking (6 etapas: seleção → dados → pagamento → confirmação)
+- ✅ Seção "Continue sua busca" na Home (baseada em pesquisas anteriores)
+- ✅ Analytics service com eventos detalhados (home, busca, pacotes, booking)
+- ✅ Decision Assistant (quiz de 3 perguntas para recomendar viagem)
+- ✅ Price Alert — botão de alerta de preço nos pacotes
+- ✅ Worry-Free Travel Block — bloco de segurança nos highlights
+- ✅ Indicadores de conforto e ritmo no itinerário
+- ✅ Seção de reviews com resumo dinâmico de categorias
+- ✅ Trust badge consolidado na Home
+- ✅ Travel style selector (Luxo / Custo-benefício)
+- ✅ Pacotes relacionados na página de detalhes
+- ✅ Descrição imersiva nos pacotes (parágrafo sensorial)
+
+### 🛠️ Backend MVP (Fevereiro 2026)
+- ✅ Projeto Node.js + Express + TypeScript configurado
+- ✅ Prisma ORM com schema completo (Package, Agency, Review, Image)
+- ✅ Sistema de autenticação JWT (access + refresh tokens)
+- ✅ CRUD completo de pacotes (/api/packages)
+- ✅ Rotas protegidas com middleware de auth
+- ✅ Validação de dados com Zod
+- ✅ Soft delete para pacotes
+
 ### 📄 Documentação
 - ✅ README.md completo
 - ✅ Descritivo Completo do produto
@@ -96,18 +119,25 @@
 
 ## 🔄 Em Desenvolvimento
 
-### Backend (Planejado)
-- 🔄 Arquitetura backend documentada (veja [ARQUITETURA_BACKEND.md](./backend/ARQUITETURA_BACKEND.md))
-- 🔄 Escolha de stack finalizada (Node.js + TypeScript + PostgreSQL)
-- 📝 Aguardando início de implementação
+### Integração Frontend ↔ Backend
+- 🔄 Migrar de mockData para APIs reais
+- 🔄 Implementar camada de services no mobile
+- 🔄 Conectar sistema de favoritos ao backend
+- 🔄 Sistema de reservas com gateway de pagamento
+- 🔄 Dashboard para agências parceiras
 
 ---
 
 ## 📝 Pendente (Roadmap)
 
-### Backend - Fase 1: MVP (4-6 semanas)
-- [ ] Setup do projeto Node.js + Express + TypeScript
-- [ ] Configuração Prisma + PostgreSQL (Supabase)
+### Backend - Próximas Features
+- [x] Setup do projeto Node.js + Express + TypeScript
+- [x] Configuração Prisma + PostgreSQL
+- [x] Sistema de autenticação (JWT)
+- [x] APIs REST básicas (CRUD pacotes)
+- [ ] Registro e login de usuários finais
+- [ ] Recuperação de senha
+- [ ] Verificação de email
 - [ ] Migrations do banco de dados
 - [ ] Sistema de autenticação (JWT)
   - [ ] Registro de usuários
@@ -305,6 +335,6 @@ VAMO Backend API (Node.js + Express + PostgreSQL)
 
 ---
 
-**Última atualização:** 01 de Fevereiro de 2026  
+**Última atualização:** 07 de Fevereiro de 2026  
 **Responsável:** Diego Artur  
-**Status:** Frontend MVP Completo ✅ | Backend em Planejamento 📝
+**Status:** Frontend MVP Completo ✅ | Backend MVP Implementado ✅ | Integração em Andamento 🔄

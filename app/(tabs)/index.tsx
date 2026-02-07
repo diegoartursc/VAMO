@@ -13,7 +13,7 @@ import { HeroSection } from '../../src/components/home/HeroSection';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { PressableCard } from '../../src/components/common/PressableCard';
-import { getPackagesByRelevance } from '../../src/data/mockPackages';
+import { getPackagesByRelevance, mockPackages } from '../../src/data/mockPackages';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { useRouter } from 'expo-router';
 import { useSearch } from '../../src/hooks/useSearch';
@@ -21,6 +21,7 @@ import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAnimationProvider';
 import { CATEGORIES } from '../../src/constants/categories';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
+import { analytics } from '../../src/services/analytics';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +37,15 @@ export default function HomeScreen() {
 
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
     const { showAnimation } = useFavoriteAnimation();
+    const [selectedIntent, setSelectedIntent] = useState<string | null>(null); // Track selected travel style
+    const scrollViewRef = useRef<ScrollView>(null);
+    const [scrollDepthTracked, setScrollDepthTracked] = useState<Set<number>>(new Set());
+    const [lastSearchedDestination, setLastSearchedDestination] = useState<string | null>('Paris'); // Mock: último destino pesquisado
+
+    // Track home view on mount
+    useEffect(() => {
+        analytics.homeViewed();
+    }, []);
 
     // Toggle favorite status
     const toggleFavorite = (packageId: string, event?: any) => {
@@ -55,7 +65,6 @@ export default function HomeScreen() {
     };
 
     // Auto-scroll for categories
-    const scrollViewRef = useRef<ScrollView>(null);
     const scrollPosition = useRef(0);
     const isUserInteracting = useRef(false);
     const autoScrollInterval = useRef<NodeJS.Timeout | null>(null);
@@ -101,6 +110,24 @@ export default function HomeScreen() {
         }, 2000);
     };
 
+    // Handle intent selection with toggle
+    const handleIntentSelect = (intentId: string) => {
+        // Toggle: if already selected, deselect it
+        const newSelection = selectedIntent === intentId ? null : intentId;
+        setSelectedIntent(newSelection);
+
+        // Track analytics if selecting (not deselecting)
+        if (newSelection) {
+            analytics.homeTravelStyleSelected(intentId);
+        }
+    };
+
+    // Feedback messages for each intent
+    const intentFeedback: Record<string, string> = {
+        'luxo': 'Mostrando viagens com foco em conforto e exclusividade',
+        'custo-beneficio': 'Mostrando viagens com melhor custo-benefício',
+    };
+
     return (
         <View style={styles.container}>
             <ScrollView
@@ -108,30 +135,40 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
                 bounces={true}
             >
-                {/* Hero Section - CTA removido, texto movido para search bar */}
+                {/* Hero Section */}
                 <HeroSection
                     image="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800"
                     title="Viajar é mais simples do que você pensa"
-                    subtitle="Agências verificadas • Pacotes completos • Suporte em português"
+                    subtitle="Encontre sua próxima aventura com quem entende de viagem"
                 />
 
-                {/* Iconic Search Bar - Novo Design */}
+                {/* 1. Barra de busca principal */}
                 <IconicSearchBar
                     placeholder="Encontrar minha viagem"
-                    onPress={() => setSearchModalVisible(true)}
+                    onPress={() => {
+                        analytics.homeSearchFocused();
+                        setSearchModalVisible(true);
+                    }}
                     overlapsHero={true}
                 />
 
-                {/* Why Different */}
-                <WhyDifferent />
+                {/* Elemento de confiança consolidado */}
+                <View style={styles.trustBadge}>
+                    <Text style={styles.trustBadgeText}>
+                        Agências verificadas • Preço final • Compra segura
+                    </Text>
+                </View>
 
-                {/* Decision Assistant Trigger */}
+                {/* 2. Card "Não sabe por onde começar?" */}
                 <TouchableOpacity
                     style={styles.decisionTrigger}
-                    onPress={() => setDecisionAssistantVisible(true)}
+                    onPress={() => {
+                        analytics.homeQuizCtaClicked();
+                        setDecisionAssistantVisible(true);
+                    }}
                     activeOpacity={0.8}
                 >
-                    <Text style={styles.decisionTriggerEmoji}>🤔</Text>
+                    <Text style={styles.decisionIcon}>🤔</Text>
                     <View style={styles.decisionTriggerContent}>
                         <Text style={styles.decisionTriggerTitle}>Não sabe por onde começar?</Text>
                         <Text style={styles.decisionTriggerSubtitle}>Responda 3 perguntas e descubra a opção ideal</Text>
@@ -139,10 +176,64 @@ export default function HomeScreen() {
                     <Text style={styles.decisionTriggerArrow}>→</Text>
                 </TouchableOpacity>
 
-                {/* ========================================
-                    NOVA SEÇÃO: Categorias de Intenção
-                    Adicionada ANTES das categorias existentes
-                    ======================================== */}
+                {/* 3. Pacotes em Destaque */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Viagens completas com as melhores avaliações
+                    </Text>
+
+                    <View style={styles.packagesGrid}>
+                        {displayedPackages.slice(0, 6).map((pkg, index) => (
+                            <PremiumPackageCard
+                                key={pkg.id}
+                                package={pkg}
+                                onPress={() => {
+                                    analytics.homePackageCardClicked(pkg.id, index);
+                                    router.push(`/package/${pkg.id}`);
+                                }}
+                                isFavorite={favorites.includes(pkg.id)}
+                                onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
+                            />
+                        ))}
+                    </View>
+                </View>
+
+                {/* 4. Continue sua busca (baseado em pesquisa anterior) */}
+                {lastSearchedDestination && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Continue sua busca em {lastSearchedDestination}
+                        </Text>
+                        <Text style={styles.sectionSubtitle}>
+                            Retome de onde parou e descubra mais experiências
+                        </Text>
+
+                        <View style={styles.packagesGrid}>
+                            {mockPackages
+                                .filter(pkg =>
+                                    pkg.destination.toLowerCase().includes(lastSearchedDestination.toLowerCase()) ||
+                                    pkg.country.toLowerCase().includes(lastSearchedDestination.toLowerCase())
+                                )
+                                .slice(0, 4)
+                                .map((pkg, index) => (
+                                    <PremiumPackageCard
+                                        key={pkg.id}
+                                        package={pkg}
+                                        onPress={() => {
+                                            analytics.homePackageCardClicked(pkg.id, index);
+                                            router.push(`/package/${pkg.id}`);
+                                        }}
+                                        isFavorite={favorites.includes(pkg.id)}
+                                        onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
+                                    />
+                                ))
+                            }
+                        </View>
+                    </View>
+                )}
+
+                {/* 5. Seção "Como você quer viajar?" */}
                 <View style={styles.intentSection}>
                     <Text style={styles.intentTitle}>Como você quer viajar?</Text>
                     <Text style={styles.intentSubtitle}>
@@ -157,12 +248,11 @@ export default function HomeScreen() {
                         {INTENT_CATEGORIES.map((intent) => (
                             <TouchableOpacity
                                 key={intent.id}
-                                style={styles.intentChip}
-                                onPress={() => {
-                                    // Aplicar filtro baseado na intenção
-                                    // Por enquanto, navega para pacotes com query parameter
-                                    router.push(`/(tabs)/packages?intent=${intent.id}`);
-                                }}
+                                style={[
+                                    styles.intentChip,
+                                    selectedIntent === intent.id && styles.intentChipSelected
+                                ]}
+                                onPress={() => handleIntentSelect(intent.id)}
                                 activeOpacity={0.7}
                             >
                                 <Text style={styles.intentEmoji}>{intent.emoji}</Text>
@@ -170,9 +260,18 @@ export default function HomeScreen() {
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
+
+                    {/* Feedback textual */}
+                    {selectedIntent && (
+                        <View style={styles.intentFeedback}>
+                            <Text style={styles.intentFeedbackText}>
+                                {intentFeedback[selectedIntent]}
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
-                {/* Category Pills with Auto-Scroll (CATEGORIAS EXISTENTES - MANTIDAS) */}
+                {/* Category Pills with Auto-Scroll */}
                 <View style={styles.categoriesSection}>
                     <ScrollView
                         ref={scrollViewRef}
@@ -184,7 +283,6 @@ export default function HomeScreen() {
                         onScrollBeginDrag={handleTouchStart}
                         onScrollEndDrag={handleTouchEnd}
                     >
-                        {/* Render categories twice for infinite effect */}
                         {[...CATEGORIES, ...CATEGORIES].map((cat, index) => (
                             <TouchableOpacity
                                 key={`${cat.id}-${index}`}
@@ -198,184 +296,13 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
 
-                {/* Continue sua busca (Seção Personalizada) */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Continue sua busca em Arizona</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Retome de onde parou e descubra mais experiências
-                    </Text>
-
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.horizontalScroll}
-                    >
-                        {CONTINUE_SEARCH_EXPERIENCES.map((exp) => (
-                            <TouchableOpacity
-                                key={exp.id}
-                                style={styles.experienceCard}
-                                onPress={() => router.push(`/package/${exp.id}`)}
-                                activeOpacity={0.9}
-                            >
-                                <Image
-                                    source={{ uri: exp.image }}
-                                    style={styles.experienceImage}
-                                    resizeMode="cover"
-                                />
-
-                                {/* Badge de categoria */}
-                                <View style={styles.experienceBadge}>
-                                    <Text style={styles.experienceBadgeText}>{exp.category}</Text>
-                                </View>
-
-                                {/* Favorite button */}
-                                <TouchableOpacity
-                                    style={styles.experienceFavoriteButton}
-                                    onPress={(e) => {
-                                        e.stopPropagation();
-                                        toggleFavorite(exp.id, e);
-                                    }}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.favoriteIcon}>
-                                        {favorites.includes(exp.id) ? '❤️' : '♡'}
-                                    </Text>
-                                </TouchableOpacity>
-
-                                <View style={styles.experienceInfo}>
-                                    <Text style={styles.experienceTitle} numberOfLines={2}>
-                                        {exp.title}
-                                    </Text>
-                                    <Text style={styles.experienceDuration}>
-                                        {exp.duration} • {exp.groupType}
-                                    </Text>
-
-                                    <View style={styles.experienceFooter}>
-                                        <View>
-                                            <View style={styles.experienceRating}>
-                                                <Text style={styles.experienceRatingText}>⭐ {exp.rating}</Text>
-                                                <Text style={styles.experienceReviewCount}>({exp.reviewCount})</Text>
-                                            </View>
-                                            <View style={styles.experiencePrice}>
-                                                <Text style={styles.experiencePriceLabel}>A partir de</Text>
-                                                <Text style={styles.experiencePriceValue}>€ {exp.price}</Text>
-                                                <Text style={styles.experiencePriceUnit}>por adulto</Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-
-                {/* Experiências de viagem inesquecíveis */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Experiências de viagem inesquecíveis</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Momentos únicos que você vai guardar para sempre
-                    </Text>
-
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.horizontalScroll}
-                    >
-                        {UNFORGETTABLE_EXPERIENCES.map((exp) => (
-                            <TouchableOpacity
-                                key={exp.id}
-                                style={styles.experienceCard}
-                                onPress={() => router.push(`/package/${exp.id}`)}
-                                activeOpacity={0.9}
-                            >
-                                <Image
-                                    source={{ uri: exp.image }}
-                                    style={styles.experienceImage}
-                                    resizeMode="cover"
-                                />
-
-                                {/* Badge de destaque */}
-                                {exp.badge && (
-                                    <View style={[styles.experienceBadge, styles.experienceBadgeSpecial]}>
-                                        <Text style={styles.experienceBadgeText}>{exp.badge}</Text>
-                                    </View>
-                                )}
-
-                                {/* Favorite button */}
-                                <TouchableOpacity
-                                    style={styles.experienceFavoriteButton}
-                                    onPress={(e) => {
-                                        e.stopPropagation();
-                                        toggleFavorite(exp.id, e);
-                                    }}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.favoriteIcon}>
-                                        {favorites.includes(exp.id) ? '❤️' : '♡'}
-                                    </Text>
-                                </TouchableOpacity>
-
-                                <View style={styles.experienceInfo}>
-                                    <Text style={styles.experienceTitle} numberOfLines={2}>
-                                        {exp.title}
-                                    </Text>
-                                    <Text style={styles.experienceDuration}>
-                                        {exp.duration}
-                                    </Text>
-
-                                    <View style={styles.experienceFooter}>
-                                        <View>
-                                            <View style={styles.experienceRating}>
-                                                <Text style={styles.experienceRatingText}>⭐ {exp.rating}</Text>
-                                                <Text style={styles.experienceReviewCount}>({exp.reviewCount})</Text>
-                                            </View>
-                                            <View style={styles.experiencePrice}>
-                                                <Text style={styles.experiencePriceLabel}>A partir de</Text>
-                                                <Text style={styles.experiencePriceValue}>€ {exp.price}</Text>
-                                                <Text style={styles.experiencePriceUnit}>por adulto</Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-
-                {/* Pacotes em Destaque */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Viagens completas com as melhores avaliações
-                    </Text>
-
-                    {/* Two rows of 3 cards each */}
-                    <View style={styles.packagesGrid}>
-                        {displayedPackages.slice(0, 6).map((pkg) => (
-                            <PremiumPackageCard
-                                key={pkg.id}
-                                package={pkg}
-                                onPress={() => router.push(`/package/${pkg.id}`)}
-                                isFavorite={favorites.includes(pkg.id)}
-                                onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
-                            />
-                        ))}
-                    </View>
-                </View>
-
-                {/* CTA Carousel - Auto-Play (moved before destinations) */}
-                <View style={styles.section}>
-                    <CTACarousel />
-                </View>
-
-                {/* Destinos Populares */}
+                {/* 5. Destinos Populares */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Destinos populares</Text>
                     <Text style={styles.sectionSubtitle}>
                         Os lugares mais procurados pelos nossos viajantes
                     </Text>
 
-                    {/* Grid de destinos */}
                     <View style={styles.destinationsGrid}>
                         {POPULAR_DESTINATIONS.map((dest) => (
                             <TouchableOpacity
@@ -396,6 +323,44 @@ export default function HomeScreen() {
                         ))}
                     </View>
                 </View>
+
+                {/* 6. Experiências Inesquecíveis */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Experiências de viagem inesquecíveis</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Momentos únicos que você vai guardar para sempre
+                    </Text>
+
+                    <View style={styles.packagesGrid}>
+                        {UNFORGETTABLE_EXPERIENCES.map((exp, index) => (
+                            <PremiumPackageCard
+                                key={exp.id}
+                                package={{
+                                    ...exp,
+                                    price: { min: exp.price, max: exp.price },
+                                    images: [exp.image],
+                                    agency: { name: 'VAMO Experiences' },
+                                    destination: exp.title.split(':')[0],
+                                    country: exp.title.split(':')[0],
+                                }}
+                                onPress={() => {
+                                    analytics.homePackageCardClicked(exp.id, index);
+                                    router.push(`/package/${exp.id}`);
+                                }}
+                                isFavorite={favorites.includes(exp.id)}
+                                onToggleFavorite={(e: any) => toggleFavorite(exp.id, e)}
+                            />
+                        ))}
+                    </View>
+                </View>
+
+                {/* 7. Banner "Quer vender seus roteiros?" (CTA Carousel) */}
+                <View style={styles.section}>
+                    <CTACarousel />
+                </View>
+
+                {/* 8. Por que o VAMO é diferente? */}
+                <WhyDifferent />
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -430,8 +395,35 @@ function PremiumPackageCard({
     isFavorite,
     onToggleFavorite
 }: any) {
+    // Generate value proposition based on package attributes
+    const getValueProposition = () => {
+        if (pkg.isAllInclusive) return 'Tudo incluso, zero preocupação';
+        if (pkg.categories?.includes('romantic')) return 'Perfeito para casal';
+        if (pkg.categories?.includes('cultural')) return 'Ideal para primeira viagem internacional';
+        if (pkg.duration <= 4) return 'Escapada rápida e completa';
+        if (pkg.duration >= 10) return 'Experiência completa e imersiva';
+        return 'Pacote completo com tudo organizado';
+    };
+
+    // Get badge label
+    const getBadgeLabel = () => {
+        if (pkg.badge === 'bestseller') return 'Mais vendido';
+        if (pkg.badge === 'value') return 'Melhor custo-benefício';
+        if (pkg.badge === 'luxury') return 'Premium';
+        return null;
+    };
+
+    const badgeLabel = getBadgeLabel();
+
     return (
         <PressableCard onPress={onPress} style={styles.packageCard}>
+            {/* Badge de destaque (condicional) */}
+            {badgeLabel && (
+                <View style={styles.packageBadge}>
+                    <Text style={styles.packageBadgeText}>{badgeLabel}</Text>
+                </View>
+            )}
+
             <Image
                 source={{ uri: pkg.images[0] }}
                 style={styles.packageImage}
@@ -455,6 +447,11 @@ function PremiumPackageCard({
             <View style={styles.packageInfo}>
                 <Text style={styles.packageTitle} numberOfLines={2}>{pkg.title}</Text>
 
+                {/* Micro-copy de valor */}
+                <Text style={styles.packageValueProp} numberOfLines={1}>
+                    {getValueProposition()}
+                </Text>
+
                 {/* Rating & Review Count */}
                 <View style={styles.packageMeta}>
                     <Text style={styles.packageRating}>⭐ {pkg.rating}</Text>
@@ -467,7 +464,19 @@ function PremiumPackageCard({
                     <Text style={styles.packageDuration}>• {pkg.duration} dias</Text>
                 </View>
 
-                <Text style={styles.packagePrice}>R$ {pkg.price.min.toLocaleString()}</Text>
+                {/* Preço contextualizado */}
+                <View style={styles.packagePriceContainer}>
+                    <Text style={styles.packagePriceLabel}>A partir de</Text>
+                    <Text style={styles.packagePrice}>R$ {pkg.price.min.toLocaleString()}</Text>
+                    <Text style={styles.packagePricePerPerson}>por pessoa</Text>
+                </View>
+
+                {/* Prova social leve (condicional) */}
+                {pkg.recentPurchases && pkg.recentPurchases > 0 && (
+                    <Text style={styles.packageSocialProof}>
+                        Reservado por {pkg.recentPurchases} pessoas este mês
+                    </Text>
+                )}
             </View>
         </PressableCard>
     );
@@ -575,21 +584,21 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 
-    // Intent Categories (Nova Seção)
+    // Intent Categories Section
     intentSection: {
-        marginBottom: 32,
+        marginBottom: theme.spacing.xl,
         paddingHorizontal: 20,
     },
     intentTitle: {
         fontSize: theme.typography.sizes.title,
         fontWeight: theme.typography.weights.heavy,
         color: theme.colors.text.primary,
-        marginBottom: 6,
+        marginBottom: theme.spacing.xs,
     },
     intentSubtitle: {
         fontSize: theme.typography.sizes.caption,
         color: theme.colors.text.tertiary,
-        marginBottom: 16,
+        marginBottom: theme.spacing.md,
         lineHeight: 20,
     },
     intentScroll: {
@@ -618,6 +627,39 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
         textAlign: 'center',
         lineHeight: 18,
+    },
+    intentChipSelected: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+        ...theme.shadows.medium,
+    },
+    intentFeedback: {
+        marginTop: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: theme.borderRadius.md,
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.primary,
+    },
+    intentFeedbackText: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        lineHeight: 20,
+    },
+
+    // Trust Badge
+    trustBadge: {
+        paddingHorizontal: 20,
+        paddingVertical: theme.spacing.sm,
+        alignItems: 'center',
+        marginBottom: 28,
+    },
+    trustBadgeText: {
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+        textAlign: 'center',
+        letterSpacing: 0.3,
     },
 
     // Categories (Existentes)
@@ -658,12 +700,13 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.sizes.title,
         fontWeight: theme.typography.weights.heavy,
         color: theme.colors.text.primary,
-        marginBottom: 8,
+        marginBottom: theme.spacing.sm,
     },
     sectionSubtitle: {
         fontSize: theme.typography.sizes.caption,
         color: theme.colors.text.tertiary,
-        marginBottom: 16,
+        marginBottom: theme.spacing.md,
+        lineHeight: 20,
     },
 
     // Package Cards (temporary)
@@ -725,6 +768,51 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '700',
         color: theme.colors.primary,
+    },
+    // Novos estilos para melhorias de UX
+    packageBadge: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: theme.borderRadius.sm,
+        zIndex: 1,
+        ...theme.shadows.small,
+    },
+    packageBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.colors.text.onPrimary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    packageValueProp: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginBottom: 8,
+        fontStyle: 'italic',
+        lineHeight: 18,
+    },
+    packagePriceContainer: {
+        marginTop: 4,
+    },
+    packagePriceLabel: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginBottom: 2,
+    },
+    packagePricePerPerson: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginTop: 2,
+    },
+    packageSocialProof: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginTop: 8,
+        lineHeight: 15,
     },
     packagesGrid: {
         flexDirection: 'row',
@@ -893,20 +981,20 @@ const styles = StyleSheet.create({
     },
     // Decision Assistant Trigger
     decisionTrigger: {
+        marginHorizontal: 20,
+        marginBottom: theme.spacing.xl,
+        padding: 20,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: theme.borderRadius.xl,
+        borderWidth: 2,
+        borderColor: theme.colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.colors.surface,
-        marginHorizontal: 20,
-        marginBottom: 24,
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        gap: 16,
         ...theme.shadows.small,
     },
-    decisionTriggerEmoji: {
-        fontSize: 28,
-        marginRight: 12,
+    decisionIcon: {
+        fontSize: 32,
     },
     decisionTriggerContent: {
         flex: 1,

@@ -173,6 +173,83 @@ class AnalyticsService {
     }
 
     // =========================================
+    // Home Screen Events
+    // =========================================
+
+    /** User viewed the home screen */
+    homeViewed() {
+        this.track('home_view', {
+            screen: 'home',
+        });
+    }
+
+    /** User focused on search bar */
+    homeSearchFocused() {
+        this.track('home_search_focus', {
+            screen: 'home',
+        });
+    }
+
+    /** User submitted a search from home */
+    homeSearchSubmitted(hasDates: boolean, hasTravelers: boolean) {
+        this.track('home_search_submit', {
+            has_dates: hasDates,
+            has_travelers: hasTravelers,
+        });
+    }
+
+    /** User clicked on quiz CTA */
+    homeQuizCtaClicked() {
+        this.track('home_quiz_cta_click', {
+            screen: 'home',
+        });
+    }
+
+    /** Package card viewed on home */
+    homePackageCardViewed(packageId: string, position: number) {
+        this.track('home_package_card_view', {
+            package_id: packageId,
+            position,
+        });
+    }
+
+    /** Package card clicked on home */
+    homePackageCardClicked(packageId: string, position: number) {
+        this.track('home_package_card_click', {
+            package_id: packageId,
+            position,
+        });
+    }
+
+    /** User selected a travel style */
+    homeTravelStyleSelected(style: string) {
+        this.track('home_travel_style_select', {
+            style,
+        });
+    }
+
+    /** User scrolled to a certain depth */
+    homeScrollDepth(depth: number) {
+        this.track('home_scroll_depth', {
+            depth_percentage: depth,
+        });
+    }
+
+    /** Creator banner viewed */
+    homeCreatorBannerViewed() {
+        this.track('home_creator_banner_view', {
+            screen: 'home',
+        });
+    }
+
+    /** Creator banner clicked */
+    homeCreatorBannerClicked() {
+        this.track('home_creator_banner_click', {
+            screen: 'home',
+        });
+    }
+
+    // =========================================
     // Internal
     // =========================================
 
