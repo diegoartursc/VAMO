@@ -7,6 +7,8 @@ import {
     TouchableOpacity,
     Image,
     Dimensions,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
 } from 'react-native';
 import { theme } from '../../src/theme/theme';
 import { HeroSection } from '../../src/components/home/HeroSection';
@@ -14,6 +16,8 @@ import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { PressableCard } from '../../src/components/common/PressableCard';
 import { getPackagesByRelevance, mockPackages } from '../../src/data/mockPackages';
+import { getFeaturedItineraries } from '../../src/data/mockItineraries';
+import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { useRouter } from 'expo-router';
 import { useSearch } from '../../src/hooks/useSearch';
@@ -197,6 +201,79 @@ export default function HomeScreen() {
                             />
                         ))}
                     </View>
+                </View>
+
+                {/* Roteiros em Destaque */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Roteiros em Destaque</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Roteiros testados e aprovados por viajantes reais
+                    </Text>
+
+                    {getFeaturedItineraries().slice(0, 4).map((itinerary) => (
+                        <TouchableOpacity
+                            key={itinerary.id}
+                            style={styles.roteirosCard}
+                            onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            activeOpacity={0.85}
+                        >
+                            <RoteirosCarousel images={itinerary.images} />
+
+                            <View style={styles.roteirosContent}>
+                                {/* Creator Info */}
+                                <View style={styles.roteirosAuthorRow}>
+                                    <Text style={styles.roteirosAuthorAvatar}>{itinerary.creator.avatar}</Text>
+                                    <View style={styles.roteirosAuthorInfo}>
+                                        <View style={styles.roteirosAuthorNameRow}>
+                                            <Text style={styles.roteirosAuthorName}>{itinerary.creator.name}</Text>
+                                            <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
+                                        </View>
+                                        <Text style={styles.roteirosAuthorStats}>
+                                            ⭐ {itinerary.creator.rating} • {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <Text style={styles.roteirosTitle}>{itinerary.title}</Text>
+                                <Text style={styles.roteirosDescription} numberOfLines={2}>
+                                    {itinerary.description}
+                                </Text>
+
+                                {/* Inclusions */}
+                                <View style={styles.roteirosInclusions}>
+                                    {itinerary.inclusions.map((inclusion, idx) => (
+                                        <View key={idx} style={styles.roteirosInclusion}>
+                                            <Text style={styles.roteirosInclusionText}>
+                                                {inclusion === 'Planilha' ? '📋' : inclusion === 'Mapa' ? '🗺️' : inclusion === 'Suporte' ? '💬' : '📱'} {inclusion}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+
+                                {/* Footer */}
+                                <View style={styles.roteirosFooter}>
+                                    <View>
+                                        <Text style={styles.roteirosPriceLabel}>Roteiro completo</Text>
+                                        <Text style={styles.roteirosPrice}>
+                                            R$ {itinerary.price.toFixed(2).replace('.', ',')}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.roteirosCTA}>
+                                        <Text style={styles.roteirosCTAText}>Saiba mais</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+
+                    {/* Ver todos */}
+                    <TouchableOpacity
+                        style={styles.roteirosViewAll}
+                        onPress={() => router.push('/(tabs)/itineraries')}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.roteirosViewAllText}>Ver todos os roteiros →</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* 4. Continue sua busca (baseado em pesquisa anterior) */}
@@ -483,6 +560,63 @@ function PremiumPackageCard({
 }
 
 // Inline CTACarousel removed - using separate component from CTACarousel.tsx
+
+// Carousel component for Roteiros cards
+function RoteirosCarousel({ images }: { images: string[] }) {
+    const [activeIndex, setActiveIndex] = useState(0);
+    const cardWidth = width - 40; // section paddingHorizontal: 20 * 2
+
+    const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const offsetX = e.nativeEvent.contentOffset.x;
+        const index = Math.round(offsetX / cardWidth);
+        setActiveIndex(index);
+    };
+
+    return (
+        <View style={styles.roteirosCarouselContainer}>
+            <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={handleScroll}
+                style={{ width: cardWidth }}
+                decelerationRate="fast"
+                nestedScrollEnabled
+            >
+                {images.map((uri, idx) => (
+                    <Image
+                        key={idx}
+                        source={{ uri }}
+                        style={[styles.roteirosImage, { width: cardWidth }]}
+                        resizeMode="cover"
+                    />
+                ))}
+            </ScrollView>
+
+            {/* Photo counter badge */}
+            <View style={styles.roteirosPhotoCount}>
+                <Text style={styles.roteirosPhotoCountText}>
+                    📷 {activeIndex + 1}/{images.length}
+                </Text>
+            </View>
+
+            {/* Pagination dots */}
+            {images.length > 1 && (
+                <View style={styles.roteirosDots}>
+                    {images.map((_, idx) => (
+                        <View
+                            key={idx}
+                            style={[
+                                styles.roteirosDot,
+                                idx === activeIndex && styles.roteirosDotActive,
+                            ]}
+                        />
+                    ))}
+                </View>
+            )}
+        </View>
+    );
+}
 
 // Categorias de Intenção em Destaque (ajustado em 30/01/2026)
 // Apenas as principais intenções: Luxo e Custo-benefício
@@ -960,6 +1094,158 @@ const styles = StyleSheet.create({
     experiencePriceUnit: {
         fontSize: 11,
         color: theme.colors.text.tertiary,
+    },
+
+    // Roteiros em Destaque
+    roteirosCard: {
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.lg,
+        overflow: 'hidden',
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.medium,
+    },
+    roteirosCarouselContainer: {
+        position: 'relative',
+    },
+    roteirosImage: {
+        width: '100%',
+        height: 200,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    roteirosPhotoCount: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
+    },
+    roteirosPhotoCountText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+    roteirosDots: {
+        position: 'absolute',
+        bottom: 12,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6,
+    },
+    roteirosDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    roteirosDotActive: {
+        width: 9,
+        height: 9,
+        borderRadius: 4.5,
+        backgroundColor: '#FFFFFF',
+    },
+    roteirosContent: {
+        padding: 16,
+    },
+    roteirosAuthorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 12,
+    },
+    roteirosAuthorAvatar: {
+        fontSize: 32,
+    },
+    roteirosAuthorInfo: {
+        flex: 1,
+    },
+    roteirosAuthorNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    roteirosAuthorName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    roteirosAuthorStats: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
+    },
+    roteirosTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 6,
+        lineHeight: 23,
+    },
+    roteirosDescription: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        lineHeight: 20,
+        marginBottom: 12,
+    },
+    roteirosInclusions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 14,
+    },
+    roteirosInclusion: {
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: theme.borderRadius.sm,
+    },
+    roteirosInclusionText: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+    },
+    roteirosFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    roteirosPriceLabel: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+    },
+    roteirosPrice: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: theme.colors.success,
+    },
+    roteirosCTA: {
+        backgroundColor: theme.colors.success,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: theme.borderRadius.full,
+    },
+    roteirosCTAText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.inverse,
+    },
+    roteirosViewAll: {
+        alignItems: 'center',
+        paddingVertical: 14,
+        marginTop: 4,
+        borderWidth: 1.5,
+        borderColor: theme.colors.primary,
+        borderRadius: theme.borderRadius.full,
+    },
+    roteirosViewAllText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.primary,
     },
 
     // CTA Carousel styles removed - using styles from CTACarousel.tsx
