@@ -379,34 +379,6 @@ export default function HomeScreen() {
                 )}
 
 
-                {/* 5. Destinos Populares */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Destinos populares</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Os lugares mais procurados pelos nossos viajantes
-                    </Text>
-
-                    <View style={styles.destinationsGrid}>
-                        {POPULAR_DESTINATIONS.map((dest) => (
-                            <TouchableOpacity
-                                key={dest.id}
-                                style={styles.destinationCard}
-                                onPress={() => router.push(`/(tabs)/packages?destination=${dest.name}`)}
-                            >
-                                <Image
-                                    source={{ uri: dest.image }}
-                                    style={styles.destinationImage}
-                                    resizeMode="cover"
-                                />
-                                <Text style={styles.destinationName}>{dest.name}</Text>
-                                <Text style={styles.destinationCount}>
-                                    {dest.count} experiências
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
                 {/* 6. Experiências Inesquecíveis */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Experiências de viagem inesquecíveis</Text>
@@ -435,7 +407,35 @@ export default function HomeScreen() {
                     ))}
                 </View>
 
-                {/* 7. Banner "Quer vender seus roteiros?" (CTA Carousel) */}
+                {/* Destinos Populares */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Destinos populares</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Os lugares mais procurados pelos nossos viajantes
+                    </Text>
+
+                    <View style={styles.destinationsGrid}>
+                        {POPULAR_DESTINATIONS.map((dest) => (
+                            <TouchableOpacity
+                                key={dest.id}
+                                style={styles.destinationCard}
+                                onPress={() => router.push(`/(tabs)/packages?destination=${dest.name}`)}
+                            >
+                                <Image
+                                    source={{ uri: dest.image }}
+                                    style={styles.destinationImage}
+                                    resizeMode="cover"
+                                />
+                                <Text style={styles.destinationName}>{dest.name}</Text>
+                                <Text style={styles.destinationCount}>
+                                    {dest.count} experiências
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Banner "Quer vender seus roteiros?" (CTA Carousel) */}
                 <View style={styles.section}>
                     <CTACarousel />
                 </View>
