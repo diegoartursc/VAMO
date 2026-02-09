@@ -83,6 +83,9 @@ export function PackageBadge({ type, compact = false }: PackageBadgeProps) {
     const config = BADGE_CONFIGS[type];
     const scale = useSharedValue(1);
 
+    // Guard against unknown badge types
+    if (!config) return null;
+
     useEffect(() => {
         if (config.hasPulse) {
             scale.value = withRepeat(

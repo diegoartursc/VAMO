@@ -10,11 +10,12 @@ import {
     NativeScrollEvent,
     NativeSyntheticEvent,
 } from 'react-native';
+import { Package } from '../../src/types';
+import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { theme } from '../../src/theme/theme';
 import { HeroSection } from '../../src/components/home/HeroSection';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
-import { PressableCard } from '../../src/components/common/PressableCard';
 import { getPackagesByRelevance, mockPackages } from '../../src/data/mockPackages';
 import { getFeaturedItineraries } from '../../src/data/mockItineraries';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
@@ -163,6 +164,31 @@ export default function HomeScreen() {
                     </Text>
                 </View>
 
+                {/* Category Pills with Auto-Scroll */}
+                <View style={styles.categoriesSection}>
+                    <ScrollView
+                        ref={scrollViewRef}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.categoriesScroll}
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                        onScrollBeginDrag={handleTouchStart}
+                        onScrollEndDrag={handleTouchEnd}
+                    >
+                        {[...CATEGORIES, ...CATEGORIES].map((cat, index) => (
+                            <TouchableOpacity
+                                key={`${cat.id}-${index}`}
+                                style={styles.categoryPill}
+                                onPress={() => router.push(`/(tabs)/packages?category=${cat.id}`)}
+                            >
+                                <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                                <Text style={styles.categoryLabel}>{cat.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
                 {/* 2. Card "Não sabe por onde começar?" */}
                 <TouchableOpacity
                     style={styles.decisionTrigger}
@@ -180,6 +206,52 @@ export default function HomeScreen() {
                     <Text style={styles.decisionTriggerArrow}>→</Text>
                 </TouchableOpacity>
 
+                {/* Como você quer viajar? - Toggle cards */}
+                <View style={styles.intentSection}>
+                    <Text style={styles.intentTitle}>Como você quer viajar?</Text>
+                    <Text style={styles.intentSubtitle}>
+                        Escolha o que combina com você
+                    </Text>
+
+                    <View style={styles.intentToggleRow}>
+                        {INTENT_CATEGORIES.map((intent) => {
+                            const isSelected = selectedIntent === intent.id;
+                            return (
+                                <TouchableOpacity
+                                    key={intent.id}
+                                    style={[
+                                        styles.intentToggleCard,
+                                        isSelected
+                                            ? styles.intentToggleCardActive
+                                            : styles.intentToggleCardInactive
+                                    ]}
+                                    onPress={() => handleIntentSelect(intent.id)}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text style={styles.intentToggleEmoji}>{intent.emoji}</Text>
+                                    <Text style={[
+                                        styles.intentToggleLabel,
+                                        isSelected
+                                            ? styles.intentToggleLabelActive
+                                            : styles.intentToggleLabelInactive
+                                    ]}>
+                                        {intent.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    {/* Feedback textual */}
+                    {selectedIntent && (
+                        <View style={styles.intentFeedback}>
+                            <Text style={styles.intentFeedbackText}>
+                                {intentFeedback[selectedIntent]}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+
                 {/* 3. Pacotes em Destaque */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
@@ -187,20 +259,18 @@ export default function HomeScreen() {
                         Viagens completas com as melhores avaliações
                     </Text>
 
-                    <View style={styles.packagesGrid}>
-                        {displayedPackages.slice(0, 6).map((pkg, index) => (
-                            <PremiumPackageCard
-                                key={pkg.id}
-                                package={pkg}
-                                onPress={() => {
-                                    analytics.homePackageCardClicked(pkg.id, index);
-                                    router.push(`/package/${pkg.id}`);
-                                }}
-                                isFavorite={favorites.includes(pkg.id)}
-                                onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
-                            />
-                        ))}
-                    </View>
+                    {displayedPackages.slice(0, 6).map((pkg, index) => (
+                        <HomePackageCard
+                            key={pkg.id}
+                            package={pkg}
+                            onPress={() => {
+                                analytics.homePackageCardClicked(pkg.id, index);
+                                router.push(`/package/${pkg.id}`);
+                            }}
+                            isFavorite={favorites.includes(pkg.id)}
+                            onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
+                        />
+                    ))}
                 </View>
 
                 {/* Roteiros em Destaque */}
@@ -286,92 +356,28 @@ export default function HomeScreen() {
                             Retome de onde parou e descubra mais experiências
                         </Text>
 
-                        <View style={styles.packagesGrid}>
-                            {mockPackages
-                                .filter(pkg =>
-                                    pkg.destination.toLowerCase().includes(lastSearchedDestination.toLowerCase()) ||
-                                    pkg.country.toLowerCase().includes(lastSearchedDestination.toLowerCase())
-                                )
-                                .slice(0, 4)
-                                .map((pkg, index) => (
-                                    <PremiumPackageCard
-                                        key={pkg.id}
-                                        package={pkg}
-                                        onPress={() => {
-                                            analytics.homePackageCardClicked(pkg.id, index);
-                                            router.push(`/package/${pkg.id}`);
-                                        }}
-                                        isFavorite={favorites.includes(pkg.id)}
-                                        onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
-                                    />
-                                ))
-                            }
-                        </View>
+                        {mockPackages
+                            .filter(pkg =>
+                                pkg.destination.toLowerCase().includes(lastSearchedDestination.toLowerCase()) ||
+                                pkg.country.toLowerCase().includes(lastSearchedDestination.toLowerCase())
+                            )
+                            .slice(0, 4)
+                            .map((pkg, index) => (
+                                <HomePackageCard
+                                    key={pkg.id}
+                                    package={pkg}
+                                    onPress={() => {
+                                        analytics.homePackageCardClicked(pkg.id, index);
+                                        router.push(`/package/${pkg.id}`);
+                                    }}
+                                    isFavorite={favorites.includes(pkg.id)}
+                                    onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
+                                />
+                            ))
+                        }
                     </View>
                 )}
 
-                {/* 5. Seção "Como você quer viajar?" */}
-                <View style={styles.intentSection}>
-                    <Text style={styles.intentTitle}>Como você quer viajar?</Text>
-                    <Text style={styles.intentSubtitle}>
-                        Escolha o que combina com você e encontre sua viagem ideal
-                    </Text>
-
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.intentScroll}
-                    >
-                        {INTENT_CATEGORIES.map((intent) => (
-                            <TouchableOpacity
-                                key={intent.id}
-                                style={[
-                                    styles.intentChip,
-                                    selectedIntent === intent.id && styles.intentChipSelected
-                                ]}
-                                onPress={() => handleIntentSelect(intent.id)}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.intentEmoji}>{intent.emoji}</Text>
-                                <Text style={styles.intentLabel}>{intent.label}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-
-                    {/* Feedback textual */}
-                    {selectedIntent && (
-                        <View style={styles.intentFeedback}>
-                            <Text style={styles.intentFeedbackText}>
-                                {intentFeedback[selectedIntent]}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* Category Pills with Auto-Scroll */}
-                <View style={styles.categoriesSection}>
-                    <ScrollView
-                        ref={scrollViewRef}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.categoriesScroll}
-                        onTouchStart={handleTouchStart}
-                        onTouchEnd={handleTouchEnd}
-                        onScrollBeginDrag={handleTouchStart}
-                        onScrollEndDrag={handleTouchEnd}
-                    >
-                        {[...CATEGORIES, ...CATEGORIES].map((cat, index) => (
-                            <TouchableOpacity
-                                key={`${cat.id}-${index}`}
-                                style={styles.categoryPill}
-                                onPress={() => router.push(`/(tabs)/packages?category=${cat.id}`)}
-                            >
-                                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                <Text style={styles.categoryLabel}>{cat.label}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
 
                 {/* 5. Destinos Populares */}
                 <View style={styles.section}>
@@ -408,27 +414,25 @@ export default function HomeScreen() {
                         Momentos únicos que você vai guardar para sempre
                     </Text>
 
-                    <View style={styles.packagesGrid}>
-                        {UNFORGETTABLE_EXPERIENCES.map((exp, index) => (
-                            <PremiumPackageCard
-                                key={exp.id}
-                                package={{
-                                    ...exp,
-                                    price: { min: exp.price, max: exp.price },
-                                    images: [exp.image],
-                                    agency: { name: 'VAMO Experiences' },
-                                    destination: exp.title.split(':')[0],
-                                    country: exp.title.split(':')[0],
-                                }}
-                                onPress={() => {
-                                    analytics.homePackageCardClicked(exp.id, index);
-                                    router.push(`/package/${exp.id}`);
-                                }}
-                                isFavorite={favorites.includes(exp.id)}
-                                onToggleFavorite={(e: any) => toggleFavorite(exp.id, e)}
-                            />
-                        ))}
-                    </View>
+                    {UNFORGETTABLE_EXPERIENCES.map((exp, index) => (
+                        <HomePackageCard
+                            key={exp.id}
+                            package={{
+                                ...exp,
+                                price: { min: exp.price, max: exp.price },
+                                images: [exp.image],
+                                agency: { name: 'VAMO Experiences', logo: '🌍', verified: false },
+                                destination: exp.title.split(':')[0],
+                                country: exp.title.split(':')[0],
+                            }}
+                            onPress={() => {
+                                analytics.homePackageCardClicked(exp.id, index);
+                                router.push(`/package/${exp.id}`);
+                            }}
+                            isFavorite={favorites.includes(exp.id)}
+                            onToggleFavorite={(e: any) => toggleFavorite(exp.id, e)}
+                        />
+                    ))}
                 </View>
 
                 {/* 7. Banner "Quer vender seus roteiros?" (CTA Carousel) */}
@@ -465,97 +469,127 @@ export default function HomeScreen() {
     );
 }
 
-// Enhanced Package Card with rating, reviews, agency, and duration
-function PremiumPackageCard({
+// Full-width Package Card matching the packages tab layout
+function HomePackageCard({
     package: pkg,
     onPress,
     isFavorite,
     onToggleFavorite
 }: any) {
-    // Generate value proposition based on package attributes
-    const getValueProposition = () => {
-        if (pkg.isAllInclusive) return 'Tudo incluso, zero preocupação';
-        if (pkg.categories?.includes('romantic')) return 'Perfeito para casal';
-        if (pkg.categories?.includes('cultural')) return 'Ideal para primeira viagem internacional';
-        if (pkg.duration <= 4) return 'Escapada rápida e completa';
-        if (pkg.duration >= 10) return 'Experiência completa e imersiva';
-        return 'Pacote completo com tudo organizado';
-    };
-
-    // Get badge label
-    const getBadgeLabel = () => {
-        if (pkg.badge === 'bestseller') return 'Mais vendido';
-        if (pkg.badge === 'value') return 'Melhor custo-benefício';
-        if (pkg.badge === 'luxury') return 'Premium';
-        return null;
-    };
-
-    const badgeLabel = getBadgeLabel();
-
     return (
-        <PressableCard onPress={onPress} style={styles.packageCard}>
-            {/* Badge de destaque (condicional) */}
-            {badgeLabel && (
-                <View style={styles.packageBadge}>
-                    <Text style={styles.packageBadgeText}>{badgeLabel}</Text>
-                </View>
-            )}
-
+        <TouchableOpacity style={styles.homeCard} onPress={onPress} activeOpacity={0.85}>
             <Image
-                source={{ uri: pkg.images[0] }}
-                style={styles.packageImage}
+                source={{ uri: pkg.images?.[0] || pkg.image }}
+                style={styles.homeCardImage}
                 resizeMode="cover"
             />
 
+            {/* Badge */}
+            {pkg.badge && (
+                <View style={styles.homeCardBadgeContainer}>
+                    <PackageBadge type={pkg.badge} />
+                </View>
+            )}
+
+            {/* Featured badge (fallback) */}
+            {pkg.featured && !pkg.badge && (
+                <View style={styles.homeCardFeaturedBadge}>
+                    <Text style={styles.homeCardFeaturedText}>⭐ Destaque</Text>
+                </View>
+            )}
+
             {/* Favorite Button */}
             <TouchableOpacity
-                style={styles.favoriteButton}
+                style={styles.homeCardFavoriteButton}
                 onPress={(e) => {
                     e.stopPropagation();
                     onToggleFavorite(e);
                 }}
                 activeOpacity={0.7}
             >
-                <Text style={styles.favoriteIcon}>
+                <Text style={styles.homeCardFavoriteIcon}>
                     {isFavorite ? '❤️' : '♡'}
                 </Text>
             </TouchableOpacity>
 
-            <View style={styles.packageInfo}>
-                <Text style={styles.packageTitle} numberOfLines={2}>{pkg.title}</Text>
+            <View style={styles.homeCardContent}>
+                <View style={styles.homeCardHeader}>
+                    <View style={styles.homeCardAgencyRow}>
+                        <View style={styles.homeCardAgencyTag}>
+                            <Text style={styles.homeCardAgencyIcon}>{pkg.agency?.logo || '✈️'}</Text>
+                            <Text style={styles.homeCardAgencyText}>{pkg.agency?.name || 'Agência'}</Text>
+                        </View>
+                        {pkg.agency?.verified && (
+                            <View style={styles.homeCardVerifiedBadge}>
+                                <Text style={styles.homeCardVerifiedIcon}>🛡️</Text>
+                                <Text style={styles.homeCardVerifiedText}>Agência verificada</Text>
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.homeCardRatingBadge}>
+                        <Text style={styles.homeCardRatingIcon}>⭐</Text>
+                        <Text style={styles.homeCardRatingValue}>{pkg.rating}</Text>
+                        <Text style={styles.homeCardRatingCount}>({pkg.reviewCount})</Text>
+                    </View>
+                </View>
 
-                {/* Micro-copy de valor */}
-                <Text style={styles.packageValueProp} numberOfLines={1}>
-                    {getValueProposition()}
+                <Text style={styles.homeCardTitle} numberOfLines={2}>
+                    {pkg.title}
                 </Text>
 
-                {/* Rating & Review Count */}
-                <View style={styles.packageMeta}>
-                    <Text style={styles.packageRating}>⭐ {pkg.rating}</Text>
-                    <Text style={styles.packageReviews}>({pkg.reviewCount})</Text>
-                </View>
-
-                {/* Agency & Duration */}
-                <View style={styles.packageDetails}>
-                    <Text style={styles.packageAgency} numberOfLines={1}>{pkg.agency?.name || 'Agência'}</Text>
-                    <Text style={styles.packageDuration}>• {pkg.duration} dias</Text>
-                </View>
-
-                {/* Preço contextualizado */}
-                <View style={styles.packagePriceContainer}>
-                    <Text style={styles.packagePriceLabel}>A partir de</Text>
-                    <Text style={styles.packagePrice}>R$ {pkg.price.min.toLocaleString()}</Text>
-                    <Text style={styles.packagePricePerPerson}>por pessoa</Text>
-                </View>
-
-                {/* Prova social leve (condicional) */}
-                {pkg.recentPurchases && pkg.recentPurchases > 0 && (
-                    <Text style={styles.packageSocialProof}>
-                        Reservado por {pkg.recentPurchases} pessoas este mês
+                {pkg.destination && (
+                    <Text style={styles.homeCardDestination}>
+                        📍 {pkg.destination}{pkg.country ? `, ${pkg.country}` : ''}
                     </Text>
                 )}
+
+                {pkg.duration && (
+                    <Text style={styles.homeCardDuration}>📅 {pkg.duration} dias</Text>
+                )}
+
+                {/* Inclusions badges */}
+                <View style={styles.homeCardInclusionsBadges}>
+                    {pkg.duration && (
+                        <View style={styles.homeCardInclusionBadge}>
+                            <Text style={styles.homeCardInclusionText}>⏱️ {pkg.duration} Dias</Text>
+                        </View>
+                    )}
+                    <View style={styles.homeCardInclusionBadge}>
+                        <Text style={styles.homeCardInclusionText}>📶 Wi-Fi</Text>
+                    </View>
+                    <View style={styles.homeCardInclusionBadge}>
+                        <Text style={styles.homeCardInclusionText}>👥 Guia</Text>
+                    </View>
+                    {pkg.inclusions?.hotel && (
+                        <View style={styles.homeCardInclusionBadge}>
+                            <Text style={styles.homeCardInclusionText}>
+                                🏨 Hotel {pkg.inclusions.hotel.stars}★
+                            </Text>
+                        </View>
+                    )}
+                </View>
+
+                <View style={styles.homeCardFooter}>
+                    <View>
+                        <Text style={styles.homeCardPriceLabel}>A partir de</Text>
+                        <Text style={styles.homeCardPriceValue}>
+                            R$ {pkg.price?.min?.toLocaleString('pt-BR') || pkg.price}
+                        </Text>
+                        <Text style={styles.homeCardReviewCount}>
+                            ({pkg.reviewCount} avaliações)
+                        </Text>
+                        {pkg.recentPurchases && pkg.recentPurchases > 0 && (
+                            <Text style={styles.homeCardSocialProof}>
+                                Reservado por {pkg.recentPurchases} pessoas este mês
+                            </Text>
+                        )}
+                    </View>
+                    <TouchableOpacity style={styles.homeCardViewButton} onPress={onPress}>
+                        <Text style={styles.homeCardViewButtonText}>Ver detalhes</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-        </PressableCard>
+        </TouchableOpacity>
     );
 }
 
@@ -735,37 +769,42 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.md,
         lineHeight: 20,
     },
-    intentScroll: {
+    intentToggleRow: {
+        flexDirection: 'row',
         gap: 12,
     },
-    intentChip: {
-        flexDirection: 'column',
+    intentToggleCard: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingVertical: 20,
+        paddingHorizontal: 12,
         borderRadius: theme.borderRadius.lg,
-        backgroundColor: theme.colors.background,
-        borderWidth: 2,
-        borderColor: theme.colors.primary,
-        minWidth: 140,
-        ...theme.shadows.small,
+        borderWidth: 1.5,
     },
-    intentEmoji: {
-        fontSize: 32,
-        marginBottom: 8,
-    },
-    intentLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-        textAlign: 'center',
-        lineHeight: 18,
-    },
-    intentChipSelected: {
+    intentToggleCardActive: {
         backgroundColor: theme.colors.primary,
         borderColor: theme.colors.primary,
         ...theme.shadows.medium,
+    },
+    intentToggleCardInactive: {
+        backgroundColor: '#FFFFFF',
+        borderColor: 'rgba(40, 201, 191, 0.3)',
+    },
+    intentToggleEmoji: {
+        fontSize: 28,
+        marginBottom: 8,
+    },
+    intentToggleLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    intentToggleLabelActive: {
+        color: '#FFFFFF',
+    },
+    intentToggleLabelInactive: {
+        color: 'rgba(40, 201, 191, 0.7)',
     },
     intentFeedback: {
         marginTop: 16,
@@ -843,116 +882,195 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
 
-    // Package Cards (temporary)
-    packageCard: {
-        width: '48%',
+    // Home Package Cards (full-width, matching packages tab)
+    homeCard: {
         backgroundColor: theme.colors.background,
         borderRadius: theme.borderRadius.lg,
+        marginBottom: theme.spacing.cardGap || 16,
+        ...theme.shadows.small,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
-        ...theme.shadows.small,
     },
-    packageImage: {
+    homeCardImage: {
         width: '100%',
-        height: 160,
+        height: 140,
+        backgroundColor: theme.colors.surface || theme.colors.surfaceLight,
+    },
+    homeCardBadgeContainer: {
+        position: 'absolute',
+        top: theme.spacing.md,
+        right: theme.spacing.md,
+        zIndex: 1,
+    },
+    homeCardFeaturedBadge: {
+        position: 'absolute',
+        top: theme.spacing.md,
+        right: theme.spacing.md,
+        backgroundColor: theme.colors.secondary,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.xs,
+        borderRadius: theme.borderRadius.full,
+    },
+    homeCardFeaturedText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    homeCardFavoriteButton: {
+        position: 'absolute',
+        top: theme.spacing.sm,
+        left: theme.spacing.sm,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...theme.shadows.medium,
+        zIndex: 2,
+    },
+    homeCardFavoriteIcon: {
+        fontSize: 20,
+    },
+    homeCardContent: {
+        padding: 12,
+    },
+    homeCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing.sm,
+    },
+    homeCardAgencyRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flex: 1,
+    },
+    homeCardAgencyTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.surface || theme.colors.surfaceLight,
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: 4,
+        borderRadius: theme.borderRadius.sm,
+        gap: 4,
+    },
+    homeCardAgencyIcon: {
+        fontSize: 14,
+    },
+    homeCardAgencyText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    homeCardVerifiedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
         backgroundColor: theme.colors.surfaceLight,
+        borderRadius: theme.borderRadius.sm,
     },
-    packageInfo: {
-        padding: 16,
+    homeCardVerifiedIcon: {
+        fontSize: 9,
     },
-    packageTitle: {
+    homeCardVerifiedText: {
+        fontSize: 9,
+        fontWeight: '500',
+        color: theme.colors.text.secondary,
+    },
+    homeCardRatingBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    homeCardRatingIcon: {
+        fontSize: 14,
+    },
+    homeCardRatingValue: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    homeCardRatingCount: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: theme.colors.text.secondary,
+    },
+    homeCardTitle: {
         fontSize: 16,
         fontWeight: '600',
         color: theme.colors.text.primary,
         marginBottom: 6,
-        lineHeight: 22,
+        lineHeight: 20,
     },
-    packageMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    homeCardDestination: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
         marginBottom: 4,
-        gap: 4,
     },
-    packageRating: {
+    homeCardDuration: {
         fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    packageReviews: {
-        fontSize: 14,
-        color: theme.colors.text.tertiary,
-    },
-    packageDetails: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-        gap: 6,
-    },
-    packageAgency: {
-        fontSize: 12,
         color: theme.colors.text.secondary,
-        flex: 1,
+        marginBottom: theme.spacing.md,
     },
-    packageDuration: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-    },
-    packagePrice: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: theme.colors.primary,
-    },
-    // Novos estilos para melhorias de UX
-    packageBadge: {
-        position: 'absolute',
-        top: 12,
-        left: 12,
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: theme.borderRadius.sm,
-        zIndex: 1,
-        ...theme.shadows.small,
-    },
-    packageBadgeText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: theme.colors.text.onPrimary,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    packageValueProp: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        marginBottom: 8,
-        fontStyle: 'italic',
-        lineHeight: 18,
-    },
-    packagePriceContainer: {
-        marginTop: 4,
-    },
-    packagePriceLabel: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary,
-        marginBottom: 2,
-    },
-    packagePricePerPerson: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary,
-        marginTop: 2,
-    },
-    packageSocialProof: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary,
-        marginTop: 8,
-        lineHeight: 15,
-    },
-    packagesGrid: {
+    homeCardInclusionsBadges: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 6,
+        marginBottom: theme.spacing.md,
+    },
+    homeCardInclusionBadge: {
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: theme.borderRadius.sm,
+    },
+    homeCardInclusionText: {
+        fontSize: 11,
+        color: theme.colors.text.secondary,
+    },
+    homeCardFooter: {
+        flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-end',
+    },
+    homeCardPriceLabel: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 2,
+    },
+    homeCardPriceValue: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: theme.colors.primary,
+        marginBottom: 2,
+    },
+    homeCardReviewCount: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
+    },
+    homeCardSocialProof: {
+        fontSize: 11,
+        color: theme.colors.text.secondary,
+        marginTop: 4,
+        opacity: 0.8,
+    },
+    homeCardViewButton: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: theme.borderRadius.full,
+        ...theme.shadows.button || theme.shadows.small,
+    },
+    homeCardViewButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.inverse,
     },
 
     // Destinations Grid
@@ -1249,22 +1367,6 @@ const styles = StyleSheet.create({
     },
 
     // CTA Carousel styles removed - using styles from CTACarousel.tsx
-    favoriteButton: {
-        position: 'absolute',
-        top: 8,
-        left: 8,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...theme.shadows.medium,
-        zIndex: 2,
-    },
-    favoriteIcon: {
-        fontSize: 18,
-    },
     // Decision Assistant Trigger
     decisionTrigger: {
         marginHorizontal: 20,
