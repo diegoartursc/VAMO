@@ -15,6 +15,8 @@ import { theme } from '../../theme/theme';
 import { PriceSlider } from './PriceSlider';
 import { DurationSlider } from './DurationSlider';
 import { SearchFilters } from '../../contexts/SearchContext';
+import { CATEGORIES, INTENT_CATEGORIES, INTENT_FEEDBACK } from '../../constants/categories';
+import { useSearch } from '../../hooks/useSearch';
 
 const { height } = Dimensions.get('window');
 
@@ -35,6 +37,7 @@ export function SearchModal({
 }: SearchModalProps) {
     const [slideAnim] = useState(new Animated.Value(height));
     const [backdropAnim] = useState(new Animated.Value(0));
+    const { travelIntent, setTravelIntent } = useSearch();
 
     // Filtros locais (estado do modal)
     const [destination, setDestination] = useState(initialFilters?.destination || '');
@@ -87,6 +90,7 @@ export function SearchModal({
         setDestination('');
         setDuration(7);
         setPriceRange([0, 50000]);
+        setTravelIntent(null);
     };
 
     const handleApplyFilters = () => {
@@ -98,6 +102,10 @@ export function SearchModal({
         };
         onSearch(filters);
         onClose();
+    };
+
+    const handleIntentSelect = (intentId: string) => {
+        setTravelIntent(travelIntent === intentId ? null : intentId);
     };
 
     return (
@@ -144,6 +152,71 @@ export function SearchModal({
                     style={styles.content}
                     showsVerticalScrollIndicator={false}
                 >
+                    {/* Category Pills */}
+                    <View style={styles.filterSection}>
+                        <Text style={styles.filterLabel}>Categorias</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.categoriesScroll}
+                        >
+                            {CATEGORIES.map((cat) => (
+                                <TouchableOpacity
+                                    key={cat.id}
+                                    style={styles.categoryPill}
+                                    onPress={() => {
+                                        // Set destination filter as category for now
+                                        setDestination(cat.label);
+                                    }}
+                                >
+                                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                                    <Text style={styles.categoryLabel}>{cat.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* Intent Toggles - Luxo / Custo-benefício */}
+                    <View style={styles.filterSection}>
+                        <Text style={styles.filterLabel}>Como você quer viajar?</Text>
+                        <View style={styles.intentToggleRow}>
+                            {INTENT_CATEGORIES.map((intent) => {
+                                const isSelected = travelIntent === intent.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={intent.id}
+                                        style={[
+                                            styles.intentToggleCard,
+                                            isSelected
+                                                ? styles.intentToggleCardActive
+                                                : styles.intentToggleCardInactive
+                                        ]}
+                                        onPress={() => handleIntentSelect(intent.id)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={styles.intentToggleEmoji}>{intent.emoji}</Text>
+                                        <Text style={[
+                                            styles.intentToggleLabel,
+                                            isSelected
+                                                ? styles.intentToggleLabelActive
+                                                : styles.intentToggleLabelInactive
+                                        ]}>
+                                            {intent.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                        {/* Feedback textual */}
+                        {travelIntent && (
+                            <View style={styles.intentFeedback}>
+                                <Text style={styles.intentFeedbackText}>
+                                    {INTENT_FEEDBACK[travelIntent]}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
                     {/* Destino */}
                     <View style={styles.filterSection}>
                         <Text style={styles.filterLabel}>Destino</Text>
@@ -296,6 +369,81 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: theme.colors.text.primary,
     },
+
+    // Category Pills
+    categoriesScroll: {
+        gap: theme.spacing.sm,
+    },
+    categoryPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.borderRadius.full,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    categoryIcon: {
+        fontSize: 16,
+    },
+    categoryLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+    },
+
+    // Intent Toggles
+    intentToggleRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    intentToggleCard: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 20,
+        borderRadius: theme.borderRadius.lg,
+        borderWidth: 2,
+    },
+    intentToggleCardActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    intentToggleCardInactive: {
+        backgroundColor: theme.colors.background,
+        borderColor: theme.colors.border,
+    },
+    intentToggleEmoji: {
+        fontSize: 28,
+        marginBottom: 8,
+    },
+    intentToggleLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    intentToggleLabelActive: {
+        color: '#FFFFFF',
+    },
+    intentToggleLabelInactive: {
+        color: theme.colors.primary,
+    },
+    intentFeedback: {
+        marginTop: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: theme.borderRadius.md,
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.primary,
+    },
+    intentFeedbackText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+    },
+
+    // Actions
     actions: {
         flexDirection: 'row',
         gap: theme.spacing.md,

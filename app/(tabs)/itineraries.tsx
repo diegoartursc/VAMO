@@ -15,7 +15,6 @@ import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { getFeaturedItineraries } from '../../src/data/mockItineraries';
-import { CATEGORIES } from '../../src/constants/categories';
 
 export default function ItinerariesScreen() {
     const router = useRouter();
@@ -45,26 +44,6 @@ export default function ItinerariesScreen() {
                     placeholder="Encontrar roteiros de viajantes"
                     onPress={() => setSearchModalVisible(true)}
                 />
-            </View>
-
-            {/* Categories Section */}
-            <View style={styles.categoriesSection}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoriesScroll}
-                >
-                    {CATEGORIES.map((cat) => (
-                        <TouchableOpacity
-                            key={cat.id}
-                            style={styles.categoryPill}
-                            onPress={() => router.push(`/(tabs)/itineraries?category=${cat.id}`)}
-                        >
-                            <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                            <Text style={styles.categoryLabel}>{cat.label}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

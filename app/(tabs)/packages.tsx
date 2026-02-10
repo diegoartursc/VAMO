@@ -19,13 +19,13 @@ import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
-import { CATEGORIES } from '../../src/constants/categories';
 
 const { width } = Dimensions.get('window');
 
 export default function PackagesScreen() {
     const router = useRouter();
-    const { filters, applyFilters, filteredPackages: searchFilteredPackages, travelIntent, setTravelIntent } = useSearch();
+    const { filters, applyFilters, filteredPackages: searchFilteredPackages } = useSearch();
+
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
     const [toastVisible, setToastVisible] = useState(false);
@@ -94,38 +94,6 @@ export default function PackagesScreen() {
                     onPress={() => setSearchModalVisible(true)}
                 />
             </View>
-
-            {/* Categories Section */}
-            <View style={styles.categoriesSection}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoriesScroll}
-                >
-                    {CATEGORIES.map((cat) => (
-                        <TouchableOpacity
-                            key={cat.id}
-                            style={styles.categoryPill}
-                            onPress={() => router.push(`/(tabs)/packages?category=${cat.id}`)}
-                        >
-                            <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                            <Text style={styles.categoryLabel}>{cat.label}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
-
-            {/* Active Intent Filter Banner */}
-            {travelIntent && (
-                <View style={styles.intentBanner}>
-                    <Text style={styles.intentBannerText}>
-                        {travelIntent === 'luxo' ? '💎 Filtro: Luxo' : '💰 Filtro: Melhor custo-benefício'}
-                    </Text>
-                    <TouchableOpacity onPress={() => setTravelIntent(null)}>
-                        <Text style={styles.intentBannerClear}>Limpar</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
 
             {/* Packages Grid */}
             <ScrollView

@@ -12,3 +12,14 @@ export const CATEGORIES = [
 ] as const;
 
 export type CategoryId = typeof CATEGORIES[number]['id'];
+
+// Intent categories for travel style filter (Luxo / Custo-benefício)
+export const INTENT_CATEGORIES = [
+    { id: 'luxo', emoji: '💎', label: 'Luxo' },
+    { id: 'custo-beneficio', emoji: '💰', label: 'Melhor custo-benefício' },
+] as const;
+
+export const INTENT_FEEDBACK: Record<string, string> = {
+    'luxo': 'Mostrando viagens com foco em conforto e exclusividade',
+    'custo-beneficio': 'Mostrando viagens com melhor custo-benefício',
+};

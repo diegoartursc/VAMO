@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -24,7 +24,6 @@ import { useRouter } from 'expo-router';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAnimationProvider';
-import { CATEGORIES } from '../../src/constants/categories';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
 import { analytics } from '../../src/services/analytics';
 
@@ -32,7 +31,7 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
     const router = useRouter();
-    const { applyFilters, filters, filteredPackages, hasActiveFilters, travelIntent, setTravelIntent } = useSearch();
+    const { applyFilters, filters, filteredPackages, hasActiveFilters } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [decisionAssistantVisible, setDecisionAssistantVisible] = useState(false);
     const packagesByRelevance = getPackagesByRelevance();
@@ -42,7 +41,6 @@ export default function HomeScreen() {
 
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
     const { showAnimation } = useFavoriteAnimation();
-    const scrollViewRef = useRef<ScrollView>(null);
     const [scrollDepthTracked, setScrollDepthTracked] = useState<Set<number>>(new Set());
     const [lastSearchedDestination, setLastSearchedDestination] = useState<string | null>('Paris'); // Mock: último destino pesquisado
 
@@ -66,70 +64,6 @@ export default function HomeScreen() {
             const { pageX, pageY } = event.nativeEvent;
             showAnimation(pageX, pageY);
         }
-    };
-
-    // Auto-scroll for categories
-    const scrollPosition = useRef(0);
-    const isUserInteracting = useRef(false);
-    const autoScrollInterval = useRef<NodeJS.Timeout | null>(null);
-
-    // Start auto-scroll
-    useEffect(() => {
-        const startAutoScroll = () => {
-            autoScrollInterval.current = setInterval(() => {
-                if (!isUserInteracting.current && scrollViewRef.current) {
-                    scrollPosition.current += 1; // Scroll 1 pixel per interval
-
-                    // Reset to start for infinite loop
-                    const maxScroll = (CATEGORIES.length * 150); // Approximate width per pill
-                    if (scrollPosition.current >= maxScroll) {
-                        scrollPosition.current = 0;
-                    }
-
-                    scrollViewRef.current.scrollTo({
-                        x: scrollPosition.current,
-                        animated: true,
-                    });
-                }
-            }, 30); // Update every 30ms for smooth animation
-        };
-
-        startAutoScroll();
-
-        return () => {
-            if (autoScrollInterval.current) {
-                clearInterval(autoScrollInterval.current);
-            }
-        };
-    }, []);
-
-    const handleTouchStart = () => {
-        isUserInteracting.current = true;
-    };
-
-    const handleTouchEnd = () => {
-        // Resume auto-scroll after 2 seconds of inactivity
-        setTimeout(() => {
-            isUserInteracting.current = false;
-        }, 2000);
-    };
-
-    // Handle intent selection with toggle
-    const handleIntentSelect = (intentId: string) => {
-        // Toggle: if already selected, deselect it
-        const newSelection = travelIntent === intentId ? null : intentId;
-        setTravelIntent(newSelection);
-
-        // Track analytics if selecting (not deselecting)
-        if (newSelection) {
-            analytics.homeTravelStyleSelected(intentId);
-        }
-    };
-
-    // Feedback messages for each intent
-    const intentFeedback: Record<string, string> = {
-        'luxo': 'Mostrando viagens com foco em conforto e exclusividade',
-        'custo-beneficio': 'Mostrando viagens com melhor custo-benefício',
     };
 
     return (
@@ -163,31 +97,6 @@ export default function HomeScreen() {
                     </Text>
                 </View>
 
-                {/* Category Pills with Auto-Scroll */}
-                <View style={styles.categoriesSection}>
-                    <ScrollView
-                        ref={scrollViewRef}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.categoriesScroll}
-                        onTouchStart={handleTouchStart}
-                        onTouchEnd={handleTouchEnd}
-                        onScrollBeginDrag={handleTouchStart}
-                        onScrollEndDrag={handleTouchEnd}
-                    >
-                        {[...CATEGORIES, ...CATEGORIES].map((cat, index) => (
-                            <TouchableOpacity
-                                key={`${cat.id}-${index}`}
-                                style={styles.categoryPill}
-                                onPress={() => router.push(`/(tabs)/packages?category=${cat.id}`)}
-                            >
-                                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                <Text style={styles.categoryLabel}>{cat.label}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-
                 {/* 2. Card "Não sabe por onde começar?" */}
                 <TouchableOpacity
                     style={styles.decisionTrigger}
@@ -204,55 +113,6 @@ export default function HomeScreen() {
                     </View>
                     <Text style={styles.decisionTriggerArrow}>→</Text>
                 </TouchableOpacity>
-
-                {/* Como você quer viajar? - Toggle cards */}
-                <View style={styles.intentSection}>
-                    <Text style={styles.intentTitle}>Como você quer viajar?</Text>
-                    <Text style={styles.intentSubtitle}>
-                        Escolha o que combina com você
-                    </Text>
-
-                    <View style={styles.intentToggleRow}>
-                        {INTENT_CATEGORIES.map((intent) => {
-                            const isSelected = travelIntent === intent.id;
-                            return (
-                                <TouchableOpacity
-                                    key={intent.id}
-                                    style={[
-                                        styles.intentToggleCard,
-                                        isSelected
-                                            ? styles.intentToggleCardActive
-                                            : styles.intentToggleCardInactive
-                                    ]}
-                                    onPress={() => handleIntentSelect(intent.id)}
-                                    activeOpacity={0.8}
-                                >
-                                    <Text style={styles.intentToggleEmoji}>{intent.emoji}</Text>
-                                    <Text style={[
-                                        styles.intentToggleLabel,
-                                        isSelected
-                                            ? styles.intentToggleLabelActive
-                                            : styles.intentToggleLabelInactive
-                                    ]}>
-                                        {intent.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-
-                    {/* Feedback textual */}
-                    {travelIntent && (
-                        <View style={styles.intentFeedback}>
-                            <Text style={styles.intentFeedbackText}>
-                                {intentFeedback[travelIntent]}
-                            </Text>
-                            <Text style={styles.intentFilterNotice}>
-                                📌 Este filtro se aplica em todas as abas
-                            </Text>
-                        </View>
-                    )}
-                </View>
 
                 {/* 3. Pacotes em Destaque */}
                 <View style={styles.section}>
@@ -654,12 +514,7 @@ function RoteirosCarousel({ images }: { images: string[] }) {
     );
 }
 
-// Categorias de Intenção em Destaque (ajustado em 30/01/2026)
-// Apenas as principais intenções: Luxo e Custo-benefício
-const INTENT_CATEGORIES = [
-    { id: 'luxo', emoji: '💎', label: 'Luxo' },
-    { id: 'custo-beneficio', emoji: '💰', label: 'Melhor custo-benefício' },
-];
+
 
 
 
