@@ -215,9 +215,11 @@ export default function PackageDetailScreen() {
                     {/* About Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Sobre a experiência</Text>
-                        <Text style={styles.emotionalIntro}>
-                            Imagine começar o dia respirando o ar puro das montanhas, caminhar por trilhas que revelam paisagens de tirar o fôlego, e sentir a energia vibrante de cada momento inesquecível dessa jornada.
-                        </Text>
+                        {packageData.emotionalIntro && (
+                            <Text style={styles.emotionalIntro}>
+                                {packageData.emotionalIntro}
+                            </Text>
+                        )}
                         <Text style={styles.description}>{packageData.description}</Text>
                     </View>
 
@@ -309,35 +311,25 @@ export default function PackageDetailScreen() {
                     </CollapsibleSection>
 
                     {/* Perfect For Block - User Identification */}
-                    <View style={styles.perfectForContainer}>
-                        <Text style={styles.perfectForTitle}>Para quem essa viagem é perfeita</Text>
+                    {packageData.perfectFor && packageData.perfectFor.length > 0 && (
+                        <View style={styles.perfectForContainer}>
+                            <Text style={styles.perfectForTitle}>Para quem essa viagem é perfeita</Text>
 
-                        <View style={styles.perfectForItems}>
-                            {/* Item 1 */}
-                            <View style={styles.perfectForItem}>
-                                <View style={styles.perfectForIconCircle}>
-                                    <Ionicons name="airplane" size={18} color={theme.colors.primary} />
-                                </View>
-                                <Text style={styles.perfectForText}>Vai para a Europa pela primeira vez</Text>
-                            </View>
-
-                            {/* Item 2 */}
-                            <View style={styles.perfectForItem}>
-                                <View style={styles.perfectForIconCircle}>
-                                    <Ionicons name="star" size={18} color={theme.colors.primary} />
-                                </View>
-                                <Text style={styles.perfectForText}>Quer ver os clássicos sem se preocupar com logística</Text>
-                            </View>
-
-                            {/* Item 3 */}
-                            <View style={styles.perfectForItem}>
-                                <View style={styles.perfectForIconCircle}>
-                                    <Ionicons name="calendar-clear" size={18} color={theme.colors.primary} />
-                                </View>
-                                <Text style={styles.perfectForText}>Prefere tudo organizado</Text>
+                            <View style={styles.perfectForItems}>
+                                {packageData.perfectFor.map((item, index) => {
+                                    const icons = ['airplane', 'star', 'calendar-clear'] as const;
+                                    return (
+                                        <View key={index} style={styles.perfectForItem}>
+                                            <View style={styles.perfectForIconCircle}>
+                                                <Ionicons name={icons[index % icons.length]} size={18} color={theme.colors.primary} />
+                                            </View>
+                                            <Text style={styles.perfectForText}>{item}</Text>
+                                        </View>
+                                    );
+                                })}
                             </View>
                         </View>
-                    </View>
+                    )}
 
                     {/* Peace of Mind Block - Reduces Purchase Anxiety */}
                     <View style={styles.peaceOfMindContainer}>

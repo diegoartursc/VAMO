@@ -65,6 +65,9 @@ export interface Package {
     includedItems?: string[];
     notRecommendedFor?: string[];
     importantInfo?: string[];
+    // Contextual detail fields
+    emotionalIntro?: string;
+    perfectFor?: string[];
 }
 
 export interface User {
