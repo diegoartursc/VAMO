@@ -21,10 +21,12 @@ interface SearchContextType {
     results: SearchResults;
     isSearching: boolean;
     activeTab: 'home' | 'packages' | 'itineraries';
+    travelIntent: string | null;
     setFilters: (filters: Partial<SearchFilters>) => void;
     clearFilters: () => void;
     applySearch: () => void;
     setActiveTab: (tab: 'home' | 'packages' | 'itineraries') => void;
+    setTravelIntent: (intent: string | null) => void;
 }
 
 const defaultFilters: SearchFilters = {
@@ -49,6 +51,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     const [results, setResults] = useState<SearchResults>(defaultResults);
     const [isSearching, setIsSearching] = useState(false);
     const [activeTab, setActiveTab] = useState<'home' | 'packages' | 'itineraries'>('home');
+    const [travelIntent, setTravelIntent] = useState<string | null>(null);
 
     const setFilters = (newFilters: Partial<SearchFilters>) => {
         setFiltersState(prev => ({ ...prev, ...newFilters }));
@@ -71,10 +74,12 @@ export function SearchProvider({ children }: { children: ReactNode }) {
         results,
         isSearching,
         activeTab,
+        travelIntent,
         setFilters,
         clearFilters,
         applySearch,
         setActiveTab,
+        setTravelIntent,
     };
 
     return (

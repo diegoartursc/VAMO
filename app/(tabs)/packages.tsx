@@ -25,7 +25,7 @@ const { width } = Dimensions.get('window');
 
 export default function PackagesScreen() {
     const router = useRouter();
-    const { filters, applyFilters, filteredPackages: searchFilteredPackages } = useSearch();
+    const { filters, applyFilters, filteredPackages: searchFilteredPackages, travelIntent, setTravelIntent } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
     const [toastVisible, setToastVisible] = useState(false);
@@ -114,6 +114,18 @@ export default function PackagesScreen() {
                     ))}
                 </ScrollView>
             </View>
+
+            {/* Active Intent Filter Banner */}
+            {travelIntent && (
+                <View style={styles.intentBanner}>
+                    <Text style={styles.intentBannerText}>
+                        {travelIntent === 'luxo' ? '💎 Filtro: Luxo' : '💰 Filtro: Melhor custo-benefício'}
+                    </Text>
+                    <TouchableOpacity onPress={() => setTravelIntent(null)}>
+                        <Text style={styles.intentBannerClear}>Limpar</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {/* Packages Grid */}
             <ScrollView
@@ -642,5 +654,28 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         color: theme.colors.text.primary,
+    },
+    intentBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginHorizontal: theme.spacing.md,
+        marginBottom: theme.spacing.sm,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: theme.borderRadius.md,
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.primary,
+    },
+    intentBannerText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: theme.colors.text.secondary,
+    },
+    intentBannerClear: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: theme.colors.primary,
     },
 });

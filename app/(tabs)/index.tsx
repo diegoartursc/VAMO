@@ -32,7 +32,7 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
     const router = useRouter();
-    const { applyFilters, filters, filteredPackages, hasActiveFilters } = useSearch();
+    const { applyFilters, filters, filteredPackages, hasActiveFilters, travelIntent, setTravelIntent } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [decisionAssistantVisible, setDecisionAssistantVisible] = useState(false);
     const packagesByRelevance = getPackagesByRelevance();
@@ -42,7 +42,6 @@ export default function HomeScreen() {
 
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
     const { showAnimation } = useFavoriteAnimation();
-    const [selectedIntent, setSelectedIntent] = useState<string | null>(null); // Track selected travel style
     const scrollViewRef = useRef<ScrollView>(null);
     const [scrollDepthTracked, setScrollDepthTracked] = useState<Set<number>>(new Set());
     const [lastSearchedDestination, setLastSearchedDestination] = useState<string | null>('Paris'); // Mock: último destino pesquisado
@@ -118,8 +117,8 @@ export default function HomeScreen() {
     // Handle intent selection with toggle
     const handleIntentSelect = (intentId: string) => {
         // Toggle: if already selected, deselect it
-        const newSelection = selectedIntent === intentId ? null : intentId;
-        setSelectedIntent(newSelection);
+        const newSelection = travelIntent === intentId ? null : intentId;
+        setTravelIntent(newSelection);
 
         // Track analytics if selecting (not deselecting)
         if (newSelection) {
@@ -215,7 +214,7 @@ export default function HomeScreen() {
 
                     <View style={styles.intentToggleRow}>
                         {INTENT_CATEGORIES.map((intent) => {
-                            const isSelected = selectedIntent === intent.id;
+                            const isSelected = travelIntent === intent.id;
                             return (
                                 <TouchableOpacity
                                     key={intent.id}
@@ -243,10 +242,13 @@ export default function HomeScreen() {
                     </View>
 
                     {/* Feedback textual */}
-                    {selectedIntent && (
+                    {travelIntent && (
                         <View style={styles.intentFeedback}>
                             <Text style={styles.intentFeedbackText}>
-                                {intentFeedback[selectedIntent]}
+                                {intentFeedback[travelIntent]}
+                            </Text>
+                            <Text style={styles.intentFilterNotice}>
+                                📌 Este filtro se aplica em todas as abas
                             </Text>
                         </View>
                     )}
@@ -819,6 +821,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.text.secondary,
         lineHeight: 20,
+    },
+    intentFilterNotice: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary || '#999',
+        marginTop: 4,
     },
 
     // Trust Badge

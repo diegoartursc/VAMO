@@ -11,11 +11,26 @@ export function useSearch() {
     const context = useSearchContext();
 
     /**
-     * Filtra os pacotes com base nos filtros atuais
+     * Filtra os pacotes com base nos filtros atuais e intent de viagem
      */
     const filteredPackages = useMemo(() => {
-        return applyAllFilters(mockPackages, context.filters);
-    }, [context.filters]);
+        let packages = applyAllFilters(mockPackages, context.filters);
+
+        // Apply travel intent filter (Luxo / Custo-benefício)
+        if (context.travelIntent) {
+            if (context.travelIntent === 'luxo') {
+                packages = packages.filter(p =>
+                    p.categories?.includes('luxury') || p.badge === 'luxury'
+                );
+            } else if (context.travelIntent === 'custo-beneficio') {
+                packages = packages.filter(p =>
+                    p.priceComparison === 'below' || p.badge === 'value'
+                );
+            }
+        }
+
+        return packages;
+    }, [context.filters, context.travelIntent]);
 
     /**
      * Retorna apenas pacotes (para aba Pacotes)
@@ -78,6 +93,10 @@ export function useSearch() {
         clearFilters,
         applyFilters,
         hasActiveFilters,
+
+        // Travel Intent
+        travelIntent: context.travelIntent,
+        setTravelIntent: context.setTravelIntent,
 
         // Resultados
         filteredPackages,
