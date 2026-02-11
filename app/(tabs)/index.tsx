@@ -609,79 +609,6 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 
-    // Intent Categories Section
-    intentSection: {
-        marginBottom: theme.spacing.xl,
-        paddingHorizontal: 20,
-    },
-    intentTitle: {
-        fontSize: theme.typography.sizes.title,
-        fontWeight: theme.typography.weights.heavy,
-        color: theme.colors.text.primary,
-        marginBottom: theme.spacing.xs,
-    },
-    intentSubtitle: {
-        fontSize: theme.typography.sizes.caption,
-        color: theme.colors.text.tertiary,
-        marginBottom: theme.spacing.md,
-        lineHeight: 20,
-    },
-    intentToggleRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    intentToggleCard: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 20,
-        paddingHorizontal: 12,
-        borderRadius: theme.borderRadius.lg,
-        borderWidth: 1.5,
-    },
-    intentToggleCardActive: {
-        backgroundColor: theme.colors.primary,
-        borderColor: theme.colors.primary,
-        ...theme.shadows.medium,
-    },
-    intentToggleCardInactive: {
-        backgroundColor: '#FFFFFF',
-        borderColor: 'rgba(40, 201, 191, 0.3)',
-    },
-    intentToggleEmoji: {
-        fontSize: 28,
-        marginBottom: 8,
-    },
-    intentToggleLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    intentToggleLabelActive: {
-        color: '#FFFFFF',
-    },
-    intentToggleLabelInactive: {
-        color: 'rgba(40, 201, 191, 0.7)',
-    },
-    intentFeedback: {
-        marginTop: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: theme.borderRadius.md,
-        borderLeftWidth: 3,
-        borderLeftColor: theme.colors.primary,
-    },
-    intentFeedbackText: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        lineHeight: 20,
-    },
-    intentFilterNotice: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary || '#999',
-        marginTop: 4,
-    },
 
     // Trust Badge
     trustBadge: {
@@ -697,34 +624,6 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
 
-    // Categories (Existentes)
-    categoriesSection: {
-        marginBottom: 24,
-    },
-    categoriesScroll: {
-        paddingHorizontal: 20,
-        gap: 12,
-    },
-    categoryPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 18,
-        paddingVertical: 12,
-        borderRadius: 24,
-        backgroundColor: theme.colors.background,
-        borderWidth: 1.5,
-        borderColor: theme.colors.border,
-        ...theme.shadows.xs,
-    },
-    categoryIcon: {
-        fontSize: 20,
-    },
-    categoryLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
 
     // Sections
     section: {

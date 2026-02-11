@@ -16,6 +16,13 @@ export function useSearch() {
     const filteredPackages = useMemo(() => {
         let packages = applyAllFilters(mockPackages, context.filters);
 
+        // Apply category filter
+        if (context.selectedCategory) {
+            packages = packages.filter(p =>
+                p.categories?.includes(context.selectedCategory!)
+            );
+        }
+
         // Apply travel intent filter (Luxo / Custo-benefício)
         if (context.travelIntent) {
             if (context.travelIntent === 'luxo') {
@@ -30,7 +37,7 @@ export function useSearch() {
         }
 
         return packages;
-    }, [context.filters, context.travelIntent]);
+    }, [context.filters, context.travelIntent, context.selectedCategory]);
 
     /**
      * Retorna apenas pacotes (para aba Pacotes)
@@ -76,15 +83,18 @@ export function useSearch() {
      * Verifica se há filtros ativos
      */
     const hasActiveFilters = useMemo(() => {
-        const { destination, startDate, endDate, priceMin, priceMax } = context.filters;
+        const { destination, startDate, endDate, priceMin, priceMax, duration } = context.filters;
         return !!(
             destination ||
             startDate ||
             endDate ||
             priceMin > 0 ||
-            priceMax < 50000
+            priceMax < 50000 ||
+            (duration && duration !== 7) ||
+            context.travelIntent ||
+            context.selectedCategory
         );
-    }, [context.filters]);
+    }, [context.filters, context.travelIntent, context.selectedCategory]);
 
     return {
         // Filtros
@@ -97,6 +107,10 @@ export function useSearch() {
         // Travel Intent
         travelIntent: context.travelIntent,
         setTravelIntent: context.setTravelIntent,
+
+        // Category
+        selectedCategory: context.selectedCategory,
+        setSelectedCategory: context.setSelectedCategory,
 
         // Resultados
         filteredPackages,

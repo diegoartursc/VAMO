@@ -37,7 +37,7 @@ export function SearchModal({
 }: SearchModalProps) {
     const [slideAnim] = useState(new Animated.Value(height));
     const [backdropAnim] = useState(new Animated.Value(0));
-    const { travelIntent, setTravelIntent } = useSearch();
+    const { travelIntent, setTravelIntent, selectedCategory, setSelectedCategory } = useSearch();
 
     // Filtros locais (estado do modal)
     const [destination, setDestination] = useState(initialFilters?.destination || '');
@@ -91,6 +91,7 @@ export function SearchModal({
         setDuration(7);
         setPriceRange([0, 50000]);
         setTravelIntent(null);
+        setSelectedCategory(null);
     };
 
     const handleApplyFilters = () => {
@@ -160,19 +161,27 @@ export function SearchModal({
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={styles.categoriesScroll}
                         >
-                            {CATEGORIES.map((cat) => (
-                                <TouchableOpacity
-                                    key={cat.id}
-                                    style={styles.categoryPill}
-                                    onPress={() => {
-                                        // Set destination filter as category for now
-                                        setDestination(cat.label);
-                                    }}
-                                >
-                                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                    <Text style={styles.categoryLabel}>{cat.label}</Text>
-                                </TouchableOpacity>
-                            ))}
+                            {CATEGORIES.map((cat) => {
+                                const isActive = selectedCategory === cat.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={cat.id}
+                                        style={[
+                                            styles.categoryPill,
+                                            isActive && styles.categoryPillActive,
+                                        ]}
+                                        onPress={() => setSelectedCategory(isActive ? null : cat.id)}
+                                    >
+                                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                                        <Text style={[
+                                            styles.categoryLabel,
+                                            isActive && styles.categoryLabelActive,
+                                        ]}>
+                                            {cat.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </ScrollView>
                     </View>
 
@@ -392,6 +401,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         color: theme.colors.text.primary,
+    },
+    categoryPillActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    categoryLabelActive: {
+        color: '#FFFFFF',
     },
 
     // Intent Toggles

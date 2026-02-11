@@ -22,11 +22,13 @@ interface SearchContextType {
     isSearching: boolean;
     activeTab: 'home' | 'packages' | 'itineraries';
     travelIntent: string | null;
+    selectedCategory: string | null;
     setFilters: (filters: Partial<SearchFilters>) => void;
     clearFilters: () => void;
     applySearch: () => void;
     setActiveTab: (tab: 'home' | 'packages' | 'itineraries') => void;
     setTravelIntent: (intent: string | null) => void;
+    setSelectedCategory: (category: string | null) => void;
 }
 
 const defaultFilters: SearchFilters = {
@@ -52,6 +54,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     const [isSearching, setIsSearching] = useState(false);
     const [activeTab, setActiveTab] = useState<'home' | 'packages' | 'itineraries'>('home');
     const [travelIntent, setTravelIntent] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
     const setFilters = (newFilters: Partial<SearchFilters>) => {
         setFiltersState(prev => ({ ...prev, ...newFilters }));
@@ -60,6 +63,8 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     const clearFilters = () => {
         setFiltersState(defaultFilters);
         setResults(defaultResults);
+        setTravelIntent(null);
+        setSelectedCategory(null);
     };
 
     const applySearch = () => {
@@ -75,11 +80,13 @@ export function SearchProvider({ children }: { children: ReactNode }) {
         isSearching,
         activeTab,
         travelIntent,
+        selectedCategory,
         setFilters,
         clearFilters,
         applySearch,
         setActiveTab,
         setTravelIntent,
+        setSelectedCategory,
     };
 
     return (

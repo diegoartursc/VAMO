@@ -6,7 +6,6 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    TextInput,
     Dimensions,
     Animated,
 } from 'react-native';
@@ -24,7 +23,7 @@ const { width } = Dimensions.get('window');
 
 export default function PackagesScreen() {
     const router = useRouter();
-    const { filters, applyFilters, filteredPackages: searchFilteredPackages } = useSearch();
+    const { filters, applyFilters, filteredPackages: searchFilteredPackages, hasActiveFilters } = useSearch();
 
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
@@ -67,7 +66,7 @@ export default function PackagesScreen() {
 
     // Usa pacotes filtrados do SearchContext ou pacotes ordenados por relevância
     const packagesByRelevance = getPackagesByRelevance();
-    const displayedPackages = searchFilteredPackages.length > 0 ? searchFilteredPackages : packagesByRelevance;
+    const displayedPackages = hasActiveFilters ? searchFilteredPackages : packagesByRelevance;
 
     return (
         <View style={styles.container}>
@@ -595,55 +594,5 @@ const styles = StyleSheet.create({
     toastText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#FFFFFF',
-    },
-    categoriesSection: {
-        marginBottom: theme.spacing.md,
-    },
-    categoriesScroll: {
-        paddingHorizontal: theme.spacing.md,
-        gap: theme.spacing.sm,
-    },
-    categoryPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.xs,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.borderRadius.full,
-        backgroundColor: theme.colors.surface,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    categoryIcon: {
-        fontSize: 16,
-    },
-    categoryLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-    },
-    intentBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginHorizontal: theme.spacing.md,
-        marginBottom: theme.spacing.sm,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: theme.borderRadius.md,
-        borderLeftWidth: 3,
-        borderLeftColor: theme.colors.primary,
-    },
-    intentBannerText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.colors.text.secondary,
-    },
-    intentBannerClear: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.colors.primary,
     },
 });

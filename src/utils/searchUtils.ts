@@ -47,6 +47,18 @@ export function filterByPrice(
 }
 
 /**
+ * Filtra pacotes por duração (com tolerância de ±2 dias)
+ */
+export function filterByDuration(
+    packages: Package[],
+    targetDuration: number
+): Package[] {
+    return packages.filter(pkg => {
+        return Math.abs(pkg.duration - targetDuration) <= 2;
+    });
+}
+
+/**
  * Aplica todos os filtros de uma vez
  */
 export function applyAllFilters(
@@ -55,6 +67,7 @@ export function applyAllFilters(
         destination?: string;
         startDate?: Date;
         endDate?: Date;
+        duration?: number;
         priceMin: number;
         priceMax: number;
     }
@@ -69,6 +82,11 @@ export function applyAllFilters(
     // Filtro por data
     if (filters.startDate || filters.endDate) {
         filtered = filterByDate(filtered, filters.startDate, filters.endDate);
+    }
+
+    // Filtro por duração
+    if (filters.duration && filters.duration !== 7) {
+        filtered = filterByDuration(filtered, filters.duration);
     }
 
     // Filtro por preço

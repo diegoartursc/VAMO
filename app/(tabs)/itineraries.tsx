@@ -361,31 +361,5 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: theme.colors.text.inverse,
     },
-    categoriesSection: {
-        marginBottom: theme.spacing.md,
-    },
-    categoriesScroll: {
-        paddingHorizontal: theme.spacing.md,
-        gap: theme.spacing.sm,
-    },
-    categoryPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.xs,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.borderRadius.full,
-        backgroundColor: theme.colors.background,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    categoryIcon: {
-        fontSize: 16,
-    },
-    categoryLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-    },
     // CTA styles removed - using CTACarousel component
 });

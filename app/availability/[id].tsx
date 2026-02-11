@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/data/mockPackages';
+import { theme } from '../../src/theme/theme';
 
 export default function AvailabilityScreen() {
     const { id, date, adults, children } = useLocalSearchParams<{
@@ -250,7 +251,7 @@ export default function AvailabilityScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: theme.colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#3a3a3a',
+        borderBottomColor: theme.colors.border,
     },
     backButton: {
         width: 40,
@@ -267,19 +268,19 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#fff',
+        color: theme.colors.text.primary,
     },
     scrollView: {
         flex: 1,
     },
     summaryCard: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: theme.colors.surface,
         marginHorizontal: 16,
         marginTop: 16,
         marginBottom: 20,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: theme.colors.border,
         overflow: 'hidden',
     },
     summaryRow: {
@@ -293,32 +294,32 @@ const styles = StyleSheet.create({
     },
     summaryLabel: {
         fontSize: 13,
-        color: '#999',
+        color: theme.colors.text.tertiary,
         marginBottom: 4,
     },
     summaryValue: {
         fontSize: 15,
-        color: '#fff',
+        color: theme.colors.text.primary,
         fontWeight: '500',
     },
     summaryDivider: {
         height: 1,
-        backgroundColor: '#3a3a3a',
+        backgroundColor: theme.colors.border,
     },
     optionsTitle: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#fff',
+        color: theme.colors.text.primary,
         marginHorizontal: 16,
         marginBottom: 16,
     },
     optionCard: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: theme.colors.surface,
         marginHorizontal: 16,
         marginBottom: 12,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: '#14b8a6',
+        borderColor: theme.colors.primary,
         overflow: 'hidden',
     },
     optionHeader: {
@@ -326,7 +327,7 @@ const styles = StyleSheet.create({
     },
     optionHeaderExpanded: {
         borderBottomWidth: 1,
-        borderBottomColor: '#3a3a3a',
+        borderBottomColor: theme.colors.border,
     },
     optionHeaderContent: {
         flexDirection: 'row',
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
     optionTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#fff',
+        color: theme.colors.text.primary,
     },
     optionBody: {
         padding: 16,
@@ -350,18 +351,18 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 15,
-        color: '#ccc',
+        color: theme.colors.text.secondary,
     },
     sectionLabel: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: theme.colors.text.primary,
         marginTop: 20,
         marginBottom: 8,
     },
     sectionSubtext: {
         fontSize: 14,
-        color: '#999',
+        color: theme.colors.text.tertiary,
         marginBottom: 16,
     },
     timeSlotsGrid: {
@@ -375,20 +376,20 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#3a3a3a',
-        backgroundColor: '#1a1a1a',
+        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.background,
     },
     timeSlotSelected: {
-        backgroundColor: '#fff',
-        borderColor: '#14b8a6',
+        backgroundColor: theme.colors.text.primary,
+        borderColor: theme.colors.primary,
     },
     timeSlotText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: theme.colors.text.primary,
     },
     timeSlotTextSelected: {
-        color: '#1a1a1a',
+        color: theme.colors.background,
     },
     policyRow: {
         flexDirection: 'row',
@@ -399,11 +400,11 @@ const styles = StyleSheet.create({
     policyText: {
         flex: 1,
         fontSize: 14,
-        color: '#ccc',
+        color: theme.colors.text.secondary,
         lineHeight: 20,
     },
     pricingCard: {
-        backgroundColor: '#1a1a1a',
+        backgroundColor: theme.colors.background,
         borderRadius: 12,
         padding: 16,
         marginTop: 20,
@@ -412,32 +413,32 @@ const styles = StyleSheet.create({
     totalPrice: {
         fontSize: 28,
         fontWeight: '700',
-        color: '#fff',
+        color: theme.colors.text.primary,
         marginBottom: 8,
     },
     priceBreakdown: {
         fontSize: 14,
-        color: '#999',
+        color: theme.colors.text.tertiary,
         marginBottom: 4,
     },
     taxIncluded: {
         fontSize: 13,
-        color: '#14b8a6',
+        color: theme.colors.primary,
         marginTop: 8,
     },
     bookButton: {
-        backgroundColor: '#14b8a6',
+        backgroundColor: theme.colors.primary,
         paddingVertical: 16,
         borderRadius: 12,
         alignItems: 'center',
     },
     bookButtonText: {
-        color: '#fff',
+        color: theme.colors.text.inverse,
         fontSize: 17,
         fontWeight: '700',
     },
     errorText: {
-        color: '#fff',
+        color: theme.colors.text.primary,
         fontSize: 16,
         textAlign: 'center',
         marginTop: 40,
