@@ -23,6 +23,7 @@ import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { useRouter } from 'expo-router';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
+import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAnimationProvider';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
 import { analytics } from '../../src/services/analytics';
@@ -149,7 +150,7 @@ export default function HomeScreen() {
                             onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                             activeOpacity={0.85}
                         >
-                            <RoteirosCarousel images={itinerary.images} />
+                            <CoverCarousel images={itinerary.images} height={200} />
 
                             <View style={styles.roteirosContent}>
                                 {/* Creator Info */}
@@ -340,10 +341,9 @@ function HomePackageCard({
 }: any) {
     return (
         <TouchableOpacity style={styles.homeCard} onPress={onPress} activeOpacity={0.85}>
-            <Image
-                source={{ uri: pkg.images?.[0] || pkg.image }}
-                style={styles.homeCardImage}
-                resizeMode="cover"
+            <CoverCarousel
+                images={pkg.images || [pkg.image]}
+                height={200}
             />
 
             {/* Badge */}
@@ -457,62 +457,7 @@ function HomePackageCard({
 
 // Inline CTACarousel removed - using separate component from CTACarousel.tsx
 
-// Carousel component for Roteiros cards
-function RoteirosCarousel({ images }: { images: string[] }) {
-    const [activeIndex, setActiveIndex] = useState(0);
-    const cardWidth = width - 40; // section paddingHorizontal: 20 * 2
 
-    const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const offsetX = e.nativeEvent.contentOffset.x;
-        const index = Math.round(offsetX / cardWidth);
-        setActiveIndex(index);
-    };
-
-    return (
-        <View style={styles.roteirosCarouselContainer}>
-            <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={handleScroll}
-                style={{ width: cardWidth }}
-                decelerationRate="fast"
-                nestedScrollEnabled
-            >
-                {images.map((uri, idx) => (
-                    <Image
-                        key={idx}
-                        source={{ uri }}
-                        style={[styles.roteirosImage, { width: cardWidth }]}
-                        resizeMode="cover"
-                    />
-                ))}
-            </ScrollView>
-
-            {/* Photo counter badge */}
-            <View style={styles.roteirosPhotoCount}>
-                <Text style={styles.roteirosPhotoCountText}>
-                    📷 {activeIndex + 1}/{images.length}
-                </Text>
-            </View>
-
-            {/* Pagination dots */}
-            {images.length > 1 && (
-                <View style={styles.roteirosDots}>
-                    {images.map((_, idx) => (
-                        <View
-                            key={idx}
-                            style={[
-                                styles.roteirosDot,
-                                idx === activeIndex && styles.roteirosDotActive,
-                            ]}
-                        />
-                    ))}
-                </View>
-            )}
-        </View>
-    );
-}
 
 
 
@@ -984,50 +929,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
         ...theme.shadows.medium,
-    },
-    roteirosCarouselContainer: {
-        position: 'relative',
-    },
-    roteirosImage: {
-        width: '100%',
-        height: 200,
-        backgroundColor: theme.colors.surfaceLight,
-    },
-    roteirosPhotoCount: {
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 12,
-    },
-    roteirosPhotoCountText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#FFFFFF',
-    },
-    roteirosDots: {
-        position: 'absolute',
-        bottom: 12,
-        left: 0,
-        right: 0,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 6,
-    },
-    roteirosDot: {
-        width: 7,
-        height: 7,
-        borderRadius: 3.5,
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    },
-    roteirosDotActive: {
-        width: 9,
-        height: 9,
-        borderRadius: 4.5,
-        backgroundColor: '#FFFFFF',
     },
     roteirosContent: {
         padding: 16,

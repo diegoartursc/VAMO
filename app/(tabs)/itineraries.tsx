@@ -6,15 +6,14 @@ import { theme } from '../../src/theme/theme';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import { CreatorCard } from '../../src/components/creator/CreatorCard';
 import { PriceComparison } from '../../src/components/comparison/PriceComparison';
-import { DestinationChats } from '../../src/components/community/DestinationChats';
 import { mockCreators, getFeaturedCreators } from '../../src/data/mockCreators';
 import { VERIFICATION_CONFIGS } from '../../src/types/creator';
-import { Alert } from 'react-native';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { getFeaturedItineraries } from '../../src/data/mockItineraries';
+import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 
 export default function ItinerariesScreen() {
     const router = useRouter();
@@ -53,10 +52,9 @@ export default function ItinerariesScreen() {
 
                     {getFeaturedItineraries().map((itinerary) => (
                         <View key={itinerary.id} style={[styles.itineraryCard, { marginBottom: 16 }]}>
-                            <Image
-                                source={{ uri: itinerary.images[0] }}
-                                style={styles.itineraryImage}
-                                resizeMode="cover"
+                            <CoverCarousel
+                                images={itinerary.images}
+                                height={180}
                             />
 
                             {/* Badge overlay */}
@@ -153,19 +151,54 @@ export default function ItinerariesScreen() {
                     </View>
                 </View>
 
-                {/* 4️⃣ Community Chats */}
+                {/* 4️⃣ Community Coming Soon */}
                 <View style={styles.section}>
-                    <DestinationChats
-                        limit={3}
-                        onChatPress={(chat) => Alert.alert(
-                            `💬 ${chat.destination}`,
-                            `Entrar no chat de ${chat.destination}? ${chat.membersCount} membros online.`,
-                            [
-                                { text: 'Cancelar', style: 'cancel' },
-                                { text: 'Entrar', onPress: () => Alert.alert('Em breve!', 'Função de chat será implementada em breve.') }
-                            ]
-                        )}
-                    />
+                    <View style={styles.communityCard}>
+                        {/* Header */}
+                        <View style={styles.communityHeader}>
+                            <Text style={styles.communityIcon}>💬</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.communityTitle}>Comunidade</Text>
+                                <Text style={styles.communitySubtitle}>Converse com viajantes reais</Text>
+                            </View>
+                            <View style={styles.comingSoonBadge}>
+                                <Text style={styles.comingSoonText}>Em Breve</Text>
+                            </View>
+                        </View>
+
+                        {/* Preview entries - faded */}
+                        <View style={styles.communityPreview}>
+                            {[
+                                { emoji: '🗼', name: 'Paris', type: 'Chat', members: 234, user: 'Diego Artur', msg: 'Acabei de voltar! A Torre Eiffel à noite é imperdi...' },
+                                { emoji: '🏖️', name: 'Cancún', type: 'Chat', members: 189, user: 'Maria Clara', msg: 'Alguém sabe qual a melhor época para ir?' },
+                                { emoji: '🏔️', name: 'Machu Picchu', type: 'Roteiro', members: 67, user: 'Pedro Henrique', msg: 'Lembrem de levar coca tea para altitude!' },
+                            ].map((item, idx) => (
+                                <View key={idx} style={[styles.communityEntry, idx < 2 && styles.communityEntryBorder]}>
+                                    <Text style={styles.communityEntryEmoji}>{item.emoji}</Text>
+                                    <View style={styles.communityEntryContent}>
+                                        <Text style={styles.communityEntryName}>{item.name}</Text>
+                                        <Text style={styles.communityEntryMeta}>
+                                            💬 {item.type}  👥 {item.members}
+                                        </Text>
+                                        <Text style={styles.communityEntryMsg} numberOfLines={1}>
+                                            <Text style={styles.communityEntryUser}>{item.user}: </Text>
+                                            {item.msg}
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+
+                        {/* CTA */}
+                        <View style={styles.communityFooter}>
+                            <Text style={styles.communityFooterText}>
+                                🔔 Quer ser avisado quando lançar?
+                            </Text>
+                            <TouchableOpacity style={styles.communityNotifyButton}>
+                                <Text style={styles.communityNotifyText}>Me avise!</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
 
                 {/* CTA Carousel - Auto-Play */}
@@ -362,4 +395,113 @@ const styles = StyleSheet.create({
         color: theme.colors.text.inverse,
     },
     // CTA styles removed - using CTACarousel component
+
+    // Community Teaser Card
+    communityCard: {
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.lg,
+        overflow: 'hidden',
+        ...theme.shadows.medium,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    communityHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        gap: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.borderLight,
+    },
+    communityIcon: {
+        fontSize: 28,
+    },
+    communityTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    communitySubtitle: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
+    },
+    comingSoonBadge: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: theme.borderRadius.full,
+    },
+    comingSoonText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    communityPreview: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        opacity: 0.55,
+    },
+    communityEntry: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        gap: 12,
+    },
+    communityEntryBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.borderLight,
+    },
+    communityEntryEmoji: {
+        fontSize: 36,
+    },
+    communityEntryContent: {
+        flex: 1,
+    },
+    communityEntryName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    communityEntryMeta: {
+        fontSize: 12,
+        color: theme.colors.primary,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    communityEntryMsg: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+    },
+    communityEntryUser: {
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    communityFooter: {
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderLight,
+        gap: 10,
+    },
+    communityFooterText: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+    },
+    communityNotifyButton: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: theme.borderRadius.full,
+    },
+    communityNotifyText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
 });

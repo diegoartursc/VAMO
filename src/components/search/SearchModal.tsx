@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../theme/theme';
-import { PriceSlider } from './PriceSlider';
 import { DurationSlider } from './DurationSlider';
 import { SearchFilters } from '../../contexts/SearchContext';
 import { CATEGORIES, INTENT_CATEGORIES, INTENT_FEEDBACK } from '../../constants/categories';
@@ -42,10 +41,6 @@ export function SearchModal({
     // Filtros locais (estado do modal)
     const [destination, setDestination] = useState(initialFilters?.destination || '');
     const [duration, setDuration] = useState<number>(initialFilters?.duration || 7);
-    const [priceRange, setPriceRange] = useState<[number, number]>([
-        initialFilters?.priceMin || 0,
-        initialFilters?.priceMax || 50000,
-    ]);
 
     // Títulos por contexto
     const contextTitles = {
@@ -89,7 +84,6 @@ export function SearchModal({
     const handleClearFilters = () => {
         setDestination('');
         setDuration(7);
-        setPriceRange([0, 50000]);
         setTravelIntent(null);
         setSelectedCategory(null);
     };
@@ -98,8 +92,8 @@ export function SearchModal({
         const filters: SearchFilters = {
             destination,
             duration,
-            priceMin: priceRange[0],
-            priceMax: priceRange[1],
+            priceMin: 0,
+            priceMax: 50000,
         };
         onSearch(filters);
         onClose();
@@ -153,6 +147,21 @@ export function SearchModal({
                     style={styles.content}
                     showsVerticalScrollIndicator={false}
                 >
+                    {/* Destino */}
+                    <View style={styles.filterSection}>
+                        <Text style={styles.filterLabel}>Destino</Text>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.inputIcon}>🌍</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Para onde você quer ir?"
+                                placeholderTextColor={theme.colors.text.secondary}
+                                value={destination}
+                                onChangeText={setDestination}
+                            />
+                        </View>
+                    </View>
+
                     {/* Category Pills */}
                     <View style={styles.filterSection}>
                         <Text style={styles.filterLabel}>Categorias</Text>
@@ -226,21 +235,6 @@ export function SearchModal({
                         )}
                     </View>
 
-                    {/* Destino */}
-                    <View style={styles.filterSection}>
-                        <Text style={styles.filterLabel}>Destino</Text>
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.inputIcon}>🌍</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Para onde você quer ir?"
-                                placeholderTextColor={theme.colors.text.secondary}
-                                value={destination}
-                                onChangeText={setDestination}
-                            />
-                        </View>
-                    </View>
-
                     {/* Duração */}
                     <DurationSlider
                         value={duration}
@@ -248,15 +242,6 @@ export function SearchModal({
                         min={1}
                         max={30}
                         step={1}
-                    />
-
-                    {/* Preço */}
-                    <PriceSlider
-                        min={0}
-                        max={50000}
-                        value={priceRange}
-                        onChange={setPriceRange}
-                        step={500}
                     />
                 </ScrollView>
 
@@ -284,7 +269,7 @@ export function SearchModal({
                     </TouchableOpacity>
                 </View>
             </Animated.View>
-        </Modal>
+        </Modal >
     );
 }
 

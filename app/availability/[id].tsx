@@ -28,29 +28,25 @@ export default function AvailabilityScreen() {
     const childrenCount = parseInt(children!) || 0;
 
     const [expandedOption, setExpandedOption] = useState<string | null>('option-1');
-    const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
 
-    // Mock de opções de disponibilidade
+    // Opções de disponibilidade adaptadas para pacotes de viagem
     const availabilityOptions = [
         {
             id: 'option-1',
-            title: 'Guia em português',
-            duration: '6 horas',
-            guideLanguage: 'Inglês',
-            timeSlots: ['17:00', '17:30', '18:00', '18:30'],
-            cancellationPolicy: 'Cancele até 17:00 de 11 de março para obter reembolso integral',
-            reserveNowPayLater: true,
+            title: 'Tour coletivo',
+            description: 'Tour em grupo com guia compartilhado.',
+            durationDays: packageData?.duration || 7,
+            guideLanguage: 'Português',
             pricePerAdult: 450,
             pricePerChild: 225,
         },
         {
             id: 'option-2',
             title: 'Tour privativo',
-            duration: '4 horas',
+            description: 'Experiência exclusiva com guia dedicado apenas para o seu grupo.',
+            isExclusive: true,
+            durationDays: packageData?.duration || 7,
             guideLanguage: 'Português',
-            timeSlots: ['10:00', '15:00'],
-            cancellationPolicy: 'Não reembolsável',
-            reserveNowPayLater: false,
             pricePerAdult: 1200,
             pricePerChild: 600,
         },
@@ -70,18 +66,12 @@ export default function AvailabilityScreen() {
     };
 
     const handleBookNow = (option: typeof availabilityOptions[0]) => {
-        if (!selectedTimeSlot) {
-            alert('Por favor, selecione um horário');
-            return;
-        }
-
-        // Navega para checkout
+        // Navega para checkout (cadastro do cartão)
         router.push({
             pathname: `/checkout/contact` as any,
             params: {
                 packageId: id,
                 date: selectedDate.toISOString(),
-                time: selectedTimeSlot,
                 adults: adultsCount,
                 children: childrenCount,
                 optionId: option.id,
@@ -163,10 +153,20 @@ export default function AvailabilityScreen() {
 
                             {isExpanded && (
                                 <View style={styles.optionBody}>
+                                    {/* Exclusive Banner */}
+                                    {option.isExclusive && (
+                                        <View style={styles.exclusiveBanner}>
+                                            <Ionicons name="star" size={16} color="#D4A017" />
+                                            <Text style={styles.exclusiveBannerText}>
+                                                Experiência exclusiva — guia dedicado apenas para o seu grupo
+                                            </Text>
+                                        </View>
+                                    )}
+
                                     {/* Info */}
                                     <View style={styles.infoRow}>
-                                        <Ionicons name="time-outline" size={18} color="#999" />
-                                        <Text style={styles.infoText}>{option.duration}</Text>
+                                        <Ionicons name="calendar-outline" size={18} color="#999" />
+                                        <Text style={styles.infoText}>{option.durationDays} dias de viagem</Text>
                                     </View>
 
                                     <View style={styles.infoRow}>
@@ -174,46 +174,29 @@ export default function AvailabilityScreen() {
                                         <Text style={styles.infoText}>Guia: {option.guideLanguage}</Text>
                                     </View>
 
-                                    {/* Time Slots */}
-                                    <Text style={styles.sectionLabel}>Selecione um horário de início</Text>
-                                    <Text style={styles.sectionSubtext}>{formatDate(selectedDate)}</Text>
-
-                                    <View style={styles.timeSlotsGrid}>
-                                        {option.timeSlots.map((time) => (
-                                            <Pressable
-                                                key={time}
-                                                style={[
-                                                    styles.timeSlot,
-                                                    selectedTimeSlot === time && styles.timeSlotSelected,
-                                                ]}
-                                                onPress={() => setSelectedTimeSlot(time)}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.timeSlotText,
-                                                        selectedTimeSlot === time && styles.timeSlotTextSelected,
-                                                    ]}
-                                                >
-                                                    {time}
-                                                </Text>
-                                            </Pressable>
-                                        ))}
-                                    </View>
-
                                     {/* Policies */}
-                                    <View style={styles.policyRow}>
-                                        <Ionicons name="checkmark-circle" size={18} color="#14b8a6" />
-                                        <Text style={styles.policyText}>{option.cancellationPolicy}</Text>
-                                    </View>
-
-                                    {option.reserveNowPayLater && (
+                                    <View style={styles.policiesSection}>
                                         <View style={styles.policyRow}>
-                                            <Ionicons name="card-outline" size={18} color="#14b8a6" />
+                                            <Ionicons name="card-outline" size={18} color={theme.colors.primary} />
                                             <Text style={styles.policyText}>
-                                                Você pode reservar agora e pagar depois.
+                                                Cadastre seu cartão agora. A cobrança só será realizada após a confirmação da agência (no mesmo dia).
                                             </Text>
                                         </View>
-                                    )}
+
+                                        <View style={styles.policyRow}>
+                                            <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+                                            <Text style={styles.policyText}>
+                                                Cancelamento gratuito em até 7 dias após a compra.
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.policyRow}>
+                                            <Ionicons name="alert-circle-outline" size={18} color={theme.colors.text.tertiary} />
+                                            <Text style={styles.policyTextMuted}>
+                                                Após 7 dias, o cancelamento estará sujeito a taxas.
+                                            </Text>
+                                        </View>
+                                    </View>
 
                                     {/* Pricing */}
                                     <View style={styles.pricingCard}>
@@ -343,6 +326,25 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingTop: 20,
     },
+    exclusiveBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(212, 160, 23, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(212, 160, 23, 0.25)',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        marginBottom: 16,
+    },
+    exclusiveBannerText: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#B8860B',
+        lineHeight: 20,
+    },
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -353,55 +355,38 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: theme.colors.text.secondary,
     },
-    sectionLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-        marginTop: 20,
-        marginBottom: 8,
-    },
-    sectionSubtext: {
+    optionDescription: {
         fontSize: 14,
         color: theme.colors.text.tertiary,
-        marginBottom: 16,
+        lineHeight: 20,
+        marginTop: 4,
+        marginBottom: 4,
     },
-    timeSlotsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 20,
-    },
-    timeSlot: {
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        backgroundColor: theme.colors.background,
-    },
-    timeSlotSelected: {
-        backgroundColor: theme.colors.text.primary,
-        borderColor: theme.colors.primary,
-    },
-    timeSlotText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    timeSlotTextSelected: {
-        color: theme.colors.background,
+    policiesSection: {
+        marginTop: 16,
+        marginBottom: 4,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
     },
     policyRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: 10,
-        marginBottom: 12,
+        marginBottom: 14,
     },
     policyText: {
         flex: 1,
         fontSize: 14,
         color: theme.colors.text.secondary,
         lineHeight: 20,
+    },
+    policyTextMuted: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+        lineHeight: 20,
+        fontStyle: 'italic',
     },
     pricingCard: {
         backgroundColor: theme.colors.background,

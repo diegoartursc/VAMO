@@ -18,6 +18,7 @@ import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
+import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 
 const { width } = Dimensions.get('window');
 
@@ -163,10 +164,9 @@ function PackageCard({
 }) {
     return (
         <TouchableOpacity style={styles.card} onPress={onPress}>
-            <Image
-                source={{ uri: pkg.images[0] }}
-                style={styles.cardImage}
-                resizeMode="cover" // Fix aspect ratio issue
+            <CoverCarousel
+                images={pkg.images}
+                height={200}
             />
 
             {/* Badge */}
