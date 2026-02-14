@@ -250,7 +250,16 @@ export default function CheckoutPaymentScreen() {
                 </View>
 
                 {/* Promo Code */}
-                <TouchableOpacity style={styles.promoButton}>
+                <TouchableOpacity
+                    style={styles.promoButton}
+                    onPress={() => {
+                        Alert.alert(
+                            '🏷️ Código Promocional',
+                            'Entre em contato com a agência para obter códigos promocionais ou vales-presente.\n\nEsta funcionalidade será disponibilizada em breve!',
+                            [{ text: 'Entendi' }]
+                        );
+                    }}
+                >
                     <Ionicons name="pricetag" size={18} color="#14b8a6" />
                     <Text style={styles.promoButtonText}>Inserir código promocional ou vale-presente</Text>
                     <Ionicons name="chevron-forward" size={18} color="#999" />

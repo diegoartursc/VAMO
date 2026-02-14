@@ -23,6 +23,9 @@ import ItineraryCard from '../../src/components/cards/ItineraryCard';
 import DatePickerModal from '../../src/components/DatePickerModal';
 import ParticipantsModal from '../../src/components/ParticipantsModal';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFavorites } from '../../src/hooks/useFavorites';
+import { haptics } from '../../src/services/haptics';
+import { shareService } from '../../src/services/sharing';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,6 +43,9 @@ export default function PackageDetailScreen() {
 
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 2);
     const relatedPackages = getRelatedPackages(id, 4);
+    const { isFavorite, toggleFavorite } = useFavorites();
+    const [priceAlertActive, setPriceAlertActive] = useState(false);
+    const isFav = isFavorite(id);
 
 
     if (!packageData) {
@@ -75,9 +81,15 @@ export default function PackageDetailScreen() {
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </BlurView>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton}>
+                <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={async () => {
+                        const nowFav = await toggleFavorite(id);
+                        haptics.light();
+                    }}
+                >
                     <BlurView intensity={30} tint="dark" style={styles.glassIcon}>
-                        <Ionicons name="heart-outline" size={24} color="#fff" />
+                        <Ionicons name={isFav ? "heart" : "heart-outline"} size={24} color={isFav ? "#FF5A5A" : "#fff"} />
                     </BlurView>
                 </TouchableOpacity>
             </View>
@@ -188,27 +200,48 @@ export default function PackageDetailScreen() {
 
                         {/* Secondary CTA - Price Alert */}
                         <TouchableOpacity
-                            style={styles.priceAlertButton}
+                            style={[styles.priceAlertButton, priceAlertActive && { borderColor: theme.colors.primary, backgroundColor: 'rgba(40, 201, 191, 0.06)' }]}
                             onPress={() => {
-                                // TODO: Check if user is logged in
-                                Alert.alert(
-                                    '🔔 Alerta de Preço',
-                                    'Vamos te avisar quando o preço deste pacote mudar!',
-                                    [
-                                        { text: 'Cancelar', style: 'cancel' },
-                                        {
-                                            text: 'Ativar Alerta',
-                                            onPress: () => {
-                                                // TODO: Save package and activate notification
-                                                Alert.alert('Sucesso!', 'Você receberá um alerta quando o preço mudar.');
+                                haptics.light();
+                                if (priceAlertActive) {
+                                    Alert.alert(
+                                        '🔔 Alerta de Preço',
+                                        'O alerta de preço já está ativo para este pacote.',
+                                        [
+                                            { text: 'OK' },
+                                            {
+                                                text: 'Desativar',
+                                                style: 'destructive',
+                                                onPress: () => {
+                                                    setPriceAlertActive(false);
+                                                    haptics.light();
+                                                }
                                             }
-                                        }
-                                    ]
-                                );
+                                        ]
+                                    );
+                                } else {
+                                    Alert.alert(
+                                        '🔔 Alerta de Preço',
+                                        'Vamos te avisar quando o preço deste pacote mudar!',
+                                        [
+                                            { text: 'Cancelar', style: 'cancel' },
+                                            {
+                                                text: 'Ativar Alerta',
+                                                onPress: () => {
+                                                    setPriceAlertActive(true);
+                                                    haptics.success();
+                                                    Alert.alert('✅ Alerta ativado!', 'Você receberá uma notificação quando o preço deste pacote mudar.');
+                                                }
+                                            }
+                                        ]
+                                    );
+                                }
                             }}
                             activeOpacity={0.7}
                         >
-                            <Text style={styles.priceAlertButtonText}>🔔 Receba alerta quando o preço mudar</Text>
+                            <Text style={[styles.priceAlertButtonText, priceAlertActive && { color: theme.colors.primary }]}>
+                                {priceAlertActive ? '✅ Alerta de preço ativado' : '🔔 Receba alerta quando o preço mudar'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
 

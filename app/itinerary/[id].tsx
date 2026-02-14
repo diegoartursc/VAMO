@@ -16,10 +16,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme/theme';
 import { getItineraryById } from '../../src/data/mockItineraries';
 import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../src/data/mockReviews';
-import { Alert, Linking } from 'react-native';
+import { Alert, Linking, Share } from 'react-native';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import CollapsibleSection from '../../src/components/common/CollapsibleSection';
 import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
+import { shareService } from '../../src/services/sharing';
+import { haptics } from '../../src/services/haptics';
 
 const { width, height } = Dimensions.get('window');
 
@@ -54,7 +56,20 @@ export default function ItineraryDetailScreen() {
                         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                             <Ionicons name="arrow-back" size={24} color="#fff" />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.shareButton}>
+                        <TouchableOpacity
+                            style={styles.shareButton}
+                            onPress={async () => {
+                                haptics.light();
+                                try {
+                                    await Share.share({
+                                        title: itinerary.title,
+                                        message: `🗺️ Confira este roteiro no VAMO!\n\n${itinerary.title}\n📍 ${itinerary.destination}, ${itinerary.country}\n💰 R$ ${itinerary.price.toFixed(2)}`,
+                                    });
+                                } catch (error) {
+                                    // User cancelled
+                                }
+                            }}
+                        >
                             <Ionicons name="share-outline" size={24} color="#fff" />
                         </TouchableOpacity>
                     </BlurView>
@@ -231,14 +246,23 @@ export default function ItineraryDetailScreen() {
                     {/* Contact Creator */}
                     <TouchableOpacity
                         style={styles.contactButton}
-                        onPress={() => Alert.alert(
-                            '💬 Contato',
-                            `Deseja falar com ${itinerary.creator.name}?`,
-                            [
-                                { text: 'Cancelar', style: 'cancel' },
-                                { text: 'Enviar mensagem' }
-                            ]
-                        )}
+                        onPress={() => {
+                            haptics.light();
+                            Alert.alert(
+                                '💬 Contato',
+                                `Deseja falar com ${itinerary.creator.name}?`,
+                                [
+                                    { text: 'Cancelar', style: 'cancel' },
+                                    {
+                                        text: 'Abrir WhatsApp',
+                                        onPress: () => {
+                                            const message = `Olá ${itinerary.creator.name}! Vi seu roteiro "${itinerary.title}" no VAMO e gostaria de tirar algumas dúvidas.`;
+                                            shareService.openWhatsApp('5548999999999', message);
+                                        }
+                                    }
+                                ]
+                            );
+                        }}
                     >
                         <Ionicons name="chatbubble-outline" size={20} color={theme.colors.primary} />
                         <Text style={styles.contactButtonText}>Falar com {itinerary.creator.name}</Text>

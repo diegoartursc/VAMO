@@ -158,7 +158,7 @@ export default function BookingConfirmedScreen() {
                         style={styles.bookingsButton}
                         onPress={() => {
                             haptics.light();
-                            router.push('/(tabs)/profile');
+                            router.push('/(tabs)/my-trips');
                         }}
                     >
                         <Text style={styles.bookingsButtonText}>Ver minhas reservas</Text>

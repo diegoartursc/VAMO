@@ -6,12 +6,15 @@ import { theme } from '../../src/theme/theme';
 import { mockCreators } from '../../src/data/mockCreators';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import { Alert } from 'react-native';
+import { shareService } from '../../src/services/sharing';
+import { haptics } from '../../src/services/haptics';
 
 export default function CreatorDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
 
     const creator = mockCreators.find(c => c.id === id);
+    const [isFollowing, setIsFollowing] = React.useState(false);
 
     if (!creator) {
         return (
@@ -96,25 +99,42 @@ export default function CreatorDetailScreen() {
                 <View style={styles.actionButtons}>
                     <TouchableOpacity
                         style={styles.messageButton}
-                        onPress={() => Alert.alert(
-                            '💬 Enviar Mensagem',
-                            `Deseja enviar uma mensagem para ${creator.name}?`,
-                            [
-                                { text: 'Cancelar', style: 'cancel' },
-                                { text: 'Enviar', onPress: () => Alert.alert('Em breve!', 'Função de mensagens será implementada em breve.') }
-                            ]
-                        )}
+                        onPress={() => {
+                            haptics.light();
+                            Alert.alert(
+                                '💬 Enviar Mensagem',
+                                `Deseja enviar uma mensagem para ${creator.name}?`,
+                                [
+                                    { text: 'Cancelar', style: 'cancel' },
+                                    {
+                                        text: 'Abrir WhatsApp',
+                                        onPress: () => {
+                                            const message = `Olá ${creator.name}! Vi seu perfil no VAMO e gostaria de saber mais sobre seus roteiros.`;
+                                            shareService.openWhatsApp('5548999999999', message);
+                                        }
+                                    }
+                                ]
+                            );
+                        }}
                     >
                         <Text style={styles.messageButtonText}>💬 Enviar Mensagem</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={styles.followButton}
-                        onPress={() => Alert.alert(
-                            '✅ Seguindo!',
-                            `Você agora está seguindo ${creator.name}. Receberá notificações sobre novos roteiros.`
-                        )}
+                        style={[styles.followButton, isFollowing && { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.primary }]}
+                        onPress={() => {
+                            haptics.success();
+                            setIsFollowing(!isFollowing);
+                            if (!isFollowing) {
+                                Alert.alert(
+                                    '✅ Seguindo!',
+                                    `Você agora está seguindo ${creator.name}. Receberá notificações sobre novos roteiros.`
+                                );
+                            }
+                        }}
                     >
-                        <Text style={styles.followButtonText}>Seguir</Text>
+                        <Text style={[styles.followButtonText, isFollowing && { color: theme.colors.primary }]}>
+                            {isFollowing ? '✅ Seguindo' : 'Seguir'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
 

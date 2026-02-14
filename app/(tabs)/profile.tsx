@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    Modal, Linking, Platform
+    Modal, Linking, Platform, Alert
 } from 'react-native';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
@@ -52,7 +52,11 @@ export default function ProfileScreen() {
                         title="Dados pessoais"
                         onPress={() => {
                             haptics.light();
-                            // TODO: Navigate to profile edit screen
+                            Alert.alert(
+                                '👤 Dados Pessoais',
+                                'Nome: Usuário\nEmail: usuario@email.com\n\nA edição de dados pessoais estará disponível em breve.',
+                                [{ text: 'OK' }]
+                            );
                         }}
                     />
 
