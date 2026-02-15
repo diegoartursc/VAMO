@@ -166,7 +166,7 @@ function PackageCard({
         <TouchableOpacity style={styles.card} onPress={onPress}>
             <CoverCarousel
                 images={pkg.images}
-                height={200}
+                height={180}
             />
 
             {/* Badge */}
@@ -197,73 +197,86 @@ function PackageCard({
             </TouchableOpacity>
 
             <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                    <View style={styles.agencyRow}>
-                        <View style={styles.agencyTag}>
-                            <Text style={styles.agencyIcon}>{pkg.agency.logo}</Text>
-                            <Text style={styles.agencyText}>{pkg.agency.name}</Text>
-                        </View>
-                        {pkg.agency.verified && (
-                            <View style={styles.verifiedBadge}>
-                                <Text style={styles.verifiedIcon}>🛡️</Text>
-                                <Text style={styles.verifiedText}>Agência verificada</Text>
-                            </View>
-                        )}
-                    </View>
-                    <View style={styles.ratingBadge}>
-                        <Text style={styles.ratingIcon}>⭐</Text>
-                        <Text style={styles.ratingValue}>{pkg.rating}</Text>
-                        <Text style={styles.ratingCount}>({pkg.reviewCount})</Text>
-                    </View>
+                {/* Compact Agency + Reputation Row */}
+                <View style={styles.compactInfoRow}>
+                    <Text style={styles.agencyIcon}>{pkg.agency.logo}</Text>
+                    <Text style={styles.compactText}>{pkg.agency.name}</Text>
+                    {pkg.agency.verified && (
+                        <>
+                            <Text style={styles.separator}>•</Text>
+                            <Text style={styles.verifiedIconCompact}>🛡️</Text>
+                            <Text style={styles.compactText}>Agência verificada</Text>
+                        </>
+                    )}
+                    <Text style={styles.separator}>•</Text>
+                    <Text style={styles.ratingIconCompact}>⭐</Text>
+                    <Text style={styles.compactText}>{pkg.rating}</Text>
+                    <Text style={styles.compactTextSecondary}>({pkg.reviewCount})</Text>
                 </View>
 
                 <Text style={styles.cardTitle} numberOfLines={2}>
                     {pkg.title}
                 </Text>
 
-                <Text style={styles.cardDestination}>
-                    📍 {pkg.destination}, {pkg.country}
+                <Text style={styles.cardLocation}>
+                    📍 {pkg.destination}, {pkg.country} • {pkg.duration} dias
                 </Text>
 
-                <Text style={styles.cardDuration}>📅 {pkg.duration} dias</Text>
-
-                {/* Inclusions badges - Matching detail page */}
-                <View style={styles.inclusionsBadges}>
-                    <View style={styles.inclusionBadge}>
-                        <Text style={styles.inclusionText}>⏱️ {pkg.duration} Dias</Text>
-                    </View>
-                    <View style={styles.inclusionBadge}>
-                        <Text style={styles.inclusionText}>📶 Wi-Fi</Text>
-                    </View>
-                    <View style={styles.inclusionBadge}>
-                        <Text style={styles.inclusionText}>👥 Guia</Text>
-                    </View>
+                {/* Strategic Inclusions */}
+                <View style={styles.strategicInclusions}>
+                    {pkg.inclusions?.flight && (
+                        <View style={styles.strategicChip}>
+                            <Text style={styles.chipIcon}>✈️</Text>
+                            <Text style={styles.chipLabel}>Voo ida e volta</Text>
+                        </View>
+                    )}
                     {pkg.inclusions?.hotel && (
-                        <View style={styles.inclusionBadge}>
-                            <Text style={styles.inclusionText}>
-                                🏨 Hotel {pkg.inclusions.hotel.stars}★
+                        <View style={styles.strategicChip}>
+                            <Text style={styles.chipIcon}>🏨</Text>
+                            <Text style={styles.chipLabel}>
+                                Hotel {pkg.inclusions.hotel.stars}★
                             </Text>
+                        </View>
+                    )}
+                    {pkg.inclusions?.hotel?.meals && pkg.inclusions.hotel.meals.length > 0 && (
+                        <View style={styles.strategicChip}>
+                            <Text style={styles.chipIcon}>🍽️</Text>
+                            <Text style={styles.chipLabel}>{pkg.inclusions.hotel.meals[0]}</Text>
+                        </View>
+                    )}
+                    {pkg.inclusions?.tours && pkg.inclusions.tours.length > 0 && (
+                        <View style={styles.strategicChip}>
+                            <Text style={styles.chipIcon}>🎭</Text>
+                            <Text style={styles.chipLabel}>Passeios inclusos</Text>
+                        </View>
+                    )}
+                    {pkg.inclusions?.extras && pkg.inclusions.extras.length > 0 && (
+                        <View style={styles.strategicChip}>
+                            <Text style={styles.chipIcon}>✨</Text>
+                            <Text style={styles.chipLabel}>Extras</Text>
                         </View>
                     )}
                 </View>
 
                 <View style={styles.cardFooter}>
-                    <View>
+                    <View style={styles.priceSection}>
                         <Text style={styles.priceLabel}>A partir de</Text>
                         <Text style={styles.priceValue}>
                             R$ {pkg.price.min.toLocaleString('pt-BR')}
                         </Text>
-                        <Text style={styles.reviewCount}>
+                        <Text style={styles.priceLabel}>por pessoa</Text>
+                        <Text style={styles.reviewCountFooter}>
                             ({pkg.reviewCount} avaliações)
                         </Text>
                         {pkg.recentPurchases && (
-                            <Text style={styles.socialProof}>
+                            <Text style={styles.urgencyText}>
                                 Reservado por {pkg.recentPurchases} pessoas este mês
                             </Text>
                         )}
                     </View>
-                    <TouchableOpacity style={styles.viewButton} onPress={onPress}>
-                        <Text style={styles.viewButtonText}>Ver detalhes</Text>
+                    <TouchableOpacity style={styles.ctaButton} onPress={onPress}>
+                        <Text style={styles.ctaButtonText}>Ver pacote completo</Text>
+                        <Text style={styles.ctaArrow}>→</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -401,7 +414,36 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     cardContent: {
-        padding: 12, // Reduced from 16px for more compact cards
+        padding: 10, // Reduced from 12px for more compact cards (-17%)
+    },
+    // Compact Info Row Styles
+    compactInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 8,
+    },
+    separator: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginHorizontal: 2,
+    },
+    compactText: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+    },
+    compactTextSecondary: {
+        fontSize: 13,
+        fontWeight: '400',
+        color: theme.colors.text.secondary,
+    },
+    verifiedIconCompact: {
+        fontSize: 12,
+    },
+    ratingIconCompact: {
+        fontSize: 13,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -451,48 +493,65 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
     cardTitle: {
-        fontSize: 16, // Reduced from 18px for more compact layout
-        fontWeight: '600',
+        fontSize: 17,
+        fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 6,
-        lineHeight: 20,
+        lineHeight: 22,
     },
-    cardDestination: {
+    cardLocation: {
         fontSize: 14,
         color: theme.colors.text.secondary,
-        marginBottom: 4,
-    },
-    cardDuration: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginBottom: theme.spacing.md,
+        marginBottom: 8,
     },
     cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
+        marginTop: 4,
+    },
+    priceSection: {
+        flex: 1,
     },
     priceLabel: {
-        fontSize: 12,
+        fontSize: 11,
         color: theme.colors.text.secondary,
         marginBottom: 2,
     },
     priceValue: {
-        fontSize: 22,
+        fontSize: 26,
         fontWeight: '700',
         color: theme.colors.primary,
         marginBottom: 2,
     },
-    viewButton: {
+    reviewCountFooter: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
+    },
+    urgencyText: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginTop: 4,
+        opacity: 0.8,
+    },
+    ctaButton: {
         backgroundColor: theme.colors.primary,
         paddingHorizontal: 20,
         paddingVertical: 12,
-        borderRadius: theme.borderRadius.full,
+        borderRadius: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         ...theme.shadows.button,
     },
-    viewButtonText: {
-        fontSize: 14,
+    ctaButtonText: {
+        fontSize: 15,
         fontWeight: '600',
+        color: theme.colors.text.inverse,
+    },
+    ctaArrow: {
+        fontSize: 16,
         color: theme.colors.text.inverse,
     },
     emptyState: {
@@ -515,21 +574,29 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.text.secondary,
     },
-    inclusionsBadges: {
+    // Strategic Inclusions Styles
+    strategicInclusions: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 6,
-        marginBottom: theme.spacing.md,
+        marginBottom: 8,
     },
-    inclusionBadge: {
+    strategicChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: theme.colors.surfaceLight,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         borderRadius: theme.borderRadius.sm,
+        gap: 4,
     },
-    inclusionText: {
-        fontSize: 11,
-        color: theme.colors.text.secondary,
+    chipIcon: {
+        fontSize: 16,
+    },
+    chipLabel: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
     },
     reviewCount: {
         fontSize: 12,

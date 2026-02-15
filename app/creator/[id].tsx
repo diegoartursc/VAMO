@@ -101,23 +101,10 @@ export default function CreatorDetailScreen() {
                         style={styles.messageButton}
                         onPress={() => {
                             haptics.light();
-                            Alert.alert(
-                                '💬 Enviar Mensagem',
-                                `Deseja enviar uma mensagem para ${creator.name}?`,
-                                [
-                                    { text: 'Cancelar', style: 'cancel' },
-                                    {
-                                        text: 'Abrir WhatsApp',
-                                        onPress: () => {
-                                            const message = `Olá ${creator.name}! Vi seu perfil no VAMO e gostaria de saber mais sobre seus roteiros.`;
-                                            shareService.openWhatsApp('5548999999999', message);
-                                        }
-                                    }
-                                ]
-                            );
+                            router.push('/(tabs)/itineraries');
                         }}
                     >
-                        <Text style={styles.messageButtonText}>💬 Enviar Mensagem</Text>
+                        <Text style={styles.messageButtonText}>🗺️ Conferir Roteiros</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.followButton, isFollowing && { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.primary }]}

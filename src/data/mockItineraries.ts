@@ -22,7 +22,19 @@ export interface Itinerary {
     inclusions: string[];
     duration: number;
     featured: boolean;
+    highlights?: string[];
+    estimatedSpending?: {
+        min: number;
+        max: number;
+        currency: string;
+        breakdown?: {
+            category: string;
+            amount: string;
+            description: string;
+        }[];
+    };
 }
+
 
 export const mockItineraries: Itinerary[] = [
     {
@@ -48,10 +60,47 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.9,
         reviewCount: 456,
-        inclusions: ['Planilha', 'Mapa', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa'],
         duration: 10,
         featured: true,
+        highlights: [
+            'Visita à Torre Eiffel com subida ao topo',
+            'Passeio pelo Museu do Louvre e Mona Lisa',
+            'Cruzeiro noturno pelo Rio Sena',
+            'Exploração de Montmartre e Sacré-Cœur',
+            'Dia em Versailles e seus jardins',
+            'Degustação de vinhos e queijos franceses',
+            'Passeio pela Champs-Élysées e Arco do Triunfo',
+        ],
+        estimatedSpending: {
+            min: 5500,
+            max: 7000,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 2.000 - 2.800',
+                    description: 'Hostels e hotéis econômicos'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 1.500 - 2.000',
+                    description: 'Mercados locais e bistrôs'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 800 - 1.000',
+                    description: 'Passe de metrô e caminhadas'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 1.200 - 1.200',
+                    description: 'Museus e pontos turísticos'
+                }
+            ]
+        },
     },
+
     {
         id: '2',
         title: 'Tóquio Autêntica - 15 dias de Cultura',
@@ -75,9 +124,45 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.8,
         reviewCount: 312,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Frases', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa', 'Guia de Frases'],
         duration: 15,
         featured: true,
+        highlights: [
+            'Exploração dos templos de Asakusa e Meiji',
+            'Travessia do cruzamento de Shibuya',
+            'Dia completo em Akihabara e cultura otaku',
+            'Visita ao Monte Fuji e região dos 5 Lagos',
+            'Experiência em onsen tradicional',
+            'Passeio pelo mercado de Tsukiji',
+            'Excursão a Kyoto e seus templos dourados',
+        ],
+        estimatedSpending: {
+            min: 12000,
+            max: 18000,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 4.500 - 7.000',
+                    description: 'Hostels, capsule hotels e ryokans'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 3.000 - 4.500',
+                    description: 'Ramen, izakayas e konbinis'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 2.500 - 3.500',
+                    description: 'JR Pass e metrô local'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 2.000 - 3.000',
+                    description: 'Templos, museus e experiências'
+                }
+            ]
+        },
     },
     {
         id: '3',
@@ -102,9 +187,45 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.7,
         reviewCount: 234,
-        inclusions: ['Planilha', 'Mapa', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa'],
         duration: 7,
         featured: true,
+        highlights: [
+            'Caminhada pela Brooklyn Bridge ao pôr do sol',
+            'Visita ao topo do Empire State Building',
+            'Passeio pelo Central Park e seus pontos icônicos',
+            'Explorar o Metropolitan Museum of Art',
+            'Caminhar por Times Square à noite',
+            'Ferry gratuito para Staten Island com vista da Estátua da Liberdade',
+            'Comida de rua no Chelsea Market',
+        ],
+        estimatedSpending: {
+            min: 8000,
+            max: 14000,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 3.500 - 6.000',
+                    description: 'Hostels em Manhattan e Brooklyn'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 2.000 - 3.500',
+                    description: 'Food trucks, delis e pizza'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 800 - 1.500',
+                    description: 'MetroCard semanal e caminhadas'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 1.700 - 3.000',
+                    description: 'Museus, observatórios e shows'
+                }
+            ]
+        },
     },
     {
         id: '4',
@@ -129,9 +250,45 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.8,
         reviewCount: 189,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Museus', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa', 'Guia de Museus'],
         duration: 5,
         featured: false,
+        highlights: [
+            'Visita à Torre de Londres e Joias da Coroa',
+            'Troca da Guarda no Buckingham Palace',
+            'British Museum e Natural History Museum (gratuitos)',
+            'Passeio pelo South Bank e London Eye',
+            'Explorar Camden Market e Notting Hill',
+            'Pub crawl tradicional em Soho',
+            'Vista panorâmica do The Shard',
+        ],
+        estimatedSpending: {
+            min: 6000,
+            max: 10000,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 2.500 - 4.500',
+                    description: 'Hostels e B&Bs em zonas 1-2'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 1.500 - 2.500',
+                    description: 'Pubs, mercados e fish & chips'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 800 - 1.200',
+                    description: 'Oyster Card e ônibus'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 1.200 - 1.800',
+                    description: 'Atrações pagas e shows no West End'
+                }
+            ]
+        },
     },
     {
         id: '5',
@@ -156,9 +313,45 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.9,
         reviewCount: 421,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes'],
         duration: 12,
         featured: true,
+        highlights: [
+            'Visita à Sagrada Família e Park Güell',
+            'Passeio pelas Ramblas e Mercado de la Boqueria',
+            'Dia de praia na Barceloneta',
+            'Excursão a Montserrat',
+            'Tour de tapas pelo Barri Gòtic',
+            'Pôr do sol no Bunkers del Carmel',
+            'Experiência de flamenco no El Tablao',
+        ],
+        estimatedSpending: {
+            min: 9000,
+            max: 14000,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 3.500 - 5.500',
+                    description: 'Hostels e apartamentos no centro'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 2.500 - 4.000',
+                    description: 'Tapas, mercados e restaurantes locais'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 1.000 - 1.500',
+                    description: 'T-Casual e trens locais'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 2.000 - 3.000',
+                    description: 'Monumentos de Gaudí e excursões'
+                }
+            ]
+        },
     },
     {
         id: '6',
@@ -183,9 +376,45 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.8,
         reviewCount: 278,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes'],
         duration: 8,
         featured: true,
+        highlights: [
+            'Tour pelo Coliseu e Fórum Romano',
+            'Visita à Basílica de São Pedro e Capela Sistina',
+            'Fontana di Trevi e Piazza Navona',
+            'Aula de fazer pasta com chef local',
+            'Bate-volta a Pompeia',
+            'Degustação de gelato artesanal em Trastevere',
+            'Passear pelo Panteão ao entardecer',
+        ],
+        estimatedSpending: {
+            min: 7000,
+            max: 11000,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 2.800 - 4.500',
+                    description: 'B&Bs e hotéis próximos ao centro'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 2.000 - 3.000',
+                    description: 'Trattorias, pizza al taglio e mercados'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 600 - 1.000',
+                    description: 'Roma Pass e caminhadas'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 1.600 - 2.500',
+                    description: 'Museus do Vaticano, Coliseu e Pompeia'
+                }
+            ]
+        },
     },
     {
         id: '7',
@@ -210,9 +439,45 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.7,
         reviewCount: 167,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Trilha', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa', 'Guia de Trilha'],
         duration: 9,
         featured: true,
+        highlights: [
+            'Trilha Inca de 4 dias com acampamento',
+            'Nascer do sol em Machu Picchu',
+            'Exploração do Vale Sagrado e Ollantaytambo',
+            'Mercado de San Pedro em Cusco',
+            'Salineras de Maras e Moray',
+            'Degustação de ceviche e pisco sour',
+            'Aclimatação com caminhadas em Cusco',
+        ],
+        estimatedSpending: {
+            min: 5000,
+            max: 8500,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 1.800 - 3.000',
+                    description: 'Hostels em Cusco e lodges no vale'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 1.200 - 2.000',
+                    description: 'Restaurantes locais e mercados'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 800 - 1.500',
+                    description: 'Trem para Aguas Calientes e vans'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 1.200 - 2.000',
+                    description: 'Trilha Inca, boleto turístico e guias'
+                }
+            ]
+        },
     },
     {
         id: '8',
@@ -237,9 +502,45 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.9,
         reviewCount: 389,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Templos', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa', 'Guia de Templos'],
         duration: 14,
         featured: true,
+        highlights: [
+            'Terraços de arroz de Tegallalang',
+            'Nascer do sol no Monte Batur',
+            'Templo de Uluwatu com dança Kecak',
+            'Retiro de yoga em Ubud',
+            'Snorkeling nas Nusa Islands',
+            'Cerimônia de purificação em Tirta Empul',
+            'Pôr do sol no Tanah Lot',
+        ],
+        estimatedSpending: {
+            min: 6000,
+            max: 9500,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 2.000 - 3.500',
+                    description: 'Guesthouses e villas com piscina'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 1.500 - 2.500',
+                    description: 'Warungs locais e cafés em Ubud'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 1.000 - 1.500',
+                    description: 'Moto alugada e transfers'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 1.500 - 2.000',
+                    description: 'Templos, retiros e excursões'
+                }
+            ]
+        },
     },
     {
         id: '9',
@@ -264,9 +565,45 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.6,
         reviewCount: 145,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes', 'Suporte'],
+        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes'],
         duration: 6,
         featured: false,
+        highlights: [
+            'Tour pelo bairro de La Boca e Caminito',
+            'Show de tango em San Telmo',
+            'Parrilla autêntica em Puerto Madero',
+            'Cemitério da Recoleta e túmulo de Evita',
+            'Livraria Ateneo Grand Splendid',
+            'Passeio pelo Jardín Japonés',
+            'Feira de antiguidades de San Telmo no domingo',
+        ],
+        estimatedSpending: {
+            min: 3500,
+            max: 6000,
+            currency: 'BRL',
+            breakdown: [
+                {
+                    category: '🏨 Hospedagem',
+                    amount: 'R$ 1.200 - 2.200',
+                    description: 'Hostels em Palermo e San Telmo'
+                },
+                {
+                    category: '🍽️ Alimentação',
+                    amount: 'R$ 1.000 - 1.800',
+                    description: 'Parrillas, empanadas e cafés'
+                },
+                {
+                    category: '🚇 Transporte',
+                    amount: 'R$ 400 - 700',
+                    description: 'SUBE card e subte'
+                },
+                {
+                    category: '🎭 Atrações',
+                    amount: 'R$ 900 - 1.300',
+                    description: 'Shows de tango e passeios'
+                }
+            ]
+        },
     },
 ];
 

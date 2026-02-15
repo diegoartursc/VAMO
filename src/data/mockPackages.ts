@@ -138,6 +138,12 @@ export const mockPackages: Package[] = [
             'Quer ver os clássicos sem se preocupar com logística',
             'Prefere tudo organizado com conforto',
         ],
+        availableDates: [
+            { date: '2026-03-15', price: 8500 },
+            { date: '2026-04-10', price: 7900 },
+            { date: '2026-05-20', price: 9200 },
+            { date: '2026-06-05', price: 10500 },
+        ],
     },
     {
         id: '2',
@@ -185,6 +191,30 @@ export const mockPackages: Package[] = [
         recentPurchases: 67,
         priceComparison: 'below',
         priceDiscount: 20,
+        itinerary: {
+            mainStop: 'Resort All Inclusive',
+            pickupLocations: [
+                'Aeroporto de Cancún', 'Zona Hotelera', 'Playa del Carmen',
+                'Puerto Morelos', 'Isla Mujeres', 'Tulum',
+            ],
+            transport: {
+                type: 'Transfer exclusivo',
+                duration: '30 minutos',
+            },
+            mainActivity: {
+                location: 'Recifes de Coral',
+                activity: 'Snorkeling nos recifes caribenhos',
+                duration: '3h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                },
+            },
+            returnLocations: [
+                'Aeroporto de Cancún', 'Zona Hotelera', 'Playa del Carmen',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=800',
+        },
         fullDescription: 'Desfrute do paraíso caribenho em um resort all-inclusive de categoria superior. Aproveite praias de águas cristalinas, piscinas infinitas, gastronomia internacional e atividades aquáticas ilimitadas. Este pacote oferece a combinação perfeita entre relaxamento total e diversão para toda a família, com estrutura completa de entretenimento diurno e noturno.',
         includedItems: [
             'Voo direto São Paulo - Cancún (ida e volta)',
@@ -217,6 +247,13 @@ export const mockPackages: Package[] = [
             'Quer relaxar sem pensar em nada',
             'Busca experiência all-inclusive com conforto total',
             'Viaja em casal ou com amigos para curtir praias paradisíacas',
+        ],
+        availableDates: [
+            { date: '2026-03-20', price: 6500 },
+            { date: '2026-04-15', price: 6900 },
+            { date: '2026-05-10', price: 7200 },
+            { date: '2026-07-01', price: 8500 },
+            { date: '2026-08-15', price: 9500 },
         ],
     },
     {
@@ -265,6 +302,31 @@ export const mockPackages: Package[] = [
         recentPurchases: 31,
         priceComparison: 'below',
         priceDiscount: 10,
+        itinerary: {
+            mainStop: 'Coliseu de Roma',
+            pickupLocations: [
+                'Paris', 'Roma', 'Barcelona', 'Amsterdam',
+                'Londres', 'Bruxelas', 'Milão', 'Florença',
+            ],
+            transport: {
+                type: 'Trem panorâmico (TGV/Eurostar)',
+                duration: '2-4 horas entre cidades',
+            },
+            mainActivity: {
+                location: 'Coliseu e Fórum Romano',
+                activity: 'Visita guiada ao Coliseu com acesso à arena',
+                duration: '3h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                    customMessage: 'Tempo livre em cada cidade para explorar no seu ritmo',
+                },
+            },
+            returnLocations: [
+                'Paris', 'Roma', 'Barcelona', 'Amsterdam', 'Londres',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800',
+        },
         fullDescription: 'Uma jornada épica pelas capitais mais icônicas da Europa. Em 15 dias, você vai cruzar fronteiras, experimentar sabores únicos, admirar obras de arte que mudaram o mundo e caminhar por ruas que contam séculos de história. De Paris romântica à Roma imperial, da vibrante Barcelona à cosmopolita Amsterdam e a histórica Londres — cada dia traz uma nova descoberta. Viaje em grupo pequeno com guia brasileiro, deslocamentos de trem panorâmico e tempo livre para explorar cada cidade no seu ritmo.',
         includedItems: [
             'Passagens aéreas internacionais (ida e volta)',
@@ -297,6 +359,11 @@ export const mockPackages: Package[] = [
             'Quer conhecer a Europa em uma única viagem',
             'Prefere viajar em grupo com guia brasileiro',
             'Busca uma experiência cultural completa e diversificada',
+        ],
+        availableDates: [
+            { date: '2026-04-01', price: 15000 },
+            { date: '2026-06-15', price: 17500 },
+            { date: '2026-09-10', price: 16200 },
         ],
     },
     {
@@ -344,6 +411,31 @@ export const mockPackages: Package[] = [
         recentPurchases: 42,
         priceComparison: 'average',
         priceDiscount: 0,
+        itinerary: {
+            mainStop: 'Baía do Sancho',
+            pickupLocations: [
+                'Aeroporto de Noronha', 'Vila dos Remédios', 'Praia do Leão',
+                'Praia da Conceição', 'Baía dos Porcos', 'Porto de Santo Antônio',
+            ],
+            transport: {
+                type: 'Buggy e barco',
+                duration: '15 minutos',
+            },
+            mainActivity: {
+                location: 'Baía do Sancho',
+                activity: 'Mergulho com snorkel e tartarugas marinhas',
+                duration: '3h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                    customMessage: 'Contato direto com golfinhos rotadores e tartarugas',
+                },
+            },
+            returnLocations: [
+                'Vila dos Remédios', 'Porto de Santo Antônio',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800',
+        },
         fullDescription: 'Fernando de Noronha é um dos poucos lugares no mundo onde a natureza permanece quase intocada. Neste pacote completo de 5 dias, você vai nadar ao lado de golfinhos rotadores, mergulhar com tartarugas marinhas em águas de visibilidade impressionante e caminhar por trilhas que revelam praias eleitas entre as mais bonitas do planeta. A Baía do Sancho, a Praia do Leão e a vista do Morro Dois Irmãos são apenas o começo de uma experiência que marca a vida.',
         includedItems: [
             'Voo Recife - Fernando de Noronha (ida e volta)',
@@ -374,6 +466,12 @@ export const mockPackages: Package[] = [
             'Ama natureza e quer desconectar do mundo',
             'Busca praias paradisíacas sem sair do Brasil',
             'Quer mergulhar com vida marinha exuberante',
+        ],
+        availableDates: [
+            { date: '2026-03-22', price: 4500 },
+            { date: '2026-04-18', price: 4800 },
+            { date: '2026-05-25', price: 5200, spotsLeft: 3 },
+            { date: '2026-06-12', price: 5500 },
         ],
     },
     {
@@ -421,6 +519,31 @@ export const mockPackages: Package[] = [
         recentPurchases: 38,
         priceComparison: 'below',
         priceDiscount: 12,
+        itinerary: {
+            mainStop: 'Empire State Building',
+            pickupLocations: [
+                'Times Square', 'Central Park', 'Brooklyn Bridge', 'SoHo',
+                'Wall Street', 'Upper East Side', 'Chelsea', 'Greenwich Village',
+            ],
+            transport: {
+                type: 'Metrô e caminhada',
+                duration: '15-30 minutos',
+            },
+            mainActivity: {
+                location: 'Empire State Building',
+                activity: 'Visita ao observatório com vista 360° de Manhattan',
+                duration: '2h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                    customMessage: 'City Pass incluso para acesso sem filas nas atrações',
+                },
+            },
+            returnLocations: [
+                'Times Square', 'Central Park', 'Brooklyn Bridge', 'Hotel em Manhattan',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800',
+        },
         fullDescription: 'Nova York é a cidade que pulsa 24 horas por dia. Em 6 dias, você vai subir ao topo do Empire State Building, cruzar a Brooklyn Bridge ao pôr do sol, caminhar pelo Central Park, se emocionar na Estátua da Liberdade e sentir a energia contagiante da Times Square à noite. Com hotel em Manhattan, City Pass para as principais atrações e transfer incluso, você só precisa se preocupar em aproveitar cada segundo nessa metrópole que nunca dorme.',
         includedItems: [
             'Passagens aéreas internacionais (ida e volta)',
@@ -452,6 +575,12 @@ export const mockPackages: Package[] = [
             'Sonha em conhecer os ícones da cultura americana',
             'Adora a energia de grandes cidades e compras',
             'Quer viver a experiência nova-iorquina completa',
+        ],
+        availableDates: [
+            { date: '2026-04-05', price: 7500 },
+            { date: '2026-05-15', price: 8200 },
+            { date: '2026-06-20', price: 9800 },
+            { date: '2026-07-10', price: 11000 },
         ],
     },
     {
@@ -500,6 +629,31 @@ export const mockPackages: Package[] = [
         recentPurchases: 28,
         priceComparison: 'below',
         priceDiscount: 8,
+        itinerary: {
+            mainStop: 'Machu Picchu',
+            pickupLocations: [
+                'Cusco Centro', 'Plaza de Armas', 'San Blas', 'Estação de trem Poroy',
+                'Ollantaytambo', 'Aguas Calientes', 'Valle Sagrado',
+            ],
+            transport: {
+                type: 'Trem panorâmico PeruRail',
+                duration: '3h30 até Aguas Calientes',
+            },
+            mainActivity: {
+                location: 'Cidadela de Machu Picchu',
+                activity: 'Visita guiada com guia especializado em história inca',
+                duration: '4h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                    customMessage: 'Kit de aclimatação e chá de coca incluídos',
+                },
+            },
+            returnLocations: [
+                'Aguas Calientes', 'Ollantaytambo', 'Cusco Centro',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800',
+        },
         fullDescription: 'Uma viagem que conecta você com uma das civilizações mais fascinantes da história. Em 6 dias, você percorre as ruas milenares de Cusco, explora o Vale Sagrado dos Incas entre montanhas imponentes e chega à cidadela de Machu Picchu — uma das Sete Maravilhas do Mundo Moderno. O roteiro inclui dia de aclimatação à altitude (3.400m), passagem de trem panorâmico até Aguas Calientes e guia especializado que revela os segredos e mistérios da cultura inca.',
         includedItems: [
             'Voo São Paulo - Lima - Cusco (ida e volta)',
@@ -531,6 +685,12 @@ export const mockPackages: Package[] = [
             'Fascina-se por história e civilizações antigas',
             'Quer uma aventura nas montanhas andinas do Peru',
             'Busca uma experiência espiritual e cultural transformadora',
+        ],
+        availableDates: [
+            { date: '2026-03-28', price: 5500 },
+            { date: '2026-05-02', price: 5900 },
+            { date: '2026-06-18', price: 6500 },
+            { date: '2026-08-22', price: 7200, spotsLeft: 5 },
         ],
     },
     {
@@ -579,6 +739,31 @@ export const mockPackages: Package[] = [
         recentPurchases: 19,
         priceComparison: 'below',
         priceDiscount: 10,
+        itinerary: {
+            mainStop: 'Burj Khalifa',
+            pickupLocations: [
+                'Dubai Marina', 'Palm Jumeirah', 'Downtown Dubai', 'Dubai Mall',
+                'JBR Beach', 'Old Dubai', 'Dubai Creek', 'Deira',
+            ],
+            transport: {
+                type: 'Transfer VIP em veículo de luxo',
+                duration: '20 minutos',
+            },
+            mainActivity: {
+                location: 'Burj Khalifa At The Top',
+                activity: 'Visita ao observatório do prédio mais alto do mundo',
+                duration: '2h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                    customMessage: 'Safari 4x4 no deserto com jantar beduíno sob as estrelas',
+                },
+            },
+            returnLocations: [
+                'Downtown Dubai', 'Dubai Marina', 'Palm Jumeirah', 'Hotel',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800',
+        },
         fullDescription: 'Dubai é onde o futuro encontra a tradição milenar. Em 7 dias, você vai subir ao observatório do Burj Khalifa — o prédio mais alto do mundo —, explorar o maior shopping do planeta, sentir a adrenalina de um safari pelo deserto com jantar sob as estrelas em acampamento beduíno, e passear de abra tradicional pelo Dubai Creek. Este pacote combina luxo cinco estrelas com imersão cultural autêntica, oferecendo o melhor dos dois mundos no coração do Oriente Médio.',
         includedItems: [
             'Passagens aéreas internacionais (ida e volta)',
@@ -611,6 +796,13 @@ export const mockPackages: Package[] = [
             'Busca uma experiência de luxo no Oriente Médio',
             'Quer combinar modernidade futurista com cultura árabe tradicional',
             'Viaja para impressionar e viver momentos exclusivos',
+        ],
+        availableDates: [
+            { date: '2026-03-10', price: 9500 },
+            { date: '2026-04-25', price: 10200 },
+            { date: '2026-10-15', price: 11500 },
+            { date: '2026-11-20', price: 13000 },
+            { date: '2026-12-18', price: 15000 },
         ],
     },
     {
@@ -658,6 +850,31 @@ export const mockPackages: Package[] = [
         recentPurchases: 15,
         priceComparison: 'average',
         priceDiscount: 0,
+        itinerary: {
+            mainStop: 'Glaciar Perito Moreno',
+            pickupLocations: [
+                'El Calafate Centro', 'Aeroporto El Calafate', 'El Chaltén',
+                'Lago Argentino', 'Puerto Natales', 'Estância Cristina',
+            ],
+            transport: {
+                type: 'Van 4x4 e navegação',
+                duration: '1h30 até o glaciar',
+            },
+            mainActivity: {
+                location: 'Glaciar Perito Moreno',
+                activity: 'Caminhada nas passarelas e navegação pelo Braço Rico',
+                duration: '5h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                    customMessage: 'Trekking ao Fitz Roy com guia especializado',
+                },
+            },
+            returnLocations: [
+                'El Calafate Centro', 'El Chaltén', 'Aeroporto El Calafate',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1531065208531-4036c0dba3ca?w=800',
+        },
         fullDescription: 'A Patagônia Argentina é um dos últimos refúgios selvagens do planeta. Em 8 dias, você contempla o majestoso Glaciar Perito Moreno de perto — ouvindo o gelo estalar e desprender-se —, faz trekking até a Laguna de los Tres com vista para o Monte Fitz Roy, navega entre icebergs milenares e avista condores, guanacos e raposas patagônicas em seu habitat natural. Uma aventura para quem quer sentir a imensidão da natureza e se reconectar com o essencial.',
         includedItems: [
             'Voos internacionais São Paulo - Buenos Aires (ida e volta)',
@@ -688,6 +905,12 @@ export const mockPackages: Package[] = [
             'É apaixonado por natureza selvagem e paisagens grandiosas',
             'Gosta de trekking e aventuras ao ar livre',
             'Quer viver uma experiência na Patagônia argentina',
+        ],
+        availableDates: [
+            { date: '2026-10-10', price: 8000 },
+            { date: '2026-11-05', price: 8900 },
+            { date: '2026-12-01', price: 10200, spotsLeft: 4 },
+            { date: '2027-01-15', price: 12500 },
         ],
     },
     {
@@ -735,6 +958,31 @@ export const mockPackages: Package[] = [
         recentPurchases: 52,
         priceComparison: 'below',
         priceDiscount: 25,
+        itinerary: {
+            mainStop: 'Torre Eiffel',
+            pickupLocations: [
+                'Louvre', 'Champs-Élysées', 'Montmartre', 'Notre-Dame',
+                'Arco do Triunfo', 'Sacré-Cœur', 'Quartier Latin',
+            ],
+            transport: {
+                type: 'Metrô e caminhada',
+                duration: '15-20 minutos',
+            },
+            mainActivity: {
+                location: 'Torre Eiffel',
+                activity: 'City tour guiado em português pelos pontos essenciais',
+                duration: '4h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                    customMessage: 'Roteiro otimizado para aproveitar ao máximo em 4 dias',
+                },
+            },
+            returnLocations: [
+                'Louvre', 'Champs-Élysées', 'Hotel no centro',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1502809737437-1d85c70dd2ca?w=800',
+        },
         fullDescription: 'Paris em 4 dias: um roteiro compacto e eficiente para quem quer conhecer o essencial da Cidade Luz sem gastar muito. Você visita a Torre Eiffel, passeia pela Champs-Élysées, admira as obras-primas do Louvre e saboreia croissants autênticos em cafés tradicionais. Tudo com hotel bem localizado e preço acessível — ideal para quem tem poucos dias de folga mas não quer abrir mão de viver Paris.',
         includedItems: [
             'Passagens aéreas internacionais (ida e volta)',
@@ -763,6 +1011,13 @@ export const mockPackages: Package[] = [
             'Tem poucos dias e quer aproveitar ao máximo',
             'Busca o melhor custo-benefício para conhecer Paris',
             'Vai pela primeira vez e quer ver os pontos essenciais',
+        ],
+        availableDates: [
+            { date: '2026-03-08', price: 5500 },
+            { date: '2026-03-22', price: 5900 },
+            { date: '2026-04-12', price: 6200 },
+            { date: '2026-05-03', price: 6800 },
+            { date: '2026-06-14', price: 7500 },
         ],
     },
     {
@@ -811,6 +1066,31 @@ export const mockPackages: Package[] = [
         recentPurchases: 8,
         priceComparison: 'above',
         priceDiscount: 0,
+        itinerary: {
+            mainStop: 'Palácio de Versailles',
+            pickupLocations: [
+                'Hotel 5 estrelas', 'Champs-Élysées', 'Place Vendôme',
+                'Saint-Germain', 'Le Marais', 'Ópera Garnier',
+            ],
+            transport: {
+                type: 'Transfer VIP em veículo de luxo',
+                duration: '45 minutos até Versailles',
+            },
+            mainActivity: {
+                location: 'Palácio de Versailles',
+                activity: 'Visita privativa antes da abertura ao público com guia exclusivo',
+                duration: '4h',
+                comfortIndicators: {
+                    freeTimeForPhotos: true,
+                    strategicRestStops: true,
+                    customMessage: 'Jantar no Le Jules Verne na Torre Eiffel',
+                },
+            },
+            returnLocations: [
+                'Hotel 5 estrelas', 'Champs-Élysées', 'Place Vendôme',
+            ],
+            mapImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+        },
         fullDescription: 'A versão mais exclusiva de Paris. Em 10 dias, voando em classe executiva, hospedado em hotel 5 estrelas com vista para a Torre Eiffel, você vive experiências que poucos conhecem: jantar no restaurante Le Jules Verne dentro da Torre Eiffel, visita privativa ao Palácio de Versailles antes da abertura ao público, degustação de champagne nas caves de Reims, e um dia inteiro de compras nas boutiques parisienses com personal stylist. Uma viagem para quem não aceita nada menos que o extraordinário.',
         includedItems: [
             'Passagens aéreas em classe executiva (ida e volta)',
@@ -843,6 +1123,11 @@ export const mockPackages: Package[] = [
             'Busca uma experiência de luxo absoluto em Paris',
             'Quer celebrar uma ocasião especial com exclusividade',
             'Valoriza tours privativos e atendimento personalizado',
+        ],
+        availableDates: [
+            { date: '2026-04-20', price: 12000 },
+            { date: '2026-06-01', price: 14500 },
+            { date: '2026-09-15', price: 15800, spotsLeft: 2 },
         ],
     },
 ];

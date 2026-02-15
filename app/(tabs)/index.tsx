@@ -10,6 +10,7 @@ import {
     NativeScrollEvent,
     NativeSyntheticEvent,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Added
 import { Package } from '../../src/types';
 import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { theme } from '../../src/theme/theme';
@@ -18,6 +19,7 @@ import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { getPackagesByRelevance, mockPackages } from '../../src/data/mockPackages';
 import { getFeaturedItineraries } from '../../src/data/mockItineraries';
+import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions'; // Added
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { useRouter } from 'expo-router';
@@ -150,35 +152,30 @@ export default function HomeScreen() {
                             onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                             activeOpacity={0.85}
                         >
-                            <CoverCarousel images={itinerary.images} height={200} />
+                            <CoverCarousel images={itinerary.images} height={180} />
 
                             <View style={styles.roteirosContent}>
-                                {/* Creator Info */}
+                                {/* Creator Info - Compact Row */}
                                 <View style={styles.roteirosAuthorRow}>
                                     <Text style={styles.roteirosAuthorAvatar}>{itinerary.creator.avatar}</Text>
-                                    <View style={styles.roteirosAuthorInfo}>
-                                        <View style={styles.roteirosAuthorNameRow}>
-                                            <Text style={styles.roteirosAuthorName}>{itinerary.creator.name}</Text>
-                                            <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
-                                        </View>
-                                        <Text style={styles.roteirosAuthorStats}>
-                                            ⭐ {itinerary.creator.rating} • {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
-                                        </Text>
-                                    </View>
+                                    <Text style={styles.roteirosAuthorName}>{itinerary.creator.name}</Text>
+                                    <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
+                                    <Text style={styles.roteirosAuthorStats}>
+                                        ⭐ {itinerary.creator.rating} • {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
+                                    </Text>
                                 </View>
 
                                 <Text style={styles.roteirosTitle}>{itinerary.title}</Text>
-                                <Text style={styles.roteirosDescription} numberOfLines={2}>
+                                <Text style={styles.roteirosDescription} numberOfLines={1}>
                                     {itinerary.description}
                                 </Text>
 
-                                {/* Inclusions */}
-                                <View style={styles.roteirosInclusions}>
-                                    {itinerary.inclusions.map((inclusion, idx) => (
-                                        <View key={idx} style={styles.roteirosInclusion}>
-                                            <Text style={styles.roteirosInclusionText}>
-                                                {inclusion === 'Planilha' ? '📋' : inclusion === 'Mapa' ? '🗺️' : inclusion === 'Suporte' ? '💬' : '📱'} {inclusion}
-                                            </Text>
+                                {/* Category Chips */}
+                                <View style={styles.roteirosChipsContainer}>
+                                    {ITINERARY_INCLUSIONS.slice(0, 7).map((item) => (
+                                        <View key={item.id} style={styles.roteirosChip}>
+                                            <Ionicons name={item.icon as any} size={16} color={item.iconColor} />
+                                            <Text style={styles.roteirosChipText}>{item.title}</Text>
                                         </View>
                                     ))}
                                 </View>
@@ -186,14 +183,18 @@ export default function HomeScreen() {
                                 {/* Footer */}
                                 <View style={styles.roteirosFooter}>
                                     <View>
-                                        <Text style={styles.roteirosPriceLabel}>Roteiro completo</Text>
                                         <Text style={styles.roteirosPrice}>
                                             R$ {itinerary.price.toFixed(2).replace('.', ',')}
                                         </Text>
+                                        <Text style={styles.roteirosPriceLabel}>Roteiro completo</Text>
                                     </View>
-                                    <View style={styles.roteirosCTA}>
-                                        <Text style={styles.roteirosCTAText}>Saiba mais</Text>
-                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.roteirosCTA}
+                                        onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                                    >
+                                        <Text style={styles.roteirosCTAText}>Quero esse roteiro</Text>
+                                        <Text style={styles.roteirosCTAArrow}>→</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
                         </TouchableOpacity>
@@ -249,25 +250,22 @@ export default function HomeScreen() {
                         Momentos únicos que você vai guardar para sempre
                     </Text>
 
-                    {UNFORGETTABLE_EXPERIENCES.map((exp, index) => (
-                        <HomePackageCard
-                            key={exp.id}
-                            package={{
-                                ...exp,
-                                price: { min: exp.price, max: exp.price },
-                                images: [exp.image],
-                                agency: { name: 'VAMO Experiences', logo: '🌍', verified: false },
-                                destination: exp.title.split(':')[0],
-                                country: exp.title.split(':')[0],
-                            }}
-                            onPress={() => {
-                                analytics.homePackageCardClicked(exp.id, index);
-                                router.push(`/package/${exp.id}`);
-                            }}
-                            isFavorite={favorites.includes(exp.id)}
-                            onToggleFavorite={(e: any) => toggleFavorite(exp.id, e)}
-                        />
-                    ))}
+                    {mockPackages
+                        .filter(p => !p.featured)
+                        .slice(0, 4)
+                        .map((pkg, index) => (
+                            <HomePackageCard
+                                key={pkg.id}
+                                package={pkg}
+                                onPress={() => {
+                                    analytics.homePackageCardClicked(pkg.id, index);
+                                    router.push(`/package/${pkg.id}`);
+                                }}
+                                isFavorite={favorites.includes(pkg.id)}
+                                onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
+                            />
+                        ))
+                    }
                 </View>
 
                 {/* Destinos Populares */}
@@ -343,7 +341,7 @@ function HomePackageCard({
         <TouchableOpacity style={styles.homeCard} onPress={onPress} activeOpacity={0.85}>
             <CoverCarousel
                 images={pkg.images || [pkg.image]}
-                height={200}
+                height={180}
             />
 
             {/* Badge */}
@@ -375,79 +373,86 @@ function HomePackageCard({
             </TouchableOpacity>
 
             <View style={styles.homeCardContent}>
-                <View style={styles.homeCardHeader}>
-                    <View style={styles.homeCardAgencyRow}>
-                        <View style={styles.homeCardAgencyTag}>
-                            <Text style={styles.homeCardAgencyIcon}>{pkg.agency?.logo || '✈️'}</Text>
-                            <Text style={styles.homeCardAgencyText}>{pkg.agency?.name || 'Agência'}</Text>
-                        </View>
-                        {pkg.agency?.verified && (
-                            <View style={styles.homeCardVerifiedBadge}>
-                                <Text style={styles.homeCardVerifiedIcon}>🛡️</Text>
-                                <Text style={styles.homeCardVerifiedText}>Agência verificada</Text>
-                            </View>
-                        )}
-                    </View>
-                    <View style={styles.homeCardRatingBadge}>
-                        <Text style={styles.homeCardRatingIcon}>⭐</Text>
-                        <Text style={styles.homeCardRatingValue}>{pkg.rating}</Text>
-                        <Text style={styles.homeCardRatingCount}>({pkg.reviewCount})</Text>
-                    </View>
+                {/* Compact Agency + Reputation Row */}
+                <View style={styles.homeCardCompactInfoRow}>
+                    <Text style={styles.homeCardAgencyIcon}>{pkg.agency?.logo || '✈️'}</Text>
+                    <Text style={styles.homeCardCompactText}>{pkg.agency?.name || 'Agência'}</Text>
+                    {pkg.agency?.verified && (
+                        <>
+                            <Text style={styles.homeCardSeparator}>•</Text>
+                            <Text style={styles.homeCardVerifiedIconCompact}>🛡️</Text>
+                            <Text style={styles.homeCardCompactText}>Agência verificada</Text>
+                        </>
+                    )}
+                    <Text style={styles.homeCardSeparator}>•</Text>
+                    <Text style={styles.homeCardRatingIconCompact}>⭐</Text>
+                    <Text style={styles.homeCardCompactText}>{pkg.rating}</Text>
+                    <Text style={styles.homeCardCompactTextSecondary}>({pkg.reviewCount})</Text>
                 </View>
 
                 <Text style={styles.homeCardTitle} numberOfLines={2}>
                     {pkg.title}
                 </Text>
 
-                {pkg.destination && (
-                    <Text style={styles.homeCardDestination}>
-                        📍 {pkg.destination}{pkg.country ? `, ${pkg.country}` : ''}
-                    </Text>
-                )}
+                <Text style={styles.homeCardLocation}>
+                    📍 {pkg.destination}{pkg.country ? `, ${pkg.country}` : ''} • {pkg.duration} dias
+                </Text>
 
-                {pkg.duration && (
-                    <Text style={styles.homeCardDuration}>📅 {pkg.duration} dias</Text>
-                )}
-
-                {/* Inclusions badges */}
-                <View style={styles.homeCardInclusionsBadges}>
-                    {pkg.duration && (
-                        <View style={styles.homeCardInclusionBadge}>
-                            <Text style={styles.homeCardInclusionText}>⏱️ {pkg.duration} Dias</Text>
+                {/* Strategic Inclusions */}
+                <View style={styles.homeCardStrategicInclusions}>
+                    {pkg.inclusions?.flight && (
+                        <View style={styles.homeCardStrategicChip}>
+                            <Text style={styles.homeCardChipIcon}>✈️</Text>
+                            <Text style={styles.homeCardChipLabel}>Voo ida e volta</Text>
                         </View>
                     )}
-                    <View style={styles.homeCardInclusionBadge}>
-                        <Text style={styles.homeCardInclusionText}>📶 Wi-Fi</Text>
-                    </View>
-                    <View style={styles.homeCardInclusionBadge}>
-                        <Text style={styles.homeCardInclusionText}>👥 Guia</Text>
-                    </View>
                     {pkg.inclusions?.hotel && (
-                        <View style={styles.homeCardInclusionBadge}>
-                            <Text style={styles.homeCardInclusionText}>
-                                🏨 Hotel {pkg.inclusions.hotel.stars}★
+                        <View style={styles.homeCardStrategicChip}>
+                            <Text style={styles.homeCardChipIcon}>🏨</Text>
+                            <Text style={styles.homeCardChipLabel}>
+                                Hotel {pkg.inclusions.hotel.stars}★
                             </Text>
+                        </View>
+                    )}
+                    {pkg.inclusions?.hotel?.meals && pkg.inclusions.hotel.meals.length > 0 && (
+                        <View style={styles.homeCardStrategicChip}>
+                            <Text style={styles.homeCardChipIcon}>🍽️</Text>
+                            <Text style={styles.homeCardChipLabel}>{pkg.inclusions.hotel.meals[0]}</Text>
+                        </View>
+                    )}
+                    {pkg.inclusions?.tours && pkg.inclusions.tours.length > 0 && (
+                        <View style={styles.homeCardStrategicChip}>
+                            <Text style={styles.homeCardChipIcon}>🎭</Text>
+                            <Text style={styles.homeCardChipLabel}>Passeios inclusos</Text>
+                        </View>
+                    )}
+                    {pkg.inclusions?.extras && pkg.inclusions.extras.length > 0 && (
+                        <View style={styles.homeCardStrategicChip}>
+                            <Text style={styles.homeCardChipIcon}>✨</Text>
+                            <Text style={styles.homeCardChipLabel}>Extras</Text>
                         </View>
                     )}
                 </View>
 
                 <View style={styles.homeCardFooter}>
-                    <View>
+                    <View style={styles.homeCardPriceSection}>
                         <Text style={styles.homeCardPriceLabel}>A partir de</Text>
                         <Text style={styles.homeCardPriceValue}>
-                            R$ {pkg.price?.min?.toLocaleString('pt-BR') || pkg.price}
+                            R$ {pkg.price.min.toLocaleString('pt-BR')}
                         </Text>
-                        <Text style={styles.homeCardReviewCount}>
+                        <Text style={styles.homeCardPriceLabel}>por pessoa</Text>
+                        <Text style={styles.homeCardReviewCountFooter}>
                             ({pkg.reviewCount} avaliações)
                         </Text>
-                        {pkg.recentPurchases && pkg.recentPurchases > 0 && (
-                            <Text style={styles.homeCardSocialProof}>
+                        {pkg.recentPurchases && (
+                            <Text style={styles.homeCardUrgencyText}>
                                 Reservado por {pkg.recentPurchases} pessoas este mês
                             </Text>
                         )}
                     </View>
-                    <TouchableOpacity style={styles.homeCardViewButton} onPress={onPress}>
-                        <Text style={styles.homeCardViewButtonText}>Ver detalhes</Text>
+                    <TouchableOpacity style={styles.homeCardCtaButton} onPress={onPress}>
+                        <Text style={styles.homeCardCtaButtonText}>Ver pacote completo</Text>
+                        <Text style={styles.homeCardCtaArrow}>→</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -474,76 +479,6 @@ const POPULAR_DESTINATIONS = [
     { id: 'cancun', name: 'Cancún', image: 'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=800', count: 654 },
 ];
 
-// Continue sua busca - Experiências personalizadas
-const CONTINUE_SEARCH_EXPERIENCES = [
-    {
-        id: 'antelope-canyon',
-        title: 'Page: Ingresso e Excursão Guiada ao Antelope Canyon Inferior',
-        image: 'https://images.unsplash.com/photo-1444076784383-69ff7bae1b0a?w=800',
-        duration: '1 hora',
-        groupType: 'Pequenos grupos',
-        category: 'AVENTURA',
-        rating: 4.7,
-        reviewCount: 7760,
-        price: 65,
-    },
-    {
-        id: 'grand-canyon-helicopter',
-        title: 'Grand Canyon: Opções de passeio de helicóptero',
-        image: 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800',
-        duration: '30 minutos - 3.5 horas',
-        groupType: 'Tour privado',
-        category: 'AVENTURA',
-        rating: 4.8,
-        reviewCount: 2341,
-        price: 243,
-    },
-    {
-        id: 'sedona-hot-air',
-        title: 'Sedona: Passeio de balão ao nascer do sol',
-        image: 'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=800',
-        duration: '3 horas',
-        groupType: 'Pequenos grupos',
-        category: 'AVENTURA',
-        rating: 4.9,
-        reviewCount: 1523,
-        price: 289,
-    },
-];
-
-// Experiências de viagem inesquecíveis
-const UNFORGETTABLE_EXPERIENCES = [
-    {
-        id: 'milford-sound',
-        title: 'De Manapouri: Viagem de um dia à natureza selvagem de Doubtful Sound',
-        image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
-        duration: '7 horas',
-        badge: 'Esgota rápido',
-        rating: 4.8,
-        reviewCount: 1574,
-        price: 177,
-    },
-    {
-        id: 'santorini-sunset',
-        title: 'Santorini: Cruzeiro ao pôr do sol com jantar',
-        image: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=800',
-        duration: '5 horas',
-        badge: 'Originals by VAMO',
-        rating: 4.9,
-        reviewCount: 2847,
-        price: 95,
-    },
-    {
-        id: 'northern-lights',
-        title: 'Islândia: Caça às Auroras Boreais com guia especializado',
-        image: 'https://images.unsplash.com/photo-1579033461380-adb47c3eb938?w=800',
-        duration: '4 horas',
-        badge: 'Esgota rápido',
-        rating: 4.7,
-        reviewCount: 3201,
-        price: 89,
-    },
-];
 
 const styles = StyleSheet.create({
     container: {
@@ -640,7 +575,36 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     homeCardContent: {
-        padding: 12,
+        padding: 10,
+    },
+    // Compact Info Row Styles
+    homeCardCompactInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 8,
+    },
+    homeCardSeparator: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginHorizontal: 2,
+    },
+    homeCardCompactText: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+    },
+    homeCardCompactTextSecondary: {
+        fontSize: 13,
+        fontWeight: '400',
+        color: theme.colors.text.secondary,
+    },
+    homeCardVerifiedIconCompact: {
+        fontSize: 12,
+    },
+    homeCardRatingIconCompact: {
+        fontSize: 13,
     },
     homeCardHeader: {
         flexDirection: 'row',
@@ -707,11 +671,16 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
     homeCardTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 17,
+        fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 6,
-        lineHeight: 20,
+        lineHeight: 22,
+    },
+    homeCardLocation: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        marginBottom: 8,
     },
     homeCardDestination: {
         fontSize: 14,
@@ -722,6 +691,30 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.text.secondary,
         marginBottom: theme.spacing.md,
+    },
+    // Strategic Inclusions Styles
+    homeCardStrategicInclusions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 8,
+    },
+    homeCardStrategicChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: theme.borderRadius.sm,
+        gap: 4,
+    },
+    homeCardChipIcon: {
+        fontSize: 16,
+    },
+    homeCardChipLabel: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
     },
     homeCardInclusionsBadges: {
         flexDirection: 'row',
@@ -743,14 +736,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
+        marginTop: 4,
+    },
+    homeCardPriceSection: {
+        flex: 1,
     },
     homeCardPriceLabel: {
-        fontSize: 12,
+        fontSize: 11,
         color: theme.colors.text.secondary,
         marginBottom: 2,
     },
     homeCardPriceValue: {
-        fontSize: 22,
+        fontSize: 26,
         fontWeight: '700',
         color: theme.colors.primary,
         marginBottom: 2,
@@ -760,18 +757,48 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
         marginTop: 2,
     },
+    homeCardReviewCountFooter: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
+    },
+    homeCardUrgencyText: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginTop: 4,
+        opacity: 0.8,
+    },
     homeCardSocialProof: {
         fontSize: 11,
         color: theme.colors.text.secondary,
         marginTop: 4,
         opacity: 0.8,
     },
+    homeCardCtaButton: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        ...theme.shadows.button,
+    },
+    homeCardCtaButtonText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.text.inverse,
+    },
+    homeCardCtaArrow: {
+        fontSize: 16,
+        color: theme.colors.text.inverse,
+    },
     homeCardViewButton: {
         backgroundColor: theme.colors.primary,
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: theme.borderRadius.full,
-        ...theme.shadows.button || theme.shadows.small,
+        ...theme.shadows.button,
     },
     homeCardViewButtonText: {
         fontSize: 14,
@@ -961,57 +988,88 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     roteirosTitle: {
-        fontSize: 17,
+        fontSize: 18,
         fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 6,
-        lineHeight: 23,
+        lineHeight: 24,
     },
     roteirosDescription: {
         fontSize: 14,
         color: theme.colors.text.secondary,
-        lineHeight: 20,
         marginBottom: 12,
+        lineHeight: 20,
     },
-    roteirosInclusions: {
+    // Category Chips Styles
+    roteirosChipsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 8,
-        marginBottom: 14,
+        marginBottom: 12,
     },
-    roteirosInclusion: {
+    roteirosChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: theme.colors.surfaceLight,
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: theme.borderRadius.sm,
+        gap: 4,
+    },
+    roteirosChipText: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+    },
+    roteirosInclusions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 12,
+    },
+    roteirosInclusion: {
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: theme.borderRadius.sm,
     },
     roteirosInclusionText: {
-        fontSize: 12,
+        fontSize: 11,
         color: theme.colors.text.secondary,
     },
     roteirosFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-end',
+        marginTop: 4,
+    },
+    roteirosPrice: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: theme.colors.primary,
+        marginBottom: 2,
     },
     roteirosPriceLabel: {
         fontSize: 12,
         color: theme.colors.text.secondary,
     },
-    roteirosPrice: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: theme.colors.success,
-    },
     roteirosCTA: {
-        backgroundColor: theme.colors.success,
+        backgroundColor: theme.colors.primary,
         paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: theme.borderRadius.full,
+        paddingVertical: 12,
+        borderRadius: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        ...theme.shadows.button,
     },
     roteirosCTAText: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '600',
+        color: theme.colors.text.inverse,
+    },
+    roteirosCTAArrow: {
+        fontSize: 16,
         color: theme.colors.text.inverse,
     },
     roteirosViewAll: {

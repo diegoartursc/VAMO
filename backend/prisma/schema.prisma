@@ -7,78 +7,495 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum EmployeeRole {
+  MANAGER
+  ATTENDANT
+}
+
+enum AgencyPlan {
+  FREE
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  APPLE
+  FACEBOOK
+}
+
+enum VerificationLevel {
+  BASIC
+  TRUSTED
+  EXPERT
+  AMBASSADOR
+}
+
+enum PackageBadge {
+  BESTSELLER
+  FLASH
+  LUXURY
+  VALUE
+  VERIFIED
+  NEW
+  FEATURED
+}
+
+enum PackageStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum PurchaseStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum NotificationType {
+  PRICE_ALERT
+  PURCHASE_UPDATE
+  PROMO
+  SYSTEM
+}
+
+// ─────────────────────────────────────────────
+// AGENCY
+// ─────────────────────────────────────────────
+
 model Agency {
   id              String    @id @default(cuid())
   name            String
-  email           String    @unique
-  passwordHash    String
+  cnpj            String    @unique
   logo            String?
   contactUrl      String?
   whatsapp        String?
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
+  plan            AgencyPlan @default(FREE)
   verified        Boolean   @default(false)
   verificationDoc String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  
+
+  employees       AgencyEmployee[]
   packages        Package[]
-  
+  reviewResponses ReviewResponse[]
+
   @@map("agencies")
 }
 
+model AgencyEmployee {
+  id           String       @id @default(cuid())
+  agencyId     String
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         EmployeeRole @default(ATTENDANT)
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  agency       Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  faqAnswers   FaqAnswer[]
+
+  @@map("agency_employees")
+}
+
+// ─────────────────────────────────────────────
+// TRAVELER
+// ─────────────────────────────────────────────
+
+model Traveler {
+  id             String       @id @default(cuid())
+  name           String
+  email          String       @unique
+  passwordHash   String?
+  avatar         String?
+  authProvider   AuthProvider @default(EMAIL)
+  authProviderId String?
+  bio            String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  personalData   TravelerPersonalData?
+  creator        Creator?
+  reviews        Review[]
+  purchases      PurchaseHistory[]
+  itinerarySales ItinerarySale[]
+  savedItems     SavedItem[]
+  notifications  Notification[]
+  faqQuestions   FaqQuestion[]
+
+  @@map("travelers")
+}
+
+model TravelerPersonalData {
+  id             String    @id @default(cuid())
+  travelerId     String    @unique
+  cpf            String?
+  phone          String?
+  birthDate      DateTime?
+  passportNumber String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  traveler       Traveler  @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+
+  @@map("traveler_personal_data")
+}
+
+// ─────────────────────────────────────────────
+// CREATOR (roteirista)
+// ─────────────────────────────────────────────
+
+model Creator {
+  id                String            @id @default(cuid())
+  travelerId        String            @unique
+  verificationLevel VerificationLevel @default(BASIC)
+  bio               String            @db.Text
+  destinations      String[]
+  languages         String[]
+  memberSince       DateTime          @default(now())
+  instagramUrl      String?
+  youtubeUrl        String?
+  blogUrl           String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  traveler          Traveler          @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  balance           CreatorBalance?
+  itineraries       Itinerary[]
+  reviewResponses   ReviewResponse[]
+
+  @@map("creators")
+}
+
+model CreatorBalance {
+  id               String   @id @default(cuid())
+  creatorId        String   @unique
+  availableBalance Float    @default(0)
+  pendingBalance   Float    @default(0)
+  currency         String   @default("BRL")
+  updatedAt        DateTime @updatedAt
+
+  creator          Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("creator_balances")
+}
+
+// ─────────────────────────────────────────────
+// PACKAGE
+// ─────────────────────────────────────────────
+
 model Package {
-  id                  String    @id @default(cuid())
+  id                  String        @id @default(cuid())
   agencyId            String
   title               String
   destination         String
   country             String
-  description         String    @db.Text
-  priceMin            Float
-  priceMax            Float
-  currency            String    @default("BRL")
+  description         String        @db.Text
+  fullDescription     String?       @db.Text
+  emotionalIntro      String?       @db.Text
+  currency            String        @default("BRL")
   duration            Int
+  maxSlots            Int?
   includes            String[]
+  includedItems       String[]
   highlights          String[]
+  notRecommendedFor   String[]
+  importantInfo       String[]
+  perfectFor          String[]
+  badge               PackageBadge?
   rating              Float?
-  reviewCount         Int       @default(0)
-  featured            Boolean   @default(false)
-  hasFreeCancellation Boolean   @default(false)
-  isAllInclusive      Boolean   @default(false)
+  reviewCount         Int           @default(0)
+  featured            Boolean       @default(false)
+  hasFreeCancellation Boolean       @default(false)
+  isAllInclusive      Boolean       @default(false)
   categories          String[]
-  status              String    @default("active")
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
-  agency              Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  status              PackageStatus @default(ACTIVE)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  agency              Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   images              PackageImage[]
+  pricingWindows      PackagePricingWindow[]
   reviews             Review[]
-  
+  purchases           PurchaseHistory[]
+  savedItems          SavedItem[]
+  faqQuestions        FaqQuestion[]
+
   @@map("packages")
 }
 
 model PackageImage {
-  id          String   @id @default(cuid())
-  packageId   String
-  url         String
-  alt         String?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  
-  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  packageId String
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
   @@map("package_images")
 }
 
-model Review {
+model PackagePricingWindow {
+  id             String   @id @default(cuid())
+  packageId      String
+  startDate      DateTime
+  endDate        DateTime
+  price          Float
+  availableSlots Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  package        Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  purchases      PurchaseHistory[]
+
+  @@map("package_pricing_windows")
+}
+
+// ─────────────────────────────────────────────
+// ITINERARY (roteiro interativo)
+// ─────────────────────────────────────────────
+
+model Itinerary {
   id          String   @id @default(cuid())
-  packageId   String
-  userName    String
-  userAvatar  String?
-  rating      Float
-  comment     String   @db.Text
-  images      String[]
+  creatorId   String
+  title       String
+  destination String
+  country     String
+  description String   @db.Text
+  price       Float
+  currency    String   @default("BRL")
+  duration    Int
+  rating      Float?
+  reviewCount Int      @default(0)
+  featured    Boolean  @default(false)
+  status      String   @default("active")
   createdAt   DateTime @default(now())
-  
-  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  
+  updatedAt   DateTime @updatedAt
+
+  creator     Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  images      ItineraryImage[]
+  days        ItineraryDay[]
+  reviews     Review[]
+  sales       ItinerarySale[]
+  savedItems  SavedItem[]
+  faqQuestions FaqQuestion[]
+
+  @@map("itineraries")
+}
+
+model ItineraryImage {
+  id          String    @id @default(cuid())
+  itineraryId String
+  url         String
+  alt         String?
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_images")
+}
+
+model ItineraryDay {
+  id          String    @id @default(cuid())
+  itineraryId String
+  dayNumber   Int
+  title       String
+  description String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  activities  ItineraryActivity[]
+
+  @@map("itinerary_days")
+}
+
+model ItineraryActivity {
+  id          String       @id @default(cuid())
+  dayId       String
+  order       Int          @default(0)
+  title       String
+  description String?      @db.Text
+  duration    String?
+  location    String?
+  tips        String?      @db.Text
+  createdAt   DateTime     @default(now())
+
+  day         ItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_activities")
+}
+
+model ItinerarySale {
+  id          String    @id @default(cuid())
+  itineraryId String
+  travelerId  String
+  price       Float
+  commission  Float
+  createdAt   DateTime  @default(now())
+
+  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  traveler    Traveler  @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_sales")
+}
+
+// ─────────────────────────────────────────────
+// REVIEWS
+// ─────────────────────────────────────────────
+
+model Review {
+  id          String    @id @default(cuid())
+  travelerId  String
+  packageId   String?
+  itineraryId String?
+  rating      Float
+  comment     String    @db.Text
+  verified    Boolean   @default(false)
+  language    String?
+  createdAt   DateTime  @default(now())
+
+  traveler    Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package     Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  images      ReviewImage[]
+  responses   ReviewResponse[]
+
   @@map("reviews")
+}
+
+model ReviewImage {
+  id        String   @id @default(cuid())
+  reviewId  String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_images")
+}
+
+model ReviewResponse {
+  id        String   @id @default(cuid())
+  reviewId  String
+  agencyId  String?
+  creatorId String?
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  agency    Agency?  @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  creator   Creator? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+
+  @@map("review_responses")
+}
+
+// ─────────────────────────────────────────────
+// PURCHASE HISTORY
+// ─────────────────────────────────────────────
+
+model PurchaseHistory {
+  id              String         @id @default(cuid())
+  travelerId      String
+  packageId       String
+  pricingWindowId String?
+  totalPrice      Float
+  travelers       Int            @default(1)
+  status          PurchaseStatus @default(PENDING)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  traveler        Traveler              @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package         Package               @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  pricingWindow   PackagePricingWindow? @relation(fields: [pricingWindowId], references: [id], onDelete: SetNull)
+
+  @@map("purchase_history")
+}
+
+// ─────────────────────────────────────────────
+// SAVED ITEMS / PRICE ALERTS
+// ─────────────────────────────────────────────
+
+model SavedItem {
+  id          String    @id @default(cuid())
+  travelerId  String
+  packageId   String?
+  itineraryId String?
+  priceAlert  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  traveler    Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package     Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@unique([travelerId, packageId])
+  @@unique([travelerId, itineraryId])
+  @@map("saved_items")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id         String           @id @default(cuid())
+  travelerId String
+  type       NotificationType
+  title      String
+  body       String           @db.Text
+  read       Boolean          @default(false)
+  data       Json?
+  createdAt  DateTime         @default(now())
+
+  traveler   Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// FAQ
+// ─────────────────────────────────────────────
+
+model FaqQuestion {
+  id          String    @id @default(cuid())
+  travelerId  String
+  packageId   String?
+  itineraryId String?
+  question    String    @db.Text
+  createdAt   DateTime  @default(now())
+
+  traveler    Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package     Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  answers     FaqAnswer[]
+
+  @@map("faq_questions")
+}
+
+model FaqAnswer {
+  id               String          @id @default(cuid())
+  questionId       String
+  agencyEmployeeId String?
+  creatorId        String?
+  answer           String          @db.Text
+  createdAt        DateTime        @default(now())
+
+  question         FaqQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  agencyEmployee   AgencyEmployee? @relation(fields: [agencyEmployeeId], references: [id], onDelete: SetNull)
+
+  @@map("faq_answers")
 }

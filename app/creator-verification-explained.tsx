@@ -11,26 +11,30 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 
-const VERIFICATION_STEPS = [
+const CREATOR_VERIFICATION_STEPS = [
     {
-        icon: 'document-text-outline',
-        title: 'Documentação Completa',
-        description: 'CNPJ ativo, Cadastur (Ministério do Turismo) e contrato social verificados.',
+        icon: 'person-outline',
+        title: 'Identidade Verificada',
+        description: 'CPF ou CNPJ validados com análise documental. Cada criador é uma pessoa real com identidade confirmada.',
     },
     {
-        icon: 'shield-checkmark-outline',
-        title: 'Histórico Analisado',
-        description: 'Avaliamos reclamações em sites como Reclame Aqui e histórico de operação.',
+        icon: 'earth-outline',
+        title: 'Experiência de Viagem Comprovada',
+        description: 'Verificamos fotos, relatos e comprovantes das viagens realizadas. O criador realmente viveu o roteiro.',
     },
-
     {
         icon: 'star-outline',
-        title: 'Avaliações Reais',
-        description: 'Reviews são de viajantes verificados que compraram pelo VAMO.',
+        title: 'Avaliações dos Compradores',
+        description: 'Monitoramos as avaliações de quem comprou. Criadores com notas baixas são notificados e podem perder o selo.',
+    },
+    {
+        icon: 'refresh-outline',
+        title: 'Roteiros Atualizados',
+        description: 'Exigimos que os roteiros sejam atualizados periodicamente. Informações defasadas são sinalizadas automaticamente.',
     },
 ];
 
-export default function VerificationExplainedScreen() {
+export default function CreatorVerificationExplainedScreen() {
     const router = useRouter();
 
     return (
@@ -42,7 +46,7 @@ export default function VerificationExplainedScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Verificação de Agências</Text>
+                <Text style={styles.headerTitle}>Verificação de Criadores</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -52,15 +56,15 @@ export default function VerificationExplainedScreen() {
                     <View style={styles.shieldIcon}>
                         <Ionicons name="shield-checkmark" size={48} color={theme.colors.verified} />
                     </View>
-                    <Text style={styles.heroTitle}>Sua segurança é nossa prioridade</Text>
+                    <Text style={styles.heroTitle}>Roteiros criados por quem realmente viajou</Text>
                     <Text style={styles.heroSubtitle}>
-                        Toda agência com o selo ✓ passou por um processo rigoroso de verificação.
+                        Todo criador com o selo ✓ passou por um processo de verificação para garantir a qualidade do conteúdo.
                     </Text>
                 </View>
 
                 {/* Steps */}
                 <View style={styles.stepsContainer}>
-                    {VERIFICATION_STEPS.map((step, index) => (
+                    {CREATOR_VERIFICATION_STEPS.map((step, index) => (
                         <View key={index} style={styles.stepCard}>
                             <View style={styles.stepNumber}>
                                 <Text style={styles.stepNumberText}>{index + 1}</Text>
@@ -81,25 +85,26 @@ export default function VerificationExplainedScreen() {
                     <Text style={styles.faqTitle}>Perguntas Frequentes</Text>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>O preço final inclui tudo?</Text>
+                        <Text style={styles.faqQuestion}>O roteiro é atualizado?</Text>
                         <Text style={styles.faqAnswer}>
-                            Sim. Todos os valores exibidos são finais. Taxas, quando existentes, são mostradas antes do checkout.
+                            Sim. Exigimos que criadores atualizem seus roteiros regularmente. Roteiros com mais de 6 meses sem atualização recebem um alerta.
                         </Text>
                     </View>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>E se houver um imprevisto?</Text>
+                        <Text style={styles.faqQuestion}>E se o roteiro não atender às expectativas?</Text>
                         <Text style={styles.faqAnswer}>
-                            A agência é responsável pela operação. Você pode acionar a garantia VAMO diretamente pelo app.
+                            Você pode avaliar o roteiro e reportar problemas. Nosso time analisa cada caso e pode acionar a garantia VAMO.
                         </Text>
                     </View>
 
                     <View style={styles.faqItem}>
                         <Text style={styles.faqQuestion}>Como funciona o reembolso?</Text>
                         <Text style={styles.faqAnswer}>
-                            Cada pacote exibe sua política. A maioria oferece reembolso integral até 24h antes.
+                            Roteiros digitais possuem política de satisfação. Se identificarmos informações incorretas ou desatualizadas, o reembolso é integral.
                         </Text>
                     </View>
+
                 </View>
 
                 <View style={{ height: 40 }} />

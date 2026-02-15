@@ -35,3 +35,5 @@ logs/
 *.temp
 backups/
 dist/
+.vercel
+.env*.local

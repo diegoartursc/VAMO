@@ -5,22 +5,36 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
-    Linking,
+    Image,
+    Dimensions,
+    StatusBar,
+    Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { theme } from '../src/theme/theme';
 import { getPackageById } from '../src/data/mockPackages';
 import { haptics } from '../src/services/haptics';
 import { analytics } from '../src/services/analytics';
-import { shareService } from '../src/services/sharing';
+
+const { width } = Dimensions.get('window');
 
 export default function BookingConfirmedScreen() {
     const router = useRouter();
-    const { packageId, bookingId, fullName, email, totalPrice } = useLocalSearchParams();
+    const {
+        packageId,
+        bookingId,
+        fullName,
+        email,
+        totalPrice,
+        date,
+        adults,
+        children,
+        paymentMethod,
+    } = useLocalSearchParams();
     const packageData = getPackageById(packageId as string);
 
-    // Haptic and analytics on mount
     useEffect(() => {
         haptics.bookingConfirmed();
         analytics.bookingCompleted(
@@ -30,22 +44,29 @@ export default function BookingConfirmedScreen() {
         );
     }, []);
 
-    const handleWhatsAppContact = () => {
-        haptics.medium();
-        const agencyPhone = '5548999999999'; // Mock
-        const message = `Olá! Minha reserva ${bookingId} foi confirmada. Gostaria de mais informações.`;
-        shareService.openWhatsApp(agencyPhone, message);
+    const formatDate = (dateStr: string) => {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+        });
     };
 
-    const handleShareBooking = async () => {
-        haptics.light();
-        if (packageData) {
-            await shareService.shareBookingConfirmation(
-                bookingId as string,
-                packageData.title,
-                new Date().toLocaleDateString('pt-BR')
-            );
-        }
+    const travelersText = () => {
+        const a = parseInt(adults as string) || 2;
+        const c = parseInt(children as string) || 0;
+        let text = `${a} adulto${a > 1 ? 's' : ''}`;
+        if (c > 0) text += ` + ${c} criança${c > 1 ? 's' : ''}`;
+        return text;
+    };
+
+    const paymentLabel = () => {
+        const method = paymentMethod as string;
+        if (method === 'apple') return ' Pay';
+        if (method === 'pix') return 'PIX';
+        if (method === 'card') return 'Cartão de crédito';
+        return method || 'Cartão de crédito';
     };
 
     if (!packageData) {
@@ -57,327 +78,389 @@ export default function BookingConfirmedScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* Success Icon */}
-                <View style={styles.iconContainer}>
-                    <View style={styles.checkmarkCircle}>
-                        <Ionicons name="checkmark" size={60} color="#fff" />
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" />
+            <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Hero Image */}
+                <View style={styles.heroContainer}>
+                    <Image
+                        source={{ uri: packageData.images[0] }}
+                        style={styles.heroImage}
+                    />
+                    <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
+                        style={styles.heroGradient}
+                    />
+
+                    {/* Success Badge */}
+                    <View style={styles.successBadgeContainer}>
+                        <View style={styles.successCircle}>
+                            <Ionicons name="checkmark" size={40} color="#fff" />
+                        </View>
+                    </View>
+
+                    {/* Hero Text */}
+                    <View style={styles.heroTextContainer}>
+                        <Text style={styles.heroTitle}>🎉 Sua viagem está confirmada!</Text>
+                        <Text style={styles.heroSubtitle}>{packageData.title}</Text>
+                        {date && (
+                            <Text style={styles.heroDate}>{formatDate(date as string)}</Text>
+                        )}
                     </View>
                 </View>
 
-                {/* Title */}
-                <Text style={styles.title}>Reserva Confirmada!</Text>
-                <Text style={styles.subtitle}>
-                    Você receberá um e-mail de confirmação em{'\n'}
-                    <Text style={styles.highlightedEmail}>{email}</Text>
-                </Text>
+                {/* Content */}
+                <View style={styles.contentSheet}>
+                    {/* Booking Summary Card */}
+                    <View style={styles.summaryCard}>
+                        <Text style={styles.summaryTitle}>Resumo da Reserva</Text>
 
-                {/* Booking Card */}
-                <View style={styles.bookingCard}>
-                    <View style={styles.imageContainer}>
-                        <Text style={styles.imageEmoji}>🎉</Text>
-                    </View>
-
-                    <View style={styles.bookingDetails}>
-                        <Text style={styles.packageTitle}>{packageData.title}</Text>
-
-                        <View style={styles.detailRow}>
-                            <Ionicons name="person-outline" size={18} color="#999" />
-                            <Text style={styles.detailText}>{fullName}</Text>
+                        <View style={styles.summaryRow}>
+                            <View style={styles.summaryIcon}>
+                                <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+                            </View>
+                            <View style={styles.summaryContent}>
+                                <Text style={styles.summaryLabel}>Status</Text>
+                                <Text style={[styles.summaryValue, { color: theme.colors.success }]}>Confirmado</Text>
+                            </View>
                         </View>
 
-                        <View style={styles.detailRow}>
-                            <Ionicons name="ticket-outline" size={18} color="#999" />
-                            <Text style={styles.detailText}>Código da reserva: #{bookingId}</Text>
+                        <View style={styles.divider} />
+
+                        <View style={styles.summaryRow}>
+                            <View style={styles.summaryIcon}>
+                                <Ionicons name="calendar" size={20} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.summaryContent}>
+                                <Text style={styles.summaryLabel}>Datas</Text>
+                                <Text style={styles.summaryValue}>
+                                    {date ? formatDate(date as string) : 'A confirmar'}
+                                </Text>
+                            </View>
                         </View>
 
-                        <View style={styles.statusBadge}>
-                            <Ionicons name="checkmark-circle" size={16} color="#14b8a6" />
-                            <Text style={styles.statusText}>Confirmado</Text>
-                        </View>
-                    </View>
-                </View>
+                        <View style={styles.divider} />
 
-                {/* Next Steps */}
-                <View style={styles.stepsSection}>
-                    <Text style={styles.stepsTitle}>Próximos passos</Text>
-
-                    <View style={styles.step}>
-                        <View style={styles.stepIcon}>
-                            <Text style={styles.stepNumber}>1</Text>
+                        <View style={styles.summaryRow}>
+                            <View style={styles.summaryIcon}>
+                                <Ionicons name="people" size={20} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.summaryContent}>
+                                <Text style={styles.summaryLabel}>Viajantes</Text>
+                                <Text style={styles.summaryValue}>{travelersText()}</Text>
+                            </View>
                         </View>
-                        <View style={styles.stepContent}>
-                            <Text style={styles.stepTitle}>Verifique seu e-mail</Text>
-                            <Text style={styles.stepDescription}>
-                                Enviamos todos os detalhes da sua reserva para {email}
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.summaryRow}>
+                            <View style={styles.summaryIcon}>
+                                <Ionicons name="card" size={20} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.summaryContent}>
+                                <Text style={styles.summaryLabel}>Forma de pagamento</Text>
+                                <Text style={styles.summaryValue}>{paymentLabel()}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.summaryRow}>
+                            <View style={styles.summaryIcon}>
+                                <Ionicons name="ticket" size={20} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.summaryContent}>
+                                <Text style={styles.summaryLabel}>Código da reserva</Text>
+                                <Text style={[styles.summaryValue, styles.bookingCode]}>
+                                    #{bookingId || 'VAMO-2026'}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Total */}
+                        <View style={styles.totalRow}>
+                            <Text style={styles.totalLabel}>Total pago</Text>
+                            <Text style={styles.totalValue}>
+                                R$ {parseFloat(totalPrice as string || '0').toLocaleString('pt-BR')}
                             </Text>
                         </View>
                     </View>
 
-                    <View style={styles.step}>
-                        <View style={styles.stepIcon}>
-                            <Text style={styles.stepNumber}>2</Text>
-                        </View>
-                        <View style={styles.stepContent}>
-                            <Text style={styles.stepTitle}>Aguarde o contato da agência</Text>
-                            <Text style={styles.stepDescription}>
-                                {packageData.agency.name} entrará em contato para confirmar detalhes
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.step}>
-                        <View style={styles.stepIcon}>
-                            <Text style={styles.stepNumber}>3</Text>
-                        </View>
-                        <View style={styles.stepContent}>
-                            <Text style={styles.stepTitle}>Prepare-se para a aventura!</Text>
-                            <Text style={styles.stepDescription}>
-                                Siga as instruções enviadas por email antes da data da viagem
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Actions */}
-                <View style={styles.actionsSection}>
-                    <TouchableOpacity style={styles.whatsappButton} onPress={handleWhatsAppContact}>
-                        <Ionicons name="logo-whatsapp" size={24} color="#fff" />
-                        <Text style={styles.whatsappButtonText}>
-                            Falar com {packageData.agency.name}
+                    {/* Confirmation email */}
+                    <View style={styles.emailNotice}>
+                        <Ionicons name="mail" size={20} color={theme.colors.primary} />
+                        <Text style={styles.emailNoticeText}>
+                            Um e-mail de confirmação foi enviado para{' '}
+                            <Text style={styles.emailHighlight}>{email}</Text>
                         </Text>
-                    </TouchableOpacity>
+                    </View>
 
-                    <TouchableOpacity style={styles.shareButton} onPress={handleShareBooking}>
-                        <Ionicons name="share-outline" size={24} color="#fff" />
-                        <Text style={styles.shareButtonText}>Compartilhar minha viagem</Text>
+                    {/* Primary Actions */}
+                    <TouchableOpacity
+                        style={styles.primaryButton}
+                        onPress={() => {
+                            haptics.light();
+                            router.push({
+                                pathname: `/purchased-package/pkg-1` as any,
+                            });
+                        }}
+                    >
+                        <Ionicons name="airplane" size={22} color="#fff" />
+                        <Text style={styles.primaryButtonText}>Ver minha viagem</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.bookingsButton}
+                        style={styles.secondaryButton}
                         onPress={() => {
                             haptics.light();
-                            router.push('/(tabs)/my-trips');
+                            Alert.alert(
+                                '📄 Comprovante',
+                                'O comprovante foi enviado para seu e-mail. Em breve estará disponível para download no app.',
+                                [{ text: 'OK' }]
+                            );
                         }}
                     >
-                        <Text style={styles.bookingsButtonText}>Ver minhas reservas</Text>
+                        <Ionicons name="download" size={20} color={theme.colors.primary} />
+                        <Text style={styles.secondaryButtonText}>Baixar comprovante</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.homeButton}
+                        style={styles.tertiaryButton}
                         onPress={() => {
                             haptics.light();
-                            router.push('/(tabs)');
+                            Alert.alert(
+                                '📅 Calendário',
+                                'A viagem foi adicionada ao seu calendário!',
+                                [{ text: 'OK' }]
+                            );
                         }}
                     >
-                        <Text style={styles.homeButtonText}>Voltar para início</Text>
+                        <Ionicons name="calendar-outline" size={20} color={theme.colors.text.secondary} />
+                        <Text style={styles.tertiaryButtonText}>Adicionar ao calendário</Text>
                     </TouchableOpacity>
+
+                    <View style={{ height: 40 }} />
                 </View>
-
-                <View style={{ height: 40 }} />
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: theme.colors.background,
     },
-    scrollContent: {
-        paddingHorizontal: 20,
-        paddingTop: 40,
-    },
-    iconContainer: {
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    checkmarkCircle: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: '#14b8a6',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#14b8a6',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        elevation: 8,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: '#fff',
-        textAlign: 'center',
-        marginBottom: 12,
-    },
-    subtitle: {
-        fontSize: 15,
-        color: '#999',
-        textAlign: 'center',
-        marginBottom: 32,
-        lineHeight: 22,
-    },
-    highlightedEmail: {
-        color: '#14b8a6',
-        fontWeight: '600',
-    },
-    bookingCard: {
-        backgroundColor: '#2a2a2a',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 32,
-        borderWidth: 1,
-        borderColor: '#3a3a3a',
-    },
-    imageContainer: {
+    heroContainer: {
         width: '100%',
-        height: 100,
-        backgroundColor: '#1a1a1a',
-        borderRadius: 12,
-        marginBottom: 16,
+        height: width * 0.65,
+        position: 'relative',
+    },
+    heroImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    heroGradient: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    successBadgeContainer: {
+        position: 'absolute',
+        top: 60,
+        alignSelf: 'center',
+    },
+    successCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: theme.colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 12,
     },
-    imageEmoji: {
-        fontSize: 48,
+    heroTextContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 20,
+        paddingBottom: 24,
+        alignItems: 'center',
     },
-    bookingDetails: {
-        gap: 12,
-    },
-    packageTitle: {
-        fontSize: 18,
-        fontWeight: '700',
+    heroTitle: {
+        fontSize: 22,
+        fontWeight: '800',
         color: '#fff',
+        textAlign: 'center',
         marginBottom: 8,
     },
-    detailRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    detailText: {
-        fontSize: 15,
-        color: '#ccc',
-    },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginTop: 8,
-        alignSelf: 'flex-start',
-        backgroundColor: 'rgba(20, 184, 166, 0.1)',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    statusText: {
-        fontSize: 14,
+    heroSubtitle: {
+        fontSize: 17,
         fontWeight: '600',
-        color: '#14b8a6',
+        color: 'rgba(255,255,255,0.9)',
+        textAlign: 'center',
     },
-    stepsSection: {
-        marginBottom: 32,
+    heroDate: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.7)',
+        marginTop: 4,
     },
-    stepsTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#fff',
+    contentSheet: {
+        backgroundColor: theme.colors.background,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        marginTop: -20,
+        paddingHorizontal: 20,
+        paddingTop: 28,
+    },
+    summaryCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        padding: 20,
         marginBottom: 20,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     },
-    step: {
-        flexDirection: 'row',
-        gap: 16,
-        marginBottom: 24,
-    },
-    stepIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#14b8a6',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    stepNumber: {
+    summaryTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#fff',
+        color: theme.colors.text.primary,
+        marginBottom: 20,
     },
-    stepContent: {
+    summaryRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingVertical: 4,
+    },
+    summaryIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: `${theme.colors.primary}15`,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    summaryContent: {
         flex: 1,
-        paddingTop: 2,
     },
-    stepTitle: {
+    summaryLabel: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        fontWeight: '500',
+        marginBottom: 2,
+    },
+    summaryValue: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    bookingCode: {
+        fontFamily: 'monospace',
+        color: theme.colors.primary,
+        letterSpacing: 0.5,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: theme.colors.border,
+        marginVertical: 12,
+    },
+    totalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 2,
+        borderTopColor: theme.colors.primary,
+    },
+    totalLabel: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
-        marginBottom: 6,
+        color: theme.colors.text.primary,
     },
-    stepDescription: {
-        fontSize: 14,
-        color: '#999',
-        lineHeight: 20,
+    totalValue: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: theme.colors.primary,
     },
-    actionsSection: {
-        gap: 12,
+    emailNotice: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: `${theme.colors.primary}10`,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 24,
     },
-    whatsappButton: {
+    emailNoticeText: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+    },
+    emailHighlight: {
+        color: theme.colors.primary,
+        fontWeight: '600',
+    },
+    primaryButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-        backgroundColor: '#25D366',
+        backgroundColor: theme.colors.primary,
         paddingVertical: 16,
-        borderRadius: 12,
+        borderRadius: 14,
+        marginBottom: 12,
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    whatsappButtonText: {
+    primaryButtonText: {
         color: '#fff',
         fontSize: 17,
         fontWeight: '700',
     },
-    shareButton: {
+    secondaryButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-        backgroundColor: '#6366f1',
+        backgroundColor: `${theme.colors.primary}12`,
         paddingVertical: 16,
-        borderRadius: 12,
+        borderRadius: 14,
+        marginBottom: 12,
+        borderWidth: 1.5,
+        borderColor: theme.colors.primary,
     },
-    shareButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    bookingsButton: {
-        backgroundColor: '#14b8a6',
-        paddingVertical: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    bookingsButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    homeButton: {
-        backgroundColor: 'transparent',
-        paddingVertical: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#3a3a3a',
-    },
-    homeButtonText: {
-        color: '#fff',
+    secondaryButtonText: {
+        color: theme.colors.primary,
         fontSize: 16,
         fontWeight: '600',
     },
+    tertiaryButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        paddingVertical: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    tertiaryButtonText: {
+        color: theme.colors.text.secondary,
+        fontSize: 15,
+        fontWeight: '500',
+    },
     errorText: {
-        color: '#fff',
+        color: theme.colors.text.secondary,
         fontSize: 16,
         textAlign: 'center',
         marginTop: 40,

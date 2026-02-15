@@ -176,7 +176,7 @@ const ItineraryCard: React.FC<ItineraryCardProps> = ({
                         <Text style={styles.priceValue}>
                             {price.currency === 'BRL' ? 'R$' : price.currency} {price.min.toLocaleString('pt-BR')}
                         </Text>
-                        <Text style={styles.priceNote}>por adulto</Text>
+                        <Text style={styles.priceNote}>por pessoa</Text>
                     </View>
 
                     <TouchableOpacity

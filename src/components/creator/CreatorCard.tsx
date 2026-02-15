@@ -75,19 +75,6 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
             </View>
 
             <View style={styles.footer}>
-                <TouchableOpacity
-                    style={styles.messageButton}
-                    onPress={() => Alert.alert(
-                        '💬 Tirar dúvidas',
-                        `Deseja enviar uma mensagem para ${creator.name}?`,
-                        [
-                            { text: 'Cancelar', style: 'cancel' },
-                            { text: 'Enviar', onPress: () => Alert.alert('Em breve!', 'Função de mensagens será implementada em breve.') }
-                        ]
-                    )}
-                >
-                    <Text style={styles.messageButtonText}>💬 Tirar dúvidas</Text>
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.viewButton} onPress={onPress}>
                     <Text style={styles.viewButtonText}>Ver Roteiros</Text>
                 </TouchableOpacity>

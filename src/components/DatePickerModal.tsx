@@ -9,21 +9,17 @@ import {
     Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AvailableDate } from '../types';
 
 interface DatePickerModalProps {
     visible: boolean;
     onClose: () => void;
-    onSelectDate?: (date: Date, travelers: number) => void;
+    onSelectDate?: (date: Date, adults: number, children: number, pricePerPerson: number) => void;
     packageTitle?: string;
     agencyName?: string;
     agencyPhone?: string;
+    availableDates?: AvailableDate[];
 }
-
-const DAYS_OF_WEEK = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-const MONTHS = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-];
 
 export default function DatePickerModal({
     visible,
@@ -31,143 +27,285 @@ export default function DatePickerModal({
     onSelectDate,
     packageTitle,
     agencyName,
-    agencyPhone
+    agencyPhone,
+    availableDates = [],
 }: DatePickerModalProps) {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [viewMode, setViewMode] = useState<'calendar' | 'confirmation' | 'success'>('calendar');
-    const [travelerCount, setTravelerCount] = useState(1);
+    const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
+    const [viewMode, setViewMode] = useState<'travelers' | 'dates' | 'confirmation' | 'success'>('travelers');
+    const [adultsCount, setAdultsCount] = useState(1);
+    const [childrenCount, setChildrenCount] = useState(0);
 
-    // Generate next 3 months
-    const generateMonths = () => {
-        const months = [];
-        const today = new Date();
-
-        for (let i = 0; i < 3; i++) {
-            const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-            months.push(date);
-        }
-        return months;
-    };
-
-    const getDaysInMonth = (date: Date) => {
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const daysInMonth = lastDay.getDate();
-        const startingDayOfWeek = firstDay.getDay();
-
-        const days = [];
-
-        // Previous month's trailing days
-        for (let i = 0; i < startingDayOfWeek; i++) {
-            days.push({ day: '', disabled: true, date: null });
-        }
-
-        // Current month's days
-        const today = new Date();
-        for (let day = 1; day <= daysInMonth; day++) {
-            const currentDate = new Date(year, month, day);
-            const isPast = currentDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-            days.push({
-                day: day.toString(),
-                disabled: isPast,
-                date: currentDate,
-            });
-        }
-
-        return days;
-    };
-
-    const handleDateSelect = (date: Date | null) => {
-        if (!date) return;
+    const handleDateSelect = (dateItem: AvailableDate) => {
+        const date = new Date(dateItem.date + 'T12:00:00');
         setSelectedDate(date);
+        setSelectedPrice(dateItem.price);
         setViewMode('confirmation');
     };
 
+    // Calculate total for a given per-person price
+    const calculateTotalForPrice = (unitPrice: number) => {
+        return (adultsCount * unitPrice) + (childrenCount * unitPrice * 0.5);
+    };
+
+    // Calculate total for the selected price
+    const calculateTotal = () => {
+        if (!selectedPrice) return 0;
+        return calculateTotalForPrice(selectedPrice);
+    };
+
     const handleConfirm = () => {
-        if (selectedDate && onSelectDate) {
-            onSelectDate(selectedDate, travelerCount);
+        if (selectedDate && onSelectDate && selectedPrice) {
+            onSelectDate(selectedDate, adultsCount, childrenCount, selectedPrice);
         }
         setViewMode('success');
     };
 
     const handleClose = () => {
         onClose();
-        // Reset state after modal closes
         setTimeout(() => {
-            setViewMode('calendar');
+            setViewMode('travelers');
             setSelectedDate(null);
-            setTravelerCount(1);
+            setSelectedPrice(null);
+            setAdultsCount(1);
+            setChildrenCount(0);
         }, 300);
     };
 
-    const renderCalendar = () => (
-        <ScrollView style={styles.scrollView}>
+    const formatDateShort = (isoDate: string) => {
+        const date = new Date(isoDate + 'T12:00:00');
+        return date.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        });
+    };
+
+    const formatDateLong = (isoDate: string) => {
+        const date = new Date(isoDate + 'T12:00:00');
+        return date.toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+        });
+    };
+
+    const formatPrice = (price: number) => {
+        return price.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        });
+    };
+
+    const lowestPrice = availableDates.length > 0
+        ? Math.min(...availableDates.map(d => d.price))
+        : 0;
+
+    const totalTravelers = adultsCount + childrenCount;
+
+    // ─── Step 1: Travelers ─────────────────────────────────
+    const renderTravelers = () => (
+        <View style={styles.fullContainer}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                     <Ionicons name="close" size={28} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Selecionar datas</Text>
+                <Text style={styles.headerTitle}>Quem vai viajar?</Text>
             </View>
 
-            <View style={styles.toggleContainer}>
-                <TouchableOpacity style={styles.toggleButton}>
-                    <Text style={styles.toggleButtonText}>Amanhã</Text>
-                </TouchableOpacity>
-            </View>
+            {packageTitle && (
+                <Text style={styles.packageName}>{packageTitle}</Text>
+            )}
 
-            {generateMonths().map((monthDate, index) => (
-                <View key={index} style={styles.monthContainer}>
-                    <Text style={styles.monthTitle}>
-                        {MONTHS[monthDate.getMonth()]} {monthDate.getFullYear()}
-                    </Text>
-
-                    <View style={styles.weekDaysRow}>
-                        {DAYS_OF_WEEK.map((day) => (
-                            <Text key={day} style={styles.weekDayText}>
-                                {day}
-                            </Text>
-                        ))}
+            <View style={styles.travelersContent}>
+                {/* Adults */}
+                <View style={styles.summaryCard}>
+                    <View style={styles.counterRow}>
+                        <View style={styles.counterLabelContainer}>
+                            <Text style={styles.counterLabel}>Adultos</Text>
+                            <Text style={styles.counterSublabel}>Idade 13+</Text>
+                        </View>
+                        <View style={styles.travelerCounter}>
+                            <TouchableOpacity
+                                style={[styles.counterButton, adultsCount <= 1 && styles.counterButtonDisabled]}
+                                onPress={() => setAdultsCount(Math.max(1, adultsCount - 1))}
+                                disabled={adultsCount <= 1}
+                            >
+                                <Text style={[styles.counterButtonText, adultsCount <= 1 && styles.counterButtonTextDisabled]}>−</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.travelerCount}>{adultsCount}</Text>
+                            <TouchableOpacity
+                                style={styles.counterButton}
+                                onPress={() => setAdultsCount(adultsCount + 1)}
+                            >
+                                <Text style={styles.counterButtonText}>+</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
-                    <View style={styles.daysGrid}>
-                        {getDaysInMonth(monthDate).map((item, idx) => (
-                            <Pressable
-                                key={idx}
-                                style={[
-                                    styles.dayCell,
-                                    item.disabled && styles.dayCellDisabled,
-                                    selectedDate?.getTime() === item.date?.getTime() && styles.dayCellSelected,
-                                ]}
-                                disabled={item.disabled || !item.date}
-                                onPress={() => handleDateSelect(item.date)}
+                    <View style={styles.counterDivider} />
+
+                    {/* Children */}
+                    <View style={styles.counterRow}>
+                        <View style={styles.counterLabelContainer}>
+                            <Text style={styles.counterLabel}>Crianças</Text>
+                            <Text style={styles.counterSublabel}>Até 12 anos · 50% do valor</Text>
+                        </View>
+                        <View style={styles.travelerCounter}>
+                            <TouchableOpacity
+                                style={[styles.counterButton, childrenCount <= 0 && styles.counterButtonDisabled]}
+                                onPress={() => setChildrenCount(Math.max(0, childrenCount - 1))}
+                                disabled={childrenCount <= 0}
                             >
-                                <Text
-                                    style={[
-                                        styles.dayText,
-                                        item.disabled && styles.dayTextDisabled,
-                                        selectedDate?.getTime() === item.date?.getTime() && styles.dayTextSelected,
-                                    ]}
-                                >
-                                    {item.day}
-                                </Text>
-                            </Pressable>
-                        ))}
+                                <Text style={[styles.counterButtonText, childrenCount <= 0 && styles.counterButtonTextDisabled]}>−</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.travelerCount}>{childrenCount}</Text>
+                            <TouchableOpacity
+                                style={styles.counterButton}
+                                onPress={() => setChildrenCount(childrenCount + 1)}
+                            >
+                                <Text style={styles.counterButtonText}>+</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
-            ))}
 
-            <View style={styles.bottomPadding} />
-        </ScrollView>
+                {/* Summary info */}
+                <View style={styles.travelersSummary}>
+                    <Ionicons name="people" size={20} color="#14b8a6" />
+                    <Text style={styles.travelersSummaryText}>
+                        {totalTravelers} {totalTravelers === 1 ? 'viajante' : 'viajantes'}
+                        {childrenCount > 0 && ` (${adultsCount} adulto${adultsCount > 1 ? 's' : ''}, ${childrenCount} criança${childrenCount > 1 ? 's' : ''})`}
+                    </Text>
+                </View>
+            </View>
+
+            {/* Continue button pinned to bottom */}
+            <View style={styles.bottomAction}>
+                <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={() => setViewMode('dates')}
+                >
+                    <Text style={styles.confirmButtonText}>Ver datas disponíveis</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 
+    // ─── Step 2: Dates ─────────────────────────────────────
+    const renderDates = () => {
+        // Find the lowest total price
+        const lowestTotal = availableDates.length > 0
+            ? Math.min(...availableDates.map(d => calculateTotalForPrice(d.price)))
+            : 0;
+
+        return (
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => setViewMode('travelers')} style={styles.closeButton}>
+                        <Ionicons name="arrow-back" size={28} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Selecionar datas</Text>
+                </View>
+
+                {/* Traveler badge */}
+                <View style={styles.travelerBadgeRow}>
+                    <View style={styles.travelerBadge}>
+                        <Ionicons name="people" size={14} color="#14b8a6" />
+                        <Text style={styles.travelerBadgeText}>
+                            {adultsCount} adulto{adultsCount > 1 ? 's' : ''}
+                            {childrenCount > 0 && ` + ${childrenCount} criança${childrenCount > 1 ? 's' : ''}`}
+                        </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setViewMode('travelers')}>
+                        <Text style={styles.editLink}>Alterar</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <Text style={styles.sectionSubtitle}>
+                    {availableDates.length} {availableDates.length === 1 ? 'data disponível' : 'datas disponíveis'}
+                </Text>
+
+                <View style={styles.dateCardsContainer}>
+                    {availableDates.map((dateItem, index) => {
+                        const isSelected = selectedDate?.toISOString().split('T')[0] === dateItem.date;
+                        const totalForDate = calculateTotalForPrice(dateItem.price);
+                        const isLowestTotal = totalForDate === lowestTotal;
+
+                        return (
+                            <Pressable
+                                key={index}
+                                style={[
+                                    styles.dateCard,
+                                    isSelected && styles.dateCardSelected,
+                                ]}
+                                onPress={() => handleDateSelect(dateItem)}
+                            >
+                                {isLowestTotal && (
+                                    <View style={styles.bestPriceBadge}>
+                                        <Ionicons name="pricetag" size={12} color="#fff" />
+                                        <Text style={styles.bestPriceBadgeText}>Melhor preço</Text>
+                                    </View>
+                                )}
+
+                                <View style={styles.dateCardContent}>
+                                    <View style={styles.dateCardLeft}>
+                                        <View style={[styles.calendarIconContainer, isSelected && styles.calendarIconSelected]}>
+                                            <Ionicons name="calendar-outline" size={22} color={isSelected ? '#fff' : '#14b8a6'} />
+                                        </View>
+                                        <View style={styles.dateTextContainer}>
+                                            <Text style={styles.dateTextPrimary}>
+                                                {formatDateShort(dateItem.date)}
+                                            </Text>
+                                            <Text style={styles.dateTextSecondary}>
+                                                {formatDateLong(dateItem.date)}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.dateCardRight}>
+                                        <Text style={[styles.priceText, isSelected && styles.priceTextSelected]}>
+                                            {formatPrice(totalForDate)}
+                                        </Text>
+                                        <Text style={styles.priceLabel}>
+                                            {totalTravelers} {totalTravelers === 1 ? 'viajante' : 'viajantes'}
+                                        </Text>
+                                        {dateItem.spotsLeft && (
+                                            <View style={styles.spotsLeftBadge}>
+                                                <Text style={styles.spotsLeftText}>
+                                                    {dateItem.spotsLeft} {dateItem.spotsLeft === 1 ? 'vaga' : 'vagas'}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            </Pressable>
+                        );
+                    })}
+                </View>
+
+                {availableDates.length === 0 && (
+                    <View style={styles.emptyState}>
+                        <Ionicons name="calendar-outline" size={48} color="#555" />
+                        <Text style={styles.emptyStateText}>Nenhuma data disponível no momento</Text>
+                        <Text style={styles.emptyStateSubtext}>
+                            Entre em contato com a agência para mais informações.
+                        </Text>
+                    </View>
+                )}
+
+                <View style={styles.bottomPadding} />
+            </ScrollView>
+        );
+    };
+
+    // ─── Step 3: Confirmation ──────────────────────────────
     const renderConfirmation = () => (
-        <View style={styles.confirmationContainer}>
+        <View style={styles.fullContainer}>
             <View style={styles.header}>
                 <TouchableOpacity
-                    onPress={() => setViewMode('calendar')}
+                    onPress={() => setViewMode('dates')}
                     style={styles.closeButton}
                 >
                     <Ionicons name="arrow-back" size={28} color="#fff" />
@@ -177,7 +315,7 @@ export default function DatePickerModal({
 
             <ScrollView style={styles.confirmationContent}>
                 {/* Date Card */}
-                <View style={styles.dateCard}>
+                <View style={styles.confirmDateCard}>
                     <Ionicons name="calendar-outline" size={48} color="#14b8a6" />
                     <Text style={styles.selectedDateText}>
                         {selectedDate?.toLocaleDateString('pt-BR', {
@@ -197,25 +335,41 @@ export default function DatePickerModal({
                     </View>
                 )}
 
-                {/* Travelers Count */}
-                <View style={styles.summaryCard}>
-                    <Text style={styles.summaryLabel}>Número de viajantes</Text>
-                    <View style={styles.travelerCounter}>
-                        <TouchableOpacity
-                            style={styles.counterButton}
-                            onPress={() => setTravelerCount(Math.max(1, travelerCount - 1))}
-                        >
-                            <Text style={styles.counterButtonText}>−</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.travelerCount}>{travelerCount}</Text>
-                        <TouchableOpacity
-                            style={styles.counterButton}
-                            onPress={() => setTravelerCount(travelerCount + 1)}
-                        >
-                            <Text style={styles.counterButtonText}>+</Text>
-                        </TouchableOpacity>
+                {/* Price Breakdown */}
+                {selectedPrice && (
+                    <View style={styles.priceBreakdownCard}>
+                        <Text style={styles.priceBreakdownTitle}>Resumo do valor</Text>
+
+                        <View style={styles.priceRow}>
+                            <Text style={styles.priceRowLabel}>
+                                {adultsCount} Adulto{adultsCount > 1 ? 's' : ''} × {formatPrice(selectedPrice)}
+                            </Text>
+                            <Text style={styles.priceRowValue}>
+                                {formatPrice(adultsCount * selectedPrice)}
+                            </Text>
+                        </View>
+
+                        {childrenCount > 0 && (
+                            <View style={styles.priceRow}>
+                                <Text style={styles.priceRowLabel}>
+                                    {childrenCount} Criança{childrenCount > 1 ? 's' : ''} × {formatPrice(selectedPrice * 0.5)}
+                                </Text>
+                                <Text style={styles.priceRowValue}>
+                                    {formatPrice(childrenCount * selectedPrice * 0.5)}
+                                </Text>
+                            </View>
+                        )}
+
+                        <View style={styles.totalDivider} />
+
+                        <View style={styles.priceRow}>
+                            <Text style={styles.totalLabel}>Total</Text>
+                            <Text style={styles.totalValue}>
+                                {formatPrice(calculateTotal())}
+                            </Text>
+                        </View>
                     </View>
-                </View>
+                )}
 
                 {/* Important Info */}
                 <View style={styles.infoBox}>
@@ -227,21 +381,26 @@ export default function DatePickerModal({
                 </View>
 
                 <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-                    <Text style={styles.confirmButtonText}>Confirmar Solicitação</Text>
+                    <Text style={styles.confirmButtonText}>
+                        Confirmar · {formatPrice(calculateTotal())}
+                    </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={styles.cancelButton}
-                    onPress={() => setViewMode('calendar')}
+                    onPress={() => setViewMode('dates')}
                 >
                     <Text style={styles.cancelButtonText}>Escolher Outra Data</Text>
                 </TouchableOpacity>
+
+                <View style={{ height: 40 }} />
             </ScrollView>
         </View>
     );
 
+    // ─── Step 4: Success ───────────────────────────────────
     const renderSuccess = () => (
-        <View style={styles.successContainer}>
+        <View style={styles.fullContainer}>
             <ScrollView style={styles.successContent}>
                 <View style={styles.successIconContainer}>
                     <Ionicons name="checkmark-circle" size={80} color="#14b8a6" />
@@ -274,7 +433,20 @@ export default function DatePickerModal({
                         <View style={styles.summaryRowContent}>
                             <Text style={styles.summaryRowLabel}>Viajantes</Text>
                             <Text style={styles.summaryRowValue}>
-                                {travelerCount} {travelerCount === 1 ? 'pessoa' : 'pessoas'}
+                                {adultsCount} Adulto{adultsCount > 1 ? 's' : ''}
+                                {childrenCount > 0 && `, ${childrenCount} Criança${childrenCount > 1 ? 's' : ''}`}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.summaryDivider} />
+
+                    <View style={styles.summaryRow}>
+                        <Ionicons name="card" size={20} color="#14b8a6" />
+                        <View style={styles.summaryRowContent}>
+                            <Text style={styles.summaryRowLabel}>Total</Text>
+                            <Text style={styles.summaryRowValue}>
+                                {formatPrice(calculateTotal())}
                             </Text>
                         </View>
                     </View>
@@ -308,21 +480,6 @@ export default function DatePickerModal({
                     </View>
                 </View>
 
-                {agencyName && agencyPhone && (
-                    <TouchableOpacity
-                        style={styles.contactAgencyButton}
-                        onPress={() => {
-                            const message = `Olá! Acabei de solicitar uma reserva para ${packageTitle} para ${travelerCount} pessoa(s).`;
-                            const whatsappUrl = `https://wa.me/${agencyPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-                            require('react-native').Linking.openURL(whatsappUrl);
-                        }}
-                    >
-                        <Ionicons name="logo-whatsapp" size={24} color="#fff" />
-                        <Text style={styles.contactAgencyButtonText}>
-                            Falar com {agencyName}
-                        </Text>
-                    </TouchableOpacity>
-                )}
 
                 <TouchableOpacity
                     style={styles.doneButton}
@@ -342,7 +499,8 @@ export default function DatePickerModal({
             onRequestClose={handleClose}
         >
             <View style={styles.container}>
-                {viewMode === 'calendar' && renderCalendar()}
+                {viewMode === 'travelers' && renderTravelers()}
+                {viewMode === 'dates' && renderDates()}
                 {viewMode === 'confirmation' && renderConfirmation()}
                 {viewMode === 'success' && renderSuccess()}
             </View>
@@ -352,6 +510,10 @@ export default function DatePickerModal({
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+        backgroundColor: '#1a1a1a',
+    },
+    fullContainer: {
         flex: 1,
         backgroundColor: '#1a1a1a',
     },
@@ -374,94 +536,210 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#fff',
     },
-    toggleContainer: {
+    packageName: {
+        fontSize: 14,
+        color: '#999',
         paddingHorizontal: 20,
-        paddingVertical: 15,
+        marginBottom: 4,
     },
-    toggleButton: {
-        backgroundColor: '#2a2a2a',
-        paddingVertical: 12,
+    sectionSubtitle: {
+        fontSize: 13,
+        color: '#14b8a6',
+        fontWeight: '600',
         paddingHorizontal: 20,
-        borderRadius: 8,
-        alignSelf: 'flex-start',
-        borderWidth: 1,
-        borderColor: '#3a3a3a',
+        marginBottom: 20,
     },
-    toggleButtonText: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '500',
-    },
-    monthContainer: {
+    // ── Travelers screen ──
+    travelersContent: {
+        flex: 1,
         paddingHorizontal: 20,
-        marginBottom: 30,
+        paddingTop: 20,
     },
-    monthTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#fff',
-        marginBottom: 15,
-    },
-    weekDaysRow: {
+    travelersSummary: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 10,
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: 'rgba(20, 184, 166, 0.08)',
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(20, 184, 166, 0.2)',
     },
-    weekDayText: {
-        width: '14%',
-        textAlign: 'center',
-        fontSize: 12,
-        color: '#888',
+    travelersSummaryText: {
+        fontSize: 15,
+        color: '#14b8a6',
         fontWeight: '600',
     },
-    daysGrid: {
+    bottomAction: {
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+        paddingTop: 16,
+    },
+    // ── Traveler badge on dates screen ──
+    travelerBadgeRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    dayCell: {
-        width: '14.28%',
-        aspectRatio: 1,
-        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        marginBottom: 16,
     },
-    dayCellDisabled: {
-        opacity: 0.3,
+    travelerBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(20, 184, 166, 0.1)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(20, 184, 166, 0.25)',
     },
-    dayCellSelected: {
+    travelerBadgeText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#14b8a6',
+    },
+    editLink: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#14b8a6',
+        textDecorationLine: 'underline',
+    },
+    // ── Date Cards ──
+    dateCardsContainer: {
+        paddingHorizontal: 20,
+        gap: 12,
+    },
+    dateCard: {
+        backgroundColor: '#2a2a2a',
+        borderRadius: 14,
+        padding: 16,
+        borderWidth: 1.5,
+        borderColor: '#3a3a3a',
+        position: 'relative',
+    },
+    dateCardSelected: {
+        borderColor: '#14b8a6',
+        backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    },
+    bestPriceBadge: {
+        position: 'absolute',
+        top: -1,
+        right: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         backgroundColor: '#14b8a6',
-        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 8,
     },
-    dayText: {
-        fontSize: 16,
-        color: '#fff',
-        fontWeight: '400',
-    },
-    dayTextDisabled: {
-        color: '#555',
-    },
-    dayTextSelected: {
-        color: '#fff',
+    bestPriceBadgeText: {
+        fontSize: 11,
         fontWeight: '700',
+        color: '#fff',
+    },
+    dateCardContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    dateCardLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        gap: 12,
+    },
+    calendarIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: 'rgba(20, 184, 166, 0.12)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    calendarIconSelected: {
+        backgroundColor: '#14b8a6',
+    },
+    dateTextContainer: {
+        flex: 1,
+    },
+    dateTextPrimary: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 3,
+    },
+    dateTextSecondary: {
+        fontSize: 13,
+        color: '#999',
+        textTransform: 'capitalize',
+    },
+    dateCardRight: {
+        alignItems: 'flex-end',
+        paddingLeft: 12,
+    },
+    priceText: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#14b8a6',
+    },
+    priceTextSelected: {
+        color: '#14b8a6',
+    },
+    priceLabel: {
+        fontSize: 11,
+        color: '#888',
+        marginTop: 2,
+    },
+    spotsLeftBadge: {
+        marginTop: 6,
+        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    spotsLeftText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#ef4444',
+    },
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 40,
+    },
+    emptyStateText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#999',
+        marginTop: 16,
+        textAlign: 'center',
+    },
+    emptyStateSubtext: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 8,
+        textAlign: 'center',
     },
     bottomPadding: {
         height: 40,
     },
-    confirmationContainer: {
-        flex: 1,
-        backgroundColor: '#1a1a1a',
-    },
+    // ── Confirmation ──
     confirmationContent: {
         flex: 1,
         paddingHorizontal: 20,
-        paddingTop: 40,
+        paddingTop: 20,
     },
-    dateCard: {
+    confirmDateCard: {
         backgroundColor: '#2a2a2a',
         borderRadius: 16,
         padding: 30,
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: 20,
         borderWidth: 1,
         borderColor: '#3a3a3a',
     },
@@ -472,11 +750,123 @@ const styles = StyleSheet.create({
         marginTop: 15,
         textAlign: 'center',
     },
-    packageTitleText: {
-        fontSize: 14,
+    summaryCard: {
+        backgroundColor: '#2a2a2a',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#3a3a3a',
+    },
+    summaryLabel: {
+        fontSize: 13,
         color: '#888',
-        marginTop: 8,
+        marginBottom: 8,
+        fontWeight: '500',
+    },
+    summaryValue: {
+        fontSize: 16,
+        color: '#fff',
+        fontWeight: '600',
+    },
+    counterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 4,
+    },
+    counterLabelContainer: {
+        flex: 1,
+    },
+    counterLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#fff',
+        marginBottom: 2,
+    },
+    counterSublabel: {
+        fontSize: 13,
+        color: '#888',
+    },
+    counterDivider: {
+        height: 1,
+        backgroundColor: '#3a3a3a',
+        marginVertical: 16,
+    },
+    travelerCounter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+    },
+    counterButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: '#14b8a6',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    counterButtonDisabled: {
+        backgroundColor: '#3a3a3a',
+    },
+    counterButtonText: {
+        fontSize: 22,
+        color: '#fff',
+        fontWeight: '600',
+    },
+    counterButtonTextDisabled: {
+        color: '#666',
+    },
+    travelerCount: {
+        fontSize: 22,
+        color: '#fff',
+        fontWeight: '700',
+        minWidth: 30,
         textAlign: 'center',
+    },
+    priceBreakdownCard: {
+        backgroundColor: '#2a2a2a',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#3a3a3a',
+    },
+    priceBreakdownTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#888',
+        marginBottom: 16,
+    },
+    priceRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    priceRowLabel: {
+        fontSize: 14,
+        color: '#ccc',
+    },
+    priceRowValue: {
+        fontSize: 14,
+        color: '#ccc',
+        fontWeight: '500',
+    },
+    totalDivider: {
+        height: 1,
+        backgroundColor: '#3a3a3a',
+        marginVertical: 10,
+    },
+    totalLabel: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    totalValue: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#14b8a6',
     },
     confirmButton: {
         backgroundColor: '#14b8a6',
@@ -484,6 +874,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         marginBottom: 15,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
     },
     confirmButtonText: {
         color: '#fff',
@@ -503,58 +896,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
-    summaryCard: {
-        backgroundColor: '#2a2a2a',
-        borderRadius: 12,
-        padding: 20,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#3a3a3a',
-    },
-    summaryLabel: {
-        fontSize: 13,
-        color: '#888',
-        marginBottom: 8,
-        fontWeight: '500',
-    },
-    summaryValue: {
-        fontSize: 16,
-        color: '#fff',
-        fontWeight: '600',
-    },
-    travelerCounter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 20,
-        marginTop: 10,
-    },
-    counterButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#14b8a6',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    counterButtonText: {
-        fontSize: 24,
-        color: '#fff',
-        fontWeight: '600',
-    },
-    travelerCount: {
-        fontSize: 24,
-        color: '#fff',
-        fontWeight: '700',
-        minWidth: 40,
-        textAlign: 'center',
-    },
     infoBox: {
         flexDirection: 'row',
         backgroundColor: 'rgba(20, 184, 166, 0.1)',
         borderRadius: 12,
         padding: 15,
-        marginBottom: 30,
+        marginBottom: 20,
         borderWidth: 1,
         borderColor: 'rgba(20, 184, 166, 0.3)',
         gap: 12,
@@ -565,11 +912,7 @@ const styles = StyleSheet.create({
         color: '#ccc',
         lineHeight: 18,
     },
-    // Success Screen Styles
-    successContainer: {
-        flex: 1,
-        backgroundColor: '#1a1a1a',
-    },
+    // ── Success ──
     successContent: {
         flex: 1,
         paddingHorizontal: 20,

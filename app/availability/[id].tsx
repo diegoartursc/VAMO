@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -12,13 +12,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/data/mockPackages';
 import { theme } from '../../src/theme/theme';
+import DatePickerModal from '../../src/components/DatePickerModal';
+import ParticipantsModal from '../../src/components/ParticipantsModal';
 
 export default function AvailabilityScreen() {
-    const { id, date, adults, children } = useLocalSearchParams<{
+    const { id, date, adults, children, price } = useLocalSearchParams<{
         id: string;
         date: string;
         adults: string;
         children: string;
+        price: string;
     }>();
 
     const router = useRouter();
@@ -26,10 +29,21 @@ export default function AvailabilityScreen() {
     const selectedDate = new Date(date!);
     const adultsCount = parseInt(adults!) || 1;
     const childrenCount = parseInt(children!) || 0;
+    const pricePerPerson = parseFloat(price!) || 0;
+    const pricePerChild = pricePerPerson * 0.5;
 
     const [expandedOption, setExpandedOption] = useState<string | null>('option-1');
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showParticipants, setShowParticipants] = useState(false);
 
-    // Opções de disponibilidade adaptadas para pacotes de viagem
+    // Calculate total based on the selected per-person price
+    const calculateTotal = (adultMultiplier: number) => {
+        const adultPrice = pricePerPerson * adultMultiplier;
+        const childPrice = adultPrice * 0.5;
+        return (adultPrice * adultsCount) + (childPrice * childrenCount);
+    };
+
+    // Options derive prices from the selected per-person price
     const availabilityOptions = [
         {
             id: 'option-1',
@@ -37,8 +51,9 @@ export default function AvailabilityScreen() {
             description: 'Tour em grupo com guia compartilhado.',
             durationDays: packageData?.duration || 7,
             guideLanguage: 'Português',
-            pricePerAdult: 450,
-            pricePerChild: 225,
+            priceMultiplier: 1,
+            pricePerAdult: pricePerPerson,
+            pricePerChild: pricePerChild,
         },
         {
             id: 'option-2',
@@ -47,13 +62,21 @@ export default function AvailabilityScreen() {
             isExclusive: true,
             durationDays: packageData?.duration || 7,
             guideLanguage: 'Português',
-            pricePerAdult: 1200,
-            pricePerChild: 600,
+            priceMultiplier: 2.5,
+            pricePerAdult: pricePerPerson * 2.5,
+            pricePerChild: pricePerChild * 2.5,
         },
     ];
 
-    const calculateTotal = (option: typeof availabilityOptions[0]) => {
+    const getOptionTotal = (option: typeof availabilityOptions[0]) => {
         return (option.pricePerAdult * adultsCount) + (option.pricePerChild * childrenCount);
+    };
+
+    const formatPrice = (value: number) => {
+        return value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        });
     };
 
     const formatDate = (date: Date) => {
@@ -66,7 +89,6 @@ export default function AvailabilityScreen() {
     };
 
     const handleBookNow = (option: typeof availabilityOptions[0]) => {
-        // Navega para checkout (cadastro do cartão)
         router.push({
             pathname: `/checkout/contact` as any,
             params: {
@@ -75,7 +97,21 @@ export default function AvailabilityScreen() {
                 adults: adultsCount,
                 children: childrenCount,
                 optionId: option.id,
-                totalPrice: calculateTotal(option),
+                totalPrice: getOptionTotal(option),
+                pricePerPerson: option.pricePerAdult,
+            },
+        });
+    };
+
+    const handleParticipantsChange = (newAdults: number, newChildren: number) => {
+        setShowParticipants(false);
+        router.replace({
+            pathname: `/availability/${id}` as any,
+            params: {
+                date: selectedDate.toISOString(),
+                adults: newAdults.toString(),
+                children: newChildren.toString(),
+                price: pricePerPerson.toString(),
             },
         });
     };
@@ -100,9 +136,12 @@ export default function AvailabilityScreen() {
             </View>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Sticky Summary Card */}
+                {/* Summary Card */}
                 <View style={styles.summaryCard}>
-                    <TouchableOpacity style={styles.summaryRow}>
+                    <TouchableOpacity
+                        style={styles.summaryRow}
+                        onPress={() => setShowDatePicker(true)}
+                    >
                         <Ionicons name="calendar-outline" size={20} color="#fff" />
                         <View style={styles.summaryRowContent}>
                             <Text style={styles.summaryLabel}>Data</Text>
@@ -113,7 +152,10 @@ export default function AvailabilityScreen() {
 
                     <View style={styles.summaryDivider} />
 
-                    <TouchableOpacity style={styles.summaryRow}>
+                    <TouchableOpacity
+                        style={styles.summaryRow}
+                        onPress={() => setShowParticipants(true)}
+                    >
                         <Ionicons name="people-outline" size={20} color="#fff" />
                         <View style={styles.summaryRowContent}>
                             <Text style={styles.summaryLabel}>Participantes</Text>
@@ -123,6 +165,19 @@ export default function AvailabilityScreen() {
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#999" />
                     </TouchableOpacity>
+
+                    <View style={styles.summaryDivider} />
+
+                    {/* Price summary row */}
+                    <View style={styles.summaryRow}>
+                        <Ionicons name="pricetag-outline" size={20} color="#fff" />
+                        <View style={styles.summaryRowContent}>
+                            <Text style={styles.summaryLabel}>Valor base selecionado</Text>
+                            <Text style={styles.summaryValue}>
+                                {formatPrice(pricePerPerson)} /pessoa
+                            </Text>
+                        </View>
+                    </View>
                 </View>
 
                 {/* Options Title */}
@@ -133,7 +188,7 @@ export default function AvailabilityScreen() {
                 {/* Availability Options */}
                 {availabilityOptions.map((option) => {
                     const isExpanded = expandedOption === option.id;
-                    const total = calculateTotal(option);
+                    const total = getOptionTotal(option);
 
                     return (
                         <View key={option.id} style={styles.optionCard}>
@@ -200,13 +255,13 @@ export default function AvailabilityScreen() {
 
                                     {/* Pricing */}
                                     <View style={styles.pricingCard}>
-                                        <Text style={styles.totalPrice}>R$ {total.toLocaleString('pt-BR')}</Text>
+                                        <Text style={styles.totalPrice}>{formatPrice(total)}</Text>
                                         <Text style={styles.priceBreakdown}>
-                                            {adultsCount} Adulto{adultsCount > 1 && 's'} × R$ {option.pricePerAdult}
+                                            {adultsCount} Adulto{adultsCount > 1 ? 's' : ''} × {formatPrice(option.pricePerAdult)}
                                         </Text>
                                         {childrenCount > 0 && (
                                             <Text style={styles.priceBreakdown}>
-                                                {childrenCount} Criança{childrenCount > 1 && 's'} × R$ {option.pricePerChild}
+                                                {childrenCount} Criança{childrenCount > 1 ? 's' : ''} × {formatPrice(option.pricePerChild)}
                                             </Text>
                                         )}
                                         <Text style={styles.taxIncluded}>Todos os impostos e taxas inclusos</Text>
@@ -227,6 +282,34 @@ export default function AvailabilityScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Modals */}
+            <DatePickerModal
+                visible={showDatePicker}
+                onClose={() => setShowDatePicker(false)}
+                onSelectDate={(newDate: Date, newAdults: number, newChildren: number, newPrice: number) => {
+                    setShowDatePicker(false);
+                    router.replace({
+                        pathname: `/availability/${id}` as any,
+                        params: {
+                            date: newDate.toISOString(),
+                            adults: newAdults.toString(),
+                            children: newChildren.toString(),
+                            price: newPrice.toString(),
+                        },
+                    });
+                }}
+                packageTitle={packageData.title}
+                availableDates={packageData.availableDates}
+            />
+
+            <ParticipantsModal
+                visible={showParticipants}
+                onClose={() => setShowParticipants(false)}
+                onApply={handleParticipantsChange}
+                initialAdults={adultsCount}
+                initialChildren={childrenCount}
+            />
         </SafeAreaView>
     );
 }
@@ -354,13 +437,6 @@ const styles = StyleSheet.create({
     infoText: {
         fontSize: 15,
         color: theme.colors.text.secondary,
-    },
-    optionDescription: {
-        fontSize: 14,
-        color: theme.colors.text.tertiary,
-        lineHeight: 20,
-        marginTop: 4,
-        marginBottom: 4,
     },
     policiesSection: {
         marginTop: 16,

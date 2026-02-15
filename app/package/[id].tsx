@@ -26,6 +26,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFavorites } from '../../src/hooks/useFavorites';
 import { haptics } from '../../src/services/haptics';
 import { shareService } from '../../src/services/sharing';
+import FAQSection from '../../src/components/FAQSection';
+import { getPackageFAQ } from '../../src/data/mockFAQ';
 
 const { width, height } = Dimensions.get('window');
 
@@ -124,25 +126,43 @@ export default function PackageDetailScreen() {
 
                     <Text style={styles.title}>{packageData.title}</Text>
 
-                    {/* Features Grid */}
-                    <View style={styles.featuresGrid}>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="time-outline" size={22} color={theme.colors.primary} />
-                            <Text style={styles.featureLabel}>{packageData.duration} Dias</Text>
+                    {/* Strategic Inclusions - Matching package card design */}
+                    {packageData.inclusions && (
+                        <View style={styles.strategicInclusions}>
+                            {packageData.inclusions.flight && (
+                                <View style={styles.inclusionChip}>
+                                    <Text style={styles.chipIcon}>✈️</Text>
+                                    <Text style={styles.chipLabel}>Voo ida e volta</Text>
+                                </View>
+                            )}
+                            {packageData.inclusions.hotel && (
+                                <View style={styles.inclusionChip}>
+                                    <Text style={styles.chipIcon}>🏨</Text>
+                                    <Text style={styles.chipLabel}>
+                                        Hotel {packageData.inclusions.hotel.stars}★
+                                    </Text>
+                                </View>
+                            )}
+                            {packageData.inclusions.hotel?.meals && packageData.inclusions.hotel.meals.length > 0 && (
+                                <View style={styles.inclusionChip}>
+                                    <Text style={styles.chipIcon}>🍽️</Text>
+                                    <Text style={styles.chipLabel}>{packageData.inclusions.hotel.meals[0]}</Text>
+                                </View>
+                            )}
+                            {packageData.inclusions.tours && packageData.inclusions.tours.length > 0 && (
+                                <View style={styles.inclusionChip}>
+                                    <Text style={styles.chipIcon}>🎭</Text>
+                                    <Text style={styles.chipLabel}>Passeios inclusos</Text>
+                                </View>
+                            )}
+                            {packageData.inclusions.extras && packageData.inclusions.extras.length > 0 && (
+                                <View style={styles.inclusionChip}>
+                                    <Text style={styles.chipIcon}>✨</Text>
+                                    <Text style={styles.chipLabel}>Extras</Text>
+                                </View>
+                            )}
                         </View>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="wifi-outline" size={22} color={theme.colors.primary} />
-                            <Text style={styles.featureLabel}>Wi-Fi</Text>
-                        </View>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="people-outline" size={22} color={theme.colors.primary} />
-                            <Text style={styles.featureLabel}>Guia</Text>
-                        </View>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="bed-outline" size={22} color={theme.colors.primary} />
-                            <Text style={styles.featureLabel}>Hotel 4★</Text>
-                        </View>
-                    </View>
+                    )}
 
                     <View style={styles.divider} />
 
@@ -155,37 +175,16 @@ export default function PackageDetailScreen() {
                         </View>
                     </View>
 
-                    {/* Confirmation Channel Badge - Builds Trust */}
-                    <View style={styles.confirmationBadge}>
-                        <View style={styles.confirmationLeft}>
-                            <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-                            <View>
-                                <Text style={styles.confirmationTitle}>Confirmação via WhatsApp</Text>
-                                <Text style={styles.confirmationDesc}>Resposta em até 2h após reserva</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* Verification Info Link */}
-                    {packageData.agency.verified && (
-                        <TouchableOpacity
-                            style={styles.verificationLink}
-                            onPress={() => router.push('/verification-explained')}
-                        >
-                            <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
-                            <Text style={styles.verificationLinkText}>Como verificamos as agências</Text>
-                            <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
-                        </TouchableOpacity>
-                    )}
 
                     {/* Price & CTA Section (Premium) */}
                     <View style={styles.priceSection}>
                         <View style={styles.priceInfoContainer}>
-                            <Text style={styles.priceLabel}>Preço total por pessoa</Text>
+                            <Text style={styles.priceLabel}>A partir de</Text>
                             <View style={styles.priceRow}>
                                 <Text style={styles.currencySymbol}>R$</Text>
                                 <Text style={styles.priceValue}>{packageData.price.min.toLocaleString('pt-BR')}</Text>
                             </View>
+                            <Text style={styles.priceLabel}>por pessoa</Text>
                         </View>
 
                         {/* Primary CTA */}
@@ -243,6 +242,56 @@ export default function PackageDetailScreen() {
                                 {priceAlertActive ? '✅ Alerta de preço ativado' : '🔔 Receba alerta quando o preço mudar'}
                             </Text>
                         </TouchableOpacity>
+                    </View>
+
+                    {/* Confirmation Channel Badge - Builds Trust */}
+                    <View style={styles.confirmationBadge}>
+                        <View style={styles.confirmationLeft}>
+                            <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                            <View>
+                                <Text style={styles.confirmationTitle}>Confirmação via WhatsApp</Text>
+                                <Text style={styles.confirmationDesc}>Resposta em até 24 horas úteis após reserva</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Verification Info Link */}
+                    {packageData.agency.verified && (
+                        <TouchableOpacity
+                            style={styles.verificationLink}
+                            onPress={() => router.push('/verification-explained')}
+                        >
+                            <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
+                            <Text style={styles.verificationLinkText}>Como verificamos as agências</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Central da Viagem Preview Card */}
+                    <View style={styles.centralCard}>
+                        <View style={styles.centralHeader}>
+                            <Text style={styles.centralIcon}>✨</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.centralTitle}>Sua viagem organizada no VAMO</Text>
+                                <Text style={styles.centralSubtitle}>
+                                    Após a compra, você terá acesso à sua Central da Viagem com todos os detalhes organizados.
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.centralList}>
+                            {[
+                                { icon: '⏳', text: 'Status atualizado da reserva' },
+                                { icon: '📄', text: 'Voucher e documentos digitais' },
+                                { icon: '📋', text: 'Detalhes completos do que está incluso' },
+                                { icon: '✅', text: 'Checklist para se preparar' },
+                                { icon: '💬', text: 'Contato via WhatsApp com a agência' },
+                            ].map((item, i) => (
+                                <View key={i} style={styles.centralListItem}>
+                                    <Text style={styles.centralListIcon}>{item.icon}</Text>
+                                    <Text style={styles.centralListText}>{item.text}</Text>
+                                </View>
+                            ))}
+                        </View>
                     </View>
 
                     {/* About Section */}
@@ -385,13 +434,7 @@ export default function PackageDetailScreen() {
                                 <Text style={styles.peaceOfMindText}>Sem filas nos principais pontos turísticos</Text>
                             </View>
 
-                            {/* Item 3: Suporte */}
-                            <View style={styles.peaceOfMindItem}>
-                                <View style={styles.peaceOfMindIconCircle}>
-                                    <Ionicons name="shield-checkmark" size={20} color={theme.colors.success} />
-                                </View>
-                                <Text style={styles.peaceOfMindText}>Suporte antes e durante a viagem</Text>
-                            </View>
+
                         </View>
                     </View>
 
@@ -403,6 +446,12 @@ export default function PackageDetailScreen() {
                             <Text style={styles.policyDesc}>Reembolso integral se cancelado até 24h antes.</Text>
                         </View>
                     </View>
+
+                    {/* Perguntas Frequentes */}
+                    <FAQSection
+                        items={getPackageFAQ(id)}
+                        creatorName={packageData.agency.name}
+                    />
 
                     {/* Premium Reviews Section */}
                     {reviews.length > 0 && (
@@ -488,7 +537,7 @@ export default function PackageDetailScreen() {
                                                         € {Math.floor(pkg.price.min * 0.15)}
                                                     </Text>
                                                 </View>
-                                                <Text style={styles.relatedPriceUnit}>por adulto</Text>
+                                                <Text style={styles.relatedPriceUnit}>por pessoa</Text>
                                             </View>
                                         </View>
                                     </TouchableOpacity>
@@ -505,12 +554,24 @@ export default function PackageDetailScreen() {
             <DatePickerModal
                 visible={showDatePicker}
                 onClose={() => setShowDatePicker(false)}
-                onSelectDate={(date: Date) => {
+                onSelectDate={(date: Date, adultsCount: number, childrenCount: number, pricePerPerson: number) => {
                     setSelectedDate(date);
+                    setAdults(adultsCount);
+                    setChildren(childrenCount);
                     setShowDatePicker(false);
-                    setShowParticipants(true);
+                    router.push({
+                        pathname: `/availability/${id}` as any,
+                        params: {
+                            date: date.toISOString(),
+                            adults: adultsCount.toString(),
+                            children: childrenCount.toString(),
+                            price: pricePerPerson.toString(),
+                            packageId: id,
+                        },
+                    });
                 }}
                 packageTitle={packageData.title}
+                availableDates={packageData.availableDates}
             />
 
             <ParticipantsModal
@@ -879,6 +940,57 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
         marginBottom: 16,
     },
+
+    // Central da Viagem Preview Card
+    centralCard: {
+        backgroundColor: 'rgba(40, 201, 191, 0.07)',
+        borderRadius: 14,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(40, 201, 191, 0.15)',
+    },
+    centralHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        marginBottom: 14,
+    },
+    centralIcon: {
+        fontSize: 20,
+        marginTop: 1,
+    },
+    centralTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    centralSubtitle: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+    },
+    centralList: {
+        gap: 8,
+        marginLeft: 2,
+    },
+    centralListItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    centralListIcon: {
+        fontSize: 14,
+        width: 20,
+        textAlign: 'center',
+    },
+    centralListText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        fontWeight: '500',
+        flex: 1,
+    },
     verificationLinkText: {
         flex: 1,
         fontSize: 13,
@@ -1068,5 +1180,29 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: theme.colors.text.primary,
         lineHeight: 22,
+    },
+    // Strategic Inclusions Styles (matching package card design)
+    strategicInclusions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 24,
+    },
+    inclusionChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: theme.borderRadius.sm,
+        gap: 6,
+    },
+    chipIcon: {
+        fontSize: 16,
+    },
+    chipLabel: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
     },
 });

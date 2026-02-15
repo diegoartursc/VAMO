@@ -11,60 +11,39 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getPackageById } from '../../src/data/mockPackages';
+import { getItineraryById } from '../../src/data/mockItineraries';
+import { theme } from '../../src/theme/theme';
+import { useState as useStateModal } from 'react';
 
-export default function CheckoutPaymentScreen() {
+export default function ItineraryPaymentScreen() {
     const router = useRouter();
     const {
-        packageId,
-        date,
-        time,
-        adults,
-        children,
-        optionId,
-        totalPrice,
+        itineraryId,
+        price,
         fullName,
         email,
         countryCode,
         phone,
     } = useLocalSearchParams();
 
-    const packageData = getPackageById(packageId as string);
-    const selectedDate = new Date(date as string);
+    const itinerary = getItineraryById(itineraryId as string);
 
-    const [paymentTiming, setPaymentTiming] = useState<'now' | 'later'>('now');
-    const [paymentMethod, setPaymentMethod] = useState<'apple' | 'pix' | 'card' | 'paypal'>('apple');
+    const [paymentMethod, setPaymentMethod] = useState<'apple' | 'pix' | 'card'>('pix');
     const [summaryExpanded, setSummaryExpanded] = useState(true);
-    const [promoCode, setPromoCode] = useState('');
-
-    const formatDate = (date: Date) => {
-        return date.toLocaleDateString('pt-BR', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-        });
-    };
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const handleConfirmPayment = () => {
+        // Simulate payment processing
         Alert.alert(
             'Processando pagamento...',
             `Método: ${paymentMethod.toUpperCase()}`,
             [{
                 text: 'OK', onPress: () => {
-                    // Navega para confirmação
-                    router.push({
-                        pathname: `/booking-confirmed` as any,
+                    // Show success modal and navigate
+                    router.replace({
+                        pathname: `/itinerary/${itineraryId}` as any,
                         params: {
-                            packageId,
-                            bookingId: `VAMO-${Date.now().toString(36).toUpperCase()}`,
-                            fullName,
-                            email,
-                            totalPrice,
-                            date,
-                            adults,
-                            children,
-                            paymentMethod,
+                            showSuccess: 'true',
                         },
                     });
                 }
@@ -72,10 +51,10 @@ export default function CheckoutPaymentScreen() {
         );
     };
 
-    if (!packageData) {
+    if (!itinerary) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Pacote não encontrado</Text>
+                <Text style={styles.errorText}>Roteiro não encontrado</Text>
             </View>
         );
     }
@@ -85,9 +64,9 @@ export default function CheckoutPaymentScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={24} color="#fff" />
+                    <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Pedido</Text>
+                <Text style={styles.headerTitle}>Pagamento</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -96,7 +75,7 @@ export default function CheckoutPaymentScreen() {
                 <View style={styles.progressContainer}>
                     <View style={styles.progressStep}>
                         <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
-                            <Ionicons name="checkmark" size={16} color="#14b8a6" />
+                            <Ionicons name="checkmark" size={16} color={theme.colors.primary} />
                         </View>
                         <Text style={[styles.stepLabel, styles.stepLabelCompleted]}>Contato</Text>
                     </View>
@@ -109,55 +88,14 @@ export default function CheckoutPaymentScreen() {
                     </View>
                 </View>
 
-                {/* Payment Timing */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Quando você prefere pagar?</Text>
-
-                    <Pressable
-                        style={[styles.option, paymentTiming === 'now' && styles.optionSelected]}
-                        onPress={() => setPaymentTiming('now')}
-                    >
-                        <View style={[styles.radio, paymentTiming === 'now' && styles.radioSelected]}>
-                            {paymentTiming === 'now' && <View style={styles.radioDot} />}
-                        </View>
-                        <Text style={styles.optionText}>Pagar agora</Text>
-                    </Pressable>
-
-                    <Pressable
-                        style={[styles.option, paymentTiming === 'later' && styles.optionSelected]}
-                        onPress={() => setPaymentTiming('later')}
-                    >
-                        <View style={[styles.radio, paymentTiming === 'later' && styles.radioSelected]}>
-                            {paymentTiming === 'later' && <View style={styles.radioDot} />}
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.optionText}>Pagar depois</Text>
-                            <Text style={styles.optionSubtext}>
-                                Efetuaremos a cobrança em seu cartão em seg., mar. 9
-                            </Text>
-                        </View>
-                    </Pressable>
-                </View>
-
                 {/* Payment Method */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Forma de pagamento</Text>
 
                     <View style={styles.securityBadge}>
-                        <Ionicons name="lock-closed" size={16} color="#14b8a6" />
+                        <Ionicons name="lock-closed" size={16} color={theme.colors.primary} />
                         <Text style={styles.securityText}>Todos os pagamentos são criptografados e seguros</Text>
                     </View>
-
-                    <Pressable
-                        style={[styles.paymentOption, paymentMethod === 'apple' && styles.paymentOptionSelected]}
-                        onPress={() => setPaymentMethod('apple')}
-                    >
-                        <View style={[styles.radio, paymentMethod === 'apple' && styles.radioSelected]}>
-                            {paymentMethod === 'apple' && <View style={styles.radioDot} />}
-                        </View>
-                        <Text style={styles.paymentOptionText}>Apple Pay</Text>
-                        <Ionicons name="logo-apple" size={24} color="#fff" style={{ marginLeft: 'auto' }} />
-                    </Pressable>
 
                     <Pressable
                         style={[styles.paymentOption, paymentMethod === 'pix' && styles.paymentOptionSelected]}
@@ -178,7 +116,18 @@ export default function CheckoutPaymentScreen() {
                             {paymentMethod === 'card' && <View style={styles.radioDot} />}
                         </View>
                         <Text style={styles.paymentOptionText}>Cartão de débito ou crédito</Text>
-                        <Ionicons name="card" size={20} color="#999" style={{ marginLeft: 'auto' }} />
+                        <Ionicons name="card" size={20} color={theme.colors.text.tertiary} style={{ marginLeft: 'auto' }} />
+                    </Pressable>
+
+                    <Pressable
+                        style={[styles.paymentOption, paymentMethod === 'apple' && styles.paymentOptionSelected]}
+                        onPress={() => setPaymentMethod('apple')}
+                    >
+                        <View style={[styles.radio, paymentMethod === 'apple' && styles.radioSelected]}>
+                            {paymentMethod === 'apple' && <View style={styles.radioDot} />}
+                        </View>
+                        <Text style={styles.paymentOptionText}>Apple Pay</Text>
+                        <Ionicons name="logo-apple" size={24} color={theme.colors.text.primary} style={{ marginLeft: 'auto' }} />
                     </Pressable>
                 </View>
 
@@ -200,75 +149,58 @@ export default function CheckoutPaymentScreen() {
                         </View>
                     </View>
 
-                    {/* Booking Summary */}
+                    {/* Purchase Summary */}
                     <Pressable
                         style={styles.reviewCard}
                         onPress={() => setSummaryExpanded(!summaryExpanded)}
                     >
                         <View style={styles.reviewCardHeader}>
                             <View>
-                                <Text style={styles.reviewTitle}>Resumo da solicitação de reserva</Text>
-                                <Text style={styles.reviewSubtext}>1 atividade</Text>
+                                <Text style={styles.reviewTitle}>Resumo da compra</Text>
+                                <Text style={styles.reviewSubtext}>1 roteiro digital</Text>
                             </View>
                             <Ionicons
                                 name={summaryExpanded ? 'chevron-up' : 'chevron-down'}
                                 size={20}
-                                color="#999"
+                                color={theme.colors.text.tertiary}
                             />
                         </View>
 
                         {summaryExpanded && (
                             <View style={styles.summaryExpandedContent}>
-                                <Text style={styles.packageTitle}>{packageData.title}</Text>
+                                <Text style={styles.itineraryTitle}>{itinerary.title}</Text>
                                 <View style={styles.rating}>
-                                    <Text>⭐ {packageData.rating} ({packageData.reviewCount})</Text>
-                                    <Text style={styles.badge}>💗 Melhores avaliações</Text>
+                                    <Text>⭐ {itinerary.rating} ({itinerary.reviewCount})</Text>
                                 </View>
 
                                 <View style={styles.detailsGrid}>
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="calendar" size={16} color="#999" />
+                                        <Ionicons name="location" size={16} color={theme.colors.text.secondary} />
                                         <Text style={styles.detailText}>
-                                            {formatDate(selectedDate)} • {time}
+                                            {itinerary.destination}, {itinerary.country}
                                         </Text>
                                     </View>
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="people" size={16} color="#999" />
+                                        <Ionicons name="calendar" size={16} color={theme.colors.text.secondary} />
                                         <Text style={styles.detailText}>
-                                            {adults} Adultos{parseInt(children as string) > 0 && `, ${children} Crianças`}
+                                            {itinerary.duration} dias de viagem
                                         </Text>
                                     </View>
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="checkmark-circle" size={16} color="#14b8a6" />
-                                        <Text style={[styles.detailText, { color: '#14b8a6' }]}>
-                                            Cancelamento gratuito
+                                        <Ionicons name="download" size={16} color={theme.colors.success} />
+                                        <Text style={[styles.detailText, { color: theme.colors.success }]}>
+                                            Acesso imediato após compra
                                         </Text>
                                     </View>
                                 </View>
 
                                 <Text style={styles.totalInSummary}>
-                                    R$ {parseFloat(totalPrice as string).toLocaleString('pt-BR')}
+                                    R$ {parseFloat(price as string).toFixed(2).replace('.', ',')}
                                 </Text>
                             </View>
                         )}
                     </Pressable>
                 </View>
-
-                {/* Promo Code */}
-                <TouchableOpacity
-                    style={styles.promoButton}
-                    onPress={() => {
-                        Alert.alert(
-                            '🏷️ Código Promocional',
-                            'Entre em contato com a agência para obter códigos promocionais ou vales-presente.\n\nEsta funcionalidade será disponibilizada em breve!',
-                            [{ text: 'Entendi' }]
-                        );
-                    }}
-                >
-                    <Ionicons name="pricetag" size={18} color="#14b8a6" />
-                    <Text style={styles.promoButtonText}>Inserir código promocional ou vale-presente</Text>
-                    <Ionicons name="chevron-forward" size={18} color="#999" />
-                </TouchableOpacity>
 
                 <View style={{ height: 220 }} />
             </ScrollView>
@@ -277,13 +209,8 @@ export default function CheckoutPaymentScreen() {
             <View style={styles.footer}>
                 <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total</Text>
-                    <Text style={styles.totalPrice}>R$ {parseFloat(totalPrice as string).toLocaleString('pt-BR')}</Text>
+                    <Text style={styles.totalPrice}>R$ {parseFloat(price as string).toFixed(2).replace('.', ',')}</Text>
                     <Text style={styles.taxIncluded}>Todos os impostos e taxas inclusos</Text>
-                </View>
-
-                <View style={styles.policyRow}>
-                    <Ionicons name="checkmark-circle" size={18} color="#14b8a6" />
-                    <Text style={styles.policyText}>Cancelamento gratuito</Text>
                 </View>
 
                 <Text style={styles.terms}>
@@ -311,7 +238,7 @@ export default function CheckoutPaymentScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: theme.colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -320,13 +247,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#3a3a3a',
+        borderBottomColor: theme.colors.border,
     },
     backButton: { width: 40 },
     headerTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#fff',
+        color: theme.colors.text.primary,
     },
     scrollView: { flex: 1 },
     progressContainer: {
@@ -341,29 +268,33 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: '#3a3a3a',
+        backgroundColor: theme.colors.surface,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,
+        borderWidth: 2,
+        borderColor: theme.colors.border,
     },
     stepCircleCompleted: {
-        backgroundColor: '#1a1a1a',
-        borderWidth: 2,
-        borderColor: '#14b8a6',
+        backgroundColor: theme.colors.background,
+        borderColor: theme.colors.primary,
     },
-    stepCircleActive: { backgroundColor: '#14b8a6' },
+    stepCircleActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
     stepNumber: { color: '#fff', fontSize: 14, fontWeight: '600' },
-    stepLabel: { fontSize: 13, color: '#999' },
-    stepLabelCompleted: { color: '#14b8a6', fontWeight: '500' },
-    stepLabelActive: { color: '#fff', fontWeight: '600' },
+    stepLabel: { fontSize: 13, color: theme.colors.text.secondary },
+    stepLabelCompleted: { color: theme.colors.primary, fontWeight: '500' },
+    stepLabelActive: { color: theme.colors.text.primary, fontWeight: '600' },
     progressConnector: {
         flex: 1,
         height: 2,
-        backgroundColor: '#3a3a3a',
+        backgroundColor: theme.colors.border,
         marginHorizontal: 12,
         marginBottom: 28,
     },
-    progressConnectorActive: { backgroundColor: '#14b8a6' },
+    progressConnectorActive: { backgroundColor: theme.colors.primary },
     section: {
         paddingHorizontal: 16,
         marginBottom: 24,
@@ -371,7 +302,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#fff',
+        color: theme.colors.text.primary,
         marginBottom: 16,
     },
     securityBadge: {
@@ -380,104 +311,75 @@ const styles = StyleSheet.create({
         gap: 6,
         marginBottom: 16,
     },
-    securityText: { color: '#14b8a6', fontSize: 14 },
-    option: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        padding: 16,
-        backgroundColor: '#2a2a2a',
-        borderRadius: 12,
-        marginBottom: 12,
-        borderWidth: 2,
-        borderColor: '#3a3a3a',
-    },
-    optionSelected: { borderColor: '#14b8a6' },
-    radio: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: '#666',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    radioSelected: { borderColor: '#14b8a6' },
-    radioDot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#14b8a6',
-    },
-    optionText: { fontSize: 16, color: '#fff', fontWeight: '500' },
-    optionSubtext: { fontSize: 14, color: '#999', marginTop: 4 },
+    securityText: { color: theme.colors.primary, fontSize: 14 },
     paymentOption: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
         padding: 16,
-        backgroundColor: '#2a2a2a',
+        backgroundColor: theme.colors.surface,
         borderRadius: 12,
         marginBottom: 12,
         borderWidth: 2,
-        borderColor: '#3a3a3a',
+        borderColor: theme.colors.border,
     },
-    paymentOptionSelected: { borderColor: '#14b8a6' },
-    paymentOptionText: { fontSize: 16, color: '#fff', fontWeight: '500' },
+    paymentOptionSelected: { borderColor: theme.colors.primary },
+    radio: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: theme.colors.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    radioSelected: { borderColor: theme.colors.primary },
+    radioDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: theme.colors.primary,
+    },
+    paymentOptionText: { fontSize: 16, color: theme.colors.text.primary, fontWeight: '500' },
     pixBadge: { fontSize: 24 },
     reviewCard: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: theme.colors.surface,
         borderRadius: 12,
         padding: 16,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: theme.colors.border,
     },
     reviewCardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
     },
-    reviewTitle: { fontSize: 16, fontWeight: '600', color: '#fff' },
-    reviewText: { fontSize: 15, color: '#fff', fontWeight: '500' },
-    reviewSubtext: { fontSize: 14, color: '#999', marginTop: 4 },
-    editButton: { fontSize: 14, color: '#14b8a6' },
+    reviewTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.text.primary },
+    reviewText: { fontSize: 15, color: theme.colors.text.primary, fontWeight: '500' },
+    reviewSubtext: { fontSize: 14, color: theme.colors.text.secondary, marginTop: 4 },
+    editButton: { fontSize: 14, color: theme.colors.primary },
     summaryExpandedContent: { marginTop: 16, gap: 12 },
-    packageTitle: { fontSize: 16, fontWeight: '600', color: '#fff' },
+    itineraryTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.text.primary },
     rating: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-    badge: { fontSize: 13, color: '#999' },
     detailsGrid: { gap: 8 },
     detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    detailText: { fontSize: 14, color: '#ccc' },
-    totalInSummary: { fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 8 },
-    promoButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        padding: 16,
-        marginHorizontal: 16,
-        backgroundColor: '#2a2a2a',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#3a3a3a',
-    },
-    promoButtonText: { flex: 1, fontSize: 15, color: '#fff' },
+    detailText: { fontSize: 14, color: theme.colors.text.secondary },
+    totalInSummary: { fontSize: 18, fontWeight: '700', color: theme.colors.text.primary, marginTop: 8 },
     footer: {
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 24,
-        backgroundColor: '#2a2a2a',
+        backgroundColor: theme.colors.surface,
         borderTopWidth: 1,
-        borderTopColor: '#3a3a3a',
+        borderTopColor: theme.colors.border,
     },
     totalSection: { marginBottom: 12 },
-    totalLabel: { fontSize: 14, color: '#999' },
-    totalPrice: { fontSize: 26, fontWeight: '700', color: '#fff', marginTop: 4 },
-    taxIncluded: { fontSize: 13, color: '#14b8a6', marginTop: 4 },
-    policyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-    policyText: { fontSize: 14, color: '#ccc' },
-    terms: { fontSize: 12, color: '#999', lineHeight: 16, marginBottom: 16 },
-    link: { color: '#14b8a6' },
+    totalLabel: { fontSize: 14, color: theme.colors.text.secondary },
+    totalPrice: { fontSize: 26, fontWeight: '700', color: theme.colors.text.primary, marginTop: 4 },
+    taxIncluded: { fontSize: 13, color: theme.colors.primary, marginTop: 4 },
+    terms: { fontSize: 12, color: theme.colors.text.secondary, lineHeight: 16, marginBottom: 16 },
+    link: { color: theme.colors.primary },
     applePayButton: {
         backgroundColor: '#000',
         paddingVertical: 14,
@@ -489,7 +391,7 @@ const styles = StyleSheet.create({
     },
     applePayText: { color: '#fff', fontSize: 18, fontWeight: '600' },
     confirmButton: {
-        backgroundColor: '#14b8a6',
+        backgroundColor: theme.colors.primary,
         paddingVertical: 16,
         borderRadius: 10,
     },
@@ -499,5 +401,5 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         textAlign: 'center',
     },
-    errorText: { color: '#fff', fontSize: 16, textAlign: 'center', marginTop: 40 },
+    errorText: { color: theme.colors.text.primary, fontSize: 16, textAlign: 'center', marginTop: 40 },
 });

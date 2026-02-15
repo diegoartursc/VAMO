@@ -22,11 +22,15 @@ import CollapsibleSection from '../../src/components/common/CollapsibleSection';
 import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
 import { shareService } from '../../src/services/sharing';
 import { haptics } from '../../src/services/haptics';
+import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
+import FAQSection from '../../src/components/FAQSection';
+import { getItineraryFAQ } from '../../src/data/mockFAQ';
+import { PurchaseSuccessModal } from '../../src/components/modals/PurchaseSuccessModal';
 
 const { width, height } = Dimensions.get('window');
 
 export default function ItineraryDetailScreen() {
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, showSuccess } = useLocalSearchParams<{ id: string; showSuccess?: string }>();
     const router = useRouter();
     const itinerary = getItineraryById(id);
     const reviews = getReviewsByPackageId(`itinerary-${id}`);
@@ -41,6 +45,32 @@ export default function ItineraryDetailScreen() {
 
     // Fixed CTA
     const [showBuyOptions, setShowBuyOptions] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
+
+    const handlePurchase = () => {
+        // Show success modal
+        setShowSuccessModal(true);
+    };
+
+    const handleGoToMyTrips = () => {
+        setShowSuccessModal(false);
+        // Navigate to itinerary success screen
+        router.push({
+            pathname: '/itinerary-success' as any,
+            params: { itineraryId: id },
+        });
+    };
+    const handleBuyNow = () => {
+        // Navigate to checkout flow
+        router.push({
+            pathname: `/checkout/itinerary-contact` as any,
+            params: {
+                itineraryId: id,
+                price: itinerary.price.toString(),
+            },
+        });
+    };
+
 
     return (
         <View style={styles.container}>
@@ -91,6 +121,16 @@ export default function ItineraryDetailScreen() {
                                 </Text>
                             </View>
                         </View>
+
+                        {/* Creator Verification Link */}
+                        <TouchableOpacity
+                            style={styles.verificationLink}
+                            onPress={() => router.push('/creator-verification-explained' as any)}
+                        >
+                            <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
+                            <Text style={styles.verificationLinkText}>Como verificamos os criadores</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
+                        </TouchableOpacity>
                     </View>
 
                     {/* Title & Location */}
@@ -131,24 +171,70 @@ export default function ItineraryDetailScreen() {
                         </View>
                         <TouchableOpacity
                             style={styles.buyButton}
-                            onPress={() => Alert.alert(
-                                '💳 Comprar Roteiro',
-                                `${itinerary.title}\n\nPreço: R$ ${itinerary.price.toFixed(2)}\n\nDeseja prosseguir para o pagamento?`,
-                                [
-                                    { text: 'Voltar', style: 'cancel' },
-                                    { text: 'Comprar', onPress: () => Alert.alert('Sucesso!', 'Roteiro enviado para seu email.') }
-                                ]
-                            )}
+                            onPress={handleBuyNow}
                         >
                             <Text style={styles.buyButtonText}>Comprar Agora</Text>
                             <Ionicons name="arrow-forward" size={20} color="#fff" />
                         </TouchableOpacity>
                     </View>
 
+                    {/* Estimativa de Gasto */}
+                    {itinerary.estimatedSpending && (
+                        <CollapsibleSection title="💰 Estimativa de Gasto" defaultExpanded={false}>
+                            <View style={styles.spendingEstimate}>
+                                <View style={styles.spendingHeader}>
+                                    <Text style={styles.spendingRange}>
+                                        {itinerary.estimatedSpending.currency} {itinerary.estimatedSpending.min.toLocaleString('pt-BR')} - {itinerary.estimatedSpending.max.toLocaleString('pt-BR')}
+                                    </Text>
+                                    <Text style={styles.spendingNote}>
+                                        *Valores aproximados para {itinerary.duration} dias
+                                    </Text>
+                                </View>
+
+                                {itinerary.estimatedSpending.breakdown && (
+                                    <View style={styles.spendingBreakdown}>
+                                        {itinerary.estimatedSpending.breakdown.map((item, index) => (
+                                            <View key={index} style={styles.breakdownItem}>
+                                                <View style={styles.breakdownHeader}>
+                                                    <Text style={styles.breakdownCategory}>{item.category}</Text>
+                                                    <Text style={styles.breakdownAmount}>{item.amount}</Text>
+                                                </View>
+                                                <Text style={styles.breakdownDescription}>{item.description}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
+
+                                <View style={styles.spendingDisclaimer}>
+                                    <Ionicons name="information-circle-outline" size={16} color={theme.colors.text.secondary} />
+                                    <Text style={styles.disclaimerText}>
+                                        Valores estimados podem variar conforme época do ano e estilo de viagem
+                                    </Text>
+                                </View>
+                            </View>
+                        </CollapsibleSection>
+                    )}
+
                     {/* Sobre o Roteiro */}
                     <CollapsibleSection title="Sobre o Roteiro" defaultExpanded>
                         <Text style={styles.description}>{itinerary.description}</Text>
                     </CollapsibleSection>
+
+                    {/* Destaques */}
+                    {itinerary.highlights && itinerary.highlights.length > 0 && (
+                        <CollapsibleSection title="Destaques" defaultExpanded>
+                            <View style={styles.highlightsContainer}>
+                                {itinerary.highlights.map((highlight, index) => (
+                                    <View key={index} style={styles.highlightRow}>
+                                        <View style={styles.checkIcon}>
+                                            <Ionicons name="checkmark" size={12} color="#fff" />
+                                        </View>
+                                        <Text style={styles.highlightText}>{highlight}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </CollapsibleSection>
+                    )}
 
                     {/* O que você vai receber */}
                     <CollapsibleSection title="O que você vai receber" defaultExpanded>
@@ -157,116 +243,27 @@ export default function ItineraryDetailScreen() {
                         </Text>
 
                         <View style={styles.inclusionsList}>
-                            <View style={styles.inclusionItem}>
-                                <View style={[styles.inclusionIcon, { backgroundColor: '#E3F2FD' }]}>
-                                    <Ionicons name="airplane" size={24} color="#2196F3" />
+                            {ITINERARY_INCLUSIONS.map((item) => (
+                                <View key={item.id} style={styles.inclusionItem}>
+                                    <View style={[styles.inclusionIcon, { backgroundColor: item.bgColor }]}>
+                                        <Ionicons name={item.icon as any} size={24} color={item.iconColor} />
+                                    </View>
+                                    <View style={styles.inclusionContent}>
+                                        <Text style={styles.inclusionTitle}>{item.title}</Text>
+                                        <Text style={styles.inclusionDesc}>
+                                            {item.description}
+                                        </Text>
+                                    </View>
                                 </View>
-                                <View style={styles.inclusionContent}>
-                                    <Text style={styles.inclusionTitle}>Itinerário Completo</Text>
-                                    <Text style={styles.inclusionDesc}>
-                                        Voos recomendados, horários, companhias aéreas e dicas para economizar
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.inclusionItem}>
-                                <View style={[styles.inclusionIcon, { backgroundColor: '#FFF3E0' }]}>
-                                    <Ionicons name="bed" size={24} color="#FF9800" />
-                                </View>
-                                <View style={styles.inclusionContent}>
-                                    <Text style={styles.inclusionTitle}>Hotéis & Hospedagens</Text>
-                                    <Text style={styles.inclusionDesc}>
-                                        Lista com os melhores lugares para se hospedar, faixa de preço e localização estratégica
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.inclusionItem}>
-                                <View style={[styles.inclusionIcon, { backgroundColor: '#F3E5F5' }]}>
-                                    <Ionicons name="map" size={24} color="#9C27B0" />
-                                </View>
-                                <View style={styles.inclusionContent}>
-                                    <Text style={styles.inclusionTitle}>Passeios & Atrações</Text>
-                                    <Text style={styles.inclusionDesc}>
-                                        Todas as atrações imperdíveis, preços de ingressos e como evitar filas
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.inclusionItem}>
-                                <View style={[styles.inclusionIcon, { backgroundColor: '#E8F5E9' }]}>
-                                    <Ionicons name="car" size={24} color="#4CAF50" />
-                                </View>
-                                <View style={styles.inclusionContent}>
-                                    <Text style={styles.inclusionTitle}>Locomoção</Text>
-                                    <Text style={styles.inclusionDesc}>
-                                        Como se locomover na cidade: metrô, ônibus, táxi, apps e passes de transporte
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.inclusionItem}>
-                                <View style={[styles.inclusionIcon, { backgroundColor: '#FFF9C4' }]}>
-                                    <Ionicons name="bulb" size={24} color="#F9A825" />
-                                </View>
-                                <View style={styles.inclusionContent}>
-                                    <Text style={styles.inclusionTitle}>Dicas Exclusivas</Text>
-                                    <Text style={styles.inclusionDesc}>
-                                        Truques de quem já foi: melhores horários, segredos locais e como economizar
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.inclusionItem}>
-                                <View style={[styles.inclusionIcon, { backgroundColor: '#FFEBEE' }]}>
-                                    <Ionicons name="restaurant" size={24} color="#F44336" />
-                                </View>
-                                <View style={styles.inclusionContent}>
-                                    <Text style={styles.inclusionTitle}>Restaurantes & Gastronomia</Text>
-                                    <Text style={styles.inclusionDesc}>
-                                        Onde comer bem, opções para todos os bolsos e pratos típicos que você não pode perder
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.inclusionItem}>
-                                <View style={[styles.inclusionIcon, { backgroundColor: '#E0F2F1' }]}>
-                                    <Ionicons name="chatbubbles" size={24} color="#009688" />
-                                </View>
-                                <View style={styles.inclusionContent}>
-                                    <Text style={styles.inclusionTitle}>Suporte do Criador</Text>
-                                    <Text style={styles.inclusionDesc}>
-                                        Tire suas dúvidas diretamente com {itinerary.creator.name} via mensagem
-                                    </Text>
-                                </View>
-                            </View>
+                            ))}
                         </View>
                     </CollapsibleSection>
 
-                    {/* Contact Creator */}
-                    <TouchableOpacity
-                        style={styles.contactButton}
-                        onPress={() => {
-                            haptics.light();
-                            Alert.alert(
-                                '💬 Contato',
-                                `Deseja falar com ${itinerary.creator.name}?`,
-                                [
-                                    { text: 'Cancelar', style: 'cancel' },
-                                    {
-                                        text: 'Abrir WhatsApp',
-                                        onPress: () => {
-                                            const message = `Olá ${itinerary.creator.name}! Vi seu roteiro "${itinerary.title}" no VAMO e gostaria de tirar algumas dúvidas.`;
-                                            shareService.openWhatsApp('5548999999999', message);
-                                        }
-                                    }
-                                ]
-                            );
-                        }}
-                    >
-                        <Ionicons name="chatbubble-outline" size={20} color={theme.colors.primary} />
-                        <Text style={styles.contactButtonText}>Falar com {itinerary.creator.name}</Text>
-                    </TouchableOpacity>
+                    {/* Perguntas Frequentes */}
+                    <FAQSection
+                        items={getItineraryFAQ(id)}
+                        creatorName={itinerary.creator.name}
+                    />
 
                     {/* Premium Reviews Section */}
                     {reviews.length > 0 && (
@@ -296,6 +293,14 @@ export default function ItineraryDetailScreen() {
                     <View style={{ height: 100 }} />
                 </View>
             </ScrollView>
+
+            {/* Purchase Success Modal */}
+            <PurchaseSuccessModal
+                visible={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                onGoToMyTrips={handleGoToMyTrips}
+                itineraryTitle={itinerary.title}
+            />
         </View>
     );
 }
@@ -512,25 +517,112 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
         lineHeight: 18,
     },
-    contactButton: {
+
+    // Spending Estimate Styles
+    spendingEstimate: {
+        gap: 16,
+    },
+    spendingHeader: {
+        marginBottom: 8,
+    },
+    spendingRange: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.colors.success,
+        marginBottom: 4,
+    },
+    spendingNote: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        fontStyle: 'italic',
+    },
+    spendingBreakdown: {
+        gap: 12,
+        marginTop: 8,
+    },
+    breakdownItem: {
+        backgroundColor: theme.colors.surfaceLight,
+        padding: 12,
+        borderRadius: 8,
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.primary,
+    },
+    breakdownHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    breakdownCategory: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    breakdownAmount: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.colors.success,
+    },
+    breakdownDescription: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        lineHeight: 16,
+    },
+    spendingDisclaimer: {
+        flexDirection: 'row',
+        gap: 8,
+        backgroundColor: theme.colors.surfaceLight,
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 8,
+    },
+    disclaimerText: {
+        flex: 1,
+        fontSize: 11,
+        color: theme.colors.text.secondary,
+        lineHeight: 15,
+    },
+
+    // Highlights Styles
+    highlightsContainer: {
+        gap: 12,
+        paddingVertical: 8,
+    },
+    highlightRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 12,
+    },
+    checkIcon: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: theme.colors.success,
+        alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
-        backgroundColor: theme.colors.surface,
-        paddingVertical: 14,
-        borderRadius: 28,
-        marginTop: 24,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
     },
-    contactButtonText: {
+    highlightText: {
         fontSize: 15,
-        fontWeight: '600',
-        color: theme.colors.primary,
+        color: theme.colors.text.primary,
+        flex: 1,
     },
+
     reviewsSection: {
         marginTop: 24,
+    },
+    verificationLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+        marginTop: 12,
+    },
+    verificationLinkText: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.verified,
+        fontWeight: '500',
     },
     trustBox: {
         flexDirection: 'row',

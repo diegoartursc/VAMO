@@ -7,6 +7,12 @@ export interface Agency {
     whatsapp?: string;
 }
 
+export interface AvailableDate {
+    date: string; // ISO format, e.g. '2026-03-15'
+    price: number; // price per person in BRL
+    spotsLeft?: number; // optional remaining spots
+}
+
 export interface Package {
     id: string;
     title: string;
@@ -68,6 +74,8 @@ export interface Package {
     // Contextual detail fields
     emotionalIntro?: string;
     perfectFor?: string[];
+    // Available dates with prices
+    availableDates?: AvailableDate[];
 }
 
 export interface User {
@@ -103,7 +111,18 @@ export interface Itinerary {
     description: string;
     highlights: string[];
     includes: string[];
+    estimatedSpending?: {
+        min: number;
+        max: number;
+        currency: string;
+        breakdown?: {
+            category: string;
+            amount: string;
+            description: string;
+        }[];
+    };
 }
+
 
 export interface Review {
     id: string;

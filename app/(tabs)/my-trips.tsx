@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -6,71 +6,59 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
+    Animated,
+    Dimensions,
+    Alert,
 } from 'react-native';
-import { theme } from '../../src/theme/theme';
-import { PressableCard } from '../../src/components/common/PressableCard';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { theme } from '../../src/theme/theme';
+import {
+    upcomingPackages,
+    pastPackages,
+    purchasedItineraries,
+    savedItems,
+    getDaysUntil,
+    formatMonthYear,
+    formatDate,
+    BookedPackage,
+    PurchasedItineraryItem,
+    SavedItem,
+    BookingStatus,
+} from '../../src/data/mockMyTrips';
 
-type TripStatus = 'agendados-realizados' | 'salvos';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-interface Trip {
-    id: string;
-    title: string;
-    destination: string;
-    image: string;
-    date?: string;
-    price?: number;
-    status: TripStatus;
+// ─── Tab definitions ────────────────────────────────────
+
+type TabKey = 'upcoming' | 'past' | 'itineraries' | 'saved';
+
+interface TabDef {
+    key: TabKey;
+    label: string;
+    icon: string;
 }
 
-const MOCK_TRIPS: Trip[] = [
-    {
-        id: '1',
-        title: 'Paris Romântica',
-        destination: 'Paris, França',
-        image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-        date: 'Junho 2025',
-        status: 'agendados-realizados',
-    },
-    {
-        id: '2',
-        title: 'Caribe All Inclusive',
-        destination: 'Cancún, México',
-        image: 'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=800',
-        date: 'Março 2025',
-        status: 'agendados-realizados',
-    },
-    {
-        id: '3',
-        title: 'Europa Clássica',
-        destination: 'Multi-destinos',
-        image: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800',
-        price: 15000,
-        status: 'salvos',
-    },
-    {
-        id: '4',
-        title: 'Dubai Luxo',
-        destination: 'Dubai, EAU',
-        image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800',
-        price: 9500,
-        status: 'salvos',
-    },
-    {
-        id: '5',
-        title: 'Machu Picchu',
-        destination: 'Cusco, Peru',
-        image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800',
-        price: 5500,
-        status: 'salvos',
-    },
+const TABS: TabDef[] = [
+    { key: 'upcoming', label: 'Meus Pacotes', icon: '📦' },
+    { key: 'itineraries', label: 'Meus Roteiros', icon: '📚' },
+    { key: 'saved', label: 'Salvos', icon: '❤️' },
+    { key: 'past', label: 'Realizados', icon: '🧳' },
 ];
+
+// ─── Status helpers ─────────────────────────────────────
+
+const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: string }> = {
+    confirmed: { label: 'Confirmado', color: '#16A34A', bg: '#DCFCE7' },
+    pending_payment: { label: 'Aguardando pagamento', color: '#D97706', bg: '#FEF3C7' },
+    cancelled: { label: 'Cancelado', color: '#DC2626', bg: '#FEE2E2' },
+};
+
+// ─── Main Component ─────────────────────────────────────
 
 export default function MyTripsScreen() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<TripStatus>('agendados-realizados');
-
-    const filteredTrips = MOCK_TRIPS.filter(trip => trip.status === activeTab);
+    const [activeTab, setActiveTab] = useState<TabKey>('upcoming');
 
     return (
         <View style={styles.container}>
@@ -78,45 +66,12 @@ export default function MyTripsScreen() {
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Minhas Viagens</Text>
                 <Text style={styles.headerSubtitle}>
-                    Gerencie suas viagens realizadas e salvas
+                    Suas viagens, roteiros e favoritos
                 </Text>
             </View>
 
-            {/* Tab Selector */}
-            <View style={styles.tabSelector}>
-                <TouchableOpacity
-                    style={[
-                        styles.tab,
-                        activeTab === 'agendados-realizados' && styles.tabActive,
-                    ]}
-                    onPress={() => setActiveTab('agendados-realizados')}
-                >
-                    <Text
-                        style={[
-                            styles.tabText,
-                            activeTab === 'agendados-realizados' && styles.tabTextActive,
-                        ]}
-                    >
-                        Agendados / Realizados
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[
-                        styles.tab,
-                        activeTab === 'salvos' && styles.tabActive,
-                    ]}
-                    onPress={() => setActiveTab('salvos')}
-                >
-                    <Text
-                        style={[
-                            styles.tabText,
-                            activeTab === 'salvos' && styles.tabTextActive,
-                        ]}
-                    >
-                        ❤️ Salvos
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            {/* Tab Bar */}
+            <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
             {/* Content */}
             <ScrollView
@@ -124,39 +79,10 @@ export default function MyTripsScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {filteredTrips.length > 0 ? (
-                    filteredTrips.map(trip => (
-                        <TripCard
-                            key={trip.id}
-                            trip={trip}
-                            onPress={() => router.push(`/package/${trip.id}`)}
-                        />
-                    ))
-                ) : (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>
-                            {activeTab === 'agendados-realizados' ? '✈️' : '❤️'}
-                        </Text>
-                        <Text style={styles.emptyTitle}>
-                            {activeTab === 'agendados-realizados'
-                                ? 'Nenhuma viagem agendada'
-                                : 'Nenhuma viagem salva'}
-                        </Text>
-                        <Text style={styles.emptyText}>
-                            {activeTab === 'agendados-realizados'
-                                ? 'Suas próximas aventuras aparecerão aqui!'
-                                : 'Explore nossos pacotes e salve suas viagens favoritas'}
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.emptyButton}
-                            onPress={() => router.push('/(tabs)/packages')}
-                        >
-                            <Text style={styles.emptyButtonText}>
-                                Explorar Pacotes
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
+                {activeTab === 'upcoming' && <UpcomingTab />}
+                {activeTab === 'itineraries' && <ItinerariesTab />}
+                {activeTab === 'saved' && <SavedTab />}
+                {activeTab === 'past' && <PastTab />}
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -164,50 +90,449 @@ export default function MyTripsScreen() {
     );
 }
 
-function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
+// ─── Tab Bar ────────────────────────────────────────────
+
+function TabBar({ activeTab, onTabChange }: { activeTab: TabKey; onTabChange: (t: TabKey) => void }) {
     return (
-        <PressableCard onPress={onPress} style={styles.tripCard}>
-            <Image
-                source={{ uri: trip.image }}
-                style={styles.tripImage}
-                resizeMode="cover"
-            />
-            <View style={styles.tripInfo}>
-                <Text style={styles.tripTitle} numberOfLines={1}>
-                    {trip.title}
-                </Text>
-                <Text style={styles.tripDestination} numberOfLines={1}>
-                    {trip.destination}
-                </Text>
-                {trip.date && (
-                    <View style={styles.tripMeta}>
-                        <Text style={styles.tripDate}>📅 {trip.date}</Text>
-                    </View>
-                )}
-                {trip.price && (
-                    <View style={styles.tripMeta}>
-                        <Text style={styles.tripPrice}>
-                            R$ {trip.price.toLocaleString()}
-                        </Text>
-                    </View>
-                )}
-            </View>
-        </PressableCard>
+        <View style={styles.tabBarContainer}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.tabBarScroll}
+            >
+                {TABS.map((tab) => {
+                    const isActive = activeTab === tab.key;
+                    return (
+                        <TouchableOpacity
+                            key={tab.key}
+                            style={[styles.tabItem, isActive && styles.tabItemActive]}
+                            onPress={() => onTabChange(tab.key)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.tabIcon}>{tab.icon}</Text>
+                            <Text
+                                style={[
+                                    styles.tabLabel,
+                                    isActive && styles.tabLabelActive,
+                                ]}
+                            >
+                                {tab.label}
+                            </Text>
+                            {isActive && <View style={styles.tabUnderline} />}
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        </View>
     );
 }
+
+// ─── Empty State Component ──────────────────────────────
+
+function EmptyState({
+    icon,
+    title,
+    message,
+    ctaLabel,
+    onCtaPress,
+}: {
+    icon: string;
+    title: string;
+    message: string;
+    ctaLabel?: string;
+    onCtaPress?: () => void;
+}) {
+    return (
+        <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>{icon}</Text>
+            <Text style={styles.emptyTitle}>{title}</Text>
+            <Text style={styles.emptyText}>{message}</Text>
+            {ctaLabel && onCtaPress && (
+                <TouchableOpacity style={styles.emptyButton} onPress={onCtaPress}>
+                    <Text style={styles.emptyButtonText}>{ctaLabel}</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}
+
+// ─── Section Header (Month Grouping) ────────────────────
+
+function SectionHeader({ title }: { title: string }) {
+    return (
+        <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeaderLine} />
+            <Text style={styles.sectionHeaderText}>{title.toUpperCase()}</Text>
+            <View style={styles.sectionHeaderLine} />
+        </View>
+    );
+}
+
+// ─── Status Badge ───────────────────────────────────────
+
+function StatusBadge({ status }: { status: BookingStatus }) {
+    const config = STATUS_CONFIG[status];
+    return (
+        <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
+            <View style={[styles.statusDot, { backgroundColor: config.color }]} />
+            <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
+        </View>
+    );
+}
+
+// ─── Countdown Badge ────────────────────────────────────
+
+function CountdownBadge({ days }: { days: number }) {
+    if (days <= 0) return null;
+    const isUrgent = days <= 7;
+    return (
+        <View style={[styles.countdownBadge, isUrgent && styles.countdownBadgeUrgent]}>
+            <Ionicons
+                name="time-outline"
+                size={12}
+                color={isUrgent ? '#DC2626' : theme.colors.primary}
+            />
+            <Text style={[styles.countdownText, isUrgent && styles.countdownTextUrgent]}>
+                {days === 1 ? 'Amanhã!' : `Faltam ${days} dias`}
+            </Text>
+        </View>
+    );
+}
+
+// ─── Action Button ──────────────────────────────────────
+
+function ActionButton({
+    label,
+    icon,
+    onPress,
+    variant = 'outline',
+}: {
+    label: string;
+    icon: string;
+    onPress: () => void;
+    variant?: 'primary' | 'outline';
+}) {
+    return (
+        <TouchableOpacity
+            style={[
+                styles.actionButton,
+                variant === 'primary' && styles.actionButtonPrimary,
+            ]}
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
+            <Ionicons
+                name={icon as any}
+                size={14}
+                color={variant === 'primary' ? '#FFF' : theme.colors.primary}
+            />
+            <Text
+                style={[
+                    styles.actionButtonText,
+                    variant === 'primary' && styles.actionButtonTextPrimary,
+                ]}
+            >
+                {label}
+            </Text>
+        </TouchableOpacity>
+    );
+}
+
+// ─── TAB: Próximas ──────────────────────────────────────
+
+function UpcomingTab() {
+    const router = useRouter();
+    const items = upcomingPackages;
+
+    if (items.length === 0) {
+        return (
+            <EmptyState
+                icon="✈️"
+                title="Você ainda não tem viagens agendadas"
+                message="Que tal planejar a sua próxima aventura?"
+                ctaLabel="Explorar pacotes"
+                onCtaPress={() => router.push('/(tabs)/packages')}
+            />
+        );
+    }
+
+    // Group by month/year
+    const grouped = useMemo(() => {
+        const map = new Map<string, BookedPackage[]>();
+        items
+            .sort((a, b) => new Date(a.travelDate).getTime() - new Date(b.travelDate).getTime())
+            .forEach((pkg) => {
+                const key = formatMonthYear(pkg.travelDate);
+                if (!map.has(key)) map.set(key, []);
+                map.get(key)!.push(pkg);
+            });
+        return Array.from(map.entries());
+    }, [items]);
+
+    return (
+        <>
+            {grouped.map(([month, packages]) => (
+                <View key={month}>
+                    <SectionHeader title={month} />
+                    {packages.map((pkg) => (
+                        <UpcomingCard
+                            key={pkg.id}
+                            pkg={pkg}
+                            onPress={() => router.push(`/purchased-package/${pkg.id}`)}
+                        />
+                    ))}
+                </View>
+            ))}
+        </>
+    );
+}
+
+function UpcomingCard({ pkg, onPress }: { pkg: BookedPackage; onPress: () => void }) {
+    const days = getDaysUntil(pkg.travelDate);
+
+    return (
+        <TouchableOpacity style={styles.upcomingCard} onPress={onPress} activeOpacity={0.7}>
+            <Image source={{ uri: pkg.image }} style={styles.upcomingImage} />
+            <View style={styles.upcomingContent}>
+                <View style={styles.upcomingTop}>
+                    <Text style={styles.upcomingTitle} numberOfLines={1}>{pkg.title}</Text>
+                    <Text style={styles.upcomingDestination} numberOfLines={1}>
+                        📍 {pkg.destination}, {pkg.country}
+                    </Text>
+                    <Text style={styles.upcomingDate}>
+                        📅 {formatDate(pkg.travelDate)}
+                    </Text>
+                </View>
+
+                <View style={styles.upcomingBottom}>
+                    <StatusBadge status={pkg.status} />
+                    {days > 0 && <CountdownBadge days={days} />}
+                </View>
+
+                <View style={styles.upcomingActions}>
+                    <ActionButton
+                        label="Detalhes"
+                        icon="eye-outline"
+                        onPress={onPress}
+                        variant="primary"
+                    />
+                    <ActionButton
+                        label="Voucher"
+                        icon="download-outline"
+                        onPress={() => Alert.alert('Voucher', 'Download do voucher iniciado!')}
+                    />
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+// ─── TAB: Realizadas ────────────────────────────────────
+
+function PastTab() {
+    const router = useRouter();
+    const items = pastPackages;
+
+    if (items.length === 0) {
+        return (
+            <EmptyState
+                icon="🧳"
+                title="Nenhuma viagem realizada"
+                message="Suas viagens concluídas aparecerão aqui."
+            />
+        );
+    }
+
+    return (
+        <>
+            {items.map((pkg) => (
+                <PastCard key={pkg.id} pkg={pkg} />
+            ))}
+        </>
+    );
+}
+
+function PastCard({ pkg }: { pkg: BookedPackage }) {
+    const router = useRouter();
+
+    return (
+        <TouchableOpacity
+            style={styles.pastCard}
+            onPress={() => router.push(`/purchased-package/${pkg.id}`)}
+            activeOpacity={0.7}
+        >
+            <Image source={{ uri: pkg.image }} style={styles.pastImage} />
+            <View style={styles.pastContent}>
+                <Text style={styles.pastTitle} numberOfLines={1}>{pkg.title}</Text>
+                <Text style={styles.pastDestination} numberOfLines={1}>
+                    📍 {pkg.destination}, {pkg.country}
+                </Text>
+                <Text style={styles.pastDate}>
+                    📅 {formatDate(pkg.travelDate)}
+                </Text>
+
+                <View style={styles.pastActions}>
+                    <ActionButton
+                        label="Avaliar"
+                        icon="star-outline"
+                        onPress={() => Alert.alert('Avaliação', 'Em breve você poderá avaliar!')}
+                        variant="primary"
+                    />
+                    <ActionButton
+                        label="Detalhes"
+                        icon="eye-outline"
+                        onPress={() => router.push(`/purchased-package/${pkg.id}`)}
+                    />
+                    <ActionButton
+                        label="Repetir"
+                        icon="refresh-outline"
+                        onPress={() => router.push(`/purchased-package/${pkg.id}`)}
+                    />
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+// ─── TAB: Meus Roteiros ─────────────────────────────────
+
+function ItinerariesTab() {
+    const router = useRouter();
+    const items = purchasedItineraries;
+
+    if (items.length === 0) {
+        return (
+            <EmptyState
+                icon="📚"
+                title="Você ainda não comprou nenhum roteiro"
+                message="Descubra roteiros criados por viajantes experientes."
+                ctaLabel="Explorar roteiros"
+                onCtaPress={() => router.push('/(tabs)/itineraries')}
+            />
+        );
+    }
+
+    return (
+        <>
+            {items.map((itin) => (
+                <ItineraryCard key={itin.id} itin={itin} />
+            ))}
+        </>
+    );
+}
+
+function ItineraryCard({ itin }: { itin: PurchasedItineraryItem }) {
+    const router = useRouter();
+
+    return (
+        <TouchableOpacity
+            style={styles.itineraryCard}
+            onPress={() => router.push(`/purchased-itinerary/${itin.id}`)}
+            activeOpacity={0.7}
+        >
+            <View style={styles.itineraryLeft}>
+                <Image source={{ uri: itin.image }} style={styles.itineraryImage} />
+            </View>
+            <View style={styles.itineraryContent}>
+                <Text style={styles.itineraryTitle} numberOfLines={1}>{itin.title}</Text>
+                <Text style={styles.itineraryDestination} numberOfLines={1}>
+                    📍 {itin.destination}, {itin.country}
+                </Text>
+                <View style={styles.itineraryCreatorRow}>
+                    <Text style={styles.itineraryCreatorAvatar}>{itin.creatorAvatar}</Text>
+                    <Text style={styles.itineraryCreatorName}>{itin.creatorName}</Text>
+                </View>
+                <Text style={styles.itineraryPurchaseDate}>
+                    Comprado em {formatDate(itin.purchaseDate)}
+                </Text>
+            </View>
+            <View style={styles.itineraryAction}>
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.text.tertiary} />
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+// ─── TAB: Salvos ────────────────────────────────────────
+
+function SavedTab() {
+    const router = useRouter();
+    const items = savedItems;
+
+    if (items.length === 0) {
+        return (
+            <EmptyState
+                icon="❤️"
+                title="Você ainda não salvou nenhuma viagem"
+                message="Explore nossos pacotes e roteiros e salve seus favoritos!"
+                ctaLabel="Explorar"
+                onCtaPress={() => router.push('/(tabs)/packages')}
+            />
+        );
+    }
+
+    return (
+        <>
+            {items.map((item) => (
+                <SavedCard key={item.id} item={item} />
+            ))}
+        </>
+    );
+}
+
+function SavedCard({ item }: { item: SavedItem }) {
+    const router = useRouter();
+    const isPackage = item.type === 'package';
+
+    return (
+        <TouchableOpacity
+            style={styles.savedCard}
+            onPress={() =>
+                router.push(isPackage ? `/package/${item.id}` : `/itinerary/${item.id}`)
+            }
+            activeOpacity={0.7}
+        >
+            <View style={styles.savedImageContainer}>
+                <Image source={{ uri: item.image }} style={styles.savedImage} />
+                <View style={[styles.savedTypeBadge, isPackage ? styles.savedTypePkg : styles.savedTypeItin]}>
+                    <Text style={styles.savedTypeBadgeText}>
+                        {isPackage ? '🧳 Pacote' : '📚 Roteiro'}
+                    </Text>
+                </View>
+            </View>
+            <View style={styles.savedContent}>
+                <Text style={styles.savedTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.savedDestination} numberOfLines={1}>
+                    📍 {item.destination}, {item.country}
+                </Text>
+                <Text style={styles.savedPrice}>
+                    {isPackage
+                        ? `A partir de R$ ${item.price.toLocaleString('pt-BR')}`
+                        : `R$ ${item.price.toFixed(2).replace('.', ',')}`
+                    }
+                </Text>
+            </View>
+            <View style={styles.savedAction}>
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.text.tertiary} />
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+// ─── Styles ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background,
     },
+
+    // ── Header ──
     header: {
         paddingHorizontal: 20,
         paddingTop: 60,
-        paddingBottom: 20,
+        paddingBottom: 16,
         backgroundColor: theme.colors.background,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.borderLight,
     },
     headerTitle: {
         fontSize: 28,
@@ -220,92 +545,361 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
     },
 
-    // Tab Selector
-    tabSelector: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        gap: 12,
+    // ── Tab Bar ──
+    tabBarContainer: {
         backgroundColor: theme.colors.background,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.borderLight,
     },
-    tab: {
-        flex: 1,
+    tabBarScroll: {
+        paddingHorizontal: 16,
+        gap: 4,
+    },
+    tabItem: {
+        paddingHorizontal: 16,
         paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: theme.borderRadius.full,
-        backgroundColor: theme.colors.surfaceLight,
+        flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: 'transparent',
+        gap: 6,
+        position: 'relative',
     },
-    tabActive: {
-        backgroundColor: theme.colors.primaryLight,
-        borderColor: theme.colors.primary,
-    },
-    tabText: {
+    tabItemActive: {},
+    tabIcon: {
         fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.secondary,
     },
-    tabTextActive: {
+    tabLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: theme.colors.text.tertiary,
+    },
+    tabLabelActive: {
         color: theme.colors.primary,
+        fontWeight: '700',
+    },
+    tabUnderline: {
+        position: 'absolute',
+        bottom: 0,
+        left: 8,
+        right: 8,
+        height: 3,
+        backgroundColor: theme.colors.primary,
+        borderTopLeftRadius: 3,
+        borderTopRightRadius: 3,
     },
 
-    // Content
+    // ── Content ──
     scrollView: {
         flex: 1,
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 8,
+        paddingTop: 16,
     },
 
-    // Trip Card
-    tripCard: {
+    // ── Section Header ──
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+        marginBottom: 16,
+        gap: 12,
+    },
+    sectionHeaderLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: theme.colors.borderLight,
+    },
+    sectionHeaderText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.colors.text.tertiary,
+        letterSpacing: 1.5,
+    },
+
+    // ── Status Badge ──
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 100,
+        gap: 4,
+        alignSelf: 'flex-start',
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: '600',
+    },
+
+    // ── Countdown Badge ──
+    countdownBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 100,
+        backgroundColor: 'rgba(40, 201, 191, 0.1)',
+        alignSelf: 'flex-start',
+    },
+    countdownBadgeUrgent: {
+        backgroundColor: '#FEE2E2',
+    },
+    countdownText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: theme.colors.primary,
+    },
+    countdownTextUrgent: {
+        color: '#DC2626',
+    },
+
+    // ── Action Button ──
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    actionButtonPrimary: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    actionButtonText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: theme.colors.primary,
+    },
+    actionButtonTextPrimary: {
+        color: '#FFF',
+    },
+
+    // ── Upcoming Card ──
+    upcomingCard: {
         flexDirection: 'row',
         backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.lg,
+        borderRadius: 16,
         marginBottom: 16,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
         ...theme.shadows.small,
     },
-    tripImage: {
-        width: 120,
-        height: 120,
+    upcomingImage: {
+        width: 96,
+        height: 'auto',
+        minHeight: 140,
         backgroundColor: theme.colors.surfaceLight,
     },
-    tripInfo: {
+    upcomingContent: {
         flex: 1,
-        padding: 16,
-        justifyContent: 'center',
+        padding: 12,
+        justifyContent: 'space-between',
     },
-    tripTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-        marginBottom: 4,
-    },
-    tripDestination: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
+    upcomingTop: {
         marginBottom: 8,
     },
-    tripMeta: {
-        marginTop: 4,
+    upcomingTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
     },
-    tripDate: {
+    upcomingDestination: {
         fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 2,
+    },
+    upcomingDate: {
+        fontSize: 11,
         color: theme.colors.text.tertiary,
     },
-    tripPrice: {
-        fontSize: 16,
+    upcomingBottom: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 8,
+        flexWrap: 'wrap',
+    },
+    upcomingActions: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+
+    // ── Past Card ──
+    pastCard: {
+        flexDirection: 'row',
+        backgroundColor: theme.colors.background,
+        borderRadius: 16,
+        marginBottom: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.small,
+    },
+    pastImage: {
+        width: 96,
+        height: 'auto',
+        minHeight: 140,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    pastContent: {
+        flex: 1,
+        padding: 12,
+        justifyContent: 'center',
+    },
+    pastTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    pastDestination: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 2,
+    },
+    pastDate: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginBottom: 10,
+    },
+    pastActions: {
+        flexDirection: 'row',
+        gap: 6,
+        flexWrap: 'wrap',
+    },
+
+    // ── Itinerary Card ──
+    itineraryCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background,
+        borderRadius: 14,
+        marginBottom: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.xs,
+    },
+    itineraryLeft: {
+        marginRight: 12,
+    },
+    itineraryImage: {
+        width: 56,
+        height: 56,
+        borderRadius: 12,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    itineraryContent: {
+        flex: 1,
+    },
+    itineraryTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    itineraryDestination: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 4,
+    },
+    itineraryCreatorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 2,
+    },
+    itineraryCreatorAvatar: {
+        fontSize: 12,
+    },
+    itineraryCreatorName: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        fontWeight: '500',
+    },
+    itineraryPurchaseDate: {
+        fontSize: 10,
+        color: theme.colors.text.tertiary,
+    },
+    itineraryAction: {
+        paddingLeft: 8,
+    },
+
+    // ── Saved Card ──
+    savedCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background,
+        borderRadius: 14,
+        marginBottom: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.xs,
+    },
+    savedImageContainer: {
+        position: 'relative',
+    },
+    savedImage: {
+        width: 80,
+        height: 80,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    savedTypeBadge: {
+        position: 'absolute',
+        top: 4,
+        left: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    savedTypePkg: {
+        backgroundColor: 'rgba(40, 201, 191, 0.9)',
+    },
+    savedTypeItin: {
+        backgroundColor: 'rgba(26, 50, 99, 0.85)',
+    },
+    savedTypeBadgeText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#FFF',
+    },
+    savedContent: {
+        flex: 1,
+        padding: 12,
+    },
+    savedTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    savedDestination: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 4,
+    },
+    savedPrice: {
+        fontSize: 13,
         fontWeight: '700',
         color: theme.colors.primary,
     },
+    savedAction: {
+        paddingRight: 12,
+    },
 
-    // Empty State
+    // ── Empty State ──
     emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -313,11 +907,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 40,
     },
     emptyIcon: {
-        fontSize: 64,
+        fontSize: 56,
         marginBottom: 20,
     },
     emptyTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 8,
@@ -332,14 +926,14 @@ const styles = StyleSheet.create({
     },
     emptyButton: {
         backgroundColor: theme.colors.primary,
-        paddingHorizontal: 32,
+        paddingHorizontal: 28,
         paddingVertical: 14,
-        borderRadius: theme.borderRadius.full,
+        borderRadius: 100,
         ...theme.shadows.button,
     },
     emptyButtonText: {
         fontSize: 15,
         fontWeight: '700',
-        color: theme.colors.text.onPrimary,
+        color: '#FFF',
     },
 });
