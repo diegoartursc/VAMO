@@ -4,6 +4,7 @@ import { verifyToken } from '../lib/auth';
 export interface AuthRequest extends Request {
     agency?: {
         agencyId: string;
+        employeeId: string;
         email: string;
     };
 }
@@ -27,7 +28,7 @@ export const authMiddleware = (
             return res.status(401).json({ error: 'Invalid token' });
         }
 
-        req.agency = decoded as { agencyId: string; email: string };
+        req.agency = decoded as { agencyId: string; employeeId: string; email: string };
         next();
     } catch (error) {
         return res.status(401).json({ error: 'Authentication failed' });

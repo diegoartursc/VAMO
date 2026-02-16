@@ -11,8 +11,6 @@ const createPackageSchema = z.object({
     destination: z.string().min(2),
     country: z.string().min(2),
     description: z.string().min(20, 'Descrição deve ter no mínimo 20 caracteres'),
-    priceMin: z.number().positive('Preço mínimo deve ser positivo'),
-    priceMax: z.number().positive('Preço máximo deve ser positivo'),
     duration: z.number().int().positive('Duração deve ser um número inteiro positivo'),
     includes: z.array(z.string()).min(1, 'Adicione pelo menos 1 item incluído'),
     highlights: z.array(z.string()).optional().default([]),
@@ -28,7 +26,7 @@ router.get('/', async (req, res: Response) => {
 
         const packages = await prisma.package.findMany({
             where: {
-                status: 'active',
+                status: 'ACTIVE',
                 ...(destination && {
                     destination: {
                         contains: destination as string,
@@ -41,8 +39,12 @@ router.get('/', async (req, res: Response) => {
                         mode: 'insensitive'
                     }
                 }),
-                ...(minPrice && { priceMin: { gte: Number(minPrice) } }),
-                ...(maxPrice && { priceMax: { lte: Number(maxPrice) } }),
+                ...(minPrice && {
+                    pricingWindows: { some: { price: { gte: Number(minPrice) } } }
+                }),
+                ...(maxPrice && {
+                    pricingWindows: { some: { price: { lte: Number(maxPrice) } } }
+                }),
                 ...(duration && { duration: Number(duration) }),
                 ...(category && { categories: { has: category as string } }),
             },
@@ -216,7 +218,7 @@ router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) =>
 
         await prisma.package.update({
             where: { id },
-            data: { status: 'inactive' },
+            data: { status: 'ARCHIVED' },
         });
 
         res.json({ message: 'Pacote removido com sucesso' });

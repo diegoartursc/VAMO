@@ -16,12 +16,12 @@ export const comparePassword = async (
     return bcrypt.compare(password, hash);
 };
 
-export const generateAccessToken = (payload: { agencyId: string; email: string }) => {
+export const generateAccessToken = (payload: { agencyId: string; employeeId: string; email: string }) => {
     const options: SignOptions = { expiresIn: JWT_EXPIRES_IN as any };
     return jwt.sign(payload, JWT_SECRET, options);
 };
 
-export const generateRefreshToken = (payload: { agencyId: string }) => {
+export const generateRefreshToken = (payload: { agencyId: string; employeeId: string }) => {
     const options: SignOptions = { expiresIn: JWT_REFRESH_EXPIRES_IN as any };
     return jwt.sign(payload, JWT_SECRET, options);
 };

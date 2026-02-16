@@ -7,11 +7,15 @@ const router = Router();
 
 // Validation schemas
 const registerSchema = z.object({
-    name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
-    email: z.string().email('Email inválido'),
-    password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+    // Agency data
+    agencyName: z.string().min(2, 'Nome da agência deve ter no mínimo 2 caracteres'),
+    cnpj: z.string().min(14, 'CNPJ inválido'),
     whatsapp: z.string().optional(),
     contactUrl: z.string().url().optional(),
+    // Employee (admin) data
+    employeeName: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
+    email: z.string().email('Email inválido'),
+    password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
 });
 
 const loginSchema = z.object({
@@ -19,51 +23,80 @@ const loginSchema = z.object({
     password: z.string(),
 });
 
-// POST /api/auth/register - Agency registration
+// POST /api/auth/register - Agency + first employee registration
 router.post('/register', async (req: Request, res: Response) => {
     try {
         const validatedData = registerSchema.parse(req.body);
 
-        // Check if agency already exists
-        const existingAgency = await prisma.agency.findUnique({
+        // Check if employee email already exists
+        const existingEmployee = await prisma.agencyEmployee.findUnique({
             where: { email: validatedData.email },
         });
 
-        if (existingAgency) {
+        if (existingEmployee) {
             return res.status(400).json({ error: 'Email já cadastrado' });
+        }
+
+        // Check if CNPJ already exists
+        const existingAgency = await prisma.agency.findUnique({
+            where: { cnpj: validatedData.cnpj },
+        });
+
+        if (existingAgency) {
+            return res.status(400).json({ error: 'CNPJ já cadastrado' });
         }
 
         // Hash password
         const passwordHash = await hashPassword(validatedData.password);
 
-        // Create agency
-        const agency = await prisma.agency.create({
-            data: {
-                name: validatedData.name,
-                email: validatedData.email,
-                passwordHash,
-                whatsapp: validatedData.whatsapp,
-                contactUrl: validatedData.contactUrl,
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                verified: true,
-                createdAt: true,
-            },
+        // Create agency + first employee (MANAGER) in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            const agency = await tx.agency.create({
+                data: {
+                    name: validatedData.agencyName,
+                    cnpj: validatedData.cnpj,
+                    whatsapp: validatedData.whatsapp,
+                    contactUrl: validatedData.contactUrl,
+                },
+            });
+
+            const employee = await tx.agencyEmployee.create({
+                data: {
+                    agencyId: agency.id,
+                    name: validatedData.employeeName,
+                    email: validatedData.email,
+                    passwordHash,
+                    role: 'MANAGER',
+                },
+            });
+
+            return { agency, employee };
         });
 
         // Generate tokens
         const accessToken = generateAccessToken({
-            agencyId: agency.id,
-            email: agency.email
+            agencyId: result.agency.id,
+            employeeId: result.employee.id,
+            email: result.employee.email,
         });
-        const refreshToken = generateRefreshToken({ agencyId: agency.id });
+        const refreshToken = generateRefreshToken({
+            agencyId: result.agency.id,
+            employeeId: result.employee.id,
+        });
 
         res.status(201).json({
             message: 'Agência cadastrada com sucesso',
-            agency,
+            agency: {
+                id: result.agency.id,
+                name: result.agency.name,
+                verified: result.agency.verified,
+            },
+            employee: {
+                id: result.employee.id,
+                name: result.employee.name,
+                email: result.employee.email,
+                role: result.employee.role,
+            },
             accessToken,
             refreshToken,
         });
@@ -79,24 +112,38 @@ router.post('/register', async (req: Request, res: Response) => {
     }
 });
 
-// POST /api/auth/login - Agency login
+// POST /api/auth/login - Employee login
 router.post('/login', async (req: Request, res: Response) => {
     try {
         const validatedData = loginSchema.parse(req.body);
 
-        // Find agency
-        const agency = await prisma.agency.findUnique({
+        // Find employee by email (with agency info)
+        const employee = await prisma.agencyEmployee.findUnique({
             where: { email: validatedData.email },
+            include: {
+                agency: {
+                    select: {
+                        id: true,
+                        name: true,
+                        verified: true,
+                        logo: true,
+                    },
+                },
+            },
         });
 
-        if (!agency) {
+        if (!employee) {
             return res.status(401).json({ error: 'Email ou senha incorretos' });
+        }
+
+        if (!employee.active) {
+            return res.status(403).json({ error: 'Conta desativada. Entre em contato com o administrador.' });
         }
 
         // Verify password
         const isPasswordValid = await comparePassword(
             validatedData.password,
-            agency.passwordHash
+            employee.passwordHash
         );
 
         if (!isPasswordValid) {
@@ -105,20 +152,24 @@ router.post('/login', async (req: Request, res: Response) => {
 
         // Generate tokens
         const accessToken = generateAccessToken({
-            agencyId: agency.id,
-            email: agency.email
+            agencyId: employee.agencyId,
+            employeeId: employee.id,
+            email: employee.email,
         });
-        const refreshToken = generateRefreshToken({ agencyId: agency.id });
+        const refreshToken = generateRefreshToken({
+            agencyId: employee.agencyId,
+            employeeId: employee.id,
+        });
 
         res.json({
             message: 'Login realizado com sucesso',
-            agency: {
-                id: agency.id,
-                name: agency.name,
-                email: agency.email,
-                verified: agency.verified,
-                logo: agency.logo,
+            employee: {
+                id: employee.id,
+                name: employee.name,
+                email: employee.email,
+                role: employee.role,
             },
+            agency: employee.agency,
             accessToken,
             refreshToken,
         });

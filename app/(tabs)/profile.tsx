@@ -25,14 +25,14 @@ export default function ProfileScreen() {
     const handleRateApp = () => {
         haptics.success();
         const storeUrl = Platform.OS === 'ios'
-            ? 'https://apps.apple.com/app/id1234567890' // Replace with real ID
-            : 'https://play.google.com/store/apps/details?id=com.vamo';
+            ? 'https://apps.apple.com/app/id1234567890' // TODO: Replace with real App Store ID
+            : 'https://play.google.com/store/apps/details?id=com.vamo'; // TODO: Replace with real Play Store ID
         Linking.openURL(storeUrl);
     };
 
     const handleHelpCenter = () => {
         haptics.light();
-        Linking.openURL('https://vamo.app/ajuda');
+        Linking.openURL('https://vamo.app/ajuda'); // TODO: Replace with production help center URL
     };
 
     return (

@@ -50,6 +50,12 @@ enum PackageStatus {
   ARCHIVED
 }
 
+enum ItineraryStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
 enum PurchaseStatus {
   PENDING
   CONFIRMED
@@ -281,7 +287,7 @@ model Itinerary {
   rating      Float?
   reviewCount Int      @default(0)
   featured    Boolean  @default(false)
-  status      String   @default("active")
+  status      ItineraryStatus @default(ACTIVE)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
