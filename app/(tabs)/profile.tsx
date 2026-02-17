@@ -252,7 +252,7 @@ export default function ProfileScreen() {
                 <View style={styles.shortcutsRow}>
                     <TouchableOpacity
                         style={styles.shortcutButton}
-                        onPress={() => router.push('/my-itineraries')}
+                        onPress={() => router.push('/(tabs)/itineraries')}
                     >
                         <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
                         <Text style={styles.shortcutText}>Meus Roteiros</Text>
@@ -288,28 +288,28 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* ══════════ MINHA LOJA ══════════ */}
+                {/* ══════════ CRIAR ROTEIROS ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Minha Loja</Text>
+                    <Text style={styles.sectionTitle}>Criar Roteiros</Text>
                     <View style={styles.sectionCard}>
                         <TouchableOpacity
                             style={styles.storeItem}
                             onPress={() => {
                                 haptics.light();
-                                router.push('/creator-dashboard' as any);
+                                Linking.openURL('https://vamo.app/criadores');
                             }}
                             activeOpacity={0.7}
                         >
                             <View style={styles.storeLeft}>
                                 <View style={styles.storeIconCircle}>
-                                    <Ionicons name="storefront-outline" size={22} color={theme.colors.primary} />
+                                    <Ionicons name="globe-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View>
-                                    <Text style={styles.storeTitle}>Dashboard de Criador</Text>
-                                    <Text style={styles.storeSubtitle}>Crie e gerencie seus roteiros</Text>
+                                    <Text style={styles.storeTitle}>Portal do Criador</Text>
+                                    <Text style={styles.storeSubtitle}>Crie roteiros pelo site vamo.app</Text>
                                 </View>
                             </View>
-                            <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
+                            <Ionicons name="open-outline" size={18} color={theme.colors.text.tertiary} />
                         </TouchableOpacity>
                     </View>
                 </View>

@@ -58,11 +58,7 @@ export default function ItineraryDetailScreen() {
 
     const handleGoToMyTrips = () => {
         setShowSuccessModal(false);
-        // Navigate to itinerary success screen
-        router.push({
-            pathname: '/itinerary-success' as any,
-            params: { itineraryId: id },
-        });
+        router.push('/(tabs)/my-trips' as any);
     };
     const handleBuyNow = () => {
         // Navigate to checkout flow
@@ -129,7 +125,7 @@ export default function ItineraryDetailScreen() {
                         {/* Creator Verification Link */}
                         <TouchableOpacity
                             style={styles.verificationLink}
-                            onPress={() => router.push('/creator-verification-explained' as any)}
+                            onPress={() => router.push('/verification-explained' as any)}
                         >
                             <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
                             <Text style={styles.verificationLinkText}>Como verificamos os criadores</Text>

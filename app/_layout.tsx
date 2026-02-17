@@ -36,18 +36,7 @@ export default function RootLayout() {
                                 headerBackTitle: 'Voltar',
                             }}
                         />
-                        <Stack.Screen
-                            name="creator-dashboard"
-                            options={{
-                                headerShown: false,
-                            }}
-                        />
-                        <Stack.Screen
-                            name="edit-itinerary/[id]"
-                            options={{
-                                headerShown: false,
-                            }}
-                        />
+
                     </Stack>
                 </FavoriteAnimationProvider>
             </NotificationProvider>
