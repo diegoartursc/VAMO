@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getItineraryById } from '../../src/data/mockItineraries';
+import { getItineraryById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
 import { useState as useStateModal } from 'react';
 
@@ -26,7 +26,11 @@ export default function ItineraryPaymentScreen() {
         phone,
     } = useLocalSearchParams();
 
-    const itinerary = getItineraryById(itineraryId as string);
+    const [itinerary, setItinerary] = useState<any>(null);
+
+    useEffect(() => {
+        getItineraryById(itineraryId as string).then(setItinerary).catch(console.error);
+    }, [itineraryId]);
 
     const [paymentMethod, setPaymentMethod] = useState<'apple' | 'pix' | 'card'>('pix');
     const [summaryExpanded, setSummaryExpanded] = useState(true);
@@ -54,7 +58,7 @@ export default function ItineraryPaymentScreen() {
     if (!itinerary) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Roteiro não encontrado</Text>
+                <Text style={styles.errorText}>Carregando...</Text>
             </View>
         );
     }

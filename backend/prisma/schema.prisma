@@ -70,6 +70,19 @@ enum NotificationType {
   SYSTEM
 }
 
+enum BookingTimelineStatus {
+  COMPLETED
+  IN_PROGRESS
+  PENDING
+}
+
+enum BookingDocumentType {
+  VOUCHER
+  TICKET
+  POLICY
+  INFO
+}
+
 // ─────────────────────────────────────────────
 // AGENCY
 // ─────────────────────────────────────────────
@@ -173,6 +186,11 @@ model Creator {
   instagramUrl      String?
   youtubeUrl        String?
   blogUrl           String?
+  // Cached stats for fast display
+  totalSales        Int               @default(0)
+  averageRating     Float?
+  responseTime      String?
+  tripsCompleted    Int               @default(0)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -213,19 +231,30 @@ model Package {
   currency            String        @default("BRL")
   duration            Int
   maxSlots            Int?
+  // Price range (derived from pricing windows or set manually)
+  priceMin            Float?
+  priceMax            Float?
+  // Array fields
   includes            String[]
   includedItems       String[]
   highlights          String[]
   notRecommendedFor   String[]
   importantInfo       String[]
   perfectFor          String[]
+  categories          String[]
+  // Structured JSON fields
+  inclusions          Json?         // { flight, hotel: { stars, meals }, tours, extras }
+  routeDetails        Json?         // { mainStop, pickupLocations, transport, mainActivity, returnLocations, mapImageUrl }
+  // Trust & conversion badges
   badge               PackageBadge?
   rating              Float?
   reviewCount         Int           @default(0)
   featured            Boolean       @default(false)
   hasFreeCancellation Boolean       @default(false)
   isAllInclusive      Boolean       @default(false)
-  categories          String[]
+  recentPurchases     Int           @default(0)
+  priceComparison     String?       // 'below' | 'average' | 'above'
+  priceDiscount       Int           @default(0)
   status              PackageStatus @default(ACTIVE)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -275,29 +304,36 @@ model PackagePricingWindow {
 // ─────────────────────────────────────────────
 
 model Itinerary {
-  id          String   @id @default(cuid())
-  creatorId   String
-  title       String
-  destination String
-  country     String
-  description String   @db.Text
-  price       Float
-  currency    String   @default("BRL")
-  duration    Int
-  rating      Float?
-  reviewCount Int      @default(0)
-  featured    Boolean  @default(false)
-  status      ItineraryStatus @default(ACTIVE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  creatorId        String
+  title            String
+  destination      String
+  country          String
+  description      String   @db.Text
+  price            Float
+  currency         String   @default("BRL")
+  duration         Int
+  rating           Float?
+  reviewCount      Int      @default(0)
+  downloadCount    Int      @default(0)
+  featured         Boolean  @default(false)
+  // New array fields matching mock data
+  highlights       String[]
+  inclusions       String[]  // e.g. ["Planilha", "Mapa", "Guia de Frases"]
+  // Structured spending estimate
+  estimatedSpending Json?   // { min, max, currency, breakdown: [{ category, amount, description }] }
+  status           ItineraryStatus @default(ACTIVE)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  creator     Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  images      ItineraryImage[]
-  days        ItineraryDay[]
-  reviews     Review[]
-  sales       ItinerarySale[]
-  savedItems  SavedItem[]
-  faqQuestions FaqQuestion[]
+  creator          Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  images           ItineraryImage[]
+  days             ItineraryDay[]
+  files            ItineraryFile[]
+  reviews          Review[]
+  sales            ItinerarySale[]
+  savedItems       SavedItem[]
+  faqQuestions     FaqQuestion[]
 
   @@map("itineraries")
 }
@@ -315,11 +351,26 @@ model ItineraryImage {
   @@map("itinerary_images")
 }
 
+model ItineraryFile {
+  id          String    @id @default(cuid())
+  itineraryId String
+  name        String
+  type        String    // 'pdf' | 'spreadsheet' | 'document'
+  url         String
+  size        Int       // bytes
+  createdAt   DateTime  @default(now())
+
+  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_files")
+}
+
 model ItineraryDay {
   id          String    @id @default(cuid())
   itineraryId String
   dayNumber   Int
   title       String
+  summary     String?   @db.Text
   description String?   @db.Text
   createdAt   DateTime  @default(now())
 
@@ -338,6 +389,13 @@ model ItineraryActivity {
   duration    String?
   location    String?
   tips        String?      @db.Text
+  time        String?
+  type        String?      // 'transport' | 'activity' | 'meal' | 'rest'
+  icon        String?
+  images      String[]
+  mapLink     String?
+  completed   Boolean      @default(false)
+  notes       String?      @db.Text
   createdAt   DateTime     @default(now())
 
   day         ItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
@@ -351,6 +409,8 @@ model ItinerarySale {
   travelerId  String
   price       Float
   commission  Float
+  // Rich purchase data for the purchased itinerary experience
+  purchaseData Json?    // { checklist, weather, accommodation, emergencyContacts, spendingProfile, transport, flightInfo, accommodationOptions, receiveList }
   createdAt   DateTime  @default(now())
 
   itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
@@ -364,21 +424,27 @@ model ItinerarySale {
 // ─────────────────────────────────────────────
 
 model Review {
-  id          String    @id @default(cuid())
-  travelerId  String
-  packageId   String?
-  itineraryId String?
-  rating      Float
-  comment     String    @db.Text
-  verified    Boolean   @default(false)
-  language    String?
-  createdAt   DateTime  @default(now())
+  id           String    @id @default(cuid())
+  travelerId   String
+  packageId    String?
+  itineraryId  String?
+  rating       Float
+  comment      String    @db.Text
+  verified     Boolean   @default(false)
+  language     String?
+  // Denormalized user info for fast display
+  userName     String?
+  userLocation String?
+  userAvatar   String?
+  userInitial  String?
+  helpful      Int       @default(0)
+  createdAt    DateTime  @default(now())
 
-  traveler    Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  package     Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  images      ReviewImage[]
-  responses   ReviewResponse[]
+  traveler     Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package      Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  itinerary    Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  images       ReviewImage[]
+  responses    ReviewResponse[]
 
   @@map("reviews")
 }
@@ -411,7 +477,7 @@ model ReviewResponse {
 }
 
 // ─────────────────────────────────────────────
-// PURCHASE HISTORY
+// PURCHASE HISTORY (Booking)
 // ─────────────────────────────────────────────
 
 model PurchaseHistory {
@@ -422,14 +488,73 @@ model PurchaseHistory {
   totalPrice      Float
   travelers       Int            @default(1)
   status          PurchaseStatus @default(PENDING)
+  // New booking detail fields
+  bookingCode     String?        @unique
+  paymentMethod   String?
+  contactName     String?
+  contactEmail    String?
+  adultsCount     Int            @default(1)
+  childrenCount   Int            @default(0)
+  travelDate      DateTime?
+  travelEndDate   DateTime?
+  preparation     Json?          // preparation tips grouped by category
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   traveler        Traveler              @relation(fields: [travelerId], references: [id], onDelete: Cascade)
   package         Package               @relation(fields: [packageId], references: [id], onDelete: Cascade)
   pricingWindow   PackagePricingWindow? @relation(fields: [pricingWindowId], references: [id], onDelete: SetNull)
+  timeline        BookingTimeline[]
+  documents       BookingDocument[]
+  bookingInclusions BookingInclusion[]
 
   @@map("purchase_history")
+}
+
+model BookingTimeline {
+  id            String                @id @default(cuid())
+  purchaseId    String
+  title         String
+  description   String
+  status        BookingTimelineStatus @default(PENDING)
+  icon          String
+  completedDate DateTime?
+  order         Int                   @default(0)
+  createdAt     DateTime              @default(now())
+
+  purchase      PurchaseHistory       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@map("booking_timelines")
+}
+
+model BookingDocument {
+  id          String              @id @default(cuid())
+  purchaseId  String
+  title       String
+  description String
+  icon        String
+  type        BookingDocumentType
+  available   Boolean             @default(false)
+  order       Int                 @default(0)
+  createdAt   DateTime            @default(now())
+
+  purchase    PurchaseHistory     @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@map("booking_documents")
+}
+
+model BookingInclusion {
+  id         String          @id @default(cuid())
+  purchaseId String
+  icon       String
+  label      String
+  detail     String
+  order      Int             @default(0)
+  createdAt  DateTime        @default(now())
+
+  purchase   PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@map("booking_inclusions")
 }
 
 // ─────────────────────────────────────────────
@@ -504,4 +629,20 @@ model FaqAnswer {
   agencyEmployee   AgencyEmployee? @relation(fields: [agencyEmployeeId], references: [id], onDelete: SetNull)
 
   @@map("faq_answers")
+}
+
+// ─────────────────────────────────────────────
+// DESTINATION (for search/suggestions)
+// ─────────────────────────────────────────────
+
+model Destination {
+  id        String   @id @default(cuid())
+  name      String
+  country   String
+  emoji     String
+  popular   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([name, country])
+  @@map("destinations")
 }

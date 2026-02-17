@@ -288,6 +288,32 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
+                {/* ══════════ MINHA LOJA ══════════ */}
+                <View style={styles.sectionSpaced}>
+                    <Text style={styles.sectionTitle}>Minha Loja</Text>
+                    <View style={styles.sectionCard}>
+                        <TouchableOpacity
+                            style={styles.storeItem}
+                            onPress={() => {
+                                haptics.light();
+                                router.push('/creator-dashboard' as any);
+                            }}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.storeLeft}>
+                                <View style={styles.storeIconCircle}>
+                                    <Ionicons name="storefront-outline" size={22} color={theme.colors.primary} />
+                                </View>
+                                <View>
+                                    <Text style={styles.storeTitle}>Dashboard de Criador</Text>
+                                    <Text style={styles.storeSubtitle}>Crie e gerencie seus roteiros</Text>
+                                </View>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 {/* ══════════ 5. PREFERÊNCIAS ══════════ */}
                 <View style={styles.sectionSpaced}>
                     <Text style={styles.sectionTitle}>Preferências</Text>
@@ -795,6 +821,26 @@ const styles = StyleSheet.create({
     },
     settingValue: {
         fontSize: 14, color: theme.colors.text.tertiary,
+    },
+
+    // Minha Loja
+    storeItem: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', padding: 16,
+    },
+    storeLeft: {
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+    },
+    storeIconCircle: {
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: theme.colors.primary + '12',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    storeTitle: {
+        fontSize: 15, fontWeight: '600', color: theme.colors.text.primary,
+    },
+    storeSubtitle: {
+        fontSize: 12, color: theme.colors.text.secondary, marginTop: 2,
     },
 
     // Logout (less prominent than delete)

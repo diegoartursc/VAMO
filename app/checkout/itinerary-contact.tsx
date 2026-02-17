@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getItineraryById } from '../../src/data/mockItineraries';
+import { getItineraryById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
 
 export default function ItineraryContactScreen() {
@@ -20,7 +20,11 @@ export default function ItineraryContactScreen() {
         price: string;
     }>();
 
-    const itinerary = getItineraryById(itineraryId!);
+    const [itinerary, setItinerary] = useState<any>(null);
+
+    useEffect(() => {
+        getItineraryById(itineraryId!).then(setItinerary).catch(console.error);
+    }, [itineraryId]);
 
     // Form states
     const [fullName, setFullName] = useState('');
@@ -51,7 +55,7 @@ export default function ItineraryContactScreen() {
     if (!itinerary) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Roteiro não encontrado</Text>
+                <Text style={styles.errorText}>Carregando...</Text>
             </View>
         );
     }

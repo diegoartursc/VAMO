@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getPackageById } from '../../src/data/mockPackages';
+import { getPackageById } from '../../src/services/api';
 
 export default function CheckoutPaymentScreen() {
     const router = useRouter();
@@ -29,7 +29,11 @@ export default function CheckoutPaymentScreen() {
         phone,
     } = useLocalSearchParams();
 
-    const packageData = getPackageById(packageId as string);
+    const [packageData, setPackageData] = useState<any>(null);
+
+    useEffect(() => {
+        getPackageById(packageId as string).then(setPackageData).catch(console.error);
+    }, [packageId]);
     const selectedDate = new Date(date as string);
 
     const [paymentTiming, setPaymentTiming] = useState<'now' | 'later'>('now');
@@ -75,7 +79,7 @@ export default function CheckoutPaymentScreen() {
     if (!packageData) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Pacote não encontrado</Text>
+                <Text style={styles.errorText}>Carregando...</Text>
             </View>
         );
     }

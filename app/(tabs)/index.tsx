@@ -17,8 +17,6 @@ import { theme } from '../../src/theme/theme';
 import { HeroSection } from '../../src/components/home/HeroSection';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
-import { getPackagesByRelevance, mockPackages } from '../../src/data/mockPackages';
-import { getFeaturedItineraries } from '../../src/data/mockItineraries';
 import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions'; // Added
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
@@ -34,13 +32,12 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
     const router = useRouter();
-    const { applyFilters, filters, filteredPackages, hasActiveFilters } = useSearch();
+    const { applyFilters, filters, filteredPackages, hasActiveFilters, allPackages, allItineraries } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [decisionAssistantVisible, setDecisionAssistantVisible] = useState(false);
-    const packagesByRelevance = getPackagesByRelevance();
 
-    // Usa pacotes filtrados se houver filtros ativos, senão usa por relevância
-    const displayedPackages = hasActiveFilters ? filteredPackages : packagesByRelevance.filter(p => p.featured);
+    // Usa pacotes filtrados se houver filtros ativos, senão usa destacados
+    const displayedPackages = hasActiveFilters ? filteredPackages : allPackages.filter(p => p.featured);
 
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
     const { showAnimation } = useFavoriteAnimation();
@@ -145,7 +142,7 @@ export default function HomeScreen() {
                         Roteiros testados e aprovados por viajantes reais
                     </Text>
 
-                    {getFeaturedItineraries().slice(0, 4).map((itinerary) => (
+                    {allItineraries.filter(it => it.featured).slice(0, 4).map((itinerary) => (
                         <TouchableOpacity
                             key={itinerary.id}
                             style={styles.roteirosCard}
@@ -220,7 +217,7 @@ export default function HomeScreen() {
                             Retome de onde parou e descubra mais experiências
                         </Text>
 
-                        {mockPackages
+                        {allPackages
                             .filter(pkg =>
                                 pkg.destination.toLowerCase().includes(lastSearchedDestination.toLowerCase()) ||
                                 pkg.country.toLowerCase().includes(lastSearchedDestination.toLowerCase())
@@ -250,7 +247,7 @@ export default function HomeScreen() {
                         Momentos únicos que você vai guardar para sempre
                     </Text>
 
-                    {mockPackages
+                    {allPackages
                         .filter(p => !p.featured)
                         .slice(0, 4)
                         .map((pkg, index) => (

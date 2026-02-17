@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -14,7 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme/theme';
-import { getPackageById, getRelatedPackages } from '../../src/data/mockPackages';
+import { getPackageById, getRelatedPackages } from '../../src/services/api';
 import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../src/data/mockReviews';
 import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
 import { Alert, Linking } from 'react-native';
@@ -34,7 +34,8 @@ const { width, height } = Dimensions.get('window');
 export default function PackageDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const packageData = getPackageById(id);
+    const [packageData, setPackageData] = useState<any>(null);
+    const [relatedPackages, setRelatedPackages] = useState<any[]>([]);
     const reviews = getReviewsByPackageId(id);
     const [showAllReviews, setShowAllReviews] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -44,16 +45,19 @@ export default function PackageDetailScreen() {
     const [children, setChildren] = useState(0);
 
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 2);
-    const relatedPackages = getRelatedPackages(id, 4);
     const { isFavorite, toggleFavorite } = useFavorites();
     const [priceAlertActive, setPriceAlertActive] = useState(false);
     const isFav = isFavorite(id);
 
+    useEffect(() => {
+        getPackageById(id).then(setPackageData).catch(console.error);
+        getRelatedPackages(id).then(setRelatedPackages).catch(() => setRelatedPackages([]));
+    }, [id]);
 
     if (!packageData) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Pacote não encontrado</Text>
+                <Text style={styles.errorText}>Carregando...</Text>
             </View>
         );
     }

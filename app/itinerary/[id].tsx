@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -14,7 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme/theme';
-import { getItineraryById } from '../../src/data/mockItineraries';
+import { getItineraryById } from '../../src/services/api';
 import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../src/data/mockReviews';
 import { Alert, Linking, Share } from 'react-native';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
@@ -32,13 +32,17 @@ const { width, height } = Dimensions.get('window');
 export default function ItineraryDetailScreen() {
     const { id, showSuccess } = useLocalSearchParams<{ id: string; showSuccess?: string }>();
     const router = useRouter();
-    const itinerary = getItineraryById(id);
+    const [itinerary, setItinerary] = useState<any>(null);
     const reviews = getReviewsByPackageId(`itinerary-${id}`);
+
+    useEffect(() => {
+        getItineraryById(id).then(setItinerary).catch(console.error);
+    }, [id]);
 
     if (!itinerary) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Roteiro não encontrado</Text>
+                <Text style={styles.errorText}>Carregando...</Text>
             </View>
         );
     }

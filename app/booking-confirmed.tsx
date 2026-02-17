@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -14,7 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../src/theme/theme';
-import { getPackageById } from '../src/data/mockPackages';
+import { getPackageById } from '../src/services/api';
 import { haptics } from '../src/services/haptics';
 import { analytics } from '../src/services/analytics';
 
@@ -33,9 +33,10 @@ export default function BookingConfirmedScreen() {
         children,
         paymentMethod,
     } = useLocalSearchParams();
-    const packageData = getPackageById(packageId as string);
+    const [packageData, setPackageData] = useState<any>(null);
 
     useEffect(() => {
+        getPackageById(packageId as string).then(setPackageData).catch(console.error);
         haptics.bookingConfirmed();
         analytics.bookingCompleted(
             bookingId as string,
@@ -72,7 +73,7 @@ export default function BookingConfirmedScreen() {
     if (!packageData) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Pacote não encontrado</Text>
+                <Text style={styles.errorText}>Carregando...</Text>
             </View>
         );
     }

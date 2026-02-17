@@ -12,7 +12,6 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
-import { getPackagesByRelevance } from '../../src/data/mockPackages';
 import { Package } from '../../src/types';
 import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
@@ -24,7 +23,7 @@ const { width } = Dimensions.get('window');
 
 export default function PackagesScreen() {
     const router = useRouter();
-    const { filters, applyFilters, filteredPackages: searchFilteredPackages, hasActiveFilters } = useSearch();
+    const { filters, applyFilters, filteredPackages: searchFilteredPackages, hasActiveFilters, allPackages } = useSearch();
 
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
@@ -65,9 +64,8 @@ export default function PackagesScreen() {
         ]).start(() => setToastVisible(false));
     };
 
-    // Usa pacotes filtrados do SearchContext ou pacotes ordenados por relevância
-    const packagesByRelevance = getPackagesByRelevance();
-    const displayedPackages = hasActiveFilters ? searchFilteredPackages : packagesByRelevance;
+    // Usa pacotes filtrados do SearchContext (agora vindo da API)
+    const displayedPackages = hasActiveFilters ? searchFilteredPackages : allPackages;
 
     return (
         <View style={styles.container}>

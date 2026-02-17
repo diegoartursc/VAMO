@@ -4,6 +4,10 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth';
 import packageRoutes from './routes/packages';
+import itineraryRoutes from './routes/itineraries';
+import creatorRoutes from './routes/creators';
+import destinationRoutes from './routes/destinations';
+import reviewRoutes from './routes/reviews';
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +42,10 @@ app.get('/api', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
+app.use('/api/itineraries', itineraryRoutes);
+app.use('/api/creators', creatorRoutes);
+app.use('/api/destinations', destinationRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

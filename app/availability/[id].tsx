@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getPackageById } from '../../src/data/mockPackages';
+import { getPackageById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
 import DatePickerModal from '../../src/components/DatePickerModal';
 import ParticipantsModal from '../../src/components/ParticipantsModal';
@@ -25,7 +25,11 @@ export default function AvailabilityScreen() {
     }>();
 
     const router = useRouter();
-    const packageData = getPackageById(id!);
+    const [packageData, setPackageData] = useState<any>(null);
+
+    useEffect(() => {
+        getPackageById(id!).then(setPackageData).catch(console.error);
+    }, [id]);
     const selectedDate = new Date(date!);
     const adultsCount = parseInt(adults!) || 1;
     const childrenCount = parseInt(children!) || 0;
@@ -119,7 +123,7 @@ export default function AvailabilityScreen() {
     if (!packageData) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Pacote não encontrado</Text>
+                <Text style={styles.errorText}>Carregando...</Text>
             </View>
         );
     }

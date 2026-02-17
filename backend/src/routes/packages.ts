@@ -1,230 +1,192 @@
-import { Router, Response } from 'express';
-import { z } from 'zod';
-import prisma from '../lib/prisma';
-import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { Router, Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
 
 const router = Router();
+const prisma = new PrismaClient();
 
-// Validation schemas
-const createPackageSchema = z.object({
-    title: z.string().min(5, 'Título deve ter no mínimo 5 caracteres'),
-    destination: z.string().min(2),
-    country: z.string().min(2),
-    description: z.string().min(20, 'Descrição deve ter no mínimo 20 caracteres'),
-    duration: z.number().int().positive('Duração deve ser um número inteiro positivo'),
-    includes: z.array(z.string()).min(1, 'Adicione pelo menos 1 item incluído'),
-    highlights: z.array(z.string()).optional().default([]),
-    categories: z.array(z.string()).optional().default([]),
-    hasFreeCancellation: z.boolean().optional().default(false),
-    isAllInclusive: z.boolean().optional().default(false),
-});
-
-// GET /api/packages - List all packages (PUBLIC)
-router.get('/', async (req, res: Response) => {
+// GET /api/packages - List all packages
+router.get('/', async (req: Request, res: Response) => {
     try {
-        const { destination, country, minPrice, maxPrice, duration, category } = req.query;
+        const { destination, featured, category, minPrice, maxPrice, sort } = req.query;
+
+        const where: any = { status: 'ACTIVE' };
+        if (destination) where.destination = { contains: destination as string, mode: 'insensitive' };
+        if (featured === 'true') where.featured = true;
+        if (category) where.categories = { has: category as string };
+        if (minPrice) where.priceMin = { gte: parseFloat(minPrice as string) };
+        if (maxPrice) where.priceMax = { lte: parseFloat(maxPrice as string) };
+
+        let orderBy: any = { featured: 'desc' };
+        if (sort === 'price_asc') orderBy = { priceMin: 'asc' };
+        if (sort === 'price_desc') orderBy = { priceMax: 'desc' };
+        if (sort === 'rating') orderBy = { rating: 'desc' };
+        if (sort === 'newest') orderBy = { createdAt: 'desc' };
 
         const packages = await prisma.package.findMany({
-            where: {
-                status: 'ACTIVE',
-                ...(destination && {
-                    destination: {
-                        contains: destination as string,
-                        mode: 'insensitive'
-                    }
-                }),
-                ...(country && {
-                    country: {
-                        contains: country as string,
-                        mode: 'insensitive'
-                    }
-                }),
-                ...(minPrice && {
-                    pricingWindows: { some: { price: { gte: Number(minPrice) } } }
-                }),
-                ...(maxPrice && {
-                    pricingWindows: { some: { price: { lte: Number(maxPrice) } } }
-                }),
-                ...(duration && { duration: Number(duration) }),
-                ...(category && { categories: { has: category as string } }),
-            },
+            where,
+            orderBy,
             include: {
-                agency: {
-                    select: {
-                        id: true,
-                        name: true,
-                        logo: true,
-                        verified: true,
-                        contactUrl: true,
-                        whatsapp: true,
-                    },
-                },
-                images: {
-                    orderBy: { order: 'asc' },
-                },
+                agency: { select: { id: true, name: true, logo: true, verified: true, contactUrl: true, whatsapp: true } },
+                images: { orderBy: { order: 'asc' }, select: { url: true, alt: true } },
+                pricingWindows: { where: { startDate: { gte: new Date() } }, orderBy: { startDate: 'asc' }, select: { startDate: true, endDate: true, price: true, availableSlots: true } },
             },
-            orderBy: [
-                { featured: 'desc' },
-                { createdAt: 'desc' },
-            ],
         });
 
-        res.json({
-            total: packages.length,
-            packages,
-        });
+        // Transform to match frontend expected format
+        const result = packages.map(pkg => ({
+            id: pkg.id,
+            title: pkg.title,
+            destination: pkg.destination,
+            country: pkg.country,
+            agency: pkg.agency,
+            price: { min: pkg.priceMin, max: pkg.priceMax, currency: pkg.currency },
+            images: pkg.images.map(img => img.url),
+            duration: pkg.duration,
+            includes: pkg.includes,
+            rating: pkg.rating,
+            reviewCount: pkg.reviewCount,
+            featured: pkg.featured,
+            description: pkg.description,
+            highlights: pkg.highlights,
+            badge: pkg.badge?.toLowerCase(),
+            inclusions: pkg.inclusions,
+            categories: pkg.categories,
+            hasFreeCancellation: pkg.hasFreeCancellation,
+            isAllInclusive: pkg.isAllInclusive,
+            recentPurchases: pkg.recentPurchases,
+            priceComparison: pkg.priceComparison,
+            priceDiscount: pkg.priceDiscount,
+            itinerary: pkg.routeDetails,
+            fullDescription: pkg.fullDescription,
+            emotionalIntro: pkg.emotionalIntro,
+            includedItems: pkg.includedItems,
+            notRecommendedFor: pkg.notRecommendedFor,
+            importantInfo: pkg.importantInfo,
+            perfectFor: pkg.perfectFor,
+            availableDates: pkg.pricingWindows.map(pw => ({
+                date: pw.startDate.toISOString().split('T')[0],
+                price: pw.price,
+                spotsLeft: pw.availableSlots,
+            })),
+        }));
+
+        res.json(result);
     } catch (error) {
-        console.error('Get packages error:', error);
-        res.status(500).json({ error: 'Erro ao buscar pacotes' });
+        console.error('Error fetching packages:', error);
+        res.status(500).json({ error: 'Failed to fetch packages' });
     }
 });
 
-// GET /api/packages/:id - Get single package (PUBLIC)
-router.get('/:id', async (req, res: Response) => {
+// GET /api/packages/featured
+router.get('/featured', async (req: Request, res: Response) => {
     try {
-        const id = req.params.id as string;
-
-        const packageData = await prisma.package.findUnique({
-            where: { id },
+        const packages = await prisma.package.findMany({
+            where: { featured: true, status: 'ACTIVE' },
             include: {
-                agency: {
-                    select: {
-                        id: true,
-                        name: true,
-                        logo: true,
-                        verified: true,
-                        contactUrl: true,
-                        whatsapp: true,
-                    },
-                },
-                images: {
-                    orderBy: { order: 'asc' },
-                },
-                reviews: {
-                    orderBy: { createdAt: 'desc' },
-                    take: 10,
-                },
+                agency: { select: { id: true, name: true, logo: true, verified: true, contactUrl: true, whatsapp: true } },
+                images: { orderBy: { order: 'asc' }, select: { url: true } },
             },
         });
 
-        if (!packageData) {
-            return res.status(404).json({ error: 'Pacote não encontrado' });
-        }
+        const result = packages.map(pkg => ({
+            id: pkg.id, title: pkg.title, destination: pkg.destination, country: pkg.country,
+            agency: pkg.agency,
+            price: { min: pkg.priceMin, max: pkg.priceMax, currency: pkg.currency },
+            images: pkg.images.map(img => img.url),
+            duration: pkg.duration, includes: pkg.includes, rating: pkg.rating,
+            reviewCount: pkg.reviewCount, featured: pkg.featured,
+            description: pkg.description, highlights: pkg.highlights,
+            badge: pkg.badge?.toLowerCase(), inclusions: pkg.inclusions,
+            categories: pkg.categories, hasFreeCancellation: pkg.hasFreeCancellation,
+            isAllInclusive: pkg.isAllInclusive, recentPurchases: pkg.recentPurchases,
+            priceComparison: pkg.priceComparison, priceDiscount: pkg.priceDiscount,
+            itinerary: pkg.routeDetails,
+        }));
 
-        res.json(packageData);
+        res.json(result);
     } catch (error) {
-        console.error('Get package error:', error);
-        res.status(500).json({ error: 'Erro ao buscar pacote' });
+        console.error('Error fetching featured packages:', error);
+        res.status(500).json({ error: 'Failed to fetch featured packages' });
     }
 });
 
-// POST /api/packages - Create package (PROTECTED)
-router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
+// GET /api/packages/:id
+router.get('/:id', async (req: Request, res: Response) => {
     try {
-        const validatedData = createPackageSchema.parse(req.body);
-
-        const package_ = await prisma.package.create({
-            data: {
-                ...validatedData,
-                agencyId: req.agency!.agencyId,
-            },
+        const pkg = await prisma.package.findUnique({
+            where: { id: req.params.id },
             include: {
-                agency: {
-                    select: {
-                        id: true,
-                        name: true,
-                        verified: true,
-                    },
-                },
+                agency: { select: { id: true, name: true, logo: true, verified: true, contactUrl: true, whatsapp: true } },
+                images: { orderBy: { order: 'asc' }, select: { url: true, alt: true } },
+                pricingWindows: { orderBy: { startDate: 'asc' }, select: { startDate: true, endDate: true, price: true, availableSlots: true } },
+                reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' }, take: 10 },
             },
         });
 
-        res.status(201).json({
-            message: 'Pacote criado com sucesso',
-            package: package_,
-        });
+        if (!pkg) { res.status(404).json({ error: 'Package not found' }); return; }
+
+        const result = {
+            id: pkg.id, title: pkg.title, destination: pkg.destination, country: pkg.country,
+            agency: pkg.agency,
+            price: { min: pkg.priceMin, max: pkg.priceMax, currency: pkg.currency },
+            images: pkg.images.map(img => img.url),
+            duration: pkg.duration, includes: pkg.includes, rating: pkg.rating,
+            reviewCount: pkg.reviewCount, featured: pkg.featured,
+            description: pkg.description, fullDescription: pkg.fullDescription,
+            emotionalIntro: pkg.emotionalIntro,
+            highlights: pkg.highlights, badge: pkg.badge?.toLowerCase(),
+            inclusions: pkg.inclusions, categories: pkg.categories,
+            hasFreeCancellation: pkg.hasFreeCancellation, isAllInclusive: pkg.isAllInclusive,
+            recentPurchases: pkg.recentPurchases, priceComparison: pkg.priceComparison,
+            priceDiscount: pkg.priceDiscount, itinerary: pkg.routeDetails,
+            includedItems: pkg.includedItems, notRecommendedFor: pkg.notRecommendedFor,
+            importantInfo: pkg.importantInfo, perfectFor: pkg.perfectFor,
+            maxSlots: pkg.maxSlots,
+            availableDates: pkg.pricingWindows.map(pw => ({
+                date: pw.startDate.toISOString().split('T')[0],
+                price: pw.price, spotsLeft: pw.availableSlots,
+            })),
+            reviews: pkg.reviews.map(r => ({
+                id: r.id, rating: r.rating, text: r.comment, date: r.createdAt.toISOString().split('T')[0],
+                verified: r.verified, language: r.language, helpful: r.helpful,
+                user: { name: r.userName, location: r.userLocation, avatar: r.userAvatar, initial: r.userInitial },
+                photos: r.images.map(img => img.url),
+                response: r.responses[0] ? { date: r.responses[0].createdAt.toISOString().split('T')[0], text: r.responses[0].text } : undefined,
+            })),
+        };
+
+        res.json(result);
     } catch (error) {
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({
-                error: 'Dados inválidos',
-                details: error.errors
-            });
-        }
-        console.error('Create package error:', error);
-        res.status(500).json({ error: 'Erro ao criar pacote' });
+        console.error('Error fetching package:', error);
+        res.status(500).json({ error: 'Failed to fetch package' });
     }
 });
 
-// PUT /api/packages/:id - Update package (PROTECTED)
-router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+// GET /api/packages/:id/related
+router.get('/:id/related', async (req: Request, res: Response) => {
     try {
-        const id = req.params.id as string;
-        const validatedData = createPackageSchema.partial().parse(req.body);
+        const pkg = await prisma.package.findUnique({ where: { id: req.params.id } });
+        if (!pkg) { res.json([]); return; }
 
-        // Check if package belongs to agency
-        const existingPackage = await prisma.package.findUnique({
-            where: { id },
-        });
-
-        if (!existingPackage) {
-            return res.status(404).json({ error: 'Pacote não encontrado' });
-        }
-
-        if (existingPackage.agencyId !== req.agency!.agencyId) {
-            return res.status(403).json({ error: 'Você não tem permissão para editar este pacote' });
-        }
-
-        const updatedPackage = await prisma.package.update({
-            where: { id },
-            data: validatedData,
+        const related = await prisma.package.findMany({
+            where: { id: { not: pkg.id }, status: 'ACTIVE', OR: [{ destination: pkg.destination }, { country: pkg.country }] },
             include: {
-                images: true,
+                agency: { select: { id: true, name: true, logo: true, verified: true } },
+                images: { orderBy: { order: 'asc' }, take: 1, select: { url: true } },
             },
+            take: 4,
         });
 
-        res.json({
-            message: 'Pacote atualizado com sucesso',
-            package: updatedPackage,
-        });
+        const result = related.map(r => ({
+            id: r.id, title: r.title, destination: r.destination, country: r.country,
+            agency: r.agency, price: { min: r.priceMin, max: r.priceMax, currency: r.currency },
+            images: r.images.map(img => img.url), duration: r.duration,
+            rating: r.rating, reviewCount: r.reviewCount, badge: r.badge?.toLowerCase(),
+        }));
+
+        res.json(result);
     } catch (error) {
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({
-                error: 'Dados inválidos',
-                details: error.errors
-            });
-        }
-        console.error('Update package error:', error);
-        res.status(500).json({ error: 'Erro ao atualizar pacote' });
-    }
-});
-
-// DELETE /api/packages/:id - Soft delete package (PROTECTED)
-router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
-    try {
-        const id = req.params.id as string;
-
-        // Check if package belongs to agency
-        const existingPackage = await prisma.package.findUnique({
-            where: { id },
-        });
-
-        if (!existingPackage) {
-            return res.status(404).json({ error: 'Pacote não encontrado' });
-        }
-
-        if (existingPackage.agencyId !== req.agency!.agencyId) {
-            return res.status(403).json({ error: 'Você não tem permissão para deletar este pacote' });
-        }
-
-        await prisma.package.update({
-            where: { id },
-            data: { status: 'ARCHIVED' },
-        });
-
-        res.json({ message: 'Pacote removido com sucesso' });
-    } catch (error) {
-        console.error('Delete package error:', error);
-        res.status(500).json({ error: 'Erro ao deletar pacote' });
+        res.status(500).json({ error: 'Failed to fetch related packages' });
     }
 });
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,22 +7,25 @@ import { theme } from '../../src/theme/theme';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import { CreatorCard } from '../../src/components/creator/CreatorCard';
 import { PriceComparison } from '../../src/components/comparison/PriceComparison';
-import { mockCreators, getFeaturedCreators } from '../../src/data/mockCreators';
+import { getFeaturedCreators as apiFeaturedCreators } from '../../src/services/api';
 import { VERIFICATION_CONFIGS } from '../../src/types/creator';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
-import { getFeaturedItineraries } from '../../src/data/mockItineraries';
 import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
 
 export default function ItinerariesScreen() {
     const router = useRouter();
-    const { filters, applyFilters } = useSearch();
+    const { filters, applyFilters, allItineraries } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [showComparison, setShowComparison] = useState(false);
-    const featuredCreators = getFeaturedCreators();
+    const [featuredCreators, setFeaturedCreators] = useState<any[]>([]);
+
+    useEffect(() => {
+        apiFeaturedCreators().then(setFeaturedCreators).catch(console.error);
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -52,7 +55,7 @@ export default function ItinerariesScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Roteiros mais escolhidos pela comunidade</Text>
 
-                    {getFeaturedItineraries().map((itinerary) => (
+                    {allItineraries.filter(it => it.featured).map((itinerary) => (
                         <View key={itinerary.id} style={[styles.itineraryCard, { marginBottom: 16 }]}>
                             <CoverCarousel
                                 images={itinerary.images}
