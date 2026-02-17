@@ -1,11 +1,13 @@
 import { useMemo, useCallback } from 'react';
 import { useSearchContext, SearchFilters } from '../contexts/SearchContext';
 import { mockPackages } from '../data/mockPackages';
-import { applyAllFilters } from '../utils/searchUtils';
+import { mockItineraries } from '../data/mockItineraries';
+import { applyAllFilters, applyAllItineraryFilters } from '../utils/searchUtils';
 import { Package } from '../types';
 
 /**
  * Hook personalizado para gerenciar busca e filtros
+ * // TODO: Future personalization — accept user preferences to pre-fill filters
  */
 export function useSearch() {
     const context = useSearchContext();
@@ -23,21 +25,34 @@ export function useSearch() {
             );
         }
 
-        // Apply travel intent filter (Luxo / Custo-benefício)
+        // Apply travel intent filter
         if (context.travelIntent) {
             if (context.travelIntent === 'luxo') {
                 packages = packages.filter(p =>
                     p.categories?.includes('luxury') || p.badge === 'luxury'
                 );
-            } else if (context.travelIntent === 'custo-beneficio') {
+            } else if (context.travelIntent === 'economico' || context.travelIntent === 'custo-beneficio') {
                 packages = packages.filter(p =>
                     p.priceComparison === 'below' || p.badge === 'value'
                 );
             }
+            // Other intents can be mapped to categories as needed
         }
 
         return packages;
     }, [context.filters, context.travelIntent, context.selectedCategory]);
+
+    /**
+     * Filtra roteiros com base nos filtros atuais
+     */
+    const filteredItineraries = useMemo(() => {
+        let itineraries = applyAllItineraryFilters(mockItineraries, context.filters);
+
+        // Apply category filter (match against inclusions or destination-based heuristics)
+        // Currently roteiros don't have a categories field, so skip for now
+
+        return itineraries;
+    }, [context.filters]);
 
     /**
      * Retorna apenas pacotes (para aba Pacotes)
@@ -48,11 +63,10 @@ export function useSearch() {
 
     /**
      * Retorna apenas roteiros (para aba Roteiros)
-     * TODO: Implementar quando tivermos dados de roteiros
      */
     const getItinerariesOnly = useCallback(() => {
-        return [];
-    }, []);
+        return filteredItineraries;
+    }, [filteredItineraries]);
 
     /**
      * Retorna pacotes + roteiros (para aba Home)
@@ -60,9 +74,9 @@ export function useSearch() {
     const getAllResults = useCallback(() => {
         return {
             packages: filteredPackages,
-            itineraries: [], // TODO: Adicionar roteiros quando disponível
+            itineraries: filteredItineraries,
         };
-    }, [filteredPackages]);
+    }, [filteredPackages, filteredItineraries]);
 
     /**
      * Aplica filtros e executa a busca
@@ -96,6 +110,27 @@ export function useSearch() {
         );
     }, [context.filters, context.travelIntent, context.selectedCategory]);
 
+    /**
+     * Conta quantos filtros estão ativos
+     */
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        const { destination, priceMin, priceMax, duration } = context.filters;
+        if (destination) count++;
+        if (duration && duration !== 7) count++;
+        if (context.travelIntent) count++;
+        if (context.selectedCategory) count++;
+        if (priceMin > 0 || priceMax < 50000) count++;
+        return count;
+    }, [context.filters, context.travelIntent, context.selectedCategory]);
+
+    /**
+     * Total de resultados combinados
+     */
+    const totalResultsCount = useMemo(() => {
+        return filteredPackages.length + filteredItineraries.length;
+    }, [filteredPackages, filteredItineraries]);
+
     return {
         // Filtros
         filters: context.filters,
@@ -103,6 +138,7 @@ export function useSearch() {
         clearFilters,
         applyFilters,
         hasActiveFilters,
+        activeFilterCount,
 
         // Travel Intent
         travelIntent: context.travelIntent,
@@ -114,6 +150,8 @@ export function useSearch() {
 
         // Resultados
         filteredPackages,
+        filteredItineraries,
+        totalResultsCount,
         getPackagesOnly,
         getItinerariesOnly,
         getAllResults,
@@ -122,5 +160,7 @@ export function useSearch() {
         isSearching: context.isSearching,
         activeTab: context.activeTab,
         setActiveTab: context.setActiveTab,
+
+        // TODO: Future personalization — expose searchHistory here
     };
 }

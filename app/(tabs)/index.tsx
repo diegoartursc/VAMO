@@ -172,7 +172,7 @@ export default function HomeScreen() {
 
                                 {/* Category Chips */}
                                 <View style={styles.roteirosChipsContainer}>
-                                    {ITINERARY_INCLUSIONS.slice(0, 7).map((item) => (
+                                    {ITINERARY_INCLUSIONS.map((item) => (
                                         <View key={item.id} style={styles.roteirosChip}>
                                             <Ionicons name={item.icon as any} size={16} color={item.iconColor} />
                                             <Text style={styles.roteirosChipText}>{item.title}</Text>

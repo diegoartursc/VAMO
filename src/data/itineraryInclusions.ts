@@ -14,6 +14,14 @@ export interface ItineraryInclusion {
 
 export const ITINERARY_INCLUSIONS: ItineraryInclusion[] = [
     {
+        id: 'daily',
+        icon: 'calendar',
+        iconColor: '#00BFA5',
+        bgColor: '#E0F2F1',
+        title: 'Diário de Viagem Detalhado',
+        description: 'Programação completa dia a dia com horários, locais e dicas práticas para cada atividade',
+    },
+    {
         id: 'itinerary',
         icon: 'airplane',
         iconColor: '#2196F3',
@@ -60,5 +68,13 @@ export const ITINERARY_INCLUSIONS: ItineraryInclusion[] = [
         bgColor: '#FFEBEE',
         title: 'Restaurantes & Gastronomia',
         description: 'Onde comer bem, opções para todos os bolsos e pratos típicos que você não pode perder',
+    },
+    {
+        id: 'checklist',
+        icon: 'checkbox',
+        iconColor: '#1B5E20',
+        bgColor: '#E8F5E9',
+        title: 'Checklist de Planejamento Interativo',
+        description: 'Lista interativa com documentos, itens de mala e tarefas pré-viagem para você não esquecer nada',
     },
 ];

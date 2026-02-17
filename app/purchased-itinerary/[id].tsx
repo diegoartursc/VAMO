@@ -19,8 +19,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import {
     getPurchasedItineraryById,
-    SpendingProfile,
-    AccommodationOption,
 } from '../../src/data/mockPurchasedItineraries';
 import { haptics } from '../../src/services/haptics';
 
@@ -32,12 +30,10 @@ export default function PurchasedItineraryScreen() {
     const itinerary = getPurchasedItineraryById(id);
 
     // ─── State ──────────────────────────────────────────────
-    const [selectedProfile, setSelectedProfile] = useState<'economico' | 'conforto' | 'luxo'>('conforto');
     const [travelers, setTravelers] = useState(1);
     const [customDays, setCustomDays] = useState(itinerary?.duration || 7);
     const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
     const [completedChecklist, setCompletedChecklist] = useState<Set<string>>(new Set());
-    const [accommodationFilter, setAccommodationFilter] = useState<'all' | 'economico' | 'medio' | 'luxo'>('all');
 
     if (!itinerary) {
         return (
@@ -54,12 +50,8 @@ export default function PurchasedItineraryScreen() {
     }
 
     // ─── Computed ────────────────────────────────────────────
-    const currentProfile = itinerary.spendingProfiles?.find(p => p.id === selectedProfile);
+    const currentProfile = itinerary.spendingProfile;
     const totalEstimate = (currentProfile?.dailyCost || 0) * travelers * customDays;
-
-    const filteredAccommodation = (itinerary.accommodationOptions || []).filter(
-        acc => accommodationFilter === 'all' || acc.tier === accommodationFilter
-    );
 
     // ─── Handlers ───────────────────────────────────────────
     const toggleDay = (dayNumber: number) => {
@@ -163,32 +155,64 @@ export default function PurchasedItineraryScreen() {
 
                 <View style={styles.body}>
 
+                    {/* ══════════ BLOCO 1.5 — RESUMO DA EXPERIÊNCIA ══════════ */}
+                    <View style={styles.block}>
+                        <Text style={styles.blockTitle}>🧳 Sobre a Experiência</Text>
+                        <View style={styles.tripInfoCard}>
+                            <View style={styles.tripInfoRow}>
+                                <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+                                <View style={styles.tripInfoContent}>
+                                    <Text style={styles.tripInfoLabel}>Período da viagem</Text>
+                                    <Text style={styles.tripInfoValue}>
+                                        {new Date(itinerary.tripStartDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })} — {new Date(itinerary.tripEndDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={styles.tripInfoDivider} />
+                            <View style={styles.tripInfoRow}>
+                                <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
+                                <View style={styles.tripInfoContent}>
+                                    <Text style={styles.tripInfoLabel}>Duração</Text>
+                                    <Text style={styles.tripInfoValue}>{itinerary.duration} dias</Text>
+                                </View>
+                            </View>
+                            <View style={styles.tripInfoDivider} />
+                            <View style={styles.tripInfoRow}>
+                                <Ionicons name="location-outline" size={18} color={theme.colors.primary} />
+                                <View style={styles.tripInfoContent}>
+                                    <Text style={styles.tripInfoLabel}>Destino</Text>
+                                    <Text style={styles.tripInfoValue}>{itinerary.destination}, {itinerary.country}</Text>
+                                </View>
+                            </View>
+                            {itinerary.highlights && itinerary.highlights.length > 0 && (
+                                <>
+                                    <View style={styles.tripInfoDivider} />
+                                    <View style={styles.tripInfoRow}>
+                                        <Ionicons name="star-outline" size={18} color={theme.colors.primary} />
+                                        <View style={styles.tripInfoContent}>
+                                            <Text style={styles.tripInfoLabel}>Destaques</Text>
+                                            {itinerary.highlights.map((h: string, i: number) => (
+                                                <Text key={i} style={styles.tripInfoHighlight}>• {h}</Text>
+                                            ))}
+                                        </View>
+                                    </View>
+                                </>
+                            )}
+                        </View>
+                    </View>
+
                     {/* ══════════ BLOCO 2 — ESTIMATIVA DE GASTO ══════════ */}
-                    {itinerary.spendingProfiles && (
+                    {itinerary.spendingProfile && (
                         <View style={styles.block}>
                             <Text style={styles.blockTitle}>💰 Estimativa de Gasto</Text>
 
-                            {/* Profile Selector */}
-                            <View style={styles.profileSelector}>
-                                {itinerary.spendingProfiles.map(profile => (
-                                    <TouchableOpacity
-                                        key={profile.id}
-                                        style={[
-                                            styles.profilePill,
-                                            selectedProfile === profile.id && styles.profilePillActive,
-                                        ]}
-                                        onPress={() => { haptics.light(); setSelectedProfile(profile.id); }}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Text style={styles.profileIcon}>{profile.icon}</Text>
-                                        <Text style={[
-                                            styles.profileLabel,
-                                            selectedProfile === profile.id && styles.profileLabelActive,
-                                        ]}>
-                                            {profile.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                            {/* Experience Badge — shows the actual tier of this trip */}
+                            <View style={styles.experienceBadge}>
+                                <Text style={styles.experienceBadgeIcon}>{itinerary.spendingProfile.icon}</Text>
+                                <View>
+                                    <Text style={styles.experienceBadgeLabel}>Experiência vivida</Text>
+                                    <Text style={styles.experienceBadgeValue}>{itinerary.spendingProfile.label}</Text>
+                                </View>
                             </View>
 
                             {/* Adjusters */}
@@ -245,6 +269,63 @@ export default function PurchasedItineraryScreen() {
                                         <Text style={styles.breakdownTotalVal}>R$ {currentProfile.dailyCost}</Text>
                                     </View>
                                 </View>
+                            )}
+                        </View>
+                    )}
+
+                    {/* ══════════ BLOCO 2.5 — MEU VOO ══════════ */}
+                    {itinerary.flightInfo && (
+                        <View style={styles.block}>
+                            <Text style={styles.blockTitle}>✈️ Meu Voo</Text>
+
+                            {/* Ida */}
+                            <Text style={styles.subTitle}>🛫 Ida</Text>
+                            <View style={styles.flightCard}>
+                                <View style={styles.flightHeader}>
+                                    <Text style={styles.flightAirline}>{itinerary.flightInfo.outbound.airline}</Text>
+                                    <View style={styles.flightPriceBadge}>
+                                        <Text style={styles.flightPrice}>{itinerary.flightInfo.outbound.pricePaid}</Text>
+                                    </View>
+                                </View>
+                                <Text style={styles.flightRoute}>{itinerary.flightInfo.outbound.route}</Text>
+                                <View style={styles.flightDetails}>
+                                    <Text style={styles.flightTime}>🕐 {itinerary.flightInfo.outbound.departure} → {itinerary.flightInfo.outbound.arrival}</Text>
+                                    <Text style={styles.flightDuration}>⏱ {itinerary.flightInfo.outbound.duration}</Text>
+                                    <Text style={styles.flightStops}>
+                                        {itinerary.flightInfo.outbound.stops === 0 ? '✅ Direto' : `🔄 ${itinerary.flightInfo.outbound.stops} parada${itinerary.flightInfo.outbound.stops > 1 ? 's' : ''}`}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Volta */}
+                            <Text style={styles.subTitle}>🛬 Volta</Text>
+                            <View style={styles.flightCard}>
+                                <View style={styles.flightHeader}>
+                                    <Text style={styles.flightAirline}>{itinerary.flightInfo.return.airline}</Text>
+                                    <View style={styles.flightPriceBadge}>
+                                        <Text style={styles.flightPrice}>{itinerary.flightInfo.return.pricePaid}</Text>
+                                    </View>
+                                </View>
+                                <Text style={styles.flightRoute}>{itinerary.flightInfo.return.route}</Text>
+                                <View style={styles.flightDetails}>
+                                    <Text style={styles.flightTime}>🕐 {itinerary.flightInfo.return.departure} → {itinerary.flightInfo.return.arrival}</Text>
+                                    <Text style={styles.flightDuration}>⏱ {itinerary.flightInfo.return.duration}</Text>
+                                    <Text style={styles.flightStops}>
+                                        {itinerary.flightInfo.return.stops === 0 ? '✅ Direto' : `🔄 ${itinerary.flightInfo.return.stops} parada${itinerary.flightInfo.return.stops > 1 ? 's' : ''}`}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Dicas do viajante */}
+                            {itinerary.flightInfo.tips.length > 0 && (
+                                <>
+                                    <Text style={styles.subTitle}>💬 Dicas do viajante</Text>
+                                    <View style={styles.flightTipsCard}>
+                                        {itinerary.flightInfo.tips.map((tip, i) => (
+                                            <Text key={i} style={styles.flightTip}>• {tip}</Text>
+                                        ))}
+                                    </View>
+                                </>
                             )}
                         </View>
                     )}
@@ -354,38 +435,13 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ BLOCO 5 — HOSPEDAGEM RECOMENDADA ══════════ */}
                     {itinerary.accommodationOptions && itinerary.accommodationOptions.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>🏨 Hospedagem Recomendada</Text>
+                            <Text style={styles.blockTitle}>🏨 Onde Fiquei</Text>
 
-                            {/* Filter */}
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-                                {[
-                                    { key: 'all', label: 'Todas' },
-                                    { key: 'economico', label: '💰 Econômico' },
-                                    { key: 'medio', label: '✨ Conforto' },
-                                    { key: 'luxo', label: '👑 Luxo' },
-                                ].map(f => (
-                                    <TouchableOpacity
-                                        key={f.key}
-                                        style={[
-                                            styles.filterPill,
-                                            accommodationFilter === f.key && styles.filterPillActive,
-                                        ]}
-                                        onPress={() => { haptics.light(); setAccommodationFilter(f.key as any); }}
-                                    >
-                                        <Text style={[
-                                            styles.filterLabel,
-                                            accommodationFilter === f.key && styles.filterLabelActive,
-                                        ]}>{f.label}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-
-                            {filteredAccommodation.map(acc => (
+                            {itinerary.accommodationOptions.map(acc => (
                                 <View key={acc.id} style={styles.accCard}>
                                     <View style={styles.accHeader}>
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.accName}>{acc.name}</Text>
-                                            <Text style={styles.accTier}>{acc.tierLabel}</Text>
                                         </View>
                                         <View style={styles.accPriceBadge}>
                                             <Text style={styles.accPrice}>{acc.priceRange}</Text>
@@ -576,17 +632,27 @@ const styles = StyleSheet.create({
     blockTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text.primary, marginBottom: 16 },
     subTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginTop: 16, marginBottom: 10 },
 
-    // ── Block 2: Spending
-    profileSelector: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-    profilePill: {
-        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-        paddingVertical: 12, borderRadius: 12,
-        backgroundColor: theme.colors.surface, borderWidth: 1.5, borderColor: theme.colors.border,
+    // ── Block 1.5: Trip Info
+    tripInfoCard: {
+        backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
     },
-    profilePillActive: { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary },
-    profileIcon: { fontSize: 16 },
-    profileLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary },
-    profileLabelActive: { color: theme.colors.primary },
+    tripInfoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 4 },
+    tripInfoContent: { flex: 1 },
+    tripInfoLabel: { fontSize: 11, fontWeight: '600', color: theme.colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+    tripInfoValue: { fontSize: 14, fontWeight: '600', color: theme.colors.text.primary, lineHeight: 20 },
+    tripInfoDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginVertical: 10 },
+    tripInfoHighlight: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 20 },
+
+    // ── Block 2: Spending
+    experienceBadge: {
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        backgroundColor: theme.colors.primary + '10', paddingHorizontal: 16, paddingVertical: 12,
+        borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.primary + '30',
+    },
+    experienceBadgeIcon: { fontSize: 28 },
+    experienceBadgeLabel: { fontSize: 11, fontWeight: '600', color: theme.colors.text.tertiary, marginBottom: 2 },
+    experienceBadgeValue: { fontSize: 16, fontWeight: '800', color: theme.colors.primary },
 
     adjustersRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
     adjuster: {
@@ -683,15 +749,6 @@ const styles = StyleSheet.create({
     mapSubtitle: { fontSize: 13, color: theme.colors.text.secondary, marginTop: 4, textAlign: 'center' },
 
     // ── Block 5: Accommodation
-    filterScroll: { marginBottom: 14 },
-    filterPill: {
-        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-        backgroundColor: theme.colors.surface, marginRight: 8,
-        borderWidth: 1, borderColor: theme.colors.border,
-    },
-    filterPillActive: { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary },
-    filterLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary },
-    filterLabelActive: { color: theme.colors.primary },
 
     accCard: {
         backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16, marginBottom: 10,
@@ -699,13 +756,33 @@ const styles = StyleSheet.create({
     },
     accHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
     accName: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
-    accTier: { fontSize: 12, color: theme.colors.text.tertiary, marginTop: 2 },
+
     accPriceBadge: { backgroundColor: theme.colors.primary + '15', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
     accPrice: { fontSize: 12, fontWeight: '700', color: theme.colors.primary },
     accLocation: { fontSize: 13, color: theme.colors.text.secondary, marginBottom: 4 },
     accDesc: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19 },
     accRating: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
     accRatingText: { fontSize: 13, fontWeight: '700', color: '#F59E0B' },
+
+    // ── Block 2.5: Flights
+    flightCard: {
+        backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16, marginBottom: 10,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
+    },
+    flightHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    flightAirline: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
+    flightPriceBadge: { backgroundColor: theme.colors.success + '15', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+    flightPrice: { fontSize: 12, fontWeight: '700', color: theme.colors.success },
+    flightRoute: { fontSize: 14, fontWeight: '600', color: theme.colors.primary, marginBottom: 8 },
+    flightDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    flightTime: { fontSize: 13, color: theme.colors.text.secondary },
+    flightDuration: { fontSize: 13, color: theme.colors.text.secondary },
+    flightStops: { fontSize: 13, color: theme.colors.text.secondary },
+    flightTipsCard: {
+        backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
+    },
+    flightTip: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 22 },
 
     // ── Block 6: Transport
     transportHeader: {

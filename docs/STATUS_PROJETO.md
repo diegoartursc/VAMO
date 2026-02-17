@@ -97,6 +97,7 @@
 - ✅ Travel style selector (Luxo / Custo-benefício)
 - ✅ Pacotes relacionados na página de detalhes
 - ✅ Descrição imersiva nos pacotes (parágrafo sensorial)
+- ✅ "Meu Roteiro" exibe a experiência real do viajante (sem alternância de tier econômico/conforto/luxo)
 
 ### 🛠️ Backend MVP (Fevereiro 2026)
 - ✅ Projeto Node.js + Express + TypeScript configurado
@@ -335,6 +336,6 @@ VAMO Backend API (Node.js + Express + PostgreSQL)
 
 ---
 
-**Última atualização:** 07 de Fevereiro de 2026  
+**Última atualização:** 16 de Fevereiro de 2026  
 **Responsável:** Diego Artur  
 **Status:** Frontend MVP Completo ✅ | Backend MVP Implementado ✅ | Integração em Andamento 🔄

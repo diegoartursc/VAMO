@@ -86,7 +86,7 @@ export default function ItinerariesScreen() {
 
                                 {/* Bloco 3: Features em chips compactos */}
                                 <View style={styles.chipsContainer}>
-                                    {ITINERARY_INCLUSIONS.slice(0, 7).map((item) => (
+                                    {ITINERARY_INCLUSIONS.map((item) => (
                                         <View key={item.id} style={styles.chip}>
                                             <Ionicons name={item.icon as any} size={16} color={item.iconColor} />
                                             <Text style={styles.chipText}>{item.title}</Text>

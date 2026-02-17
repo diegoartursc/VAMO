@@ -267,6 +267,51 @@ export default function ItineraryDetailScreen() {
                         </View>
                     </CollapsibleSection>
 
+                    {/* Como você vai receber */}
+                    <CollapsibleSection title="Como você vai receber">
+                        <View style={styles.howReceiveContainer}>
+                            <View style={styles.howReceiveStep}>
+                                <View style={styles.howReceiveIconBox}>
+                                    <Ionicons name="cart-outline" size={22} color={theme.colors.primary} />
+                                </View>
+                                <View style={styles.howReceiveContent}>
+                                    <Text style={styles.howReceiveStepTitle}>1. Compre o roteiro</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Pagamento seguro e acesso imediato após a confirmação</Text>
+                                </View>
+                            </View>
+                            <View style={styles.howReceiveLine} />
+                            <View style={styles.howReceiveStep}>
+                                <View style={styles.howReceiveIconBox}>
+                                    <Ionicons name="phone-portrait-outline" size={22} color={theme.colors.primary} />
+                                </View>
+                                <View style={styles.howReceiveContent}>
+                                    <Text style={styles.howReceiveStepTitle}>2. Acesse pelo app</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Seu roteiro aparece em "Minhas Viagens" instantaneamente</Text>
+                                </View>
+                            </View>
+                            <View style={styles.howReceiveLine} />
+                            <View style={styles.howReceiveStep}>
+                                <View style={styles.howReceiveIconBox}>
+                                    <Ionicons name="cloud-download-outline" size={22} color={theme.colors.primary} />
+                                </View>
+                                <View style={styles.howReceiveContent}>
+                                    <Text style={styles.howReceiveStepTitle}>3. Baixe offline</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Salve o roteiro completo para acessar sem internet durante a viagem</Text>
+                                </View>
+                            </View>
+                            <View style={styles.howReceiveLine} />
+                            <View style={styles.howReceiveStep}>
+                                <View style={styles.howReceiveIconBox}>
+                                    <Ionicons name="infinite-outline" size={22} color={theme.colors.primary} />
+                                </View>
+                                <View style={styles.howReceiveContent}>
+                                    <Text style={styles.howReceiveStepTitle}>4. Acesso vitalício</Text>
+                                    <Text style={styles.howReceiveStepDesc}>O roteiro é seu para sempre — consulte quando quiser, quantas vezes precisar</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </CollapsibleSection>
+
                     {/* Perguntas Frequentes */}
                     <FAQSection
                         items={getItineraryFAQ(id)}
@@ -759,4 +804,17 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: theme.colors.text.primary,
     },
+
+    // ── How Receive
+    howReceiveContainer: { paddingVertical: 4 },
+    howReceiveStep: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+    howReceiveIconBox: {
+        width: 44, height: 44, borderRadius: 12,
+        backgroundColor: theme.colors.primary + '12',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    howReceiveContent: { flex: 1, paddingTop: 2 },
+    howReceiveStepTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 2 },
+    howReceiveStepDesc: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19 },
+    howReceiveLine: { width: 2, height: 16, backgroundColor: theme.colors.primary + '25', marginLeft: 21 },
 });

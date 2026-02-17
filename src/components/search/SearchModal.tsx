@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -10,11 +10,11 @@ import {
     Animated,
     Dimensions,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../theme/theme';
-import { DurationSlider } from './DurationSlider';
 import { SearchFilters } from '../../contexts/SearchContext';
-import { CATEGORIES, INTENT_CATEGORIES, INTENT_FEEDBACK } from '../../constants/categories';
+import { CATEGORIES, INTENT_CATEGORIES, INTENT_FEEDBACK, DURATION_CHIPS } from '../../constants/categories';
 import { useSearch } from '../../hooks/useSearch';
 
 const { height } = Dimensions.get('window');
@@ -36,11 +36,20 @@ export function SearchModal({
 }: SearchModalProps) {
     const [slideAnim] = useState(new Animated.Value(height));
     const [backdropAnim] = useState(new Animated.Value(0));
-    const { travelIntent, setTravelIntent, selectedCategory, setSelectedCategory } = useSearch();
+    const [clearAnim] = useState(new Animated.Value(0));
+    const {
+        travelIntent, setTravelIntent,
+        selectedCategory, setSelectedCategory,
+        filteredPackages, filteredItineraries,
+        activeFilterCount,
+    } = useSearch();
 
     // Filtros locais (estado do modal)
     const [destination, setDestination] = useState(initialFilters?.destination || '');
     const [duration, setDuration] = useState<number>(initialFilters?.duration || 7);
+    const [priceMin, setPriceMin] = useState<number>(initialFilters?.priceMin || 0);
+    const [priceMax, setPriceMax] = useState<number>(initialFilters?.priceMax || 15000);
+    const [activeDurationChip, setActiveDurationChip] = useState<number | null>(null);
 
     // Títulos por contexto
     const contextTitles = {
@@ -49,9 +58,32 @@ export function SearchModal({
         itineraries: 'Buscar Roteiros',
     };
 
+    // Contagem dinâmica de resultados
+    const resultCount = useMemo(() => {
+        if (context === 'packages') return filteredPackages.length;
+        if (context === 'itineraries') return filteredItineraries.length;
+        return filteredPackages.length + filteredItineraries.length;
+    }, [context, filteredPackages, filteredItineraries]);
+
+    const resultLabel = useMemo(() => {
+        if (context === 'packages') return 'pacote';
+        if (context === 'itineraries') return 'roteiro';
+        return 'resultado';
+    }, [context]);
+
+    // Contagem de filtros locais ativos
+    const localActiveCount = useMemo(() => {
+        let count = 0;
+        if (destination) count++;
+        if (duration !== 7) count++;
+        if (travelIntent) count++;
+        if (selectedCategory) count++;
+        if (priceMin > 0 || priceMax < 15000) count++;
+        return count;
+    }, [destination, duration, travelIntent, selectedCategory, priceMin, priceMax]);
+
     useEffect(() => {
         if (visible) {
-            // Animação de entrada
             Animated.parallel([
                 Animated.timing(slideAnim, {
                     toValue: 0,
@@ -65,7 +97,6 @@ export function SearchModal({
                 }),
             ]).start();
         } else {
-            // Animação de saída
             Animated.parallel([
                 Animated.timing(slideAnim, {
                     toValue: height,
@@ -81,9 +112,21 @@ export function SearchModal({
         }
     }, [visible]);
 
+    // Animate clear button when filters are active
+    useEffect(() => {
+        Animated.timing(clearAnim, {
+            toValue: localActiveCount > 0 ? 1 : 0,
+            duration: 200,
+            useNativeDriver: false,
+        }).start();
+    }, [localActiveCount]);
+
     const handleClearFilters = () => {
         setDestination('');
         setDuration(7);
+        setPriceMin(0);
+        setPriceMax(15000);
+        setActiveDurationChip(null);
         setTravelIntent(null);
         setSelectedCategory(null);
     };
@@ -92,8 +135,8 @@ export function SearchModal({
         const filters: SearchFilters = {
             destination,
             duration,
-            priceMin: 0,
-            priceMax: 50000,
+            priceMin,
+            priceMax,
         };
         onSearch(filters);
         onClose();
@@ -101,6 +144,22 @@ export function SearchModal({
 
     const handleIntentSelect = (intentId: string) => {
         setTravelIntent(travelIntent === intentId ? null : intentId);
+    };
+
+    const handleDurationChip = (index: number, min: number, max: number) => {
+        if (activeDurationChip === index) {
+            setActiveDurationChip(null);
+            setDuration(7);
+        } else {
+            setActiveDurationChip(index);
+            setDuration(min === max ? min : Math.round((min + max) / 2));
+        }
+    };
+
+    // Format price
+    const formatPrice = (value: number) => {
+        if (value >= 15000) return 'R$ 15.000+';
+        return `R$ ${value.toLocaleString('pt-BR')}`;
     };
 
     return (
@@ -135,7 +194,12 @@ export function SearchModal({
                 <View style={styles.header}>
                     <View style={styles.handle} />
                     <View style={styles.headerContent}>
-                        <Text style={styles.title}>{contextTitles[context]}</Text>
+                        <View>
+                            <Text style={styles.title}>{contextTitles[context]}</Text>
+                            <Text style={styles.microcopy}>
+                                Use apenas os filtros que quiser para refinar sua busca.
+                            </Text>
+                        </View>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                             <Text style={styles.closeIcon}>✕</Text>
                         </TouchableOpacity>
@@ -146,10 +210,11 @@ export function SearchModal({
                 <ScrollView
                     style={styles.content}
                     showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 24 }}
                 >
-                    {/* Destino */}
+                    {/* ── 1. DESTINO ── */}
                     <View style={styles.filterSection}>
-                        <Text style={styles.filterLabel}>Destino</Text>
+                        <Text style={styles.filterLabel}>📍 Destino</Text>
                         <View style={styles.inputContainer}>
                             <Text style={styles.inputIcon}>🌍</Text>
                             <TextInput
@@ -162,9 +227,104 @@ export function SearchModal({
                         </View>
                     </View>
 
-                    {/* Category Pills */}
+                    {/* ── 2. DURAÇÃO DA VIAGEM ── */}
                     <View style={styles.filterSection}>
-                        <Text style={styles.filterLabel}>Categorias</Text>
+                        <View style={styles.filterLabelRow}>
+                            <Text style={styles.filterLabel}>🗓 Duração da Viagem</Text>
+                            <Text style={styles.filterValue}>
+                                {duration === 1 ? '1 dia' : `${duration} dias`}
+                            </Text>
+                        </View>
+
+                        {/* Quick chips */}
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.durationChipsScroll}
+                        >
+                            {DURATION_CHIPS.map((chip, index) => {
+                                const isActive = activeDurationChip === index;
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={[
+                                            styles.durationChip,
+                                            isActive && styles.durationChipActive,
+                                        ]}
+                                        onPress={() => handleDurationChip(index, chip.min, chip.max)}
+                                    >
+                                        <Text style={[
+                                            styles.durationChipText,
+                                            isActive && styles.durationChipTextActive,
+                                        ]}>
+                                            {chip.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+
+                        {/* Slider */}
+                        <Slider
+                            style={styles.slider}
+                            minimumValue={1}
+                            maximumValue={30}
+                            value={duration}
+                            onValueChange={(val: number) => {
+                                setDuration(Math.round(val));
+                                setActiveDurationChip(null);
+                            }}
+                            minimumTrackTintColor={theme.colors.primary}
+                            maximumTrackTintColor={theme.colors.border}
+                            thumbTintColor={theme.colors.primary}
+                            step={1}
+                        />
+                        <View style={styles.sliderRange}>
+                            <Text style={styles.sliderRangeText}>1 dia</Text>
+                            <Text style={styles.sliderRangeText}>30 dias</Text>
+                        </View>
+                    </View>
+
+                    {/* ── 3. COMO VOCÊ QUER VIAJAR? ── */}
+                    <View style={styles.filterSection}>
+                        <Text style={styles.filterLabel}>✈️ Como você quer viajar?</Text>
+                        <View style={styles.intentGrid}>
+                            {INTENT_CATEGORIES.map((intent) => {
+                                const isSelected = travelIntent === intent.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={intent.id}
+                                        style={[
+                                            styles.intentCard,
+                                            isSelected && styles.intentCardActive,
+                                        ]}
+                                        onPress={() => handleIntentSelect(intent.id)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={styles.intentEmoji}>{intent.emoji}</Text>
+                                        <Text style={[
+                                            styles.intentLabel,
+                                            isSelected && styles.intentLabelActive,
+                                        ]}>
+                                            {intent.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                        {/* Feedback textual */}
+                        {travelIntent && (
+                            <View style={styles.intentFeedback}>
+                                <Text style={styles.intentFeedbackText}>
+                                    {INTENT_FEEDBACK[travelIntent]}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* ── 4. CATEGORIAS ── */}
+                    <View style={styles.filterSection}>
+                        <Text style={styles.filterLabel}>🏷 Categorias</Text>
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -194,82 +354,115 @@ export function SearchModal({
                         </ScrollView>
                     </View>
 
-                    {/* Intent Toggles - Luxo / Custo-benefício */}
+                    {/* ── 5. FAIXA DE PREÇO ── */}
                     <View style={styles.filterSection}>
-                        <Text style={styles.filterLabel}>Como você quer viajar?</Text>
-                        <View style={styles.intentToggleRow}>
-                            {INTENT_CATEGORIES.map((intent) => {
-                                const isSelected = travelIntent === intent.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={intent.id}
-                                        style={[
-                                            styles.intentToggleCard,
-                                            isSelected
-                                                ? styles.intentToggleCardActive
-                                                : styles.intentToggleCardInactive
-                                        ]}
-                                        onPress={() => handleIntentSelect(intent.id)}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text style={styles.intentToggleEmoji}>{intent.emoji}</Text>
-                                        <Text style={[
-                                            styles.intentToggleLabel,
-                                            isSelected
-                                                ? styles.intentToggleLabelActive
-                                                : styles.intentToggleLabelInactive
-                                        ]}>
-                                            {intent.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
+                        <View style={styles.filterLabelRow}>
+                            <Text style={styles.filterLabel}>💰 Faixa de Preço</Text>
+                            <Text style={styles.filterValue}>
+                                {priceMin === 0 && priceMax >= 15000
+                                    ? 'Qualquer'
+                                    : `${formatPrice(priceMin)} – ${formatPrice(priceMax)}`
+                                }
+                            </Text>
                         </View>
-                        {/* Feedback textual */}
-                        {travelIntent && (
-                            <View style={styles.intentFeedback}>
-                                <Text style={styles.intentFeedbackText}>
-                                    {INTENT_FEEDBACK[travelIntent]}
-                                </Text>
-                            </View>
+
+                        {/* Min slider */}
+                        <Text style={styles.priceSliderLabel}>Mínimo: {formatPrice(priceMin)}</Text>
+                        <Slider
+                            style={styles.slider}
+                            minimumValue={0}
+                            maximumValue={15000}
+                            value={priceMin}
+                            onValueChange={(val: number) => {
+                                const rounded = Math.round(val / 500) * 500;
+                                if (rounded < priceMax) setPriceMin(rounded);
+                            }}
+                            minimumTrackTintColor={theme.colors.primary}
+                            maximumTrackTintColor={theme.colors.border}
+                            thumbTintColor={theme.colors.primary}
+                            step={500}
+                        />
+
+                        {/* Max slider */}
+                        <Text style={styles.priceSliderLabel}>Máximo: {formatPrice(priceMax)}</Text>
+                        <Slider
+                            style={styles.slider}
+                            minimumValue={0}
+                            maximumValue={15000}
+                            value={priceMax}
+                            onValueChange={(val: number) => {
+                                const rounded = Math.round(val / 500) * 500;
+                                if (rounded > priceMin) setPriceMax(rounded);
+                            }}
+                            minimumTrackTintColor={theme.colors.primary}
+                            maximumTrackTintColor={theme.colors.border}
+                            thumbTintColor={theme.colors.primary}
+                            step={500}
+                        />
+                        <View style={styles.sliderRange}>
+                            <Text style={styles.sliderRangeText}>R$ 0</Text>
+                            <Text style={styles.sliderRangeText}>R$ 15.000+</Text>
+                        </View>
+                    </View>
+                </ScrollView>
+
+                {/* Result Counter + Actions */}
+                <View style={styles.footer}>
+                    {/* Dynamic result counter */}
+                    <View style={styles.resultCounter}>
+                        {localActiveCount > 0 ? (
+                            <Text style={styles.resultCounterText}>
+                                <Text style={styles.resultCounterBold}>{resultCount}</Text>
+                                {' '}{resultLabel}{resultCount !== 1 ? 's' : ''} encontrado{resultCount !== 1 ? 's' : ''}
+                            </Text>
+                        ) : (
+                            <Text style={styles.resultCounterText}>
+                                Mostrando todos os {resultLabel}s disponíveis
+                            </Text>
                         )}
                     </View>
 
-                    {/* Duração */}
-                    <DurationSlider
-                        value={duration}
-                        onChange={setDuration}
-                        min={1}
-                        max={30}
-                        step={1}
-                    />
-                </ScrollView>
+                    {/* Actions */}
+                    <View style={styles.actions}>
+                        <Animated.View style={[
+                            styles.clearButtonWrapper,
+                            {
+                                borderColor: clearAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [theme.colors.border, theme.colors.primary],
+                                }),
+                            },
+                        ]}>
+                            <TouchableOpacity
+                                style={styles.clearButton}
+                                onPress={handleClearFilters}
+                            >
+                                <Text style={[
+                                    styles.clearButtonText,
+                                    localActiveCount > 0 && styles.clearButtonTextActive,
+                                ]}>
+                                    Limpar{localActiveCount > 0 ? ` (${localActiveCount})` : ''}
+                                </Text>
+                            </TouchableOpacity>
+                        </Animated.View>
 
-                {/* Actions */}
-                <View style={styles.actions}>
-                    <TouchableOpacity
-                        style={styles.clearButton}
-                        onPress={handleClearFilters}
-                    >
-                        <Text style={styles.clearButtonText}>Limpar Filtros</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.searchButton}
-                        onPress={handleApplyFilters}
-                    >
-                        <LinearGradient
-                            colors={[theme.colors.primary, theme.colors.secondary]}
-                            style={styles.searchButtonGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
+                        <TouchableOpacity
+                            style={styles.searchButton}
+                            onPress={handleApplyFilters}
                         >
-                            <Text style={styles.searchButtonText}>🔍 Buscar</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                            <LinearGradient
+                                colors={[theme.colors.primary, theme.colors.secondary]}
+                                style={styles.searchButtonGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                <Text style={styles.searchButtonText}>🔍 Buscar</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </Animated.View>
-        </Modal >
+        </Modal>
     );
 }
 
@@ -283,7 +476,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: height * 0.85,
+        height: height * 0.9,
         backgroundColor: theme.colors.background,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
@@ -311,12 +504,17 @@ const styles = StyleSheet.create({
     headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
     },
     title: {
         fontSize: 20,
         fontWeight: '700',
         color: theme.colors.text.primary,
+    },
+    microcopy: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        marginTop: 4,
     },
     closeButton: {
         width: 32,
@@ -325,6 +523,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.surface,
         alignItems: 'center',
         justifyContent: 'center',
+        marginTop: 2,
     },
     closeIcon: {
         fontSize: 18,
@@ -336,7 +535,7 @@ const styles = StyleSheet.create({
         paddingTop: theme.spacing.lg,
     },
     filterSection: {
-        marginBottom: theme.spacing.lg,
+        marginBottom: 28,
     },
     filterLabel: {
         fontSize: 16,
@@ -344,13 +543,26 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
         marginBottom: theme.spacing.md,
     },
+    filterLabelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing.md,
+    },
+    filterValue: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
+
+    // Input
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: theme.colors.surface,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        borderRadius: 12,
+        borderRadius: 14,
         paddingHorizontal: theme.spacing.md,
         height: 56,
     },
@@ -364,70 +576,91 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
     },
 
-    // Category Pills
-    categoriesScroll: {
-        gap: theme.spacing.sm,
+    // Duration Chips
+    durationChipsScroll: {
+        gap: 8,
+        marginBottom: 14,
     },
-    categoryPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.xs,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.borderRadius.full,
+    durationChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
         backgroundColor: theme.colors.surface,
         borderWidth: 1,
         borderColor: theme.colors.border,
     },
-    categoryIcon: {
-        fontSize: 16,
-    },
-    categoryLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-    },
-    categoryPillActive: {
+    durationChipActive: {
         backgroundColor: theme.colors.primary,
         borderColor: theme.colors.primary,
     },
-    categoryLabelActive: {
+    durationChipText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    durationChipTextActive: {
         color: '#FFFFFF',
     },
 
-    // Intent Toggles
-    intentToggleRow: {
+    // Slider (shared by duration & price)
+    slider: {
+        width: '100%',
+        height: 40,
+    },
+    sliderRange: {
         flexDirection: 'row',
-        gap: 12,
+        justifyContent: 'space-between',
+        marginTop: -6,
     },
-    intentToggleCard: {
-        flex: 1,
+    sliderRangeText: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+    },
+
+    // Price
+    priceSliderLabel: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 2,
+        marginTop: 8,
+    },
+
+    // Intent / Travel Style
+    intentGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    intentCard: {
+        width: '31%',
         alignItems: 'center',
-        paddingVertical: 20,
-        borderRadius: theme.borderRadius.lg,
+        paddingVertical: 16,
+        borderRadius: 14,
         borderWidth: 2,
-    },
-    intentToggleCardActive: {
-        backgroundColor: theme.colors.primary,
-        borderColor: theme.colors.primary,
-    },
-    intentToggleCardInactive: {
-        backgroundColor: theme.colors.background,
         borderColor: theme.colors.border,
+        backgroundColor: theme.colors.background,
     },
-    intentToggleEmoji: {
+    intentCardActive: {
+        borderColor: theme.colors.primary,
+        backgroundColor: theme.colors.primary + '0D',
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    intentEmoji: {
         fontSize: 28,
-        marginBottom: 8,
+        marginBottom: 6,
     },
-    intentToggleLabel: {
-        fontSize: 14,
+    intentLabel: {
+        fontSize: 12,
         fontWeight: '600',
+        color: theme.colors.text.primary,
     },
-    intentToggleLabelActive: {
-        color: '#FFFFFF',
-    },
-    intentToggleLabelInactive: {
+    intentLabelActive: {
         color: theme.colors.primary,
+        fontWeight: '700',
     },
     intentFeedback: {
         marginTop: 12,
@@ -444,29 +677,85 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
 
-    // Actions
-    actions: {
+    // Category Pills
+    categoriesScroll: {
+        gap: theme.spacing.sm,
+    },
+    categoryPill: {
         flexDirection: 'row',
-        gap: theme.spacing.md,
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: theme.borderRadius.full,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    categoryIcon: {
+        fontSize: 18,
+    },
+    categoryLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+    },
+    categoryPillActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    categoryLabelActive: {
+        color: '#FFFFFF',
+    },
+
+    // Footer
+    footer: {
         paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.lg,
+        paddingTop: 10,
+        paddingBottom: theme.spacing.lg,
         borderTopWidth: 1,
         borderTopColor: theme.colors.border,
         backgroundColor: theme.colors.background,
     },
-    clearButton: {
+    resultCounter: {
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    resultCounterText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+    },
+    resultCounterBold: {
+        fontWeight: '700',
+        color: theme.colors.primary,
+        fontSize: 14,
+    },
+
+    // Actions
+    actions: {
+        flexDirection: 'row',
+        gap: theme.spacing.md,
+    },
+    clearButtonWrapper: {
         flex: 1,
         height: 48,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: theme.colors.primary,
+        overflow: 'hidden',
+    },
+    clearButton: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
     },
     clearButtonText: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
+        color: theme.colors.text.secondary,
+    },
+    clearButtonTextActive: {
         color: theme.colors.primary,
+        fontWeight: '700',
     },
     searchButton: {
         flex: 1,

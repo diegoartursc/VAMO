@@ -76,11 +76,31 @@ export interface TransportInfo {
     tips: string[];
 }
 
+export interface FlightInfo {
+    outbound: {
+        airline: string;
+        route: string;
+        departure: string;
+        arrival: string;
+        duration: string;
+        stops: number;
+        pricePaid: string;
+    };
+    return: {
+        airline: string;
+        route: string;
+        departure: string;
+        arrival: string;
+        duration: string;
+        stops: number;
+        pricePaid: string;
+    };
+    tips: string[];
+}
+
 export interface AccommodationOption {
     id: string;
     name: string;
-    tier: 'economico' | 'medio' | 'luxo';
-    tierLabel: string;
     priceRange: string;
     location: string;
     description: string;
@@ -106,8 +126,9 @@ export interface PurchasedItinerary extends Itinerary {
         conditions: string;
         recommendation: string;
     };
-    spendingProfiles?: SpendingProfile[];
+    spendingProfile?: SpendingProfile;
     transport?: TransportInfo;
+    flightInfo?: FlightInfo;
     accommodationOptions?: AccommodationOption[];
     receiveList?: ReceiveItem[];
 }
@@ -421,47 +442,19 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             conditions: 'Parcialmente nublado com possibilidade de chuva',
             recommendation: 'Leve casaco, guarda-chuva e roupas em camadas',
         },
-        spendingProfiles: [
-            {
-                id: 'economico',
-                label: 'Econômico',
-                icon: '💰',
-                dailyCost: 350,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 120 },
-                    { category: 'Alimentação', amount: 100 },
-                    { category: 'Transporte', amount: 30 },
-                    { category: 'Atrações', amount: 50 },
-                    { category: 'Extras', amount: 50 },
-                ],
-            },
-            {
-                id: 'conforto',
-                label: 'Conforto',
-                icon: '✨',
-                dailyCost: 650,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 280 },
-                    { category: 'Alimentação', amount: 180 },
-                    { category: 'Transporte', amount: 50 },
-                    { category: 'Atrações', amount: 80 },
-                    { category: 'Extras', amount: 60 },
-                ],
-            },
-            {
-                id: 'luxo',
-                label: 'Luxo',
-                icon: '👑',
-                dailyCost: 1200,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 550 },
-                    { category: 'Alimentação', amount: 300 },
-                    { category: 'Transporte', amount: 100 },
-                    { category: 'Atrações', amount: 150 },
-                    { category: 'Extras', amount: 100 },
-                ],
-            },
-        ],
+        spendingProfile: {
+            id: 'economico',
+            label: 'Econômico',
+            icon: '💰',
+            dailyCost: 350,
+            breakdown: [
+                { category: 'Hospedagem', amount: 120 },
+                { category: 'Alimentação', amount: 100 },
+                { category: 'Transporte', amount: 30 },
+                { category: 'Atrações', amount: 50 },
+                { category: 'Extras', amount: 50 },
+            ],
+        },
         transport: {
             mainMode: 'Metrô + Caminhada',
             description: 'Paris é uma cidade muito bem servida de transporte público. O metrô cobre praticamente toda a cidade e é a forma mais eficiente de se locomover.',
@@ -490,66 +483,40 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                 'Muitos pontos turísticos são acessíveis a pé',
             ],
         },
+        flightInfo: {
+            outbound: {
+                airline: 'LATAM',
+                route: 'GRU → CDG',
+                departure: '22:30',
+                arrival: '14:15 (+1)',
+                duration: '11h45',
+                stops: 0,
+                pricePaid: 'R$ 3.450',
+            },
+            return: {
+                airline: 'LATAM',
+                route: 'CDG → GRU',
+                departure: '23:05',
+                arrival: '06:50 (+1)',
+                duration: '11h45',
+                stops: 0,
+                pricePaid: 'R$ 3.450',
+            },
+            tips: [
+                'Comprei ida e volta pela LATAM com 3 meses de antecedência e saiu ótimo',
+                'Voo noturno é a melhor opção — dormi no avião e cheguei em Paris de manhã',
+                'Leve um travesseiro de pescoço e meias grossas, o ar-condicionado é forte',
+                'No CDG, pegue o RER B direto pra cidade — muito mais barato que táxi',
+            ],
+        },
         accommodationOptions: [
-            {
-                id: 'acc-1',
-                name: 'Generator Paris',
-                tier: 'economico',
-                tierLabel: '💰 Econômico',
-                priceRange: 'R$ 120-180/noite',
-                location: 'Próximo à Gare du Nord (10ème)',
-                description: 'Hostel moderno e jovem, ideal para viajantes solo ou casais econômicos.',
-                rating: 4.2,
-            },
-            {
-                id: 'acc-2',
-                name: 'St Christopher\'s Inn',
-                tier: 'economico',
-                tierLabel: '💰 Econômico',
-                priceRange: 'R$ 100-160/noite',
-                location: 'Gare du Nord (10ème)',
-                description: 'Hostel com bar e área social. Boa localização para metrô.',
-                rating: 4.0,
-            },
             {
                 id: 'acc-3',
                 name: 'Hotel Le Marais',
-                tier: 'medio',
-                tierLabel: '✨ Conforto',
                 priceRange: 'R$ 280-400/noite',
                 location: 'Le Marais (4ème)',
                 description: 'Hotel boutique no bairro mais charmoso de Paris. Perto de restaurantes e metrô.',
                 rating: 4.6,
-            },
-            {
-                id: 'acc-4',
-                name: 'Hotel Bastille de Launay',
-                tier: 'medio',
-                tierLabel: '✨ Conforto',
-                priceRange: 'R$ 320-450/noite',
-                location: 'Bastille (11ème)',
-                description: 'Hotel acolhedor com excelente café da manhã. Bairro vibrante.',
-                rating: 4.5,
-            },
-            {
-                id: 'acc-5',
-                name: 'Hôtel Plaza Athénée',
-                tier: 'luxo',
-                tierLabel: '👑 Luxo',
-                priceRange: 'R$ 2.500-5.000/noite',
-                location: 'Avenue Montaigne (8ème)',
-                description: 'Palácio 5 estrelas com vista para a Torre Eiffel. Restaurante Alain Ducasse.',
-                rating: 4.9,
-            },
-            {
-                id: 'acc-6',
-                name: 'Le Meurice',
-                tier: 'luxo',
-                tierLabel: '👑 Luxo',
-                priceRange: 'R$ 3.000-6.000/noite',
-                location: 'Rue de Rivoli (1er)',
-                description: 'Palácio histórico em frente ao Jardim das Tuileries. Vista para o Louvre.',
-                rating: 4.8,
             },
         ],
         receiveList: [
@@ -764,47 +731,19 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             '🗣️ Idioma: Japonês — Google Translate com câmera é essencial',
             '📱 Internet: eSIM ou Pocket WiFi recomendado',
         ],
-        spendingProfiles: [
-            {
-                id: 'economico',
-                label: 'Econômico',
-                icon: '💴',
-                dailyCost: 250,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 100 },
-                    { category: 'Alimentação', amount: 60 },
-                    { category: 'Transporte', amount: 40 },
-                    { category: 'Atrações', amount: 30 },
-                    { category: 'Extras', amount: 20 },
-                ],
-            },
-            {
-                id: 'conforto',
-                label: 'Conforto',
-                icon: '🏯',
-                dailyCost: 500,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 220 },
-                    { category: 'Alimentação', amount: 120 },
-                    { category: 'Transporte', amount: 60 },
-                    { category: 'Atrações', amount: 60 },
-                    { category: 'Extras', amount: 40 },
-                ],
-            },
-            {
-                id: 'luxo',
-                label: 'Luxo',
-                icon: '🎌',
-                dailyCost: 900,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 450 },
-                    { category: 'Alimentação', amount: 200 },
-                    { category: 'Transporte', amount: 80 },
-                    { category: 'Atrações', amount: 100 },
-                    { category: 'Extras', amount: 70 },
-                ],
-            },
-        ],
+        spendingProfile: {
+            id: 'conforto',
+            label: 'Conforto',
+            icon: '🏰',
+            dailyCost: 500,
+            breakdown: [
+                { category: 'Hospedagem', amount: 220 },
+                { category: 'Alimentação', amount: 120 },
+                { category: 'Transporte', amount: 60 },
+                { category: 'Atrações', amount: 60 },
+                { category: 'Extras', amount: 40 },
+            ],
+        },
         transport: {
             mainMode: 'Metrô + Shinkansen',
             description: 'Tóquio tem uma das redes de transporte mais eficientes do mundo. O Suica card funciona em trens, metrôs e até lojas de conveniência.',
@@ -818,36 +757,40 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                 'Última composição de metrô é por volta da meia-noite.',
             ],
         },
-        accommodationOptions: [
-            {
-                id: 'tk-acc-1',
-                name: 'Hostel Cápsula Shinjuku',
-                tier: 'economico',
-                tierLabel: '💴 Econômico',
-                priceRange: 'R$ 100-150/noite',
-                location: 'Shinjuku, Tóquio',
-                description: 'Hostel cápsula moderno perto da estação.',
-                rating: 4.3,
+        flightInfo: {
+            outbound: {
+                airline: 'Emirates',
+                route: 'GRU → DXB → NRT',
+                departure: '19:30',
+                arrival: '22:00 (+1)',
+                duration: '26h30',
+                stops: 1,
+                pricePaid: 'R$ 4.200',
             },
+            return: {
+                airline: 'Emirates',
+                route: 'NRT → DXB → GRU',
+                departure: '22:00',
+                arrival: '21:15 (+1)',
+                duration: '27h15',
+                stops: 1,
+                pricePaid: 'R$ 4.200',
+            },
+            tips: [
+                'Fui de Emirates e valeu cada centavo — serviço e comida excelentes',
+                'Conexão em Dubai foi tranquila, aeroporto é enorme mas bem sinalizado',
+                'Reserve assento na janela no trecho Dubai→Tóquio pra ver o Monte Fuji',
+                'No Narita, compre o Suica Card já no aeroporto — facilita tudo em Tóquio',
+            ],
+        },
+        accommodationOptions: [
             {
                 id: 'tk-acc-2',
                 name: 'Hotel Gracery Shinjuku',
-                tier: 'medio',
-                tierLabel: '🏯 Conforto',
                 priceRange: 'R$ 400-600/noite',
                 location: 'Kabukicho, Shinjuku',
                 description: 'Hotel temático com Godzilla na cobertura.',
                 rating: 4.6,
-            },
-            {
-                id: 'tk-acc-3',
-                name: 'Park Hyatt Tokyo',
-                tier: 'luxo',
-                tierLabel: '🎌 Luxo',
-                priceRange: 'R$ 2.500-4.000/noite',
-                location: 'Nishi-Shinjuku',
-                description: 'O hotel do filme Lost in Translation. Vista panorâmica.',
-                rating: 4.9,
             },
         ],
         receiveList: [
@@ -1050,47 +993,19 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             '🗣️ Idioma: Bahasa Indonesia — Inglês funciona em áreas turísticas',
             '📱 Internet: Chip Telkomsel disponível no aeroporto',
         ],
-        spendingProfiles: [
-            {
-                id: 'economico',
-                label: 'Econômico',
-                icon: '🌴',
-                dailyCost: 120,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 40 },
-                    { category: 'Alimentação', amount: 30 },
-                    { category: 'Transporte', amount: 20 },
-                    { category: 'Atrações', amount: 20 },
-                    { category: 'Extras', amount: 10 },
-                ],
-            },
-            {
-                id: 'conforto',
-                label: 'Conforto',
-                icon: '🏖️',
-                dailyCost: 300,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 130 },
-                    { category: 'Alimentação', amount: 70 },
-                    { category: 'Transporte', amount: 40 },
-                    { category: 'Atrações', amount: 40 },
-                    { category: 'Extras', amount: 20 },
-                ],
-            },
-            {
-                id: 'luxo',
-                label: 'Luxo',
-                icon: '✨',
-                dailyCost: 700,
-                breakdown: [
-                    { category: 'Hospedagem', amount: 400 },
-                    { category: 'Alimentação', amount: 120 },
-                    { category: 'Transporte', amount: 60 },
-                    { category: 'Atrações', amount: 80 },
-                    { category: 'Extras', amount: 40 },
-                ],
-            },
-        ],
+        spendingProfile: {
+            id: 'conforto',
+            label: 'Conforto',
+            icon: '🏖️',
+            dailyCost: 300,
+            breakdown: [
+                { category: 'Hospedagem', amount: 130 },
+                { category: 'Alimentação', amount: 70 },
+                { category: 'Transporte', amount: 40 },
+                { category: 'Atrações', amount: 40 },
+                { category: 'Extras', amount: 20 },
+            ],
+        },
         transport: {
             mainMode: 'Scooter + Grab',
             description: 'Em Bali, scooter é o principal meio de transporte. Grab e Gojek são apps seguros e baratos para corridas.',
@@ -1104,36 +1019,40 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                 'Carteira de motorista internacional é exigida para scooter.',
             ],
         },
-        accommodationOptions: [
-            {
-                id: 'bl-acc-1',
-                name: 'Puri Garden Hostel',
-                tier: 'economico',
-                tierLabel: '🌴 Econômico',
-                priceRange: 'R$ 40-70/noite',
-                location: 'Ubud, Bali',
-                description: 'Hostel com piscina e café da manhã incluso.',
-                rating: 4.4,
+        flightInfo: {
+            outbound: {
+                airline: 'Qatar Airways',
+                route: 'GRU → DOH → DPS',
+                departure: '20:00',
+                arrival: '04:10 (+2)',
+                duration: '28h10',
+                stops: 1,
+                pricePaid: 'R$ 3.800',
             },
+            return: {
+                airline: 'Qatar Airways',
+                route: 'DPS → DOH → GRU',
+                departure: '01:30',
+                arrival: '18:40',
+                duration: '29h10',
+                stops: 1,
+                pricePaid: 'R$ 3.800',
+            },
+            tips: [
+                'Qatar Airways foi incrível — a conexão em Doha tem lounge gratuíto por 4h+',
+                'A viagem é longa, leve entretenimento e snacks extras',
+                'Cheguei de madrugada em Bali — já deixei transfer agendado pelo hotel',
+                'Na volta, o duty free de Doha tem preços bons em perfumes e eletrônicos',
+            ],
+        },
+        accommodationOptions: [
             {
                 id: 'bl-acc-2',
                 name: 'The Udaya Resort & Spa',
-                tier: 'medio',
-                tierLabel: '🏖️ Conforto',
                 priceRange: 'R$ 300-500/noite',
                 location: 'Ubud, Bali',
                 description: 'Resort com vista para arrozais e spa balinês.',
                 rating: 4.7,
-            },
-            {
-                id: 'bl-acc-3',
-                name: 'Four Seasons Sayan',
-                tier: 'luxo',
-                tierLabel: '✨ Luxo',
-                priceRange: 'R$ 2.500-4.000/noite',
-                location: 'Sayan, Ubud',
-                description: 'Resort de luxo no vale do rio Ayung.',
-                rating: 4.9,
             },
         ],
         receiveList: [

@@ -1,4 +1,5 @@
 import { Package } from '../types';
+import { Itinerary } from '../data/mockItineraries';
 
 /**
  * Filtra pacotes por destino (cidade ou país)
@@ -91,6 +92,64 @@ export function applyAllFilters(
 
     // Filtro por preço
     filtered = filterByPrice(filtered, filters.priceMin, filters.priceMax);
+
+    return filtered;
+}
+
+// ── Itinerary Filters ──────────────────────────────────────────────────
+
+/**
+ * Filtra roteiros por destino (cidade ou país)
+ */
+export function filterItinerariesByDestination(itineraries: Itinerary[], destination: string): Itinerary[] {
+    if (!destination || destination.trim() === '') {
+        return itineraries;
+    }
+    const searchTerm = destination.toLowerCase().trim();
+    return itineraries.filter(it => {
+        const cityMatch = it.destination.toLowerCase().includes(searchTerm);
+        const countryMatch = it.country.toLowerCase().includes(searchTerm);
+        return cityMatch || countryMatch;
+    });
+}
+
+/**
+ * Filtra roteiros por duração (com tolerância de ±2 dias)
+ */
+export function filterItinerariesByDuration(itineraries: Itinerary[], targetDuration: number): Itinerary[] {
+    return itineraries.filter(it => Math.abs(it.duration - targetDuration) <= 2);
+}
+
+/**
+ * Filtra roteiros por faixa de preço (preço do roteiro em si)
+ */
+export function filterItinerariesByPrice(itineraries: Itinerary[], minPrice: number, maxPrice: number): Itinerary[] {
+    return itineraries.filter(it => it.price >= minPrice && it.price <= maxPrice);
+}
+
+/**
+ * Aplica todos os filtros aos roteiros
+ */
+export function applyAllItineraryFilters(
+    itineraries: Itinerary[],
+    filters: {
+        destination?: string;
+        duration?: number;
+        priceMin: number;
+        priceMax: number;
+    }
+): Itinerary[] {
+    let filtered = itineraries;
+
+    if (filters.destination) {
+        filtered = filterItinerariesByDestination(filtered, filters.destination);
+    }
+
+    if (filters.duration && filters.duration !== 7) {
+        filtered = filterItinerariesByDuration(filtered, filters.duration);
+    }
+
+    filtered = filterItinerariesByPrice(filtered, filters.priceMin, filters.priceMax);
 
     return filtered;
 }
