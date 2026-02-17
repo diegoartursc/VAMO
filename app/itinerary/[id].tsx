@@ -178,6 +178,14 @@ export default function ItineraryDetailScreen() {
                         </TouchableOpacity>
                     </View>
 
+                    {/* Aviso: Produto Digital */}
+                    <View style={styles.productNotice}>
+                        <Ionicons name="information-circle" size={18} color={theme.colors.primary} />
+                        <Text style={styles.productNoticeText}>
+                            Este é um <Text style={styles.productNoticeBold}>produto digital</Text>. Ao comprar, você terá acesso a informações, dicas e planejamento de viagem. O pagamento é referente ao conteúdo informativo, não a serviços turísticos.
+                        </Text>
+                    </View>
+
                     {/* Estimativa de Gasto */}
                     {itinerary.estimatedSpending && (
                         <CollapsibleSection title="💰 Estimativa de Gasto" defaultExpanded={false}>
@@ -287,6 +295,40 @@ export default function ItineraryDetailScreen() {
                             <Text style={styles.trustText}>
                                 {itinerary.creator.name} é um viajante verificado pelo VAMO com {itinerary.creator.salesCount}+ roteiros vendidos
                             </Text>
+                        </View>
+                    </View>
+
+                    {/* Disclaimer Legal */}
+                    <View style={styles.disclaimerBox}>
+                        <View style={styles.disclaimerHeader}>
+                            <Ionicons name="document-text-outline" size={18} color={theme.colors.text.tertiary} />
+                            <Text style={styles.disclaimerTitle}>Informações Importantes</Text>
+                        </View>
+                        <View style={styles.disclaimerItems}>
+                            <View style={styles.disclaimerItem}>
+                                <Text style={styles.disclaimerBullet}>📄</Text>
+                                <Text style={styles.disclaimerItemText}>
+                                    <Text style={styles.disclaimerItemBold}>Produto digital:</Text> Você está adquirindo acesso a um roteiro com informações, dicas e planejamento de viagem elaborados por um viajante experiente.
+                                </Text>
+                            </View>
+                            <View style={styles.disclaimerItem}>
+                                <Text style={styles.disclaimerBullet}>💡</Text>
+                                <Text style={styles.disclaimerItemText}>
+                                    <Text style={styles.disclaimerItemBold}>Conteúdo informativo:</Text> O pagamento é pelo acesso à informação em si. A VAMO não comercializa nem garante a execução dos serviços, passeios ou experiências descritos no roteiro.
+                                </Text>
+                            </View>
+                            <View style={styles.disclaimerItem}>
+                                <Text style={styles.disclaimerBullet}>🔒</Text>
+                                <Text style={styles.disclaimerItemText}>
+                                    <Text style={styles.disclaimerItemBold}>Acesso permanente:</Text> Após a compra, o conteúdo ficará disponível na sua conta para consulta a qualquer momento.
+                                </Text>
+                            </View>
+                            <View style={styles.disclaimerItem}>
+                                <Text style={styles.disclaimerBullet}>⚠️</Text>
+                                <Text style={styles.disclaimerItemText}>
+                                    Preços, horários e disponibilidade dos locais mencionados podem sofrer alterações. Recomendamos confirmar as informações antes da viagem.
+                                </Text>
+                            </View>
                         </View>
                     </View>
 
@@ -650,5 +692,71 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: theme.colors.error,
         textAlign: 'center',
+    },
+
+    // Product Notice (inline compact)
+    productNotice: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        backgroundColor: `${theme.colors.primary}08`,
+        borderWidth: 1,
+        borderColor: `${theme.colors.primary}20`,
+        borderRadius: 10,
+        padding: 14,
+        marginTop: 12,
+    },
+    productNoticeText: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 19,
+    },
+    productNoticeBold: {
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+
+    // Disclaimer Box (detailed section)
+    disclaimerBox: {
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 20,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    disclaimerHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 14,
+    },
+    disclaimerTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.secondary,
+    },
+    disclaimerItems: {
+        gap: 12,
+    },
+    disclaimerItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+    },
+    disclaimerBullet: {
+        fontSize: 14,
+        marginTop: 1,
+    },
+    disclaimerItemText: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 19,
+    },
+    disclaimerItemBold: {
+        fontWeight: '600',
+        color: theme.colors.text.primary,
     },
 });
