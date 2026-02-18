@@ -47,6 +47,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600',
             'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=1600',
+            'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=1600',
         ],
         duration: 7,
         includes: [
@@ -159,6 +160,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=1600',
             'https://images.unsplash.com/photo-1512813498716-3e640fed3f39?w=1600',
+            'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1600',
         ],
         duration: 5,
         includes: [
@@ -270,6 +272,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1600',
             'https://images.unsplash.com/photo-1520986606214-8b456906c813?w=1600',
+            'https://images.unsplash.com/photo-1519677100203-a0e668c92439?w=1600',
         ],
         duration: 15,
         includes: [
@@ -380,6 +383,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=1600',
             'https://images.unsplash.com/photo-1606146485303-b7e66e6b2e93?w=1600',
+            'https://images.unsplash.com/photo-1518485547484-e28ef52e7df2?w=1600',
         ],
         duration: 5,
         includes: [
@@ -488,6 +492,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1600',
             'https://images.unsplash.com/photo-1518391846015-55a9cc003b25?w=1600',
+            'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1600',
         ],
         duration: 6,
         includes: [
@@ -597,6 +602,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600',
             'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1600',
+            'https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=1600',
         ],
         duration: 6,
         includes: [
@@ -707,6 +713,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1600',
             'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=1600',
+            'https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=1600',
         ],
         duration: 7,
         includes: [
@@ -819,6 +826,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1531065208531-4036c0dba3ca?w=1600',
             'https://images.unsplash.com/photo-1609137144813-7d9921338f24?w=1600',
+            'https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=1600',
         ],
         duration: 8,
         includes: [
@@ -927,6 +935,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1502809737437-1d85c70dd2ca?w=1600',
             'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600',
+            'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1600',
         ],
         duration: 4,
         includes: [
@@ -1034,6 +1043,7 @@ export const mockPackages: Package[] = [
         images: [
             'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600',
             'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600',
+            'https://images.unsplash.com/photo-1524396309943-e03f5249f002?w=1600',
         ],
         duration: 10,
         includes: [

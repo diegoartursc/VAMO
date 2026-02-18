@@ -4,14 +4,13 @@ import {
     Image,
     FlatList,
     StyleSheet,
-    Dimensions,
+    useWindowDimensions,
     ViewToken,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import { theme } from '../../theme/theme';
 import { prefetchImages } from '../../utils/imageCache';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface CoverCarouselProps {
     images: string[];
@@ -31,9 +30,10 @@ const CoverCarouselInner = ({
     borderRadius = 0,
     width,
 }: CoverCarouselProps) => {
+    const { width: windowWidth } = useWindowDimensions();
     const [activeIndex, setActiveIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
-    const containerWidth = width || SCREEN_WIDTH;
+    const containerWidth = width || windowWidth;
     const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const currentIndexRef = useRef(0);
     const isTouchingRef = useRef(false);
@@ -90,12 +90,14 @@ const CoverCarouselInner = ({
         isTouchingRef.current = false;
     }, []);
 
+    const webImageStyle = Platform.OS === 'web' ? { objectFit: 'cover' as any } : {};
+
     const renderItem = useCallback(
         ({ item }: { item: string }) => (
             <View style={{ width: containerWidth, height }}>
                 <Image
                     source={{ uri: item }}
-                    style={[styles.image, { height }]}
+                    style={[styles.image, { height }, webImageStyle]}
                     resizeMode="cover"
                     defaultSource={undefined}
                 />
