@@ -45,8 +45,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800',
-            'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=800',
+            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600',
+            'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=1600',
         ],
         duration: 7,
         includes: [
@@ -103,7 +103,7 @@ export const mockPackages: Package[] = [
                 'Louvre', 'Champs-Élysées', 'Montmartre', 'Notre-Dame',
                 'Arc de Triomphe', 'Musée d\'Orsay', 'Sacré-Cœur', 'Latin Quarter'
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1524396309943-e03f5249f002?w=800'
+            mapImageUrl: 'https://images.unsplash.com/photo-1524396309943-e03f5249f002?w=1600'
         },
         fullDescription: 'Viva a experiência completa na Cidade Luz com este pacote exclusivo de 7 dias. Explore os monumentos mais icônicos, passeie pelos charmosos bairros parisienses, saboreie a gastronomia francesa e mergulhe na rica história e cultura da capital francesa. Nosso roteiro cuidadosamente planejado equilibra visitas guiadas aos principais pontos turísticos com tempo livre para você descobrir seus próprios tesouros escondidos. Acomodação central em hotel 4 estrelas garante conforto e praticidade para explorar a cidade a pé ou de metrô.',
         includedItems: [
@@ -157,8 +157,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=800',
-            'https://images.unsplash.com/photo-1512813498716-3e640fed3f39?w=800',
+            'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=1600',
+            'https://images.unsplash.com/photo-1512813498716-3e640fed3f39?w=1600',
         ],
         duration: 5,
         includes: [
@@ -213,7 +213,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'Aeroporto de Cancún', 'Zona Hotelera', 'Playa del Carmen',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=1600',
         },
         fullDescription: 'Desfrute do paraíso caribenho em um resort all-inclusive de categoria superior. Aproveite praias de águas cristalinas, piscinas infinitas, gastronomia internacional e atividades aquáticas ilimitadas. Este pacote oferece a combinação perfeita entre relaxamento total e diversão para toda a família, com estrutura completa de entretenimento diurno e noturno.',
         includedItems: [
@@ -268,8 +268,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800',
-            'https://images.unsplash.com/photo-1520986606214-8b456906c813?w=800',
+            'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1600',
+            'https://images.unsplash.com/photo-1520986606214-8b456906c813?w=1600',
         ],
         duration: 15,
         includes: [
@@ -325,7 +325,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'Paris', 'Roma', 'Barcelona', 'Amsterdam', 'Londres',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1600',
         },
         fullDescription: 'Uma jornada épica pelas capitais mais icônicas da Europa. Em 15 dias, você vai cruzar fronteiras, experimentar sabores únicos, admirar obras de arte que mudaram o mundo e caminhar por ruas que contam séculos de história. De Paris romântica à Roma imperial, da vibrante Barcelona à cosmopolita Amsterdam e a histórica Londres — cada dia traz uma nova descoberta. Viaje em grupo pequeno com guia brasileiro, deslocamentos de trem panorâmico e tempo livre para explorar cada cidade no seu ritmo.',
         includedItems: [
@@ -378,8 +378,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800',
-            'https://images.unsplash.com/photo-1606146485303-b7e66e6b2e93?w=800',
+            'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=1600',
+            'https://images.unsplash.com/photo-1606146485303-b7e66e6b2e93?w=1600',
         ],
         duration: 5,
         includes: [
@@ -434,7 +434,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'Vila dos Remédios', 'Porto de Santo Antônio',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=1600',
         },
         fullDescription: 'Fernando de Noronha é um dos poucos lugares no mundo onde a natureza permanece quase intocada. Neste pacote completo de 5 dias, você vai nadar ao lado de golfinhos rotadores, mergulhar com tartarugas marinhas em águas de visibilidade impressionante e caminhar por trilhas que revelam praias eleitas entre as mais bonitas do planeta. A Baía do Sancho, a Praia do Leão e a vista do Morro Dois Irmãos são apenas o começo de uma experiência que marca a vida.',
         includedItems: [
@@ -486,8 +486,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800',
-            'https://images.unsplash.com/photo-1518391846015-55a9cc003b25?w=800',
+            'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1600',
+            'https://images.unsplash.com/photo-1518391846015-55a9cc003b25?w=1600',
         ],
         duration: 6,
         includes: [
@@ -542,7 +542,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'Times Square', 'Central Park', 'Brooklyn Bridge', 'Hotel em Manhattan',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1600',
         },
         fullDescription: 'Nova York é a cidade que pulsa 24 horas por dia. Em 6 dias, você vai subir ao topo do Empire State Building, cruzar a Brooklyn Bridge ao pôr do sol, caminhar pelo Central Park, se emocionar na Estátua da Liberdade e sentir a energia contagiante da Times Square à noite. Com hotel em Manhattan, City Pass para as principais atrações e transfer incluso, você só precisa se preocupar em aproveitar cada segundo nessa metrópole que nunca dorme.',
         includedItems: [
@@ -595,8 +595,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800',
-            'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800',
+            'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600',
+            'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1600',
         ],
         duration: 6,
         includes: [
@@ -652,7 +652,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'Aguas Calientes', 'Ollantaytambo', 'Cusco Centro',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600',
         },
         fullDescription: 'Uma viagem que conecta você com uma das civilizações mais fascinantes da história. Em 6 dias, você percorre as ruas milenares de Cusco, explora o Vale Sagrado dos Incas entre montanhas imponentes e chega à cidadela de Machu Picchu — uma das Sete Maravilhas do Mundo Moderno. O roteiro inclui dia de aclimatação à altitude (3.400m), passagem de trem panorâmico até Aguas Calientes e guia especializado que revela os segredos e mistérios da cultura inca.',
         includedItems: [
@@ -705,8 +705,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800',
-            'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800',
+            'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1600',
+            'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=1600',
         ],
         duration: 7,
         includes: [
@@ -762,7 +762,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'Downtown Dubai', 'Dubai Marina', 'Palm Jumeirah', 'Hotel',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1600',
         },
         fullDescription: 'Dubai é onde o futuro encontra a tradição milenar. Em 7 dias, você vai subir ao observatório do Burj Khalifa — o prédio mais alto do mundo —, explorar o maior shopping do planeta, sentir a adrenalina de um safari pelo deserto com jantar sob as estrelas em acampamento beduíno, e passear de abra tradicional pelo Dubai Creek. Este pacote combina luxo cinco estrelas com imersão cultural autêntica, oferecendo o melhor dos dois mundos no coração do Oriente Médio.',
         includedItems: [
@@ -817,8 +817,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1531065208531-4036c0dba3ca?w=800',
-            'https://images.unsplash.com/photo-1609137144813-7d9921338f24?w=800',
+            'https://images.unsplash.com/photo-1531065208531-4036c0dba3ca?w=1600',
+            'https://images.unsplash.com/photo-1609137144813-7d9921338f24?w=1600',
         ],
         duration: 8,
         includes: [
@@ -873,7 +873,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'El Calafate Centro', 'El Chaltén', 'Aeroporto El Calafate',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1531065208531-4036c0dba3ca?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1531065208531-4036c0dba3ca?w=1600',
         },
         fullDescription: 'A Patagônia Argentina é um dos últimos refúgios selvagens do planeta. Em 8 dias, você contempla o majestoso Glaciar Perito Moreno de perto — ouvindo o gelo estalar e desprender-se —, faz trekking até a Laguna de los Tres com vista para o Monte Fitz Roy, navega entre icebergs milenares e avista condores, guanacos e raposas patagônicas em seu habitat natural. Uma aventura para quem quer sentir a imensidão da natureza e se reconectar com o essencial.',
         includedItems: [
@@ -925,8 +925,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1502809737437-1d85c70dd2ca?w=800',
-            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+            'https://images.unsplash.com/photo-1502809737437-1d85c70dd2ca?w=1600',
+            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600',
         ],
         duration: 4,
         includes: [
@@ -981,7 +981,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'Louvre', 'Champs-Élysées', 'Hotel no centro',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1502809737437-1d85c70dd2ca?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1502809737437-1d85c70dd2ca?w=1600',
         },
         fullDescription: 'Paris em 4 dias: um roteiro compacto e eficiente para quem quer conhecer o essencial da Cidade Luz sem gastar muito. Você visita a Torre Eiffel, passeia pela Champs-Élysées, admira as obras-primas do Louvre e saboreia croissants autênticos em cafés tradicionais. Tudo com hotel bem localizado e preço acessível — ideal para quem tem poucos dias de folga mas não quer abrir mão de viver Paris.',
         includedItems: [
@@ -1032,8 +1032,8 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800',
+            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600',
+            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600',
         ],
         duration: 10,
         includes: [
@@ -1089,7 +1089,7 @@ export const mockPackages: Package[] = [
             returnLocations: [
                 'Hotel 5 estrelas', 'Champs-Élysées', 'Place Vendôme',
             ],
-            mapImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+            mapImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600',
         },
         fullDescription: 'A versão mais exclusiva de Paris. Em 10 dias, voando em classe executiva, hospedado em hotel 5 estrelas com vista para a Torre Eiffel, você vive experiências que poucos conhecem: jantar no restaurante Le Jules Verne dentro da Torre Eiffel, visita privativa ao Palácio de Versailles antes da abertura ao público, degustação de champagne nas caves de Reims, e um dia inteiro de compras nas boutiques parisienses com personal stylist. Uma viagem para quem não aceita nada menos que o extraordinário.',
         includedItems: [

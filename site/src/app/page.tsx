@@ -62,6 +62,11 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ═══ TRUST BADGE ═══ */}
+      <div className="trust-badge">
+        🛡️ Agências verificadas &nbsp;•&nbsp; 💰 Preço final garantido &nbsp;•&nbsp; 🔒 Compra segura
+      </div>
+
       {/* ═══ COMO FUNCIONA ═══ */}
       <section className="section" id="como-funciona">
         <div className="section-header">

@@ -3,10 +3,12 @@ import { useSearchContext, SearchFilters } from '../contexts/SearchContext';
 import { getPackages, getItineraries } from '../services/api';
 import { applyAllFilters, applyAllItineraryFilters } from '../utils/searchUtils';
 import { Package } from '../types';
+import { mockPackages } from '../data/mockPackages';
+import { mockItineraries } from '../data/mockItineraries';
 
 /**
  * Hook personalizado para gerenciar busca e filtros
- * Agora busca dados da API (banco de dados PostgreSQL)
+ * Busca dados da API (banco de dados PostgreSQL) com fallback para mock data
  */
 export function useSearch() {
     const context = useSearchContext();
@@ -14,7 +16,7 @@ export function useSearch() {
     const [allItineraries, setAllItineraries] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Fetch data from API on mount
+    // Fetch data from API on mount, with fallback to mock data
     useEffect(() => {
         let cancelled = false;
         async function loadData() {
@@ -24,12 +26,17 @@ export function useSearch() {
                     getItineraries(),
                 ]);
                 if (!cancelled) {
-                    setAllPackages(pkgs);
-                    setAllItineraries(itins);
+                    setAllPackages(pkgs.length > 0 ? pkgs : mockPackages);
+                    setAllItineraries(itins.length > 0 ? itins : mockItineraries);
                     setLoading(false);
                 }
             } catch (err) {
                 console.error('Failed to load data from API:', err);
+                console.warn('Using mock data as fallback');
+                if (!cancelled) {
+                    setAllPackages(mockPackages);
+                    setAllItineraries(mockItineraries);
+                }
                 setLoading(false);
             }
         }

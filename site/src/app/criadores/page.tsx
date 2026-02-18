@@ -30,6 +30,21 @@ export default function CriadoresPage() {
                         <Link href="/cadastro" className="btn-primary">Começar Agora — É Grátis</Link>
                         <Link href="/login" className="btn-secondary">Já tenho conta</Link>
                     </div>
+
+                    <div className="stats-bar">
+                        <div className="stat-item">
+                            <div className="stat-value">85%</div>
+                            <div className="stat-label">Comissão por venda</div>
+                        </div>
+                        <div className="stat-item">
+                            <div className="stat-value">R$ 0</div>
+                            <div className="stat-label">Investimento inicial</div>
+                        </div>
+                        <div className="stat-item">
+                            <div className="stat-value">5.000+</div>
+                            <div className="stat-label">Viajantes na plataforma</div>
+                        </div>
+                    </div>
                 </div>
             </section>
 

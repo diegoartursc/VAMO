@@ -151,9 +151,9 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         price: 49.90,
         currency: 'BRL',
         images: [
-            'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=800',
-            'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=800',
-            'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800',
+            'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=1600',
+            'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=1600',
+            'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=1600',
         ],
         rating: 4.9,
         reviewCount: 456,
@@ -182,7 +182,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                         title: 'Check-in no Hotel',
                         location: 'Hotel Le Marais',
                         description: 'Faça o check-in e deixe suas malas. O hotel fica no charmoso bairro Le Marais, próximo ao metrô.',
-                        images: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'],
+                        images: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600'],
                         tips: [
                             'Peça um mapa do bairro na recepção',
                             'Guarde seus documentos no cofre do quarto',
@@ -199,8 +199,8 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                         location: 'Bairro Le Marais',
                         description: 'Explore as ruas medievais, galerias de arte e cafés charmosos. Visite a Place des Vosges, a praça mais antiga de Paris.',
                         images: [
-                            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-                            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800',
+                            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600',
+                            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600',
                         ],
                         tips: [
                             'Use sapatos confortáveis - as ruas são de paralelepípedo',
@@ -218,7 +218,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                         title: 'Jantar em Bistrô Local',
                         location: 'Chez Janou',
                         description: 'Jantar tradicional francês em um bistrô autêntico. Experimente o confit de canard ou steak frites.',
-                        images: ['https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800'],
+                        images: ['https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600'],
                         tips: [
                             'Reserve com antecedência pelo telefone',
                             'Peça a sugestão do chef',
@@ -234,7 +234,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                         title: 'Caminhada Noturna pelo Sena',
                         location: 'Rio Sena',
                         description: 'Passeio relaxante pelas margens do Sena com vista para a Torre Eiffel iluminada.',
-                        images: ['https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800'],
+                        images: ['https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600'],
                         tips: [
                             'A Torre Eiffel acende às 21h',
                             'Leve uma jaqueta - pode esfriar à noite',
@@ -291,8 +291,8 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                         location: 'Torre Eiffel',
                         description: 'Suba até o topo da Torre Eiffel e aprecie a vista panorâmica de Paris. Reserve seu ingresso online com antecedência.',
                         images: [
-                            'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=800',
-                            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800',
+                            'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=1600',
+                            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600',
                         ],
                         tips: [
                             'Reserve ingressos online para evitar filas de 2-3 horas',
@@ -311,7 +311,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                         title: 'Almoço com Vista',
                         location: 'Café du Trocadéro',
                         description: 'Almoço leve com vista privilegiada da Torre Eiffel.',
-                        images: ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800'],
+                        images: ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600'],
                         tips: [
                             'Peça uma mesa na varanda',
                             'Experimente o croque monsieur',
@@ -326,7 +326,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                         title: 'Jardins do Trocadéro',
                         location: 'Jardins do Trocadéro',
                         description: 'Relaxe nos jardins, tire fotos e aproveite a vista da Torre Eiffel.',
-                        images: ['https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800'],
+                        images: ['https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600'],
                         tips: [
                             'Ótimo lugar para piquenique',
                             'Cuidado com vendedores ambulantes',
@@ -355,8 +355,8 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                         location: 'Museu do Louvre',
                         description: 'Visite as principais obras: Mona Lisa, Vênus de Milo, Vitória de Samotrácia. Reserve ingresso online.',
                         images: [
-                            'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800',
-                            'https://images.unsplash.com/photo-1564399579883-451a5d44ec08?w=800',
+                            'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=1600',
+                            'https://images.unsplash.com/photo-1564399579883-451a5d44ec08?w=1600',
                         ],
                         tips: [
                             'Chegue quando abrir às 9h para evitar multidões',
@@ -386,7 +386,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
                 checkOut: '2026-03-20 11:00',
                 confirmationNumber: 'HLM-2026-001234',
                 mapLink: 'https://maps.google.com/?q=Hotel+Le+Marais+Paris',
-                images: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'],
+                images: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600'],
             },
         ],
         emergencyContacts: [
@@ -548,8 +548,8 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         price: 59.90,
         currency: 'BRL',
         images: [
-            'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800',
-            'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800',
+            'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600',
+            'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1600',
         ],
         rating: 4.9,
         reviewCount: 89,
@@ -822,8 +822,8 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         price: 69.90,
         currency: 'BRL',
         images: [
-            'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800',
-            'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800',
+            'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1600',
+            'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1600',
         ],
         rating: 4.7,
         reviewCount: 64,
