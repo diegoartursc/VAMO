@@ -933,9 +933,9 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1502809737437-1d85c70dd2ca?w=1600',
-            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600',
-            'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1600',
+            'https://images.unsplash.com/photo-1550340499-a6c60fc8287c?w=1600',
+            'https://images.unsplash.com/photo-1549144511-f099e773c147?w=1600',
+            'https://images.unsplash.com/photo-1478391679764-b2d8b3cd1e94?w=1600',
         ],
         duration: 4,
         includes: [
@@ -1041,9 +1041,9 @@ export const mockPackages: Package[] = [
             currency: 'BRL',
         },
         images: [
-            'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600',
-            'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600',
-            'https://images.unsplash.com/photo-1524396309943-e03f5249f002?w=1600',
+            'https://images.unsplash.com/photo-1471623320832-752e8bbf8413?w=1600',
+            'https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?w=1600',
+            'https://images.unsplash.com/photo-1500039436846-25ae2f11882e?w=1600',
         ],
         duration: 10,
         includes: [

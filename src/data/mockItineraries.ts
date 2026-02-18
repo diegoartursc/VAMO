@@ -561,7 +561,7 @@ export const mockItineraries: Itinerary[] = [
         images: [
             'https://images.unsplash.com/photo-1612294037637-ec328d0e075e?w=1600',
             'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?w=1600',
-            'https://images.unsplash.com/photo-1587595431973-160d0d163571?w=1600',
+            'https://images.unsplash.com/photo-1585417000260-7c1aac9ce8a9?w=1600',
         ],
         rating: 4.6,
         reviewCount: 145,
