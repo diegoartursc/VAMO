@@ -3,11 +3,11 @@ import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     Modal, Linking, Platform, Alert, Dimensions, Animated,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
+import { Icon, IconName } from '../../src/components/common/Icons';
 
 const { width } = Dimensions.get('window');
 
@@ -18,21 +18,21 @@ const APPEARANCES = ['Predefinida pelo sistema', 'Claro', 'Escuro'];
 const TRAVEL_TYPES = ['Luxo', 'Econômico', 'Mochilão', 'Família', 'Romântico', 'Aventura'];
 const BUDGET_RANGES = ['Até R$ 2.000', 'R$ 2.000 – 5.000', 'R$ 5.000 – 10.000', 'R$ 10.000+'];
 const INTEREST_OPTIONS = [
-    { id: 'natureza', emoji: '🏞', label: 'Natureza' },
-    { id: 'cultura', emoji: '🏛', label: 'Cultura' },
-    { id: 'gastronomia', emoji: '🍽', label: 'Gastronomia' },
-    { id: 'aventura', emoji: '🧗', label: 'Aventura' },
-    { id: 'praia', emoji: '🏖', label: 'Praia' },
-    { id: 'compras', emoji: '🛍', label: 'Compras' },
-    { id: 'vida_noturna', emoji: '🌃', label: 'Vida Noturna' },
-    { id: 'religiao', emoji: '⛪', label: 'Religião' },
+    { id: 'natureza', icon: 'trees' as IconName, label: 'Natureza' },
+    { id: 'cultura', icon: 'landmark' as IconName, label: 'Cultura' },
+    { id: 'gastronomia', icon: 'utensils' as IconName, label: 'Gastronomia' },
+    { id: 'aventura', icon: 'mountain' as IconName, label: 'Aventura' },
+    { id: 'praia', icon: 'compass' as IconName, label: 'Praia' },
+    { id: 'compras', icon: 'briefcase' as IconName, label: 'Compras' },
+    { id: 'vida_noturna', icon: 'star' as IconName, label: 'Vida Noturna' },
+    { id: 'religiao', icon: 'landmark' as IconName, label: 'Religião' },
 ];
 
 // Mock user data — will be replaced by auth context
 const USER = {
     name: 'Usuário',
     email: 'usuario@email.com',
-    avatar: '🧑‍✈️',
+    avatar: 'circle-user',
     since: '2026',
     stats: { trips: 3, itineraries: 2, saved: 7 },
     destinations: 3,
@@ -135,44 +135,52 @@ export default function ProfileScreen() {
             >
                 {/* ══════════ 1. GRADIENT HEADER ══════════ */}
                 <LinearGradient
-                    colors={[theme.colors.gradientTop, theme.colors.gradientBottom]}
+                    colors={theme.colors.gradients.institutional as unknown as [string, string]}
                     style={styles.header}
                 >
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatarCircle}>
-                            <Text style={styles.avatarEmoji}>{USER.avatar}</Text>
+                            <Icon name={USER.avatar as IconName} size={40} color="#FFFFFF" />
                         </View>
                         <TouchableOpacity style={styles.editAvatarButton}>
-                            <Ionicons name="pencil" size={12} color="#FFF" />
+                            <Icon name="edit" size={12} color="#FFF" />
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.userName}>{USER.name}</Text>
                     <Text style={styles.userEmail}>{USER.email}</Text>
                     <View style={styles.sinceBadge}>
-                        <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.8)" />
+                        <Icon name="calendar" size={12} color="rgba(255,255,255,0.8)" />
                         <Text style={styles.sinceText}>Viajante desde {USER.since}</Text>
                     </View>
 
                     {/* Traveler Identity Line */}
-                    <Text style={styles.identityLine}>
-                        🌎 {USER.destinations} destinos visitados • 🗺 {USER.createdItineraries} roteiros criados
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8 }}>
+                        <Icon name="globe" size={13} color="rgba(255,255,255,0.7)" />
+                        <Text style={styles.identityLine}>
+                            {USER.destinations} destinos visitados
+                        </Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)' }}>•</Text>
+                        <Icon name="map" size={13} color="rgba(255,255,255,0.7)" />
+                        <Text style={styles.identityLine}>
+                            {USER.createdItineraries} roteiros criados
+                        </Text>
+                    </View>
                 </LinearGradient>
 
                 {/* ══════════ 2. QUICK STATS ══════════ */}
                 <View style={styles.statsRow}>
                     <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('trips')}>
-                        <Text style={styles.statIcon}>🧳</Text>
+                        <Icon name="briefcase" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.trips}</Text>
                         <Text style={styles.statLabel}>Meus Pacotes</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('itineraries')}>
-                        <Text style={styles.statIcon}>📚</Text>
+                        <Icon name="book-open" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.itineraries}</Text>
                         <Text style={styles.statLabel}>Meus Roteiros</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('saved')}>
-                        <Text style={styles.statIcon}>❤️</Text>
+                        <Icon name="heart" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.saved}</Text>
                         <Text style={styles.statLabel}>Salvos</Text>
                     </TouchableOpacity>
@@ -180,7 +188,10 @@ export default function ProfileScreen() {
 
                 {/* ══════════ 8. PRÓXIMA VIAGEM ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>✈️ Próxima Viagem</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Icon name="plane" size={16} color={theme.colors.primary} />
+                        <Text style={styles.sectionTitle}>Próxima Viagem</Text>
+                    </View>
                     <View style={styles.sectionCard}>
                         {USER.nextTrip ? (
                             <TouchableOpacity
@@ -190,17 +201,20 @@ export default function ProfileScreen() {
                             >
                                 <View style={styles.nextTripLeft}>
                                     <Text style={styles.nextTripDestination}>{USER.nextTrip.destination}</Text>
-                                    <Text style={styles.nextTripDate}>📅 {USER.nextTrip.date}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <Icon name="calendar" size={11} color={theme.colors.text.tertiary} />
+                                        <Text style={styles.nextTripDate}>{USER.nextTrip.date}</Text>
+                                    </View>
                                 </View>
                                 <View style={styles.nextTripStatusBadge}>
                                     <View style={styles.statusDot} />
                                     <Text style={styles.nextTripStatus}>{USER.nextTrip.status}</Text>
                                 </View>
-                                <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
+                                <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
                             </TouchableOpacity>
                         ) : (
                             <View style={styles.nextTripEmpty}>
-                                <Ionicons name="airplane-outline" size={28} color={theme.colors.text.tertiary} />
+                                <Icon name="plane" size={28} color={theme.colors.text.tertiary} />
                                 <Text style={styles.nextTripEmptyText}>Você ainda não tem viagens programadas.</Text>
                                 <TouchableOpacity
                                     style={styles.nextTripExploreCta}
@@ -216,7 +230,8 @@ export default function ProfileScreen() {
                 {/* ══════════ 3. SUA JORNADA NO VAMO ══════════ */}
                 <View style={styles.sectionSpaced}>
                     <View style={styles.sectionTitleRow}>
-                        <Text style={styles.sectionTitle}>🌍 Sua Jornada no VAMO</Text>
+                        <Icon name="globe" size={16} color={theme.colors.primary} />
+                        <Text style={styles.sectionTitle}>Sua Jornada no VAMO</Text>
                         <Text style={styles.journeyProgress}>{completedMilestones}/{MILESTONES.length}</Text>
                     </View>
                     <View style={styles.sectionCard}>
@@ -233,9 +248,9 @@ export default function ProfileScreen() {
                                 ]}
                             >
                                 {milestone.done ? (
-                                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+                                    <Icon name="verified" size={20} color={theme.colors.success} />
                                 ) : (
-                                    <Ionicons name="lock-closed" size={18} color={theme.colors.text.tertiary} />
+                                    <Icon name="lock" size={18} color={theme.colors.text.tertiary} />
                                 )}
                                 <Text style={[
                                     styles.milestoneLabel,
@@ -254,14 +269,14 @@ export default function ProfileScreen() {
                         style={styles.shortcutButton}
                         onPress={() => router.push('/(tabs)/itineraries')}
                     >
-                        <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
+                        <Icon name="map" size={20} color={theme.colors.primary} />
                         <Text style={styles.shortcutText}>Meus Roteiros</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
                         onPress={() => router.push('/(tabs)/my-trips')}
                     >
-                        <Ionicons name="heart-outline" size={20} color={theme.colors.primary} />
+                        <Icon name="heart" size={20} color={theme.colors.primary} />
                         <Text style={styles.shortcutText}>Favoritos</Text>
                     </TouchableOpacity>
                 </View>
@@ -270,20 +285,20 @@ export default function ProfileScreen() {
                 <View style={styles.sectionSpaced}>
                     <Text style={styles.sectionTitle}>Conta</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="person-outline" title="Dados pessoais" onPress={() => {
+                        <SettingItem icon="circle-user" title="Dados pessoais" onPress={() => {
                             haptics.light();
-                            Alert.alert('👤 Dados Pessoais', `Nome: ${USER.name}\nEmail: ${USER.email}\n\nA edição de dados pessoais estará disponível em breve.`, [{ text: 'OK' }]);
+                            Alert.alert('Dados Pessoais', `Nome: ${USER.name}\nEmail: ${USER.email}\n\nA edição de dados pessoais estará disponível em breve.`, [{ text: 'OK' }]);
                         }} />
-                        <SettingItem icon="notifications-outline" title="Notificações" onPress={() => {
+                        <SettingItem icon="bell" title="Notificações" onPress={() => {
                             haptics.light(); Linking.openSettings();
                         }} />
-                        <SettingItem icon="shield-outline" title="Segurança" onPress={() => {
+                        <SettingItem icon="shield-check" title="Segurança" onPress={() => {
                             haptics.light();
-                            Alert.alert('🔒 Segurança', 'Alteração de senha e autenticação em dois fatores estarão disponíveis em breve.', [{ text: 'OK' }]);
+                            Alert.alert('Segurança', 'Alteração de senha e autenticação em dois fatores estarão disponíveis em breve.', [{ text: 'OK' }]);
                         }} />
-                        <SettingItem icon="card-outline" title="Métodos de pagamento" onPress={() => {
+                        <SettingItem icon="card" title="Métodos de pagamento" onPress={() => {
                             haptics.light();
-                            Alert.alert('💳 Pagamento', 'Gerenciamento de métodos de pagamento estará disponível em breve.', [{ text: 'OK' }]);
+                            Alert.alert('Pagamento', 'Gerenciamento de métodos de pagamento estará disponível em breve.', [{ text: 'OK' }]);
                         }} isLast />
                     </View>
                 </View>
@@ -302,14 +317,14 @@ export default function ProfileScreen() {
                         >
                             <View style={styles.storeLeft}>
                                 <View style={styles.storeIconCircle}>
-                                    <Ionicons name="globe-outline" size={22} color={theme.colors.primary} />
+                                    <Icon name="globe" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View>
                                     <Text style={styles.storeTitle}>Portal do Criador</Text>
                                     <Text style={styles.storeSubtitle}>Crie roteiros pelo site vamo.app</Text>
                                 </View>
                             </View>
-                            <Ionicons name="open-outline" size={18} color={theme.colors.text.tertiary} />
+                            <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -318,22 +333,22 @@ export default function ProfileScreen() {
                 <View style={styles.sectionSpaced}>
                     <Text style={styles.sectionTitle}>Preferências</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="cash-outline" title="Moeda" value={currency} onPress={() => {
+                        <SettingItem icon="wallet" title="Moeda" value={currency} onPress={() => {
                             haptics.selection(); setShowCurrencyPicker(true);
                         }} />
-                        <SettingItem icon="language-outline" title="Idioma" value={language} onPress={() => {
+                        <SettingItem icon="globe" title="Idioma" value={language} onPress={() => {
                             haptics.selection(); setShowLanguagePicker(true);
                         }} />
-                        <SettingItem icon="color-palette-outline" title="Aparência" value={appearance} onPress={() => {
+                        <SettingItem icon="palette" title="Aparência" value={appearance} onPress={() => {
                             haptics.selection(); setShowAppearancePicker(true);
                         }} />
-                        <SettingItem icon="airplane-outline" title="Tipo de viagem preferido" value={travelType} onPress={() => {
+                        <SettingItem icon="plane" title="Tipo de viagem preferido" value={travelType} onPress={() => {
                             haptics.selection(); setShowTravelTypePicker(true);
                         }} />
-                        <SettingItem icon="wallet-outline" title="Orçamento médio" value={budget} onPress={() => {
+                        <SettingItem icon="wallet" title="Orçamento médio" value={budget} onPress={() => {
                             haptics.selection(); setShowBudgetPicker(true);
                         }} />
-                        <SettingItem icon="sparkles-outline" title="Interesses" value={`${selectedInterests.length} selecionados`} onPress={() => {
+                        <SettingItem icon="star" title="Interesses" value={`${selectedInterests.length} selecionados`} onPress={() => {
                             haptics.selection(); setShowInterestsPicker(true);
                         }} isLast />
                     </View>
@@ -343,21 +358,21 @@ export default function ProfileScreen() {
                 <View style={styles.sectionSpaced}>
                     <Text style={styles.sectionTitle}>Sobre</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="help-circle-outline" title="Como funciona" onPress={() => {
+                        <SettingItem icon="help" title="Como funciona" onPress={() => {
                             haptics.light(); setShowHowItWorksModal(true);
                         }} />
-                        <SettingItem icon="information-circle-outline" title="Sobre o VAMO" onPress={() => {
+                        <SettingItem icon="info" title="Sobre o VAMO" onPress={() => {
                             haptics.light(); setShowAboutModal(true);
                         }} />
-                        <SettingItem icon="chatbubble-ellipses-outline" title="Central de Ajuda" onPress={() => {
+                        <SettingItem icon="message-circle" title="Central de Ajuda" onPress={() => {
                             haptics.light(); Linking.openURL('https://vamo.app/ajuda');
                         }} />
-                        <SettingItem icon="logo-whatsapp" title="Falar com suporte" iconColor="#25D366" onPress={() => {
+                        <SettingItem icon="phone" title="Falar com suporte" iconColor="#25D366" onPress={() => {
                             haptics.light(); Linking.openURL('https://wa.me/5511999999999?text=Olá! Preciso de ajuda no VAMO.');
                         }} />
-                        <SettingItem icon="list-outline" title="Minhas solicitações" onPress={() => {
+                        <SettingItem icon="clipboard-list" title="Minhas solicitações" onPress={() => {
                             haptics.light();
-                            Alert.alert('📋 Solicitações', 'Você não possui solicitações abertas no momento.', [{ text: 'OK' }]);
+                            Alert.alert('Solicitações', 'Você não possui solicitações abertas no momento.', [{ text: 'OK' }]);
                         }} isLast />
                     </View>
                 </View>
@@ -366,8 +381,8 @@ export default function ProfileScreen() {
                 <View style={styles.sectionSpaced}>
                     <Text style={styles.sectionTitle}>Avaliação</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="star-outline" title="Avaliar o aplicativo" onPress={handleRateApp} />
-                        <SettingItem icon="share-social-outline" title="Compartilhar com amigos" onPress={() => {
+                        <SettingItem icon="star" title="Avaliar o aplicativo" onPress={handleRateApp} />
+                        <SettingItem icon="share" title="Compartilhar com amigos" onPress={() => {
                             haptics.light();
                             Alert.alert('Compartilhar', 'Funcionalidade disponível em breve!');
                         }} isLast />
@@ -378,13 +393,13 @@ export default function ProfileScreen() {
                 <View style={styles.sectionSpaced}>
                     <Text style={styles.sectionTitle}>Legal</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="document-text-outline" title="Termos de Uso" onPress={() => {
+                        <SettingItem icon="file" title="Termos de Uso" onPress={() => {
                             haptics.light(); Linking.openURL('https://vamo.app/termos');
                         }} />
-                        <SettingItem icon="shield-checkmark-outline" title="Política de Privacidade" onPress={() => {
+                        <SettingItem icon="shield-check" title="Política de Privacidade" onPress={() => {
                             haptics.light(); Linking.openURL('https://vamo.app/privacidade');
                         }} />
-                        <SettingItem icon="trash-outline" title="Excluir minha conta" titleColor={theme.colors.error} onPress={() => {
+                        <SettingItem icon="trash" title="Excluir minha conta" titleColor={theme.colors.error} onPress={() => {
                             haptics.warning();
                             Alert.alert('Excluir Conta', 'Esta ação é irreversível. Todos os seus dados serão apagados permanentemente.', [
                                 { text: 'Cancelar', style: 'cancel' },
@@ -396,7 +411,7 @@ export default function ProfileScreen() {
 
                 {/* ══════════ SIGN OUT (less prominent than Delete) ══════════ */}
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Ionicons name="log-out-outline" size={18} color={theme.colors.text.tertiary} />
+                    <Icon name="logout" size={18} color={theme.colors.text.tertiary} />
                     <Text style={styles.logoutText}>Sair da conta</Text>
                 </TouchableOpacity>
 
@@ -426,7 +441,7 @@ export default function ProfileScreen() {
                         <View style={modalStyles.header}>
                             <Text style={modalStyles.title}>Seus Interesses</Text>
                             <TouchableOpacity onPress={() => setShowInterestsPicker(false)} style={modalStyles.closeButton}>
-                                <Ionicons name="close" size={20} color={theme.colors.text.secondary} />
+                                <Icon name="close" size={20} color={theme.colors.text.secondary} />
                             </TouchableOpacity>
                         </View>
                         <Text style={modalStyles.interestsSubtitle}>
@@ -441,11 +456,11 @@ export default function ProfileScreen() {
                                         style={[modalStyles.interestChip, isActive && modalStyles.interestChipActive]}
                                         onPress={() => { toggleInterest(interest.id); haptics.selection(); }}
                                     >
-                                        <Text style={modalStyles.interestEmoji}>{interest.emoji}</Text>
+                                        <Icon name={interest.icon} size={20} color={isActive ? theme.colors.primary : theme.colors.text.secondary} />
                                         <Text style={[modalStyles.interestLabel, isActive && modalStyles.interestLabelActive]}>
                                             {interest.label}
                                         </Text>
-                                        {isActive && <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />}
+                                        {isActive && <Icon name="verified" size={16} color={theme.colors.primary} />}
                                     </TouchableOpacity>
                                 );
                             })}
@@ -465,7 +480,7 @@ export default function ProfileScreen() {
                 content={`VAMO — Sua plataforma de viagens\n\nVersão 1.0.0\n\nDescubra experiências únicas e pacotes de viagem personalizados. Conectamos você às melhores agências e criadores de roteiros.\n\n© 2026 VAMO. Todos os direitos reservados.`}
                 onClose={() => setShowAboutModal(false)} />
             <InfoModal visible={showHowItWorksModal} title="Como funciona"
-                content={`1️⃣ Explore\nNavegue por pacotes de viagem e roteiros de viajantes experientes.\n\n2️⃣ Escolha\nSelecione a experiência perfeita para você e verifique a disponibilidade.\n\n3️⃣ Reserve\nComplete seu cadastro e finalize a reserva com segurança.\n\n4️⃣ Viaje!\nReceba todas as informações por email e aproveite sua aventura.`}
+                content={`1. Explore\nNavegue por pacotes de viagem e roteiros de viajantes experientes.\n\n2. Escolha\nSelecione a experiência perfeita para você e verifique a disponibilidade.\n\n3. Reserve\nComplete seu cadastro e finalize a reserva com segurança.\n\n4. Viaje!\nReceba todas as informações por email e aproveite sua aventura.`}
                 onClose={() => setShowHowItWorksModal(false)} />
         </View>
     );
@@ -485,17 +500,16 @@ function SettingItem({
             activeOpacity={0.6}
         >
             <View style={styles.settingLeft}>
-                <Ionicons
-                    name={icon as any}
+                <Icon
+                    name={icon as IconName}
                     size={20}
                     color={iconColor || titleColor || theme.colors.text.secondary}
-                    style={styles.settingIconStyle}
                 />
                 <Text style={[styles.settingTitle, titleColor && { color: titleColor }]}>{title}</Text>
             </View>
             <View style={styles.settingRight}>
                 {value && <Text style={styles.settingValue} numberOfLines={1}>{value}</Text>}
-                <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
+                <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
             </View>
         </TouchableOpacity>
     );
@@ -516,7 +530,7 @@ function PickerModal({
                     <View style={modalStyles.header}>
                         <Text style={modalStyles.title}>{title}</Text>
                         <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
-                            <Ionicons name="close" size={20} color={theme.colors.text.secondary} />
+                            <Icon name="close" size={20} color={theme.colors.text.secondary} />
                         </TouchableOpacity>
                     </View>
                     {options.map((option) => (
@@ -528,7 +542,7 @@ function PickerModal({
                             <Text style={[modalStyles.optionText, selected === option && modalStyles.optionTextSelected]}>
                                 {option}
                             </Text>
-                            {selected === option && <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />}
+                            {selected === option && <Icon name="verified" size={22} color={theme.colors.primary} />}
                         </TouchableOpacity>
                     ))}
                     <View style={{ height: 20 }} />
@@ -552,7 +566,7 @@ function InfoModal({
                     <View style={modalStyles.header}>
                         <Text style={modalStyles.title}>{title}</Text>
                         <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
-                            <Ionicons name="close" size={20} color={theme.colors.text.secondary} />
+                            <Icon name="close" size={20} color={theme.colors.text.secondary} />
                         </TouchableOpacity>
                     </View>
                     <Text style={modalStyles.infoContent}>{content}</Text>

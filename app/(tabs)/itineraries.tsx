@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
@@ -15,6 +14,7 @@ import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
+import { Icon, IconName } from '../../src/components/common/Icons';
 
 export default function ItinerariesScreen() {
     const router = useRouter();
@@ -31,7 +31,7 @@ export default function ItinerariesScreen() {
         <View style={styles.container}>
             {/* Header with Gradient */}
             <LinearGradient
-                colors={[theme.colors.gradientTop, theme.colors.gradientBottom]}
+                colors={theme.colors.gradients.institutional as unknown as [string, string]}
                 style={styles.gradientHeader}
             >
                 <View style={styles.headerContent}>
@@ -70,12 +70,15 @@ export default function ItinerariesScreen() {
                             <View style={styles.itineraryContent}>
                                 {/* Bloco 1: Autoridade (linha única compacta) */}
                                 <View style={styles.authorRow}>
-                                    <Text style={styles.authorAvatar}>{itinerary.creator.avatar}</Text>
+                                    <Icon name="circle-user" size={28} color={theme.colors.text.secondary} />
                                     <Text style={styles.authorName}>{itinerary.creator.name}</Text>
                                     <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
-                                    <Text style={styles.authorStats}>
-                                        ⭐ {itinerary.creator.rating} • {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
-                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 'auto' }}>
+                                        <Icon name="star" size={12} color="#F59E0B" strokeWidth={2} />
+                                        <Text style={styles.authorStats}>
+                                            {itinerary.creator.rating} • {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
+                                        </Text>
+                                    </View>
                                 </View>
 
                                 {/* Bloco 2: Título + Proposta */}
@@ -91,7 +94,7 @@ export default function ItinerariesScreen() {
                                 <View style={styles.chipsContainer}>
                                     {ITINERARY_INCLUSIONS.map((item) => (
                                         <View key={item.id} style={styles.chip}>
-                                            <Ionicons name={item.icon as any} size={16} color={item.iconColor} />
+                                            <Icon name={item.icon as IconName} size={14} color={item.iconColor} />
                                             <Text style={styles.chipText}>{item.title}</Text>
                                         </View>
                                     ))}
@@ -108,7 +111,7 @@ export default function ItinerariesScreen() {
                                         onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                                     >
                                         <Text style={styles.buyButtonText}>Quero esse roteiro</Text>
-                                        <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                                        <Icon name="chevron-right" size={16} color="#FFFFFF" strokeWidth={2.5} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -118,7 +121,10 @@ export default function ItinerariesScreen() {
 
                 {/* 2️⃣ Featured Creators */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>⭐ Criadores recomendados pela comunidade</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Icon name="award" size={18} color={theme.colors.primary} strokeWidth={2} />
+                        <Text style={styles.sectionTitle}>Criadores recomendados</Text>
+                    </View>
                     <Text style={styles.sectionSubtitle}>
                         Viajantes verificados com histórico comprovado
                     </Text>
@@ -135,7 +141,10 @@ export default function ItinerariesScreen() {
 
                 {/* 3️⃣ Verification Levels */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>🏅 Níveis de Verificação</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Icon name="shield-check" size={18} color={theme.colors.primary} strokeWidth={2} />
+                        <Text style={styles.sectionTitle}>Níveis de Verificação</Text>
+                    </View>
                     <Text style={styles.sectionSubtitle}>
                         Aqui você sabe exatamente quem está por trás de cada roteiro
                     </Text>
@@ -160,7 +169,7 @@ export default function ItinerariesScreen() {
                     <View style={styles.communityCard}>
                         {/* Header */}
                         <View style={styles.communityHeader}>
-                            <Text style={styles.communityIcon}>💬</Text>
+                            <Icon name="users" size={24} color={theme.colors.primary} />
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.communityTitle}>Comunidade</Text>
                                 <Text style={styles.communitySubtitle}>Converse com viajantes reais</Text>
@@ -173,17 +182,22 @@ export default function ItinerariesScreen() {
                         {/* Preview entries - faded */}
                         <View style={styles.communityPreview}>
                             {[
-                                { emoji: '🗼', name: 'Paris', type: 'Chat', members: 234, user: 'Diego Artur', msg: 'Acabei de voltar! A Torre Eiffel à noite é imperdi...' },
-                                { emoji: '🏖️', name: 'Cancún', type: 'Chat', members: 189, user: 'Maria Clara', msg: 'Alguém sabe qual a melhor época para ir?' },
-                                { emoji: '🏔️', name: 'Machu Picchu', type: 'Roteiro', members: 67, user: 'Pedro Henrique', msg: 'Lembrem de levar coca tea para altitude!' },
+                                { icon: 'landmark' as IconName, name: 'Paris', type: 'Chat', members: 234, user: 'Diego Artur', msg: 'Acabei de voltar! A Torre Eiffel à noite é imperdi...' },
+                                { icon: 'compass' as IconName, name: 'Cancún', type: 'Chat', members: 189, user: 'Maria Clara', msg: 'Alguém sabe qual a melhor época para ir?' },
+                                { icon: 'mountain' as IconName, name: 'Machu Picchu', type: 'Roteiro', members: 67, user: 'Pedro Henrique', msg: 'Lembrem de levar coca tea para altitude!' },
                             ].map((item, idx) => (
                                 <View key={idx} style={[styles.communityEntry, idx < 2 && styles.communityEntryBorder]}>
-                                    <Text style={styles.communityEntryEmoji}>{item.emoji}</Text>
+                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surfaceLight, alignItems: 'center', justifyContent: 'center' }}>
+                                        <Icon name={item.icon} size={20} color={theme.colors.primary} />
+                                    </View>
                                     <View style={styles.communityEntryContent}>
                                         <Text style={styles.communityEntryName}>{item.name}</Text>
-                                        <Text style={styles.communityEntryMeta}>
-                                            💬 {item.type}  👥 {item.members}
-                                        </Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                            <Icon name="users" size={11} color={theme.colors.primary} />
+                                            <Text style={styles.communityEntryMeta}>
+                                                {item.type} • {item.members} membros
+                                            </Text>
+                                        </View>
                                         <Text style={styles.communityEntryMsg} numberOfLines={1}>
                                             <Text style={styles.communityEntryUser}>{item.user}: </Text>
                                             {item.msg}
@@ -195,9 +209,12 @@ export default function ItinerariesScreen() {
 
                         {/* CTA */}
                         <View style={styles.communityFooter}>
-                            <Text style={styles.communityFooterText}>
-                                🔔 Quer ser avisado quando lançar?
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Icon name="bell" size={14} color={theme.colors.text.secondary} />
+                                <Text style={styles.communityFooterText}>
+                                    Quer ser avisado quando lançar?
+                                </Text>
+                            </View>
                             <TouchableOpacity style={styles.communityNotifyButton}>
                                 <Text style={styles.communityNotifyText}>Me avise!</Text>
                             </TouchableOpacity>

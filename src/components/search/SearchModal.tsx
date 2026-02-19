@@ -16,6 +16,7 @@ import { theme } from '../../theme/theme';
 import { SearchFilters } from '../../contexts/SearchContext';
 import { CATEGORIES, INTENT_CATEGORIES, INTENT_FEEDBACK, DURATION_CHIPS } from '../../constants/categories';
 import { useSearch } from '../../hooks/useSearch';
+import { Icon, IconName } from '../common/Icons';
 
 const { height } = Dimensions.get('window');
 
@@ -201,7 +202,7 @@ export function SearchModal({
                             </Text>
                         </View>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Text style={styles.closeIcon}>✕</Text>
+                            <Icon name="close" size={18} color={theme.colors.text.secondary} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -214,9 +215,12 @@ export function SearchModal({
                 >
                     {/* ── 1. DESTINO ── */}
                     <View style={styles.filterSection}>
-                        <Text style={styles.filterLabel}>📍 Destino</Text>
+                        <View style={styles.filterLabelWithIcon}>
+                            <Icon name="location" size={16} color={theme.colors.primary} />
+                            <Text style={styles.filterLabel}>Destino</Text>
+                        </View>
                         <View style={styles.inputContainer}>
-                            <Text style={styles.inputIcon}>🌍</Text>
+                            <Icon name="globe" size={20} color={theme.colors.text.tertiary} style={{ marginRight: 10 }} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Para onde você quer ir?"
@@ -230,7 +234,10 @@ export function SearchModal({
                     {/* ── 2. DURAÇÃO DA VIAGEM ── */}
                     <View style={styles.filterSection}>
                         <View style={styles.filterLabelRow}>
-                            <Text style={styles.filterLabel}>🗓 Duração da Viagem</Text>
+                            <View style={styles.filterLabelWithIcon}>
+                                <Icon name="calendar" size={16} color={theme.colors.primary} />
+                                <Text style={styles.filterLabel}>Duração da Viagem</Text>
+                            </View>
                             <Text style={styles.filterValue}>
                                 {duration === 1 ? '1 dia' : `${duration} dias`}
                             </Text>
@@ -287,7 +294,10 @@ export function SearchModal({
 
                     {/* ── 3. COMO VOCÊ QUER VIAJAR? ── */}
                     <View style={styles.filterSection}>
-                        <Text style={styles.filterLabel}>✈️ Como você quer viajar?</Text>
+                        <View style={styles.filterLabelWithIcon}>
+                            <Icon name="compass" size={16} color={theme.colors.primary} />
+                            <Text style={styles.filterLabel}>Como você quer viajar?</Text>
+                        </View>
                         <View style={styles.intentGrid}>
                             {INTENT_CATEGORIES.map((intent) => {
                                 const isSelected = travelIntent === intent.id;
@@ -301,7 +311,12 @@ export function SearchModal({
                                         onPress={() => handleIntentSelect(intent.id)}
                                         activeOpacity={0.8}
                                     >
-                                        <Text style={styles.intentEmoji}>{intent.emoji}</Text>
+                                        <Icon
+                                            name={intent.icon as IconName}
+                                            size={28}
+                                            color={isSelected ? theme.colors.primary : theme.colors.text.secondary}
+                                            strokeWidth={isSelected ? 2 : 1.5}
+                                        />
                                         <Text style={[
                                             styles.intentLabel,
                                             isSelected && styles.intentLabelActive,
@@ -324,7 +339,10 @@ export function SearchModal({
 
                     {/* ── 4. CATEGORIAS ── */}
                     <View style={styles.filterSection}>
-                        <Text style={styles.filterLabel}>🏷 Categorias</Text>
+                        <View style={styles.filterLabelWithIcon}>
+                            <Icon name="filter" size={16} color={theme.colors.primary} />
+                            <Text style={styles.filterLabel}>Categorias</Text>
+                        </View>
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -341,7 +359,11 @@ export function SearchModal({
                                         ]}
                                         onPress={() => setSelectedCategory(isActive ? null : cat.id)}
                                     >
-                                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                                        <Icon
+                                            name={cat.icon as IconName}
+                                            size={16}
+                                            color={isActive ? '#FFFFFF' : theme.colors.text.primary}
+                                        />
                                         <Text style={[
                                             styles.categoryLabel,
                                             isActive && styles.categoryLabelActive,
@@ -357,7 +379,10 @@ export function SearchModal({
                     {/* ── 5. FAIXA DE PREÇO ── */}
                     <View style={styles.filterSection}>
                         <View style={styles.filterLabelRow}>
-                            <Text style={styles.filterLabel}>💰 Faixa de Preço</Text>
+                            <View style={styles.filterLabelWithIcon}>
+                                <Icon name="wallet" size={16} color={theme.colors.primary} />
+                                <Text style={styles.filterLabel}>Faixa de Preço</Text>
+                            </View>
                             <Text style={styles.filterValue}>
                                 {priceMin === 0 && priceMax >= 15000
                                     ? 'Qualquer'
@@ -456,7 +481,10 @@ export function SearchModal({
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                             >
-                                <Text style={styles.searchButtonText}>🔍 Buscar</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    <Icon name="search" size={18} color="#FFFFFF" strokeWidth={2.5} />
+                                    <Text style={styles.searchButtonText}>Buscar</Text>
+                                </View>
                             </LinearGradient>
                         </TouchableOpacity>
                     </View>
@@ -529,6 +557,11 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: theme.colors.text.secondary,
     },
+    filterLabelWithIcon: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
     content: {
         flex: 1,
         paddingHorizontal: theme.spacing.lg,
@@ -567,7 +600,6 @@ const styles = StyleSheet.create({
         height: 56,
     },
     inputIcon: {
-        fontSize: 24,
         marginRight: theme.spacing.sm,
     },
     input: {
@@ -649,9 +681,8 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
     },
-    intentEmoji: {
-        fontSize: 28,
-        marginBottom: 6,
+    intentIconContainer: {
+        marginBottom: 8,
     },
     intentLabel: {
         fontSize: 12,
@@ -693,7 +724,7 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
     },
     categoryIcon: {
-        fontSize: 18,
+        // Lucide icon, no font size needed
     },
     categoryLabel: {
         fontSize: 14,

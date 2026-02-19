@@ -1,26 +1,28 @@
 // Categorias de viagem - usadas em toda a aplicação
+// VAMO 2.0: Emojis replaced by Lucide icon names (IconName type)
 export const CATEGORIES = [
-    { id: 'cultura', icon: '🏛️', label: 'Cultura' },
-    { id: 'gastronomia', icon: '🍽️', label: 'Gastronomia' },
-    { id: 'natureza', icon: '🌳', label: 'Natureza' },
-    { id: 'esportes', icon: '⚽', label: 'Esportes' },
-    { id: 'cruzeiros', icon: '🚢', label: 'Cruzeiros' },
-    { id: 'eurotrip', icon: '🌍', label: 'Eurotrip' },
-    { id: 'relax', icon: '🧘', label: 'Relax' },
-    { id: 'familia', icon: '👨‍👩‍👧‍👦', label: 'Família' },
-    { id: 'aventura', icon: '🏔️', label: 'Aventura' },
+    { id: 'cultura', icon: 'landmark', label: 'Cultura' },
+    { id: 'gastronomia', icon: 'utensils', label: 'Gastronomia' },
+    { id: 'natureza', icon: 'trees', label: 'Natureza' },
+    { id: 'esportes', icon: 'trophy', label: 'Esportes' },
+    { id: 'cruzeiros', icon: 'ship', label: 'Cruzeiros' },
+    { id: 'eurotrip', icon: 'globe', label: 'Eurotrip' },
+    { id: 'relax', icon: 'heart-pulse', label: 'Relax' },
+    { id: 'familia', icon: 'users', label: 'Família' },
+    { id: 'aventura', icon: 'mountain', label: 'Aventura' },
 ] as const;
 
 export type CategoryId = typeof CATEGORIES[number]['id'];
 
 // Intent categories for travel style filter
+// VAMO 2.0: field renamed from 'emoji' → 'icon'
 export const INTENT_CATEGORIES = [
-    { id: 'luxo', emoji: '💎', label: 'Luxo' },
-    { id: 'economico', emoji: '💰', label: 'Econômico' },
-    { id: 'mochilao', emoji: '🎒', label: 'Mochilão' },
-    { id: 'familia', emoji: '👨‍👩‍👧', label: 'Família' },
-    { id: 'romantico', emoji: '❤️', label: 'Romântico' },
-    { id: 'aventura', emoji: '🌎', label: 'Aventura' },
+    { id: 'luxo', icon: 'gem', label: 'Luxo' },
+    { id: 'economico', icon: 'piggy-bank', label: 'Econômico' },
+    { id: 'mochilao', icon: 'backpack', label: 'Mochilão' },
+    { id: 'familia', icon: 'users', label: 'Família' },
+    { id: 'romantico', icon: 'heart', label: 'Romântico' },
+    { id: 'aventura', icon: 'globe', label: 'Aventura' },
 ] as const;
 
 export const INTENT_FEEDBACK: Record<string, string> = {

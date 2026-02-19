@@ -10,7 +10,6 @@ import {
     Dimensions,
     Alert,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme } from '../../src/theme/theme';
 import {
@@ -26,6 +25,7 @@ import {
     SavedItem,
     BookingStatus,
 } from '../../src/data/mockMyTrips';
+import { Icon, IconName } from '../../src/components/common/Icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -40,10 +40,10 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-    { key: 'upcoming', label: 'Meus Pacotes', icon: '📦' },
-    { key: 'itineraries', label: 'Meus Roteiros', icon: '📚' },
-    { key: 'saved', label: 'Salvos', icon: '❤️' },
-    { key: 'past', label: 'Realizados', icon: '🧳' },
+    { key: 'upcoming', label: 'Meus Pacotes', icon: 'briefcase' },
+    { key: 'itineraries', label: 'Meus Roteiros', icon: 'book-open' },
+    { key: 'saved', label: 'Salvos', icon: 'heart' },
+    { key: 'past', label: 'Realizados', icon: 'trips' },
 ];
 
 // ─── Status helpers ─────────────────────────────────────
@@ -109,7 +109,7 @@ function TabBar({ activeTab, onTabChange }: { activeTab: TabKey; onTabChange: (t
                             onPress={() => onTabChange(tab.key)}
                             activeOpacity={0.7}
                         >
-                            <Text style={styles.tabIcon}>{tab.icon}</Text>
+                            <Icon name={tab.icon as IconName} size={14} color={isActive ? theme.colors.primary : theme.colors.text.tertiary} />
                             <Text
                                 style={[
                                     styles.tabLabel,
@@ -144,7 +144,7 @@ function EmptyState({
 }) {
     return (
         <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>{icon}</Text>
+            <Icon name={icon as IconName} size={40} color={theme.colors.text.tertiary} />
             <Text style={styles.emptyTitle}>{title}</Text>
             <Text style={styles.emptyText}>{message}</Text>
             {ctaLabel && onCtaPress && (
@@ -187,8 +187,8 @@ function CountdownBadge({ days }: { days: number }) {
     const isUrgent = days <= 7;
     return (
         <View style={[styles.countdownBadge, isUrgent && styles.countdownBadgeUrgent]}>
-            <Ionicons
-                name="time-outline"
+            <Icon
+                name="clock"
                 size={12}
                 color={isUrgent ? '#DC2626' : theme.colors.primary}
             />
@@ -221,8 +221,8 @@ function ActionButton({
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <Ionicons
-                name={icon as any}
+            <Icon
+                name={icon as IconName}
                 size={14}
                 color={variant === 'primary' ? '#FFF' : theme.colors.primary}
             />
@@ -247,7 +247,7 @@ function UpcomingTab() {
     if (items.length === 0) {
         return (
             <EmptyState
-                icon="✈️"
+                icon="plane"
                 title="Você ainda não tem viagens agendadas"
                 message="Que tal planejar a sua próxima aventura?"
                 ctaLabel="Explorar pacotes"
@@ -297,11 +297,14 @@ function UpcomingCard({ pkg, onPress }: { pkg: BookedPackage; onPress: () => voi
                 <View style={styles.upcomingTop}>
                     <Text style={styles.upcomingTitle} numberOfLines={1}>{pkg.title}</Text>
                     <Text style={styles.upcomingDestination} numberOfLines={1}>
-                        📍 {pkg.destination}, {pkg.country}
+                        {pkg.destination}, {pkg.country}
                     </Text>
-                    <Text style={styles.upcomingDate}>
-                        📅 {formatDate(pkg.travelDate)}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Icon name="calendar" size={11} color={theme.colors.text.tertiary} />
+                        <Text style={styles.upcomingDate}>
+                            {formatDate(pkg.travelDate)}
+                        </Text>
+                    </View>
                 </View>
 
                 <View style={styles.upcomingBottom}>
@@ -312,13 +315,13 @@ function UpcomingCard({ pkg, onPress }: { pkg: BookedPackage; onPress: () => voi
                 <View style={styles.upcomingActions}>
                     <ActionButton
                         label="Detalhes"
-                        icon="eye-outline"
+                        icon="eye"
                         onPress={onPress}
                         variant="primary"
                     />
                     <ActionButton
                         label="Voucher"
-                        icon="download-outline"
+                        icon="download"
                         onPress={() => Alert.alert('Voucher', 'Download do voucher iniciado!')}
                     />
                 </View>
@@ -336,7 +339,7 @@ function PastTab() {
     if (items.length === 0) {
         return (
             <EmptyState
-                icon="🧳"
+                icon="briefcase"
                 title="Nenhuma viagem realizada"
                 message="Suas viagens concluídas aparecerão aqui."
             />
@@ -365,27 +368,30 @@ function PastCard({ pkg }: { pkg: BookedPackage }) {
             <View style={styles.pastContent}>
                 <Text style={styles.pastTitle} numberOfLines={1}>{pkg.title}</Text>
                 <Text style={styles.pastDestination} numberOfLines={1}>
-                    📍 {pkg.destination}, {pkg.country}
+                    {pkg.destination}, {pkg.country}
                 </Text>
-                <Text style={styles.pastDate}>
-                    📅 {formatDate(pkg.travelDate)}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Icon name="calendar" size={11} color={theme.colors.text.tertiary} />
+                    <Text style={styles.pastDate}>
+                        {formatDate(pkg.travelDate)}
+                    </Text>
+                </View>
 
                 <View style={styles.pastActions}>
                     <ActionButton
                         label="Avaliar"
-                        icon="star-outline"
+                        icon="star"
                         onPress={() => Alert.alert('Avaliação', 'Em breve você poderá avaliar!')}
                         variant="primary"
                     />
                     <ActionButton
                         label="Detalhes"
-                        icon="eye-outline"
+                        icon="eye"
                         onPress={() => router.push(`/purchased-package/${pkg.id}`)}
                     />
                     <ActionButton
                         label="Repetir"
-                        icon="refresh-outline"
+                        icon="refresh"
                         onPress={() => router.push(`/purchased-package/${pkg.id}`)}
                     />
                 </View>
@@ -403,7 +409,7 @@ function ItinerariesTab() {
     if (items.length === 0) {
         return (
             <EmptyState
-                icon="📚"
+                icon="book-open"
                 title="Você ainda não comprou nenhum roteiro"
                 message="Descubra roteiros criados por viajantes experientes."
                 ctaLabel="Explorar roteiros"
@@ -436,10 +442,10 @@ function ItineraryCard({ itin }: { itin: PurchasedItineraryItem }) {
             <View style={styles.itineraryContent}>
                 <Text style={styles.itineraryTitle} numberOfLines={1}>{itin.title}</Text>
                 <Text style={styles.itineraryDestination} numberOfLines={1}>
-                    📍 {itin.destination}, {itin.country}
+                    {itin.destination}, {itin.country}
                 </Text>
                 <View style={styles.itineraryCreatorRow}>
-                    <Text style={styles.itineraryCreatorAvatar}>{itin.creatorAvatar}</Text>
+                    <Icon name="circle-user" size={16} color={theme.colors.text.secondary} />
                     <Text style={styles.itineraryCreatorName}>{itin.creatorName}</Text>
                 </View>
                 <Text style={styles.itineraryPurchaseDate}>
@@ -447,7 +453,7 @@ function ItineraryCard({ itin }: { itin: PurchasedItineraryItem }) {
                 </Text>
             </View>
             <View style={styles.itineraryAction}>
-                <Ionicons name="chevron-forward" size={20} color={theme.colors.text.tertiary} />
+                <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
             </View>
         </TouchableOpacity>
     );
@@ -462,7 +468,7 @@ function SavedTab() {
     if (items.length === 0) {
         return (
             <EmptyState
-                icon="❤️"
+                icon="heart"
                 title="Você ainda não salvou nenhuma viagem"
                 message="Explore nossos pacotes e roteiros e salve seus favoritos!"
                 ctaLabel="Explorar"
@@ -496,14 +502,14 @@ function SavedCard({ item }: { item: SavedItem }) {
                 <Image source={{ uri: item.image }} style={styles.savedImage} />
                 <View style={[styles.savedTypeBadge, isPackage ? styles.savedTypePkg : styles.savedTypeItin]}>
                     <Text style={styles.savedTypeBadgeText}>
-                        {isPackage ? '🧳 Pacote' : '📚 Roteiro'}
+                        {isPackage ? 'Pacote' : 'Roteiro'}
                     </Text>
                 </View>
             </View>
             <View style={styles.savedContent}>
                 <Text style={styles.savedTitle} numberOfLines={1}>{item.title}</Text>
                 <Text style={styles.savedDestination} numberOfLines={1}>
-                    📍 {item.destination}, {item.country}
+                    {item.destination}, {item.country}
                 </Text>
                 <Text style={styles.savedPrice}>
                     {isPackage
@@ -513,7 +519,7 @@ function SavedCard({ item }: { item: SavedItem }) {
                 </Text>
             </View>
             <View style={styles.savedAction}>
-                <Ionicons name="chevron-forward" size={20} color={theme.colors.text.tertiary} />
+                <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
             </View>
         </TouchableOpacity>
     );

@@ -18,6 +18,7 @@ import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CoverCarousel } from '../../src/components/common/CoverCarousel';
+import { Icon } from '../../src/components/common/Icons';
 
 const { width } = Dimensions.get('window');
 
@@ -71,7 +72,7 @@ export default function PackagesScreen() {
         <View style={styles.container}>
             {/* Header with Gradient */}
             <LinearGradient
-                colors={[theme.colors.gradientTop, theme.colors.gradientBottom]}
+                colors={theme.colors.gradients.institutional as unknown as [string, string]}
                 style={styles.gradientHeader}
             >
                 <View style={styles.headerContent}>
@@ -101,7 +102,7 @@ export default function PackagesScreen() {
             >
                 {displayedPackages.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>🔍</Text>
+                        <Icon name="search" size={48} color={theme.colors.text.tertiary} />
                         <Text style={styles.emptyTitle}>Nenhum pacote encontrado</Text>
                         <Text style={styles.emptyText}>
                             Tente buscar por outro destino
@@ -129,7 +130,7 @@ export default function PackagesScreen() {
                         { opacity: toastOpacity }
                     ]}
                 >
-                    <Text style={styles.toastIcon}>💾</Text>
+                    <Icon name="heart" size={16} color="#FFFFFF" />
                     <Text style={styles.toastText}>Salvo em Minhas Viagens</Text>
                 </Animated.View>
             )}
@@ -177,7 +178,10 @@ function PackageCard({
             {/* Featured badge (fallback) */}
             {pkg.featured && !pkg.badge && (
                 <View style={styles.featuredBadge}>
-                    <Text style={styles.featuredText}>⭐ Destaque</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Icon name="star" size={12} color={theme.colors.text.primary} strokeWidth={2} />
+                        <Text style={styles.featuredText}>Destaque</Text>
+                    </View>
                 </View>
             )}
 
@@ -189,25 +193,28 @@ function PackageCard({
                 }}
                 activeOpacity={0.7}
             >
-                <Text style={styles.favoriteIcon}>
-                    {isFavorite ? '❤️' : '♡'}
-                </Text>
+                <Icon
+                    name="heart"
+                    size={20}
+                    color={isFavorite ? '#EF4444' : theme.colors.text.secondary}
+                    strokeWidth={isFavorite ? 0 : 1.5}
+                />
             </TouchableOpacity>
 
             <View style={styles.cardContent}>
                 {/* Compact Agency + Reputation Row */}
                 <View style={styles.compactInfoRow}>
-                    <Text style={styles.agencyIcon}>{pkg.agency.logo}</Text>
+                    <Icon name="globe" size={14} color={theme.colors.text.secondary} />
                     <Text style={styles.compactText}>{pkg.agency.name}</Text>
                     {pkg.agency.verified && (
                         <>
                             <Text style={styles.separator}>•</Text>
-                            <Text style={styles.verifiedIconCompact}>🛡️</Text>
+                            <Icon name="verified" size={12} color={theme.colors.primary} strokeWidth={2} />
                             <Text style={styles.compactText}>Agência verificada</Text>
                         </>
                     )}
                     <Text style={styles.separator}>•</Text>
-                    <Text style={styles.ratingIconCompact}>⭐</Text>
+                    <Icon name="star" size={13} color="#F59E0B" strokeWidth={2} />
                     <Text style={styles.compactText}>{pkg.rating}</Text>
                     <Text style={styles.compactTextSecondary}>({pkg.reviewCount})</Text>
                 </View>
@@ -216,21 +223,24 @@ function PackageCard({
                     {pkg.title}
                 </Text>
 
-                <Text style={styles.cardLocation}>
-                    📍 {pkg.destination}, {pkg.country} • {pkg.duration} dias
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+                    <Icon name="location" size={14} color={theme.colors.text.secondary} />
+                    <Text style={styles.cardLocation}>
+                        {pkg.destination}, {pkg.country} • {pkg.duration} dias
+                    </Text>
+                </View>
 
                 {/* Strategic Inclusions */}
                 <View style={styles.strategicInclusions}>
                     {pkg.inclusions?.flight && (
                         <View style={styles.strategicChip}>
-                            <Text style={styles.chipIcon}>✈️</Text>
+                            <Icon name="plane" size={14} color={theme.colors.primary} />
                             <Text style={styles.chipLabel}>Voo ida e volta</Text>
                         </View>
                     )}
                     {pkg.inclusions?.hotel && (
                         <View style={styles.strategicChip}>
-                            <Text style={styles.chipIcon}>🏨</Text>
+                            <Icon name="hotel" size={14} color={theme.colors.primary} />
                             <Text style={styles.chipLabel}>
                                 Hotel {pkg.inclusions.hotel.stars}★
                             </Text>
@@ -238,19 +248,19 @@ function PackageCard({
                     )}
                     {pkg.inclusions?.hotel?.meals && pkg.inclusions.hotel.meals.length > 0 && (
                         <View style={styles.strategicChip}>
-                            <Text style={styles.chipIcon}>🍽️</Text>
+                            <Icon name="utensils" size={14} color={theme.colors.primary} />
                             <Text style={styles.chipLabel}>{pkg.inclusions.hotel.meals[0]}</Text>
                         </View>
                     )}
                     {pkg.inclusions?.tours && pkg.inclusions.tours.length > 0 && (
                         <View style={styles.strategicChip}>
-                            <Text style={styles.chipIcon}>🎭</Text>
+                            <Icon name="compass" size={14} color={theme.colors.primary} />
                             <Text style={styles.chipLabel}>Passeios inclusos</Text>
                         </View>
                     )}
                     {pkg.inclusions?.extras && pkg.inclusions.extras.length > 0 && (
                         <View style={styles.strategicChip}>
-                            <Text style={styles.chipIcon}>✨</Text>
+                            <Icon name="star" size={14} color={theme.colors.primary} />
                             <Text style={styles.chipLabel}>Extras</Text>
                         </View>
                     )}
