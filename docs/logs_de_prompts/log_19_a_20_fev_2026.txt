@@ -1,0 +1,50 @@
+# Log de Prompts e Atividades (19/02/2026 a 20/02/2026)
+Data de geração: 20/02/2026 - 23:10
+
+---
+
+## 📅 Quinta-feira, 19/02/2026
+
+**Hora:** ~01:11
+* **Prompt Resumido:** Adicionar uma seção interativa de roteiro na "Central da Viagem".
+* **O que foi feito:**
+  - Criação da seção de Itinerário Interativo com visão dia a dia.
+  - O conteúdo agora é expansível (collapsible).
+  - Componentização para replicar a experiência profissional oferecida por agências.
+
+**Hora:** ~01:25
+* **Prompt Resumido:** Investigar e consertar por que os detalhes do pacote "Paris Romântica" não estão aparecendo corretamente no componente de Roteiro.
+* **O que foi feito:**
+  - Validação dos dados mockados dos pacotes.
+  - Correção na renderização do componente `ItineraryCard` para exibir as informações vinculadas corretamente.
+
+---
+
+## 📅 Sexta-feira, 20/02/2026
+
+**Hora:** ~21:21
+* **Prompt Resumido:** Consertar problema no menu principal onde as palavras estavam sendo cortadas na parte inferior.
+* **O que foi feito:**
+  - Identificação de falha de layout/margem (color margin) no bottom menu.
+  - Aplicação de correções de CSS/espaçamento para garantir legibilidade dos textos das abas.
+
+**Hora:** ~22:08
+* **Prompt Resumido:** Refinar o visual dos editores de painel (dashboard editors) para deixá-los mais premium e alinhados.
+* **O que foi feito:**
+  - Reestruturação visual forte nas telas de edição de pacotes e roteiros do dashboard.
+  - Padronização de formulários e inputs para um visual mais limpo e profissional (VAMO 2.0).
+
+**Hora:** ~22:30
+* **Prompt Resumido:** "Por que minhas viagens sumiram da tela 'Minhas Viagens'?" (Fixing Missing Trips Data)
+* **O que foi feito:**
+  - Investigação da falha: os arquivos mock.ts haviam sido limpados e o front não lia do BD.
+  - Criação de nova rota Node/Express `GET /api/my-trips/:travelerId`.
+  - Inserção de Seed Data (prisma/seed.ts) criando histórico real de pacotes comprados, roteiros comprados e itens salvos.
+  - Atualização do React Native `my-trips.tsx` e `api.ts` para renderizar 100% de dados recebidos no banco de dados.
+
+**Hora:** ~22:57
+* **Prompt Resumido:** "Revisa esses ícones, precisam ser mais profissionais, criativos e claros" (Refining Itinerary Icons)
+* **O que foi feito:**
+  - Identificação do bug que exibia a interrogacão `?` originado pelo uso do pacote de `Ionicons` recebendo nomes de `Lucide`.
+  - Migração da seção para o componente customizado `<Icon>` do design system do app.
+  - Troca da iconografia base para alternativas muito mais criativas: `landmark` para passeios, `gem` para dicas exclusivas, `clipboard-list` para planejamento e melhor adequação das caixas.

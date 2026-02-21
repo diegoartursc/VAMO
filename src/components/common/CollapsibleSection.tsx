@@ -21,7 +21,9 @@ export default function CollapsibleSection({
     const [expanded, setExpanded] = useState(defaultExpanded);
 
     const toggleExpanded = () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        if (Platform.OS !== 'web') {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        }
         setExpanded(!expanded);
     };
 

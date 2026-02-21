@@ -1,79 +1,53 @@
-// VAMO Brand Theme - Harmonized with Logo Gradient
-// Light Mode with Teal → Blue Gradient
+// VAMO 2.0 Theme - Authority & Trust
+// Deep Navy Institutional + Teal Actions
 
 export const theme = {
   colors: {
-    // Brand Colors extracted from Logo
-    primary: '#28C9BF',        // Teal Principal (do logo)
-    primaryLight: '#4DE6DC',   // Teal Claro
-    primaryDark: '#1FA89F',    // Teal Escuro
-
-    secondary: '#1A3263',      // Azul Profundo (base do gradiente)
+    // Institutional Anchor (Deep Navy)
+    secondary: '#1A3263',      // Headers, Text, Institutional Backgrounds
     secondaryLight: '#2A4273',
     secondaryDark: '#102040',
 
-    // Backgrounds
-    background: '#FFFFFF',
-    surface: '#F8F9FA',
-    surfaceLight: '#FAFBFC',
-    glassSurface: 'rgba(255, 255, 255, 0.15)',
+    // Action & Highlights (Bright Teal)
+    primary: '#28C9BF',        // CTAs, Badges, Links
+    primaryLight: '#4DE6DC',
+    primaryDark: '#1FA89F',
 
-    // Gradient definitions
-    gradientTop: '#28C9BF',    // Topo do degradê
-    gradientBottom: '#1A3263', // Base do degradê
+    // Backgrounds - Pure & Clean
+    background: '#FFFFFF',     // Pure White
+    surface: '#FFFFFF',        // Cards
+    surfaceLight: '#F8F9FA',   // Section Backgrounds
+    surfaceHighlight: '#F0F2F5', // Hover/Pressed states
 
     // Text
     text: {
-      primary: '#1A3263',      // Azul Profundo para leitura
-      secondary: '#5A6B8C',    // Azul acinzentado
-      tertiary: '#98989D',     // Muted labels
-      disabled: '#A0AAC0',
-      inverse: '#FFFFFF',      // Branco sobre o gradiente
+      primary: '#1A3263',      // Deep Navy for headings
+      secondary: '#64748B',    // Slate 500 for body
+      tertiary: '#94A3B8',     // Slate 400 for captions
+      inverse: '#FFFFFF',      // White text on Navy/Teal
+      disabled: '#CBD5E1',
       onPrimary: '#FFFFFF',    // White on teal
     },
 
     // Borders
-    border: '#E0E4EB',
-    borderLight: '#F0F2F5',
-
-    // Overlays
-    overlay: {
-      light: 'rgba(0, 0, 0, 0.4)',
-      medium: 'rgba(0, 0, 0, 0.6)',
-      heavy: 'rgba(0, 0, 0, 0.8)',
-    },
-
-    // Glass effect - Premium Frosted Glass
-    glass: {
-      background: 'rgba(255, 255, 255, 0.15)', // Lighter for better visibility
-      border: 'rgba(255, 255, 255, 0.3)',      // Crisper border
-      blur: 20,                                // For reference in style props
-      text: '#FFFFFF',
-    },
+    border: '#E2E8F0',         // Slate 200
+    borderLight: '#F1F5F9',    // Slate 100
 
     // Semantic
-    success: '#28C9BF',
-    error: '#FF5252',
-    warning: '#FFB74D',
-    info: '#4FC3F7',
-    verified: '#28C9BF',
-    accent: '#FF5A4D',        // Coral accent
+    success: '#10B981',        // Green - distinct from Teal
+    error: '#EF4444',          // Red
+    warning: '#F59E0B',        // Amber
+    info: '#3B82F6',           // Blue
+    verified: '#28C9BF',       // Teal for verificatio
+    accent: '#FF5A4D',         // Coral (Legacy/Accent)
 
-    // State colors
-    state: {
-      hover: 'rgba(40, 201, 191, 0.1)',    // Teal with 10% opacity
-      pressed: 'rgba(40, 201, 191, 0.2)',   // Teal with 20% opacity
-    },
-
-    // Gradient definitions
+    // Gradientes & Overlays
     gradients: {
-      primary: ['#28C9BF', '#1A3263'],
-      cardOverlay: ['rgba(255,255,255,0.95)', 'rgba(248,249,250,1)'],
-      shimmer: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.8)', 'rgba(255,255,255,0)'],
-      featured: ['rgba(40, 201, 191, 0.08)', 'rgba(26, 50, 99, 0.08)'],
-      premium: ['rgba(255, 90, 77, 0.06)', 'rgba(40, 201, 191, 0.06)'],
-      heroOverlay: ['transparent', 'rgba(0,0,0,0.3)', 'rgba(26, 50, 99, 0.95)'], // New deep overlay
-    },
+      institutional: ['#1A3263', '#162A55'], // Subtle Navy Gradient for Headers
+      action: ['#28C9BF', '#22ABA2'],        // Subtle Teal Gradient for Buttons
+      overlay: ['transparent', 'rgba(26, 50, 99, 0.8)'], // Image overlays
+      primary: ['#28C9BF', '#1FA89F'], // Teal Gradient
+    }
   },
 
   typography: {
@@ -83,19 +57,18 @@ export const theme = {
       bold: 'System',
       heavy: 'System',
     },
-
+    // Authority Scale - Fixed Hierarchy
     sizes: {
-      heroXL: 36,     // New Massive Hero
-      hero: 28,
-      title: 24,
-      heading: 20,
-      subheading: 18,
-      body: 16,
-      caption: 14,
-      small: 12,
+      heroXL: 32,    // Massive Hero
+      hero: 28,      // Page Titles
+      title: 24,     // Section Headers
+      heading: 20,   // Card Titles
+      subheading: 18,// Subsections
+      body: 16,      // Standard Text
+      caption: 14,   // Secondary Info
+      small: 12,     // Badges/Metadata
       tiny: 10,
     },
-
     weights: {
       regular: '400' as const,
       medium: '500' as const,
@@ -103,19 +76,17 @@ export const theme = {
       bold: '700' as const,
       heavy: '800' as const,
     },
-
     lineHeights: {
-      tight: 1.1,      // Titles - compact, impactful
-      normal: 1.5,     // Body - readability
-      relaxed: 1.75,   // Large body text
-      balanced: 1.3,   // Captions - balanced
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.6,
+      balanced: 1.4,
     },
-
     letterSpacing: {
-      tight: -0.5,     // Titles - closer letters
-      normal: 0,       // Body - standard
-      wide: 0.3,       // Labels/captions - breathing room
-    },
+      tight: -0.5,
+      normal: 0,
+      wide: 0.3,
+    }
   },
 
   spacing: {
@@ -127,21 +98,21 @@ export const theme = {
     xl: 32,
     xxl: 48,
     xxxl: 64,
-    // New tokens for better consistency
-    section: 40,      // Section spacing
-    cardGap: 16,      // Gap between cards
+    section: 40, // Consistent section spacing
+    cardGap: 24, // Wider gap for cleaner look
   },
 
   borderRadius: {
     xs: 4,
-    sm: 8,
+    sm: 6,
     md: 12,
-    lg: 16,
-    xl: 20,
-    xxl: 24,
+    lg: 16,     // Standard Card Radius
+    xl: 24,
+    xxl: 32,
     full: 9999,
   },
 
+  // Premium Soft Shadows
   shadows: {
     none: {
       shadowColor: 'transparent',
@@ -151,46 +122,46 @@ export const theme = {
       elevation: 0,
     },
     xs: {
-      shadowColor: '#1A3263',
+      shadowColor: '#64748B',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.05,
       shadowRadius: 2,
       elevation: 1,
     },
     small: {
-      shadowColor: '#1A3263',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
+      shadowColor: '#64748B',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
       elevation: 2,
     },
-    medium: {
+    medium: { // Card Default
       shadowColor: '#1A3263',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 8,
+      shadowOpacity: 0.08, // Increased slightly for visibility on white
+      shadowRadius: 12,
       elevation: 4,
     },
-    large: {
+    large: { // Floating Elements
       shadowColor: '#1A3263',
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
+      shadowOpacity: 0.12,
+      shadowRadius: 24,
       elevation: 8,
     },
-    button: {
+    button: { // Teal Glow
       shadowColor: '#28C9BF',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 16,
-      elevation: 10,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+      elevation: 6,
     },
     elevated: {
       shadowColor: '#1A3263',
       shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: 0.18,
-      shadowRadius: 16,
-      elevation: 12,
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      elevation: 10,
     },
     glow: {
       shadowColor: '#28C9BF',
@@ -200,9 +171,9 @@ export const theme = {
       elevation: 0,
     },
     neon: {
-      shadowColor: '#4DE6DC',
+      shadowColor: '#28C9BF',
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.8,
+      shadowOpacity: 0.6,
       shadowRadius: 10,
       elevation: 0,
     }

@@ -20,6 +20,11 @@ enum AgencyPlan {
   FREE
 }
 
+enum AdminRole {
+  SUPER_ADMIN
+  MODERATOR
+}
+
 enum AuthProvider {
   EMAIL
   GOOGLE
@@ -45,12 +50,20 @@ enum PackageBadge {
 }
 
 enum PackageStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
   ACTIVE
   PAUSED
   ARCHIVED
 }
 
 enum ItineraryStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
   ACTIVE
   PAUSED
   ARCHIVED
@@ -81,6 +94,23 @@ enum BookingDocumentType {
   TICKET
   POLICY
   INFO
+}
+
+// ─────────────────────────────────────────────
+// ADMIN
+// ─────────────────────────────────────────────
+
+model Admin {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(MODERATOR)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admins")
 }
 
 // ─────────────────────────────────────────────
@@ -242,10 +272,29 @@ model Package {
   importantInfo       String[]
   perfectFor          String[]
   categories          String[]
+  // Registration system — Block 1 (Destination)
+  continent           String?       // auto-calculated from country
+  airport             String?       // main airport code (e.g. CDG, GRU)
+  multiDestination    Boolean       @default(false)
+  additionalCities    String[]
+  // Registration system — Block 2 (Duration)
+  nights              Int?          // auto: duration - 1
+  // Registration system — Block 3 (Travel Style)
+  travelStyles        String[]      // max 3: Luxo, Econômico, Mochilão, Família, Romântico, Aventura
   // Structured JSON fields
   inclusions          Json?         // { flight, hotel: { stars, meals }, tours, extras }
   routeDetails        Json?         // { mainStop, pickupLocations, transport, mainActivity, returnLocations, mapImageUrl }
-  // Trust & conversion badges
+  // Registration system — Block 5 (Price extras)
+  promoPrice          Float?        // promotional price
+  installments        Int?          // max installments (e.g. 12x)
+  cancellationPolicy  String?       @db.Text
+  // Registration system — Block 7 (Post-purchase docs)
+  whatsappOfficial    String?
+  autoMessage         String?       @db.Text
+  voucherUrl          String?
+  eticketUrl          String?
+  // Quality & trust
+  qualityScore        Int?          // 0-100 calculated
   badge               PackageBadge?
   rating              Float?
   reviewCount         Int           @default(0)
@@ -255,7 +304,10 @@ model Package {
   recentPurchases     Int           @default(0)
   priceComparison     String?       // 'below' | 'average' | 'above'
   priceDiscount       Int           @default(0)
-  status              PackageStatus @default(ACTIVE)
+  status              PackageStatus @default(DRAFT)
+  approvalNote        String?       @db.Text
+  approvedAt          DateTime?
+  approvedBy          String?       // admin id
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
@@ -317,12 +369,33 @@ model Itinerary {
   reviewCount      Int      @default(0)
   downloadCount    Int      @default(0)
   featured         Boolean  @default(false)
-  // New array fields matching mock data
+  // Array fields
   highlights       String[]
   inclusions       String[]  // e.g. ["Planilha", "Mapa", "Guia de Frases"]
   // Structured spending estimate
   estimatedSpending Json?   // { min, max, currency, breakdown: [{ category, amount, description }] }
-  status           ItineraryStatus @default(ACTIVE)
+  // ─── Bloco 1: Identidade ───
+  subtitle         String?  @db.VarChar(160)
+  travelStyles     String[]  // max 3
+  categories       String[]  // min 1, max 5
+  productType      String   @default("DIGITAL") // DIGITAL | PRESENCIAL | HIBRIDO
+  // ─── Bloco 3: Módulos ativos ───
+  activeModules    String[]  // itinerario, mapa, hospedagem, transporte, gasto, restaurantes, dicas, checklist, voo
+  // ─── Bloco 2: Estrutura Comercial ───
+  promoPrice       Float?
+  installments     Int?
+  immediateAccess  Boolean  @default(true)
+  lifetimeAccess   Boolean  @default(true)
+  offlineDownload  Boolean  @default(true)
+  // ─── Bloco 7: Configuração Pós-compra ───
+  allowPdf         Boolean  @default(false)
+  allowShare       Boolean  @default(true)
+  // ─── Quality ───
+  qualityScore     Int      @default(0)
+  status           ItineraryStatus @default(DRAFT)
+  approvalNote     String?  @db.Text
+  approvedAt       DateTime?
+  approvedBy       String?  // admin id
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -334,6 +407,9 @@ model Itinerary {
   sales            ItinerarySale[]
   savedItems       SavedItem[]
   faqQuestions     FaqQuestion[]
+  accommodations   ItineraryAccommodation[]
+  transports       ItineraryTransport[]
+  checklists       ItineraryChecklist[]
 
   @@map("itineraries")
 }
@@ -394,6 +470,9 @@ model ItineraryActivity {
   icon        String?
   images      String[]
   mapLink     String?
+  latitude    Float?
+  longitude   Float?
+  category    String?      // 'atração' | 'restaurante' | 'hotel'
   completed   Boolean      @default(false)
   notes       String?      @db.Text
   createdAt   DateTime     @default(now())
@@ -401,6 +480,52 @@ model ItineraryActivity {
   day         ItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
 
   @@map("itinerary_activities")
+}
+
+model ItineraryAccommodation {
+  id           String    @id @default(cuid())
+  itineraryId  String
+  name         String
+  neighborhood String?
+  description  String?   @db.Text
+  priceRange   String?
+  rating       Float?
+  externalLink String?
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  itinerary    Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_accommodations")
+}
+
+model ItineraryTransport {
+  id             String    @id @default(cuid())
+  itineraryId    String
+  description    String?   @db.Text
+  passTypes      String?
+  estimatedPrice String?
+  notes          String?   @db.Text
+  order          Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  itinerary      Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_transports")
+}
+
+model ItineraryChecklist {
+  id          String    @id @default(cuid())
+  itineraryId String
+  category    String    // 'documentos' | 'mala' | 'pre-viagem' | 'custom'
+  item        String
+  isDefault   Boolean   @default(true)
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_checklists")
 }
 
 model ItinerarySale {

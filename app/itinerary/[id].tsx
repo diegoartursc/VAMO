@@ -23,6 +23,7 @@ import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSe
 import { shareService } from '../../src/services/sharing';
 import { haptics } from '../../src/services/haptics';
 import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
+import { Icon } from '../../src/components/common/Icons';
 import FAQSection from '../../src/components/FAQSection';
 import { getItineraryFAQ } from '../../src/data/mockFAQ';
 import { PurchaseSuccessModal } from '../../src/components/modals/PurchaseSuccessModal';
@@ -33,6 +34,8 @@ export default function ItineraryDetailScreen() {
     const { id, showSuccess } = useLocalSearchParams<{ id: string; showSuccess?: string }>();
     const router = useRouter();
     const [itinerary, setItinerary] = useState<any>(null);
+    const [showBuyOptions, setShowBuyOptions] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
     const reviews = getReviewsByPackageId(`itinerary-${id}`);
 
     useEffect(() => {
@@ -47,12 +50,7 @@ export default function ItineraryDetailScreen() {
         );
     }
 
-    // Fixed CTA
-    const [showBuyOptions, setShowBuyOptions] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
-
     const handlePurchase = () => {
-        // Show success modal
         setShowSuccessModal(true);
     };
 
@@ -254,7 +252,7 @@ export default function ItineraryDetailScreen() {
                             {ITINERARY_INCLUSIONS.map((item) => (
                                 <View key={item.id} style={styles.inclusionItem}>
                                     <View style={[styles.inclusionIcon, { backgroundColor: item.bgColor }]}>
-                                        <Ionicons name={item.icon as any} size={24} color={item.iconColor} />
+                                        <Icon name={item.icon as any} size={24} color={item.iconColor} />
                                     </View>
                                     <View style={styles.inclusionContent}>
                                         <Text style={styles.inclusionTitle}>{item.title}</Text>

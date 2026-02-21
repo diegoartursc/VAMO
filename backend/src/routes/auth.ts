@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
-import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken } from '../lib/auth';
+import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken } from '../lib/auth';
 
 const router = Router();
 
@@ -182,6 +182,55 @@ router.post('/login', async (req: Request, res: Response) => {
         }
         console.error('Login error:', error);
         res.status(500).json({ error: 'Erro ao fazer login' });
+    }
+});
+
+// GET /api/auth/me - Get current employee + agency from JWT
+router.get('/me', async (req: Request, res: Response) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No token provided' });
+        }
+
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token) as { agencyId: string; employeeId: string; email: string } | null;
+
+        if (!decoded) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
+        const employee = await prisma.agencyEmployee.findUnique({
+            where: { id: decoded.employeeId },
+            include: {
+                agency: {
+                    select: {
+                        id: true,
+                        name: true,
+                        verified: true,
+                        logo: true,
+                        cnpj: true,
+                    },
+                },
+            },
+        });
+
+        if (!employee || !employee.active) {
+            return res.status(401).json({ error: 'Account not found or deactivated' });
+        }
+
+        res.json({
+            employee: {
+                id: employee.id,
+                name: employee.name,
+                email: employee.email,
+                role: employee.role,
+            },
+            agency: employee.agency,
+        });
+    } catch (error) {
+        console.error('Auth/me error:', error);
+        res.status(401).json({ error: 'Authentication failed' });
     }
 });
 

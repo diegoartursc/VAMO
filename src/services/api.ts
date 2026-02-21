@@ -6,7 +6,7 @@ import { mockPackages } from '../data/mockPackages';
 import { mockItineraries } from '../data/mockItineraries';
 import { mockCreators, getFeaturedCreators as mockFeaturedCreators } from '../data/mockCreators';
 
-const API_BASE_URL = 'http://localhost:3000/api'; // Only works locally; Vercel uses mock fallback
+const API_BASE_URL = 'http://localhost:3333/api';
 
 // ─── Helper ───
 async function fetchApi<T>(endpoint: string): Promise<T> {
@@ -133,3 +133,18 @@ export async function getReviews(params: {
         return { reviews: [], stats: { total: 0, averageRating: 0 } };
     }
 }
+
+// ─── My Trips ───
+export async function getMyTrips(travelerId: string): Promise<{
+    upcomingPackages: any[];
+    pastPackages: any[];
+    purchasedItineraries: any[];
+    savedItems: any[];
+}> {
+    try {
+        return await fetchApi(`/my-trips/${travelerId}`);
+    } catch {
+        return { upcomingPackages: [], pastPackages: [], purchasedItineraries: [], savedItems: [] };
+    }
+}
+

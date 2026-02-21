@@ -39,7 +39,7 @@ export const ITINERARY_INCLUSIONS: ItineraryInclusion[] = [
     },
     {
         id: 'attractions',
-        icon: 'location',
+        icon: 'landmark',
         iconColor: '#28C9BF',
         bgColor: '#F0FAF9',
         title: 'Passeios & Atrações',
@@ -55,7 +55,7 @@ export const ITINERARY_INCLUSIONS: ItineraryInclusion[] = [
     },
     {
         id: 'tips',
-        icon: 'lightbulb',
+        icon: 'gem',
         iconColor: '#28C9BF',
         bgColor: '#F0FAF9',
         title: 'Dicas Exclusivas',
@@ -71,7 +71,7 @@ export const ITINERARY_INCLUSIONS: ItineraryInclusion[] = [
     },
     {
         id: 'checklist',
-        icon: 'check-square',
+        icon: 'clipboard-list',
         iconColor: '#28C9BF',
         bgColor: '#F0FAF9',
         title: 'Checklist de Planejamento Interativo',

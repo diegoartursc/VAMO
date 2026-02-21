@@ -177,6 +177,16 @@ export default function PackageDetailScreen() {
                             <Text style={styles.agencyName}>{packageData.agency.name}</Text>
                             {packageData.agency.verified && <Ionicons name="checkmark-circle" size={14} color={theme.colors.verified} />}
                         </View>
+                        {packageData.agency.verified && (
+                            <TouchableOpacity
+                                style={styles.verificationLink}
+                                onPress={() => router.push('/verification-explained')}
+                            >
+                                <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
+                                <Text style={styles.verificationLinkText}>Como verificamos as agências</Text>
+                                <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
+                            </TouchableOpacity>
+                        )}
                     </View>
 
 
@@ -259,17 +269,6 @@ export default function PackageDetailScreen() {
                         </View>
                     </View>
 
-                    {/* Verification Info Link */}
-                    {packageData.agency.verified && (
-                        <TouchableOpacity
-                            style={styles.verificationLink}
-                            onPress={() => router.push('/verification-explained')}
-                        >
-                            <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
-                            <Text style={styles.verificationLinkText}>Como verificamos as agências</Text>
-                            <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
-                        </TouchableOpacity>
-                    )}
 
                     {/* Central da Viagem Preview Card */}
                     <View style={styles.centralCard}>

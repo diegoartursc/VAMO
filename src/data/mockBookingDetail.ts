@@ -39,6 +39,24 @@ export interface PreparationItem {
     items: string[];
 }
 
+export interface ItineraryActivity {
+    id: string;
+    time: string;
+    title: string;
+    description: string;
+    icon?: string;
+    location?: string;
+    tips?: string;
+    isHighlight?: boolean;
+}
+
+export interface ItineraryDay {
+    day: number;
+    title: string;
+    date?: string; // Optional, calculated dynamically usually
+    activities: ItineraryActivity[];
+}
+
 export interface BookingDetail {
     id: string;
     packageId: string;
@@ -65,6 +83,7 @@ export interface BookingDetail {
     documents: TripDocument[];
     inclusions: TripInclusion[];
     preparation: PreparationItem[];
+    detailedItinerary?: ItineraryDay[];
 }
 
 // ─── Helpers ────────────────────────────────────────────
@@ -231,6 +250,209 @@ export const mockBookings: BookingDetail[] = [
                     'Metrô é o melhor transporte',
                     'Gorjetas não são obrigatórias',
                     'Leve calçados confortáveis',
+                ],
+            },
+        ],
+        detailedItinerary: [
+            {
+                day: 1,
+                title: 'Chegada em Paris e Primeiras Impressões',
+                activities: [
+                    {
+                        id: 'd1-a1',
+                        time: '14:00',
+                        title: 'Check-in no Hotel',
+                        description: 'Chegada ao Hôtel Le Marais e acomodação.',
+                        icon: 'bed',
+                        location: 'Hôtel Le Marais, 4e Arrondissement',
+                    },
+                    {
+                        id: 'd1-a2',
+                        time: '16:30',
+                        title: 'Caminhada pelo Rio Sena',
+                        description: 'Passeio relaxante pelas margens do Sena para entrar no clima parisiense.',
+                        icon: 'walk',
+                        isHighlight: true,
+                    },
+                    {
+                        id: 'd1-a3',
+                        time: '19:30',
+                        title: 'Jantar de Boas-vindas',
+                        description: 'Jantar em bistrô tradicional no Marais.',
+                        icon: 'restaurant',
+                        tips: 'Experimente o Boeuf Bourguignon.',
+                    },
+                ],
+            },
+            {
+                day: 2,
+                title: 'A Dama de Ferro e Arte Moderna',
+                activities: [
+                    {
+                        id: 'd2-a1',
+                        time: '09:00',
+                        title: 'Torre Eiffel',
+                        description: 'Subida ao topo da Torre Eiffel com acesso prioritário.',
+                        icon: 'flag',
+                        location: 'Champ de Mars, 5 Avenue Anatole France',
+                        tips: 'Chegue 15 min antes do horário agendado.',
+                        isHighlight: true,
+                    },
+                    {
+                        id: 'd2-a2',
+                        time: '12:00',
+                        title: 'Almoço no Trocadéro',
+                        description: 'Vista panorâmica da torre durante o almoço.',
+                        icon: 'restaurant',
+                    },
+                    {
+                        id: 'd2-a3',
+                        time: '14:30',
+                        title: 'Museu de Arte Moderna',
+                        description: 'Visita guiada ao Palais de Tokyo.',
+                        icon: 'color-palette',
+                    },
+                ],
+            },
+            {
+                day: 3,
+                title: 'O Coração Histórico: Louvre e Notre-Dame',
+                activities: [
+                    {
+                        id: 'd3-a1',
+                        time: '09:30',
+                        title: 'Museu do Louvre',
+                        description: 'Excursão guiada para ver a Mona Lisa e a Vênus de Milo.',
+                        icon: 'easel',
+                        location: 'Museu do Louvre',
+                        tips: 'Mochilas grandes não são permitidas.',
+                        isHighlight: true,
+                    },
+                    {
+                        id: 'd3-a2',
+                        time: '13:00',
+                        title: 'Almoço no Jardin des Tuileries',
+                        description: 'Piquenique ou quiosques no jardim.',
+                        icon: 'nutrition',
+                    },
+                    {
+                        id: 'd3-a3',
+                        time: '15:00',
+                        title: 'Catedral de Notre-Dame (Exterior) e Île de la Cité',
+                        description: 'Caminhada pelo centro histórico e Sainte-Chapelle.',
+                        icon: 'camera',
+                    },
+                ],
+            },
+            {
+                day: 4,
+                title: 'Versalhes: A Grandeza Real',
+                activities: [
+                    {
+                        id: 'd4-a1',
+                        time: '08:00',
+                        title: 'Saída para Versalhes',
+                        description: 'Transfer de ônibus privativo partindo do hotel.',
+                        icon: 'bus',
+                    },
+                    {
+                        id: 'd4-a2',
+                        time: '10:00',
+                        title: 'Palácio de Versalhes',
+                        description: 'Visita aos Aposentos Reais e Galeria dos Espelhos.',
+                        icon: 'key',
+                        isHighlight: true,
+                    },
+                    {
+                        id: 'd4-a3',
+                        time: '12:30',
+                        title: 'Jardins de Versalhes',
+                        description: 'Tempo livre para explorar os jardins.',
+                        icon: 'leaf',
+                    },
+                ],
+            },
+            {
+                day: 5,
+                title: 'Montmartre e o Sagrado Coração',
+                activities: [
+                    {
+                        id: 'd5-a1',
+                        time: '10:00',
+                        title: 'Basílica de Sacré-Cœur',
+                        description: 'Vista panorâmica de Paris.',
+                        icon: 'eye',
+                        location: 'Butte Montmartre',
+                    },
+                    {
+                        id: 'd5-a2',
+                        time: '11:30',
+                        title: 'Place du Tertre',
+                        description: 'Praça dos artistas e pintores.',
+                        icon: 'brush',
+                    },
+                    {
+                        id: 'd5-a3',
+                        time: '20:00',
+                        title: 'Show no Moulin Rouge',
+                        description: 'Espetáculo opcional (necessita reserva prévia).',
+                        icon: 'musical-notes',
+                        tips: 'Traje esporte fino obrigatório.',
+                    },
+                ],
+            },
+            {
+                day: 6,
+                title: 'Compras e Champs-Élysées',
+                activities: [
+                    {
+                        id: 'd6-a1',
+                        time: '10:00',
+                        title: 'Arco do Triunfo',
+                        description: 'Visita ao monumento e terraço.',
+                        icon: 'ribbon',
+                    },
+                    {
+                        id: 'd6-a2',
+                        time: '13:00',
+                        title: 'Almoço na Champs-Élysées',
+                        description: 'Tempo livre para almoço e compras.',
+                        icon: 'bag',
+                    },
+                    {
+                        id: 'd6-a3',
+                        time: '16:00',
+                        title: 'Galeries Lafayette',
+                        description: 'Visita à famosa loja de departamentos e seu domo.',
+                        icon: 'gift',
+                    },
+                ],
+            },
+            {
+                day: 7,
+                title: 'Despedida de Paris',
+                activities: [
+                    {
+                        id: 'd7-a1',
+                        time: '09:00',
+                        title: 'Café da manhã de despedida',
+                        description: 'Último croissant em café parisiense.',
+                        icon: 'cafe',
+                    },
+                    {
+                        id: 'd7-a2',
+                        time: '11:00',
+                        title: 'Check-out',
+                        description: 'Saída do hotel e preparação para o transfer.',
+                        icon: 'exit',
+                    },
+                    {
+                        id: 'd7-a3',
+                        time: '14:00',
+                        title: 'Transfer para Aeroporto',
+                        description: 'Partida rumo ao Aeroporto Charles de Gaulle (CDG).',
+                        icon: 'airplane',
+                    },
                 ],
             },
         ],

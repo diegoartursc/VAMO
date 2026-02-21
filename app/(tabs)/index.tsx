@@ -7,59 +7,115 @@ import {
     TouchableOpacity,
     Image,
     Dimensions,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
+    Platform,
+    StatusBar,
+    SafeAreaView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Added
-import { Package } from '../../src/types';
-import { PackageBadge } from '../../src/components/badges/PackageBadge';
-import { theme } from '../../src/theme/theme';
-import { HeroSection } from '../../src/components/home/HeroSection';
-import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
-import { SearchModal } from '../../src/components/search/SearchModal';
-import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions'; // Added
-import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
-import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import { theme } from '../../src/theme/theme';
 import { useSearch } from '../../src/hooks/useSearch';
-import { CTACarousel } from '../../src/components/home/CTACarousel';
-import { CoverCarousel } from '../../src/components/common/CoverCarousel';
-import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAnimationProvider';
-import DecisionAssistant from '../../src/components/home/DecisionAssistant';
 import { analytics } from '../../src/services/analytics';
+import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAnimationProvider';
+
+// Components
+import { Icon } from '../../src/components/common/Icons';
+import { CoverCarousel } from '../../src/components/common/CoverCarousel';
+import { SearchModal } from '../../src/components/search/SearchModal';
+import DecisionAssistant from '../../src/components/home/DecisionAssistant';
+import { CTACarousel } from '../../src/components/home/CTACarousel';
+import WhyDifferent from '../../src/components/common/WhyDifferent';
+import { PackageBadge } from '../../src/components/badges/PackageBadge';
+import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
+
+// Data
+import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
 
 const { width } = Dimensions.get('window');
 
+// ─── VAMO 2.0 HEADER COMPONENT ──────────────────────────────
+const InstitutionalHeader = ({ onSearchPress }: { onSearchPress: () => void }) => {
+    return (
+        <View style={styles.headerContainer}>
+            {/* Background with Institutional Deep Navy */}
+            <LinearGradient
+                colors={theme.colors.gradients.institutional}
+                style={styles.headerBackground}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            >
+                {/* Orbital Lines / Abstract Decoration */}
+                <View style={styles.orbitalLine1} />
+                <View style={styles.orbitalLine2} />
+            </LinearGradient>
+
+            <SafeAreaView>
+                <View style={styles.headerContent}>
+                    {/* Top Row: Brand & Notifications */}
+                    <View style={styles.headerTopRow}>
+                        <View>
+                            <Text style={styles.brandText}>VAMO</Text>
+                            <Text style={styles.brandSubText}>Authority Travel</Text>
+                        </View>
+                        <TouchableOpacity style={styles.iconButton}>
+                            <Icon name="brand-telegram" size={24} color="#FFF" />
+                            {/* Fallback to bell if brand-telegram not found, using generic bell logic manually or just Icon */}
+                            <Icon name="bell" size={24} color="rgba(255,255,255,0.8)" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Hero Title */}
+                    <View style={styles.heroTextContainer}>
+                        <Text style={styles.heroTitle}>
+                            Explore novas{'\n'}fronteiras.
+                        </Text>
+                        <Text style={styles.heroSubtitle}>
+                            Roteiros exclusivos e agências verificadas.
+                        </Text>
+                    </View>
+
+                    {/* Search Bar - Floating */}
+                    <TouchableOpacity
+                        style={styles.searchBar}
+                        activeOpacity={0.9}
+                        onPress={onSearchPress}
+                    >
+                        <Icon name="search" size={20} color={theme.colors.text.secondary} />
+                        <Text style={styles.searchPlaceholder}>Para onde você quer ir?</Text>
+                        <View style={styles.filterButton}>
+                            <Icon name="filter" size={16} color={theme.colors.primary} />
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        </View>
+    );
+};
+
+
+// ─── MAIN HOME SCREEN ───────────────────────────────────────
 export default function HomeScreen() {
     const router = useRouter();
     const { applyFilters, filters, filteredPackages, hasActiveFilters, allPackages, allItineraries } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [decisionAssistantVisible, setDecisionAssistantVisible] = useState(false);
 
-    // Usa pacotes filtrados se houver filtros ativos, senão usa destacados
+    // Filter logic
     const displayedPackages = hasActiveFilters ? filteredPackages : allPackages.filter(p => p.featured);
 
-    const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
+    // Favorites Logic
+    const [favorites, setFavorites] = useState<string[]>([]);
     const { showAnimation } = useFavoriteAnimation();
-    const [scrollDepthTracked, setScrollDepthTracked] = useState<Set<number>>(new Set());
-    const [lastSearchedDestination, setLastSearchedDestination] = useState<string | null>('Paris'); // Mock: último destino pesquisado
+    const [lastSearchedDestination, setLastSearchedDestination] = useState<string | null>('Paris');
 
-    // Track home view on mount
     useEffect(() => {
         analytics.homeViewed();
     }, []);
 
-    // Toggle favorite status
     const toggleFavorite = (packageId: string, event?: any) => {
         const isAdding = !favorites.includes(packageId);
-
-        setFavorites(prev =>
-            prev.includes(packageId)
-                ? prev.filter(id => id !== packageId)
-                : [...prev, packageId]
-        );
-
-        // Show animation only when adding to favorites
+        setFavorites(prev => prev.includes(packageId) ? prev.filter(id => id !== packageId) : [...prev, packageId]);
         if (isAdding && event) {
             const { pageX, pageY } = event.nativeEvent;
             showAnimation(pageX, pageY);
@@ -68,210 +124,89 @@ export default function HomeScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar barStyle="light-content" />
             <ScrollView
                 style={styles.scrollView}
                 showsVerticalScrollIndicator={false}
-                bounces={true}
+                bounces={false}
+                contentContainerStyle={{ paddingBottom: 40 }}
             >
-                {/* Hero Section */}
-                <HeroSection
-                    image="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1600"
-                    title="Viajar é mais simples do que você pensa"
-                    subtitle="Encontre sua próxima aventura com quem entende de viagem"
-                />
+                {/* 1. Institutional Header */}
+                <InstitutionalHeader onSearchPress={() => setSearchModalVisible(true)} />
 
-                {/* 1. Barra de busca principal */}
-                <IconicSearchBar
-                    placeholder="Encontrar minha viagem"
-                    onPress={() => {
-                        analytics.homeSearchFocused();
-                        setSearchModalVisible(true);
-                    }}
-                    overlapsHero={true}
-                />
-
-                {/* Elemento de confiança consolidado */}
-                <View style={styles.trustBadge}>
-                    <Text style={styles.trustBadgeText}>
-                        Agências verificadas • Preço final • Compra segura
-                    </Text>
+                {/* 2. Trust Indicators (Below Header) */}
+                <View style={styles.trustBar}>
+                    <View style={styles.trustItem}>
+                        <Icon name="verified" size={14} color={theme.colors.text.secondary} />
+                        <Text style={styles.trustText}>Agências Verificadas</Text>
+                    </View>
+                    <View style={styles.trustItem}>
+                        <Icon name="shield-check" size={14} color={theme.colors.text.secondary} />
+                        <Text style={styles.trustText}>Compra Segura</Text>
+                    </View>
                 </View>
 
-                {/* 2. Card "Não sabe por onde começar?" */}
+                {/* 3. Decision Assistant (Quiz) */}
                 <TouchableOpacity
-                    style={styles.decisionTrigger}
-                    onPress={() => {
-                        analytics.homeQuizCtaClicked();
-                        setDecisionAssistantVisible(true);
-                    }}
-                    activeOpacity={0.8}
+                    style={styles.quizCard}
+                    onPress={() => setDecisionAssistantVisible(true)}
+                    activeOpacity={0.9}
                 >
-                    <Text style={styles.decisionIcon}>🤔</Text>
-                    <View style={styles.decisionTriggerContent}>
-                        <Text style={styles.decisionTriggerTitle}>Não sabe por onde começar?</Text>
-                        <Text style={styles.decisionTriggerSubtitle}>Responda 3 perguntas e descubra a opção ideal</Text>
+                    <View style={styles.quizIconContainer}>
+                        <Icon name="compass" size={24} color={theme.colors.primary} />
                     </View>
-                    <Text style={styles.decisionTriggerArrow}>→</Text>
+                    <View style={styles.quizContent}>
+                        <Text style={styles.quizTitle}>Não sabe para onde ir?</Text>
+                        <Text style={styles.quizSubtitle}>Descubra o destino ideal em 3 passos</Text>
+                    </View>
+                    <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
                 </TouchableOpacity>
 
-                {/* 3. Pacotes em Destaque */}
+                {/* 4. Featured Packages */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Viagens completas com as melhores avaliações
-                    </Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/packages')}>
+                            <Text style={styles.seeAllText}>Ver todos</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.sectionSubtitle}>Experiências completas com curadoria VAMO.</Text>
 
-                    {displayedPackages.slice(0, 6).map((pkg, index) => (
-                        <HomePackageCard
+                    {displayedPackages.slice(0, 5).map((pkg, index) => (
+                        <PremiumPackageCard
                             key={pkg.id}
-                            package={pkg}
-                            onPress={() => {
-                                analytics.homePackageCardClicked(pkg.id, index);
-                                router.push(`/package/${pkg.id}`);
-                            }}
+                            pkg={pkg}
+                            onPress={() => router.push(`/package/${pkg.id}`)}
                             isFavorite={favorites.includes(pkg.id)}
                             onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
                         />
                     ))}
                 </View>
 
-                {/* Roteiros em Destaque */}
+                {/* 5. Creator Itineraries */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Roteiros em Destaque</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Roteiros testados e aprovados por viajantes reais
-                    </Text>
-
-                    {allItineraries.filter(it => it.featured).slice(0, 4).map((itinerary) => (
-                        <TouchableOpacity
-                            key={itinerary.id}
-                            style={styles.roteirosCard}
-                            onPress={() => router.push(`/itinerary/${itinerary.id}`)}
-                            activeOpacity={0.85}
-                        >
-                            <CoverCarousel images={itinerary.images} height={180} />
-
-                            <View style={styles.roteirosContent}>
-                                {/* Creator Info - Compact Row */}
-                                <View style={styles.roteirosAuthorRow}>
-                                    <Text style={styles.roteirosAuthorAvatar}>{itinerary.creator.avatar}</Text>
-                                    <Text style={styles.roteirosAuthorName}>{itinerary.creator.name}</Text>
-                                    <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
-                                    <Text style={styles.roteirosAuthorStats}>
-                                        ⭐ {itinerary.creator.rating} • {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
-                                    </Text>
-                                </View>
-
-                                <Text style={styles.roteirosTitle}>{itinerary.title}</Text>
-                                <Text style={styles.roteirosDescription} numberOfLines={1}>
-                                    {itinerary.description}
-                                </Text>
-
-                                {/* Category Chips */}
-                                <View style={styles.roteirosChipsContainer}>
-                                    {ITINERARY_INCLUSIONS.map((item) => (
-                                        <View key={item.id} style={styles.roteirosChip}>
-                                            <Ionicons name={item.icon as any} size={16} color={item.iconColor} />
-                                            <Text style={styles.roteirosChipText}>{item.title}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-
-                                {/* Footer */}
-                                <View style={styles.roteirosFooter}>
-                                    <View>
-                                        <Text style={styles.roteirosPrice}>
-                                            R$ {itinerary.price.toFixed(2).replace('.', ',')}
-                                        </Text>
-                                        <Text style={styles.roteirosPriceLabel}>Roteiro completo</Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        style={styles.roteirosCTA}
-                                        onPress={() => router.push(`/itinerary/${itinerary.id}`)}
-                                    >
-                                        <Text style={styles.roteirosCTAText}>Quero esse roteiro</Text>
-                                        <Text style={styles.roteirosCTAArrow}>→</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Roteiros de Especialistas</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
+                            <Text style={styles.seeAllText}>Explorar</Text>
                         </TouchableOpacity>
-                    ))}
-
-                    {/* Ver todos */}
-                    <TouchableOpacity
-                        style={styles.roteirosViewAll}
-                        onPress={() => router.push('/(tabs)/itineraries')}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.roteirosViewAllText}>Ver todos os roteiros →</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* 4. Continue sua busca (baseado em pesquisa anterior) */}
-                {lastSearchedDestination && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            Continue sua busca em {lastSearchedDestination}
-                        </Text>
-                        <Text style={styles.sectionSubtitle}>
-                            Retome de onde parou e descubra mais experiências
-                        </Text>
-
-                        {allPackages
-                            .filter(pkg =>
-                                pkg.destination.toLowerCase().includes(lastSearchedDestination.toLowerCase()) ||
-                                pkg.country.toLowerCase().includes(lastSearchedDestination.toLowerCase())
-                            )
-                            .slice(0, 4)
-                            .map((pkg, index) => (
-                                <HomePackageCard
-                                    key={pkg.id}
-                                    package={pkg}
-                                    onPress={() => {
-                                        analytics.homePackageCardClicked(pkg.id, index);
-                                        router.push(`/package/${pkg.id}`);
-                                    }}
-                                    isFavorite={favorites.includes(pkg.id)}
-                                    onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
-                                />
-                            ))
-                        }
                     </View>
-                )}
+                    <Text style={styles.sectionSubtitle}>Planejamento detalhado por quem entende.</Text>
 
-
-                {/* 6. Experiências Inesquecíveis */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Experiências de viagem inesquecíveis</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Momentos únicos que você vai guardar para sempre
-                    </Text>
-
-                    {allPackages
-                        .filter(p => !p.featured)
-                        .slice(0, 4)
-                        .map((pkg, index) => (
-                            <HomePackageCard
-                                key={pkg.id}
-                                package={pkg}
-                                onPress={() => {
-                                    analytics.homePackageCardClicked(pkg.id, index);
-                                    router.push(`/package/${pkg.id}`);
-                                }}
-                                isFavorite={favorites.includes(pkg.id)}
-                                onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
+                        {allItineraries.slice(0, 5).map((itinerary) => (
+                            <ItineraryCard
+                                key={itinerary.id}
+                                itinerary={itinerary}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                             />
-                        ))
-                    }
+                        ))}
+                    </ScrollView>
                 </View>
 
-                {/* Destinos Populares */}
+                {/* 6. Popular Destinations (Grid) */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Destinos populares</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Os lugares mais procurados pelos nossos viajantes
-                    </Text>
-
+                    <Text style={styles.sectionTitle}>Destinos em Alta</Text>
                     <View style={styles.destinationsGrid}>
                         {POPULAR_DESTINATIONS.map((dest) => (
                             <TouchableOpacity
@@ -279,46 +214,36 @@ export default function HomeScreen() {
                                 style={styles.destinationCard}
                                 onPress={() => router.push(`/(tabs)/packages?destination=${dest.name}`)}
                             >
-                                <Image
-                                    source={{ uri: dest.image }}
-                                    style={styles.destinationImage}
-                                    resizeMode="cover"
-                                />
+                                <Image source={{ uri: dest.image }} style={styles.destinationImage} />
+                                <View style={styles.destinationOverlay} />
                                 <Text style={styles.destinationName}>{dest.name}</Text>
-                                <Text style={styles.destinationCount}>
-                                    {dest.count} experiências
-                                </Text>
                             </TouchableOpacity>
                         ))}
                     </View>
                 </View>
 
-                {/* Banner "Quer vender seus roteiros?" (CTA Carousel) */}
-                <View style={styles.section}>
+                {/* 7. CTA Carousel */}
+                <View style={{ marginTop: 20 }}>
                     <CTACarousel />
                 </View>
 
-                {/* 8. Por que o VAMO é diferente? */}
+                {/* 8. Institutional Footer/Why Different */}
                 <WhyDifferent />
 
-                <View style={{ height: 40 }} />
             </ScrollView>
 
-            {/* Search Modal */}
+            {/* Modals */}
             <SearchModal
                 visible={searchModalVisible}
                 onClose={() => setSearchModalVisible(false)}
                 onSearch={(newFilters) => {
                     applyFilters(newFilters);
                     setSearchModalVisible(false);
-                    // Navegar para a aba de pacotes com os filtros aplicados
                     router.push('/(tabs)/packages');
                 }}
                 context="home"
                 initialFilters={filters}
             />
-
-            {/* Decision Assistant Modal */}
             <DecisionAssistant
                 visible={decisionAssistantVisible}
                 onClose={() => setDecisionAssistantVisible(false)}
@@ -327,129 +252,78 @@ export default function HomeScreen() {
     );
 }
 
-// Full-width Package Card matching the packages tab layout
-function HomePackageCard({
-    package: pkg,
-    onPress,
-    isFavorite,
-    onToggleFavorite
-}: any) {
+
+// ─── PREMIUM CARD COMPONENT ─────────────────────────────────
+function PremiumPackageCard({ pkg, onPress, isFavorite, onToggleFavorite }: any) {
     return (
-        <TouchableOpacity style={styles.homeCard} onPress={onPress} activeOpacity={0.85}>
-            <CoverCarousel
-                images={pkg.images || [pkg.image]}
-                height={180}
-            />
+        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+            <View style={styles.cardImageContainer}>
+                <CoverCarousel images={pkg.images || [pkg.image]} height={200} />
 
-            {/* Badge */}
-            {pkg.badge && (
-                <View style={styles.homeCardBadgeContainer}>
-                    <PackageBadge type={pkg.badge} />
-                </View>
-            )}
-
-            {/* Featured badge (fallback) */}
-            {pkg.featured && !pkg.badge && (
-                <View style={styles.homeCardFeaturedBadge}>
-                    <Text style={styles.homeCardFeaturedText}>⭐ Destaque</Text>
-                </View>
-            )}
-
-            {/* Favorite Button */}
-            <TouchableOpacity
-                style={styles.homeCardFavoriteButton}
-                onPress={(e) => {
-                    e.stopPropagation();
-                    onToggleFavorite(e);
-                }}
-                activeOpacity={0.7}
-            >
-                <Text style={styles.homeCardFavoriteIcon}>
-                    {isFavorite ? '❤️' : '♡'}
-                </Text>
-            </TouchableOpacity>
-
-            <View style={styles.homeCardContent}>
-                {/* Compact Agency + Reputation Row */}
-                <View style={styles.homeCardCompactInfoRow}>
-                    <Text style={styles.homeCardAgencyIcon}>{pkg.agency?.logo || '✈️'}</Text>
-                    <Text style={styles.homeCardCompactText}>{pkg.agency?.name || 'Agência'}</Text>
+                {/* Badges Overlay */}
+                <View style={styles.cardBadges}>
                     {pkg.agency?.verified && (
-                        <>
-                            <Text style={styles.homeCardSeparator}>•</Text>
-                            <Text style={styles.homeCardVerifiedIconCompact}>🛡️</Text>
-                            <Text style={styles.homeCardCompactText}>Agência verificada</Text>
-                        </>
+                        <View style={styles.verifiedBadge}>
+                            <Icon name="verified" size={12} color="#FFF" />
+                            <Text style={styles.verifiedText}>Agência Verificada</Text>
+                        </View>
                     )}
-                    <Text style={styles.homeCardSeparator}>•</Text>
-                    <Text style={styles.homeCardRatingIconCompact}>⭐</Text>
-                    <Text style={styles.homeCardCompactText}>{pkg.rating}</Text>
-                    <Text style={styles.homeCardCompactTextSecondary}>({pkg.reviewCount})</Text>
                 </View>
 
-                <Text style={styles.homeCardTitle} numberOfLines={2}>
-                    {pkg.title}
-                </Text>
+                {/* Favorite Button */}
+                <TouchableOpacity style={styles.favoriteButton} onPress={(e) => { e.stopPropagation(); onToggleFavorite(e); }}>
+                    <Icon name="heart" size={20} color={isFavorite ? theme.colors.error : theme.colors.secondary} style={isFavorite ? {} : { opacity: 0.6 }} />
+                </TouchableOpacity>
+            </View>
 
-                <Text style={styles.homeCardLocation}>
-                    📍 {pkg.destination}{pkg.country ? `, ${pkg.country}` : ''} • {pkg.duration} dias
-                </Text>
+            <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>{pkg.title}</Text>
+                    <View style={styles.ratingContainer}>
+                        <Icon name="star" size={14} color={theme.colors.warning} />
+                        <Text style={styles.ratingText}>{pkg.rating}</Text>
+                        <Text style={styles.reviewCount}>({pkg.reviewCount})</Text>
+                    </View>
+                </View>
 
-                {/* Strategic Inclusions */}
-                <View style={styles.homeCardStrategicInclusions}>
+                <View style={styles.locationRow}>
+                    <Icon name="map-pin" size={14} color={theme.colors.text.tertiary} />
+                    <Text style={styles.locationText}>{pkg.destination}, {pkg.country}</Text>
+                    <Text style={styles.dotSeparator}>•</Text>
+                    <Text style={styles.durationText}>{pkg.duration} dias</Text>
+                </View>
+
+                {/* Features (No Emojis) */}
+                <View style={styles.featuresRow}>
                     {pkg.inclusions?.flight && (
-                        <View style={styles.homeCardStrategicChip}>
-                            <Text style={styles.homeCardChipIcon}>✈️</Text>
-                            <Text style={styles.homeCardChipLabel}>Voo ida e volta</Text>
+                        <View style={styles.featureItem}>
+                            <Icon name="plane" size={14} color={theme.colors.text.secondary} />
+                            <Text style={styles.featureText}>Aéreo</Text>
                         </View>
                     )}
                     {pkg.inclusions?.hotel && (
-                        <View style={styles.homeCardStrategicChip}>
-                            <Text style={styles.homeCardChipIcon}>🏨</Text>
-                            <Text style={styles.homeCardChipLabel}>
-                                Hotel {pkg.inclusions.hotel.stars}★
-                            </Text>
+                        <View style={styles.featureItem}>
+                            <Icon name="hotel" size={14} color={theme.colors.text.secondary} />
+                            <Text style={styles.featureText}>Hotel</Text>
                         </View>
                     )}
-                    {pkg.inclusions?.hotel?.meals && pkg.inclusions.hotel.meals.length > 0 && (
-                        <View style={styles.homeCardStrategicChip}>
-                            <Text style={styles.homeCardChipIcon}>🍽️</Text>
-                            <Text style={styles.homeCardChipLabel}>{pkg.inclusions.hotel.meals[0]}</Text>
-                        </View>
-                    )}
-                    {pkg.inclusions?.tours && pkg.inclusions.tours.length > 0 && (
-                        <View style={styles.homeCardStrategicChip}>
-                            <Text style={styles.homeCardChipIcon}>🎭</Text>
-                            <Text style={styles.homeCardChipLabel}>Passeios inclusos</Text>
-                        </View>
-                    )}
-                    {pkg.inclusions?.extras && pkg.inclusions.extras.length > 0 && (
-                        <View style={styles.homeCardStrategicChip}>
-                            <Text style={styles.homeCardChipIcon}>✨</Text>
-                            <Text style={styles.homeCardChipLabel}>Extras</Text>
+                    {pkg.inclusions?.hotel?.meals && (
+                        <View style={styles.featureItem}>
+                            <Icon name="coffee" size={14} color={theme.colors.text.secondary} />
+                            <Text style={styles.featureText}>Café</Text>
                         </View>
                     )}
                 </View>
 
-                <View style={styles.homeCardFooter}>
-                    <View style={styles.homeCardPriceSection}>
-                        <Text style={styles.homeCardPriceLabel}>A partir de</Text>
-                        <Text style={styles.homeCardPriceValue}>
-                            R$ {pkg.price.min.toLocaleString('pt-BR')}
-                        </Text>
-                        <Text style={styles.homeCardPriceLabel}>por pessoa</Text>
-                        <Text style={styles.homeCardReviewCountFooter}>
-                            ({pkg.reviewCount} avaliações)
-                        </Text>
-                        {pkg.recentPurchases && (
-                            <Text style={styles.homeCardUrgencyText}>
-                                Reservado por {pkg.recentPurchases} pessoas este mês
-                            </Text>
-                        )}
+                <View style={styles.cardFooter}>
+                    <View>
+                        <Text style={styles.priceLabel}>A partir de</Text>
+                        <Text style={styles.priceValue}>R$ {pkg.price.min.toLocaleString('pt-BR')}</Text>
                     </View>
-                    <TouchableOpacity style={styles.homeCardCtaButton} onPress={onPress}>
-                        <Text style={styles.homeCardCtaButtonText}>Ver pacote completo</Text>
-                        <Text style={styles.homeCardCtaArrow}>→</Text>
+
+                    <TouchableOpacity style={styles.bookButton} onPress={onPress}>
+                        <Text style={styles.bookButtonText}>Ver detalhes</Text>
+                        <Icon name="chevron-right" size={16} color="#FFF" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -457,666 +331,437 @@ function HomePackageCard({
     );
 }
 
-// Inline CTACarousel removed - using separate component from CTACarousel.tsx
-
-
-
-
-
-
+// ─── ITINERARY CARD (Horizontal) ────────────────────────────
+function ItineraryCard({ itinerary, onPress }: any) {
+    return (
+        <TouchableOpacity style={styles.itineraryCard} onPress={onPress} activeOpacity={0.9}>
+            <Image source={{ uri: itinerary.images[0] }} style={styles.itineraryImage} />
+            <View style={styles.itineraryContent}>
+                <Text style={styles.itineraryTitle} numberOfLines={2}>{itinerary.title}</Text>
+                <View style={styles.itineraryCreator}>
+                    <Text style={styles.creatorName}>por {itinerary.creator.name}</Text>
+                    {itinerary.creator.verificationLevel > 1 && <Icon name="verified" size={12} color={theme.colors.primary} />}
+                </View>
+                <Text style={styles.itineraryPrice}>R$ {itinerary.price.toLocaleString('pt-BR')}</Text>
+            </View>
+        </TouchableOpacity>
+    )
+}
 
 const POPULAR_DESTINATIONS = [
     { id: 'paris', name: 'Paris', image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600', count: 847 },
     { id: 'tokyo', name: 'Tokyo', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600', count: 623 },
     { id: 'nyc', name: 'Nova York', image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1600', count: 912 },
     { id: 'london', name: 'Londres', image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1600', count: 734 },
-    { id: 'rome', name: 'Roma', image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=1600', count: 543 },
-    { id: 'barcelona', name: 'Barcelona', image: 'https://images.unsplash.com/photo-1583422409516-2895a77efbed?w=1600', count: 421 },
-    { id: 'dubai', name: 'Dubai', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1600', count: 312 },
-    { id: 'cancun', name: 'Cancún', image: 'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=1600', count: 654 },
 ];
-
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.background, // Pure White
     },
     scrollView: {
         flex: 1,
     },
 
-
-    // Trust Badge
-    trustBadge: {
-        paddingHorizontal: 20,
-        paddingVertical: theme.spacing.sm,
-        alignItems: 'center',
-        marginBottom: 28,
-    },
-    trustBadgeText: {
-        fontSize: 13,
-        color: theme.colors.text.tertiary,
-        textAlign: 'center',
-        letterSpacing: 0.3,
-    },
-
-
-    // Sections
-    section: {
-        marginBottom: theme.spacing.section,
-        paddingHorizontal: 20,
-    },
-    sectionTitle: {
-        fontSize: theme.typography.sizes.title,
-        fontWeight: theme.typography.weights.heavy,
-        color: theme.colors.text.primary,
-        marginBottom: theme.spacing.sm,
-    },
-    sectionSubtitle: {
-        fontSize: theme.typography.sizes.caption,
-        color: theme.colors.text.tertiary,
-        marginBottom: theme.spacing.md,
-        lineHeight: 20,
-    },
-
-    // Home Package Cards (full-width, matching packages tab)
-    homeCard: {
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.lg,
-        marginBottom: theme.spacing.cardGap || 16,
-        ...theme.shadows.small,
+    // Header Styles
+    headerContainer: {
         overflow: 'hidden',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        backgroundColor: theme.colors.secondary,
+        paddingBottom: 24,
+        ...theme.shadows.lg,
+    },
+    headerBackground: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+    },
+    orbitalLine1: {
+        position: 'absolute',
+        width: width * 1.5,
+        height: width * 1.5,
+        borderRadius: width,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        top: -width * 0.8,
+        left: -width * 0.2,
+    },
+    orbitalLine2: {
+        position: 'absolute',
+        width: width * 1.2,
+        height: width * 1.2,
+        borderRadius: width,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        top: -width * 0.5,
+        right: -width * 0.4,
+    },
+    headerContent: {
+        paddingHorizontal: 24,
+        paddingTop: Platform.OS === 'android' ? 40 : 10,
+    },
+    headerTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    brandText: {
+        fontSize: 24,
+        fontWeight: theme.typography.weights.heavy,
+        color: '#FFFFFF',
+        letterSpacing: -1,
+    },
+    brandSubText: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.6)',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+    },
+    iconButton: {
+        width: 40, height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroTextContainer: {
+        marginBottom: 32,
+    },
+    heroTitle: {
+        fontSize: 32,
+        fontWeight: theme.typography.weights.bold,
+        color: '#FFFFFF',
+        lineHeight: 38,
+        marginBottom: 8,
+    },
+    heroSubtitle: {
+        fontSize: 16,
+        color: 'rgba(255,255,255,0.8)',
+        lineHeight: 24,
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        height: 56,
+        ...theme.shadows.medium,
+    },
+    searchPlaceholder: {
+        flex: 1,
+        marginLeft: 12,
+        fontSize: 15,
+        color: theme.colors.text.secondary,
+    },
+    filterButton: {
+        width: 32, height: 32,
+        borderRadius: 8,
+        backgroundColor: theme.colors.primary + '15', // Light Teal
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    // Trust Bar
+    trustBar: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 24,
+        marginTop: 16,
+        marginBottom: 24,
+    },
+    trustItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    trustText: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        fontWeight: '500',
+    },
+
+    // Quiz Card
+    quizCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.surfaceLight,
+        marginHorizontal: 20,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 32,
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
     },
-    homeCardImage: {
-        width: '100%',
-        height: 140,
-        backgroundColor: theme.colors.surface || theme.colors.surfaceLight,
-    },
-    homeCardBadgeContainer: {
-        position: 'absolute',
-        top: theme.spacing.md,
-        right: theme.spacing.md,
-        zIndex: 1,
-    },
-    homeCardFeaturedBadge: {
-        position: 'absolute',
-        top: theme.spacing.md,
-        right: theme.spacing.md,
-        backgroundColor: theme.colors.secondary,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.xs,
-        borderRadius: theme.borderRadius.full,
-    },
-    homeCardFeaturedText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    homeCardFavoriteButton: {
-        position: 'absolute',
-        top: theme.spacing.sm,
-        left: theme.spacing.sm,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    quizIconContainer: {
+        width: 40, height: 40,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
-        ...theme.shadows.medium,
-        zIndex: 2,
+        marginRight: 12,
     },
-    homeCardFavoriteIcon: {
-        fontSize: 20,
-    },
-    homeCardContent: {
-        padding: 10,
-    },
-    // Compact Info Row Styles
-    homeCardCompactInfoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginBottom: 8,
-    },
-    homeCardSeparator: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginHorizontal: 2,
-    },
-    homeCardCompactText: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-    },
-    homeCardCompactTextSecondary: {
-        fontSize: 13,
-        fontWeight: '400',
-        color: theme.colors.text.secondary,
-    },
-    homeCardVerifiedIconCompact: {
-        fontSize: 12,
-    },
-    homeCardRatingIconCompact: {
-        fontSize: 13,
-    },
-    homeCardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: theme.spacing.sm,
-    },
-    homeCardAgencyRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
+    quizContent: {
         flex: 1,
     },
-    homeCardAgencyTag: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.surface || theme.colors.surfaceLight,
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: 4,
-        borderRadius: theme.borderRadius.sm,
-        gap: 4,
-    },
-    homeCardAgencyIcon: {
-        fontSize: 14,
-    },
-    homeCardAgencyText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    homeCardVerifiedBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: theme.borderRadius.sm,
-    },
-    homeCardVerifiedIcon: {
-        fontSize: 9,
-    },
-    homeCardVerifiedText: {
-        fontSize: 9,
-        fontWeight: '500',
-        color: theme.colors.text.secondary,
-    },
-    homeCardRatingBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    homeCardRatingIcon: {
-        fontSize: 14,
-    },
-    homeCardRatingValue: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    homeCardRatingCount: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: theme.colors.text.secondary,
-    },
-    homeCardTitle: {
-        fontSize: 17,
+    quizTitle: {
+        fontSize: 15,
         fontWeight: '700',
         color: theme.colors.text.primary,
-        marginBottom: 6,
-        lineHeight: 22,
+        marginBottom: 2,
     },
-    homeCardLocation: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginBottom: 8,
-    },
-    homeCardDestination: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginBottom: 4,
-    },
-    homeCardDuration: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginBottom: theme.spacing.md,
-    },
-    // Strategic Inclusions Styles
-    homeCardStrategicInclusions: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginBottom: 8,
-    },
-    homeCardStrategicChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.surfaceLight,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: theme.borderRadius.sm,
-        gap: 4,
-    },
-    homeCardChipIcon: {
-        fontSize: 16,
-    },
-    homeCardChipLabel: {
+    quizSubtitle: {
         fontSize: 13,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-    },
-    homeCardInclusionsBadges: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginBottom: theme.spacing.md,
-    },
-    homeCardInclusionBadge: {
-        backgroundColor: theme.colors.surfaceLight,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: theme.borderRadius.sm,
-    },
-    homeCardInclusionText: {
-        fontSize: 11,
         color: theme.colors.text.secondary,
     },
-    homeCardFooter: {
+
+    // Sections
+    section: {
+        marginBottom: 40,
+    },
+    sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
-        marginTop: 4,
-    },
-    homeCardPriceSection: {
-        flex: 1,
-    },
-    homeCardPriceLabel: {
-        fontSize: 11,
-        color: theme.colors.text.secondary,
-        marginBottom: 2,
-    },
-    homeCardPriceValue: {
-        fontSize: 26,
-        fontWeight: '700',
-        color: theme.colors.primary,
-        marginBottom: 2,
-    },
-    homeCardReviewCount: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginTop: 2,
-    },
-    homeCardReviewCountFooter: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginTop: 2,
-    },
-    homeCardUrgencyText: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginTop: 4,
-        opacity: 0.8,
-    },
-    homeCardSocialProof: {
-        fontSize: 11,
-        color: theme.colors.text.secondary,
-        marginTop: 4,
-        opacity: 0.8,
-    },
-    homeCardCtaButton: {
-        backgroundColor: theme.colors.primary,
         paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 24,
+        marginBottom: 8,
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        letterSpacing: -0.5,
+    },
+    sectionSubtitle: {
+        fontSize: 14,
+        color: theme.colors.text.tertiary,
+        paddingHorizontal: 20,
+        marginBottom: 16,
+    },
+    seeAllText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.primary,
+    },
+
+    // Premium Card
+    card: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        marginHorizontal: 20,
+        marginBottom: 24,
+        ...theme.shadows.medium,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    cardImageContainer: {
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        overflow: 'hidden',
+    },
+    cardBadges: {
+        position: 'absolute',
+        top: 12, left: 12,
+        flexDirection: 'row',
+    },
+    verifiedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        gap: 4,
+    },
+    verifiedText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        textTransform: 'uppercase',
+    },
+    favoriteButton: {
+        position: 'absolute',
+        top: 12, right: 12,
+        width: 36, height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...theme.shadows.sm,
+    },
+    cardContent: {
+        padding: 16,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+    },
+    cardTitle: {
+        flex: 1,
+        fontSize: 18,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginRight: 8,
+        lineHeight: 24,
+    },
+    ratingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        gap: 4,
+    },
+    ratingText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    reviewCount: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+    },
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    locationText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginLeft: 4,
+    },
+    dotSeparator: {
+        marginHorizontal: 6,
+        color: theme.colors.text.disabled,
+    },
+    durationText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+    },
+    featuresRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 20,
+    },
+    featureItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    featureText: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        fontWeight: '500',
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderLight,
+        paddingTop: 16,
+    },
+    priceLabel: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        marginBottom: 2,
+    },
+    priceValue: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+    },
+    bookButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 10,
+        gap: 6,
+        ...theme.shadows.button,
+    },
+    bookButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+
+    // Itinerary Card
+    itineraryCard: {
+        width: 200,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        ...theme.shadows.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        overflow: 'hidden',
+    },
+    itineraryImage: {
+        width: '100%',
+        height: 120,
+    },
+    itineraryContent: {
+        padding: 12,
+    },
+    itineraryTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    itineraryCreator: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        ...theme.shadows.button,
+        marginBottom: 8,
     },
-    homeCardCtaButtonText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: theme.colors.text.inverse,
+    creatorName: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
     },
-    homeCardCtaArrow: {
-        fontSize: 16,
-        color: theme.colors.text.inverse,
-    },
-    homeCardViewButton: {
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: theme.borderRadius.full,
-        ...theme.shadows.button,
-    },
-    homeCardViewButtonText: {
+    itineraryPrice: {
         fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.inverse,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
     },
 
-    // Destinations Grid
+    // Destinations
     destinationsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
+        paddingHorizontal: 20,
         gap: 12,
     },
     destinationCard: {
         width: (width - 52) / 2,
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.lg,
-        padding: 20,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-        ...theme.shadows.xs,
+        height: 120,
+        borderRadius: 12,
+        overflow: 'hidden',
     },
     destinationImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        marginBottom: 12,
-        backgroundColor: theme.colors.surfaceLight,
+        width: '100%',
+        height: '100%',
+    },
+    destinationOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.3)',
     },
     destinationName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-        marginBottom: 4,
-    },
-    destinationCount: {
-        fontSize: 12,
-        color: theme.colors.text.tertiary,
-    },
-
-    // Experiências (Horizontal cards)
-    horizontalScroll: {
-        paddingRight: 20,
-        gap: 16,
-    },
-    experienceCard: {
-        width: 300,
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.lg,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-        ...theme.shadows.small,
-        marginLeft: 20,
-    },
-    experienceImage: {
-        width: '100%',
-        height: 180,
-        backgroundColor: theme.colors.surfaceLight,
-    },
-    experienceBadge: {
         position: 'absolute',
-        top: 12,
-        left: 12,
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 6,
-        zIndex: 1,
-    },
-    experienceBadgeSpecial: {
-        backgroundColor: '#FF4D4F',
-    },
-    experienceBadgeText: {
-        fontSize: 11,
-        fontWeight: '700',
+        bottom: 12, left: 12,
         color: '#FFFFFF',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    experienceFavoriteButton: {
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...theme.shadows.medium,
-        zIndex: 2,
-    },
-    experienceInfo: {
-        padding: 16,
-    },
-    experienceTitle: {
         fontSize: 16,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-        marginBottom: 6,
-        lineHeight: 22,
-    },
-    experienceDuration: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        marginBottom: 12,
-    },
-    experienceFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-    },
-    experienceRating: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginBottom: 8,
-    },
-    experienceRatingText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    experienceReviewCount: {
-        fontSize: 14,
-        color: theme.colors.text.tertiary,
-    },
-    experiencePrice: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 4,
-    },
-    experiencePriceLabel: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary,
-    },
-    experiencePriceValue: {
-        fontSize: 18,
         fontWeight: '700',
-        color: theme.colors.primary,
-    },
-    experiencePriceUnit: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary,
-    },
-
-    // Roteiros em Destaque
-    roteirosCard: {
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.lg,
-        overflow: 'hidden',
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-        ...theme.shadows.medium,
-    },
-    roteirosContent: {
-        padding: 16,
-    },
-    roteirosAuthorRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 12,
-    },
-    roteirosAuthorAvatar: {
-        fontSize: 32,
-    },
-    roteirosAuthorInfo: {
-        flex: 1,
-    },
-    roteirosAuthorNameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    roteirosAuthorName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    roteirosAuthorStats: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        marginTop: 2,
-    },
-    roteirosTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-        marginBottom: 6,
-        lineHeight: 24,
-    },
-    roteirosDescription: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginBottom: 12,
-        lineHeight: 20,
-    },
-    // Category Chips Styles
-    roteirosChipsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 12,
-    },
-    roteirosChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.surfaceLight,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: theme.borderRadius.sm,
-        gap: 4,
-    },
-    roteirosChipText: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-    },
-    roteirosInclusions: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginBottom: 12,
-    },
-    roteirosInclusion: {
-        backgroundColor: theme.colors.surfaceLight,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: theme.borderRadius.sm,
-    },
-    roteirosInclusionText: {
-        fontSize: 11,
-        color: theme.colors.text.secondary,
-    },
-    roteirosFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        marginTop: 4,
-    },
-    roteirosPrice: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: theme.colors.primary,
-        marginBottom: 2,
-    },
-    roteirosPriceLabel: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-    },
-    roteirosCTA: {
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 24,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        ...theme.shadows.button,
-    },
-    roteirosCTAText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: theme.colors.text.inverse,
-    },
-    roteirosCTAArrow: {
-        fontSize: 16,
-        color: theme.colors.text.inverse,
-    },
-    roteirosViewAll: {
-        alignItems: 'center',
-        paddingVertical: 14,
-        marginTop: 4,
-        borderWidth: 1.5,
-        borderColor: theme.colors.primary,
-        borderRadius: theme.borderRadius.full,
-    },
-    roteirosViewAllText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: theme.colors.primary,
-    },
-
-    // CTA Carousel styles removed - using styles from CTACarousel.tsx
-    // Decision Assistant Trigger
-    decisionTrigger: {
-        marginHorizontal: 20,
-        marginBottom: theme.spacing.xl,
-        padding: 20,
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: theme.borderRadius.xl,
-        borderWidth: 2,
-        borderColor: theme.colors.primary,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-        ...theme.shadows.small,
-    },
-    decisionIcon: {
-        fontSize: 32,
-    },
-    decisionTriggerContent: {
-        flex: 1,
-    },
-    decisionTriggerTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-        marginBottom: 2,
-    },
-    decisionTriggerSubtitle: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-    },
-    decisionTriggerArrow: {
-        fontSize: 20,
-        color: theme.colors.primary,
-        fontWeight: '600',
-    },
+    }
 });

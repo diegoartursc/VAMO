@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,14 +9,11 @@ import {
     Animated,
     Dimensions,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { theme } from '../../src/theme/theme';
 import {
-    upcomingPackages,
-    pastPackages,
-    purchasedItineraries,
-    savedItems,
     getDaysUntil,
     formatMonthYear,
     formatDate,
@@ -25,6 +22,7 @@ import {
     SavedItem,
     BookingStatus,
 } from '../../src/data/mockMyTrips';
+import { getMyTrips } from '../../src/services/api';
 import { Icon, IconName } from '../../src/components/common/Icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -56,9 +54,30 @@ const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: s
 
 // ─── Main Component ─────────────────────────────────────
 
+const TRAVELER_ID = 'trav-diego'; // Hardcoded until auth is implemented
+
 export default function MyTripsScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<TabKey>('upcoming');
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<{
+        upcomingPackages: BookedPackage[];
+        pastPackages: BookedPackage[];
+        purchasedItineraries: PurchasedItineraryItem[];
+        savedItems: SavedItem[];
+    }>({ upcomingPackages: [], pastPackages: [], purchasedItineraries: [], savedItems: [] });
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+        getMyTrips(TRAVELER_ID).then((result) => {
+            if (mounted) {
+                setData(result);
+                setLoading(false);
+            }
+        });
+        return () => { mounted = false; };
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -79,10 +98,18 @@ export default function MyTripsScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {activeTab === 'upcoming' && <UpcomingTab />}
-                {activeTab === 'itineraries' && <ItinerariesTab />}
-                {activeTab === 'saved' && <SavedTab />}
-                {activeTab === 'past' && <PastTab />}
+                {loading ? (
+                    <View style={styles.emptyState}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                    </View>
+                ) : (
+                    <>
+                        {activeTab === 'upcoming' && <UpcomingTab items={data.upcomingPackages} />}
+                        {activeTab === 'itineraries' && <ItinerariesTab items={data.purchasedItineraries} />}
+                        {activeTab === 'saved' && <SavedTab items={data.savedItems} />}
+                        {activeTab === 'past' && <PastTab items={data.pastPackages} />}
+                    </>
+                )}
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -240,9 +267,8 @@ function ActionButton({
 
 // ─── TAB: Próximas ──────────────────────────────────────
 
-function UpcomingTab() {
+function UpcomingTab({ items }: { items: BookedPackage[] }) {
     const router = useRouter();
-    const items = upcomingPackages;
 
     if (items.length === 0) {
         return (
@@ -332,9 +358,8 @@ function UpcomingCard({ pkg, onPress }: { pkg: BookedPackage; onPress: () => voi
 
 // ─── TAB: Realizadas ────────────────────────────────────
 
-function PastTab() {
+function PastTab({ items }: { items: BookedPackage[] }) {
     const router = useRouter();
-    const items = pastPackages;
 
     if (items.length === 0) {
         return (
@@ -402,9 +427,8 @@ function PastCard({ pkg }: { pkg: BookedPackage }) {
 
 // ─── TAB: Meus Roteiros ─────────────────────────────────
 
-function ItinerariesTab() {
+function ItinerariesTab({ items }: { items: PurchasedItineraryItem[] }) {
     const router = useRouter();
-    const items = purchasedItineraries;
 
     if (items.length === 0) {
         return (
@@ -461,9 +485,8 @@ function ItineraryCard({ itin }: { itin: PurchasedItineraryItem }) {
 
 // ─── TAB: Salvos ────────────────────────────────────────
 
-function SavedTab() {
+function SavedTab({ items }: { items: SavedItem[] }) {
     const router = useRouter();
-    const items = savedItems;
 
     if (items.length === 0) {
         return (

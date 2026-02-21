@@ -151,6 +151,10 @@ async function main() {
     await seedReviews();
     console.log('✅ Reviews created');
 
+    // ─── MY TRIPS (purchases, itinerary sales, saved items) ───
+    await seedMyTrips();
+    console.log('✅ My Trips data created');
+
     console.log('🎉 Seed completed!');
 }
 
@@ -460,6 +464,109 @@ async function seedReviews() {
     for (const r of reviews) {
         await prisma.review.create({ data: r });
     }
+}
+
+async function seedMyTrips() {
+    // ─── UPCOMING PACKAGE PURCHASES ───
+    await prisma.purchaseHistory.create({
+        data: {
+            travelerId: 'trav-diego', packageId: 'pkg-1',
+            totalPrice: 8500, travelers: 2, status: 'CONFIRMED',
+            bookingCode: 'VAMO-2026-001', paymentMethod: 'credit_card',
+            contactName: 'Diego Artur', contactEmail: 'diego@vamo.com',
+            adultsCount: 2, childrenCount: 0,
+            travelDate: new Date('2026-03-15'), travelEndDate: new Date('2026-03-22'),
+        },
+    });
+    await prisma.purchaseHistory.create({
+        data: {
+            travelerId: 'trav-diego', packageId: 'pkg-2',
+            totalPrice: 6500, travelers: 1, status: 'CONFIRMED',
+            bookingCode: 'VAMO-2026-002', paymentMethod: 'pix',
+            contactName: 'Diego Artur', contactEmail: 'diego@vamo.com',
+            adultsCount: 1, childrenCount: 0,
+            travelDate: new Date('2026-07-10'), travelEndDate: new Date('2026-07-15'),
+        },
+    });
+    await prisma.purchaseHistory.create({
+        data: {
+            travelerId: 'trav-diego', packageId: 'pkg-7',
+            totalPrice: 10000, travelers: 2, status: 'PENDING',
+            bookingCode: 'VAMO-2026-003', paymentMethod: 'credit_card',
+            contactName: 'Diego Artur', contactEmail: 'diego@vamo.com',
+            adultsCount: 2, childrenCount: 0,
+            travelDate: new Date('2026-12-20'), travelEndDate: new Date('2026-12-27'),
+        },
+    });
+
+    // ─── PAST PACKAGE PURCHASES ───
+    await prisma.purchaseHistory.create({
+        data: {
+            travelerId: 'trav-diego', packageId: 'pkg-8',
+            totalPrice: 8000, travelers: 1, status: 'COMPLETED',
+            bookingCode: 'VAMO-2025-010', paymentMethod: 'credit_card',
+            contactName: 'Diego Artur', contactEmail: 'diego@vamo.com',
+            adultsCount: 1, childrenCount: 0,
+            travelDate: new Date('2025-09-05'), travelEndDate: new Date('2025-09-13'),
+        },
+    });
+    await prisma.purchaseHistory.create({
+        data: {
+            travelerId: 'trav-diego', packageId: 'pkg-3',
+            totalPrice: 15000, travelers: 2, status: 'COMPLETED',
+            bookingCode: 'VAMO-2025-008', paymentMethod: 'pix',
+            contactName: 'Diego Artur', contactEmail: 'diego@vamo.com',
+            adultsCount: 2, childrenCount: 0,
+            travelDate: new Date('2025-06-01'), travelEndDate: new Date('2025-06-16'),
+        },
+    });
+    await prisma.purchaseHistory.create({
+        data: {
+            travelerId: 'trav-diego', packageId: 'pkg-9',
+            totalPrice: 5500, travelers: 1, status: 'COMPLETED',
+            bookingCode: 'VAMO-2025-005', paymentMethod: 'credit_card',
+            contactName: 'Diego Artur', contactEmail: 'diego@vamo.com',
+            adultsCount: 1, childrenCount: 0,
+            travelDate: new Date('2025-01-20'), travelEndDate: new Date('2025-01-24'),
+        },
+    });
+
+    // ─── ITINERARY SALES (purchased itineraries) ───
+    await prisma.itinerarySale.create({
+        data: {
+            travelerId: 'trav-diego', itineraryId: 'itin-1',
+            price: 49.90, commission: 9.98,
+            createdAt: new Date('2026-01-15'),
+        },
+    });
+    await prisma.itinerarySale.create({
+        data: {
+            travelerId: 'trav-diego', itineraryId: 'itin-2',
+            price: 79.90, commission: 15.98,
+            createdAt: new Date('2026-02-01'),
+        },
+    });
+    await prisma.itinerarySale.create({
+        data: {
+            travelerId: 'trav-diego', itineraryId: 'itin-8',
+            price: 74.90, commission: 14.98,
+            createdAt: new Date('2026-02-10'),
+        },
+    });
+
+    // ─── SAVED ITEMS ───
+    await prisma.savedItem.create({
+        data: { travelerId: 'trav-diego', packageId: 'pkg-5' },
+    });
+    await prisma.savedItem.create({
+        data: { travelerId: 'trav-diego', packageId: 'pkg-6' },
+    });
+    await prisma.savedItem.create({
+        data: { travelerId: 'trav-diego', itineraryId: 'itin-5' },
+    });
+    await prisma.savedItem.create({
+        data: { travelerId: 'trav-diego', itineraryId: 'itin-6' },
+    });
 }
 
 main()

@@ -31,6 +31,7 @@ export default function PurchasedPackageScreen() {
     const booking = getBookingById(id);
 
     const [now, setNow] = useState(new Date());
+    const [expandedDay, setExpandedDay] = useState<number | null>(1);
 
     // Update countdown every minute
     useEffect(() => {
@@ -131,6 +132,24 @@ export default function PurchasedPackageScreen() {
                     )}
                 </View>
 
+                {/* ═══ BOTÃO — VER DETALHES DO PACOTE ═══ */}
+                <TouchableOpacity
+                    style={styles.viewPackageButton}
+                    onPress={() => router.push(`/package/${booking.packageId}`)}
+                    activeOpacity={0.8}
+                >
+                    <View style={styles.viewPackageContent}>
+                        <View style={styles.viewPackageIconCircle}>
+                            <Ionicons name="document-text" size={20} color={theme.colors.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.viewPackageTitle}>Ver Detalhes do Pacote</Text>
+                            <Text style={styles.viewPackageSubtitle}>Veja todas as informações, fotos e avaliações</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={theme.colors.primary} />
+                    </View>
+                </TouchableOpacity>
+
                 {/* Content Area */}
                 <View style={styles.content}>
 
@@ -180,6 +199,94 @@ export default function PurchasedPackageScreen() {
                             })}
                         </View>
                     </View>
+
+                    {/* ═══ BLOCO 2.5 — ITINERÁRIO DETALHADO ═══ */}
+                    {booking.detailedItinerary && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>🗺️ Itinerário Detalhado</Text>
+                            <View style={styles.itineraryContainer}>
+                                {booking.detailedItinerary.map((dayItem) => {
+                                    const isExpanded = expandedDay === dayItem.day;
+                                    return (
+                                        <View key={dayItem.day} style={styles.dayCard}>
+                                            <TouchableOpacity
+                                                style={styles.dayHeader}
+                                                onPress={() => setExpandedDay(isExpanded ? null : dayItem.day)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <View style={styles.dayBadge}>
+                                                    <Text style={styles.dayBadgeText}>DIA {dayItem.day}</Text>
+                                                </View>
+                                                <Text style={styles.dayTitle} numberOfLines={1}>
+                                                    {dayItem.title}
+                                                </Text>
+                                                <Ionicons
+                                                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                                                    size={20}
+                                                    color={theme.colors.text.tertiary}
+                                                />
+                                            </TouchableOpacity>
+
+                                            {isExpanded && (
+                                                <View style={styles.dayContent}>
+                                                    {dayItem.activities.map((activity, index) => {
+                                                        const isLast = index === dayItem.activities.length - 1;
+                                                        return (
+                                                            <View key={activity.id} style={styles.activityItem}>
+                                                                {/* Time Column */}
+                                                                <View style={styles.activityTimeCol}>
+                                                                    <Text style={styles.activityTime}>{activity.time}</Text>
+                                                                    {!isLast && <View style={styles.activityLine} />}
+                                                                </View>
+
+                                                                {/* Content Column */}
+                                                                <View style={styles.activityContent}>
+                                                                    <View style={[
+                                                                        styles.activityCard,
+                                                                        activity.isHighlight && styles.activityCardHighlight
+                                                                    ]}>
+                                                                        <View style={styles.activityHeader}>
+                                                                            <View style={[
+                                                                                styles.activityIcon,
+                                                                                activity.isHighlight && { backgroundColor: `${theme.colors.primary}20` }
+                                                                            ]}>
+                                                                                <Ionicons
+                                                                                    name={activity.icon as any || 'ellipse'}
+                                                                                    size={16}
+                                                                                    color={activity.isHighlight ? theme.colors.primary : theme.colors.text.secondary}
+                                                                                />
+                                                                            </View>
+                                                                            <Text style={styles.activityTitle}>{activity.title}</Text>
+                                                                        </View>
+
+                                                                        <Text style={styles.activityDesc}>{activity.description}</Text>
+
+                                                                        {activity.location && (
+                                                                            <View style={styles.activityMetaRow}>
+                                                                                <Ionicons name="location-outline" size={12} color={theme.colors.text.tertiary} />
+                                                                                <Text style={styles.activityMetaText}>{activity.location}</Text>
+                                                                            </View>
+                                                                        )}
+
+                                                                        {activity.tips && (
+                                                                            <View style={styles.activityTip}>
+                                                                                <Ionicons name="bulb-outline" size={14} color="#D97706" />
+                                                                                <Text style={styles.activityTipText}>{activity.tips}</Text>
+                                                                            </View>
+                                                                        )}
+                                                                    </View>
+                                                                </View>
+                                                            </View>
+                                                        );
+                                                    })}
+                                                </View>
+                                            )}
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    )}
 
                     {/* ═══ BLOCO 3 — DOCUMENTOS ═══ */}
                     <View style={styles.section}>
@@ -452,6 +559,41 @@ const styles = StyleSheet.create({
         color: theme.colors.primary,
     },
 
+    // ─── VIEW PACKAGE BUTTON ────────────
+    viewPackageButton: {
+        marginHorizontal: 20,
+        marginTop: 16,
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        overflow: 'hidden',
+    },
+    viewPackageContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        padding: 16,
+    },
+    viewPackageIconCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: `${theme.colors.primary}15`,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    viewPackageTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    viewPackageSubtitle: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+    },
+
     // ─── CONTENT ────────────────────────
     content: {
         paddingHorizontal: 20,
@@ -465,6 +607,141 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 16,
+    },
+
+    // ─── ITINERARY ───────────────────────
+    itineraryContainer: {
+        marginTop: 8,
+        gap: 16,
+    },
+    dayCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        overflow: 'hidden',
+    },
+    dayHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        gap: 12,
+        backgroundColor: theme.colors.surface,
+    },
+    dayBadge: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    dayBadgeText: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#fff',
+    },
+    dayTitle: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    dayContent: {
+        padding: 16,
+        paddingTop: 0,
+        backgroundColor: '#fafafa', // Light grey background for content
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderLight || '#E5E7EB',
+    },
+    activityItem: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    activityTimeCol: {
+        alignItems: 'center',
+        width: 45,
+        paddingTop: 16,
+    },
+    activityTime: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 8,
+    },
+    activityLine: {
+        width: 2,
+        flex: 1,
+        backgroundColor: theme.colors.border,
+        borderRadius: 1,
+    },
+    activityContent: {
+        flex: 1,
+        paddingBottom: 16,
+        paddingTop: 16,
+    },
+    activityCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight || '#E5E7EB',
+        ...theme.shadows?.small,
+    },
+    activityCardHighlight: {
+        borderColor: `${theme.colors.primary}40`,
+        backgroundColor: '#F0FDFA', // Light Teal bg
+    },
+    activityHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 8,
+    },
+    activityIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: theme.colors.surfaceLight || '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    activityTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        flex: 1,
+    },
+    activityDesc: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+        marginBottom: 8,
+    },
+    activityMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 4,
+    },
+    activityMetaText: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+    },
+    activityTip: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        marginTop: 10,
+        backgroundColor: '#FFFBEB', // Amber 50
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#FDE68A', // Amber 200
+    },
+    activityTipText: {
+        fontSize: 12,
+        color: '#D97706', // Amber 700
+        flex: 1,
+        lineHeight: 16,
     },
 
     // ─── TIMELINE ───────────────────────
