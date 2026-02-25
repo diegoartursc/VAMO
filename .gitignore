@@ -37,3 +37,5 @@ backups/
 dist/
 .vercel
 .env*.local
+*.tar.gz
+site/.next/
