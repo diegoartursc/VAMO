@@ -1,102 +1,55 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef, useCallback, use, type ReactNode } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback, use } from "react";
 import { getItineraryById, createItinerary, updateItinerary } from "../../../../lib/api";
-import { Crown, Banknote, Backpack, Users, Heart, Mountain as ClimbIcon, Sofa, Landmark, UtensilsCrossed, Leaf, Dribbble, Flower2, Plane, Palmtree, MountainSnow, Building2, ScrollText, CalendarDays, Map, Hotel, Bus, CreditCard, UtensilsCrossed as Fork, Lightbulb, CircleCheck, Target, DollarSign, Package, CreditCard as CardIcon, Settings, Trash2, Star as StarIcon, MapPin, Ticket, Image, Truck, Zap, Infinity, Download, FileText, Link2, AlertTriangle, HelpCircle, X, Copy } from "lucide-react";
-import StepperNav, { StepperActions } from "../../../../components/dashboard/StepperNav";
-import PhonePreview from "../../../../components/dashboard/PhonePreview";
-import QualityCoach from "../../../../components/dashboard/QualityCoach";
-import DraggableList, { DragHandle } from "../../../../components/dashboard/DraggableList";
-import SectionInfo from "../../../../components/dashboard/SectionInfo";
 
 /* ─── Constants ─── */
 const COUNTRIES = ["Brasil", "Argentina", "Chile", "Colômbia", "Peru", "México", "EUA", "Canadá", "Portugal", "Espanha", "França", "Itália", "Alemanha", "Inglaterra", "Grécia", "Turquia", "Japão", "Tailândia", "Indonésia", "Austrália", "Egito", "Marrocos", "África do Sul"];
 const STYLE_OPTIONS = [
-    { key: "luxo", icon: <Crown size={14} />, label: "Luxo" },
-    { key: "economico", icon: <Banknote size={14} />, label: "Econômico" },
-    { key: "mochilao", icon: <Backpack size={14} />, label: "Mochilão" },
-    { key: "familia", icon: <Users size={14} />, label: "Família" },
-    { key: "romantico", icon: <Heart size={14} />, label: "Romântico" },
-    { key: "aventura", icon: <ClimbIcon size={14} />, label: "Aventura" },
-    { key: "conforto", icon: <Sofa size={14} />, label: "Conforto" },
+    { key: "luxo", icon: "👑", label: "Luxo" },
+    { key: "economico", icon: "💵", label: "Econômico" },
+    { key: "mochilao", icon: "🎒", label: "Mochilão" },
+    { key: "familia", icon: "👨‍👩‍👧‍👦", label: "Família" },
+    { key: "romantico", icon: "💕", label: "Romântico" },
+    { key: "aventura", icon: "🧗", label: "Aventura" },
+    { key: "conforto", icon: "🛋️", label: "Conforto" },
 ];
 const CATEGORY_OPTIONS = [
-    { key: "cultura", icon: <Landmark size={14} />, label: "Cultura" },
-    { key: "gastronomia", icon: <UtensilsCrossed size={14} />, label: "Gastronomia" },
-    { key: "natureza", icon: <Leaf size={14} />, label: "Natureza" },
-    { key: "esportes", icon: <Dribbble size={14} />, label: "Esportes" },
-    { key: "relax", icon: <Flower2 size={14} />, label: "Relax" },
-    { key: "eurotrip", icon: <Plane size={14} />, label: "Eurotrip" },
-    { key: "praia", icon: <Palmtree size={14} />, label: "Praia" },
-    { key: "montanha", icon: <MountainSnow size={14} />, label: "Montanha" },
-    { key: "urbano", icon: <Building2 size={14} />, label: "Urbano" },
-    { key: "historico", icon: <ScrollText size={14} />, label: "Histórico" },
+    { key: "cultura", icon: "🏛️", label: "Cultura" },
+    { key: "gastronomia", icon: "🍽️", label: "Gastronomia" },
+    { key: "natureza", icon: "🌿", label: "Natureza" },
+    { key: "esportes", icon: "⚽", label: "Esportes" },
+    { key: "relax", icon: "🧘", label: "Relax" },
+    { key: "eurotrip", icon: "✈️", label: "Eurotrip" },
+    { key: "praia", icon: "🏖️", label: "Praia" },
+    { key: "montanha", icon: "⛰️", label: "Montanha" },
+    { key: "urbano", icon: "🏙️", label: "Urbano" },
+    { key: "historico", icon: "📜", label: "Histórico" },
 ];
 const MODULE_OPTIONS = [
-    { key: "itinerario", icon: <CalendarDays size={18} />, label: "Itinerário por dia", desc: "Roteiro dia a dia completo" },
-    { key: "mapa", icon: <Map size={18} />, label: "Mapa integrado", desc: "Mapa com todos os pontos" },
-    { key: "hospedagem", icon: <Hotel size={18} />, label: "Hospedagens", desc: "Hotéis e hospedagens sugeridas" },
-    { key: "transporte", icon: <Bus size={18} />, label: "Transporte", desc: "Dicas de locomoção" },
-    { key: "gasto", icon: <CreditCard size={18} />, label: "Estimativa de gasto", desc: "Quanto você vai gastar" },
-    { key: "restaurantes", icon: <Fork size={18} />, label: "Restaurantes", desc: "Onde comer" },
-    { key: "dicas", icon: <Lightbulb size={18} />, label: "Dicas exclusivas", desc: "Dicas do criador" },
-    { key: "checklist", icon: <CircleCheck size={18} />, label: "Checklist interativo", desc: "O que levar e preparar" },
-    { key: "voo", icon: <Plane size={18} />, label: "Meu voo", desc: "Sugestões de voo" },
+    { key: "itinerario", icon: "🗓️", label: "Itinerário por dia", desc: "Roteiro dia a dia completo" },
+    { key: "mapa", icon: "🗺️", label: "Mapa integrado", desc: "Mapa com todos os pontos" },
+    { key: "hospedagem", icon: "🏨", label: "Hospedagens", desc: "Hotéis e hospedagens sugeridas" },
+    { key: "transporte", icon: "🚌", label: "Transporte", desc: "Dicas de locomoção" },
+    { key: "gasto", icon: "💳", label: "Estimativa de gasto", desc: "Quanto você vai gastar" },
+    { key: "restaurantes", icon: "🍴", label: "Restaurantes", desc: "Onde comer" },
+    { key: "dicas", icon: "💡", label: "Dicas exclusivas", desc: "Dicas do criador" },
+    { key: "checklist", icon: "✅", label: "Checklist interativo", desc: "O que levar e preparar" },
+    { key: "voo", icon: "✈️", label: "Meu voo", desc: "Sugestões de voo" },
 ];
 const CHECKLIST_CATS = ["documentos", "mala", "pre-viagem", "custom"];
 type SectionKey = "identity" | "commerce" | "modules" | "itinerary" | "spending" | "checklist" | "postpurchase";
-interface SectionDef { key: SectionKey; icon: ReactNode; title: string; }
+interface SectionDef { key: SectionKey; icon: string; title: string; }
 const SECTIONS: SectionDef[] = [
-    { key: "identity", icon: <Target size={16} />, title: "Sobre o Roteiro" },
-    { key: "commerce", icon: <DollarSign size={16} />, title: "Preço e Venda" },
-    { key: "modules", icon: <Package size={16} />, title: "Conteúdo Incluso" },
-    { key: "itinerary", icon: <CalendarDays size={16} />, title: "Dia a Dia" },
-    { key: "spending", icon: <CardIcon size={16} />, title: "Quanto Custa a Viagem" },
-    { key: "checklist", icon: <CircleCheck size={16} />, title: "Preparativos e Dúvidas" },
-    { key: "postpurchase", icon: <Settings size={16} />, title: "Após a Compra" },
+    { key: "identity", icon: "🎯", title: "Identidade e Indexação" },
+    { key: "commerce", icon: "💰", title: "Estrutura Comercial" },
+    { key: "modules", icon: "📦", title: "Módulos do Roteiro" },
+    { key: "itinerary", icon: "🗓️", title: "Itinerário Estruturado" },
+    { key: "spending", icon: "💳", title: "Estimativa de Gasto" },
+    { key: "checklist", icon: "✅", title: "Checklist e FAQ" },
+    { key: "postpurchase", icon: "⚙️", title: "Configuração Pós-compra" },
 ];
-
-const SECTION_TIPS: Record<SectionKey, string[]> = {
-    identity: [
-        "Use um título curto e chamativo — ele aparece nos resultados de busca",
-        "A descrição deve ter entre 200-500 caracteres para melhor ranqueamento",
-        "Selecione estilos e categorias para seu roteiro aparecer nas buscas certas",
-        "Adicione pelo menos 3 fotos de alta qualidade do destino",
-    ],
-    commerce: [
-        "Roteiros entre R$ 29-99 têm a melhor taxa de conversão",
-        "Ative parcelas para aumentar as vendas em até 40%",
-        "O preço promocional cria urgência — use com moderação",
-    ],
-    modules: [
-        "Quanto mais módulos ativos, maior a percepção de valor",
-        "Mapa integrado e checklist são os módulos mais valorizados pelos viajantes",
-        "Módulos desativados não aparecem para o comprador",
-    ],
-    itinerary: [
-        "Organize pelo menos 3 dias para um roteiro completo",
-        "Inclua horários nas atividades — viajantes adoram cronogramas",
-        "Adicione localização para as atividades aparecerem no mapa",
-        "Você pode arrastar os dias para reordenar",
-    ],
-    spending: [
-        "Separe os gastos por categoria (hospedagem, alimentação, transporte...)",
-        "Valores mín/máx ajudam o viajante a planejar melhor",
-        "Selecione a moeda correta do destino",
-    ],
-    checklist: [
-        "Adicione itens essenciais: documentos, vacinas, adaptadores de tomada",
-        "O FAQ reduz em 70% as perguntas no WhatsApp",
-        "Perguntas frequentes aumentam a confiança do comprador",
-    ],
-    postpurchase: [
-        "Download offline permite uso sem internet — ideal para viagens internacionais",
-        "Acesso vitalício aumenta a percepção de valor",
-        "Permitir compartilhamento gera marketing boca a boca gratuito",
-    ],
-};
 
 interface Activity { title: string; description: string; time: string; duration: string; location: string; type: string; icon: string; tips: string; latitude: string; longitude: string; category: string; }
 interface Day { dayNumber: number; title: string; summary: string; description: string; activities: Activity[]; }
@@ -107,7 +60,7 @@ interface FaqItem { question: string; answer: string; }
 interface BreakdownItem { category: string; min: string; max: string; }
 
 const DEFAULT_CREATOR_ID = "creator-diego-001";
-const SPENDING_CATS = ["Hospedagem", "Alimentação", "Transporte", "Atrações", "Extras"];
+const SPENDING_CATS = ["🏨 Hospedagem", "🍽️ Alimentação", "🚌 Transporte", "🎫 Atrações", "🎁 Extras"];
 
 function getDurationLabel(d: number) {
     if (d <= 3) return "Fim de semana";
@@ -135,22 +88,16 @@ function calcQuality(data: any): number {
 export default function RoteiroEditorPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const isNew = id === "new";
-    const searchParams = useSearchParams();
-    const fromId = searchParams.get("from");
     const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-    const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const router = useRouter();
+    const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     /* ─── UI state ─── */
-    const [activeStep, setActiveStep] = useState(0);
     const [openSections, setOpenSections] = useState<Set<SectionKey>>(new Set(["identity"]));
     const [activeSection, setActiveSection] = useState<SectionKey>("identity");
-    const [loading, setLoading] = useState(!isNew || !!fromId);
+    const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
     const [dirty, setDirty] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-    const [lastSaved, setLastSaved] = useState<string | null>(null);
 
     /* ─── Bloco 1: Identidade ─── */
     const [title, setTitle] = useState("");
@@ -211,56 +158,58 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     /* ─── Mark dirty ─── */
     const markDirty = useCallback(() => setDirty(true), []);
 
-    /* ─── Populate from data ─── */
-    const populateFromData = useCallback((data: any) => {
-        setTitle(data.title || ""); setSubtitle(data.subtitle || "");
-        setDestination(data.destination || ""); setCountry(data.country || "");
-        setDuration(data.duration || 1); setDescription(data.description || "");
-        setTravelStyles(data.travelStyles || []); setCategories(data.categories || []);
-        setProductType(data.productType || "DIGITAL");
-        setPrice(data.price || 0); setCurrency(data.currency || "BRL");
-        setPromoPrice(data.promoPrice || null); setInstallments(data.installments || null);
-        setImmediateAccess(data.immediateAccess ?? true); setLifetimeAccess(data.lifetimeAccess ?? true);
-        setOfflineDownload(data.offlineDownload ?? true); setFeatured(data.featured || false);
-        setActiveModules(data.activeModules || []);
-        setHighlightItems(data.highlights || []); setInclusionItems(data.inclusions || []);
-        setImages(Array.isArray(data.images) ? data.images.map((img: any) => typeof img === "string" ? img : img.url) : [""]);
-        setAllowPdf(data.allowPdf ?? false); setAllowShare(data.allowShare ?? true);
-        const sp = data.estimatedSpending || {};
-        setSpendingCurrency(sp.currency || "BRL");
-        setSpendingBreakdown((sp.breakdown || []).map((b: any) => ({ category: b.category || "", min: b.min || "", max: b.max || "" })));
-        setDays((data.days || []).map((d: any) => ({
-            dayNumber: d.dayNumber, title: d.title || "", summary: d.summary || "", description: d.description || "",
-            activities: (d.activities || []).map((a: any) => ({
-                title: a.title || "", description: a.description || "", time: a.time || "", duration: a.duration || "",
-                location: a.location || "", type: a.type || "activity", icon: a.icon || "pin",
-                tips: a.tips || "", latitude: a.latitude?.toString() || "", longitude: a.longitude?.toString() || "",
-                category: a.category || "",
-            })),
-        })));
-        setAccommodations((data.accommodations || []).map((a: any) => ({
-            name: a.name || "", neighborhood: a.neighborhood || "", description: a.description || "",
-            priceRange: a.priceRange || "", rating: a.rating?.toString() || "", externalLink: a.externalLink || "",
-        })));
-        setTransports((data.transports || []).map((t: any) => ({
-            description: t.description || "", passTypes: t.passTypes || "",
-            estimatedPrice: t.estimatedPrice || "", notes: t.notes || "",
-        })));
-        setChecklistItems((data.checklists || []).map((c: any) => ({
-            category: c.category || "documentos", item: c.item || "", isDefault: c.isDefault ?? true,
-        })));
-        setFaqItems((data.faqQuestions || []).map((f: any) => ({ question: f.question || "", answer: f.answer || "" })));
-    }, []);
-
-    /* ─── Load data (edit or duplicate) ─── */
+    /* ─── Load data ─── */
     useEffect(() => {
-        const loadId = isNew ? fromId : id;
-        if (!loadId) return;
-        getItineraryById(loadId)
-            .then((data: any) => populateFromData(data))
+        if (isNew) return;
+        getItineraryById(id)
+            .then((data: any) => {
+                setTitle(data.title || ""); setSubtitle(data.subtitle || "");
+                setDestination(data.destination || ""); setCountry(data.country || "");
+                setDuration(data.duration || 1); setDescription(data.description || "");
+                setTravelStyles(data.travelStyles || []); setCategories(data.categories || []);
+                setProductType(data.productType || "DIGITAL");
+                setPrice(data.price || 0); setCurrency(data.currency || "BRL");
+                setPromoPrice(data.promoPrice || null); setInstallments(data.installments || null);
+                setImmediateAccess(data.immediateAccess ?? true); setLifetimeAccess(data.lifetimeAccess ?? true);
+                setOfflineDownload(data.offlineDownload ?? true); setFeatured(data.featured || false);
+                setActiveModules(data.activeModules || []);
+                setHighlightItems(data.highlights || []); setInclusionItems(data.inclusions || []);
+                setImages(Array.isArray(data.images) ? data.images.map((img: any) => typeof img === "string" ? img : img.url) : [""]);
+                setAllowPdf(data.allowPdf ?? false); setAllowShare(data.allowShare ?? true);
+                // Spending
+                const sp = data.estimatedSpending || {};
+                setSpendingCurrency(sp.currency || "BRL");
+                setSpendingBreakdown((sp.breakdown || []).map((b: any) => ({ category: b.category || "", min: b.min || "", max: b.max || "" })));
+                // Days
+                setDays((data.days || []).map((d: any) => ({
+                    dayNumber: d.dayNumber, title: d.title || "", summary: d.summary || "", description: d.description || "",
+                    activities: (d.activities || []).map((a: any) => ({
+                        title: a.title || "", description: a.description || "", time: a.time || "", duration: a.duration || "",
+                        location: a.location || "", type: a.type || "activity", icon: a.icon || "📍",
+                        tips: a.tips || "", latitude: a.latitude?.toString() || "", longitude: a.longitude?.toString() || "",
+                        category: a.category || "",
+                    })),
+                })));
+                // Accommodations
+                setAccommodations((data.accommodations || []).map((a: any) => ({
+                    name: a.name || "", neighborhood: a.neighborhood || "", description: a.description || "",
+                    priceRange: a.priceRange || "", rating: a.rating?.toString() || "", externalLink: a.externalLink || "",
+                })));
+                // Transports
+                setTransports((data.transports || []).map((t: any) => ({
+                    description: t.description || "", passTypes: t.passTypes || "",
+                    estimatedPrice: t.estimatedPrice || "", notes: t.notes || "",
+                })));
+                // Checklists
+                setChecklistItems((data.checklists || []).map((c: any) => ({
+                    category: c.category || "documentos", item: c.item || "", isDefault: c.isDefault ?? true,
+                })));
+                // FAQ
+                setFaqItems((data.faqQuestions || []).map((f: any) => ({ question: f.question || "", answer: f.answer || "" })));
+            })
             .catch((err) => setToast({ msg: `Erro ao carregar: ${err.message}`, type: "error" }))
             .finally(() => setLoading(false));
-    }, [id, isNew, fromId, populateFromData]);
+    }, [id, isNew]);
 
     /* ─── Build payload ─── */
     const buildPayload = useCallback(() => {
@@ -283,6 +232,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Save ─── */
     const handleSave = async () => {
+        // Validation
         if (!title || !destination || !country) { setToast({ msg: "Preencha título, destino e país", type: "error" }); return; }
         if (price <= 0) { setToast({ msg: "Defina um preço válido", type: "error" }); return; }
         if (categories.length < 1) { setToast({ msg: "Selecione pelo menos 1 categoria", type: "error" }); return; }
@@ -305,20 +255,13 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         finally { setSaving(false); }
     };
 
-    /* ─── Auto-save with 5s debounce ─── */
+    /* ─── Auto-save ─── */
     useEffect(() => {
-        if (isNew || !dirty) return;
-        if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
-        autoSaveRef.current = setTimeout(async () => {
-            setSaveStatus("saving");
-            try {
-                await updateItinerary(id, buildPayload());
-                setDirty(false);
-                setSaveStatus("saved");
-                setLastSaved(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
-            } catch { setSaveStatus("idle"); }
-        }, 5000);
-        return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
+        if (isNew) return;
+        autoSaveRef.current = setInterval(() => {
+            if (dirty) { updateItinerary(id, buildPayload()).then(() => setDirty(false)).catch(() => { }); }
+        }, 30000);
+        return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
     }, [id, isNew, dirty, buildPayload]);
 
     /* ─── Section helpers ─── */
@@ -347,63 +290,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const addDay = () => { markDirty(); setDays([...days, { dayNumber: days.length + 1, title: `Dia ${days.length + 1}`, summary: "", description: "", activities: [] }]); };
     const removeDay = (i: number) => { markDirty(); setDays(days.filter((_, idx) => idx !== i)); };
     const updateDay = (i: number, f: string, v: any) => { markDirty(); const u = [...days]; u[i] = { ...u[i], [f]: v }; setDays(u); };
-    const reorderDays = (newDays: Day[]) => { markDirty(); setDays(newDays); };
-    const addActivity = (di: number) => { markDirty(); const u = [...days]; u[di].activities = [...u[di].activities, { title: "", description: "", time: "", duration: "", location: "", type: "activity", icon: "pin", tips: "", latitude: "", longitude: "", category: "" }]; setDays(u); };
+    const addActivity = (di: number) => { markDirty(); const u = [...days]; u[di].activities = [...u[di].activities, { title: "", description: "", time: "", duration: "", location: "", type: "activity", icon: "📍", tips: "", latitude: "", longitude: "", category: "" }]; setDays(u); };
     const updateActivity = (di: number, ai: number, f: string, v: any) => { markDirty(); const u = [...days]; u[di].activities[ai] = { ...u[di].activities[ai], [f]: v }; setDays(u); };
     const removeActivity = (di: number, ai: number) => { markDirty(); const u = [...days]; u[di].activities.splice(ai, 1); setDays([...u]); };
-    const reorderActivities = (di: number, newActs: Activity[]) => { markDirty(); const u = [...days]; u[di].activities = newActs; setDays(u); };
     const addAccommodation = () => { markDirty(); setAccommodations([...accommodations, { name: "", neighborhood: "", description: "", priceRange: "", rating: "", externalLink: "" }]); };
     const addTransport = () => { markDirty(); setTransports([...transports, { description: "", passTypes: "", estimatedPrice: "", notes: "" }]); };
-
-    /* ─── Warn before unload if dirty ─── */
-    useEffect(() => {
-        const handler = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); } };
-        window.addEventListener("beforeunload", handler);
-        return () => window.removeEventListener("beforeunload", handler);
-    }, [dirty]);
-
-    /* ─── Back navigation with draft prompt ─── */
-    const handleBack = async () => {
-        if (!dirty) { router.push("/dashboard/roteiros"); return; }
-        const choice = confirm("Você tem alterações não salvas.\n\nDeseja salvar como rascunho antes de sair?");
-        if (choice) {
-            try {
-                const payload = { ...buildPayload(), status: "draft" };
-                if (isNew) {
-                    await createItinerary(payload);
-                } else {
-                    await updateItinerary(id, payload);
-                }
-            } catch { /* proceed anyway */ }
-        }
-        router.push("/dashboard/roteiros");
-    };
-
-    /* ─── Quality tips ─── */
-    const qualityTips = [
-        { condition: !title, text: "Adicione um título atraente para seu roteiro", priority: 1 },
-        { condition: !destination, text: "Informe a cidade de destino principal", priority: 1 },
-        { condition: !country, text: "Selecione o país de destino", priority: 2 },
-        { condition: !description, text: "Escreva uma descrição completa do roteiro", priority: 3 },
-        { condition: categories.length === 0, text: "Selecione pelo menos 1 categoria temática", priority: 2 },
-        { condition: travelStyles.length === 0, text: "Escolha estilos de experiência (Luxo, Mochilão...)", priority: 3 },
-        { condition: price <= 0, text: "Defina o preço do seu roteiro", priority: 2 },
-        { condition: days.length < 3, text: `Cadastre pelo menos 3 dias (${days.length}/3)`, priority: 1 },
-        { condition: highlightItems.length === 0, text: "Adicione destaques para atrair viajantes", priority: 4 },
-        { condition: images.filter(Boolean).length < 3, text: "Adicione mais fotos para melhorar a conversão", priority: 4 },
-        { condition: activeModules.length === 0, text: "Ative módulos do roteiro (mapa, checklist...)", priority: 3 },
-    ];
-
-    /* ─── Stepper step navigation ─── */
-    const stepKeys = SECTIONS.map(s => s.key);
-    const handleStepClick = (i: number) => {
-        setActiveStep(i);
-        setActiveSection(stepKeys[i]);
-        if (!openSections.has(stepKeys[i])) setOpenSections(p => new Set(p).add(stepKeys[i]));
-    };
-    const handleNext = () => { if (activeStep < SECTIONS.length - 1) handleStepClick(activeStep + 1); };
-    const handlePrev = () => { if (activeStep > 0) handleStepClick(activeStep - 1); };
-    const completedSteps = new Set(SECTIONS.filter(s => isSectionComplete(s.key)).map(s => s.key));
 
     /* ─── Loading ─── */
     if (loading) return (
@@ -474,9 +365,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 <div className="form-group">
                     <label className="form-label">Tipo de Produto</label>
                     <select className="form-input" value={productType} onChange={e => { setProductType(e.target.value); markDirty(); }}>
-                        <option value="DIGITAL">Digital</option>
-                        <option value="PRESENCIAL">Presencial</option>
-                        <option value="HIBRIDO">Híbrido</option>
+                        <option value="DIGITAL">📱 Digital</option>
+                        <option value="PRESENCIAL">🤝 Presencial</option>
+                        <option value="HIBRIDO">🔄 Híbrido</option>
                     </select>
                 </div>
             </>);
@@ -505,17 +396,17 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     {installments && price > 0 && <span className="form-helper">Até {installments}x de R$ {(price / installments).toFixed(2)}</span>}
                 </div>
                 {[
-                    { label: <><Zap size={14} /> Acesso imediato</>, desc: "Liberado logo após o pagamento", val: immediateAccess, set: setImmediateAccess },
-                    { label: <><Infinity size={14} /> Acesso vitalício</>, desc: "Sem prazo de expiração", val: lifetimeAccess, set: setLifetimeAccess },
-                    { label: <><Download size={14} /> Download offline</>, desc: "Pode baixar para acessar sem internet", val: offlineDownload, set: setOfflineDownload },
-                    { label: <><StarIcon size={14} /> Em destaque</>, desc: "Aparece na seção principal", val: featured, set: setFeatured },
-                ].map((t, i) => (
-                    <div className="editor-toggle-row" key={i}>
+                    { label: "⚡ Acesso imediato", desc: "Liberado logo após o pagamento", val: immediateAccess, set: setImmediateAccess },
+                    { label: "♾️ Acesso vitalício", desc: "Sem prazo de expiração", val: lifetimeAccess, set: setLifetimeAccess },
+                    { label: "📥 Download offline", desc: "Pode baixar para acessar sem internet", val: offlineDownload, set: setOfflineDownload },
+                    { label: "⭐ Em destaque", desc: "Aparece na seção principal", val: featured, set: setFeatured },
+                ].map(t => (
+                    <div className="editor-toggle-row" key={t.label}>
                         <div className="editor-toggle-info"><span className="editor-toggle-label">{t.label}</span><span className="editor-toggle-desc">{t.desc}</span></div>
                         <label className="editor-toggle"><input type="checkbox" checked={t.val} onChange={e => { t.set(e.target.checked); markDirty(); }} /><span className="editor-toggle-track" /><span className="editor-toggle-thumb" /></label>
                     </div>
                 ))}
-                <div className="editor-legal-notice"><AlertTriangle size={14} /> Aviso automático: &quot;Produto digital. Não inclui serviços turísticos.&quot;</div>
+                <div className="editor-legal-notice">⚠️ Aviso automático: &quot;Produto digital. Não inclui serviços turísticos.&quot;</div>
             </>);
 
             /* ═══ BLOCO 3: MÓDULOS ═══ */
@@ -539,7 +430,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                 <div className="editor-day-badge">{di + 1}</div>
                                 <input className="editor-day-title-input" value={day.title} onChange={e => updateDay(di, "title", e.target.value)} placeholder={`Título do Dia ${di + 1}`} />
                             </div>
-                            <button className="btn-remove" onClick={() => removeDay(di)}><Trash2 size={14} /></button>
+                            <button className="btn-remove" onClick={() => removeDay(di)}>🗑️</button>
                         </div>
                         <div className="editor-day-body">
                             <div className="form-group">
@@ -555,16 +446,16 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                             <input className="editor-act-dur" value={act.duration} onChange={e => updateActivity(di, ai, "duration", e.target.value)} placeholder="2h" />
                                         </div>
                                         <div className="editor-activity-row">
-                                            <input value={act.location} onChange={e => updateActivity(di, ai, "location", e.target.value)} placeholder="Local" />
+                                            <input value={act.location} onChange={e => updateActivity(di, ai, "location", e.target.value)} placeholder="📍 Local" />
                                             <input value={act.latitude} onChange={e => updateActivity(di, ai, "latitude", e.target.value)} placeholder="Lat" style={{ width: 80 }} />
                                             <input value={act.longitude} onChange={e => updateActivity(di, ai, "longitude", e.target.value)} placeholder="Lng" style={{ width: 80 }} />
                                             <select value={act.category} onChange={e => updateActivity(di, ai, "category", e.target.value)} style={{ width: 120 }}>
-                                                <option value="">Tipo</option><option value="atração">Atração</option><option value="restaurante">Restaurante</option><option value="hotel">Hotel</option>
+                                                <option value="">Tipo</option><option value="atração">🎫 Atração</option><option value="restaurante">🍴 Restaurante</option><option value="hotel">🏨 Hotel</option>
                                             </select>
-                                            <button className="btn-remove" onClick={() => removeActivity(di, ai)}><X size={14} /></button>
+                                            <button className="btn-remove" onClick={() => removeActivity(di, ai)}>✕</button>
                                         </div>
                                         <div className="editor-activity-row">
-                                            <textarea value={act.tips} onChange={e => updateActivity(di, ai, "tips", e.target.value)} placeholder="Dica opcional..." style={{ minHeight: 40 }} />
+                                            <textarea value={act.tips} onChange={e => updateActivity(di, ai, "tips", e.target.value)} placeholder="💡 Dica opcional..." style={{ minHeight: 40 }} />
                                         </div>
                                     </div>
                                 ))}
@@ -574,11 +465,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     </div>
                 ))}
                 <button className="btn-add-item full-width" onClick={addDay}>+ Adicionar Dia</button>
-                {days.length < 3 && <div className="editor-validation-alert"><AlertTriangle size={14} /> Mínimo de 3 dias necessários para publicar ({days.length}/3)</div>}
+                {days.length < 3 && <div className="editor-validation-alert">⚠️ Mínimo de 3 dias necessários para publicar ({days.length}/3)</div>}
 
                 {/* ── Highlights ── */}
                 <div className="editor-subsection" style={{ marginTop: 24 }}>
-                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}><StarIcon size={14} /> Destaques do roteiro</h4>
+                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}>⭐ Destaques do roteiro</h4>
                     <div className="editor-tag-list">
                         {highlightItems.map((h, i) => (
                             <span key={i} className="editor-tag">
@@ -595,7 +486,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
                 {/* ── Inclusions ── */}
                 <div className="editor-subsection" style={{ marginTop: 16 }}>
-                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}><CircleCheck size={14} /> O que está incluso</h4>
+                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}>✅ O que está incluso</h4>
                     <div className="editor-tag-list">
                         {inclusionItems.map((inc, i) => (
                             <span key={i} className="editor-tag editor-tag-green">
@@ -612,11 +503,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
                 {/* ── Imagens ── */}
                 <div className="editor-subsection" style={{ marginTop: 16 }}>
-                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}><Image size={14} /> URLs das Imagens</h4>
+                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}>🖼️ URLs das Imagens</h4>
                     {images.map((url, i) => (
                         <div className="editor-tag-input-row" key={i} style={{ marginBottom: 6 }}>
                             <input className="form-input" value={url} onChange={e => { const u = [...images]; u[i] = e.target.value; setImages(u); markDirty(); }} placeholder="https://..." />
-                            <button className="btn-remove" onClick={() => { setImages(images.filter((_, idx) => idx !== i)); markDirty(); }}><X size={14} /></button>
+                            <button className="btn-remove" onClick={() => { setImages(images.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                         </div>
                     ))}
                     <button className="btn-add-item" onClick={() => setImages([...images, ""])}>+ Imagem</button>
@@ -624,13 +515,13 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
                 {/* ── Hospedagem ── */}
                 <div className="editor-subsection" style={{ marginTop: 24 }}>
-                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}><Hotel size={14} /> Hospedagens Sugeridas</h4>
+                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}>🏨 Hospedagens Sugeridas</h4>
                     {accommodations.map((acc, i) => (
                         <div className="editor-activity-card" key={i} style={{ marginBottom: 10 }}>
                             <div className="editor-activity-row">
                                 <input className="form-input" value={acc.name} onChange={e => { const u = [...accommodations]; u[i].name = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Nome do hotel / hostel" style={{ flex: 2 }} />
                                 <input className="form-input" value={acc.rating} onChange={e => { const u = [...accommodations]; u[i].rating = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Nota (ex: 8.5)" style={{ width: 90 }} />
-                                <button className="btn-remove" onClick={() => { setAccommodations(accommodations.filter((_, idx) => idx !== i)); markDirty(); }}><X size={14} /></button>
+                                <button className="btn-remove" onClick={() => { setAccommodations(accommodations.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                             </div>
                             <div className="editor-activity-row">
                                 <input className="form-input" value={acc.neighborhood} onChange={e => { const u = [...accommodations]; u[i].neighborhood = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Bairro / Localização" />
@@ -649,12 +540,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
                 {/* ── Transporte ── */}
                 <div className="editor-subsection" style={{ marginTop: 24 }}>
-                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}><Bus size={14} /> Opções de Transporte</h4>
+                    <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}>🚌 Opções de Transporte</h4>
                     {transports.map((t, i) => (
                         <div className="editor-activity-card" key={i} style={{ marginBottom: 10 }}>
                             <div className="editor-activity-row">
                                 <input className="form-input" value={t.description} onChange={e => { const u = [...transports]; u[i].description = e.target.value; setTransports(u); markDirty(); }} placeholder="Ex: Passe de metrô semanal Paris" style={{ flex: 2 }} />
-                                <button className="btn-remove" onClick={() => { setTransports(transports.filter((_, idx) => idx !== i)); markDirty(); }}><X size={14} /></button>
+                                <button className="btn-remove" onClick={() => { setTransports(transports.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                             </div>
                             <div className="editor-activity-row">
                                 <input className="form-input" value={t.passTypes} onChange={e => { const u = [...transports]; u[i].passTypes = e.target.value; setTransports(u); markDirty(); }} placeholder="Tipo de passe / bilhete" />
@@ -679,7 +570,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 </div>
                 {spendingBreakdown.length === 0 && (
                     <button className="btn-add-item" onClick={() => { setSpendingBreakdown(SPENDING_CATS.map(c => ({ category: c, min: "", max: "" }))); markDirty(); }}>
-                        <Zap size={14} /> Preencher categorias padrão
+                        ⚡ Preencher categorias padrão
                     </button>
                 )}
                 <div className="editor-breakdown-list">
@@ -688,7 +579,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             <input className="form-input" value={item.category} onChange={e => { const u = [...spendingBreakdown]; u[i].category = e.target.value; setSpendingBreakdown(u); markDirty(); }} placeholder="Categoria" />
                             <input className="form-input" type="number" value={item.min} onChange={e => { const u = [...spendingBreakdown]; u[i].min = e.target.value; setSpendingBreakdown(u); markDirty(); }} placeholder="Mínimo" />
                             <input className="form-input" type="number" value={item.max} onChange={e => { const u = [...spendingBreakdown]; u[i].max = e.target.value; setSpendingBreakdown(u); markDirty(); }} placeholder="Máximo" />
-                            <button className="btn-remove" onClick={() => { setSpendingBreakdown(spendingBreakdown.filter((_, idx) => idx !== i)); markDirty(); }}><X size={14} /></button>
+                            <button className="btn-remove" onClick={() => { setSpendingBreakdown(spendingBreakdown.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                         </div>
                     ))}
                 </div>
@@ -707,7 +598,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
             /* ═══ BLOCO 6: CHECKLIST + FAQ ═══ */
             case "checklist": return (<>
-                <h4 style={{ margin: "0 0 8px" }}><CircleCheck size={14} /> Checklist</h4>
+                <h4 style={{ margin: "0 0 8px" }}>✅ Checklist</h4>
                 <div className="editor-checklist-add">
                     <select className="form-input" value={newCheckCat} onChange={e => setNewCheckCat(e.target.value)} style={{ width: 140 }}>
                         {CHECKLIST_CATS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -723,7 +614,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                 const gi = checklistItems.indexOf(item); return (
                                     <div className="editor-checklist-item" key={i}>
                                         <span>{item.item}</span>
-                                        <button className="btn-remove" onClick={() => { setChecklistItems(checklistItems.filter((_, idx) => idx !== gi)); markDirty(); }}><X size={14} /></button>
+                                        <button className="btn-remove" onClick={() => { setChecklistItems(checklistItems.filter((_, idx) => idx !== gi)); markDirty(); }}>✕</button>
                                     </div>
                                 );
                             })}
@@ -731,12 +622,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     );
                 })}
 
-                <h4 style={{ margin: "24px 0 8px" }}><HelpCircle size={14} /> FAQ</h4>
+                <h4 style={{ margin: "24px 0 8px" }}>❓ FAQ</h4>
                 {faqItems.map((faq, i) => (
                     <div className="editor-faq-item" key={i}>
                         <input className="form-input" value={faq.question} onChange={e => { const u = [...faqItems]; u[i].question = e.target.value; setFaqItems(u); markDirty(); }} placeholder="Pergunta" />
                         <textarea className="form-input" value={faq.answer} onChange={e => { const u = [...faqItems]; u[i].answer = e.target.value; setFaqItems(u); markDirty(); }} placeholder="Resposta" style={{ minHeight: 60 }} />
-                        <button className="btn-remove" onClick={() => { setFaqItems(faqItems.filter((_, idx) => idx !== i)); markDirty(); }}><X size={14} /></button>
+                        <button className="btn-remove" onClick={() => { setFaqItems(faqItems.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                     </div>
                 ))}
                 <button className="btn-add-item" onClick={() => { setFaqItems([...faqItems, { question: "", answer: "" }]); markDirty(); }}>+ Pergunta</button>
@@ -745,12 +636,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             /* ═══ BLOCO 7: PÓS-COMPRA ═══ */
             case "postpurchase": return (<>
                 {[
-                    { label: <><Download size={14} /> Download offline</>, desc: "Usuário pode baixar para usar sem internet", val: offlineDownload, set: setOfflineDownload },
-                    { label: <><FileText size={14} /> Exportar PDF</>, desc: "Permitir exportar como PDF", val: allowPdf, set: setAllowPdf },
-                    { label: <><Link2 size={14} /> Compartilhar</>, desc: "Permitir compartilhar com amigos", val: allowShare, set: setAllowShare },
-                    { label: <><Infinity size={14} /> Acesso vitalício</>, desc: "Sem prazo de expiração", val: lifetimeAccess, set: setLifetimeAccess },
-                ].map((t, i) => (
-                    <div className="editor-toggle-row" key={i}>
+                    { label: "📥 Download offline", desc: "Usuário pode baixar para usar sem internet", val: offlineDownload, set: setOfflineDownload },
+                    { label: "📄 Exportar PDF", desc: "Permitir exportar como PDF", val: allowPdf, set: setAllowPdf },
+                    { label: "🔗 Compartilhar", desc: "Permitir compartilhar com amigos", val: allowShare, set: setAllowShare },
+                    { label: "♾️ Acesso vitalício", desc: "Sem prazo de expiração", val: lifetimeAccess, set: setLifetimeAccess },
+                ].map(t => (
+                    <div className="editor-toggle-row" key={t.label}>
                         <div className="editor-toggle-info"><span className="editor-toggle-label">{t.label}</span><span className="editor-toggle-desc">{t.desc}</span></div>
                         <label className="editor-toggle"><input type="checkbox" checked={t.val} onChange={e => { t.set(e.target.checked); markDirty(); }} /><span className="editor-toggle-track" /><span className="editor-toggle-thumb" /></label>
                     </div>
@@ -762,8 +653,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     };
 
     /* ═══════════════════════════ RENDER ═══════════════════════════ */
-    const currentSection = SECTIONS[activeStep];
-
     return (
         <div className="editor-page">
             {toast && <div className={`editor-toast ${toast.type}`}>{toast.msg}</div>}
@@ -771,86 +660,29 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             {/* Header */}
             <div className="editor-header">
                 <div className="editor-header-left">
-                    <button onClick={handleBack} className="editor-back">← Voltar</button>
-                    <div className="editor-header-info">
-                        <h1 className="editor-title">{isNew ? (fromId ? "Duplicar Roteiro" : "Novo Roteiro") : title || "Editar Roteiro"}</h1>
-                        <span className="editor-subtitle">Painel do Roteirista</span>
-                    </div>
+                    <Link href="/dashboard/roteiros" className="btn-back">← Voltar</Link>
+                    <h1 className="editor-title">{isNew ? "Novo Roteiro" : title || "Editar Roteiro"}</h1>
                 </div>
                 <div className="editor-header-right">
-                    {/* Save status indicator */}
-                    {saveStatus === "saving" && (
-                        <span className="save-status saving"><span className="save-status-dot" /> Salvando...</span>
-                    )}
-                    {saveStatus === "saved" && lastSaved && (
-                        <span className="save-status saved"><span className="save-status-dot" /> Salvo às {lastSaved}</span>
-                    )}
-                    {dirty && saveStatus === "idle" && (
-                        <span className="save-status unsaved"><span className="save-status-dot" /> Não salvo</span>
-                    )}
+                    <div className={`quality-score-mini ${qualityScore >= 80 ? "high" : qualityScore >= 50 ? "medium" : "low"}`}>{qualityScore}%</div>
+                    {dirty && <span className="editor-dirty-badge">● Não salvo</span>}
                     <button className="editor-save-btn" onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Publicar Roteiro"}</button>
                 </div>
             </div>
 
-            {/* Stepper */}
-            <div style={{ padding: "0 32px" }}>
-                <StepperNav
-                    steps={SECTIONS.map(s => ({ key: s.key, icon: s.icon, title: s.title }))}
-                    activeIndex={activeStep}
-                    completedSteps={completedSteps}
-                    onStepClick={handleStepClick}
-                />
-            </div>
-
-            {/* Split layout: Form + Preview */}
-            <div className="editor-split">
-                <div className="editor-split-form">
-                    {/* Current section */}
-                    <div ref={el => { sectionRefs.current[currentSection.key] = el; }} className="editor-section open active">
-                        <div className="editor-section-header" style={{ cursor: "default" }}>
-                            <span className="editor-section-icon">{currentSection.icon}</span>
-                            <span className="editor-section-title">{currentSection.title}</span>
-                            <SectionInfo tips={SECTION_TIPS[currentSection.key] || []} />
-                            <span className={`editor-section-status ${isSectionComplete(currentSection.key) ? "complete" : "pending"}`}>
-                                {isSectionComplete(currentSection.key) ? "Completo" : "Pendente"}
-                            </span>
-                        </div>
-                        <div className="editor-section-body">{renderSection(currentSection.key)}</div>
+            {/* Sections */}
+            <div className="editor-sections">
+                {SECTIONS.map(sec => (
+                    <div key={sec.key} ref={el => { sectionRefs.current[sec.key] = el; }} className={`editor-section ${openSections.has(sec.key) ? "open" : ""} ${activeSection === sec.key ? "active" : ""}`}>
+                        <button className="editor-section-header" onClick={() => { toggleSection(sec.key); setActiveSection(sec.key); }}>
+                            <span className="editor-section-icon">{sec.icon}</span>
+                            <span className="editor-section-title">{sec.title}</span>
+                            <span className={`editor-section-status ${isSectionComplete(sec.key) ? "complete" : "pending"}`}>{isSectionComplete(sec.key) ? "Completo" : "Pendente"}</span>
+                            <span className="editor-section-arrow">{openSections.has(sec.key) ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has(sec.key) && <div className="editor-section-body">{renderSection(sec.key)}</div>}
                     </div>
-
-                    {/* Step actions */}
-                    <StepperActions
-                        activeIndex={activeStep}
-                        totalSteps={SECTIONS.length}
-                        onPrev={handlePrev}
-                        onNext={handleNext}
-                        onSave={handleSave}
-                        saving={saving}
-                        isLastStep={activeStep === SECTIONS.length - 1}
-                    />
-                </div>
-
-                {/* Phone Preview + Quality Coach */}
-                <div className="editor-split-preview">
-                    <PhonePreview
-                        title={title}
-                        subtitle={subtitle}
-                        destination={destination}
-                        country={country}
-                        duration={duration}
-                        price={price}
-                        currency={currency}
-                        coverImage={images.find(Boolean) || undefined}
-                        highlights={highlightItems}
-                        days={days.map((d, i) => ({ dayNumber: i + 1, title: d.title, activities: d.activities.map(a => ({ title: a.title, time: a.time })) }))}
-                        travelStyles={travelStyles}
-                        categories={categories}
-                        type="roteiro"
-                    />
-                    <div style={{ marginTop: 20 }}>
-                        <QualityCoach score={qualityScore} tips={qualityTips} />
-                    </div>
-                </div>
+                ))}
             </div>
         </div>
     );

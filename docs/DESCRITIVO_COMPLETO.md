@@ -114,15 +114,26 @@ Esse modelo cria um **ciclo virtuoso**:
 
 ---
 
-## Arquitetura Técnica (Resumo)
+## Arquitetura Técnica (Monorepo)
 
-- **Mobile:** React Native + Expo
-- **Linguagem:** TypeScript
-- **Navegação:** Expo Router
-- **Backend (planejado):** Node.js + PostgreSQL
-- **Pagamentos (futuro):** Stripe / Mercado Pago
-- **Storage:** AWS S3
-- **Auth:** JWT / OAuth
+O VAMO é estruturado em três aplicações principais:
+
+1. **APP Mobile (Viajantes)**
+   - **Tecnologia:** React Native + Expo (Expo Router)
+   - **Linguagem:** TypeScript
+   - **Foco:** Experiência nativa premium, descoberta e compra.
+
+2. **SITE (Criadores e Agências)**
+   - **Tecnologia:** Next.js (App Router) + Tailwind CSS
+   - **Foco:** Dashboard de gestão (CRUD de pacotes/roteiros), landing pages para atração de fornecedores, SEO.
+
+3. **Backend API (Infraestrutura Central)**
+   - **Tecnologia:** Node.js + Express + PostgreSQL (Prisma ORM)
+   - **Deploy Integrado:** Conecta tanto o APP quanto o SITE a uma base de dados única.
+   - **Pagamentos (futuro):** Stripe / Mercado Pago
+
+**Storage:** AWS S3  
+**Auth:** JWT / OAuth
 
 Estrutura modular, escalável e orientada a MVP evolutivo.
 

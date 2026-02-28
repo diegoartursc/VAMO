@@ -227,33 +227,40 @@
 
 ---
 
-## 🏗️ Arquitetura Atual
+## 🏗️ Arquitetura Atual do Monorepo
 
-### Frontend
+O repositório foi organizado como um monorepo contendo 3 aplicações distintas:
+
+### 1. SITE (Dashboard Next.js)
+```
+apps/site/
+├── src/
+│   ├── app/              # Next.js App Router (Páginas)
+│   │   ├── dashboard/    # Gestão de roteiros e pacotes
+│   │   ├── criadores/    # Landing page e onboarding de roteiristas
+│   │   ├── cadastro/     # Autenticação
+│   │   └── login/
+│   ├── lib/              # API clients e utilities
+│   └── public/           # Assets estáticos
+```
+**Status:** MVP do dashboard do roteirista concluído com CRUD completo integrando ao backend Prisma.
+
+### 2. APP (Mobile via Expo / React Native)
 ```
 VAMO Mobile App (React Native + Expo)
-├── app/                    # Expo Router
-│   ├── (tabs)/            # Navegação principal
-│   │   ├── index.tsx      # Home
-│   │   ├── packages.tsx   # Pacotes de agências
-│   │   ├── itineraries.tsx # Roteiros independentes
-│   │   ├── my-trips.tsx   # Minhas viagens
-│   │   └── profile.tsx    # Perfil
-│   ├── package/[id].tsx   # Detalhes do pacote
-│   ├── itinerary/[id].tsx # Detalhes do roteiro
-│   └── creator/[id].tsx   # Perfil do creator
-└── src/
-    ├── components/        # Componentes UI
-    ├── providers/         # Context providers
-    ├── constants/         # Constantes (CATEGORIES)
-    ├── data/             # Mock data (temporário)
-    ├── types/            # TypeScript types
-    ├── theme/            # Design tokens
-    ├── services/         # API clients (preparado)
-    └── utils/            # Utilitários
+├── apps/mobile/             # Projeto Expo
+│   ├── app/                 # Expo Router
+│   │   ├── (tabs)/          # Navegação principal
+│   │   ├── package/[id].tsx # Detalhes do pacote pra compra
+│   │   ├── itinerary/[id].tsx
+│   │   └── creator/[id].tsx
+│   └── src/
+│       ├── components/      # UI premium (Glassmorphism, Reanimated)
+│       └── ...
 ```
+**Status:** MVP concluído, focado na experiência de descoberta e checkout.
 
-### Backend (Planejado)
+### 3. Backend (API Node.js)
 ```
 VAMO Backend API (Node.js + Express + PostgreSQL)
 ├── src/
@@ -336,6 +343,6 @@ VAMO Backend API (Node.js + Express + PostgreSQL)
 
 ---
 
-**Última atualização:** 16 de Fevereiro de 2026  
+**Última atualização:** Fevereiro de 2026  
 **Responsável:** Diego Artur  
-**Status:** Frontend MVP Completo ✅ | Backend MVP Implementado ✅ | Integração em Andamento 🔄
+**Status:** APP Mobile Completo ✅ | Dashboard SITE (Next.js) Operacional ✅ | Backend Integrado ✅

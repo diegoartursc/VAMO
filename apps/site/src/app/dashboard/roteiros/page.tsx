@@ -2,40 +2,40 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { getDashboardStats, deleteItinerary, type DashboardItinerary } from "../../../lib/api";
-import { MapPin, Pencil, Trash2, Star, Copy } from "lucide-react";
 
 export default function RoteirosPage() {
     const [itineraries, setItineraries] = useState<DashboardItinerary[]>([]);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
+    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const loadData = () => {
+        setLoading(true);
         getDashboardStats()
-            .then((data) => setItineraries(data.itineraries || []))
-            .catch(() => { })
+            .then((stats) => setItineraries(stats.itineraries))
+            .catch((err) => setError(err.message))
             .finally(() => setLoading(false));
-    }, []);
+    };
+
+    useEffect(() => { loadData(); }, []);
 
     const handleDelete = async (id: string, title: string) => {
-        if (!confirm(`Arquivar "${title}"?`)) return;
+        if (!confirm(`Tem certeza que deseja arquivar "${title}"?`)) return;
         try {
             await deleteItinerary(id);
-            setItineraries((prev) => prev.filter((i) => i.id !== id));
-        } catch {
-            alert("Erro ao arquivar");
+            loadData();
+        } catch (err: any) {
+            alert(`Erro ao arquivar: ${err.message}`);
         }
     };
 
-    const handleDuplicate = (id: string, title: string) => {
-        if (confirm(`Deseja iniciar um novo cadastro de roteiro a partir de uma cópia de "${title}"?`)) {
-            router.push(`/dashboard/roteiro/new?from=${id}`);
-        }
-    };
+    const formatCurrency = (value: number) =>
+        `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
-    const formatCurrency = (v: number) =>
-        `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+    const formatDate = (iso: string) => {
+        const d = new Date(iso);
+        return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    };
 
     if (loading) {
         return (
@@ -43,6 +43,19 @@ export default function RoteirosPage() {
                 <div className="dash-header">
                     <h1 className="dash-title">Meus Roteiros</h1>
                     <p className="dash-subtitle">Carregando...</p>
+                </div>
+            </>
+        );
+    }
+
+    if (error) {
+        return (
+            <>
+                <div className="dash-header">
+                    <h1 className="dash-title">Meus Roteiros</h1>
+                    <p className="dash-subtitle" style={{ color: "#e74c3c" }}>
+                        Erro: {error}. Verifique se o backend está rodando.
+                    </p>
                 </div>
             </>
         );
@@ -75,9 +88,9 @@ export default function RoteirosPage() {
                 {itineraries.length === 0 ? (
                     <div className="table-row">
                         <div className="table-cell" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "2rem" }}>
-                            Nenhum roteiro cadastrado.{" "}
-                            <Link href="/dashboard/roteiro/new" style={{ color: "var(--primary)", fontWeight: 600 }}>
-                                Crie seu primeiro roteiro!
+                            Nenhum roteiro encontrado.
+                            <Link href="/dashboard/roteiro/new" style={{ color: "var(--teal)", marginLeft: 8 }}>
+                                Crie seu primeiro roteiro →
                             </Link>
                         </div>
                     </div>
@@ -85,38 +98,45 @@ export default function RoteirosPage() {
                     itineraries.map((it) => (
                         <div className="table-row" key={it.id}>
                             <div className="table-cell">
-                                <div className="itinerary-name">
-                                    <MapPin size={14} /> {it.title}
+                                <div className="itinerary-name">{it.title} — {it.duration} dias</div>
+                                <div className="itinerary-destination">
+                                    📍 {it.destination}, {it.country} • Última edição: {formatDate(it.updatedAt)}
                                 </div>
-                                <div className="itinerary-destination">{it.destination}</div>
                             </div>
                             <div className="table-cell">
-                                <span className={`status-badge ${it.status === "published" ? "published" : it.status === "draft" ? "draft" : "archived"}`}>
-                                    {it.status === "published" ? "Publicado" : it.status === "draft" ? "Rascunho" : "Arquivado"}
+                                <span className={`status-badge ${it.status === "APPROVED" || it.status === "active" ? "published"
+                                        : it.status === "PENDING_REVIEW" ? "pending"
+                                            : it.status === "PAUSED" || it.status === "paused" ? "draft"
+                                                : it.status === "REJECTED" ? "rejected"
+                                                    : "draft"
+                                    }`}>
+                                    {it.status === "APPROVED" || it.status === "active" ? "Publicado"
+                                        : it.status === "PENDING_REVIEW" ? "Em Revisão"
+                                            : it.status === "DRAFT" ? "Rascunho"
+                                                : it.status === "PAUSED" || it.status === "paused" ? "Pausado"
+                                                    : it.status === "REJECTED" ? "Rejeitado"
+                                                        : "Arquivado"}
                                 </span>
                             </div>
-                            <div className="table-cell">{it.sales || "—"}</div>
+                            <div className="table-cell">
+                                {it.sales > 0 ? it.sales.toLocaleString("pt-BR") : "—"}
+                            </div>
                             <div className="table-cell">
                                 {it.revenue > 0 ? formatCurrency(it.revenue) : "—"}
                             </div>
                             <div className="table-cell">
-                                {it.rating ? <>{it.rating} <Star size={12} fill="currentColor" /></> : "—"}
+                                {it.rating ? `${it.rating} ⭐` : "—"}
                                 {it.reviewCount > 0 && ` (${it.reviewCount})`}
                             </div>
                             <div className="table-cell table-actions">
                                 <Link href={`/dashboard/roteiro/${it.id}`}>
-                                    <button className="table-action-btn" title="Editar"><Pencil size={14} /></button>
+                                    <button className="table-action-btn" title="Editar">✏️</button>
                                 </Link>
-                                <button
-                                    className="table-action-btn duplicate"
-                                    title="Duplicar"
-                                    onClick={() => handleDuplicate(it.id, it.title)}
-                                ><Copy size={14} /></button>
                                 <button
                                     className="table-action-btn"
                                     title="Arquivar"
                                     onClick={() => handleDelete(it.id, it.title)}
-                                ><Trash2 size={14} /></button>
+                                >🗑️</button>
                             </div>
                         </div>
                     ))

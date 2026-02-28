@@ -6,9 +6,16 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
-    "build:web": "expo export --platform web"
+    "web": "expo start --web --port 8081",
+    "dev": "expo start --web --port 8081",
+    "build:web": "expo export --platform web",
+    "dev:site": "npm run dev --workspace=apps/site",
+    "dev:backend": "npm run dev --workspace=apps/backend"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
@@ -28,7 +35,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-reanimated": "^4.2.1",
+    "react-native-reanimated": "~3.16.1",
     "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "^4.19.0",
     "react-native-svg": "15.12.1",

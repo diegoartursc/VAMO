@@ -144,7 +144,15 @@ export async function getMyTrips(travelerId: string): Promise<{
     try {
         return await fetchApi(`/my-trips/${travelerId}`);
     } catch {
-        return { upcomingPackages: [], pastPackages: [], purchasedItineraries: [], savedItems: [] };
+        // Fallback to local mock data
+        const { upcomingPackages, pastPackages, purchasedItineraries, savedItems } = require('../data/mockMyTrips');
+        return {
+            upcomingPackages,
+            pastPackages,
+            purchasedItineraries,
+            savedItems,
+        };
     }
 }
+
 

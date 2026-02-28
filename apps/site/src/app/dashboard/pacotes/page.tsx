@@ -1,14 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { getAgencyPackages, deletePackage } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 
 export default function PacotesListPage() {
     const [packages, setPackages] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
 
     useEffect(() => {
         (async () => {
@@ -101,23 +99,18 @@ export default function PacotesListPage() {
                                     </td>
                                     <td>
                                         <span className={`status-badge ${pkg.status?.toLowerCase()}`}>
-                                            {pkg.status === "APPROVED" ? "Aprovado"
-                                                : pkg.status === "PENDING_REVIEW" ? "Em revisão"
-                                                    : pkg.status === "DRAFT" ? "Rascunho"
+                                            {pkg.status === "APPROVED" ? "✅ Aprovado"
+                                                : pkg.status === "PENDING_REVIEW" ? "🕐 Em revisão"
+                                                    : pkg.status === "DRAFT" ? "📝 Rascunho"
                                                         : pkg.status === "ACTIVE" ? "Ativo"
                                                             : pkg.status === "PAUSED" ? "Pausado"
-                                                                : pkg.status === "REJECTED" ? "Rejeitado"
+                                                                : pkg.status === "REJECTED" ? "❌ Rejeitado"
                                                                     : "Arquivado"}
                                         </span>
                                     </td>
                                     <td>
                                         <div className="action-btns">
                                             <Link href={`/dashboard/pacote/${pkg.id}`} className="btn-sm">Editar</Link>
-                                            <button className="btn-sm" style={{ color: '#1FA89F' }} onClick={() => {
-                                                if (confirm(`Deseja iniciar um novo cadastro de pacote a partir de uma cópia de "${pkg.title}"?`)) {
-                                                    router.push(`/dashboard/pacote/new?from=${pkg.id}`);
-                                                }
-                                            }}>Duplicar</button>
                                             <button className="btn-sm btn-danger" onClick={() => handleDelete(pkg.id, pkg.title)}>
                                                 Arquivar
                                             </button>

@@ -1,13 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, use, useCallback } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
 import { getPackageById, createPackage, updatePackage } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import StepperNav, { StepperActions } from "@/components/dashboard/StepperNav";
-import PhonePreview from "@/components/dashboard/PhonePreview";
-import QualityCoach from "@/components/dashboard/QualityCoach";
-import SectionInfo from "@/components/dashboard/SectionInfo";
 
 /* ═══════════════════════════════════════════════════
    CONSTANTS & TYPES
@@ -18,55 +13,15 @@ type SectionKey = "destination" | "duration" | "style" | "categories" | "price" 
 interface SectionDef { key: SectionKey; icon: string; title: string; }
 
 const SECTIONS: SectionDef[] = [
-    { key: "destination", icon: "1", title: "Para Onde?" },
-    { key: "duration", icon: "2", title: "Quantos Dias?" },
-    { key: "style", icon: "3", title: "Estilo da Viagem" },
-    { key: "categories", icon: "4", title: "Tema e Categorias" },
-    { key: "price", icon: "5", title: "Valor e Descrição" },
-    { key: "inclusions", icon: "6", title: "O Que Está Incluso" },
-    { key: "itinerary", icon: "7", title: "Dia a Dia" },
-    { key: "docs", icon: "8", title: "Contato e Entrega" },
+    { key: "destination", icon: "1", title: "Destino" },
+    { key: "duration", icon: "2", title: "Duração" },
+    { key: "style", icon: "3", title: "Estilo de Viagem" },
+    { key: "categories", icon: "4", title: "Categorias" },
+    { key: "price", icon: "5", title: "Preço" },
+    { key: "inclusions", icon: "6", title: "Inclusões e Experiência" },
+    { key: "itinerary", icon: "7", title: "Roteiro Dia a Dia" },
+    { key: "docs", icon: "8", title: "Documentação" },
 ];
-
-const PKG_SECTION_TIPS: Record<SectionKey, string[]> = {
-    destination: [
-        "Informe o destino principal e adicione cidades extras do roteiro",
-        "O país preenche automaticamente o continente para buscas",
-        "Destinos com nome correto melhoram o ranqueamento",
-    ],
-    duration: [
-        "Pacotes de 5-8 dias são os mais populares",
-        "As noites são calculadas automaticamente",
-    ],
-    style: [
-        "Escolha até 3 estilos — isso afeta em quais buscas o pacote aparece",
-        "'Aventura' e 'Descanso' são os estilos mais buscados",
-    ],
-    categories: [
-        "Selecione entre 1-5 categorias temáticas",
-        "Categorias ajudam viajantes a encontrar o pacote ideal",
-    ],
-    price: [
-        "Informe faixa de preço (mínimo e máximo) por pessoa",
-        "Descrição curta aparece nos cards — seja objetivo e atrativo",
-        "Preço promocional com urgência aumenta conversão",
-    ],
-    inclusions: [
-        "Liste tudo que está incluso: transfer, hospedagem, passeios...",
-        "Destaques e 'Perfeito para' ajudam na decisão de compra",
-        "'Não recomendado para' evita avaliações negativas",
-    ],
-    itinerary: [
-        "Cadastre cada dia com atividades, horários e dicas",
-        "Pacotes com roteiro detalhado vendem até 3x mais",
-        "Inclua localização para as atividades aparecerem no mapa",
-    ],
-    docs: [
-        "WhatsApp oficial é usado para contato pós-compra",
-        "A mensagem automática é enviada após confirmação de pagamento",
-        "Voucher e e-ticket são entregues automaticamente ao comprador",
-    ],
-};
 
 const COUNTRIES = [
     "Brasil", "Argentina", "Chile", "Colômbia", "Peru", "Uruguai", "Paraguai", "Bolívia",
@@ -204,15 +159,11 @@ const EMPTY_FORM = {
 export default function PackageEditorPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const isNew = id === "new";
-    const searchParams = useSearchParams();
-    const fromId = searchParams.get("from");
 
     const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-    const router = useRouter();
-    const [activeStep, setActiveStep] = useState(0);
     const [openSections, setOpenSections] = useState<Set<SectionKey>>(new Set(["destination"]));
     const [activeSection, setActiveSection] = useState<SectionKey>("destination");
-    const [loading, setLoading] = useState(!isNew || !!fromId);
+    const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
     const [form, setForm] = useState({ ...EMPTY_FORM });
@@ -223,8 +174,6 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     const [newPerfectFor, setNewPerfectFor] = useState("");
     const [newNotFor, setNewNotFor] = useState("");
     const [newImportant, setNewImportant] = useState("");
-    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-    const [lastSaved, setLastSaved] = useState<string | null>(null);
     // Day-by-day itinerary state
     interface PkgActivity { time: string; title: string; location: string; description: string; tips: string; duration: string; }
     interface PkgDay { title: string; summary: string; description: string; activities: PkgActivity[]; }
@@ -256,13 +205,12 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
         })();
     }, []);
 
-    // ─── Load data (edit or duplicate) ───
+    // ─── Load data ───
     useEffect(() => {
-        const loadId = isNew ? fromId : id;
-        if (!loadId) { setLoading(false); return; }
+        if (isNew) return;
         (async () => {
             try {
-                const data = await getPackageById(loadId);
+                const data = await getPackageById(id);
                 setForm(prev => ({
                     ...prev,
                     ...data,
@@ -284,7 +232,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                 setLoading(false);
             }
         })();
-    }, [id, isNew, fromId]);
+    }, [id, isNew]);
 
     // ─── Auto country → continent ───
     useEffect(() => {
@@ -300,19 +248,15 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
         if (n !== form.nights) setForm(f => ({ ...f, nights: n }));
     }, [form.duration, form.nights]);
 
-    // ─── Auto-save draft every 5s (debounce) ───
+    // ─── Auto-save draft every 30s ───
     useEffect(() => {
         if (isNew) return;
-        if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
-        autoSaveRef.current = setTimeout(async () => {
-            setSaveStatus("saving");
+        autoSaveRef.current = setInterval(async () => {
             try {
                 await updatePackage(id, form);
-                setSaveStatus("saved");
-                setLastSaved(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
-            } catch { setSaveStatus("idle"); }
-        }, 5000);
-        return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
+            } catch { /* silent */ }
+        }, 30000);
+        return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
     }, [id, isNew, form]);
 
     // ─── Validation ───
@@ -413,54 +357,6 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     const qualityScore = calcQualityScore(form);
     const qualityColor = qualityScore >= 80 ? "var(--success)" : qualityScore >= 50 ? "var(--warning)" : "var(--error)";
 
-    // ─── Quality tips ───
-
-    /* ─── Warn before unload ─── */
-    useEffect(() => {
-        const handler = (e: BeforeUnloadEvent) => {
-            const hasChanges = JSON.stringify(form) !== JSON.stringify(EMPTY_FORM);
-            if (hasChanges && !isNew) { e.preventDefault(); }
-        };
-        window.addEventListener("beforeunload", handler);
-        return () => window.removeEventListener("beforeunload", handler);
-    }, [form, isNew]);
-
-    /* ─── Back with draft prompt ─── */
-    const handleBack = async () => {
-        const hasChanges = JSON.stringify(form) !== JSON.stringify(EMPTY_FORM);
-        if (!hasChanges || !isNew) { router.push("/dashboard/pacotes"); return; }
-        const choice = confirm("Você tem alterações não salvas.\n\nDeseja salvar como rascunho antes de sair?");
-        if (choice) {
-            try {
-                const payload = { ...form, status: "DRAFT", qualityScore: calcQualityScore(form) };
-                await createPackage(payload);
-            } catch { /* proceed anyway */ }
-        }
-        router.push("/dashboard/pacotes");
-    };
-    const qualityTips = [
-        { condition: !form.title, text: "Adicione um título para o pacote", priority: 1 },
-        { condition: !form.destination, text: "Informe a cidade de destino", priority: 1 },
-        { condition: !form.country, text: "Selecione o país", priority: 2 },
-        { condition: !form.description, text: "Escreva uma descrição curta", priority: 3 },
-        { condition: form.travelStyles.length === 0, text: "Selecione ao menos 1 estilo de viagem", priority: 2 },
-        { condition: form.categories.length === 0, text: "Selecione ao menos 1 categoria", priority: 2 },
-        { condition: !form.priceMin, text: "Defina o preço base do pacote", priority: 2 },
-        { condition: form.includedItems.length === 0 && form.includes.length === 0, text: "Liste o que está incluso no pacote", priority: 3 },
-        { condition: form.highlights.length === 0, text: "Adicione destaques para atrair viajantes", priority: 4 },
-    ];
-
-    // ─── Stepper navigation ───
-    const stepKeys = SECTIONS.map(s => s.key);
-    const handleStepClick = (i: number) => {
-        setActiveStep(i);
-        setActiveSection(stepKeys[i]);
-        if (!openSections.has(stepKeys[i])) setOpenSections(p => new Set(p).add(stepKeys[i]));
-    };
-    const handleNext = () => { if (activeStep < SECTIONS.length - 1) handleStepClick(activeStep + 1); };
-    const handlePrev = () => { if (activeStep > 0) handleStepClick(activeStep - 1); };
-    const completedSteps = new Set(SECTIONS.filter(s => isSectionComplete(s.key)).map(s => s.key));
-
     // ─── Loading skeleton ───
     if (loading) {
         return (
@@ -474,13 +370,12 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
         );
     }
 
-    const currentSection = SECTIONS[activeStep];
-
     return (
         <div className="editor-container">
             {/* ─── Toast ─── */}
             {toast && (
                 <div className={`editor-toast ${toast.type}`}>
+                    <span>{toast.type === "success" ? "" : ""}</span>
                     {toast.msg}
                 </div>
             )}
@@ -496,717 +391,670 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
             {/* ─── Header ─── */}
             <div className="editor-header">
                 <div className="editor-header-left">
-                    <button onClick={handleBack} className="editor-back">← Voltar</button>
-                    <div className="editor-header-info">
-                        <h1 className="editor-title">{isNew ? (fromId ? "Duplicar Pacote" : "Novo Pacote") : form.title || "Editar Pacote"}</h1>
-                        <span className="editor-subtitle">Painel da Agência</span>
-                    </div>
+                    <Link href="/dashboard/pacotes" className="editor-back">← Voltar</Link>
+                    <h1 className="editor-title">{form.title || "Novo Pacote"}</h1>
                 </div>
                 <div className="editor-header-right">
-                    {saveStatus === "saving" && (
-                        <span className="save-status saving"><span className="save-status-dot" /> Salvando...</span>
-                    )}
-                    {saveStatus === "saved" && lastSaved && (
-                        <span className="save-status saved"><span className="save-status-dot" /> Salvo às {lastSaved}</span>
-                    )}
+                    {/* Quality Score */}
+                    <div className="pkg-quality-badge" style={{ borderColor: qualityColor }}>
+                        <div className="pkg-quality-fill" style={{ width: `${qualityScore}%`, background: qualityColor }} />
+                        <span className="pkg-quality-label">{qualityScore}%</span>
+                    </div>
                     <button className="editor-save-btn" onClick={handleSave} disabled={saving}>
                         {saving ? "Salvando..." : "Publicar Pacote"}
                     </button>
                 </div>
             </div>
 
-            {/* Stepper */}
-            <div style={{ padding: "0 32px" }}>
-                <StepperNav
-                    steps={SECTIONS.map(s => ({ key: s.key, icon: <span>{s.icon}</span>, title: s.title }))}
-                    activeIndex={activeStep}
-                    completedSteps={completedSteps}
-                    onStepClick={handleStepClick}
-                />
-            </div>
+            {/* ─── Layout ─── */}
+            <div className="editor-layout">
+                {/* ─── Sidebar ─── */}
+                <nav className="editor-sidebar editor-nav">
+                    {SECTIONS.map(s => (
+                        <button
+                            key={s.key}
+                            className={`editor-nav-item ${activeSection === s.key ? "active" : ""}`}
+                            onClick={() => scrollToSection(s.key)}
+                        >
+                            <span className="editor-nav-icon">{s.icon}</span>
+                            <span className="editor-nav-label">{s.title}</span>
+                            <span className={`editor-nav-dot ${isSectionComplete(s.key) ? "complete" : ""}`} />
+                        </button>
+                    ))}
+                </nav>
 
-            {/* Split layout: Form + Preview */}
-            <div className="editor-split">
-                <div className="editor-split-form">
-                    {/* Current section */}
-                    <div ref={el => { sectionRefs.current[currentSection.key] = el; }} className="editor-section open active">
-                        <div className="editor-section-header" style={{ cursor: "default" }}>
-                            <span className="editor-section-icon">{currentSection.icon}</span>
-                            <h2>{currentSection.title}</h2>
-                            <SectionInfo tips={PKG_SECTION_TIPS[currentSection.key] || []} />
-                            <span className={`editor-section-badge ${isSectionComplete(currentSection.key) ? "complete" : "incomplete"}`}>
-                                {isSectionComplete(currentSection.key) ? "Completo" : "Pendente"}
+                {/* ─── Main ─── */}
+                <div className="editor-main">
+
+                    {/* ═══ BLOCO 1 — DESTINO ═══ */}
+                    <div ref={el => { sectionRefs.current.destination = el; }} className={`editor-section ${openSections.has("destination") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("destination")}>
+                            <span className="editor-section-icon">1</span>
+                            <h2>Destino</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("destination") ? "complete" : "incomplete"}`}>
+                                {isSectionComplete("destination") ? "Completo" : "Pendente"}
                             </span>
-                        </div>
-                        <div className="editor-section-body">
+                            <span className="editor-section-arrow">{openSections.has("destination") ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has("destination") && (
+                            <div className="editor-section-body">
+                                <div className="editor-field">
+                                    <label>Título do Pacote *</label>
+                                    <input
+                                        type="text"
+                                        value={form.title}
+                                        onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                                        placeholder="Ex: Paris Romântica & Vale do Loire"
+                                        className="editor-input"
+                                    />
+                                </div>
+                                <div className="editor-row">
+                                    <div className="editor-field" style={{ flex: 2 }}>
+                                        <label>País *</label>
+                                        <select
+                                            value={form.country}
+                                            onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
+                                            className="editor-select"
+                                        >
+                                            <option value="">Selecione o país</option>
+                                            {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="editor-field" style={{ flex: 1 }}>
+                                        <label>Continente</label>
+                                        <input type="text" value={form.continent} readOnly className="editor-input readonly" />
+                                    </div>
+                                </div>
+                                <div className="editor-row">
+                                    <div className="editor-field" style={{ flex: 2 }}>
+                                        <label>Cidade Principal *</label>
+                                        <input
+                                            type="text"
+                                            value={form.destination}
+                                            onChange={e => setForm(f => ({ ...f, destination: e.target.value }))}
+                                            placeholder="Ex: Paris, Roma, São Paulo..."
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                    <div className="editor-field" style={{ flex: 1 }}>
+                                        <label>Aeroporto Principal</label>
+                                        <input
+                                            type="text"
+                                            value={form.airport}
+                                            onChange={e => setForm(f => ({ ...f, airport: e.target.value }))}
+                                            placeholder="Ex: CDG, GRU"
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                </div>
 
-                            {/* ═══ BLOCO 1 — DESTINO ═══ */}
-                            <div ref={el => { sectionRefs.current.destination = el; }} className={`editor-section ${openSections.has("destination") ? "open" : ""}`}>
-                                <button className="editor-section-header" onClick={() => toggleSection("destination")}>
-                                    <span className="editor-section-icon">1</span>
-                                    <h2>Destino</h2>
-                                    <span className={`editor-section-badge ${isSectionComplete("destination") ? "complete" : "incomplete"}`}>
-                                        {isSectionComplete("destination") ? "Completo" : "Pendente"}
-                                    </span>
-                                    <span className="editor-section-arrow">{openSections.has("destination") ? "▲" : "▼"}</span>
-                                </button>
-                                {openSections.has("destination") && (
-                                    <div className="editor-section-body">
-                                        <div className="editor-field">
-                                            <label>Título do Pacote *</label>
+                                <div className="editor-row">
+                                    <div className="editor-field">
+                                        <label className="editor-toggle">
                                             <input
-                                                type="text"
-                                                value={form.title}
-                                                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                                                placeholder="Ex: Paris Romântica & Vale do Loire"
-                                                className="editor-input"
+                                                type="checkbox"
+                                                checked={form.multiDestination}
+                                                onChange={e => setForm(f => ({ ...f, multiDestination: e.target.checked }))}
                                             />
-                                        </div>
-                                        <div className="editor-row">
-                                            <div className="editor-field" style={{ flex: 2 }}>
-                                                <label>País *</label>
-                                                <select
-                                                    value={form.country}
-                                                    onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
-                                                    className="editor-select"
-                                                >
-                                                    <option value="">Selecione o país</option>
-                                                    {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
-                                            </div>
-                                            <div className="editor-field" style={{ flex: 1 }}>
-                                                <label>Continente</label>
-                                                <input type="text" value={form.continent} readOnly className="editor-input readonly" />
-                                            </div>
-                                        </div>
-                                        <div className="editor-row">
-                                            <div className="editor-field" style={{ flex: 2 }}>
-                                                <label>Cidade Principal *</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.destination}
-                                                    onChange={e => setForm(f => ({ ...f, destination: e.target.value }))}
-                                                    placeholder="Ex: Paris, Roma, São Paulo..."
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                            <div className="editor-field" style={{ flex: 1 }}>
-                                                <label>Aeroporto Principal</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.airport}
-                                                    onChange={e => setForm(f => ({ ...f, airport: e.target.value }))}
-                                                    placeholder="Ex: CDG, GRU"
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="editor-row">
-                                            <div className="editor-field">
-                                                <label className="editor-toggle">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={form.multiDestination}
-                                                        onChange={e => setForm(f => ({ ...f, multiDestination: e.target.checked }))}
-                                                    />
-                                                    <span className="editor-toggle-track"></span>
-                                                    <span className="editor-toggle-thumb"></span>
-                                                    <span style={{ marginLeft: '10px', fontWeight: 600, color: 'var(--secondary)', fontSize: '14px' }}>Multi-destino</span>
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        {form.multiDestination && (
-                                            <div className="editor-field">
-                                                <label>Cidades Adicionais</label>
-                                                <div className="editor-tag-list">
-                                                    {form.additionalCities.map((c, i) => (
-                                                        <span key={i} className="editor-tag">
-                                                            {c}
-                                                            <button onClick={() => removeTag("additionalCities", i)}>×</button>
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                                <div className="editor-tag-input-row">
-                                                    <input
-                                                        type="text"
-                                                        value={cityInput}
-                                                        onChange={e => setCityInput(e.target.value)}
-                                                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("additionalCities", cityInput, setCityInput))}
-                                                        placeholder="Adicionar cidade"
-                                                        className="editor-input"
-                                                    />
-                                                    <button className="editor-tag-add" onClick={() => addTag("additionalCities", cityInput, setCityInput)}>+</button>
-                                                </div>
-                                            </div>
-                                        )}
+                                            <span className="editor-toggle-track"></span>
+                                            <span className="editor-toggle-thumb"></span>
+                                            <span style={{ marginLeft: '10px', fontWeight: 600, color: 'var(--secondary)', fontSize: '14px' }}>Multi-destino</span>
+                                        </label>
                                     </div>
-                                )}
-                            </div>
+                                </div>
 
-                            {/* ═══ BLOCO 2 — DURAÇÃO ═══ */}
-                            <div ref={el => { sectionRefs.current.duration = el; }} className={`editor-section ${openSections.has("duration") ? "open" : ""}`}>
-                                <button className="editor-section-header" onClick={() => toggleSection("duration")}>
-                                    <span className="editor-section-icon">2</span>
-                                    <h2>Duração</h2>
-                                    <span className={`editor-section-badge ${isSectionComplete("duration") ? "complete" : "incomplete"}`}>
-                                        {isSectionComplete("duration") ? "Completo" : "Pendente"}
-                                    </span>
-                                    <span className="editor-section-arrow">{openSections.has("duration") ? "▲" : "▼"}</span>
-                                </button>
-                                {openSections.has("duration") && (
-                                    <div className="editor-section-body">
-                                        <div className="editor-row">
-                                            <div className="editor-field">
-                                                <label>Número de dias *</label>
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    value={form.duration}
-                                                    onChange={e => setForm(f => ({ ...f, duration: parseInt(e.target.value) || 0 }))}
-                                                    onFocus={e => e.target.select()}
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                            <div className="editor-field">
-                                                <label>Número de noites</label>
-                                                <input type="number" value={form.nights} readOnly className="editor-input readonly" />
-                                            </div>
-                                            <div className="editor-field">
-                                                <label>Classificação</label>
-                                                <div className="pkg-duration-badge">
-                                                    {form.duration >= 1 ? getDurationLabel(form.duration) : "—"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ═══ BLOCO 3 — ESTILO DE VIAGEM ═══ */}
-                            <div ref={el => { sectionRefs.current.style = el; }} className={`editor-section ${openSections.has("style") ? "open" : ""}`}>
-                                <button className="editor-section-header" onClick={() => toggleSection("style")}>
-                                    <span className="editor-section-icon">3</span>
-                                    <h2>Estilo de Viagem</h2>
-                                    <span className={`editor-section-badge ${isSectionComplete("style") ? "complete" : "incomplete"}`}>
-                                        {isSectionComplete("style") ? "Completo" : "Pendente"}
-                                    </span>
-                                    <span className="editor-section-arrow">{openSections.has("style") ? "▲" : "▼"}</span>
-                                </button>
-                                {openSections.has("style") && (
-                                    <div className="editor-section-body">
-                                        <p className="editor-field-hint">Selecione até <strong>3</strong> estilos ({form.travelStyles.length}/3)</p>
-                                        <div className="pkg-chip-grid">
-                                            {TRAVEL_STYLES.map(ts => {
-                                                const selected = form.travelStyles.includes(ts.key);
-                                                const disabled = !selected && form.travelStyles.length >= 3;
-                                                return (
-                                                    <button
-                                                        key={ts.key}
-                                                        className={`pkg-chip ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}`}
-                                                        onClick={() => toggleChip(form.travelStyles, ts.key, 3, "travelStyles")}
-                                                        disabled={disabled}
-                                                    >
-                                                        {ts.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ═══ BLOCO 4 — CATEGORIAS ═══ */}
-                            <div ref={el => { sectionRefs.current.categories = el; }} className={`editor-section ${openSections.has("categories") ? "open" : ""}`}>
-                                <button className="editor-section-header" onClick={() => toggleSection("categories")}>
-                                    <span className="editor-section-icon">4</span>
-                                    <h2>Categorias Temáticas</h2>
-                                    <span className={`editor-section-badge ${isSectionComplete("categories") ? "complete" : "incomplete"}`}>
-                                        {isSectionComplete("categories") ? "Completo" : "Pendente"}
-                                    </span>
-                                    <span className="editor-section-arrow">{openSections.has("categories") ? "▲" : "▼"}</span>
-                                </button>
-                                {openSections.has("categories") && (
-                                    <div className="editor-section-body">
-                                        <p className="editor-field-hint">Mínimo 1, máximo 5 ({form.categories.length}/5)</p>
-                                        <div className="pkg-chip-grid">
-                                            {CATEGORY_OPTIONS.map(cat => {
-                                                const selected = form.categories.includes(cat.key);
-                                                const disabled = !selected && form.categories.length >= 5;
-                                                return (
-                                                    <button
-                                                        key={cat.key}
-                                                        className={`pkg-chip ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}`}
-                                                        onClick={() => toggleChip(form.categories, cat.key, 5, "categories")}
-                                                        disabled={disabled}
-                                                    >
-                                                        {cat.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ═══ BLOCO 5 — PREÇO ═══ */}
-                            <div ref={el => { sectionRefs.current.price = el; }} className={`editor-section ${openSections.has("price") ? "open" : ""}`}>
-                                <button className="editor-section-header" onClick={() => toggleSection("price")}>
-                                    <span className="editor-section-icon">5</span>
-                                    <h2>Preço</h2>
-                                    <span className={`editor-section-badge ${isSectionComplete("price") ? "complete" : "incomplete"}`}>
-                                        {isSectionComplete("price") ? "Completo" : "Pendente"}
-                                    </span>
-                                    <span className="editor-section-arrow">{openSections.has("price") ? "▲" : "▼"}</span>
-                                </button>
-                                {openSections.has("price") && (
-                                    <div className="editor-section-body">
-                                        <div className="editor-row">
-                                            <div className="editor-field">
-                                                <label>Preço base por pessoa *</label>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    value={form.priceMin}
-                                                    onChange={e => setForm(f => ({ ...f, priceMin: parseFloat(e.target.value) || 0 }))}
-                                                    onFocus={e => e.target.select()}
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                            <div className="editor-field">
-                                                <label>Preço máximo estimado</label>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    value={form.priceMax}
-                                                    onChange={e => setForm(f => ({ ...f, priceMax: parseFloat(e.target.value) || 0 }))}
-                                                    onFocus={e => e.target.select()}
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                            <div className="editor-field">
-                                                <label>Moeda</label>
-                                                <select
-                                                    value={form.currency}
-                                                    onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-                                                    className="editor-select"
-                                                >
-                                                    {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="editor-row">
-                                            <div className="editor-field">
-                                                <label>Preço promocional (opcional)</label>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    value={form.promoPrice ?? ""}
-                                                    onChange={e => setForm(f => ({ ...f, promoPrice: e.target.value ? parseFloat(e.target.value) : null }))}
-                                                    onFocus={e => e.target.select()}
-                                                    placeholder="Deixe vazio se não houver"
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                            <div className="editor-field">
-                                                <label>Parcelas (máx)</label>
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    max={24}
-                                                    value={form.installments}
-                                                    onChange={e => setForm(f => ({ ...f, installments: parseInt(e.target.value) || 1 }))}
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="editor-field">
-                                            <label>Descrição curta *</label>
-                                            <textarea
-                                                value={form.description}
-                                                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                                placeholder="Uma frase que resume o pacote..."
-                                                className="editor-textarea"
-                                                rows={2}
-                                            />
-                                        </div>
-
-                                        <div className="editor-field">
-                                            <label>Política de cancelamento</label>
-                                            <textarea
-                                                value={form.cancellationPolicy}
-                                                onChange={e => setForm(f => ({ ...f, cancellationPolicy: e.target.value }))}
-                                                placeholder="Ex: Cancelamento gratuito até 7 dias antes..."
-                                                className="editor-textarea"
-                                                rows={2}
-                                            />
-                                        </div>
-
-                                        <div className="editor-row">
-                                            <label className="pkg-toggle-row">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={form.hasFreeCancellation}
-                                                    onChange={e => setForm(f => ({ ...f, hasFreeCancellation: e.target.checked }))}
-                                                />
-                                                <span>Cancelamento gratuito</span>
-                                            </label>
-                                            <label className="pkg-toggle-row">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={form.isAllInclusive}
-                                                    onChange={e => setForm(f => ({ ...f, isAllInclusive: e.target.checked }))}
-                                                />
-                                                <span>All Inclusive</span>
-                                            </label>
-                                            <label className="pkg-toggle-row">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={form.featured}
-                                                    onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))}
-                                                />
-                                                <span>Destaque</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ═══ BLOCO 6 — INCLUSÕES E EXPERIÊNCIA ═══ */}
-                            <div ref={el => { sectionRefs.current.inclusions = el; }} className={`editor-section ${openSections.has("inclusions") ? "open" : ""}`}>
-                                <button className="editor-section-header" onClick={() => toggleSection("inclusions")}>
-                                    <span className="editor-section-icon">6</span>
-                                    <h2>Inclusões e Experiência</h2>
-                                    <span className={`editor-section-badge ${isSectionComplete("inclusions") ? "complete" : "incomplete"}`}>
-                                        {isSectionComplete("inclusions") ? "Completo" : "Pendente"}
-                                    </span>
-                                    <span className="editor-section-arrow">{openSections.has("inclusions") ? "▲" : "▼"}</span>
-                                </button>
-                                {openSections.has("inclusions") && (
-                                    <div className="editor-section-body">
-                                        {/* Includes */}
-                                        <div className="editor-field">
-                                            <label>O que está incluso</label>
-                                            <div className="editor-tag-list">
-                                                {form.includedItems.map((item, i) => (
-                                                    <span key={i} className="editor-tag">
-                                                        {item}
-                                                        <button onClick={() => removeTag("includedItems", i)}>×</button>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <div className="editor-tag-input-row">
-                                                <input
-                                                    type="text"
-                                                    value={newInclude}
-                                                    onChange={e => setNewInclude(e.target.value)}
-                                                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("includedItems", newInclude, setNewInclude))}
-                                                    placeholder="Ex: Passagem aérea, Hotel 4 estrelas..."
-                                                    className="editor-input"
-                                                />
-                                                <button className="editor-tag-add" onClick={() => addTag("includedItems", newInclude, setNewInclude)}>+</button>
-                                            </div>
-                                        </div>
-
-                                        {/* Highlights */}
-                                        <div className="editor-field">
-                                            <label>Destaques do pacote</label>
-                                            <div className="editor-tag-list">
-                                                {form.highlights.map((h, i) => (
-                                                    <span key={i} className="editor-tag">
-                                                        {h}
-                                                        <button onClick={() => removeTag("highlights", i)}>×</button>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <div className="editor-tag-input-row">
-                                                <input
-                                                    type="text"
-                                                    value={newHighlight}
-                                                    onChange={e => setNewHighlight(e.target.value)}
-                                                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("highlights", newHighlight, setNewHighlight))}
-                                                    placeholder="Ex: Tour pela Torre Eiffel..."
-                                                    className="editor-input"
-                                                />
-                                                <button className="editor-tag-add" onClick={() => addTag("highlights", newHighlight, setNewHighlight)}>+</button>
-                                            </div>
-                                        </div>
-
-                                        {/* Descrição completa */}
-                                        <div className="editor-field">
-                                            <label>Descrição completa</label>
-                                            <textarea
-                                                value={form.fullDescription}
-                                                onChange={e => setForm(f => ({ ...f, fullDescription: e.target.value }))}
-                                                placeholder="Descrição detalhada do pacote..."
-                                                className="editor-textarea"
-                                                rows={4}
-                                            />
-                                        </div>
-
-                                        {/* Intro emocional */}
-                                        <div className="editor-field">
-                                            <label>Introdução emocional</label>
-                                            <textarea
-                                                value={form.emotionalIntro}
-                                                onChange={e => setForm(f => ({ ...f, emotionalIntro: e.target.value }))}
-                                                placeholder="Uma frase inspiradora sobre o destino..."
-                                                className="editor-textarea"
-                                                rows={2}
-                                            />
-                                        </div>
-
-                                        {/* Perfect for */}
-                                        <div className="editor-field">
-                                            <label>Público ideal</label>
-                                            <div className="editor-tag-list">
-                                                {form.perfectFor.map((p, i) => (
-                                                    <span key={i} className="editor-tag editor-tag-green">
-                                                        {p}
-                                                        <button onClick={() => removeTag("perfectFor", i)}>×</button>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <div className="editor-tag-input-row">
-                                                <input
-                                                    type="text"
-                                                    value={newPerfectFor}
-                                                    onChange={e => setNewPerfectFor(e.target.value)}
-                                                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("perfectFor", newPerfectFor, setNewPerfectFor))}
-                                                    placeholder="Ex: Casais, Famílias com crianças..."
-                                                    className="editor-input"
-                                                />
-                                                <button className="editor-tag-add" onClick={() => addTag("perfectFor", newPerfectFor, setNewPerfectFor)}>+</button>
-                                            </div>
-                                        </div>
-
-                                        {/* Not recommended for */}
-                                        <div className="editor-field">
-                                            <label>Não recomendado para</label>
-                                            <div className="editor-tag-list">
-                                                {form.notRecommendedFor.map((n, i) => (
-                                                    <span key={i} className="editor-tag editor-tag-red">
-                                                        {n}
-                                                        <button onClick={() => removeTag("notRecommendedFor", i)}>×</button>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <div className="editor-tag-input-row">
-                                                <input
-                                                    type="text"
-                                                    value={newNotFor}
-                                                    onChange={e => setNewNotFor(e.target.value)}
-                                                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("notRecommendedFor", newNotFor, setNewNotFor))}
-                                                    placeholder="Ex: Pessoas com mobilidade reduzida..."
-                                                    className="editor-input"
-                                                />
-                                                <button className="editor-tag-add" onClick={() => addTag("notRecommendedFor", newNotFor, setNewNotFor)}>+</button>
-                                            </div>
-                                        </div>
-
-                                        {/* Important info */}
-                                        <div className="editor-field">
-                                            <label>Informações importantes</label>
-                                            <div className="editor-tag-list">
-                                                {form.importantInfo.map((info, i) => (
-                                                    <span key={i} className="editor-tag">
-                                                        {info}
-                                                        <button onClick={() => removeTag("importantInfo", i)}>×</button>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <div className="editor-tag-input-row">
-                                                <input
-                                                    type="text"
-                                                    value={newImportant}
-                                                    onChange={e => setNewImportant(e.target.value)}
-                                                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("importantInfo", newImportant, setNewImportant))}
-                                                    placeholder="Ex: Necessário passaporte válido..."
-                                                    className="editor-input"
-                                                />
-                                                <button className="editor-tag-add" onClick={() => addTag("importantInfo", newImportant, setNewImportant)}>+</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ═══ BLOCO 7 — ROTEIRO DIA A DIA ═══ */}
-                            <div ref={el => { sectionRefs.current.itinerary = el; }} className={`editor-section ${openSections.has("itinerary") ? "open" : ""}`}>
-                                <button className="editor-section-header" onClick={() => toggleSection("itinerary")}>
-                                    <span className="editor-section-icon">7</span>
-                                    <h2>Roteiro Dia a Dia</h2>
-                                    <span className={`editor-section-badge ${pkgDays.length >= 3 ? "complete" : "incomplete"}`}>
-                                        {pkgDays.length > 0 ? `${pkgDays.length} dia(s)` : "Pendente"}
-                                    </span>
-                                    <span className="editor-section-arrow">{openSections.has("itinerary") ? "▲" : "▼"}</span>
-                                </button>
-                                {openSections.has("itinerary") && (
-                                    <div className="editor-section-body">
-                                        <p className="editor-field-hint">Descreva o que o viajante fará em cada dia do pacote. Pacotes com roteiro detalhado convertem até 3x mais.</p>
-
-                                        <div className="pkg-itinerary-builder">
-                                            {pkgDays.map((day, di) => (
-                                                <div className="pkg-day-card-expanded" key={di}>
-                                                    <div className="pkg-day-header-glass">
-                                                        <div className="pkg-day-badge-large">{di + 1}</div>
-                                                        <input
-                                                            className="pkg-day-title-input-glass"
-                                                            value={day.title}
-                                                            onChange={e => updatePkgDay(di, "title", e.target.value)}
-                                                            placeholder={`Título do Dia ${di + 1}`}
-                                                        />
-                                                        <button className="pkg-day-remove-btn" onClick={() => removePkgDay(di)}>×</button>
-                                                    </div>
-
-                                                    <div className="pkg-day-body-nested">
-                                                        <div className="editor-field">
-                                                            <label>Resumo Rápido</label>
-                                                            <input
-                                                                className="editor-input ghost"
-                                                                value={day.summary}
-                                                                onChange={e => updatePkgDay(di, "summary", e.target.value)}
-                                                                placeholder="Ex: Chegada e Jantar de Boas-vindas"
-                                                            />
-                                                        </div>
-
-                                                        <div className="editor-activities-timeline">
-                                                            {day.activities.map((act, ai) => (
-                                                                <div className="pkg-activity-row-item" key={ai}>
-                                                                    <div className="pkg-activity-time-dot">
-                                                                        <input
-                                                                            value={act.time}
-                                                                            onChange={e => updatePkgActivity(di, ai, "time", e.target.value)}
-                                                                            placeholder="09:00"
-                                                                            className="pkg-act-time-input"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="pkg-activity-main-fields">
-                                                                        <input
-                                                                            className="pkg-act-title-input"
-                                                                            value={act.title}
-                                                                            onChange={e => updatePkgActivity(di, ai, "title", e.target.value)}
-                                                                            placeholder="O que fazer?"
-                                                                        />
-                                                                        <input
-                                                                            className="pkg-act-loc-input"
-                                                                            value={act.location}
-                                                                            onChange={e => updatePkgActivity(di, ai, "location", e.target.value)}
-                                                                            placeholder="Localização..."
-                                                                        />
-                                                                    </div>
-                                                                    <button className="pkg-act-delete" onClick={() => removePkgActivity(di, ai)}>×</button>
-                                                                </div>
-                                                            ))}
-                                                            <button className="btn-add-activity-pill" onClick={() => addPkgActivity(di)}>+ Adicionar Atividade</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                {form.multiDestination && (
+                                    <div className="editor-field">
+                                        <label>Cidades Adicionais</label>
+                                        <div className="editor-tag-list">
+                                            {form.additionalCities.map((c, i) => (
+                                                <span key={i} className="editor-tag">
+                                                    {c}
+                                                    <button onClick={() => removeTag("additionalCities", i)}>×</button>
+                                                </span>
                                             ))}
                                         </div>
-
-                                        <button className="editor-add-day-btn" onClick={addPkgDay}>
-                                            <span style={{ fontSize: '18px' }}>+</span> Adicionar Próximo Dia
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ═══ BLOCO 8 — DOCUMENTAÇÃO ═══ */}
-                            <div ref={el => { sectionRefs.current.docs = el; }} className={`editor-section ${openSections.has("docs") ? "open" : ""}`}>
-                                <button className="editor-section-header" onClick={() => toggleSection("docs")}>
-                                    <span className="editor-section-icon">8</span>
-                                    <h2>Documentação e Pós-compra</h2>
-                                    <span className={`editor-section-badge ${isSectionComplete("docs") ? "complete" : "incomplete"}`}>
-                                        {isSectionComplete("docs") ? "Completo" : "Pendente"}
-                                    </span>
-                                    <span className="editor-section-arrow">{openSections.has("docs") ? "▲" : "▼"}</span>
-                                </button>
-                                {openSections.has("docs") && (
-                                    <div className="editor-section-body">
-                                        <div className="editor-row">
-                                            <div className="editor-field">
-                                                <label>URL do Voucher</label>
-                                                <input
-                                                    type="url"
-                                                    value={form.voucherUrl}
-                                                    onChange={e => setForm(f => ({ ...f, voucherUrl: e.target.value }))}
-                                                    placeholder="https://..."
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                            <div className="editor-field">
-                                                <label>URL do E-ticket</label>
-                                                <input
-                                                    type="url"
-                                                    value={form.eticketUrl}
-                                                    onChange={e => setForm(f => ({ ...f, eticketUrl: e.target.value }))}
-                                                    placeholder="https://..."
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="editor-row">
-                                            <div className="editor-field">
-                                                <label>WhatsApp oficial da agência</label>
-                                                <input
-                                                    type="tel"
-                                                    value={form.whatsappOfficial}
-                                                    onChange={e => setForm(f => ({ ...f, whatsappOfficial: e.target.value }))}
-                                                    placeholder="+55 11 99999-9999"
-                                                    className="editor-input"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="editor-field">
-                                            <label>Mensagem automática pós-compra</label>
-                                            <textarea
-                                                value={form.autoMessage}
-                                                onChange={e => setForm(f => ({ ...f, autoMessage: e.target.value }))}
-                                                placeholder="Mensagem que o comprador recebe automaticamente após a compra..."
-                                                className="editor-textarea"
-                                                rows={3}
+                                        <div className="editor-tag-input-row">
+                                            <input
+                                                type="text"
+                                                value={cityInput}
+                                                onChange={e => setCityInput(e.target.value)}
+                                                onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("additionalCities", cityInput, setCityInput))}
+                                                placeholder="Adicionar cidade"
+                                                className="editor-input"
                                             />
+                                            <button className="editor-tag-add" onClick={() => addTag("additionalCities", cityInput, setCityInput)}>+</button>
                                         </div>
                                     </div>
                                 )}
                             </div>
-
-                        </div>
+                        )}
                     </div>
 
-                    {/* Step actions */}
-                    <StepperActions
-                        activeIndex={activeStep}
-                        totalSteps={SECTIONS.length}
-                        onPrev={handlePrev}
-                        onNext={handleNext}
-                        onSave={handleSave}
-                        saving={saving}
-                        isLastStep={activeStep === SECTIONS.length - 1}
-                    />
-                </div>
-
-                {/* Phone Preview + Quality Coach */}
-                <div className="editor-split-preview">
-                    <PhonePreview
-                        title={form.title}
-                        subtitle={form.description}
-                        destination={form.destination}
-                        country={form.country}
-                        duration={form.duration}
-                        price={form.priceMin}
-                        currency={form.currency.startsWith("USD") ? "USD" : form.currency.startsWith("EUR") ? "EUR" : "BRL"}
-                        highlights={form.highlights}
-                        travelStyles={form.travelStyles}
-                        categories={form.categories}
-                        type="pacote"
-                    />
-                    <div style={{ marginTop: 20 }}>
-                        <QualityCoach score={qualityScore} tips={qualityTips} />
+                    {/* ═══ BLOCO 2 — DURAÇÃO ═══ */}
+                    <div ref={el => { sectionRefs.current.duration = el; }} className={`editor-section ${openSections.has("duration") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("duration")}>
+                            <span className="editor-section-icon">2</span>
+                            <h2>Duração</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("duration") ? "complete" : "incomplete"}`}>
+                                {isSectionComplete("duration") ? "Completo" : "Pendente"}
+                            </span>
+                            <span className="editor-section-arrow">{openSections.has("duration") ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has("duration") && (
+                            <div className="editor-section-body">
+                                <div className="editor-row">
+                                    <div className="editor-field">
+                                        <label>Número de dias *</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            value={form.duration}
+                                            onChange={e => setForm(f => ({ ...f, duration: parseInt(e.target.value) || 0 }))}
+                                            onFocus={e => e.target.select()}
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                    <div className="editor-field">
+                                        <label>Número de noites</label>
+                                        <input type="number" value={form.nights} readOnly className="editor-input readonly" />
+                                    </div>
+                                    <div className="editor-field">
+                                        <label>Classificação</label>
+                                        <div className="pkg-duration-badge">
+                                            {form.duration >= 1 ? getDurationLabel(form.duration) : "—"}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
+
+                    {/* ═══ BLOCO 3 — ESTILO DE VIAGEM ═══ */}
+                    <div ref={el => { sectionRefs.current.style = el; }} className={`editor-section ${openSections.has("style") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("style")}>
+                            <span className="editor-section-icon">3</span>
+                            <h2>Estilo de Viagem</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("style") ? "complete" : "incomplete"}`}>
+                                {isSectionComplete("style") ? "Completo" : "Pendente"}
+                            </span>
+                            <span className="editor-section-arrow">{openSections.has("style") ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has("style") && (
+                            <div className="editor-section-body">
+                                <p className="editor-field-hint">Selecione até <strong>3</strong> estilos ({form.travelStyles.length}/3)</p>
+                                <div className="pkg-chip-grid">
+                                    {TRAVEL_STYLES.map(ts => {
+                                        const selected = form.travelStyles.includes(ts.key);
+                                        const disabled = !selected && form.travelStyles.length >= 3;
+                                        return (
+                                            <button
+                                                key={ts.key}
+                                                className={`pkg-chip ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}`}
+                                                onClick={() => toggleChip(form.travelStyles, ts.key, 3, "travelStyles")}
+                                                disabled={disabled}
+                                            >
+                                                {ts.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ═══ BLOCO 4 — CATEGORIAS ═══ */}
+                    <div ref={el => { sectionRefs.current.categories = el; }} className={`editor-section ${openSections.has("categories") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("categories")}>
+                            <span className="editor-section-icon">4</span>
+                            <h2>Categorias Temáticas</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("categories") ? "complete" : "incomplete"}`}>
+                                {isSectionComplete("categories") ? "Completo" : "Pendente"}
+                            </span>
+                            <span className="editor-section-arrow">{openSections.has("categories") ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has("categories") && (
+                            <div className="editor-section-body">
+                                <p className="editor-field-hint">Mínimo 1, máximo 5 ({form.categories.length}/5)</p>
+                                <div className="pkg-chip-grid">
+                                    {CATEGORY_OPTIONS.map(cat => {
+                                        const selected = form.categories.includes(cat.key);
+                                        const disabled = !selected && form.categories.length >= 5;
+                                        return (
+                                            <button
+                                                key={cat.key}
+                                                className={`pkg-chip ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}`}
+                                                onClick={() => toggleChip(form.categories, cat.key, 5, "categories")}
+                                                disabled={disabled}
+                                            >
+                                                {cat.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ═══ BLOCO 5 — PREÇO ═══ */}
+                    <div ref={el => { sectionRefs.current.price = el; }} className={`editor-section ${openSections.has("price") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("price")}>
+                            <span className="editor-section-icon">5</span>
+                            <h2>Preço</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("price") ? "complete" : "incomplete"}`}>
+                                {isSectionComplete("price") ? "Completo" : "Pendente"}
+                            </span>
+                            <span className="editor-section-arrow">{openSections.has("price") ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has("price") && (
+                            <div className="editor-section-body">
+                                <div className="editor-row">
+                                    <div className="editor-field">
+                                        <label>Preço base por pessoa *</label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={form.priceMin}
+                                            onChange={e => setForm(f => ({ ...f, priceMin: parseFloat(e.target.value) || 0 }))}
+                                            onFocus={e => e.target.select()}
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                    <div className="editor-field">
+                                        <label>Preço máximo estimado</label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={form.priceMax}
+                                            onChange={e => setForm(f => ({ ...f, priceMax: parseFloat(e.target.value) || 0 }))}
+                                            onFocus={e => e.target.select()}
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                    <div className="editor-field">
+                                        <label>Moeda</label>
+                                        <select
+                                            value={form.currency}
+                                            onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
+                                            className="editor-select"
+                                        >
+                                            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="editor-row">
+                                    <div className="editor-field">
+                                        <label>Preço promocional (opcional)</label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={form.promoPrice ?? ""}
+                                            onChange={e => setForm(f => ({ ...f, promoPrice: e.target.value ? parseFloat(e.target.value) : null }))}
+                                            onFocus={e => e.target.select()}
+                                            placeholder="Deixe vazio se não houver"
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                    <div className="editor-field">
+                                        <label>Parcelas (máx)</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={24}
+                                            value={form.installments}
+                                            onChange={e => setForm(f => ({ ...f, installments: parseInt(e.target.value) || 1 }))}
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="editor-field">
+                                    <label>Descrição curta *</label>
+                                    <textarea
+                                        value={form.description}
+                                        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                                        placeholder="Uma frase que resume o pacote..."
+                                        className="editor-textarea"
+                                        rows={2}
+                                    />
+                                </div>
+
+                                <div className="editor-field">
+                                    <label>Política de cancelamento</label>
+                                    <textarea
+                                        value={form.cancellationPolicy}
+                                        onChange={e => setForm(f => ({ ...f, cancellationPolicy: e.target.value }))}
+                                        placeholder="Ex: Cancelamento gratuito até 7 dias antes..."
+                                        className="editor-textarea"
+                                        rows={2}
+                                    />
+                                </div>
+
+                                <div className="editor-row">
+                                    <label className="pkg-toggle-row">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.hasFreeCancellation}
+                                            onChange={e => setForm(f => ({ ...f, hasFreeCancellation: e.target.checked }))}
+                                        />
+                                        <span>Cancelamento gratuito</span>
+                                    </label>
+                                    <label className="pkg-toggle-row">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.isAllInclusive}
+                                            onChange={e => setForm(f => ({ ...f, isAllInclusive: e.target.checked }))}
+                                        />
+                                        <span>All Inclusive</span>
+                                    </label>
+                                    <label className="pkg-toggle-row">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.featured}
+                                            onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))}
+                                        />
+                                        <span>Destaque</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ═══ BLOCO 6 — INCLUSÕES E EXPERIÊNCIA ═══ */}
+                    <div ref={el => { sectionRefs.current.inclusions = el; }} className={`editor-section ${openSections.has("inclusions") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("inclusions")}>
+                            <span className="editor-section-icon">6</span>
+                            <h2>Inclusões e Experiência</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("inclusions") ? "complete" : "incomplete"}`}>
+                                {isSectionComplete("inclusions") ? "Completo" : "Pendente"}
+                            </span>
+                            <span className="editor-section-arrow">{openSections.has("inclusions") ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has("inclusions") && (
+                            <div className="editor-section-body">
+                                {/* Includes */}
+                                <div className="editor-field">
+                                    <label>O que está incluso</label>
+                                    <div className="editor-tag-list">
+                                        {form.includedItems.map((item, i) => (
+                                            <span key={i} className="editor-tag">
+                                                {item}
+                                                <button onClick={() => removeTag("includedItems", i)}>×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="editor-tag-input-row">
+                                        <input
+                                            type="text"
+                                            value={newInclude}
+                                            onChange={e => setNewInclude(e.target.value)}
+                                            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("includedItems", newInclude, setNewInclude))}
+                                            placeholder="Ex: Passagem aérea, Hotel 4 estrelas..."
+                                            className="editor-input"
+                                        />
+                                        <button className="editor-tag-add" onClick={() => addTag("includedItems", newInclude, setNewInclude)}>+</button>
+                                    </div>
+                                </div>
+
+                                {/* Highlights */}
+                                <div className="editor-field">
+                                    <label>Destaques do pacote</label>
+                                    <div className="editor-tag-list">
+                                        {form.highlights.map((h, i) => (
+                                            <span key={i} className="editor-tag">
+                                                {h}
+                                                <button onClick={() => removeTag("highlights", i)}>×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="editor-tag-input-row">
+                                        <input
+                                            type="text"
+                                            value={newHighlight}
+                                            onChange={e => setNewHighlight(e.target.value)}
+                                            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("highlights", newHighlight, setNewHighlight))}
+                                            placeholder="Ex: Tour pela Torre Eiffel..."
+                                            className="editor-input"
+                                        />
+                                        <button className="editor-tag-add" onClick={() => addTag("highlights", newHighlight, setNewHighlight)}>+</button>
+                                    </div>
+                                </div>
+
+                                {/* Descrição completa */}
+                                <div className="editor-field">
+                                    <label>Descrição completa</label>
+                                    <textarea
+                                        value={form.fullDescription}
+                                        onChange={e => setForm(f => ({ ...f, fullDescription: e.target.value }))}
+                                        placeholder="Descrição detalhada do pacote..."
+                                        className="editor-textarea"
+                                        rows={4}
+                                    />
+                                </div>
+
+                                {/* Intro emocional */}
+                                <div className="editor-field">
+                                    <label>Introdução emocional</label>
+                                    <textarea
+                                        value={form.emotionalIntro}
+                                        onChange={e => setForm(f => ({ ...f, emotionalIntro: e.target.value }))}
+                                        placeholder="Uma frase inspiradora sobre o destino..."
+                                        className="editor-textarea"
+                                        rows={2}
+                                    />
+                                </div>
+
+                                {/* Perfect for */}
+                                <div className="editor-field">
+                                    <label>Público ideal</label>
+                                    <div className="editor-tag-list">
+                                        {form.perfectFor.map((p, i) => (
+                                            <span key={i} className="editor-tag editor-tag-green">
+                                                {p}
+                                                <button onClick={() => removeTag("perfectFor", i)}>×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="editor-tag-input-row">
+                                        <input
+                                            type="text"
+                                            value={newPerfectFor}
+                                            onChange={e => setNewPerfectFor(e.target.value)}
+                                            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("perfectFor", newPerfectFor, setNewPerfectFor))}
+                                            placeholder="Ex: Casais, Famílias com crianças..."
+                                            className="editor-input"
+                                        />
+                                        <button className="editor-tag-add" onClick={() => addTag("perfectFor", newPerfectFor, setNewPerfectFor)}>+</button>
+                                    </div>
+                                </div>
+
+                                {/* Not recommended for */}
+                                <div className="editor-field">
+                                    <label>Não recomendado para</label>
+                                    <div className="editor-tag-list">
+                                        {form.notRecommendedFor.map((n, i) => (
+                                            <span key={i} className="editor-tag editor-tag-red">
+                                                {n}
+                                                <button onClick={() => removeTag("notRecommendedFor", i)}>×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="editor-tag-input-row">
+                                        <input
+                                            type="text"
+                                            value={newNotFor}
+                                            onChange={e => setNewNotFor(e.target.value)}
+                                            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("notRecommendedFor", newNotFor, setNewNotFor))}
+                                            placeholder="Ex: Pessoas com mobilidade reduzida..."
+                                            className="editor-input"
+                                        />
+                                        <button className="editor-tag-add" onClick={() => addTag("notRecommendedFor", newNotFor, setNewNotFor)}>+</button>
+                                    </div>
+                                </div>
+
+                                {/* Important info */}
+                                <div className="editor-field">
+                                    <label>Informações importantes</label>
+                                    <div className="editor-tag-list">
+                                        {form.importantInfo.map((info, i) => (
+                                            <span key={i} className="editor-tag">
+                                                {info}
+                                                <button onClick={() => removeTag("importantInfo", i)}>×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="editor-tag-input-row">
+                                        <input
+                                            type="text"
+                                            value={newImportant}
+                                            onChange={e => setNewImportant(e.target.value)}
+                                            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTag("importantInfo", newImportant, setNewImportant))}
+                                            placeholder="Ex: Necessário passaporte válido..."
+                                            className="editor-input"
+                                        />
+                                        <button className="editor-tag-add" onClick={() => addTag("importantInfo", newImportant, setNewImportant)}>+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ═══ BLOCO 7 — ROTEIRO DIA A DIA ═══ */}
+                    <div ref={el => { sectionRefs.current.itinerary = el; }} className={`editor-section ${openSections.has("itinerary") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("itinerary")}>
+                            <span className="editor-section-icon">7</span>
+                            <h2>Roteiro Dia a Dia</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("itinerary") ? "complete" : "incomplete"}`}>
+                                {pkgDays.length > 0 ? `${pkgDays.length} dia(s)` : "Pendente"}
+                            </span>
+                            <span className="editor-section-arrow">{openSections.has("itinerary") ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has("itinerary") && (
+                            <div className="editor-section-body">
+                                <p className="editor-field-hint">Descreva o que o viajante fará em cada dia do pacote. Quanto mais detalhado, mais confiança você transmite.</p>
+                                {pkgDays.map((day, di) => (
+                                    <div className="editor-day-card" key={di}>
+                                        <div className="editor-day-header">
+                                            <div className="editor-day-number">
+                                                <div className="editor-day-badge">{di + 1}</div>
+                                                <input
+                                                    className="editor-day-title-input"
+                                                    value={day.title}
+                                                    onChange={e => updatePkgDay(di, "title", e.target.value)}
+                                                    placeholder={`Título do Dia ${di + 1} — ex: Chegada em Paris`}
+                                                />
+                                            </div>
+                                            <button className="btn-remove" onClick={() => removePkgDay(di)}>🗑️</button>
+                                        </div>
+                                        <div className="editor-day-body">
+                                            <div className="editor-field">
+                                                <label>Resumo do dia</label>
+                                                <input
+                                                    className="editor-input"
+                                                    value={day.summary}
+                                                    onChange={e => updatePkgDay(di, "summary", e.target.value)}
+                                                    placeholder="Ex: Chegada, city tour e jantar no Marais"
+                                                />
+                                            </div>
+                                            <div className="editor-field">
+                                                <label>Descrição completa do dia</label>
+                                                <textarea
+                                                    className="editor-textarea"
+                                                    rows={3}
+                                                    value={day.description}
+                                                    onChange={e => updatePkgDay(di, "description", e.target.value)}
+                                                    placeholder="Descreva como o dia se desenrola, o que está incluso, dicas..."
+                                                />
+                                            </div>
+                                            <div className="editor-activities">
+                                                <div className="editor-activities-label">Atividades / Pontos do dia ({day.activities.length})</div>
+                                                {day.activities.map((act, ai) => (
+                                                    <div className="editor-activity-card" key={ai}>
+                                                        <div className="editor-activity-row">
+                                                            <input className="editor-act-time" value={act.time} onChange={e => updatePkgActivity(di, ai, "time", e.target.value)} placeholder="09:00" />
+                                                            <input className="editor-act-title" value={act.title} onChange={e => updatePkgActivity(di, ai, "title", e.target.value)} placeholder="Ex: Visita à Torre Eiffel" style={{ flex: 2 }} />
+                                                            <input className="editor-act-dur" value={act.duration} onChange={e => updatePkgActivity(di, ai, "duration", e.target.value)} placeholder="2h" />
+                                                            <button className="btn-remove" onClick={() => removePkgActivity(di, ai)}>✕</button>
+                                                        </div>
+                                                        <div className="editor-activity-row">
+                                                            <input className="editor-input" value={act.location} onChange={e => updatePkgActivity(di, ai, "location", e.target.value)} placeholder="📍 Local / Endereço" />
+                                                        </div>
+                                                        <div className="editor-activity-row">
+                                                            <textarea value={act.tips} onChange={e => updatePkgActivity(di, ai, "tips", e.target.value)} placeholder="💡 Dica sobre esse ponto..." style={{ minHeight: 40, width: "100%" }} className="editor-textarea" rows={2} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <button className="btn-add-item" onClick={() => addPkgActivity(di)}>+ Atividade</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button className="btn-add-item full-width" onClick={addPkgDay}>+ Adicionar Dia</button>
+                                {pkgDays.length === 0 && <p className="editor-field-hint" style={{ marginTop: 8 }}>💡 Opcional mas altamente recomendado — pacotes com roteiro detalhado convertem 3x mais.</p>}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ═══ BLOCO 8 — DOCUMENTAÇÃO ═══ */}
+                    <div ref={el => { sectionRefs.current.docs = el; }} className={`editor-section ${openSections.has("docs") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("docs")}>
+                            <span className="editor-section-icon">8</span>
+                            <h2>Documentação e Pós-compra</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("docs") ? "complete" : "incomplete"}`}>
+                                {isSectionComplete("docs") ? "Completo" : "Pendente"}
+                            </span>
+                            <span className="editor-section-arrow">{openSections.has("docs") ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has("docs") && (
+                            <div className="editor-section-body">
+                                <div className="editor-row">
+                                    <div className="editor-field">
+                                        <label>URL do Voucher</label>
+                                        <input
+                                            type="url"
+                                            value={form.voucherUrl}
+                                            onChange={e => setForm(f => ({ ...f, voucherUrl: e.target.value }))}
+                                            placeholder="https://..."
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                    <div className="editor-field">
+                                        <label>URL do E-ticket</label>
+                                        <input
+                                            type="url"
+                                            value={form.eticketUrl}
+                                            onChange={e => setForm(f => ({ ...f, eticketUrl: e.target.value }))}
+                                            placeholder="https://..."
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="editor-row">
+                                    <div className="editor-field">
+                                        <label>WhatsApp oficial da agência</label>
+                                        <input
+                                            type="tel"
+                                            value={form.whatsappOfficial}
+                                            onChange={e => setForm(f => ({ ...f, whatsappOfficial: e.target.value }))}
+                                            placeholder="+55 11 99999-9999"
+                                            className="editor-input"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="editor-field">
+                                    <label>Mensagem automática pós-compra</label>
+                                    <textarea
+                                        value={form.autoMessage}
+                                        onChange={e => setForm(f => ({ ...f, autoMessage: e.target.value }))}
+                                        placeholder="Mensagem que o comprador recebe automaticamente após a compra..."
+                                        className="editor-textarea"
+                                        rows={3}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                 </div>
             </div>
         </div>

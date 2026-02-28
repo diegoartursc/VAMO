@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useEffect } from "react";
+
 interface PhonePreviewProps {
     title: string;
     subtitle?: string;
@@ -14,6 +16,20 @@ interface PhonePreviewProps {
     travelStyles?: string[];
     categories?: string[];
     type?: "roteiro" | "pacote";
+}
+
+/* ─── Shimmer Skeleton for empty state ─── */
+function PhoneSkeleton() {
+    return (
+        <div style={{ padding: "12px 10px" }}>
+            <div className="phone-skeleton-cover" />
+            <div className="phone-skeleton-line medium" />
+            <div className="phone-skeleton-line short" style={{ marginBottom: 16 }} />
+            <div className="phone-skeleton-line thin long" />
+            <div className="phone-skeleton-line thin medium" />
+            <div className="phone-skeleton-line thin short" />
+        </div>
+    );
 }
 
 export default function PhonePreview({
@@ -35,6 +51,14 @@ export default function PhonePreview({
     const formattedPrice = price > 0 ? `${currencySymbol} ${price.toLocaleString("pt-BR")}` : "—";
     const hasContent = !!(title || destination);
 
+    // Track previous score to know when content first appears
+    const prevHasContent = useRef(false);
+    const contentKey = useRef(0);
+    if (hasContent && !prevHasContent.current) {
+        contentKey.current++;
+    }
+    prevHasContent.current = hasContent;
+
     return (
         <div className="phone-preview-wrapper">
             <div className="phone-preview-label">
@@ -51,14 +75,11 @@ export default function PhonePreview({
                 {/* Screen content */}
                 <div className="phone-screen">
                     {!hasContent ? (
-                        <div className="phone-empty">
-                            <div className="phone-empty-icon">✨</div>
-                            <p>Preencha os campos ao lado para ver o preview</p>
-                        </div>
+                        <PhoneSkeleton />
                     ) : (
-                        <>
+                        <div key={contentKey.current}>
                             {/* Cover */}
-                            <div className="phone-cover">
+                            <div className="phone-cover phone-content-fade" style={{ animationDelay: "0s" }}>
                                 {coverImage ? (
                                     <img src={coverImage} alt="" className="phone-cover-img" />
                                 ) : (
@@ -79,10 +100,12 @@ export default function PhonePreview({
 
                             {/* Content */}
                             <div className="phone-content">
-                                <h3 className="phone-title">{title || "Título do " + (type === "roteiro" ? "Roteiro" : "Pacote")}</h3>
+                                <h3 className="phone-title phone-content-fade" style={{ animationDelay: "0.06s", opacity: 0 }}>
+                                    {title || "Título do " + (type === "roteiro" ? "Roteiro" : "Pacote")}
+                                </h3>
 
                                 {(destination || country) && (
-                                    <div className="phone-location">
+                                    <div className="phone-location phone-content-fade" style={{ animationDelay: "0.10s", opacity: 0 }}>
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
                                             <circle cx="12" cy="10" r="3" />
@@ -91,9 +114,9 @@ export default function PhonePreview({
                                     </div>
                                 )}
 
-                                {subtitle && <p className="phone-subtitle">{subtitle}</p>}
+                                {subtitle && <p className="phone-subtitle phone-content-fade" style={{ animationDelay: "0.14s", opacity: 0 }}>{subtitle}</p>}
 
-                                <div className="phone-meta-row">
+                                <div className="phone-meta-row phone-content-fade" style={{ animationDelay: "0.18s", opacity: 0 }}>
                                     {duration > 0 && (
                                         <span className="phone-meta-chip">
                                             📅 {duration} {duration === 1 ? "dia" : "dias"}
@@ -108,7 +131,7 @@ export default function PhonePreview({
 
                                 {/* Tags */}
                                 {(travelStyles.length > 0 || categories.length > 0) && (
-                                    <div className="phone-tags">
+                                    <div className="phone-tags phone-content-fade" style={{ animationDelay: "0.22s", opacity: 0 }}>
                                         {travelStyles.map(s => (
                                             <span key={s} className="phone-tag">{s}</span>
                                         ))}
@@ -120,7 +143,7 @@ export default function PhonePreview({
 
                                 {/* Highlights */}
                                 {highlights.length > 0 && (
-                                    <div className="phone-highlights">
+                                    <div className="phone-highlights phone-content-fade" style={{ animationDelay: "0.26s", opacity: 0 }}>
                                         <div className="phone-section-label">Destaques</div>
                                         {highlights.slice(0, 3).map((h, i) => (
                                             <div key={i} className="phone-highlight-item">
@@ -136,7 +159,7 @@ export default function PhonePreview({
 
                                 {/* Days preview */}
                                 {days.length > 0 && (
-                                    <div className="phone-days">
+                                    <div className="phone-days phone-content-fade" style={{ animationDelay: "0.30s", opacity: 0 }}>
                                         <div className="phone-section-label">Itinerário</div>
                                         {days.slice(0, 3).map((day, i) => (
                                             <div key={i} className="phone-day-card">
@@ -160,7 +183,7 @@ export default function PhonePreview({
                                     </div>
                                 )}
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
