@@ -1,10 +1,10 @@
-# 📋 Status do Projeto VAMO - Fevereiro 2026
+# 📋 Status do Projeto VAMO - Março 2026
 
 ## 🎯 Visão Geral
 
 **VAMO** é uma plataforma mobile-first que simplifica a decisão de viagem, conectando viajantes a agências verificadas e criadores de roteiros independentes.
 
-**Status Atual:** MVP Frontend Completo ✅ | Backend MVP Implementado ✅ | Integração em Andamento 🔄
+**Status Atual:** MVP Frontend Completo ✅ | Backend MVP Implementado ✅ | Dashboards Operacionais ✅ | Fase 2.5 Concluída ✅
 
 ---
 
@@ -115,6 +115,42 @@
 - ✅ Estratégia de Integração com Agências
 - ✅ Design System documentado
 - ✅ Changelog estruturado
+
+### 🖥️ Dashboards Web (Next.js — Março 2026)
+
+#### Dashboard Admin (VAMO Owner)
+- ✅ Layout compartilhado com sidebar CSS (`dash-sidebar-admin`)
+- ✅ Sidebar dark theme com badge vermelho e navegação por sub-rotas reais
+- ✅ Visão Geral: cards de métricas + listas de pendências
+- ✅ Pacotes: inbox de moderação com filtro por status (Todos/Pendentes/Aprovados/Ativos/Rejeitados)
+- ✅ Roteiros: inbox de moderação com mesmo sistema de filtro
+- ✅ Agências: Pipeline de Onboarding (Pendentes → Em Análise → Ativas → Suspensas) com tabela de gestão
+- ✅ Roteiristas: listagem de criadores pendentes
+- ✅ Páginas placeholder: Clientes, Financeiro, Histórico, Configurações
+- ✅ Login auto-redirect para desenvolvimento
+
+#### Dashboard Agência (B2B)
+- ✅ Layout com sidebar azul profundo e badge "Agência"
+- ✅ Visão Geral com métricas de pacotes, vendas e reviews
+- ✅ Editor de Pacotes multi-step com stepper visual
+- ✅ Quality Coach com score automático por seção
+- ✅ Preview mobile em tempo real (PhonePreview)
+- ✅ Inbox de anotações para feedback do admin
+- ✅ Configurações da conta
+
+#### Dashboard Roteirista (Creator)
+- ✅ Layout com sidebar verde teal e badge "Roteirista"
+- ✅ Visão Geral com dicas contextuais por seção
+- ✅ Editor de Roteiros multi-step
+- ✅ Listagem de roteiros com status
+- ✅ Configurações da conta
+
+#### Infraestrutura dos Dashboards
+- ✅ Design System aplicado: todas as sidebars usam classes CSS globais `dash-sidebar-*`
+- ✅ Variantes de cor por papel (Admin: vermelho/escuro, Agência: azul, Roteirista: verde teal)
+- ✅ Componentes compartilhados: `FilterBar`, `ItemList`, `EmptyState`, `ApproveRejectModal`
+- ✅ Sistema de toast de feedback unificado
+- ✅ Cores alinhadas ao Design System (#1A3263, #5A6B8C, #28C9BF, #FF5252)
 
 ---
 
@@ -235,15 +271,35 @@ O repositório foi organizado como um monorepo contendo 3 aplicações distintas
 ```
 apps/site/
 ├── src/
-│   ├── app/              # Next.js App Router (Páginas)
-│   │   ├── dashboard/    # Gestão de roteiros e pacotes
-│   │   ├── criadores/    # Landing page e onboarding de roteiristas
-│   │   ├── cadastro/     # Autenticação
-│   │   └── login/
-│   ├── lib/              # API clients e utilities
-│   └── public/           # Assets estáticos
+│   ├── app/              # Next.js App Router
+│   │   ├── admin/        # Dashboard Admin (Owner VAMO)
+│   │   │   ├── layout.tsx  # Sidebar compartilhada
+│   │   │   ├── shared.tsx  # Tipos, contexto, componentes
+│   │   │   ├── page.tsx    # Visão Geral
+│   │   │   ├── pacotes/    # Moderação de pacotes
+│   │   │   ├── roteiros/   # Moderação de roteiros
+│   │   │   ├── agencias/   # Pipeline de onboarding
+│   │   │   ├── roteiristas/# Gestão de creators
+│   │   │   ├── clientes/   # (Em breve)
+│   │   │   ├── financeiro/ # (Em breve)
+│   │   │   ├── historico/  # (Em breve)
+│   │   │   ├── configuracoes/
+│   │   │   └── login/
+│   │   ├── agencia/      # Dashboard B2B (Agências)
+│   │   │   ├── layout.tsx
+│   │   │   ├── pacotes/
+│   │   │   ├── pacote/[id]/
+│   │   │   ├── inbox/
+│   │   │   └── configuracoes/
+│   │   ├── criador/      # Dashboard Creator (Roteiristas)
+│   │   │   ├── layout.tsx
+│   │   │   ├── roteiros/
+│   │   │   ├── roteiro/
+│   │   │   └── configuracoes/
+│   │   └── page.tsx      # Homepage institucional
+│   └── lib/              # API clients e utilities
 ```
-**Status:** MVP do dashboard do roteirista concluído com CRUD completo integrando ao backend Prisma.
+**Status:** Dashboards Admin/Agência/Roteirista operacionais com sub-rotas e CSS compartilhado.
 
 ### 2. APP (Mobile via Expo / React Native)
 ```
@@ -277,72 +333,38 @@ VAMO Backend API (Node.js + Express + PostgreSQL)
 
 ---
 
-## 📊 Prioridades Imediatas
+## 📊 Prioridades Imediatas (Março 2026)
 
 ### 🔥 Alta Prioridade (Próximas 2-4 semanas)
-1. **Setup inicial do backend**
-   - Criar repositório backend
-   - Configurar Node.js + TypeScript + Express
-   - Setup Prisma + Supabase
-   - Deploy básico funcionando
+1. **Backend para Agências**
+   - POST /admin/agencies/approve, reject, suspend
+   - GET /admin/agencies com filtros por status
+   - Webhook de notificação por e-mail
 
-2. **APIs essenciais**
-   - GET /packages (substituir mockData)
-   - GET /packages/:id
-   - Sistema de autenticação básico
-
-3. **Integração frontend → backend**
-   - Criar services layer no mobile
+2. **Integração Mobile → Backend**
    - Migrar tela de pacotes para API real
    - Implementar loading states e error handling
+   - Conectar sistema de favoritos ao backend
+
+3. **Polimento dos Dashboards**
+   - Componentizar DashStatCard, DashTable como componentes reutilizáveis
+   - Adicionar micro-animações de transição entre sub-rotas
+   - Breadcrumbs para navegação profunda
 
 ### ⚡ Média Prioridade (1-2 meses)
 1. Sistema de reservas completo
-2. Integração de pagamentos
-3. Email automation
-4. Dashboard de agências
+2. Integração Stripe/Mercado Pago
+3. Email automation (Resend)
+4. Chat com agências
 
 ### 📅 Baixa Prioridade (3+ meses)
-1. Features avançadas (chat, notificações)
-2. Otimizações de performance
-3. Internacionalização
-4. Analytics avançado
+1. Notificações push
+2. Internacionalização
+3. Analytics avançado
+4. Programa de fidelidade
 
 ---
 
-## 🎯 Métricas de Sucesso
-
-### MVP (3 meses)
-- [ ] 100+ pacotes cadastrados
-- [ ] 10+ agências parceiras
-- [ ] 1000+ usuários registrados
-- [ ] 50+ reservas realizadas
-
-### Crescimento (6 meses)
-- [ ] 500+ pacotes
-- [ ] 50+ agências
-- [ ] 10,000+ usuários
-- [ ] 500+ reservas/mês
-
-### Escala (12 meses)
-- [ ] 2000+ pacotes
-- [ ] 200+ agências + creators
-- [ ] 100,000+ usuários
-- [ ] 5000+ reservas/mês
-- [ ] R$ 1M+ GMV (Gross Merchandise Value)
-
----
-
-## 📞 Próximos Passos
-
-### Ações Imediatas
-1. ✅ Revisar e aprovar arquitetura backend
-2. 🔄 Criar repositório backend separado (ou mono-repo)
-3. 📝 Definir environment variables (.env.example)
-4. 🚀 Começar Sprint 1: Infraestrutura Base
-
----
-
-**Última atualização:** Fevereiro de 2026  
+**Última atualização:** Março de 2026  
 **Responsável:** Diego Artur  
-**Status:** APP Mobile Completo ✅ | Dashboard SITE (Next.js) Operacional ✅ | Backend Integrado ✅
+**Status:** APP Mobile ✅ | Dashboards Admin/Agência/Roteirista ✅ | Backend Integrado ✅ | Fase 2.5 ✅

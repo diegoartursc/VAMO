@@ -46,7 +46,8 @@ __turbopack_context__.s([
 ]);
 /**
  * VAMO — Site Auth Utility
- * Handles JWT token storage, login/logout, and session management
+ * MVP: autenticação baseada em mock para acesso sem login
+ * Autenticação real será implementada na Fase 3 (Login/Registro de usuários)
  */ const API_BASE_URL = ("TURBOPACK compile-time value", "http://localhost:3333/api") || 'http://localhost:3333/api';
 const TOKEN_KEY = 'vamo_access_token';
 const REFRESH_KEY = 'vamo_refresh_token';
@@ -69,7 +70,7 @@ function clearTokens() {
     localStorage.removeItem(REFRESH_KEY);
 }
 function isAuthenticated() {
-    return true; // Bypass login for user
+    return true;
 }
 function getAuthHeaders() {
     const token = getToken();
@@ -77,13 +78,13 @@ function getAuthHeaders() {
         Authorization: `Bearer ${token}`
     } : {};
 }
-// ─── Auth Actions ───
+// ─── Mock Session (MVP sem login) ───
 const MOCK_SESSION = {
     employee: {
         id: 'mock-id',
-        name: 'Diego Artur (Demo)',
-        email: 'diego@demo.com',
-        role: 'ADMIN' // Full access
+        name: 'Diego Artur',
+        email: 'diego@vamo.com',
+        role: 'ADMIN'
     },
     agency: {
         id: 'mock-agency-id',
@@ -94,7 +95,6 @@ const MOCK_SESSION = {
     }
 };
 async function login(email, password) {
-    // Keep login functional for real tests if needed, but MOCK_SESSION will likely be used
     try {
         const res = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
@@ -105,6 +105,30 @@ async function login(email, password) {
                 email,
                 password
             })
+        });
+        if (!res.ok) {
+            // MVP: fallback para mock se backend indisponível ou credencial errada
+            return MOCK_SESSION;
+        }
+        const data = await res.json();
+        setTokens(data.accessToken, data.refreshToken);
+        return {
+            employee: data.employee,
+            agency: data.agency
+        };
+    } catch  {
+        // Backend offline — retorna sessão mock
+        return MOCK_SESSION;
+    }
+}
+async function register(payload) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
         });
         if (!res.ok) {
             return MOCK_SESSION;
@@ -119,15 +143,10 @@ async function login(email, password) {
         return MOCK_SESSION;
     }
 }
-async function register(payload) {
-    return MOCK_SESSION;
-}
 async function getSession() {
     const token = getToken();
-    // For demo/testing, check URL for manual role switching if needed
-    if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
-    ;
-    if (!token) return MOCK_SESSION; // Auto-login if no token
+    // MVP: sem token, retorna mock para manter dashboards acessíveis
+    if (!token) return MOCK_SESSION;
     try {
         const res = await fetch(`${API_BASE_URL}/auth/me`, {
             headers: {
@@ -139,12 +158,14 @@ async function getSession() {
         }
         return await res.json();
     } catch  {
+        // Backend offline — retorna mock
         return MOCK_SESSION;
     }
 }
 function logout() {
     clearTokens();
-    window.location.href = '/';
+    if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+    ;
 }
 }),
 "[project]/apps/site/src/app/criador/layout.tsx [app-ssr] (ecmascript)", ((__turbopack_context__) => {

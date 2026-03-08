@@ -119,7 +119,11 @@ async function getItineraries() {
     return stats.itineraries;
 }
 async function getItineraryById(id) {
-    return fetchApi(`/itineraries/${id}`);
+    try {
+        return await fetchApi(`/itineraries/${id}`);
+    } catch  {
+        return MOCK_ITINERARIES.find((i)=>i.id === id) || MOCK_ITINERARIES[0] || null;
+    }
 }
 async function createItinerary(data) {
     return fetchApi('/itineraries', {
@@ -199,7 +203,13 @@ async function getAgencyPackages(agencyId) {
     }
 }
 async function getPackageById(id) {
-    return fetchApi(`/packages/${id}`);
+    try {
+        return await fetchApi(`/packages/${id}`);
+    } catch  {
+        const pkg = MOCK_PACKAGES.find((p)=>p.id === id);
+        if (pkg) return pkg;
+        throw new Error("Pacote não encontrado");
+    }
 }
 async function createPackage(data) {
     return fetchApi('/packages', {
@@ -247,14 +257,17 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/apps/site/src/lib/api.ts [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$auth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/apps/site/src/lib/auth.ts [app-client] (ecmascript)");
 ;
 var _s = __turbopack_context__.k.signature();
 "use client";
 ;
 ;
 ;
+;
 function CriadorOverview() {
     _s();
+    const [session, setSession] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [stats, setStats] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
         total: 0,
         published: 0,
@@ -264,19 +277,23 @@ function CriadorOverview() {
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "CriadorOverview.useEffect": ()=>{
-            (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getDashboardStats"])().then({
-                "CriadorOverview.useEffect": (data)=>{
+            Promise.all([
+                (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$auth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getSession"])(),
+                (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getDashboardStats"])()
+            ]).then({
+                "CriadorOverview.useEffect": ([s, data])=>{
+                    if (s) setSession(s);
                     const its = data.itineraries || [];
                     setStats({
                         total: its.length,
                         published: its.filter({
-                            "CriadorOverview.useEffect": (i)=>i.status === "active"
+                            "CriadorOverview.useEffect": (i)=>i.status === "active" || i.status === "ACTIVE"
                         }["CriadorOverview.useEffect"]).length,
                         totalSales: its.reduce({
-                            "CriadorOverview.useEffect": (s, i)=>s + (i.sales || 0)
+                            "CriadorOverview.useEffect": (sum, i)=>sum + (i.sales || 0)
                         }["CriadorOverview.useEffect"], 0),
                         totalRevenue: its.reduce({
-                            "CriadorOverview.useEffect": (s, i)=>s + (i.revenue || 0)
+                            "CriadorOverview.useEffect": (sum, i)=>sum + (i.revenue || 0)
                         }["CriadorOverview.useEffect"], 0)
                     });
                 }
@@ -287,6 +304,7 @@ function CriadorOverview() {
             }["CriadorOverview.useEffect"]);
         }
     }["CriadorOverview.useEffect"], []);
+    const firstName = session?.employee?.name?.split(" ")[0] || "Criador";
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -294,10 +312,14 @@ function CriadorOverview() {
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
                         className: "dash-title",
-                        children: "Olá, Criador!"
-                    }, void 0, false, {
+                        children: [
+                            "Olá, ",
+                            firstName,
+                            "!"
+                        ]
+                    }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                        lineNumber: 29,
+                        lineNumber: 34,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -305,13 +327,13 @@ function CriadorOverview() {
                         children: "Gerencie seus roteiros e acompanhe suas vendas"
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                        lineNumber: 30,
+                        lineNumber: 35,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                lineNumber: 28,
+                lineNumber: 33,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -335,17 +357,17 @@ function CriadorOverview() {
                                         d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                        lineNumber: 36,
+                                        lineNumber: 41,
                                         columnNumber: 165
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                    lineNumber: 36,
+                                    lineNumber: 41,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 35,
+                                lineNumber: 40,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -353,7 +375,7 @@ function CriadorOverview() {
                                 children: "Roteiros"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 38,
+                                lineNumber: 43,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -361,13 +383,13 @@ function CriadorOverview() {
                                 children: loading ? "..." : stats.total
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 39,
+                                lineNumber: 44,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                        lineNumber: 34,
+                        lineNumber: 39,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -389,25 +411,25 @@ function CriadorOverview() {
                                             d: "M22 11.08V12a10 10 0 11-5.93-9.14"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                            lineNumber: 44,
+                                            lineNumber: 49,
                                             columnNumber: 165
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("polyline", {
                                             points: "22 4 12 14.01 9 11.01"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                            lineNumber: 44,
+                                            lineNumber: 49,
                                             columnNumber: 211
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                    lineNumber: 44,
+                                    lineNumber: 49,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 43,
+                                lineNumber: 48,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -415,7 +437,7 @@ function CriadorOverview() {
                                 children: "Publicados"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 46,
+                                lineNumber: 51,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -423,13 +445,13 @@ function CriadorOverview() {
                                 children: loading ? "..." : stats.published
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 47,
+                                lineNumber: 52,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                        lineNumber: 42,
+                        lineNumber: 47,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -451,7 +473,7 @@ function CriadorOverview() {
                                             d: "M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                            lineNumber: 52,
+                                            lineNumber: 57,
                                             columnNumber: 165
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
@@ -460,7 +482,7 @@ function CriadorOverview() {
                                             r: "4"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                            lineNumber: 52,
+                                            lineNumber: 57,
                                             columnNumber: 217
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -470,7 +492,7 @@ function CriadorOverview() {
                                             y2: "14"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                            lineNumber: 52,
+                                            lineNumber: 57,
                                             columnNumber: 249
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -480,18 +502,18 @@ function CriadorOverview() {
                                             y2: "11"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                            lineNumber: 52,
+                                            lineNumber: 57,
                                             columnNumber: 288
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                    lineNumber: 52,
+                                    lineNumber: 57,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 51,
+                                lineNumber: 56,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -499,7 +521,7 @@ function CriadorOverview() {
                                 children: "Vendas"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 54,
+                                lineNumber: 59,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -507,13 +529,13 @@ function CriadorOverview() {
                                 children: loading ? "..." : stats.totalSales
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 55,
+                                lineNumber: 60,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                        lineNumber: 50,
+                        lineNumber: 55,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -538,25 +560,25 @@ function CriadorOverview() {
                                             y2: "23"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                            lineNumber: 60,
+                                            lineNumber: 65,
                                             columnNumber: 165
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
                                             d: "M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                            lineNumber: 60,
+                                            lineNumber: 65,
                                             columnNumber: 204
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                    lineNumber: 60,
+                                    lineNumber: 65,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 59,
+                                lineNumber: 64,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -564,7 +586,7 @@ function CriadorOverview() {
                                 children: "Receita"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 62,
+                                lineNumber: 67,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -572,19 +594,19 @@ function CriadorOverview() {
                                 children: loading ? "..." : `R$ ${stats.totalRevenue.toLocaleString("pt-BR")}`
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                                lineNumber: 63,
+                                lineNumber: 68,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                        lineNumber: 58,
+                        lineNumber: 63,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                lineNumber: 33,
+                lineNumber: 38,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -602,22 +624,22 @@ function CriadorOverview() {
                     children: "Ver Meus Roteiros"
                 }, void 0, false, {
                     fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                    lineNumber: 70,
+                    lineNumber: 75,
                     columnNumber: 17
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/criador/page.tsx",
-                lineNumber: 69,
+                lineNumber: 74,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/criador/page.tsx",
-        lineNumber: 27,
+        lineNumber: 32,
         columnNumber: 9
     }, this);
 }
-_s(CriadorOverview, "QqYDt5e07pAOJoLFZfc0z/RogqA=");
+_s(CriadorOverview, "Tx7gYY7yt/l/Tblv+0E5SCv8ulw=");
 _c = CriadorOverview;
 var _c;
 __turbopack_context__.k.register(_c, "CriadorOverview");

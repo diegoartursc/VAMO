@@ -1,6 +1,7 @@
 /**
  * VAMO — Site Auth Utility
- * Handles JWT token storage, login/logout, and session management
+ * MVP: autenticação baseada em mock para acesso sem login
+ * Autenticação real será implementada na Fase 3 (Login/Registro de usuários)
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333/api';
@@ -30,8 +31,9 @@ function clearTokens() {
     localStorage.removeItem(REFRESH_KEY);
 }
 
+// MVP: retorna true para permitir acesso aos dashboards sem login
 export function isAuthenticated(): boolean {
-    return true; // Bypass login for user
+    return true;
 }
 
 export function getAuthHeaders(): Record<string, string> {
@@ -71,14 +73,13 @@ export interface LoginResponse {
 
 export interface RegisterResponse extends LoginResponse { }
 
-// ─── Auth Actions ───
-
+// ─── Mock Session (MVP sem login) ───
 const MOCK_SESSION: AuthSession = {
     employee: {
         id: 'mock-id',
-        name: 'Diego Artur (Demo)',
-        email: 'diego@demo.com',
-        role: 'ADMIN' // Full access
+        name: 'Diego Artur',
+        email: 'diego@vamo.com',
+        role: 'ADMIN'
     },
     agency: {
         id: 'mock-agency-id',
@@ -89,8 +90,9 @@ const MOCK_SESSION: AuthSession = {
     }
 };
 
+// ─── Auth Actions ───
+
 export async function login(email: string, password: string): Promise<AuthSession> {
-    // Keep login functional for real tests if needed, but MOCK_SESSION will likely be used
     try {
         const res = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
@@ -99,14 +101,15 @@ export async function login(email: string, password: string): Promise<AuthSessio
         });
 
         if (!res.ok) {
+            // MVP: fallback para mock se backend indisponível ou credencial errada
             return MOCK_SESSION;
         }
 
         const data: LoginResponse = await res.json();
         setTokens(data.accessToken, data.refreshToken);
-
         return { employee: data.employee, agency: data.agency };
     } catch {
+        // Backend offline — retorna sessão mock
         return MOCK_SESSION;
     }
 }
@@ -118,26 +121,31 @@ export async function register(payload: {
     employeeName: string;
     email: string;
     password: string;
-}) {
-    return MOCK_SESSION;
+}): Promise<AuthSession> {
+    try {
+        const res = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            return MOCK_SESSION;
+        }
+
+        const data: RegisterResponse = await res.json();
+        setTokens(data.accessToken, data.refreshToken);
+        return { employee: data.employee, agency: data.agency };
+    } catch {
+        return MOCK_SESSION;
+    }
 }
 
 export async function getSession(): Promise<AuthSession | null> {
     const token = getToken();
 
-    // For demo/testing, check URL for manual role switching if needed
-    if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const roleParam = urlParams.get('role');
-        if (roleParam) {
-            return {
-                ...MOCK_SESSION,
-                employee: { ...MOCK_SESSION.employee, role: roleParam.toUpperCase() }
-            };
-        }
-    }
-
-    if (!token) return MOCK_SESSION; // Auto-login if no token
+    // MVP: sem token, retorna mock para manter dashboards acessíveis
+    if (!token) return MOCK_SESSION;
 
     try {
         const res = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -150,12 +158,14 @@ export async function getSession(): Promise<AuthSession | null> {
 
         return await res.json();
     } catch {
+        // Backend offline — retorna mock
         return MOCK_SESSION;
     }
 }
 
 export function logout() {
     clearTokens();
-    window.location.href = '/';
+    if (typeof window !== 'undefined') {
+        window.location.href = '/';
+    }
 }
-

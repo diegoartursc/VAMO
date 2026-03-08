@@ -119,7 +119,11 @@ async function getItineraries() {
     return stats.itineraries;
 }
 async function getItineraryById(id) {
-    return fetchApi(`/itineraries/${id}`);
+    try {
+        return await fetchApi(`/itineraries/${id}`);
+    } catch  {
+        return MOCK_ITINERARIES.find((i)=>i.id === id) || MOCK_ITINERARIES[0] || null;
+    }
 }
 async function createItinerary(data) {
     return fetchApi('/itineraries', {
@@ -199,7 +203,13 @@ async function getAgencyPackages(agencyId) {
     }
 }
 async function getPackageById(id) {
-    return fetchApi(`/packages/${id}`);
+    try {
+        return await fetchApi(`/packages/${id}`);
+    } catch  {
+        const pkg = MOCK_PACKAGES.find((p)=>p.id === id);
+        if (pkg) return pkg;
+        throw new Error("Pacote não encontrado");
+    }
 }
 async function createPackage(data) {
     return fetchApi('/packages', {

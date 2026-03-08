@@ -1401,6 +1401,10 @@ textarea.form-input {
   z-index: 1;
 }
 
+.dash-container {
+  max-width: 1200px;
+}
+
 /* ─── DASHBOARD HEADER ─── */
 .dash-header {
   margin-bottom: 32px;
@@ -2939,6 +2943,21 @@ textarea.form-input {
   box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4) !important;
 }
 
+/* ═══ ADMIN SIDEBAR VARIANT ═══ */
+.dash-sidebar-admin {
+  background: linear-gradient(180deg, #0F172A 0%, #0C1322 50%, #080E1A 100%);
+}
+
+.dash-sidebar-badge-admin {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #F87171 !important;
+}
+
+.dash-sidebar-avatar-admin {
+  background: linear-gradient(135deg, #EF4444, #B91C1C) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+}
+
 /* ═══════════════════════════════════════════════════════════
    ROTEIRO EDITOR — Premium Full Redesign
    ═══════════════════════════════════════════════════════════ */
@@ -4370,7 +4389,7 @@ select.form-input {
 .section-info-panel {
   position: absolute;
   top: calc(100% + 8px);
-  left: -8px;
+  right: 0;
   z-index: 50;
   width: 320px;
   background: #fff;

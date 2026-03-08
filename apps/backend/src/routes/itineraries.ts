@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -204,8 +205,8 @@ function calcItineraryQuality(data: any): number {
 }
 
 // ─── CREATE ───
-// POST /api/itineraries
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/itineraries (requires auth)
+router.post('/', authMiddleware, async (req: Request, res: Response) => {
     try {
         const {
             creatorId, title, destination, country, description,
@@ -332,8 +333,8 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // ─── UPDATE ───
-// PUT /api/itineraries/:id
-router.put('/:id', async (req: Request, res: Response) => {
+// PUT /api/itineraries/:id (requires auth)
+router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const {
@@ -524,8 +525,8 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // ─── DELETE ───
-// DELETE /api/itineraries/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+// DELETE /api/itineraries/:id (requires auth)
+router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { hard } = req.query;

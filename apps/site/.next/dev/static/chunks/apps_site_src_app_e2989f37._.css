@@ -1327,6 +1327,10 @@ textarea.form-input {
   position: relative;
 }
 
+.dash-container {
+  max-width: 1200px;
+}
+
 .dash-header {
   margin-bottom: 32px;
 }
@@ -2781,6 +2785,20 @@ textarea.form-input {
   box-shadow: 0 4px 12px #4299e166 !important;
 }
 
+.dash-sidebar-admin {
+  background: linear-gradient(#0f172a 0%, #0c1322 50%, #080e1a 100%);
+}
+
+.dash-sidebar-badge-admin {
+  color: #f87171 !important;
+  border-color: #ef444466 !important;
+}
+
+.dash-sidebar-avatar-admin {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  box-shadow: 0 4px 12px #ef444459 !important;
+}
+
 .editor-page {
   background: var(--surface-bg, #f0f4f8);
   flex-direction: column;
@@ -4140,7 +4158,7 @@ select.form-input {
   animation: .2s sectionInfoSlide;
   position: absolute;
   top: calc(100% + 8px);
-  left: -8px;
+  right: 0;
   overflow: hidden;
   box-shadow: 0 8px 32px #1a32631f, 0 2px 8px #0000000f;
 }

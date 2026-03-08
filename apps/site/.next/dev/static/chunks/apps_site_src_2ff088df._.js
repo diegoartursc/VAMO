@@ -119,7 +119,11 @@ async function getItineraries() {
     return stats.itineraries;
 }
 async function getItineraryById(id) {
-    return fetchApi(`/itineraries/${id}`);
+    try {
+        return await fetchApi(`/itineraries/${id}`);
+    } catch  {
+        return MOCK_ITINERARIES.find((i)=>i.id === id) || MOCK_ITINERARIES[0] || null;
+    }
 }
 async function createItinerary(data) {
     return fetchApi('/itineraries', {
@@ -199,7 +203,13 @@ async function getAgencyPackages(agencyId) {
     }
 }
 async function getPackageById(id) {
-    return fetchApi(`/packages/${id}`);
+    try {
+        return await fetchApi(`/packages/${id}`);
+    } catch  {
+        const pkg = MOCK_PACKAGES.find((p)=>p.id === id);
+        if (pkg) return pkg;
+        throw new Error("Pacote não encontrado");
+    }
 }
 async function createPackage(data) {
     return fetchApi('/packages', {
@@ -980,6 +990,99 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 var _s = __turbopack_context__.k.signature();
 "use client";
 ;
+/* ─── Icons ─── */ const InfoIcon = ()=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+        width: "18",
+        height: "18",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "2",
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
+                cx: "12",
+                cy: "12",
+                r: "10"
+            }, void 0, false, {
+                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                lineNumber: 20,
+                columnNumber: 9
+            }, ("TURBOPACK compile-time value", void 0)),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                d: "M12 16v-4"
+            }, void 0, false, {
+                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                lineNumber: 21,
+                columnNumber: 9
+            }, ("TURBOPACK compile-time value", void 0)),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                d: "M12 8h.01"
+            }, void 0, false, {
+                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                lineNumber: 22,
+                columnNumber: 9
+            }, ("TURBOPACK compile-time value", void 0))
+        ]
+    }, void 0, true, {
+        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+        lineNumber: 19,
+        columnNumber: 5
+    }, ("TURBOPACK compile-time value", void 0));
+_c = InfoIcon;
+const CloseIcon = ()=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+        width: "20",
+        height: "20",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "2",
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+            d: "M18 6L6 18 M6 6l12 12"
+        }, void 0, false, {
+            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+            lineNumber: 27,
+            columnNumber: 9
+        }, ("TURBOPACK compile-time value", void 0))
+    }, void 0, false, {
+        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+        lineNumber: 26,
+        columnNumber: 5
+    }, ("TURBOPACK compile-time value", void 0));
+_c1 = CloseIcon;
+const TrendingUpIcon = ()=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+        width: "18",
+        height: "18",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "2",
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("polyline", {
+                points: "23 6 13.5 15.5 8.5 10.5 1 18"
+            }, void 0, false, {
+                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                lineNumber: 32,
+                columnNumber: 9
+            }, ("TURBOPACK compile-time value", void 0)),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("polyline", {
+                points: "17 6 23 6 23 12"
+            }, void 0, false, {
+                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                lineNumber: 33,
+                columnNumber: 9
+            }, ("TURBOPACK compile-time value", void 0))
+        ]
+    }, void 0, true, {
+        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+        lineNumber: 31,
+        columnNumber: 5
+    }, ("TURBOPACK compile-time value", void 0));
+_c2 = TrendingUpIcon;
 /* ─── Particle burst on milestone ─── */ function Particles() {
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "quality-particles",
@@ -994,16 +1097,16 @@ var _s = __turbopack_context__.k.signature();
                 className: "quality-particle"
             }, i, false, {
                 fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                lineNumber: 21,
+                lineNumber: 41,
                 columnNumber: 39
             }, this))
     }, void 0, false, {
         fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-        lineNumber: 20,
+        lineNumber: 40,
         columnNumber: 9
     }, this);
 }
-_c = Particles;
+_c3 = Particles;
 function QualityCoach({ score, tips, maxTips = 3 }) {
     _s();
     const radius = 40;
@@ -1015,6 +1118,7 @@ function QualityCoach({ score, tips, maxTips = 3 }) {
     const prevScore = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(0);
     const [isMilestone, setIsMilestone] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [showParticles, setShowParticles] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [showInfo, setShowInfo] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "QualityCoach.useEffect": ()=>{
             // Trigger milestone glow when crossing 80%
@@ -1035,195 +1139,522 @@ function QualityCoach({ score, tips, maxTips = 3 }) {
         score
     ]);
     const activeTips = tips.filter((t)=>t.condition).sort((a, b)=>a.priority - b.priority).slice(0, maxTips);
-    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: `quality-coach ${isMilestone ? "milestone" : ""}`,
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: `quality-gauge ${isMilestone ? "milestone" : ""}`,
-                style: {
-                    "--qc-color": color,
-                    "--qc-bg": bgColor
-                },
+                className: `quality-coach ${isMilestone ? "milestone" : ""}`,
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         style: {
-                            position: "relative"
+                            position: "absolute",
+                            top: "12px",
+                            right: "12px",
+                            zIndex: 10
+                        },
+                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            onClick: ()=>setShowInfo(true),
+                            className: "quality-info-btn",
+                            style: {
+                                color
+                            },
+                            title: "Como o score é calculado?",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(InfoIcon, {}, void 0, false, {
+                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                lineNumber: 94,
+                                columnNumber: 25
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                            lineNumber: 88,
+                            columnNumber: 21
+                        }, this)
+                    }, void 0, false, {
+                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                        lineNumber: 87,
+                        columnNumber: 17
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: `quality-gauge ${isMilestone ? "milestone" : ""}`,
+                        style: {
+                            "--qc-color": color,
+                            "--qc-bg": bgColor
                         },
                         children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
-                                width: "100",
-                                height: "100",
-                                viewBox: "0 0 100 100",
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                style: {
+                                    position: "relative"
+                                },
                                 children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
-                                        cx: "50",
-                                        cy: "50",
-                                        r: radius,
-                                        fill: "none",
-                                        stroke: "rgba(0,0,0,0.06)",
-                                        strokeWidth: "6"
-                                    }, void 0, false, {
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                                        width: "100",
+                                        height: "100",
+                                        viewBox: "0 0 100 100",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
+                                                cx: "50",
+                                                cy: "50",
+                                                r: radius,
+                                                fill: "none",
+                                                stroke: "rgba(0,0,0,0.06)",
+                                                strokeWidth: "6"
+                                            }, void 0, false, {
+                                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                lineNumber: 104,
+                                                columnNumber: 29
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
+                                                cx: "50",
+                                                cy: "50",
+                                                r: radius,
+                                                fill: "none",
+                                                stroke: color,
+                                                strokeWidth: "6",
+                                                strokeLinecap: "round",
+                                                strokeDasharray: circumference,
+                                                strokeDashoffset: offset,
+                                                transform: "rotate(-90 50 50)",
+                                                style: {
+                                                    transition: "stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1), stroke 0.4s ease"
+                                                }
+                                            }, void 0, false, {
+                                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                lineNumber: 106,
+                                                columnNumber: 29
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
                                         fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                                        lineNumber: 70,
+                                        lineNumber: 102,
                                         columnNumber: 25
                                     }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
-                                        cx: "50",
-                                        cy: "50",
-                                        r: radius,
-                                        fill: "none",
-                                        stroke: color,
-                                        strokeWidth: "6",
-                                        strokeLinecap: "round",
-                                        strokeDasharray: circumference,
-                                        strokeDashoffset: offset,
-                                        transform: "rotate(-90 50 50)",
+                                    showParticles && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(Particles, {}, void 0, false, {
+                                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                        lineNumber: 116,
+                                        columnNumber: 43
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                lineNumber: 101,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "quality-gauge-value",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "quality-gauge-number",
                                         style: {
-                                            transition: "stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1), stroke 0.4s ease"
-                                        }
+                                            color
+                                        },
+                                        children: score
+                                    }, score, false, {
+                                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                        lineNumber: 119,
+                                        columnNumber: 25
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "quality-gauge-percent",
+                                        children: "%"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                                        lineNumber: 72,
+                                        lineNumber: 120,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                                lineNumber: 68,
+                                lineNumber: 118,
                                 columnNumber: 21
-                            }, this),
-                            showParticles && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(Particles, {}, void 0, false, {
-                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                                lineNumber: 82,
-                                columnNumber: 39
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                        lineNumber: 67,
+                        lineNumber: 99,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "quality-gauge-value",
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                className: "quality-gauge-number",
-                                style: {
-                                    color
-                                },
-                                children: score
-                            }, score, false, {
-                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                                lineNumber: 85,
-                                columnNumber: 21
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                className: "quality-gauge-percent",
-                                children: "%"
-                            }, void 0, false, {
-                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                                lineNumber: 86,
-                                columnNumber: 21
-                            }, this)
-                        ]
-                    }, void 0, true, {
+                        className: "quality-message",
+                        children: message
+                    }, message, false, {
                         fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                        lineNumber: 84,
+                        lineNumber: 125,
                         columnNumber: 17
-                    }, this)
-                ]
-            }, void 0, true, {
-                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                lineNumber: 65,
-                columnNumber: 13
-            }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "quality-message",
-                children: message
-            }, message, false, {
-                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                lineNumber: 91,
-                columnNumber: 13
-            }, this),
-            activeTips.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "quality-tips",
-                children: activeTips.map((tip, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    }, this),
+                    activeTips.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "quality-tips",
+                        children: activeTips.map((tip, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "quality-tip",
+                                style: {
+                                    animationDelay: `${i * 0.05}s`
+                                },
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "quality-tip-icon",
+                                        children: "💡"
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                        lineNumber: 132,
+                                        columnNumber: 33
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "quality-tip-text",
+                                        children: tip.text
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                        lineNumber: 133,
+                                        columnNumber: 33
+                                    }, this)
+                                ]
+                            }, tip.text, true, {
+                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                lineNumber: 131,
+                                columnNumber: 29
+                            }, this))
+                    }, void 0, false, {
+                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                        lineNumber: 129,
+                        columnNumber: 21
+                    }, this),
+                    activeTips.length === 0 && score > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "quality-tip",
                         style: {
-                            animationDelay: `${i * 0.05}s`
+                            background: "rgba(40,201,191,0.06)",
+                            borderColor: "rgba(40,201,191,0.18)"
                         },
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 className: "quality-tip-icon",
-                                children: "💡"
+                                children: "✅"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                                lineNumber: 98,
-                                columnNumber: 29
+                                lineNumber: 142,
+                                columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 className: "quality-tip-text",
-                                children: tip.text
+                                style: {
+                                    color: "#1FA89F"
+                                },
+                                children: "Todos os pontos preenchidos!"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                                lineNumber: 99,
-                                columnNumber: 29
+                                lineNumber: 143,
+                                columnNumber: 25
                             }, this)
                         ]
-                    }, tip.text, true, {
+                    }, void 0, true, {
                         fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                        lineNumber: 97,
-                        columnNumber: 25
-                    }, this))
-            }, void 0, false, {
-                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                lineNumber: 95,
-                columnNumber: 17
-            }, this),
-            activeTips.length === 0 && score > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "quality-tip",
-                style: {
-                    background: "rgba(40,201,191,0.06)",
-                    borderColor: "rgba(40,201,191,0.18)"
-                },
-                children: [
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                        className: "quality-tip-icon",
-                        children: "✅"
-                    }, void 0, false, {
-                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                        lineNumber: 108,
-                        columnNumber: 21
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                        className: "quality-tip-text",
-                        style: {
-                            color: "#1FA89F"
-                        },
-                        children: "Todos os pontos preenchidos!"
-                    }, void 0, false, {
-                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                        lineNumber: 109,
+                        lineNumber: 141,
                         columnNumber: 21
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-                lineNumber: 107,
+                lineNumber: 85,
+                columnNumber: 13
+            }, this),
+            showInfo && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "qc-modal-overlay",
+                onClick: ()=>setShowInfo(false),
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "qc-modal-content",
+                    onClick: (e)=>e.stopPropagation(),
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            className: "qc-modal-close",
+                            onClick: ()=>setShowInfo(false),
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(CloseIcon, {}, void 0, false, {
+                                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                lineNumber: 154,
+                                columnNumber: 95
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                            lineNumber: 154,
+                            columnNumber: 25
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "qc-modal-header",
+                            style: {
+                                borderBottomColor: bgColor
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "qc-modal-icon",
+                                    style: {
+                                        background: bgColor,
+                                        color
+                                    },
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(TrendingUpIcon, {}, void 0, false, {
+                                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                        lineNumber: 157,
+                                        columnNumber: 99
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                    lineNumber: 157,
+                                    columnNumber: 29
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                            className: "qc-modal-title",
+                                            children: "Índice de Qualidade VAMO"
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                            lineNumber: 159,
+                                            columnNumber: 33
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                            className: "qc-modal-subtitle",
+                                            children: "Descubra como seu score afeta suas vendas."
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                            lineNumber: 160,
+                                            columnNumber: 33
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                    lineNumber: 158,
+                                    columnNumber: 29
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                            lineNumber: 156,
+                            columnNumber: 25
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "qc-modal-body",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                    style: {
+                                        fontSize: "14px",
+                                        color: "#475569",
+                                        lineHeight: 1.6,
+                                        marginBottom: "24px"
+                                    },
+                                    children: [
+                                        "O ",
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                            children: "Score VAMO"
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                            lineNumber: 166,
+                                            columnNumber: 35
+                                        }, this),
+                                        " (0 a 100%) mede o nível de detalhamento do seu produto. Pacotes e Roteiros com ",
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                            children: 'Score acima de 80% recebem o selo "Destaque"'
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                            lineNumber: 167,
+                                            columnNumber: 56
+                                        }, this),
+                                        ", tendo prioridade nas buscas e convertendo até 2x mais vendas por passarem mais confiança."
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                    lineNumber: 165,
+                                    columnNumber: 29
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h4", {
+                                    style: {
+                                        fontSize: "14px",
+                                        fontWeight: "700",
+                                        color: "#1E293B",
+                                        marginBottom: "16px",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em"
+                                    },
+                                    children: "Calculo do Score"
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                    lineNumber: 171,
+                                    columnNumber: 29
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    style: {
+                                        display: "grid",
+                                        gap: "12px"
+                                    },
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "qc-modal-rule",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "qc-rule-badge",
+                                                    style: {
+                                                        background: "rgba(239,68,68,0.1)",
+                                                        color: "#DC2626"
+                                                    },
+                                                    children: "Até 40%"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                    lineNumber: 175,
+                                                    columnNumber: 37
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "qc-rule-text",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                                            children: "Informações Básicas:"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                            lineNumber: 177,
+                                                            columnNumber: 41
+                                                        }, this),
+                                                        " Título, Destino, Preço, Duração e Fotos. (Obrigatório para publicar)."
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                    lineNumber: 176,
+                                                    columnNumber: 37
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                            lineNumber: 174,
+                                            columnNumber: 33
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "qc-modal-rule",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "qc-rule-badge",
+                                                    style: {
+                                                        background: "rgba(245,158,11,0.1)",
+                                                        color: "#D97706"
+                                                    },
+                                                    children: "Até 75%"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                    lineNumber: 181,
+                                                    columnNumber: 37
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "qc-rule-text",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                                            children: "Atributos de Valor:"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                            lineNumber: 183,
+                                                            columnNumber: 41
+                                                        }, this),
+                                                        " Inclusões estruturadas, Estilos de Viagem selecionados e Categorias bem definidas."
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                    lineNumber: 182,
+                                                    columnNumber: 37
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                            lineNumber: 180,
+                                            columnNumber: 33
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "qc-modal-rule",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "qc-rule-badge",
+                                                    style: {
+                                                        background: "rgba(40,201,191,0.1)",
+                                                        color: "#1FA89F"
+                                                    },
+                                                    children: "100%"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                    lineNumber: 187,
+                                                    columnNumber: 37
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "qc-rule-text",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                                            children: "Riqueza de Detalhes:"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                            lineNumber: 189,
+                                                            columnNumber: 41
+                                                        }, this),
+                                                        " Textos longos na Descrição, Política de Cancelamento explicada e Destaques bem pontuados."
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                                    lineNumber: 188,
+                                                    columnNumber: 37
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                            lineNumber: 186,
+                                            columnNumber: 33
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                    lineNumber: 173,
+                                    columnNumber: 29
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    style: {
+                                        marginTop: "24px",
+                                        padding: "16px",
+                                        background: "#F8FAFC",
+                                        borderRadius: "12px",
+                                        border: "1px solid #E2E8F0"
+                                    },
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        style: {
+                                            margin: 0,
+                                            fontSize: "13px",
+                                            color: "#64748B",
+                                            fontStyle: "italic",
+                                            textAlign: "center"
+                                        },
+                                        children: "Dica: Siga as lâmpadas amarelas (💡) indicadas no painel. Elas são atalhos diretos para os campos que mais geram pontuação!"
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                        lineNumber: 195,
+                                        columnNumber: 33
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                                    lineNumber: 194,
+                                    columnNumber: 29
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                            lineNumber: 164,
+                            columnNumber: 25
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                    lineNumber: 153,
+                    columnNumber: 21
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
+                lineNumber: 152,
                 columnNumber: 17
             }, this)
         ]
-    }, void 0, true, {
-        fileName: "[project]/apps/site/src/components/dashboard/QualityCoach.tsx",
-        lineNumber: 63,
-        columnNumber: 9
-    }, this);
+    }, void 0, true);
 }
-_s(QualityCoach, "kwPp9xrtECyPDLNZg0EL3fjaAkA=");
-_c1 = QualityCoach;
-var _c, _c1;
-__turbopack_context__.k.register(_c, "Particles");
-__turbopack_context__.k.register(_c1, "QualityCoach");
+_s(QualityCoach, "VkNTIgZynAXXZvNE4txeCsFCsZw=");
+_c4 = QualityCoach;
+var _c, _c1, _c2, _c3, _c4;
+__turbopack_context__.k.register(_c, "InfoIcon");
+__turbopack_context__.k.register(_c1, "CloseIcon");
+__turbopack_context__.k.register(_c2, "TrendingUpIcon");
+__turbopack_context__.k.register(_c3, "Particles");
+__turbopack_context__.k.register(_c4, "QualityCoach");
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }

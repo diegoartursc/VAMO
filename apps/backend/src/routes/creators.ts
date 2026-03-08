@@ -4,19 +4,22 @@ import { PrismaClient } from '@prisma/client';
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /api/creators - List all creators
+// GET /api/creators - List all creators (single query, no N+1)
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const creators = await prisma.creator.findMany({
-            include: { traveler: { select: { name: true, avatar: true } } },
+        const creators = await (prisma.creator as any).findMany({
+            include: {
+                traveler: { select: { name: true, avatar: true } },
+                _count: { select: { itineraries: true } },
+            },
             orderBy: { totalSales: 'desc' },
         });
 
-        const result = creators.map(c => ({
+        const result = creators.map((c: any) => ({
             id: c.id, name: c.traveler.name, avatar: c.traveler.avatar || '👤',
             verificationLevel: c.verificationLevel.toLowerCase(),
             stats: {
-                itinerariesCount: 0, // will be computed
+                itinerariesCount: c._count.itineraries,
                 totalSales: c.totalSales, averageRating: c.averageRating,
                 responseTime: c.responseTime, tripsCompleted: c.tripsCompleted,
             },
@@ -28,12 +31,6 @@ router.get('/', async (req: Request, res: Response) => {
             },
         }));
 
-        // Compute itineraries count
-        for (const creator of result) {
-            const count = await prisma.itinerary.count({ where: { creatorId: creator.id } });
-            creator.stats.itinerariesCount = count;
-        }
-
         res.json(result);
     } catch (error) {
         console.error('Error fetching creators:', error);
@@ -44,7 +41,7 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /api/creators/:id
 router.get('/:id', async (req: Request, res: Response) => {
     try {
-        const c = await prisma.creator.findUnique({
+        const c = await (prisma.creator as any).findUnique({
             where: { id: req.params.id },
             include: {
                 traveler: { select: { name: true, avatar: true } },
@@ -69,10 +66,10 @@ router.get('/:id', async (req: Request, res: Response) => {
             memberSince: c.memberSince.getFullYear().toString(),
             languages: c.languages,
             socialLinks: { instagram: c.instagramUrl, youtube: c.youtubeUrl, blog: c.blogUrl },
-            itineraries: c.itineraries.map(it => ({
+            itineraries: c.itineraries.map((it: any) => ({
                 id: it.id, title: it.title, destination: it.destination,
                 price: it.price, rating: it.rating, reviewCount: it.reviewCount,
-                duration: it.duration, images: it.images.map(img => img.url),
+                duration: it.duration, images: it.images.map((img: any) => img.url),
             })),
         };
 

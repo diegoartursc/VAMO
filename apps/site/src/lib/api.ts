@@ -79,7 +79,11 @@ export async function getItineraries(): Promise<DashboardItinerary[]> {
 }
 
 export async function getItineraryById(id: string): Promise<any> {
-    return fetchApi(`/itineraries/${id}`);
+    try {
+        return await fetchApi(`/itineraries/${id}`);
+    } catch {
+        return MOCK_ITINERARIES.find(i => i.id === id) || MOCK_ITINERARIES[0] || null;
+    }
 }
 
 export async function createItinerary(data: any): Promise<any> {
@@ -127,7 +131,13 @@ export async function getAgencyPackages(agencyId: string): Promise<any[]> {
 }
 
 export async function getPackageById(id: string): Promise<any> {
-    return fetchApi(`/packages/${id}`);
+    try {
+        return await fetchApi(`/packages/${id}`);
+    } catch {
+        const pkg = MOCK_PACKAGES.find(p => p.id === id);
+        if (pkg) return pkg;
+        throw new Error("Pacote não encontrado");
+    }
 }
 
 export async function createPackage(data: any): Promise<any> {

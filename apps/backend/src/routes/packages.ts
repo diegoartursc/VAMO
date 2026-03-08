@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -251,8 +252,8 @@ function calcQualityScore(data: any): number {
     return Math.min(score, 100);
 }
 
-// ─── POST /api/packages ─── Create
-router.post('/', async (req: Request, res: Response) => {
+// ─── POST /api/packages ─── Create (requires auth)
+router.post('/', authMiddleware, async (req: Request, res: Response) => {
     try {
         const data = req.body;
 
@@ -333,8 +334,8 @@ router.post('/', async (req: Request, res: Response) => {
     }
 });
 
-// ─── PUT /api/packages/:id ─── Update
-router.put('/:id', async (req: Request, res: Response) => {
+// ─── PUT /api/packages/:id ─── Update (requires auth)
+router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const data = req.body;
 
@@ -372,8 +373,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 });
 
-// ─── DELETE /api/packages/:id ─── Soft delete (archive)
-router.delete('/:id', async (req: Request, res: Response) => {
+// ─── DELETE /api/packages/:id ─── Soft delete (archive, requires auth)
+router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const pkg = await prisma.package.update({
             where: { id: req.params.id },

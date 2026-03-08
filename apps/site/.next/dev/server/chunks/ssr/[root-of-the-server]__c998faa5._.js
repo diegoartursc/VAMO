@@ -296,6 +296,86 @@ const Icon = {
             columnNumber: 33
         }, ("TURBOPACK compile-time value", void 0))
 };
+const AGENCY_STATUS_LABEL = {
+    PENDING: "Pendente",
+    REVIEW: "Em Análise",
+    ACTIVE: "Ativa",
+    SUSPENDED: "Suspensa"
+};
+const AGENCY_STATUS_COLOR = {
+    PENDING: "#D97706",
+    REVIEW: "#6366F1",
+    ACTIVE: "#16A34A",
+    SUSPENDED: "#DC2626"
+};
+const MOCK_AGENCIES = [
+    {
+        id: "ag1",
+        name: "Wanderlust Premium Travel",
+        cnpj: "12.345.678/0001-90",
+        manager: "Fernanda Costa",
+        email: "fernanda@wanderlust.com",
+        status: "ACTIVE",
+        createdAt: "2025-06-10T00:00:00Z",
+        packagesCount: 8,
+        qualityAvg: 82
+    },
+    {
+        id: "ag2",
+        name: "Trekking Sul Expedições",
+        cnpj: "23.456.789/0001-01",
+        manager: "Marcos Ribeiro",
+        email: "marcos@trekkingsul.com",
+        status: "ACTIVE",
+        createdAt: "2025-09-15T00:00:00Z",
+        packagesCount: 5,
+        qualityAvg: 88
+    },
+    {
+        id: "ag3",
+        name: "Oriente Viagens",
+        cnpj: "34.567.890/0001-12",
+        manager: "Yuki Tanaka",
+        email: "yuki@orienteviagens.com",
+        status: "REVIEW",
+        createdAt: "2026-01-20T00:00:00Z",
+        packagesCount: 2,
+        qualityAvg: 75
+    },
+    {
+        id: "ag4",
+        name: "Andes Tours",
+        cnpj: "45.678.901/0001-23",
+        manager: "Pablo Herrera",
+        email: "pablo@andestours.com",
+        status: "PENDING",
+        createdAt: "2026-02-18T00:00:00Z",
+        packagesCount: 0,
+        qualityAvg: 0
+    },
+    {
+        id: "ag5",
+        name: "Moto Aventura BR",
+        cnpj: "56.789.012/0001-34",
+        manager: "Ricardo Lopes",
+        email: "ricardo@motoaventura.com",
+        status: "PENDING",
+        createdAt: "2026-02-25T00:00:00Z",
+        packagesCount: 0,
+        qualityAvg: 0
+    },
+    {
+        id: "ag6",
+        name: "Sun Beach Turismo",
+        cnpj: "67.890.123/0001-45",
+        manager: "Camila Dias",
+        email: "camila@sunbeach.com",
+        status: "SUSPENDED",
+        createdAt: "2025-04-01T00:00:00Z",
+        packagesCount: 3,
+        qualityAvg: 42
+    }
+];
 const STATUS_LABEL = {
     DRAFT: "Rascunho",
     PENDING_REVIEW: "Em Revisão",
@@ -377,6 +457,10 @@ function AdminDashboardPage() {
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRouter"])();
     const [tab, setTab] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("overview");
     const [statusFilter, setStatusFilter] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("ALL");
+    const [agencyFilter, setAgencyFilter] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("ALL");
+    const [contentFilter, setContentFilter] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("ALL");
+    const [agencies, setAgencies] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(MOCK_AGENCIES);
+    const [showNewAgencyForm, setShowNewAgencyForm] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [packages, setPackages] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     const [allPackages, setAllPackages] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     const [itineraries, setItineraries] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
@@ -674,7 +758,7 @@ function AdminDashboardPage() {
                 pkgs = MOCK_PACKAGES.filter((p)=>p.status === "PENDING_REVIEW");
                 its = MOCK_ITINERARIES.filter((i)=>i.status === "PENDING_REVIEW");
             }
-            // Try to load ALL items
+            // Try to load ALL items (also used for history)
             try {
                 const allRes = await fetch(`${API}/admin/all`, {
                     headers
@@ -683,6 +767,7 @@ function AdminDashboardPage() {
                     const allData = await allRes.json();
                     allPkgs = allData.packages || MOCK_PACKAGES;
                     allIts = allData.itineraries || MOCK_ITINERARIES;
+                    setHistory(allData); // reuse — no second request needed
                 }
             } catch  {}
             setPackages(pkgs);
@@ -708,13 +793,6 @@ function AdminDashboardPage() {
             if (creatorsRes.ok) {
                 const cd = await creatorsRes.json();
                 setCreators(cd || []);
-            }
-            const histRes = await fetch(`${API}/admin/all`, {
-                headers
-            });
-            if (histRes.ok) {
-                const hd = await histRes.json();
-                setHistory(hd);
             }
         } catch  {
             // Full mock fallback
@@ -870,12 +948,12 @@ function AdminDashboardPage() {
             children: "Carregando…"
         }, void 0, false, {
             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-            lineNumber: 285,
+            lineNumber: 304,
             columnNumber: 13
         }, this)
     }, void 0, false, {
         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-        lineNumber: 284,
+        lineNumber: 303,
         columnNumber: 9
     }, this);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -902,7 +980,7 @@ function AdminDashboardPage() {
                 children: toast.msg
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 293,
+                lineNumber: 312,
                 columnNumber: 17
             }, this),
             modal && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -955,7 +1033,7 @@ function AdminDashboardPage() {
                             }, void 0, true)
                         }, void 0, false, {
                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                            lineNumber: 306,
+                            lineNumber: 325,
                             columnNumber: 25
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -967,7 +1045,7 @@ function AdminDashboardPage() {
                             children: modal.type === "approve" ? `Aprovar "${modal.title}"? Ele ficará visível no app.` : `Rejeitar "${modal.title}"? Informe o motivo.`
                         }, void 0, false, {
                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                            lineNumber: 309,
+                            lineNumber: 328,
                             columnNumber: 25
                         }, this),
                         modal.type === "reject" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -990,7 +1068,7 @@ function AdminDashboardPage() {
                             }
                         }, void 0, false, {
                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                            lineNumber: 313,
+                            lineNumber: 332,
                             columnNumber: 29
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1016,7 +1094,7 @@ function AdminDashboardPage() {
                                     children: "Cancelar"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                    lineNumber: 319,
+                                    lineNumber: 338,
                                     columnNumber: 29
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1036,24 +1114,24 @@ function AdminDashboardPage() {
                                     children: actionLoading ? "..." : modal.type === "approve" ? "Aprovar" : "Rejeitar"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                    lineNumber: 320,
+                                    lineNumber: 339,
                                     columnNumber: 29
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                            lineNumber: 318,
+                            lineNumber: 337,
                             columnNumber: 25
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                    lineNumber: 305,
+                    lineNumber: 324,
                     columnNumber: 21
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 304,
+                lineNumber: 323,
                 columnNumber: 17
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("aside", {
@@ -1099,7 +1177,7 @@ function AdminDashboardPage() {
                                         })
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 342,
+                                        lineNumber: 361,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1117,19 +1195,19 @@ function AdminDashboardPage() {
                                                 children: "O"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 347,
+                                                lineNumber: 366,
                                                 columnNumber: 100
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 347,
+                                        lineNumber: 366,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 338,
+                                lineNumber: 357,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1141,13 +1219,13 @@ function AdminDashboardPage() {
                                 children: "Painel Administrativo"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 349,
+                                lineNumber: 368,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 337,
+                        lineNumber: 356,
                         columnNumber: 17
                     }, this),
                     adminUser && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1178,7 +1256,7 @@ function AdminDashboardPage() {
                                     })
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                    lineNumber: 358,
+                                    lineNumber: 377,
                                     columnNumber: 29
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1192,7 +1270,7 @@ function AdminDashboardPage() {
                                             children: adminUser.name
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                            lineNumber: 364,
+                                            lineNumber: 383,
                                             columnNumber: 33
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1203,24 +1281,24 @@ function AdminDashboardPage() {
                                             children: adminUser.role
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                            lineNumber: 365,
+                                            lineNumber: 384,
                                             columnNumber: 33
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                    lineNumber: 363,
+                                    lineNumber: 382,
                                     columnNumber: 29
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                            lineNumber: 355,
+                            lineNumber: 374,
                             columnNumber: 25
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 354,
+                        lineNumber: 373,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
@@ -1246,7 +1324,7 @@ function AdminDashboardPage() {
                                         children: section.label
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 375,
+                                        lineNumber: 394,
                                         columnNumber: 29
                                     }, this),
                                     section.items.map((item)=>{
@@ -1283,7 +1361,7 @@ function AdminDashboardPage() {
                                                     children: item.label
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                    lineNumber: 391,
+                                                    lineNumber: 410,
                                                     columnNumber: 41
                                                 }, this),
                                                 badge > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1300,25 +1378,25 @@ function AdminDashboardPage() {
                                                     children: badge
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                    lineNumber: 393,
+                                                    lineNumber: 412,
                                                     columnNumber: 45
                                                 }, this)
                                             ]
                                         }, item.key, true, {
                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                            lineNumber: 380,
+                                            lineNumber: 399,
                                             columnNumber: 37
                                         }, this);
                                     })
                                 ]
                             }, section.label, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 374,
+                                lineNumber: 393,
                                 columnNumber: 25
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 372,
+                        lineNumber: 391,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1354,13 +1432,13 @@ function AdminDashboardPage() {
                                         children: "Configurações"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 415,
+                                        lineNumber: 434,
                                         columnNumber: 104
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 409,
+                                lineNumber: 428,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1389,25 +1467,25 @@ function AdminDashboardPage() {
                                         children: "Sair"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 421,
+                                        lineNumber: 440,
                                         columnNumber: 69
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 416,
+                                lineNumber: 435,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 408,
+                        lineNumber: 427,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 331,
+                lineNumber: 350,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -1448,7 +1526,7 @@ function AdminDashboardPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 434,
+                                lineNumber: 453,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1464,13 +1542,13 @@ function AdminDashboardPage() {
                                 })
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 445,
+                                lineNumber: 464,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 428,
+                        lineNumber: 447,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1550,7 +1628,7 @@ function AdminDashboardPage() {
                                                                 })
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 469,
+                                                                lineNumber: 488,
                                                                 columnNumber: 49
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1562,13 +1640,13 @@ function AdminDashboardPage() {
                                                                 children: stat.label
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 473,
+                                                                lineNumber: 492,
                                                                 columnNumber: 49
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 468,
+                                                        lineNumber: 487,
                                                         columnNumber: 45
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1580,18 +1658,18 @@ function AdminDashboardPage() {
                                                         children: stat.value
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 475,
+                                                        lineNumber: 494,
                                                         columnNumber: 45
                                                     }, this)
                                                 ]
                                             }, stat.label, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 464,
+                                                lineNumber: 483,
                                                 columnNumber: 41
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 457,
+                                        lineNumber: 476,
                                         columnNumber: 33
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1630,7 +1708,7 @@ function AdminDashboardPage() {
                                                                 children: "Pacotes pendentes"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 487,
+                                                                lineNumber: 506,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1646,13 +1724,13 @@ function AdminDashboardPage() {
                                                                 children: packages.length
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 488,
+                                                                lineNumber: 507,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 485,
+                                                        lineNumber: 504,
                                                         columnNumber: 37
                                                     }, this),
                                                     packages.slice(0, 3).map((p)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1675,13 +1753,13 @@ function AdminDashboardPage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                    lineNumber: 492,
+                                                                    lineNumber: 511,
                                                                     columnNumber: 55
                                                                 }, this)
                                                             ]
                                                         }, p.id, true, {
                                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                            lineNumber: 491,
+                                                            lineNumber: 510,
                                                             columnNumber: 41
                                                         }, this)),
                                                     packages.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1692,7 +1770,7 @@ function AdminDashboardPage() {
                                                         children: "Nenhum pacote pendente"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 495,
+                                                        lineNumber: 514,
                                                         columnNumber: 63
                                                     }, this),
                                                     packages.length > 3 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1709,13 +1787,13 @@ function AdminDashboardPage() {
                                                         children: "Ver todos →"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 496,
+                                                        lineNumber: 515,
                                                         columnNumber: 61
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 484,
+                                                lineNumber: 503,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1747,7 +1825,7 @@ function AdminDashboardPage() {
                                                                 children: "Roteiristas pendentes"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 503,
+                                                                lineNumber: 522,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1763,13 +1841,13 @@ function AdminDashboardPage() {
                                                                 children: creators.length
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 504,
+                                                                lineNumber: 523,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 501,
+                                                        lineNumber: 520,
                                                         columnNumber: 37
                                                     }, this),
                                                     creators.slice(0, 3).map((c)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1792,13 +1870,13 @@ function AdminDashboardPage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                    lineNumber: 508,
+                                                                    lineNumber: 527,
                                                                     columnNumber: 63
                                                                 }, this)
                                                             ]
                                                         }, c.id, true, {
                                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                            lineNumber: 507,
+                                                            lineNumber: 526,
                                                             columnNumber: 41
                                                         }, this)),
                                                     creators.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1809,7 +1887,7 @@ function AdminDashboardPage() {
                                                         children: "Nenhum roteirista pendente"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 511,
+                                                        lineNumber: 530,
                                                         columnNumber: 63
                                                     }, this),
                                                     creators.length > 3 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1826,19 +1904,19 @@ function AdminDashboardPage() {
                                                         children: "Ver todos →"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 512,
+                                                        lineNumber: 531,
                                                         columnNumber: 61
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 500,
+                                                lineNumber: 519,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 482,
+                                        lineNumber: 501,
                                         columnNumber: 29
                                     }, this),
                                     stats && stats.totalPending + creators.length > 5 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1870,39 +1948,85 @@ function AdminDashboardPage() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 520,
+                                                lineNumber: 539,
                                                 columnNumber: 37
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 518,
+                                        lineNumber: 537,
                                         columnNumber: 33
                                     }, this)
                                 ]
                             }, void 0, true),
-                            tab === "packages" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(ItemList, {
-                                items: packages,
-                                type: "packages",
-                                onApprove: handleApprove,
-                                onReject: handleReject,
-                                emptyMsg: "Nenhum pacote aguardando revisão"
-                            }, void 0, false, {
-                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 530,
-                                columnNumber: 25
-                            }, this),
-                            tab === "itineraries" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(ItemList, {
-                                items: itineraries,
-                                type: "itineraries",
-                                onApprove: handleApprove,
-                                onReject: handleReject,
-                                emptyMsg: "Nenhum roteiro aguardando revisão"
-                            }, void 0, false, {
-                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 535,
-                                columnNumber: 25
-                            }, this),
+                            tab === "packages" && (()=>{
+                                const filtered = contentFilter === "ALL" ? allPackages : allPackages.filter((p)=>p.status === contentFilter);
+                                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(FilterBar, {
+                                            current: contentFilter,
+                                            onChange: (v)=>setContentFilter(v),
+                                            counts: {
+                                                ALL: allPackages.length,
+                                                PENDING_REVIEW: allPackages.filter((p)=>p.status === "PENDING_REVIEW").length,
+                                                APPROVED: allPackages.filter((p)=>p.status === "APPROVED").length,
+                                                ACTIVE: allPackages.filter((p)=>p.status === "ACTIVE").length,
+                                                REJECTED: allPackages.filter((p)=>p.status === "REJECTED").length
+                                            }
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                            lineNumber: 551,
+                                            columnNumber: 29
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(ItemList, {
+                                            items: filtered,
+                                            type: "packages",
+                                            onApprove: handleApprove,
+                                            onReject: handleReject,
+                                            emptyMsg: "Nenhum pacote neste filtro",
+                                            showStatus: true
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                            lineNumber: 558,
+                                            columnNumber: 29
+                                        }, this)
+                                    ]
+                                }, void 0, true);
+                            })(),
+                            tab === "itineraries" && (()=>{
+                                const filtered = contentFilter === "ALL" ? allItineraries : allItineraries.filter((i)=>i.status === contentFilter);
+                                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(FilterBar, {
+                                            current: contentFilter,
+                                            onChange: (v)=>setContentFilter(v),
+                                            counts: {
+                                                ALL: allItineraries.length,
+                                                PENDING_REVIEW: allItineraries.filter((i)=>i.status === "PENDING_REVIEW").length,
+                                                APPROVED: allItineraries.filter((i)=>i.status === "APPROVED").length,
+                                                ACTIVE: allItineraries.filter((i)=>i.status === "ACTIVE").length,
+                                                REJECTED: allItineraries.filter((i)=>i.status === "REJECTED").length
+                                            }
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                            lineNumber: 566,
+                                            columnNumber: 29
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(ItemList, {
+                                            items: filtered,
+                                            type: "itineraries",
+                                            onApprove: handleApprove,
+                                            onReject: handleReject,
+                                            emptyMsg: "Nenhum roteiro neste filtro",
+                                            showStatus: true
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                            lineNumber: 573,
+                                            columnNumber: 29
+                                        }, this)
+                                    ]
+                                }, void 0, true);
+                            })(),
                             tab === "creators" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 style: {
                                     display: "flex",
@@ -1937,7 +2061,7 @@ function AdminDashboardPage() {
                                                     })
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                    lineNumber: 543,
+                                                    lineNumber: 582,
                                                     columnNumber: 37
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1954,7 +2078,7 @@ function AdminDashboardPage() {
                                                             children: c.traveler.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                            lineNumber: 545,
+                                                            lineNumber: 584,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1965,7 +2089,7 @@ function AdminDashboardPage() {
                                                             children: c.traveler.email
                                                         }, void 0, false, {
                                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                            lineNumber: 546,
+                                                            lineNumber: 585,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1982,13 +2106,13 @@ function AdminDashboardPage() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                            lineNumber: 547,
+                                                            lineNumber: 586,
                                                             columnNumber: 41
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                    lineNumber: 544,
+                                                    lineNumber: 583,
                                                     columnNumber: 37
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2006,334 +2130,832 @@ function AdminDashboardPage() {
                                                     children: "Aprovar Roteirista"
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                    lineNumber: 549,
+                                                    lineNumber: 588,
                                                     columnNumber: 37
                                                 }, this)
                                             ]
                                         }, c.id, true, {
                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                            lineNumber: 542,
+                                            lineNumber: 581,
                                             columnNumber: 33
                                         }, this)),
                                     creators.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(EmptyState, {
                                         msg: "Nenhum roteirista aguardando aprovação"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 554,
+                                        lineNumber: 593,
                                         columnNumber: 55
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 540,
+                                lineNumber: 579,
                                 columnNumber: 25
                             }, this),
-                            tab === "agencies" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                style: {
-                                    background: "#fff",
-                                    borderRadius: "20px",
-                                    padding: "32px",
-                                    border: "1px solid rgba(226,232,240,0.7)",
-                                    maxWidth: "600px"
-                                },
-                                children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
-                                        style: {
-                                            margin: "0 0 20px",
-                                            fontSize: "18px",
-                                            fontWeight: "800",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "8px"
-                                        },
-                                        children: [
-                                            Icon.building({
-                                                size: 20,
-                                                color: "#1FA89F"
-                                            }),
-                                            " Registrar Nova Agência"
-                                        ]
-                                    }, void 0, true, {
-                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 561,
-                                        columnNumber: 29
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
-                                        onSubmit: handleCreateAgency,
-                                        style: {
-                                            display: "grid",
-                                            gap: "16px"
-                                        },
-                                        children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                style: {
-                                                    display: "grid",
-                                                    gap: "6px"
+                            tab === "agencies" && (()=>{
+                                const filteredAgencies = agencyFilter === "ALL" ? agencies : agencies.filter((a)=>a.status === agencyFilter);
+                                const counts = {
+                                    ALL: agencies.length,
+                                    PENDING: agencies.filter((a)=>a.status === "PENDING").length,
+                                    REVIEW: agencies.filter((a)=>a.status === "REVIEW").length,
+                                    ACTIVE: agencies.filter((a)=>a.status === "ACTIVE").length,
+                                    SUSPENDED: agencies.filter((a)=>a.status === "SUSPENDED").length
+                                };
+                                const handleAgencyAction = (id, newStatus)=>{
+                                    setAgencies((prev)=>prev.map((a)=>a.id === id ? {
+                                                ...a,
+                                                status: newStatus
+                                            } : a));
+                                    showToast(`Agência ${newStatus === "ACTIVE" ? "aprovada" : newStatus === "SUSPENDED" ? "suspensa" : "atualizada"}!`, "success");
+                                };
+                                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            style: {
+                                                display: "grid",
+                                                gridTemplateColumns: "repeat(4, 1fr)",
+                                                gap: "14px",
+                                                marginBottom: "20px"
+                                            },
+                                            children: [
+                                                {
+                                                    key: "PENDING",
+                                                    label: "Pendentes",
+                                                    icon: Icon.hourglass,
+                                                    color: "#D97706",
+                                                    bg: "rgba(217,119,6,0.08)"
                                                 },
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                        style: {
-                                                            fontSize: "12px",
-                                                            fontWeight: "700",
-                                                            color: "#64748B"
-                                                        },
-                                                        children: "Nome da Agência"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 566,
-                                                        columnNumber: 37
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                        type: "text",
-                                                        value: newAgency.name,
-                                                        onChange: (e)=>setNewAgency({
-                                                                ...newAgency,
-                                                                name: e.target.value
-                                                            }),
-                                                        required: true,
-                                                        style: {
-                                                            padding: "12px",
-                                                            borderRadius: "10px",
-                                                            border: "1.5px solid #E2E8F0",
-                                                            outline: "none",
-                                                            fontFamily: "inherit",
-                                                            fontSize: "14px"
-                                                        }
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 567,
-                                                        columnNumber: 37
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 565,
-                                                columnNumber: 33
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                style: {
-                                                    display: "grid",
-                                                    gap: "6px"
+                                                {
+                                                    key: "REVIEW",
+                                                    label: "Em Análise",
+                                                    icon: Icon.clock,
+                                                    color: "#6366F1",
+                                                    bg: "rgba(99,102,241,0.08)"
                                                 },
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                        style: {
-                                                            fontSize: "12px",
-                                                            fontWeight: "700",
-                                                            color: "#64748B"
-                                                        },
-                                                        children: "CNPJ"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 570,
-                                                        columnNumber: 37
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                        type: "text",
-                                                        value: newAgency.cnpj,
-                                                        onChange: (e)=>setNewAgency({
-                                                                ...newAgency,
-                                                                cnpj: e.target.value
-                                                            }),
-                                                        required: true,
-                                                        style: {
-                                                            padding: "12px",
-                                                            borderRadius: "10px",
-                                                            border: "1.5px solid #E2E8F0",
-                                                            outline: "none",
-                                                            fontFamily: "inherit",
-                                                            fontSize: "14px"
-                                                        }
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 571,
-                                                        columnNumber: 37
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 569,
-                                                columnNumber: 33
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("hr", {
-                                                style: {
-                                                    border: "0",
-                                                    borderTop: "1px solid #E2E8F0",
-                                                    margin: "4px 0"
+                                                {
+                                                    key: "ACTIVE",
+                                                    label: "Ativas",
+                                                    icon: Icon.checkCircle,
+                                                    color: "#16A34A",
+                                                    bg: "rgba(22,163,74,0.08)"
+                                                },
+                                                {
+                                                    key: "SUSPENDED",
+                                                    label: "Suspensas",
+                                                    icon: Icon.alertTriangle,
+                                                    color: "#DC2626",
+                                                    bg: "rgba(220,38,38,0.08)"
                                                 }
-                                            }, void 0, false, {
-                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 573,
-                                                columnNumber: 33
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                style: {
-                                                    display: "grid",
-                                                    gap: "6px"
-                                                },
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                        style: {
-                                                            fontSize: "12px",
-                                                            fontWeight: "700",
-                                                            color: "#64748B"
-                                                        },
-                                                        children: "Nome do Gestor"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 575,
-                                                        columnNumber: 37
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                        type: "text",
-                                                        value: newAgency.employeeName,
-                                                        onChange: (e)=>setNewAgency({
-                                                                ...newAgency,
-                                                                employeeName: e.target.value
-                                                            }),
-                                                        required: true,
-                                                        style: {
-                                                            padding: "12px",
-                                                            borderRadius: "10px",
-                                                            border: "1.5px solid #E2E8F0",
-                                                            outline: "none",
-                                                            fontFamily: "inherit",
-                                                            fontSize: "14px"
-                                                        }
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 576,
-                                                        columnNumber: 37
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 574,
-                                                columnNumber: 33
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                style: {
-                                                    display: "grid",
-                                                    gap: "6px"
-                                                },
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                        style: {
-                                                            fontSize: "12px",
-                                                            fontWeight: "700",
-                                                            color: "#64748B"
-                                                        },
-                                                        children: "E-mail"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 579,
-                                                        columnNumber: 37
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                        type: "email",
-                                                        value: newAgency.email,
-                                                        onChange: (e)=>setNewAgency({
-                                                                ...newAgency,
-                                                                email: e.target.value
-                                                            }),
-                                                        required: true,
-                                                        style: {
-                                                            padding: "12px",
-                                                            borderRadius: "10px",
-                                                            border: "1.5px solid #E2E8F0",
-                                                            outline: "none",
-                                                            fontFamily: "inherit",
-                                                            fontSize: "14px"
-                                                        }
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 580,
-                                                        columnNumber: 37
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 578,
-                                                columnNumber: 33
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                style: {
-                                                    display: "grid",
-                                                    gap: "6px"
-                                                },
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                        style: {
-                                                            fontSize: "12px",
-                                                            fontWeight: "700",
-                                                            color: "#64748B"
-                                                        },
-                                                        children: "Senha Temporária"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 583,
-                                                        columnNumber: 37
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                        type: "password",
-                                                        value: newAgency.password,
-                                                        onChange: (e)=>setNewAgency({
-                                                                ...newAgency,
-                                                                password: e.target.value
-                                                            }),
-                                                        required: true,
-                                                        style: {
-                                                            padding: "12px",
-                                                            borderRadius: "10px",
-                                                            border: "1.5px solid #E2E8F0",
-                                                            outline: "none",
-                                                            fontFamily: "inherit",
-                                                            fontSize: "14px"
-                                                        }
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 584,
-                                                        columnNumber: 37
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 582,
-                                                columnNumber: 33
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                type: "submit",
-                                                disabled: actionLoading,
-                                                style: {
-                                                    marginTop: "10px",
-                                                    padding: "14px",
-                                                    borderRadius: "12px",
-                                                    border: "none",
-                                                    background: "linear-gradient(135deg, #28C9BF, #1FA89F)",
-                                                    color: "#fff",
-                                                    fontWeight: "700",
-                                                    cursor: "pointer",
-                                                    fontFamily: "inherit",
-                                                    fontSize: "14px"
-                                                },
-                                                children: actionLoading ? "Criando..." : "Criar Agência e Gestor"
-                                            }, void 0, false, {
-                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 586,
-                                                columnNumber: 33
-                                            }, this)
-                                        ]
-                                    }, void 0, true, {
-                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 564,
-                                        columnNumber: 29
-                                    }, this)
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 560,
-                                columnNumber: 25
-                            }, this),
+                                            ].map((card)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                    onClick: ()=>setAgencyFilter(agencyFilter === card.key ? "ALL" : card.key),
+                                                    style: {
+                                                        background: agencyFilter === card.key ? `${card.bg.replace("0.08", "0.18")}` : "#fff",
+                                                        borderRadius: "16px",
+                                                        padding: "16px 18px",
+                                                        cursor: "pointer",
+                                                        border: agencyFilter === card.key ? `2px solid ${card.color}` : "1px solid rgba(226,232,240,0.7)",
+                                                        boxShadow: "0 2px 8px rgba(26,50,99,0.04)",
+                                                        textAlign: "left",
+                                                        transition: "all 0.15s"
+                                                    },
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            style: {
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                gap: "8px",
+                                                                marginBottom: "6px"
+                                                            },
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    style: {
+                                                                        width: "32px",
+                                                                        height: "32px",
+                                                                        borderRadius: "8px",
+                                                                        background: card.bg,
+                                                                        display: "flex",
+                                                                        alignItems: "center",
+                                                                        justifyContent: "center"
+                                                                    },
+                                                                    children: card.icon({
+                                                                        size: 16,
+                                                                        color: card.color
+                                                                    })
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                    lineNumber: 627,
+                                                                    columnNumber: 45
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                    style: {
+                                                                        fontSize: "11px",
+                                                                        color: "#64748B",
+                                                                        fontWeight: "600"
+                                                                    },
+                                                                    children: card.label
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                    lineNumber: 630,
+                                                                    columnNumber: 45
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 626,
+                                                            columnNumber: 41
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            style: {
+                                                                fontSize: "24px",
+                                                                fontWeight: "800",
+                                                                color: card.color
+                                                            },
+                                                            children: counts[card.key]
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 632,
+                                                            columnNumber: 41
+                                                        }, this)
+                                                    ]
+                                                }, card.key, true, {
+                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                    lineNumber: 619,
+                                                    columnNumber: 37
+                                                }, this))
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                            lineNumber: 612,
+                                            columnNumber: 29
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            style: {
+                                                background: "#fff",
+                                                borderRadius: "18px",
+                                                border: "1px solid rgba(226,232,240,0.7)",
+                                                overflow: "hidden"
+                                            },
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    style: {
+                                                        padding: "16px 20px",
+                                                        borderBottom: "1px solid #F1F5F9",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "space-between"
+                                                    },
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                            style: {
+                                                                fontSize: "14px",
+                                                                fontWeight: "700",
+                                                                color: "#1E293B"
+                                                            },
+                                                            children: [
+                                                                agencyFilter === "ALL" ? "Todas as Agências" : `Agências — ${AGENCY_STATUS_LABEL[agencyFilter]}`,
+                                                                " (",
+                                                                filteredAgencies.length,
+                                                                ")"
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 640,
+                                                            columnNumber: 37
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                            onClick: ()=>setShowNewAgencyForm(!showNewAgencyForm),
+                                                            style: {
+                                                                padding: "7px 14px",
+                                                                borderRadius: "8px",
+                                                                border: "none",
+                                                                fontSize: "12px",
+                                                                fontWeight: "700",
+                                                                cursor: "pointer",
+                                                                background: "linear-gradient(135deg, #28C9BF, #1FA89F)",
+                                                                color: "#fff"
+                                                            },
+                                                            children: "+ Nova Agência"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 643,
+                                                            columnNumber: 37
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                    lineNumber: 639,
+                                                    columnNumber: 33
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("table", {
+                                                    style: {
+                                                        width: "100%",
+                                                        borderCollapse: "collapse",
+                                                        fontSize: "13px"
+                                                    },
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("thead", {
+                                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                                                style: {
+                                                                    background: "#F8FAFC"
+                                                                },
+                                                                children: [
+                                                                    "Agência",
+                                                                    "CNPJ",
+                                                                    "Gestor",
+                                                                    "Pacotes",
+                                                                    "Quality",
+                                                                    "Status",
+                                                                    "Ações"
+                                                                ].map((h)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                                        style: {
+                                                                            padding: "10px 14px",
+                                                                            textAlign: "left",
+                                                                            fontWeight: "700",
+                                                                            color: "#64748B",
+                                                                            fontSize: "11px",
+                                                                            letterSpacing: "0.03em",
+                                                                            borderBottom: "1px solid #F1F5F9"
+                                                                        },
+                                                                        children: h
+                                                                    }, h, false, {
+                                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                        lineNumber: 652,
+                                                                        columnNumber: 49
+                                                                    }, this))
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                lineNumber: 650,
+                                                                columnNumber: 41
+                                                            }, this)
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 649,
+                                                            columnNumber: 37
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
+                                                            children: filteredAgencies.map((ag)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                                                    style: {
+                                                                        borderBottom: "1px solid #F8FAFC"
+                                                                    },
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                                            style: {
+                                                                                padding: "12px 14px",
+                                                                                fontWeight: "600",
+                                                                                color: "#1E293B"
+                                                                            },
+                                                                            children: ag.name
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 659,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                                            style: {
+                                                                                padding: "12px 14px",
+                                                                                color: "#64748B",
+                                                                                fontFamily: "monospace",
+                                                                                fontSize: "11px"
+                                                                            },
+                                                                            children: ag.cnpj
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 660,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                                            style: {
+                                                                                padding: "12px 14px",
+                                                                                color: "#475569"
+                                                                            },
+                                                                            children: ag.manager
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 661,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                                            style: {
+                                                                                padding: "12px 14px",
+                                                                                color: "#475569",
+                                                                                textAlign: "center"
+                                                                            },
+                                                                            children: ag.packagesCount
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 662,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                                            style: {
+                                                                                padding: "12px 14px",
+                                                                                textAlign: "center"
+                                                                            },
+                                                                            children: ag.qualityAvg > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                                style: {
+                                                                                    fontWeight: "700",
+                                                                                    color: ag.qualityAvg >= 70 ? "#16A34A" : ag.qualityAvg >= 40 ? "#D97706" : "#DC2626"
+                                                                                },
+                                                                                children: [
+                                                                                    ag.qualityAvg,
+                                                                                    "%"
+                                                                                ]
+                                                                            }, void 0, true, {
+                                                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                                lineNumber: 665,
+                                                                                columnNumber: 57
+                                                                            }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                                style: {
+                                                                                    color: "#CBD5E1"
+                                                                                },
+                                                                                children: "—"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                                lineNumber: 666,
+                                                                                columnNumber: 57
+                                                                            }, this)
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 663,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                                            style: {
+                                                                                padding: "12px 14px"
+                                                                            },
+                                                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                                style: {
+                                                                                    display: "inline-block",
+                                                                                    padding: "3px 10px",
+                                                                                    borderRadius: "20px",
+                                                                                    fontSize: "11px",
+                                                                                    fontWeight: "700",
+                                                                                    background: `${AGENCY_STATUS_COLOR[ag.status]}14`,
+                                                                                    color: AGENCY_STATUS_COLOR[ag.status]
+                                                                                },
+                                                                                children: AGENCY_STATUS_LABEL[ag.status]
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                                lineNumber: 669,
+                                                                                columnNumber: 53
+                                                                            }, this)
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 668,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                                            style: {
+                                                                                padding: "12px 14px"
+                                                                            },
+                                                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                style: {
+                                                                                    display: "flex",
+                                                                                    gap: "6px"
+                                                                                },
+                                                                                children: [
+                                                                                    (ag.status === "PENDING" || ag.status === "REVIEW") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                                        onClick: ()=>handleAgencyAction(ag.id, "ACTIVE"),
+                                                                                        style: {
+                                                                                            padding: "5px 10px",
+                                                                                            borderRadius: "6px",
+                                                                                            border: "none",
+                                                                                            background: "rgba(22,163,74,0.1)",
+                                                                                            color: "#16A34A",
+                                                                                            fontSize: "11px",
+                                                                                            fontWeight: "700",
+                                                                                            cursor: "pointer"
+                                                                                        },
+                                                                                        children: "Aprovar"
+                                                                                    }, void 0, false, {
+                                                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                                        lineNumber: 677,
+                                                                                        columnNumber: 61
+                                                                                    }, this),
+                                                                                    ag.status === "PENDING" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                                        onClick: ()=>handleAgencyAction(ag.id, "REVIEW"),
+                                                                                        style: {
+                                                                                            padding: "5px 10px",
+                                                                                            borderRadius: "6px",
+                                                                                            border: "none",
+                                                                                            background: "rgba(99,102,241,0.1)",
+                                                                                            color: "#6366F1",
+                                                                                            fontSize: "11px",
+                                                                                            fontWeight: "700",
+                                                                                            cursor: "pointer"
+                                                                                        },
+                                                                                        children: "Analisar"
+                                                                                    }, void 0, false, {
+                                                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                                        lineNumber: 680,
+                                                                                        columnNumber: 61
+                                                                                    }, this),
+                                                                                    ag.status === "ACTIVE" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                                        onClick: ()=>handleAgencyAction(ag.id, "SUSPENDED"),
+                                                                                        style: {
+                                                                                            padding: "5px 10px",
+                                                                                            borderRadius: "6px",
+                                                                                            border: "none",
+                                                                                            background: "rgba(220,38,38,0.08)",
+                                                                                            color: "#DC2626",
+                                                                                            fontSize: "11px",
+                                                                                            fontWeight: "700",
+                                                                                            cursor: "pointer"
+                                                                                        },
+                                                                                        children: "Suspender"
+                                                                                    }, void 0, false, {
+                                                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                                        lineNumber: 683,
+                                                                                        columnNumber: 61
+                                                                                    }, this),
+                                                                                    ag.status === "SUSPENDED" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                                        onClick: ()=>handleAgencyAction(ag.id, "ACTIVE"),
+                                                                                        style: {
+                                                                                            padding: "5px 10px",
+                                                                                            borderRadius: "6px",
+                                                                                            border: "none",
+                                                                                            background: "rgba(22,163,74,0.1)",
+                                                                                            color: "#16A34A",
+                                                                                            fontSize: "11px",
+                                                                                            fontWeight: "700",
+                                                                                            cursor: "pointer"
+                                                                                        },
+                                                                                        children: "Reativar"
+                                                                                    }, void 0, false, {
+                                                                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                                        lineNumber: 686,
+                                                                                        columnNumber: 61
+                                                                                    }, this)
+                                                                                ]
+                                                                            }, void 0, true, {
+                                                                                fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                                lineNumber: 675,
+                                                                                columnNumber: 53
+                                                                            }, this)
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 674,
+                                                                            columnNumber: 49
+                                                                        }, this)
+                                                                    ]
+                                                                }, ag.id, true, {
+                                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                    lineNumber: 658,
+                                                                    columnNumber: 45
+                                                                }, this))
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 656,
+                                                            columnNumber: 37
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                    lineNumber: 648,
+                                                    columnNumber: 33
+                                                }, this),
+                                                filteredAgencies.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    style: {
+                                                        padding: "32px",
+                                                        textAlign: "center",
+                                                        color: "#94A3B8",
+                                                        fontSize: "14px"
+                                                    },
+                                                    children: "Nenhuma agência com este status"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                    lineNumber: 694,
+                                                    columnNumber: 67
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                            lineNumber: 638,
+                                            columnNumber: 29
+                                        }, this),
+                                        showNewAgencyForm && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            style: {
+                                                background: "#fff",
+                                                borderRadius: "18px",
+                                                padding: "24px",
+                                                border: "1px solid rgba(226,232,240,0.7)",
+                                                maxWidth: "600px",
+                                                marginTop: "20px"
+                                            },
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                                    style: {
+                                                        margin: "0 0 16px",
+                                                        fontSize: "16px",
+                                                        fontWeight: "800",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: "8px"
+                                                    },
+                                                    children: [
+                                                        Icon.building({
+                                                            size: 18,
+                                                            color: "#1FA89F"
+                                                        }),
+                                                        " Registrar Nova Agência"
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                    lineNumber: 700,
+                                                    columnNumber: 37
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
+                                                    onSubmit: handleCreateAgency,
+                                                    style: {
+                                                        display: "grid",
+                                                        gap: "14px"
+                                                    },
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            style: {
+                                                                display: "grid",
+                                                                gridTemplateColumns: "1fr 1fr",
+                                                                gap: "14px"
+                                                            },
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    style: {
+                                                                        display: "grid",
+                                                                        gap: "4px"
+                                                                    },
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                            style: {
+                                                                                fontSize: "11px",
+                                                                                fontWeight: "700",
+                                                                                color: "#64748B"
+                                                                            },
+                                                                            children: "Nome da Agência"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 706,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                            type: "text",
+                                                                            value: newAgency.name,
+                                                                            onChange: (e)=>setNewAgency({
+                                                                                    ...newAgency,
+                                                                                    name: e.target.value
+                                                                                }),
+                                                                            required: true,
+                                                                            style: {
+                                                                                padding: "10px",
+                                                                                borderRadius: "8px",
+                                                                                border: "1.5px solid #E2E8F0",
+                                                                                outline: "none",
+                                                                                fontFamily: "inherit",
+                                                                                fontSize: "13px"
+                                                                            }
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 707,
+                                                                            columnNumber: 49
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                    lineNumber: 705,
+                                                                    columnNumber: 45
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    style: {
+                                                                        display: "grid",
+                                                                        gap: "4px"
+                                                                    },
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                            style: {
+                                                                                fontSize: "11px",
+                                                                                fontWeight: "700",
+                                                                                color: "#64748B"
+                                                                            },
+                                                                            children: "CNPJ"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 710,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                            type: "text",
+                                                                            value: newAgency.cnpj,
+                                                                            onChange: (e)=>setNewAgency({
+                                                                                    ...newAgency,
+                                                                                    cnpj: e.target.value
+                                                                                }),
+                                                                            required: true,
+                                                                            style: {
+                                                                                padding: "10px",
+                                                                                borderRadius: "8px",
+                                                                                border: "1.5px solid #E2E8F0",
+                                                                                outline: "none",
+                                                                                fontFamily: "inherit",
+                                                                                fontSize: "13px"
+                                                                            }
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 711,
+                                                                            columnNumber: 49
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                    lineNumber: 709,
+                                                                    columnNumber: 45
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 704,
+                                                            columnNumber: 41
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            style: {
+                                                                display: "grid",
+                                                                gridTemplateColumns: "1fr 1fr 1fr",
+                                                                gap: "14px"
+                                                            },
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    style: {
+                                                                        display: "grid",
+                                                                        gap: "4px"
+                                                                    },
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                            style: {
+                                                                                fontSize: "11px",
+                                                                                fontWeight: "700",
+                                                                                color: "#64748B"
+                                                                            },
+                                                                            children: "Nome do Gestor"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 716,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                            type: "text",
+                                                                            value: newAgency.employeeName,
+                                                                            onChange: (e)=>setNewAgency({
+                                                                                    ...newAgency,
+                                                                                    employeeName: e.target.value
+                                                                                }),
+                                                                            required: true,
+                                                                            style: {
+                                                                                padding: "10px",
+                                                                                borderRadius: "8px",
+                                                                                border: "1.5px solid #E2E8F0",
+                                                                                outline: "none",
+                                                                                fontFamily: "inherit",
+                                                                                fontSize: "13px"
+                                                                            }
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 717,
+                                                                            columnNumber: 49
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                    lineNumber: 715,
+                                                                    columnNumber: 45
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    style: {
+                                                                        display: "grid",
+                                                                        gap: "4px"
+                                                                    },
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                            style: {
+                                                                                fontSize: "11px",
+                                                                                fontWeight: "700",
+                                                                                color: "#64748B"
+                                                                            },
+                                                                            children: "E-mail"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 720,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                            type: "email",
+                                                                            value: newAgency.email,
+                                                                            onChange: (e)=>setNewAgency({
+                                                                                    ...newAgency,
+                                                                                    email: e.target.value
+                                                                                }),
+                                                                            required: true,
+                                                                            style: {
+                                                                                padding: "10px",
+                                                                                borderRadius: "8px",
+                                                                                border: "1.5px solid #E2E8F0",
+                                                                                outline: "none",
+                                                                                fontFamily: "inherit",
+                                                                                fontSize: "13px"
+                                                                            }
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 721,
+                                                                            columnNumber: 49
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                    lineNumber: 719,
+                                                                    columnNumber: 45
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    style: {
+                                                                        display: "grid",
+                                                                        gap: "4px"
+                                                                    },
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                            style: {
+                                                                                fontSize: "11px",
+                                                                                fontWeight: "700",
+                                                                                color: "#64748B"
+                                                                            },
+                                                                            children: "Senha"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 724,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                            type: "password",
+                                                                            value: newAgency.password,
+                                                                            onChange: (e)=>setNewAgency({
+                                                                                    ...newAgency,
+                                                                                    password: e.target.value
+                                                                                }),
+                                                                            required: true,
+                                                                            style: {
+                                                                                padding: "10px",
+                                                                                borderRadius: "8px",
+                                                                                border: "1.5px solid #E2E8F0",
+                                                                                outline: "none",
+                                                                                fontFamily: "inherit",
+                                                                                fontSize: "13px"
+                                                                            }
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                            lineNumber: 725,
+                                                                            columnNumber: 49
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                                    lineNumber: 723,
+                                                                    columnNumber: 45
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 714,
+                                                            columnNumber: 41
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                            type: "submit",
+                                                            disabled: actionLoading,
+                                                            style: {
+                                                                padding: "12px",
+                                                                borderRadius: "10px",
+                                                                border: "none",
+                                                                background: "linear-gradient(135deg, #28C9BF, #1FA89F)",
+                                                                color: "#fff",
+                                                                fontWeight: "700",
+                                                                cursor: "pointer",
+                                                                fontFamily: "inherit",
+                                                                fontSize: "13px"
+                                                            },
+                                                            children: actionLoading ? "Criando..." : "Criar Agência e Gestor"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                            lineNumber: 728,
+                                                            columnNumber: 41
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                                    lineNumber: 703,
+                                                    columnNumber: 37
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                            lineNumber: 699,
+                                            columnNumber: 33
+                                        }, this)
+                                    ]
+                                }, void 0, true);
+                            })(),
                             tab === "clients" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 style: {
                                     display: "flex",
@@ -2395,7 +3017,7 @@ function AdminDashboardPage() {
                                                 children: client.name.charAt(0)
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 602,
+                                                lineNumber: 746,
                                                 columnNumber: 37
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2412,7 +3034,7 @@ function AdminDashboardPage() {
                                                         children: client.name
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 606,
+                                                        lineNumber: 750,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2427,13 +3049,13 @@ function AdminDashboardPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 607,
+                                                        lineNumber: 751,
                                                         columnNumber: 41
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 605,
+                                                lineNumber: 749,
                                                 columnNumber: 37
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2454,7 +3076,7 @@ function AdminDashboardPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 610,
+                                                        lineNumber: 754,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2468,24 +3090,24 @@ function AdminDashboardPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 611,
+                                                        lineNumber: 755,
                                                         columnNumber: 41
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 609,
+                                                lineNumber: 753,
                                                 columnNumber: 37
                                             }, this)
                                         ]
                                     }, client.id, true, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 601,
+                                        lineNumber: 745,
                                         columnNumber: 33
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 595,
+                                lineNumber: 739,
                                 columnNumber: 25
                             }, this),
                             tab === "financial" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2516,7 +3138,7 @@ function AdminDashboardPage() {
                                                         children: "Volume Bruto (GMV)"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 623,
+                                                        lineNumber: 767,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2528,13 +3150,13 @@ function AdminDashboardPage() {
                                                         children: "R$ 142.500"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 624,
+                                                        lineNumber: 768,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 622,
+                                                lineNumber: 766,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2555,7 +3177,7 @@ function AdminDashboardPage() {
                                                         children: "Receita VAMO (Comissões)"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 627,
+                                                        lineNumber: 771,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2567,13 +3189,13 @@ function AdminDashboardPage() {
                                                         children: "R$ 18.250"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 628,
+                                                        lineNumber: 772,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 626,
+                                                lineNumber: 770,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2594,7 +3216,7 @@ function AdminDashboardPage() {
                                                         children: "Repasses Pendentes"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 631,
+                                                        lineNumber: 775,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2606,19 +3228,19 @@ function AdminDashboardPage() {
                                                         children: "R$ 4.300"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 632,
+                                                        lineNumber: 776,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 630,
+                                                lineNumber: 774,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 621,
+                                        lineNumber: 765,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -2631,7 +3253,7 @@ function AdminDashboardPage() {
                                         children: "Transações Recentes"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 635,
+                                        lineNumber: 779,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2690,7 +3312,7 @@ function AdminDashboardPage() {
                                                                 children: tx.label
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 644,
+                                                                lineNumber: 788,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2706,13 +3328,13 @@ function AdminDashboardPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 645,
+                                                                lineNumber: 789,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 643,
+                                                        lineNumber: 787,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2739,13 +3361,13 @@ function AdminDashboardPage() {
                                                                         children: "(Taxa VAMO)"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                        lineNumber: 650,
+                                                                        lineNumber: 794,
                                                                         columnNumber: 154
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 650,
+                                                                lineNumber: 794,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2760,30 +3382,30 @@ function AdminDashboardPage() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                                lineNumber: 651,
+                                                                lineNumber: 795,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 649,
+                                                        lineNumber: 793,
                                                         columnNumber: 41
                                                     }, this)
                                                 ]
                                             }, tx.id, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 642,
+                                                lineNumber: 786,
                                                 columnNumber: 37
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 636,
+                                        lineNumber: 780,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 620,
+                                lineNumber: 764,
                                 columnNumber: 25
                             }, this),
                             tab === "history" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2807,7 +3429,7 @@ function AdminDashboardPage() {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 663,
+                                        lineNumber: 807,
                                         columnNumber: 29
                                     }, this),
                                     [
@@ -2841,7 +3463,7 @@ function AdminDashboardPage() {
                                                     }
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                    lineNumber: 673,
+                                                    lineNumber: 817,
                                                     columnNumber: 41
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2855,7 +3477,7 @@ function AdminDashboardPage() {
                                                             children: item.title
                                                         }, void 0, false, {
                                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                            lineNumber: 675,
+                                                            lineNumber: 819,
                                                             columnNumber: 45
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2872,13 +3494,13 @@ function AdminDashboardPage() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                            lineNumber: 676,
+                                                            lineNumber: 820,
                                                             columnNumber: 45
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                    lineNumber: 674,
+                                                    lineNumber: 818,
                                                     columnNumber: 41
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2893,26 +3515,26 @@ function AdminDashboardPage() {
                                                     children: STATUS_LABEL[item.status]
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                    lineNumber: 680,
+                                                    lineNumber: 824,
                                                     columnNumber: 41
                                                 }, this)
                                             ]
                                         }, item.id, true, {
                                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                            lineNumber: 667,
+                                            lineNumber: 811,
                                             columnNumber: 37
                                         }, this)),
                                     history.packages.length === 0 && history.itineraries.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(EmptyState, {
                                         msg: "Nenhum item no histórico"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 688,
+                                        lineNumber: 832,
                                         columnNumber: 33
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 661,
+                                lineNumber: 805,
                                 columnNumber: 25
                             }, this),
                             tab === "settings" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2942,7 +3564,7 @@ function AdminDashboardPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 696,
+                                        lineNumber: 840,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -2970,7 +3592,7 @@ function AdminDashboardPage() {
                                                         children: "Nome de Exibição"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 701,
+                                                        lineNumber: 845,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2987,13 +3609,13 @@ function AdminDashboardPage() {
                                                         }
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 702,
+                                                        lineNumber: 846,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 700,
+                                                lineNumber: 844,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3011,7 +3633,7 @@ function AdminDashboardPage() {
                                                         children: "E-mail Administrativo"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 705,
+                                                        lineNumber: 849,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -3028,13 +3650,13 @@ function AdminDashboardPage() {
                                                         }
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 706,
+                                                        lineNumber: 850,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 704,
+                                                lineNumber: 848,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("hr", {
@@ -3045,7 +3667,7 @@ function AdminDashboardPage() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 708,
+                                                lineNumber: 852,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3063,7 +3685,7 @@ function AdminDashboardPage() {
                                                         children: "Nova Senha"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 710,
+                                                        lineNumber: 854,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -3079,13 +3701,13 @@ function AdminDashboardPage() {
                                                         }
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                        lineNumber: 711,
+                                                        lineNumber: 855,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 709,
+                                                lineNumber: 853,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3105,48 +3727,122 @@ function AdminDashboardPage() {
                                                 children: "Salvar Alterações"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                                lineNumber: 713,
+                                                lineNumber: 857,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 699,
+                                        lineNumber: 843,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 695,
+                                lineNumber: 839,
                                 columnNumber: 25
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 450,
+                        lineNumber: 469,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 426,
+                lineNumber: 445,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-        lineNumber: 290,
+        lineNumber: 309,
         columnNumber: 9
     }, this);
 }
 /* ═══════════════════════════════════════════════════
    SUB-COMPONENTS
-   ═══════════════════════════════════════════════════ */ function ItemList({ items, type, onApprove, onReject, emptyMsg }) {
+   ═══════════════════════════════════════════════════ */ function FilterBar({ current, onChange, counts }) {
+    const filters = [
+        {
+            key: "ALL",
+            label: "Todos"
+        },
+        {
+            key: "PENDING_REVIEW",
+            label: "Pendentes"
+        },
+        {
+            key: "APPROVED",
+            label: "Aprovados"
+        },
+        {
+            key: "ACTIVE",
+            label: "Ativos"
+        },
+        {
+            key: "REJECTED",
+            label: "Rejeitados"
+        }
+    ];
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        style: {
+            display: "flex",
+            gap: "8px",
+            marginBottom: "16px",
+            flexWrap: "wrap"
+        },
+        children: filters.map((f)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                onClick: ()=>onChange(f.key),
+                style: {
+                    padding: "7px 14px",
+                    borderRadius: "10px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    border: current === f.key ? "2px solid #28C9BF" : "1px solid #E2E8F0",
+                    background: current === f.key ? "rgba(40,201,191,0.08)" : "#fff",
+                    color: current === f.key ? "#1FA89F" : "#64748B",
+                    transition: "all 0.15s"
+                },
+                children: [
+                    f.label,
+                    " ",
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                        style: {
+                            marginLeft: "4px",
+                            fontSize: "10px",
+                            opacity: 0.7
+                        },
+                        children: [
+                            "(",
+                            counts[f.key] ?? 0,
+                            ")"
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                        lineNumber: 889,
+                        columnNumber: 30
+                    }, this)
+                ]
+            }, f.key, true, {
+                fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                lineNumber: 883,
+                columnNumber: 17
+            }, this))
+    }, void 0, false, {
+        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+        lineNumber: 881,
+        columnNumber: 9
+    }, this);
+}
+function ItemList({ items, type, onApprove, onReject, emptyMsg, showStatus }) {
     if (items.length === 0) return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(EmptyState, {
         msg: emptyMsg
     }, void 0, false, {
         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-        lineNumber: 734,
+        lineNumber: 901,
         columnNumber: 36
     }, this);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3155,7 +3851,9 @@ function AdminDashboardPage() {
             flexDirection: "column",
             gap: "12px"
         },
-        children: items.map((item)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        children: items.map((item)=>{
+            const isPending = item.status === "PENDING_REVIEW";
+            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 style: {
                     background: "#fff",
                     borderRadius: "20px",
@@ -3189,8 +3887,8 @@ function AdminDashboardPage() {
                             }
                         }, void 0, false, {
                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                            lineNumber: 749,
-                            columnNumber: 31
+                            lineNumber: 918,
+                            columnNumber: 35
                         }, this) : type === "packages" ? Icon.package({
                             size: 24,
                             color: "#28C9BF"
@@ -3200,8 +3898,8 @@ function AdminDashboardPage() {
                         })
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 743,
-                        columnNumber: 21
+                        lineNumber: 912,
+                        columnNumber: 25
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         style: {
@@ -3211,16 +3909,44 @@ function AdminDashboardPage() {
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 style: {
-                                    fontWeight: "700",
-                                    fontSize: "15px",
-                                    color: "#1E293B",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
                                     marginBottom: "4px"
                                 },
-                                children: item.title
-                            }, void 0, false, {
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        style: {
+                                            fontWeight: "700",
+                                            fontSize: "15px",
+                                            color: "#1E293B"
+                                        },
+                                        children: item.title
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                        lineNumber: 923,
+                                        columnNumber: 33
+                                    }, this),
+                                    showStatus && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        style: {
+                                            padding: "2px 8px",
+                                            borderRadius: "20px",
+                                            fontSize: "10px",
+                                            fontWeight: "700",
+                                            background: `${STATUS_COLOR[item.status]}14`,
+                                            color: STATUS_COLOR[item.status]
+                                        },
+                                        children: STATUS_LABEL[item.status]
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                        lineNumber: 925,
+                                        columnNumber: 37
+                                    }, this)
+                                ]
+                            }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 753,
-                                columnNumber: 25
+                                lineNumber: 922,
+                                columnNumber: 29
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 style: {
@@ -3239,14 +3965,14 @@ function AdminDashboardPage() {
                                         children: type === "packages" ? item.agency?.name : item.creator?.traveler?.name
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 755,
-                                        columnNumber: 66
+                                        lineNumber: 933,
+                                        columnNumber: 70
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 754,
-                                columnNumber: 25
+                                lineNumber: 932,
+                                columnNumber: 29
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 style: {
@@ -3269,8 +3995,8 @@ function AdminDashboardPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 759,
-                                        columnNumber: 33
+                                        lineNumber: 937,
+                                        columnNumber: 37
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                         style: {
@@ -3280,20 +4006,35 @@ function AdminDashboardPage() {
                                         children: new Date(item.createdAt).toLocaleDateString("pt-BR")
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                        lineNumber: 761,
-                                        columnNumber: 29
+                                        lineNumber: 939,
+                                        columnNumber: 33
+                                    }, this),
+                                    item.approvalNote && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        style: {
+                                            fontSize: "11px",
+                                            color: "#DC2626",
+                                            fontStyle: "italic"
+                                        },
+                                        children: [
+                                            "Nota: ",
+                                            item.approvalNote
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/apps/site/src/app/admin/page.tsx",
+                                        lineNumber: 940,
+                                        columnNumber: 55
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 757,
-                                columnNumber: 25
+                                lineNumber: 935,
+                                columnNumber: 29
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 752,
-                        columnNumber: 21
+                        lineNumber: 921,
+                        columnNumber: 25
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         style: {
@@ -3309,15 +4050,15 @@ function AdminDashboardPage() {
                             children: type === "packages" ? item.priceMin ? `R$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `R$ ${item.price.toLocaleString("pt-BR")}` : "—"
                         }, void 0, false, {
                             fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                            lineNumber: 765,
-                            columnNumber: 25
+                            lineNumber: 944,
+                            columnNumber: 29
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 764,
-                        columnNumber: 21
+                        lineNumber: 943,
+                        columnNumber: 25
                     }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    isPending && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         style: {
                             display: "flex",
                             gap: "8px",
@@ -3349,8 +4090,8 @@ function AdminDashboardPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 770,
-                                columnNumber: 25
+                                lineNumber: 950,
+                                columnNumber: 33
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                 onClick: ()=>onReject(type, item.id, item.title),
@@ -3376,24 +4117,25 @@ function AdminDashboardPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                                lineNumber: 777,
-                                columnNumber: 25
+                                lineNumber: 957,
+                                columnNumber: 33
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                        lineNumber: 769,
-                        columnNumber: 21
+                        lineNumber: 949,
+                        columnNumber: 29
                     }, this)
                 ]
             }, item.id, true, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 738,
-                columnNumber: 17
-            }, this))
+                lineNumber: 907,
+                columnNumber: 21
+            }, this);
+        })
     }, void 0, false, {
         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-        lineNumber: 736,
+        lineNumber: 903,
         columnNumber: 9
     }, this);
 }
@@ -3417,7 +4159,7 @@ function EmptyState({ msg }) {
                 })
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 797,
+                lineNumber: 979,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3430,7 +4172,7 @@ function EmptyState({ msg }) {
                 children: msg
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 798,
+                lineNumber: 980,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3441,13 +4183,13 @@ function EmptyState({ msg }) {
                 children: "Tudo em dia por aqui."
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 799,
+                lineNumber: 981,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-        lineNumber: 793,
+        lineNumber: 975,
         columnNumber: 9
     }, this);
 }
@@ -3471,7 +4213,7 @@ function ComingSoon({ title, description, icon }) {
                 })
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 810,
+                lineNumber: 992,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3484,7 +4226,7 @@ function ComingSoon({ title, description, icon }) {
                 children: title
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 811,
+                lineNumber: 993,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3498,7 +4240,7 @@ function ComingSoon({ title, description, icon }) {
                 children: description
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 812,
+                lineNumber: 994,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3515,13 +4257,13 @@ function ComingSoon({ title, description, icon }) {
                 children: "Em breve"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/admin/page.tsx",
-                lineNumber: 813,
+                lineNumber: 995,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/admin/page.tsx",
-        lineNumber: 806,
+        lineNumber: 988,
         columnNumber: 9
     }, this);
 }

@@ -2,12 +2,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Auto-login: set a mock token and redirect directly to /admin
+// MVP: auto-login para desenvolvimento — autenticação real será implementada na Fase 3
 export default function AdminLoginPage() {
     const router = useRouter();
 
     useEffect(() => {
-        // Set mock admin credentials and redirect immediately
+        // Define credenciais mock e redireciona direto ao painel admin
         localStorage.setItem("adminToken", "mock-admin-token");
         localStorage.setItem("adminUser", JSON.stringify({
             name: "Dev Admin",

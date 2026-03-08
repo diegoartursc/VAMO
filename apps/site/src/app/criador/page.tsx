@@ -3,30 +3,35 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getDashboardStats } from "@/lib/api";
+import { getSession, type AuthSession } from "@/lib/auth";
 
 export default function CriadorOverview() {
+    const [session, setSession] = useState<AuthSession | null>(null);
     const [stats, setStats] = useState({ total: 0, published: 0, totalSales: 0, totalRevenue: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getDashboardStats()
-            .then((data) => {
-                const its = data.itineraries || [];
-                setStats({
-                    total: its.length,
-                    published: its.filter((i: any) => i.status === "active").length,
-                    totalSales: its.reduce((s: number, i: any) => s + (i.sales || 0), 0),
-                    totalRevenue: its.reduce((s: number, i: any) => s + (i.revenue || 0), 0),
-                });
-            })
-            .catch(() => { })
-            .finally(() => setLoading(false));
+        Promise.all([
+            getSession(),
+            getDashboardStats(),
+        ]).then(([s, data]) => {
+            if (s) setSession(s);
+            const its = data.itineraries || [];
+            setStats({
+                total: its.length,
+                published: its.filter((i: any) => i.status === "active" || i.status === "ACTIVE").length,
+                totalSales: its.reduce((sum: number, i: any) => sum + (i.sales || 0), 0),
+                totalRevenue: its.reduce((sum: number, i: any) => sum + (i.revenue || 0), 0),
+            });
+        }).catch(() => { }).finally(() => setLoading(false));
     }, []);
+
+    const firstName = session?.employee?.name?.split(" ")[0] || "Criador";
 
     return (
         <div>
             <div className="dash-header">
-                <h1 className="dash-title">Olá, Criador!</h1>
+                <h1 className="dash-title">Olá, {firstName}!</h1>
                 <p className="dash-subtitle">Gerencie seus roteiros e acompanhe suas vendas</p>
             </div>
 
