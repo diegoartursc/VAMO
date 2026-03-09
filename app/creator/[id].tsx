@@ -90,12 +90,21 @@ export default function CreatorDetailScreen() {
                     </Text>
                 </View>
 
-                {/* Roteiros (placeholder) */}
+                {/* Roteiros */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Roteiros disponíveis</Text>
-                    <Text style={styles.placeholderText}>
-                        {creator.stats.itinerariesCount} roteiros para você explorar
-                    </Text>
+                    <TouchableOpacity
+                        style={{ backgroundColor: theme.colors.surface, padding: 20, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border }}
+                        onPress={() => router.push('/(tabs)/itineraries')}
+                    >
+                        <Text style={{ fontSize: 28, marginBottom: 8 }}>🗺️</Text>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.text.primary, marginBottom: 4 }}>
+                            {creator.stats.itinerariesCount} roteiros disponíveis
+                        </Text>
+                        <Text style={{ fontSize: 13, color: theme.colors.primary, fontWeight: '600' }}>
+                            Ver roteiros →
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Action Buttons */}

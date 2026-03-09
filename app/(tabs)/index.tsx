@@ -10,6 +10,7 @@ import {
     Platform,
     StatusBar,
     SafeAreaView,
+    Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,7 +40,7 @@ const { width } = Dimensions.get('window');
 
 
 // ─── HERO SECTION COMPONENT ──────────────────────────────
-const HeroHeader = ({ onSearchPress }: { onSearchPress: () => void }) => {
+const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; router: any }) => {
     return (
         <View style={styles.heroContainer}>
             <Image
@@ -56,7 +57,7 @@ const HeroHeader = ({ onSearchPress }: { onSearchPress: () => void }) => {
                 <View style={styles.heroTopRow}>
                     <Image source={require('../../assets/images/logo_transparent.png')} style={styles.brandLogo} />
                     <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <TouchableOpacity style={styles.iconButton}>
+                        <TouchableOpacity style={styles.iconButton} onPress={() => Alert.alert('🔔 Notificações', 'Você não possui notificações no momento.')}>
                             <Icon name="bell" size={24} color="#FFF" />
                         </TouchableOpacity>
                     </View>
@@ -78,19 +79,19 @@ const HeroHeader = ({ onSearchPress }: { onSearchPress: () => void }) => {
 
                     {/* Explore Shortcuts 2x2 */}
                     <View style={styles.heroShortcutsRow}>
-                        <TouchableOpacity style={styles.heroShortcutCard}>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?sort=popular')}>
                             <Text style={styles.heroShortcutEmoji}>🔥</Text>
                             <Text style={styles.heroShortcutText}>Destinos{'\n'}em alta</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard}>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?sort=price')}>
                             <Text style={styles.heroShortcutEmoji}>💰</Text>
                             <Text style={styles.heroShortcutText}>Melhor custo</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard}>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
                             <Text style={styles.heroShortcutEmoji}>✨</Text>
                             <Text style={styles.heroShortcutText}>Experiências{'\n'}únicas</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard}>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
                             <Text style={styles.heroShortcutEmoji}>🗺</Text>
                             <Text style={styles.heroShortcutText}>Roteiros{'\n'}prontos</Text>
                         </TouchableOpacity>
@@ -140,7 +141,7 @@ export default function HomeScreen() {
                 contentContainerStyle={{ paddingBottom: 40 }}
             >
                 {/* 1. Institutional Header */}
-                <HeroHeader onSearchPress={() => setSearchModalVisible(true)} />
+                <HeroHeader onSearchPress={() => setSearchModalVisible(true)} router={router} />
 
                 {/* 2. Trust Indicators (Below Header) */}
                 <View style={styles.trustBar}>

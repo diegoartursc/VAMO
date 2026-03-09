@@ -226,20 +226,20 @@ export default function Home() {
             <a href="#como-funciona">Como funciona</a>
             <a href="#viajantes">Para viajantes</a>
             <Link href="/criadores">Para criadores</Link>
-            <a href="#">Preços</a>
+            <Link href="/cadastro">Preços</Link>
           </div>
           <div className="footer-column">
             <h4>Suporte</h4>
-            <a href="#">Central de ajuda</a>
-            <a href="#">Fale conosco</a>
-            <a href="#">WhatsApp</a>
-            <a href="#">Status</a>
+            <a href="mailto:contato@vamo.app">Central de ajuda</a>
+            <a href="mailto:contato@vamo.app">Fale conosco</a>
+            <a href="https://wa.me/5511999999999?text=Olá! Preciso de ajuda." target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a href="https://status.vamo.app" target="_blank" rel="noopener noreferrer">Status</a>
           </div>
           <div className="footer-column">
             <h4>Legal</h4>
-            <a href="#">Termos de uso</a>
-            <a href="#">Privacidade</a>
-            <a href="#">Cookies</a>
+            <a href="/termos" >Termos de uso</a>
+            <a href="/privacidade">Privacidade</a>
+            <a href="/privacidade">Cookies</a>
           </div>
         </div>
         <div className="footer-bottom">

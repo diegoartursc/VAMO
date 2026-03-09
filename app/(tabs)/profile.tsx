@@ -142,7 +142,10 @@ export default function ProfileScreen() {
                         <View style={styles.avatarCircle}>
                             <Icon name={USER.avatar as IconName} size={40} color="#FFFFFF" />
                         </View>
-                        <TouchableOpacity style={styles.editAvatarButton}>
+                        <TouchableOpacity style={styles.editAvatarButton} onPress={() => {
+                            haptics.light();
+                            Alert.alert('📸 Foto de perfil', 'A personalização da foto de perfil estará disponível em breve!');
+                        }}>
                             <Icon name="edit" size={12} color="#FFF" />
                         </TouchableOpacity>
                     </View>

@@ -154,13 +154,13 @@ export default function CriadoresPage() {
                     </div>
                     <div className="footer-column">
                         <h4>Suporte</h4>
-                        <a href="#">Central de ajuda</a>
-                        <a href="#">WhatsApp</a>
+                        <a href="mailto:contato@vamo.app">Central de ajuda</a>
+                        <a href="https://wa.me/5511999999999?text=Olá! Preciso de ajuda." target="_blank" rel="noopener noreferrer">WhatsApp</a>
                     </div>
                     <div className="footer-column">
                         <h4>Legal</h4>
-                        <a href="#">Termos de uso</a>
-                        <a href="#">Privacidade</a>
+                        <a href="/termos">Termos de uso</a>
+                        <a href="/privacidade">Privacidade</a>
                     </div>
                 </div>
                 <div className="footer-bottom">

@@ -202,7 +202,7 @@ export default function BookingConfirmedScreen() {
                         onPress={() => {
                             haptics.light();
                             router.push({
-                                pathname: `/purchased-package/pkg-1` as any,
+                                pathname: `/purchased-package/${packageId}` as any,
                             });
                         }}
                     >
