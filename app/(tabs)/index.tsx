@@ -54,7 +54,7 @@ const HeroHeader = ({ onSearchPress }: { onSearchPress: () => void }) => {
             <SafeAreaView style={styles.heroSafeArea}>
                 {/* Brand Logo & Actions */}
                 <View style={styles.heroTopRow}>
-                    <Image source={require('../../assets/images/logo_white.png')} style={styles.brandLogo} />
+                    <Image source={require('../../assets/images/logo_transparent.png')} style={styles.brandLogo} />
                     <View style={{ flexDirection: 'row', gap: 12 }}>
                         <TouchableOpacity style={styles.iconButton}>
                             <Icon name="bell" size={24} color="#FFF" />
@@ -456,7 +456,6 @@ const styles = StyleSheet.create({
         width: 100,
         height: 32,
         resizeMode: 'contain',
-        tintColor: '#FFFFFF', // Ensures it's perfectly crisp white
     },
     heroContent: {
         paddingHorizontal: 20,
