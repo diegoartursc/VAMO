@@ -28,65 +28,73 @@ import { CTACarousel } from '../../src/components/home/CTACarousel';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
+import { PackageCard } from '../../src/components/cards/PackageCard';
+import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
+
 
 // Data
 import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
 
 const { width } = Dimensions.get('window');
 
-// ─── VAMO 2.0 HEADER COMPONENT ──────────────────────────────
-const InstitutionalHeader = ({ onSearchPress }: { onSearchPress: () => void }) => {
-    return (
-        <View style={styles.headerContainer}>
-            {/* Background with Institutional Deep Navy */}
-            <LinearGradient
-                colors={theme.colors.gradients.institutional}
-                style={styles.headerBackground}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            >
-                {/* Orbital Lines / Abstract Decoration */}
-                <View style={styles.orbitalLine1} />
-                <View style={styles.orbitalLine2} />
-            </LinearGradient>
 
-            <SafeAreaView>
-                <View style={styles.headerContent}>
-                    {/* Top Row: Brand & Notifications */}
-                    <View style={styles.headerTopRow}>
-                        <View>
-                            <Text style={styles.brandText}>VAMO</Text>
-                            <Text style={styles.brandSubText}>Authority Travel</Text>
-                        </View>
+// ─── HERO SECTION COMPONENT ──────────────────────────────
+const HeroHeader = ({ onSearchPress }: { onSearchPress: () => void }) => {
+    return (
+        <View style={styles.heroContainer}>
+            <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop' }}
+                style={StyleSheet.absoluteFillObject}
+            />
+            <LinearGradient
+                colors={['rgba(26,50,99,0.6)', 'rgba(26,50,99,0.9)']}
+                style={StyleSheet.absoluteFillObject}
+            />
+
+            <SafeAreaView style={styles.heroSafeArea}>
+                {/* Brand Logo & Actions */}
+                <View style={styles.heroTopRow}>
+                    <Image source={require('../../assets/images/logo_white.png')} style={styles.brandLogo} />
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
                         <TouchableOpacity style={styles.iconButton}>
-                            <Icon name="brand-telegram" size={24} color="#FFF" />
-                            {/* Fallback to bell if brand-telegram not found, using generic bell logic manually or just Icon */}
-                            <Icon name="bell" size={24} color="rgba(255,255,255,0.8)" />
+                            <Icon name="bell" size={24} color="#FFF" />
                         </TouchableOpacity>
                     </View>
+                </View>
 
-                    {/* Hero Title */}
-                    <View style={styles.heroTextContainer}>
-                        <Text style={styles.heroTitle}>
-                            Explore novas{'\n'}fronteiras.
-                        </Text>
-                        <Text style={styles.heroSubtitle}>
-                            Roteiros exclusivos e agências verificadas.
-                        </Text>
-                    </View>
+                <View style={styles.heroContent}>
+                    <Text style={styles.heroTitle}>Explore novas{'\n'}fronteiras.</Text>
+                    <Text style={styles.heroTagline}>Viajar ficou simples.</Text>
+                    <Text style={styles.heroSubtitle}>Roteiros exclusivos de viajantes{'\n'}e agências verificadas.</Text>
 
-                    {/* Search Bar - Floating */}
-                    <TouchableOpacity
-                        style={styles.searchBar}
-                        activeOpacity={0.9}
-                        onPress={onSearchPress}
-                    >
-                        <Icon name="search" size={20} color={theme.colors.text.secondary} />
-                        <Text style={styles.searchPlaceholder}>Para onde você quer ir?</Text>
-                        <View style={styles.filterButton}>
+                    {/* Search Bar - Glassmorphism */}
+                    <TouchableOpacity style={styles.heroSearchBar} activeOpacity={0.9} onPress={onSearchPress}>
+                        <Icon name="search" size={20} color="rgba(255,255,255,0.7)" />
+                        <Text style={styles.heroSearchPlaceholder}>Para onde você quer ir?</Text>
+                        <View style={styles.heroFilterIcon}>
                             <Icon name="filter" size={16} color={theme.colors.primary} />
                         </View>
                     </TouchableOpacity>
+
+                    {/* Explore Shortcuts 2x2 */}
+                    <View style={styles.heroShortcutsRow}>
+                        <TouchableOpacity style={styles.heroShortcutCard}>
+                            <Text style={styles.heroShortcutEmoji}>🔥</Text>
+                            <Text style={styles.heroShortcutText}>Destinos{'\n'}em alta</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.heroShortcutCard}>
+                            <Text style={styles.heroShortcutEmoji}>💰</Text>
+                            <Text style={styles.heroShortcutText}>Melhor custo</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.heroShortcutCard}>
+                            <Text style={styles.heroShortcutEmoji}>✨</Text>
+                            <Text style={styles.heroShortcutText}>Experiências{'\n'}únicas</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.heroShortcutCard}>
+                            <Text style={styles.heroShortcutEmoji}>🗺</Text>
+                            <Text style={styles.heroShortcutText}>Roteiros{'\n'}prontos</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </SafeAreaView>
         </View>
@@ -132,7 +140,7 @@ export default function HomeScreen() {
                 contentContainerStyle={{ paddingBottom: 40 }}
             >
                 {/* 1. Institutional Header */}
-                <InstitutionalHeader onSearchPress={() => setSearchModalVisible(true)} />
+                <HeroHeader onSearchPress={() => setSearchModalVisible(true)} />
 
                 {/* 2. Trust Indicators (Below Header) */}
                 <View style={styles.trustBar}>
@@ -173,7 +181,7 @@ export default function HomeScreen() {
                     <Text style={styles.sectionSubtitle}>Experiências completas com curadoria VAMO.</Text>
 
                     {displayedPackages.slice(0, 5).map((pkg, index) => (
-                        <PremiumPackageCard
+                        <PackageCard
                             key={pkg.id}
                             pkg={pkg}
                             onPress={() => router.push(`/package/${pkg.id}`)}
@@ -197,6 +205,7 @@ export default function HomeScreen() {
                         {allItineraries.slice(0, 5).map((itinerary) => (
                             <ItineraryCard
                                 key={itinerary.id}
+                                width={280}
                                 itinerary={itinerary}
                                 onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                             />
@@ -253,101 +262,6 @@ export default function HomeScreen() {
 }
 
 
-// ─── PREMIUM CARD COMPONENT ─────────────────────────────────
-function PremiumPackageCard({ pkg, onPress, isFavorite, onToggleFavorite }: any) {
-    return (
-        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
-            <View style={styles.cardImageContainer}>
-                <CoverCarousel images={pkg.images || [pkg.image]} height={200} />
-
-                {/* Badges Overlay */}
-                <View style={styles.cardBadges}>
-                    {pkg.agency?.verified && (
-                        <View style={styles.verifiedBadge}>
-                            <Icon name="verified" size={12} color="#FFF" />
-                            <Text style={styles.verifiedText}>Agência Verificada</Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* Favorite Button */}
-                <TouchableOpacity style={styles.favoriteButton} onPress={(e) => { e.stopPropagation(); onToggleFavorite(e); }}>
-                    <Icon name="heart" size={20} color={isFavorite ? theme.colors.error : theme.colors.secondary} style={isFavorite ? {} : { opacity: 0.6 }} />
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>{pkg.title}</Text>
-                    <View style={styles.ratingContainer}>
-                        <Icon name="star" size={14} color={theme.colors.warning} />
-                        <Text style={styles.ratingText}>{pkg.rating}</Text>
-                        <Text style={styles.reviewCount}>({pkg.reviewCount})</Text>
-                    </View>
-                </View>
-
-                <View style={styles.locationRow}>
-                    <Icon name="map-pin" size={14} color={theme.colors.text.tertiary} />
-                    <Text style={styles.locationText}>{pkg.destination}, {pkg.country}</Text>
-                    <Text style={styles.dotSeparator}>•</Text>
-                    <Text style={styles.durationText}>{pkg.duration} dias</Text>
-                </View>
-
-                {/* Features (No Emojis) */}
-                <View style={styles.featuresRow}>
-                    {pkg.inclusions?.flight && (
-                        <View style={styles.featureItem}>
-                            <Icon name="plane" size={14} color={theme.colors.text.secondary} />
-                            <Text style={styles.featureText}>Aéreo</Text>
-                        </View>
-                    )}
-                    {pkg.inclusions?.hotel && (
-                        <View style={styles.featureItem}>
-                            <Icon name="hotel" size={14} color={theme.colors.text.secondary} />
-                            <Text style={styles.featureText}>Hotel</Text>
-                        </View>
-                    )}
-                    {pkg.inclusions?.hotel?.meals && (
-                        <View style={styles.featureItem}>
-                            <Icon name="coffee" size={14} color={theme.colors.text.secondary} />
-                            <Text style={styles.featureText}>Café</Text>
-                        </View>
-                    )}
-                </View>
-
-                <View style={styles.cardFooter}>
-                    <View>
-                        <Text style={styles.priceLabel}>A partir de</Text>
-                        <Text style={styles.priceValue}>R$ {pkg.price.min.toLocaleString('pt-BR')}</Text>
-                    </View>
-
-                    <TouchableOpacity style={styles.bookButton} onPress={onPress}>
-                        <Text style={styles.bookButtonText}>Ver detalhes</Text>
-                        <Icon name="chevron-right" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-}
-
-// ─── ITINERARY CARD (Horizontal) ────────────────────────────
-function ItineraryCard({ itinerary, onPress }: any) {
-    return (
-        <TouchableOpacity style={styles.itineraryCard} onPress={onPress} activeOpacity={0.9}>
-            <Image source={{ uri: itinerary.images[0] }} style={styles.itineraryImage} />
-            <View style={styles.itineraryContent}>
-                <Text style={styles.itineraryTitle} numberOfLines={2}>{itinerary.title}</Text>
-                <View style={styles.itineraryCreator}>
-                    <Text style={styles.creatorName}>por {itinerary.creator.name}</Text>
-                    {itinerary.creator.verificationLevel > 1 && <Icon name="verified" size={12} color={theme.colors.primary} />}
-                </View>
-                <Text style={styles.itineraryPrice}>R$ {itinerary.price.toLocaleString('pt-BR')}</Text>
-            </View>
-        </TouchableOpacity>
-    )
-}
-
 const POPULAR_DESTINATIONS = [
     { id: 'paris', name: 'Paris', image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600', count: 847 },
     { id: 'tokyo', name: 'Tokyo', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600', count: 623 },
@@ -371,7 +285,7 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 32,
         backgroundColor: theme.colors.secondary,
         paddingBottom: 24,
-        ...theme.shadows.lg,
+        ...theme.shadows.medium,
     },
     headerBackground: {
         position: 'absolute',
@@ -426,43 +340,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    heroTextContainer: {
-        marginBottom: 32,
-    },
-    heroTitle: {
-        fontSize: 32,
-        fontWeight: theme.typography.weights.bold,
-        color: '#FFFFFF',
-        lineHeight: 38,
-        marginBottom: 8,
-    },
-    heroSubtitle: {
-        fontSize: 16,
-        color: 'rgba(255,255,255,0.8)',
-        lineHeight: 24,
-    },
-    searchBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        height: 56,
-        ...theme.shadows.medium,
-    },
-    searchPlaceholder: {
-        flex: 1,
-        marginLeft: 12,
-        fontSize: 15,
-        color: theme.colors.text.secondary,
-    },
-    filterButton: {
-        width: 32, height: 32,
-        borderRadius: 8,
-        backgroundColor: theme.colors.primary + '15', // Light Teal
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
+
 
     // Trust Bar
     trustBar: {
@@ -556,6 +434,102 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
     },
+
+    // Hero Styles
+    heroContainer: {
+        width: '100%',
+        minHeight: 300,
+        ...theme.shadows.medium,
+    },
+    heroSafeArea: {
+        flex: 1,
+    },
+    heroTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: Platform.OS === 'android' ? 40 : 10,
+        marginBottom: 20,
+    },
+    brandLogo: {
+        width: 100,
+        height: 32,
+        resizeMode: 'contain',
+        tintColor: '#FFFFFF', // Ensures it's perfectly crisp white
+    },
+    heroContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 24,
+    },
+    heroTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        lineHeight: 32,
+        marginBottom: 4,
+    },
+    heroTagline: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: '#28C9BF',
+        marginBottom: 8,
+    },
+    heroSubtitle: {
+        fontSize: 16,
+        color: 'rgba(255,255,255,0.85)',
+        fontWeight: '400',
+        marginBottom: 24,
+    },
+    heroSearchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        height: 52,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        marginBottom: 24,
+    },
+    heroSearchPlaceholder: {
+        flex: 1,
+        marginLeft: 10,
+        fontSize: 15,
+        color: 'rgba(255,255,255,0.7)',
+    },
+    heroFilterIcon: {
+        width: 32, height: 32,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroShortcutsRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 12,
+    },
+    heroShortcutCard: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
+    },
+    heroShortcutEmoji: {
+        fontSize: 18,
+        marginRight: 8,
+    },
+    heroShortcutText: {
+        fontSize: 12,
+        color: '#FFF',
+        fontWeight: '500',
+    },
+
     cardImageContainer: {
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
@@ -589,7 +563,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
-        ...theme.shadows.sm,
+        ...theme.shadows.small,
     },
     cardContent: {
         padding: 16,
@@ -702,7 +676,7 @@ const styles = StyleSheet.create({
         width: 200,
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        ...theme.shadows.sm,
+        ...theme.shadows.small,
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
         overflow: 'hidden',

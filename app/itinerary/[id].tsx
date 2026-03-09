@@ -199,7 +199,7 @@ export default function ItineraryDetailScreen() {
 
                                 {itinerary.estimatedSpending.breakdown && (
                                     <View style={styles.spendingBreakdown}>
-                                        {itinerary.estimatedSpending.breakdown.map((item, index) => (
+                                        {itinerary.estimatedSpending.breakdown.map((item: any, index: number) => (
                                             <View key={index} style={styles.breakdownItem}>
                                                 <View style={styles.breakdownHeader}>
                                                     <Text style={styles.breakdownCategory}>{item.category}</Text>
@@ -230,7 +230,7 @@ export default function ItineraryDetailScreen() {
                     {itinerary.highlights && itinerary.highlights.length > 0 && (
                         <CollapsibleSection title="Destaques" defaultExpanded>
                             <View style={styles.highlightsContainer}>
-                                {itinerary.highlights.map((highlight, index) => (
+                                {itinerary.highlights.map((highlight: any, index: number) => (
                                     <View key={index} style={styles.highlightRow}>
                                         <View style={styles.checkIcon}>
                                             <Ionicons name="checkmark" size={12} color="#fff" />
@@ -349,25 +349,25 @@ export default function ItineraryDetailScreen() {
                         </View>
                         <View style={styles.disclaimerItems}>
                             <View style={styles.disclaimerItem}>
-                                <Text style={styles.disclaimerBullet}>📄</Text>
+                                <Ionicons name="document-text-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
                                 <Text style={styles.disclaimerItemText}>
                                     <Text style={styles.disclaimerItemBold}>Produto digital:</Text> Você está adquirindo acesso a um roteiro com informações, dicas e planejamento de viagem elaborados por um viajante experiente.
                                 </Text>
                             </View>
                             <View style={styles.disclaimerItem}>
-                                <Text style={styles.disclaimerBullet}>💡</Text>
+                                <Ionicons name="bulb-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
                                 <Text style={styles.disclaimerItemText}>
                                     <Text style={styles.disclaimerItemBold}>Conteúdo informativo:</Text> O pagamento é pelo acesso à informação em si. A VAMO não comercializa nem garante a execução dos serviços, passeios ou experiências descritos no roteiro.
                                 </Text>
                             </View>
                             <View style={styles.disclaimerItem}>
-                                <Text style={styles.disclaimerBullet}>🔒</Text>
+                                <Ionicons name="lock-closed-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
                                 <Text style={styles.disclaimerItemText}>
                                     <Text style={styles.disclaimerItemBold}>Acesso permanente:</Text> Após a compra, o conteúdo ficará disponível na sua conta para consulta a qualquer momento.
                                 </Text>
                             </View>
                             <View style={styles.disclaimerItem}>
-                                <Text style={styles.disclaimerBullet}>⚠️</Text>
+                                <Ionicons name="warning-outline" size={16} color={theme.colors.warning || '#F59E0B'} style={{ marginTop: 2, marginRight: 8 }} />
                                 <Text style={styles.disclaimerItemText}>
                                     Preços, horários e disponibilidade dos locais mencionados podem sofrer alterações. Recomendamos confirmar as informações antes da viagem.
                                 </Text>

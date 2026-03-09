@@ -31,7 +31,7 @@ export default function CreatorDetailScreen() {
         <View style={styles.container}>
             {/* Header */}
             <LinearGradient
-                colors={[theme.colors.gradientTop, theme.colors.gradientBottom]}
+                colors={theme.colors.gradients.institutional}
                 style={styles.header}
             >
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
