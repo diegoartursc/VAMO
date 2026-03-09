@@ -114,6 +114,8 @@
 - ✅ Resumo Executivo para investidores
 - ✅ Estratégia de Integração com Agências
 - ✅ Design System documentado
+- ✅ Fluxograma do Aplicativo (User Journeys)
+- ✅ Checklist de Campos de Registro (Pacotes e Roteiros)
 - ✅ Changelog estruturado
 
 ### 🖥️ Dashboards Web (Next.js — Março 2026)

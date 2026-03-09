@@ -1,68 +1,10 @@
 import Link from "next/link";
+import HeroSection from "@/components/HeroSection";
 
 export default function Home() {
   return (
     <>
-      {/* ═══ HEADER ═══ */}
-      <header className="header">
-        <nav className="nav">
-          <Link href="/" className="logo">
-            VAM<span>O</span>
-          </Link>
-          <div className="nav-links">
-            <a href="#como-funciona" className="nav-link">Como funciona</a>
-            <a href="#viajantes" className="nav-link">Viajantes</a>
-            <Link href="/criador" className="nav-link">Criadores</Link>
-            <Link href="/agencia" className="nav-link">Agências</Link>
-            <Link href="/admin" className="nav-link">ADM</Link>
-            <a href="#faq" className="nav-link">FAQ</a>
-            <Link href="/login" className="nav-cta">
-              Entrar →
-            </Link>
-          </div>
-        </nav>
-      </header>
-
-      {/* ═══ HERO ═══ */}
-      <section className="hero">
-        <div className="hero-content">
-          <div className="hero-badge">✨ Plataforma #1 de roteiros de viagem</div>
-          <h1>
-            Sua próxima aventura<br />
-            <span className="highlight">começa aqui.</span>
-          </h1>
-          <p>
-            Descubra pacotes incríveis e roteiros criados por viajantes
-            experientes. Planeje, reserve e viaje com confiança.
-          </p>
-          <div className="hero-actions">
-            <button className="btn-primary">📱 Baixe o App Grátis</button>
-            <Link href="/criadores" className="btn-secondary">
-              🗺️ Seja um Criador
-            </Link>
-          </div>
-
-          {/* Stats */}
-          <div className="stats-bar">
-            <div className="stat-item">
-              <div className="stat-value">5.000+</div>
-              <div className="stat-label">Viajantes ativos</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-value">200+</div>
-              <div className="stat-label">Roteiros exclusivos</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-value">50+</div>
-              <div className="stat-label">Destinos</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-value">4.9 ⭐</div>
-              <div className="stat-label">Avaliação média</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* ═══ TRUST BADGE ═══ */}
       <div className="trust-badge">

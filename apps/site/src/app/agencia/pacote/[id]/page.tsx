@@ -112,6 +112,9 @@ const EMPTY_FORM = {
     status: "ACTIVE",
 };
 
+/* Tag input state keys for new fields */
+const NEW_TAG_FIELDS = ["perfectFor", "notRecommendedFor", "importantInfo"] as const;
+
 /* ═══════════════════════════════════════════════════
    COMPONENT
    ═══════════════════════════════════════════════════ */
@@ -129,6 +132,9 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     const [cityInput, setCityInput] = useState("");
     const [newInclude, setNewInclude] = useState("");
     const [newHighlight, setNewHighlight] = useState("");
+    const [newPerfectFor, setNewPerfectFor] = useState("");
+    const [newNotRecommended, setNewNotRecommended] = useState("");
+    const [newImportantInfo, setNewImportantInfo] = useState("");
 
     const markDirty = useCallback(() => setDirty(true), []);
     const upd = (field: string, val: any) => { setForm(f => ({ ...f, [field]: val })); markDirty(); };
@@ -271,6 +277,10 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     const renderSection = (key: SectionKey) => {
         switch (key) {
             case "basicos": return (<>
+                <div className="form-group">
+                    <label className="form-label">Título do Pacote *</label>
+                    <input className="form-input" value={form.title} onChange={e => upd("title", e.target.value)} placeholder='Ex: "Paris Romântica – 7 Dias Inesquecíveis"' />
+                </div>
                 <div className="form-row">
                     <div className="form-group">
                         <label className="form-label">País *</label>
@@ -449,6 +459,60 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                 <div className="form-group" style={{ marginTop: 16 }}>
                     <label className="form-label">Descrição completa (Opcional)</label>
                     <textarea className="form-input" value={form.fullDescription} onChange={e => upd("fullDescription", e.target.value)} placeholder="Detalhes completos do itinerário e experiências..." style={{ minHeight: 120 }} />
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label">Introdução Emocional (Opcional)</label>
+                    <textarea className="form-input" value={form.emotionalIntro} onChange={e => upd("emotionalIntro", e.target.value)} placeholder="Ex: Imagine caminhar pelas ruas de Paris ao pôr do sol..." style={{ minHeight: 80 }} />
+                    <span className="form-helper">Texto inspirador exibido antes da descrição no app</span>
+                </div>
+
+                {/* Para quem é perfeito */}
+                <div className="form-group" style={{ marginTop: 16 }}>
+                    <label className="form-label">Para quem essa viagem é perfeita</label>
+                    <div className="editor-tag-list">
+                        {form.perfectFor.map((item, i) => (
+                            <span key={i} className="editor-tag editor-tag-green">{item}<button onClick={() => removeTag("perfectFor", i)}>×</button></span>
+                        ))}
+                    </div>
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newPerfectFor} onChange={e => setNewPerfectFor(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("perfectFor", newPerfectFor, setNewPerfectFor); } }}
+                            placeholder="Ex: Casais, Primeira viagem à Europa (Enter para adicionar)" />
+                        <button className="btn-add-item" onClick={() => addTag("perfectFor", newPerfectFor, setNewPerfectFor)}>+</button>
+                    </div>
+                </div>
+
+                {/* Não indicado para */}
+                <div className="form-group" style={{ marginTop: 16 }}>
+                    <label className="form-label">Não indicado para</label>
+                    <div className="editor-tag-list">
+                        {form.notRecommendedFor.map((item, i) => (
+                            <span key={i} className="editor-tag" style={{ backgroundColor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)' }}>{item}<button onClick={() => removeTag("notRecommendedFor", i)}>×</button></span>
+                        ))}
+                    </div>
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newNotRecommended} onChange={e => setNewNotRecommended(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("notRecommendedFor", newNotRecommended, setNewNotRecommended); } }}
+                            placeholder="Ex: Pessoas com dificuldade de locomoção" />
+                        <button className="btn-add-item" onClick={() => addTag("notRecommendedFor", newNotRecommended, setNewNotRecommended)}>+</button>
+                    </div>
+                </div>
+
+                {/* Informações importantes */}
+                <div className="form-group" style={{ marginTop: 16 }}>
+                    <label className="form-label">Informações Importantes / Avisos</label>
+                    <div className="editor-tag-list">
+                        {form.importantInfo.map((item, i) => (
+                            <span key={i} className="editor-tag" style={{ backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)' }}>{item}<button onClick={() => removeTag("importantInfo", i)}>×</button></span>
+                        ))}
+                    </div>
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newImportantInfo} onChange={e => setNewImportantInfo(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("importantInfo", newImportantInfo, setNewImportantInfo); } }}
+                            placeholder="Ex: Visto obrigatório, Vacina febre amarela" />
+                        <button className="btn-add-item" onClick={() => addTag("importantInfo", newImportantInfo, setNewImportantInfo)}>+</button>
+                    </div>
                 </div>
 
                 <div className="form-group">

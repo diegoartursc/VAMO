@@ -118,7 +118,7 @@ export default function PackageDetailScreen() {
                     {/* Quick Stats Row */}
                     <View style={styles.statsRow}>
                         <View style={styles.ratingBadge}>
-                            <Text style={styles.ratingStar}>⭐</Text>
+                            <Ionicons name="star" size={12} color={theme.colors.warning || '#F59E0B'} style={styles.ratingStar} />
                             <Text style={styles.ratingScore}>{packageData.rating}</Text>
                             <Text style={styles.ratingCount}>({packageData.reviewCount})</Text>
                         </View>
@@ -135,13 +135,13 @@ export default function PackageDetailScreen() {
                         <View style={styles.strategicInclusions}>
                             {packageData.inclusions.flight && (
                                 <View style={styles.inclusionChip}>
-                                    <Text style={styles.chipIcon}>✈️</Text>
+                                    <Ionicons name="airplane" size={16} color={theme.colors.primary} />
                                     <Text style={styles.chipLabel}>Voo ida e volta</Text>
                                 </View>
                             )}
                             {packageData.inclusions.hotel && (
                                 <View style={styles.inclusionChip}>
-                                    <Text style={styles.chipIcon}>🏨</Text>
+                                    <Ionicons name="bed" size={16} color={theme.colors.primary} />
                                     <Text style={styles.chipLabel}>
                                         Hotel {packageData.inclusions.hotel.stars}★
                                     </Text>
@@ -149,19 +149,19 @@ export default function PackageDetailScreen() {
                             )}
                             {packageData.inclusions.hotel?.meals && packageData.inclusions.hotel.meals.length > 0 && (
                                 <View style={styles.inclusionChip}>
-                                    <Text style={styles.chipIcon}>🍽️</Text>
+                                    <Ionicons name="restaurant" size={16} color={theme.colors.primary} />
                                     <Text style={styles.chipLabel}>{packageData.inclusions.hotel.meals[0]}</Text>
                                 </View>
                             )}
                             {packageData.inclusions.tours && packageData.inclusions.tours.length > 0 && (
                                 <View style={styles.inclusionChip}>
-                                    <Text style={styles.chipIcon}>🎭</Text>
+                                    <Ionicons name="ticket" size={16} color={theme.colors.primary} />
                                     <Text style={styles.chipLabel}>Passeios inclusos</Text>
                                 </View>
                             )}
                             {packageData.inclusions.extras && packageData.inclusions.extras.length > 0 && (
                                 <View style={styles.inclusionChip}>
-                                    <Text style={styles.chipIcon}>✨</Text>
+                                    <Ionicons name="sparkles" size={16} color={theme.colors.primary} />
                                     <Text style={styles.chipLabel}>Extras</Text>
                                 </View>
                             )}
@@ -273,8 +273,8 @@ export default function PackageDetailScreen() {
                     {/* Central da Viagem Preview Card */}
                     <View style={styles.centralCard}>
                         <View style={styles.centralHeader}>
-                            <Text style={styles.centralIcon}>✨</Text>
-                            <View style={{ flex: 1 }}>
+                            <Ionicons name="sparkles" size={24} color={theme.colors.primary} />
+                            <View style={{ flex: 1, marginLeft: 12 }}>
                                 <Text style={styles.centralTitle}>Sua viagem organizada no VAMO</Text>
                                 <Text style={styles.centralSubtitle}>
                                     Após a compra, você terá acesso à sua Central da Viagem com todos os detalhes organizados.
@@ -283,14 +283,14 @@ export default function PackageDetailScreen() {
                         </View>
                         <View style={styles.centralList}>
                             {[
-                                { icon: '⏳', text: 'Status atualizado da reserva' },
-                                { icon: '📄', text: 'Voucher e documentos digitais' },
-                                { icon: '📋', text: 'Detalhes completos do que está incluso' },
-                                { icon: '✅', text: 'Checklist para se preparar' },
-                                { icon: '💬', text: 'Contato via WhatsApp com a agência' },
+                                { icon: 'time-outline', text: 'Status atualizado da reserva' },
+                                { icon: 'document-text-outline', text: 'Voucher e documentos digitais' },
+                                { icon: 'clipboard-outline', text: 'Detalhes completos do que está incluso' },
+                                { icon: 'checkmark-circle-outline', text: 'Checklist para se preparar' },
+                                { icon: 'chatbubble-outline', text: 'Contato via WhatsApp com a agência' },
                             ].map((item, i) => (
                                 <View key={i} style={styles.centralListItem}>
-                                    <Text style={styles.centralListIcon}>{item.icon}</Text>
+                                    <Ionicons name={item.icon as any} size={20} color={theme.colors.primary} />
                                     <Text style={styles.centralListText}>{item.text}</Text>
                                 </View>
                             ))}

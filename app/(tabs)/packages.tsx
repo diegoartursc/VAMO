@@ -13,12 +13,11 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { Package } from '../../src/types';
-import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
-import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 import { Icon } from '../../src/components/common/Icons';
+import { PackageCard } from '../../src/components/cards/PackageCard';
 
 const { width } = Dimensions.get('window');
 
@@ -112,7 +111,7 @@ export default function PackagesScreen() {
                     displayedPackages.map((pkg: Package) => (
                         <PackageCard
                             key={pkg.id}
-                            package={pkg}
+                            pkg={pkg}
                             onPress={() => router.push(`/package/${pkg.id}`)}
                             isFavorite={favorites.includes(pkg.id)}
                             onToggleFavorite={() => toggleFavorite(pkg.id)}
@@ -150,147 +149,6 @@ export default function PackagesScreen() {
     );
 }
 
-function PackageCard({
-    package: pkg,
-    onPress,
-    isFavorite,
-    onToggleFavorite
-}: {
-    package: Package;
-    onPress: () => void;
-    isFavorite: boolean;
-    onToggleFavorite: () => void;
-}) {
-    return (
-        <TouchableOpacity style={styles.card} onPress={onPress}>
-            <CoverCarousel
-                images={pkg.images}
-                height={180}
-            />
-
-            {/* Badge */}
-            {pkg.badge && (
-                <View style={styles.badgeContainer}>
-                    <PackageBadge type={pkg.badge} />
-                </View>
-            )}
-
-            {/* Featured badge (fallback) */}
-            {pkg.featured && !pkg.badge && (
-                <View style={styles.featuredBadge}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Icon name="star" size={12} color={theme.colors.text.primary} strokeWidth={2} />
-                        <Text style={styles.featuredText}>Destaque</Text>
-                    </View>
-                </View>
-            )}
-
-            {/* Favorite Button */}
-            <TouchableOpacity
-                style={styles.favoriteButton}
-                onPress={(e) => {
-                    onToggleFavorite();
-                }}
-                activeOpacity={0.7}
-            >
-                <Icon
-                    name="heart"
-                    size={20}
-                    color={isFavorite ? '#EF4444' : theme.colors.text.secondary}
-                    strokeWidth={isFavorite ? 0 : 1.5}
-                />
-            </TouchableOpacity>
-
-            <View style={styles.cardContent}>
-                {/* Compact Agency + Reputation Row */}
-                <View style={styles.compactInfoRow}>
-                    <Icon name="globe" size={14} color={theme.colors.text.secondary} />
-                    <Text style={styles.compactText}>{pkg.agency.name}</Text>
-                    {pkg.agency.verified && (
-                        <>
-                            <Text style={styles.separator}>•</Text>
-                            <Icon name="verified" size={12} color={theme.colors.primary} strokeWidth={2} />
-                            <Text style={styles.compactText}>Agência verificada</Text>
-                        </>
-                    )}
-                    <Text style={styles.separator}>•</Text>
-                    <Icon name="star" size={13} color="#F59E0B" strokeWidth={2} />
-                    <Text style={styles.compactText}>{pkg.rating}</Text>
-                    <Text style={styles.compactTextSecondary}>({pkg.reviewCount})</Text>
-                </View>
-
-                <Text style={styles.cardTitle} numberOfLines={2}>
-                    {pkg.title}
-                </Text>
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}>
-                    <Icon name="location" size={14} color={theme.colors.text.secondary} />
-                    <Text style={styles.cardLocation}>
-                        {pkg.destination}, {pkg.country} • {pkg.duration} dias
-                    </Text>
-                </View>
-
-                {/* Strategic Inclusions */}
-                <View style={styles.strategicInclusions}>
-                    {pkg.inclusions?.flight && (
-                        <View style={styles.strategicChip}>
-                            <Icon name="plane" size={14} color={theme.colors.primary} />
-                            <Text style={styles.chipLabel}>Voo ida e volta</Text>
-                        </View>
-                    )}
-                    {pkg.inclusions?.hotel && (
-                        <View style={styles.strategicChip}>
-                            <Icon name="hotel" size={14} color={theme.colors.primary} />
-                            <Text style={styles.chipLabel}>
-                                Hotel {pkg.inclusions.hotel.stars}★
-                            </Text>
-                        </View>
-                    )}
-                    {pkg.inclusions?.hotel?.meals && pkg.inclusions.hotel.meals.length > 0 && (
-                        <View style={styles.strategicChip}>
-                            <Icon name="utensils" size={14} color={theme.colors.primary} />
-                            <Text style={styles.chipLabel}>{pkg.inclusions.hotel.meals[0]}</Text>
-                        </View>
-                    )}
-                    {pkg.inclusions?.tours && pkg.inclusions.tours.length > 0 && (
-                        <View style={styles.strategicChip}>
-                            <Icon name="compass" size={14} color={theme.colors.primary} />
-                            <Text style={styles.chipLabel}>Passeios inclusos</Text>
-                        </View>
-                    )}
-                    {pkg.inclusions?.extras && pkg.inclusions.extras.length > 0 && (
-                        <View style={styles.strategicChip}>
-                            <Icon name="star" size={14} color={theme.colors.primary} />
-                            <Text style={styles.chipLabel}>Extras</Text>
-                        </View>
-                    )}
-                </View>
-
-                <View style={styles.cardFooter}>
-                    <View style={styles.priceSection}>
-                        <Text style={styles.priceLabel}>A partir de</Text>
-                        <Text style={styles.priceValue}>
-                            R$ {pkg.price.min.toLocaleString('pt-BR')}
-                        </Text>
-                        <Text style={styles.priceLabel}>por pessoa</Text>
-                        <Text style={styles.reviewCountFooter}>
-                            ({pkg.reviewCount} avaliações)
-                        </Text>
-                        {pkg.recentPurchases && (
-                            <Text style={styles.urgencyText}>
-                                Reservado por {pkg.recentPurchases} pessoas este mês
-                            </Text>
-                        )}
-                    </View>
-                    <TouchableOpacity style={styles.ctaButton} onPress={onPress}>
-                        <Text style={styles.ctaButtonText}>Ver pacote completo</Text>
-                        <Text style={styles.ctaArrow}>→</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-}
 
 
 
@@ -387,269 +245,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: theme.spacing.md,
         paddingTop: theme.spacing.sm,
     },
-    card: {
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.lg, // Increased radius
-        marginBottom: theme.spacing.cardGap, // More spacing between cards
-        ...theme.shadows.small,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-    },
-    cardImage: {
-        width: '100%',
-        height: 140, // Optimized height for better screen usage
-        backgroundColor: theme.colors.surface,
-    },
-    featuredBadge: {
-        position: 'absolute',
-        top: theme.spacing.md,
-        right: theme.spacing.md,
-        backgroundColor: theme.colors.secondary,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.xs,
-        borderRadius: theme.borderRadius.full,
-    },
-    featuredText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    badgeContainer: {
-        position: 'absolute',
-        top: theme.spacing.md,
-        right: theme.spacing.md,
-        zIndex: 1,
-    },
-    cardContent: {
-        padding: 10, // Reduced from 12px for more compact cards (-17%)
-    },
-    // Compact Info Row Styles
-    compactInfoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginBottom: 8,
-    },
-    separator: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginHorizontal: 2,
-    },
-    compactText: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-    },
-    compactTextSecondary: {
-        fontSize: 13,
-        fontWeight: '400',
-        color: theme.colors.text.secondary,
-    },
-    verifiedIconCompact: {
-        fontSize: 12,
-    },
-    ratingIconCompact: {
-        fontSize: 13,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: theme.spacing.sm,
-    },
-    agencyRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        flex: 1,
-    },
-    agencyTag: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.surface,
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: 4,
-        borderRadius: theme.borderRadius.sm,
-        gap: 4,
-    },
-    agencyIcon: {
-        fontSize: 14,
-    },
-    agencyText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    ratingBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    ratingIcon: {
-        fontSize: 14,
-    },
-    ratingValue: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    ratingCount: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: theme.colors.text.secondary,
-    },
-    cardTitle: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-        marginBottom: 6,
-        lineHeight: 22,
-    },
-    cardLocation: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginBottom: 8,
-    },
-    cardFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        marginTop: 4,
-    },
-    priceSection: {
-        flex: 1,
-    },
-    priceLabel: {
-        fontSize: 11,
-        color: theme.colors.text.secondary,
-        marginBottom: 2,
-    },
-    priceValue: {
-        fontSize: 26,
-        fontWeight: '700',
-        color: theme.colors.primary,
-        marginBottom: 2,
-    },
-    reviewCountFooter: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginTop: 2,
-    },
-    urgencyText: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginTop: 4,
-        opacity: 0.8,
-    },
-    ctaButton: {
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 24,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        ...theme.shadows.button,
-    },
-    ctaButtonText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: theme.colors.text.inverse,
-    },
-    ctaArrow: {
-        fontSize: 16,
-        color: theme.colors.text.inverse,
-    },
-    emptyState: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: theme.spacing.xxl * 2,
-    },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: theme.spacing.md,
-        opacity: 0.3,
-    },
-    emptyTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-        marginBottom: theme.spacing.xs,
-    },
-    emptyText: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-    },
-    // Strategic Inclusions Styles
-    strategicInclusions: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginBottom: 8,
-    },
-    strategicChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.surfaceLight,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: theme.borderRadius.sm,
-        gap: 4,
-    },
-    chipIcon: {
-        fontSize: 16,
-    },
-    chipLabel: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-    },
-    reviewCount: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginTop: 2,
-    },
-    favoriteButton: {
-        position: 'absolute',
-        top: theme.spacing.sm,
-        left: theme.spacing.sm,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...theme.shadows.medium,
-        zIndex: 2,
-    },
-    favoriteIcon: {
-        fontSize: 20,
-    },
-    verifiedBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: theme.borderRadius.sm,
-    },
-    verifiedIcon: {
-        fontSize: 9,
-    },
-    verifiedText: {
-        fontSize: 9,
-        fontWeight: '500',
-        color: theme.colors.text.secondary,
-    },
-    socialProof: {
-        fontSize: 11,
-        color: theme.colors.text.secondary,
-        marginTop: 4,
-        opacity: 0.8,
-    },
     toast: {
         position: 'absolute',
         bottom: 100,
@@ -669,5 +264,20 @@ const styles = StyleSheet.create({
     toastText: {
         fontSize: 14,
         fontWeight: '600',
+    },
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.xxl * 2,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: theme.spacing.xs,
+    },
+    emptyText: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
     },
 });

@@ -34,9 +34,12 @@ logs/
 *.tmp
 *.temp
 backups/
+*_pid.txt
 site_pid.txt
 backend_pid.txt
+app_pid.txt
 curl_output.txt
+
 .next/
 apps/*/.next/
 site/.next/
