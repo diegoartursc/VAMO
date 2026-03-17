@@ -19,7 +19,6 @@ import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommuni
 import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
 import { Alert, Linking } from 'react-native';
 import CollapsibleSection from '../../src/components/common/CollapsibleSection';
-import ItineraryCard from '../../src/components/cards/ItineraryCard';
 import DatePickerModal from '../../src/components/DatePickerModal';
 import ParticipantsModal from '../../src/components/ParticipantsModal';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -36,6 +35,7 @@ export default function PackageDetailScreen() {
     const router = useRouter();
     const [packageData, setPackageData] = useState<any>(null);
     const [relatedPackages, setRelatedPackages] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const reviews = getReviewsByPackageId(id);
     const [showAllReviews, setShowAllReviews] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -43,6 +43,8 @@ export default function PackageDetailScreen() {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
+    const [selectedDeparture, setSelectedDeparture] = useState<any>(null);
+    const [showDepartures, setShowDepartures] = useState(false);
 
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 2);
     const { isFavorite, toggleFavorite } = useFavorites();
@@ -50,14 +52,35 @@ export default function PackageDetailScreen() {
     const isFav = isFavorite(id);
 
     useEffect(() => {
-        getPackageById(id).then(setPackageData).catch(console.error);
+        getPackageById(id).then(data => {
+            setPackageData(data);
+            setLoading(false);
+        }).catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
         getRelatedPackages(id).then(setRelatedPackages).catch(() => setRelatedPackages([]));
     }, [id]);
 
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
+                <Text style={{ color: '#fff', fontSize: 16 }}>Carregando as informações do pacote...</Text>
+            </View>
+        );
+    }
+
     if (!packageData) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Carregando...</Text>
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', padding: 20 }]}>
+                <Ionicons name="alert-circle-outline" size={64} color={theme.colors.text.tertiary} />
+                <Text style={{ color: '#fff', fontSize: 24, fontWeight: '700', marginTop: 20, textAlign: 'center' }}>Pacote não encontrado</Text>
+                <Text style={{ color: theme.colors.text.secondary, marginTop: 10, textAlign: 'center', marginBottom: 30 }}>
+                    Este pacote pode ter sido removido ou o link está quebrado.
+                </Text>
+                <TouchableOpacity onPress={() => router.back()} style={[styles.bookButton, { width: '100%' }]}>
+                    <Text style={styles.bookButtonText}>Voltar</Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -68,11 +91,13 @@ export default function PackageDetailScreen() {
 
             {/* Immersive Hero Image (Fixed) */}
             <View style={styles.heroImageContainer}>
-                <Image
-                    source={{ uri: packageData.images[0] }}
-                    style={styles.heroImage}
-                    resizeMode="cover"
-                />
+                {packageData.images && packageData.images.length > 0 && (
+                    <Image
+                        source={{ uri: packageData.images[0] }}
+                        style={styles.heroImage}
+                        resizeMode="cover"
+                    />
+                )}
                 <LinearGradient
                     colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(0,0,0,0.2)']}
                     style={styles.heroGradient}
@@ -171,23 +196,25 @@ export default function PackageDetailScreen() {
                     <View style={styles.divider} />
 
                     {/* Agency Info */}
-                    <View style={styles.agencyRow}>
-                        <View style={styles.agencyBadge}>
-                            <Text style={{ fontSize: 16 }}>{packageData.agency.logo}</Text>
-                            <Text style={styles.agencyName}>{packageData.agency.name}</Text>
-                            {packageData.agency.verified && <Ionicons name="checkmark-circle" size={14} color={theme.colors.verified} />}
+                    {packageData.agency && (
+                        <View style={styles.agencyRow}>
+                            <View style={styles.agencyBadge}>
+                                <Text style={{ fontSize: 16 }}>{packageData.agency.logo || '🏢'}</Text>
+                                <Text style={styles.agencyName}>{packageData.agency.name || 'Agência'}</Text>
+                                {packageData.agency.verified && <Ionicons name="checkmark-circle" size={14} color={theme.colors.verified} />}
+                            </View>
+                            {packageData.agency.verified && (
+                                <TouchableOpacity
+                                    style={styles.verificationLink}
+                                    onPress={() => router.push('/verification-explained')}
+                                >
+                                    <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
+                                    <Text style={styles.verificationLinkText}>Como verificamos as agências</Text>
+                                    <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
+                                </TouchableOpacity>
+                            )}
                         </View>
-                        {packageData.agency.verified && (
-                            <TouchableOpacity
-                                style={styles.verificationLink}
-                                onPress={() => router.push('/verification-explained')}
-                            >
-                                <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
-                                <Text style={styles.verificationLinkText}>Como verificamos as agências</Text>
-                                <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                    )}
 
 
                     {/* Price & CTA Section (Premium) */}
@@ -196,7 +223,7 @@ export default function PackageDetailScreen() {
                             <Text style={styles.priceLabel}>A partir de</Text>
                             <View style={styles.priceRow}>
                                 <Text style={styles.currencySymbol}>R$</Text>
-                                <Text style={styles.priceValue}>{packageData.price.min.toLocaleString('pt-BR')}</Text>
+                                <Text style={styles.priceValue}>{packageData.price?.min ? packageData.price.min.toLocaleString('pt-BR') : 'Consulte'}</Text>
                             </View>
                             <Text style={styles.priceLabel}>por pessoa</Text>
                         </View>
@@ -257,6 +284,91 @@ export default function PackageDetailScreen() {
                             </Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* ═══ Saídas Disponíveis ═══ */}
+                    {packageData.availableDates && packageData.availableDates.length > 0 && (
+                        <View style={{ backgroundColor: theme.colors.surfaceLight, borderRadius: 16, padding: 16, marginTop: 16, marginHorizontal: 0 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                                <Ionicons name="calendar" size={22} color={theme.colors.primary} />
+                                <Text style={{ fontSize: 18, fontWeight: '700', color: theme.colors.text.primary }}>Saídas Disponíveis</Text>
+                            </View>
+                            <Text style={{ fontSize: 13, color: theme.colors.text.secondary, marginBottom: 14 }}>
+                                Escolha a data ideal para sua viagem
+                            </Text>
+
+                            {packageData.availableDates.map((dep: any, idx: number) => {
+                                const spotsLeft = dep.spotsLeft ?? 10;
+                                const isSelected = selectedDeparture?.date === dep.date;
+                                const urgency = spotsLeft <= 3 ? 'Últimas vagas' : spotsLeft <= 5 ? 'Restam poucas vagas' : null;
+                                const urgencyColor = spotsLeft <= 3 ? '#E53E3E' : spotsLeft <= 5 ? '#DD6B20' : '#38A169';
+
+                                return (
+                                    <TouchableOpacity
+                                        key={idx}
+                                        style={{
+                                            backgroundColor: isSelected ? theme.colors.primary + '08' : theme.colors.surface,
+                                            borderRadius: 12,
+                                            padding: 14,
+                                            marginBottom: 10,
+                                            borderWidth: isSelected ? 2 : 1,
+                                            borderColor: isSelected ? theme.colors.primary : theme.colors.border || '#2D3748',
+                                        }}
+                                        onPress={() => {
+                                            setSelectedDeparture(dep);
+                                            haptics.light();
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.text.primary }}>
+                                                    {new Date(dep.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                                </Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                                    <Ionicons name="people" size={14} color={theme.colors.text.secondary} />
+                                                    <Text style={{ fontSize: 13, color: theme.colors.text.secondary }}>
+                                                        {spotsLeft} vaga{spotsLeft !== 1 ? 's' : ''} restante{spotsLeft !== 1 ? 's' : ''}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                            <View style={{ alignItems: 'flex-end' }}>
+                                                <Text style={{ fontSize: 18, fontWeight: '700', color: theme.colors.primary }}>
+                                                    R$ {dep.price.toLocaleString('pt-BR')}
+                                                </Text>
+                                                <Text style={{ fontSize: 11, color: theme.colors.text.tertiary }}>por pessoa</Text>
+                                            </View>
+                                        </View>
+
+                                        {urgency && (
+                                            <View style={{ backgroundColor: urgencyColor + '15', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginTop: 8, alignSelf: 'flex-start' }}>
+                                                <Text style={{ fontSize: 12, fontWeight: '600', color: urgencyColor }}>
+                                                    {spotsLeft <= 3 ? '🚨' : '⚠️'} {urgency}
+                                                </Text>
+                                            </View>
+                                        )}
+
+                                        {isSelected && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
+                                                <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
+                                                <Text style={{ fontSize: 12, color: theme.colors.primary, fontWeight: '600' }}>Selecionado</Text>
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+
+                            {selectedDeparture && (
+                                <TouchableOpacity
+                                    style={[styles.bookButton, { marginTop: 6 }]}
+                                    onPress={() => setShowParticipants(true)}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text style={styles.bookButtonText}>Reservar esta saída</Text>
+                                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
 
                     {/* Confirmation Channel Badge - Builds Trust */}
                     <View style={styles.confirmationBadge}>
@@ -319,7 +431,7 @@ export default function PackageDetailScreen() {
                     {packageData.includedItems && packageData.includedItems.length > 0 && (
                         <CollapsibleSection title="Inclui">
                             <View style={styles.highlightsContainer}>
-                                {packageData.includedItems.map((item, index) => (
+                                {packageData.includedItems.map((item: string, index: number) => (
                                     <View key={index} style={styles.highlightRow}>
                                         <View style={styles.checkIcon}>
                                             <Ionicons name="checkmark" size={12} color="#fff" />
@@ -335,7 +447,7 @@ export default function PackageDetailScreen() {
                     {packageData.notRecommendedFor && packageData.notRecommendedFor.length > 0 && (
                         <CollapsibleSection title="Não indicado para">
                             <View style={styles.highlightsContainer}>
-                                {packageData.notRecommendedFor.map((item, index) => (
+                                {packageData.notRecommendedFor.map((item: string, index: number) => (
                                     <View key={index} style={styles.highlightRow}>
                                         <View style={[styles.checkIcon, { backgroundColor: theme.colors.error }]}>
                                             <Ionicons name="close" size={12} color="#fff" />
@@ -351,7 +463,7 @@ export default function PackageDetailScreen() {
                     {packageData.importantInfo && packageData.importantInfo.length > 0 && (
                         <CollapsibleSection title="Informações importantes">
                             <View style={styles.highlightsContainer}>
-                                {packageData.importantInfo.map((item, index) => (
+                                {packageData.importantInfo.map((item: string, index: number) => (
                                     <View key={index} style={styles.highlightRow}>
                                         <View style={[styles.checkIcon, { backgroundColor: theme.colors.warning || '#F59E0B' }]}>
                                             <Ionicons name="alert" size={12} color="#fff" />
@@ -367,33 +479,94 @@ export default function PackageDetailScreen() {
                     {packageData.itinerary && (
                         <View style={styles.section}>
                             <CollapsibleSection title="Itinerário Detalhado">
-                                <ItineraryCard
-                                    mainStop={packageData.itinerary.mainStop}
-                                    pickupLocations={packageData.itinerary.pickupLocations}
-                                    transport={packageData.itinerary.transport}
-                                    mainActivity={packageData.itinerary.mainActivity}
-                                    returnLocations={packageData.itinerary.returnLocations}
-                                    mapImageUrl={packageData.itinerary.mapImageUrl}
-                                    price={packageData.price}
-                                    onAvailabilityPress={() => setShowDatePicker(true)}
-                                />
+                                <View style={{ backgroundColor: theme.colors.surfaceLight, borderRadius: 12, padding: 16 }}>
+                                    
+                                    {/* Main Stop */}
+                                    {packageData.itinerary.mainStop && (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                                            <Ionicons name="location" size={20} color={theme.colors.primary} />
+                                            <Text style={{ fontSize: 16, fontWeight: '700', marginLeft: 8, color: theme.colors.text.primary }}>
+                                                {packageData.itinerary.mainStop}
+                                            </Text>
+                                        </View>
+                                    )}
+
+                                    {/* Transport */}
+                                    {packageData.itinerary.transport && (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, padding: 12, backgroundColor: '#fff', borderRadius: 8 }}>
+                                            <Ionicons name="bus" size={18} color={theme.colors.text.secondary} />
+                                            <View style={{ marginLeft: 12 }}>
+                                                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>
+                                                    {packageData.itinerary.transport.type}
+                                                </Text>
+                                                {packageData.itinerary.transport.duration && (
+                                                    <Text style={{ fontSize: 13, color: theme.colors.text.secondary }}>
+                                                        Duração aprox: {packageData.itinerary.transport.duration}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {/* Main Activity */}
+                                    {packageData.itinerary.mainActivity && (
+                                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 }}>
+                                            <View style={{ marginTop: 2 }}>
+                                                <Ionicons name="flag" size={18} color={theme.colors.primary} />
+                                            </View>
+                                            <View style={{ marginLeft: 12, flex: 1 }}>
+                                                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>
+                                                    {packageData.itinerary.mainActivity.activity}
+                                                </Text>
+                                                {packageData.itinerary.mainActivity.duration && (
+                                                    <Text style={{ fontSize: 13, color: theme.colors.text.secondary, marginTop: 4 }}>
+                                                        Duração da atividade: {packageData.itinerary.mainActivity.duration}
+                                                    </Text>
+                                                )}
+                                                {packageData.itinerary.mainActivity.location && (
+                                                    <Text style={{ fontSize: 13, color: theme.colors.text.secondary, marginTop: 2 }}>
+                                                        Local: {packageData.itinerary.mainActivity.location}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {/* Pickups */}
+                                    {packageData.itinerary.pickupLocations && packageData.itinerary.pickupLocations.length > 0 && (
+                                        <View style={{ marginTop: 8 }}>
+                                            <Text style={{ fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary, marginBottom: 8 }}>
+                                                Pontos de embarque:
+                                            </Text>
+                                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                                                {packageData.itinerary.pickupLocations.map((loc: string, i: number) => (
+                                                    <View key={i} style={{ backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, borderWidth: 1, borderColor: theme.colors.borderLight }}>
+                                                        <Text style={{ fontSize: 11, color: theme.colors.text.secondary }}>{loc}</Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
                             </CollapsibleSection>
                         </View>
                     )}
 
                     {/* Highlights */}
-                    <CollapsibleSection title="Destaques" defaultExpanded>
-                        <View style={styles.highlightsContainer}>
-                            {packageData.highlights.map((highlight, index) => (
-                                <View key={index} style={styles.highlightRow}>
-                                    <View style={styles.checkIcon}>
-                                        <Ionicons name="checkmark" size={12} color="#fff" />
+                    {packageData.highlights && packageData.highlights.length > 0 && (
+                        <CollapsibleSection title="Destaques" defaultExpanded>
+                            <View style={styles.highlightsContainer}>
+                                {packageData.highlights.map((highlight: string, index: number) => (
+                                    <View key={index} style={styles.highlightRow}>
+                                        <View style={styles.checkIcon}>
+                                            <Ionicons name="checkmark" size={12} color="#fff" />
+                                        </View>
+                                        <Text style={styles.highlightText}>{highlight}</Text>
                                     </View>
-                                    <Text style={styles.highlightText}>{highlight}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    </CollapsibleSection>
+                                ))}
+                            </View>
+                        </CollapsibleSection>
+                    )}
 
                     {/* Perfect For Block - User Identification */}
                     {packageData.perfectFor && packageData.perfectFor.length > 0 && (
@@ -401,7 +574,7 @@ export default function PackageDetailScreen() {
                             <Text style={styles.perfectForTitle}>Para quem essa viagem é perfeita</Text>
 
                             <View style={styles.perfectForItems}>
-                                {packageData.perfectFor.map((item, index) => {
+                                {packageData.perfectFor.map((item: string, index: number) => {
                                     const icons = ['airplane', 'star', 'calendar-clear'] as const;
                                     return (
                                         <View key={index} style={styles.perfectForItem}>
@@ -451,10 +624,12 @@ export default function PackageDetailScreen() {
                     </View>
 
                     {/* Perguntas Frequentes */}
-                    <FAQSection
-                        items={getPackageFAQ(id)}
-                        creatorName={packageData.agency.name}
-                    />
+                    {packageData.agency && (
+                        <FAQSection
+                            items={getPackageFAQ(id)}
+                            creatorName={packageData.agency.name}
+                        />
+                    )}
 
                     {/* Premium Reviews Section */}
                     {reviews.length > 0 && (
@@ -487,7 +662,7 @@ export default function PackageDetailScreen() {
                                         activeOpacity={0.8}
                                     >
                                         <Image
-                                            source={{ uri: pkg.images[0] }}
+                                            source={{ uri: pkg.images?.[0] || 'https://via.placeholder.com/300' }}
                                             style={styles.relatedImage}
                                             resizeMode="cover"
                                         />
@@ -537,7 +712,7 @@ export default function PackageDetailScreen() {
                                                 <View>
                                                     <Text style={styles.relatedPriceLabel}>A partir de</Text>
                                                     <Text style={styles.relatedPriceValue}>
-                                                        € {Math.floor(pkg.price.min * 0.15)}
+                                                        R$ {pkg.price?.min ? pkg.price.min.toLocaleString('pt-BR') : '...'}
                                                     </Text>
                                                 </View>
                                                 <Text style={styles.relatedPriceUnit}>por pessoa</Text>

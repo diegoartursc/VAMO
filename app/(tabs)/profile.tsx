@@ -172,17 +172,17 @@ export default function ProfileScreen() {
 
                 {/* ══════════ 2. QUICK STATS ══════════ */}
                 <View style={styles.statsRow}>
-                    <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('trips')}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}>
                         <Icon name="briefcase" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.trips}</Text>
                         <Text style={styles.statLabel}>Meus Pacotes</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('itineraries')}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}>
                         <Icon name="book-open" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.itineraries}</Text>
                         <Text style={styles.statLabel}>Meus Roteiros</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('saved')}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=saved')}>
                         <Icon name="heart" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.saved}</Text>
                         <Text style={styles.statLabel}>Salvos</Text>
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
                         {USER.nextTrip ? (
                             <TouchableOpacity
                                 style={styles.nextTripContent}
-                                onPress={() => router.push('/(tabs)/my-trips')}
+                                onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}
                                 activeOpacity={0.7}
                             >
                                 <View style={styles.nextTripLeft}>
@@ -270,14 +270,21 @@ export default function ProfileScreen() {
                 <View style={styles.shortcutsRow}>
                     <TouchableOpacity
                         style={styles.shortcutButton}
-                        onPress={() => router.push('/(tabs)/itineraries')}
+                        onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}
+                    >
+                        <Icon name="briefcase" size={20} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText}>Meus Pacotes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.shortcutButton}
+                        onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}
                     >
                         <Icon name="map" size={20} color={theme.colors.primary} />
                         <Text style={styles.shortcutText}>Meus Roteiros</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
-                        onPress={() => router.push('/(tabs)/my-trips')}
+                        onPress={() => router.push('/(tabs)/my-trips?tab=saved')}
                     >
                         <Icon name="heart" size={20} color={theme.colors.primary} />
                         <Text style={styles.shortcutText}>Favoritos</Text>

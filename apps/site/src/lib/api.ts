@@ -160,6 +160,22 @@ export async function deletePackage(id: string): Promise<any> {
     });
 }
 
+// ─── Sales / Purchases ───
+export async function getAgencySales(agencyId: string): Promise<any[]> {
+    try {
+        return await fetchApi(`/sales/${agencyId}`);
+    } catch {
+        return [];
+    }
+}
+
+export async function updateSaleDocuments(purchaseId: string, data: { voucherUrl?: string, eticketUrl?: string, autoMessage?: string }): Promise<any> {
+    return fetchApi(`/sales/${purchaseId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
 // ─── Package Dashboard Stats ───
 export interface PackageDashboardStats {
     totalPackages: number;

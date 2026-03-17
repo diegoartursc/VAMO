@@ -86,7 +86,7 @@ export function applyAllFilters(
     }
 
     // Filtro por duração
-    if (filters.duration && filters.duration !== 7) {
+    if (filters.duration !== undefined) {
         filtered = filterByDuration(filtered, filters.duration);
     }
 
@@ -145,7 +145,7 @@ export function applyAllItineraryFilters(
         filtered = filterItinerariesByDestination(filtered, filters.destination);
     }
 
-    if (filters.duration && filters.duration !== 7) {
+    if (filters.duration !== undefined) {
         filtered = filterItinerariesByDuration(filtered, filters.duration);
     }
 

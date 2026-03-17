@@ -10,6 +10,8 @@ import destinationRoutes from './routes/destinations';
 import reviewRoutes from './routes/reviews';
 import myTripsRoutes from './routes/my-trips';
 import adminRoutes from './routes/admin';
+import departureRoutes from './routes/departures';
+import salesRoutes from './routes/sales';
 
 // Load environment variables
 dotenv.config();
@@ -50,6 +52,8 @@ app.use('/api/destinations', destinationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/my-trips', myTripsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/departures', departureRoutes);
+app.use('/api/sales', salesRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

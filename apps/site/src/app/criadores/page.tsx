@@ -28,7 +28,7 @@ export default function CriadoresPage() {
                     </p>
                     <div className="hero-actions">
                         <Link href="/cadastro" className="btn-primary">Começar Agora — É Grátis</Link>
-                        <Link href="/login" className="btn-secondary">Já tenho conta</Link>
+                        <Link href="/criador" className="btn-secondary">Acessar Meu Painel →</Link>
                     </div>
 
                     <div className="stats-bar">

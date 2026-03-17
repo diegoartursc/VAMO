@@ -10,8 +10,9 @@ import {
     Dimensions,
     Alert,
     ActivityIndicator,
+    Linking,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { theme } from '../../src/theme/theme';
 import {
     getDaysUntil,
@@ -58,6 +59,7 @@ const TRAVELER_ID = 'trav-diego'; // Hardcoded until auth is implemented
 
 export default function MyTripsScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const [activeTab, setActiveTab] = useState<TabKey>('upcoming');
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<{
@@ -66,6 +68,12 @@ export default function MyTripsScreen() {
         purchasedItineraries: PurchasedItineraryItem[];
         savedItems: SavedItem[];
     }>({ upcomingPackages: [], pastPackages: [], purchasedItineraries: [], savedItems: [] });
+
+    useEffect(() => {
+        if (params.tab && TABS.some(t => t.key === params.tab)) {
+            setActiveTab(params.tab as TabKey);
+        }
+    }, [params.tab]);
 
     useEffect(() => {
         let mounted = true;
@@ -338,18 +346,34 @@ function UpcomingCard({ pkg, onPress }: { pkg: BookedPackage; onPress: () => voi
                     {days > 0 && <CountdownBadge days={days} />}
                 </View>
 
-                <View style={styles.upcomingActions}>
+                <View style={[styles.upcomingActions, { flexWrap: 'wrap' }]}>
                     <ActionButton
                         label="Detalhes"
                         icon="eye"
                         onPress={onPress}
                         variant="primary"
                     />
-                    <ActionButton
-                        label="Voucher"
-                        icon="download"
-                        onPress={() => Alert.alert('Voucher', 'Download do voucher iniciado!')}
-                    />
+                    {pkg.voucherUrl && (
+                        <ActionButton
+                            label="Voucher"
+                            icon="download"
+                            onPress={() => Linking.openURL(pkg.voucherUrl!)}
+                        />
+                    )}
+                    {pkg.eticketUrl && (
+                        <ActionButton
+                            label="Passagens"
+                            icon="file-text"
+                            onPress={() => Linking.openURL(pkg.eticketUrl!)}
+                        />
+                    )}
+                    {pkg.autoMessage && (
+                        <ActionButton
+                            label="Aviso"
+                            icon="message-circle"
+                            onPress={() => Alert.alert('Mensagem da Agência', pkg.autoMessage)}
+                        />
+                    )}
                 </View>
             </View>
         </TouchableOpacity>

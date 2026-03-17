@@ -134,7 +134,7 @@ router.get('/dashboard/stats', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
     try {
         const it = await prisma.itinerary.findUnique({
-            where: { id: req.params.id },
+            where: { id: req.params.id as string },
             include: {
                 creator: { include: { traveler: { select: { name: true, avatar: true } } } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
@@ -146,37 +146,38 @@ router.get('/:id', async (req: Request, res: Response) => {
 
         if (!it) { res.status(404).json({ error: 'Itinerary not found' }); return; }
 
+        const i = it as any;
         const result = {
-            id: it.id, title: it.title, destination: it.destination, country: it.country,
+            id: i.id, title: i.title, destination: i.destination, country: i.country,
             creator: {
-                id: it.creator.id, name: it.creator.traveler.name,
-                avatar: it.creator.traveler.avatar || '👤',
-                verificationLevel: it.creator.verificationLevel.toLowerCase(),
-                rating: it.creator.averageRating, salesCount: it.creator.totalSales,
+                id: i.creator.id, name: i.creator.traveler.name,
+                avatar: i.creator.traveler.avatar || '👤',
+                verificationLevel: i.creator.verificationLevel.toLowerCase(),
+                rating: i.creator.averageRating, salesCount: i.creator.totalSales,
             },
-            description: it.description, price: it.price, currency: it.currency,
-            images: it.images.map(img => img.url), rating: it.rating,
-            reviewCount: it.reviewCount, inclusions: it.inclusions,
-            duration: it.duration, featured: it.featured,
-            highlights: it.highlights, estimatedSpending: it.estimatedSpending,
-            downloadCount: it.downloadCount,
-            days: it.days.map(d => ({
+            description: i.description, price: i.price, currency: i.currency,
+            images: (i.images || []).map((img: any) => img.url), rating: i.rating,
+            reviewCount: i.reviewCount, inclusions: i.inclusions,
+            duration: i.duration, featured: i.featured,
+            highlights: i.highlights, estimatedSpending: i.estimatedSpending,
+            downloadCount: i.downloadCount,
+            days: (i.days || []).map((d: any) => ({
                 dayNumber: d.dayNumber, title: d.title, summary: d.summary,
                 description: d.description,
-                activities: d.activities.map(a => ({
+                activities: (d.activities || []).map((a: any) => ({
                     id: a.id, title: a.title, description: a.description,
                     duration: a.duration, location: a.location, tips: a.tips,
                     time: a.time, type: a.type, icon: a.icon, images: a.images,
                     mapLink: a.mapLink, completed: a.completed, notes: a.notes,
                 })),
             })),
-            files: it.files.map(f => ({ id: f.id, name: f.name, type: f.type, url: f.url, size: f.size })),
-            reviews: it.reviews.map(r => ({
+            files: (i.files || []).map((f: any) => ({ id: f.id, name: f.name, type: f.type, url: f.url, size: f.size })),
+            reviews: (i.reviews || []).map((r: any) => ({
                 id: r.id, rating: r.rating, text: r.comment,
                 date: r.createdAt.toISOString().split('T')[0],
                 verified: r.verified, helpful: r.helpful,
                 user: { name: r.userName, location: r.userLocation, avatar: r.userAvatar, initial: r.userInitial },
-                photos: r.images.map(img => img.url),
+                photos: (r.images || []).map((img: any) => img.url),
             })),
         };
 
@@ -336,7 +337,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 // PUT /api/itineraries/:id (requires auth)
 router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const {
             title, destination, country, description,
             price, currency, duration, highlights, inclusions,
@@ -528,10 +529,10 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 // DELETE /api/itineraries/:id (requires auth)
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const { hard } = req.query;
 
-        const existing = await prisma.itinerary.findUnique({ where: { id } });
+        const existing = await prisma.itinerary.findUnique({ where: { id: id as string } });
         if (!existing) {
             res.status(404).json({ error: 'Itinerary not found' });
             return;

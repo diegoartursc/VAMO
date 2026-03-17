@@ -37,6 +37,7 @@ router.get('/', async (req: Request, res: Response) => {
                 agency: { select: { id: true, name: true, logo: true, verified: true, contactUrl: true, whatsapp: true } },
                 images: { orderBy: { order: 'asc' }, select: { url: true, alt: true } },
                 pricingWindows: { where: { startDate: { gte: new Date() } }, orderBy: { startDate: 'asc' }, select: { startDate: true, endDate: true, price: true, availableSlots: true } },
+                departures: { where: { status: { in: ['ABERTA', 'QUASE_LOTADO'] }, startDate: { gte: new Date() } }, orderBy: { startDate: 'asc' } },
             },
         });
 
@@ -93,6 +94,7 @@ router.get('/featured', async (req: Request, res: Response) => {
             include: {
                 agency: { select: { id: true, name: true, logo: true, verified: true, contactUrl: true, whatsapp: true } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
+                pricingWindows: { where: { startDate: { gte: new Date() } }, orderBy: { startDate: 'asc' }, select: { startDate: true, endDate: true, price: true, availableSlots: true } },
             },
         });
 
@@ -100,7 +102,7 @@ router.get('/featured', async (req: Request, res: Response) => {
             id: pkg.id, title: pkg.title, destination: pkg.destination, country: pkg.country,
             agency: pkg.agency,
             price: { min: pkg.priceMin, max: pkg.priceMax, currency: pkg.currency },
-            images: pkg.images.map(img => img.url),
+            images: pkg.images.map((img: any) => img.url),
             duration: pkg.duration, includes: pkg.includes, rating: pkg.rating,
             reviewCount: pkg.reviewCount, featured: pkg.featured,
             description: pkg.description, highlights: pkg.highlights,
@@ -109,6 +111,10 @@ router.get('/featured', async (req: Request, res: Response) => {
             isAllInclusive: pkg.isAllInclusive, recentPurchases: pkg.recentPurchases,
             priceComparison: pkg.priceComparison, priceDiscount: pkg.priceDiscount,
             itinerary: pkg.routeDetails,
+            availableDates: pkg.pricingWindows.map((pw: any) => ({
+                date: pw.startDate.toISOString().split('T')[0],
+                price: pw.price, spotsLeft: pw.availableSlots,
+            })),
         }));
 
         res.json(result);
@@ -121,45 +127,49 @@ router.get('/featured', async (req: Request, res: Response) => {
 // GET /api/packages/:id
 router.get('/:id', async (req: Request, res: Response) => {
     try {
+        const id = req.params.id as string;
         const pkg = await prisma.package.findUnique({
-            where: { id: req.params.id },
+            where: { id },
             include: {
                 agency: { select: { id: true, name: true, logo: true, verified: true, contactUrl: true, whatsapp: true } },
                 images: { orderBy: { order: 'asc' }, select: { url: true, alt: true } },
                 pricingWindows: { orderBy: { startDate: 'asc' }, select: { startDate: true, endDate: true, price: true, availableSlots: true } },
+                departures: { where: { status: { in: ['ABERTA', 'QUASE_LOTADO'] }, startDate: { gte: new Date() } }, orderBy: { startDate: 'asc' } },
                 reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' }, take: 10 },
             },
         });
 
         if (!pkg) { res.status(404).json({ error: 'Package not found' }); return; }
 
+        const p = pkg as any;
         const result = {
-            id: pkg.id, title: pkg.title, destination: pkg.destination, country: pkg.country,
-            agency: pkg.agency,
-            price: { min: pkg.priceMin, max: pkg.priceMax, currency: pkg.currency },
-            images: pkg.images.map(img => img.url),
-            duration: pkg.duration, includes: pkg.includes, rating: pkg.rating,
-            reviewCount: pkg.reviewCount, featured: pkg.featured,
-            description: pkg.description, fullDescription: pkg.fullDescription,
-            emotionalIntro: pkg.emotionalIntro,
-            highlights: pkg.highlights, badge: pkg.badge?.toLowerCase(),
-            inclusions: pkg.inclusions, categories: pkg.categories,
-            hasFreeCancellation: pkg.hasFreeCancellation, isAllInclusive: pkg.isAllInclusive,
-            recentPurchases: pkg.recentPurchases, priceComparison: pkg.priceComparison,
-            priceDiscount: pkg.priceDiscount, itinerary: pkg.routeDetails,
-            includedItems: pkg.includedItems, notRecommendedFor: pkg.notRecommendedFor,
-            importantInfo: pkg.importantInfo, perfectFor: pkg.perfectFor,
-            maxSlots: pkg.maxSlots,
-            availableDates: pkg.pricingWindows.map(pw => ({
+            id: p.id, title: p.title, destination: p.destination, country: p.country,
+            agency: p.agency,
+            price: { min: p.priceMin, max: p.priceMax, currency: p.currency },
+            images: (p.images || []).map((img: any) => img.url),
+            duration: p.duration, includes: p.includes, rating: p.rating,
+            reviewCount: p.reviewCount, featured: p.featured,
+            description: p.description, fullDescription: p.fullDescription,
+            emotionalIntro: p.emotionalIntro,
+            highlights: p.highlights, badge: p.badge?.toLowerCase(),
+            inclusions: p.inclusions, categories: p.categories,
+            hasFreeCancellation: p.hasFreeCancellation, isAllInclusive: p.isAllInclusive,
+            recentPurchases: p.recentPurchases, priceComparison: p.priceComparison,
+            priceDiscount: p.priceDiscount, itinerary: p.routeDetails,
+            includedItems: p.includedItems, notRecommendedFor: p.notRecommendedFor,
+            importantInfo: p.importantInfo, perfectFor: p.perfectFor,
+            maxSlots: p.maxSlots,
+            availableDates: (p.pricingWindows || []).map((pw: any) => ({
                 date: pw.startDate.toISOString().split('T')[0],
                 price: pw.price, spotsLeft: pw.availableSlots,
             })),
-            reviews: pkg.reviews.map(r => ({
+            departures: p.departures || [],
+            reviews: (p.reviews || []).map((r: any) => ({
                 id: r.id, rating: r.rating, text: r.comment, date: r.createdAt.toISOString().split('T')[0],
                 verified: r.verified, language: r.language, helpful: r.helpful,
                 user: { name: r.userName, location: r.userLocation, avatar: r.userAvatar, initial: r.userInitial },
-                photos: r.images.map(img => img.url),
-                response: r.responses[0] ? { date: r.responses[0].createdAt.toISOString().split('T')[0], text: r.responses[0].text } : undefined,
+                photos: (r.images || []).map((img: any) => img.url),
+                response: r.responses?.[0] ? { date: r.responses[0].createdAt.toISOString().split('T')[0], text: r.responses[0].text } : undefined,
             })),
         };
 
@@ -173,7 +183,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // GET /api/packages/:id/related
 router.get('/:id/related', async (req: Request, res: Response) => {
     try {
-        const pkg = await prisma.package.findUnique({ where: { id: req.params.id } });
+        const pkg = await prisma.package.findUnique({ where: { id: req.params.id as string } });
         if (!pkg) { res.json([]); return; }
 
         const related = await prisma.package.findMany({
@@ -188,7 +198,7 @@ router.get('/:id/related', async (req: Request, res: Response) => {
         const result = related.map(r => ({
             id: r.id, title: r.title, destination: r.destination, country: r.country,
             agency: r.agency, price: { min: r.priceMin, max: r.priceMax, currency: r.currency },
-            images: r.images.map(img => img.url), duration: r.duration,
+            images: r.images.map((img: any) => img.url), duration: r.duration,
             rating: r.rating, reviewCount: r.reviewCount, badge: r.badge?.toLowerCase(),
         }));
 
@@ -354,13 +364,27 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
         if (data.country) data.continent = getContinent(data.country);
         if (data.duration) data.nights = data.duration - 1;
 
+        const ALLOWED_FIELDS = [
+            'title', 'destination', 'country', 'description', 'fullDescription', 'emotionalIntro',
+            'currency', 'duration', 'nights', 'continent', 'airport', 'multiDestination',
+            'additionalCities', 'travelStyles', 'priceMin', 'priceMax', 'promoPrice', 'installments',
+            'cancellationPolicy', 'includes', 'includedItems', 'highlights', 'notRecommendedFor',
+            'importantInfo', 'perfectFor', 'categories', 'inclusions', 'routeDetails', 'featured',
+            'hasFreeCancellation', 'isAllInclusive', 'whatsappOfficial', 'autoMessage', 'voucherUrl',
+            'eticketUrl', 'qualityScore', 'status', 'badge',
+        ];
+        const updateData: Record<string, any> = {};
+        for (const key of ALLOWED_FIELDS) {
+            if (data[key] !== undefined) updateData[key] = data[key];
+        }
+
         const pkg = await prisma.package.update({
-            where: { id: req.params.id },
-            data,
+            where: { id: req.params.id as string },
+            data: updateData,
         });
 
         // Recalculate quality score
-        const qualityScore = calcQualityScore(pkg);
+        const qualityScore = calcQualityScore(data);
         const updated = await prisma.package.update({
             where: { id: pkg.id },
             data: { qualityScore },
@@ -377,7 +401,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const pkg = await prisma.package.update({
-            where: { id: req.params.id },
+            where: { id: req.params.id as string },
             data: { status: 'ARCHIVED' },
         });
         res.json({ message: 'Pacote arquivado', id: pkg.id });

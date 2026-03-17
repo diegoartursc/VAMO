@@ -65,7 +65,8 @@ export function useSearch() {
                 );
             } else if (context.travelIntent === 'economico' || context.travelIntent === 'custo-beneficio') {
                 packages = packages.filter(p =>
-                    p.priceComparison === 'below' || p.badge === 'value'
+                    (p.priceComparison === 'below' || p.badge === 'value') &&
+                    !p.categories?.includes('luxury')
                 );
             }
         }
@@ -113,7 +114,7 @@ export function useSearch() {
             endDate ||
             priceMin > 0 ||
             priceMax < 50000 ||
-            (duration && duration !== 7) ||
+            duration !== undefined ||
             context.travelIntent ||
             context.selectedCategory
         );
@@ -123,7 +124,7 @@ export function useSearch() {
         let count = 0;
         const { destination, priceMin, priceMax, duration } = context.filters;
         if (destination) count++;
-        if (duration && duration !== 7) count++;
+        if (duration !== undefined) count++;
         if (context.travelIntent) count++;
         if (context.selectedCategory) count++;
         if (priceMin > 0 || priceMax < 50000) count++;

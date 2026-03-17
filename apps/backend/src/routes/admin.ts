@@ -151,7 +151,7 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
 
 // POST /api/admin/packages/:id/approve
 router.post('/packages/:id/approve', verifyAdmin, async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const pkg = await prisma.package.update({
         where: { id },
         data: { status: 'APPROVED', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
@@ -161,7 +161,7 @@ router.post('/packages/:id/approve', verifyAdmin, async (req: Request, res: Resp
 
 // POST /api/admin/packages/:id/reject
 router.post('/packages/:id/reject', verifyAdmin, async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { note } = req.body || {};
     const pkg = await prisma.package.update({
         where: { id },
@@ -176,7 +176,7 @@ router.post('/packages/:id/reject', verifyAdmin, async (req: Request, res: Respo
 
 // POST /api/admin/itineraries/:id/approve
 router.post('/itineraries/:id/approve', verifyAdmin, async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const it = await prisma.itinerary.update({
         where: { id },
         data: { status: 'APPROVED', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
@@ -186,7 +186,7 @@ router.post('/itineraries/:id/approve', verifyAdmin, async (req: Request, res: R
 
 // POST /api/admin/itineraries/:id/reject
 router.post('/itineraries/:id/reject', verifyAdmin, async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { note } = req.body || {};
     const it = await prisma.itinerary.update({
         where: { id },

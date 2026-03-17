@@ -36,6 +36,7 @@ export const INTENT_FEEDBACK: Record<string, string> = {
 
 // Duration quick chips
 export const DURATION_CHIPS = [
+    { label: 'Qualquer', min: 0, max: 0 },
     { label: 'Fim de semana', min: 2, max: 3 },
     { label: '7 dias', min: 7, max: 7 },
     { label: '15 dias', min: 15, max: 15 },

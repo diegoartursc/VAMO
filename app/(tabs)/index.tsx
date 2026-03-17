@@ -77,23 +77,23 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
                         </View>
                     </TouchableOpacity>
 
-                    {/* Explore Shortcuts 2x2 */}
-                    <View style={styles.heroShortcutsRow}>
+                    {/* Explore Shortcuts 2x2 Grid */}
+                    <View style={styles.heroShortcutsGrid}>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?sort=popular')}>
                             <Text style={styles.heroShortcutEmoji}>🔥</Text>
-                            <Text style={styles.heroShortcutText}>Destinos{'\n'}em alta</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Destinos em alta</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?sort=price')}>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?intent=custo-beneficio')}>
                             <Text style={styles.heroShortcutEmoji}>💰</Text>
-                            <Text style={styles.heroShortcutText}>Melhor custo</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Melhor custo</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
                             <Text style={styles.heroShortcutEmoji}>✨</Text>
-                            <Text style={styles.heroShortcutText}>Experiências{'\n'}únicas</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Experiências únicas</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>🗺</Text>
-                            <Text style={styles.heroShortcutText}>Roteiros{'\n'}prontos</Text>
+                            <Text style={styles.heroShortcutEmoji}>🗺️</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Roteiros prontos</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -505,29 +505,33 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    heroShortcutsRow: {
+    heroShortcutsGrid: {
         flexDirection: 'row',
-        gap: 12,
+        flexWrap: 'wrap',
+        gap: 10,
         marginBottom: 12,
     },
     heroShortcutCard: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
+        width: '47%',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 12,
         padding: 12,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.15)',
+        minHeight: 64,
+        justifyContent: 'center',
     },
     heroShortcutEmoji: {
-        fontSize: 18,
-        marginRight: 8,
+        fontSize: 20,
+        marginBottom: 6,
     },
     heroShortcutText: {
         fontSize: 12,
         color: '#FFF',
-        fontWeight: '500',
+        fontWeight: '600',
+        lineHeight: 16,
     },
 
     cardImageContainer: {

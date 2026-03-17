@@ -36,14 +36,18 @@ export default function BookingConfirmedScreen() {
     const [packageData, setPackageData] = useState<any>(null);
 
     useEffect(() => {
-        getPackageById(packageId as string).then(setPackageData).catch(console.error);
+        if (packageId) {
+            getPackageById(packageId as string).then(setPackageData).catch(console.error);
+        }
         haptics.bookingConfirmed();
-        analytics.bookingCompleted(
-            bookingId as string,
-            packageId as string,
-            parseFloat(totalPrice as string) || 0
-        );
-    }, []);
+        if (bookingId && packageId) {
+            analytics.bookingCompleted(
+                bookingId as string,
+                packageId as string,
+                parseFloat(totalPrice as string) || 0
+            );
+        }
+    }, [packageId, bookingId, totalPrice]);
 
     const formatDate = (dateStr: string) => {
         const d = new Date(dateStr);
@@ -187,16 +191,25 @@ export default function BookingConfirmedScreen() {
                         </View>
                     </View>
 
-                    {/* Confirmation email */}
-                    <View style={styles.emailNotice}>
-                        <Ionicons name="mail" size={20} color={theme.colors.primary} />
-                        <Text style={styles.emailNoticeText}>
-                            Um e-mail de confirmação foi enviado para{' '}
-                            <Text style={styles.emailHighlight}>{email}</Text>
-                        </Text>
+                    {/* Notifications Section */}
+                    <View style={styles.notificationStack}>
+                        <View style={styles.emailNotice}>
+                            <Ionicons name="mail" size={20} color={theme.colors.primary} />
+                            <Text style={styles.emailNoticeText}>
+                                E-mail de confirmação enviado para{' '}
+                                <Text style={styles.emailHighlight}>{email}</Text>
+                            </Text>
+                        </View>
+
+                        <View style={[styles.emailNotice, { backgroundColor: '#25D36615', borderColor: '#25D36630' }]}>
+                            <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                            <Text style={styles.emailNoticeText}>
+                                Voucher enviado para o WhatsApp{' '}
+                                <Text style={styles.whatsappHighlight}>vinculado ao seu perfil</Text>
+                            </Text>
+                        </View>
                     </View>
 
-                    {/* Primary Actions */}
                     <TouchableOpacity
                         style={styles.primaryButton}
                         onPress={() => {
@@ -208,6 +221,17 @@ export default function BookingConfirmedScreen() {
                     >
                         <Ionicons name="airplane" size={22} color="#fff" />
                         <Text style={styles.primaryButtonText}>Ver minha viagem</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.whatsappButton}
+                        onPress={() => {
+                            haptics.light();
+                            Alert.alert('Suporte', 'Conectando ao WhatsApp da agência...');
+                        }}
+                    >
+                        <Ionicons name="logo-whatsapp" size={20} color="#fff" />
+                        <Text style={styles.whatsappButtonText}>Falar com a agência</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -389,14 +413,19 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: theme.colors.primary,
     },
+    notificationStack: {
+        marginBottom: 24,
+        gap: 12,
+    },
     emailNotice: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
         backgroundColor: `${theme.colors.primary}10`,
-        borderRadius: 12,
+        borderRadius: 16,
         padding: 16,
-        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: `${theme.colors.primary}20`,
     },
     emailNoticeText: {
         flex: 1,
@@ -406,7 +435,11 @@ const styles = StyleSheet.create({
     },
     emailHighlight: {
         color: theme.colors.primary,
-        fontWeight: '600',
+        fontWeight: '700',
+    },
+    whatsappHighlight: {
+        color: '#25D366',
+        fontWeight: '700',
     },
     primaryButton: {
         flexDirection: 'row',
@@ -415,17 +448,33 @@ const styles = StyleSheet.create({
         gap: 10,
         backgroundColor: theme.colors.primary,
         paddingVertical: 16,
-        borderRadius: 14,
+        borderRadius: 16,
         marginBottom: 12,
-        shadowColor: theme.colors.primary,
+        ...theme.shadows.button,
+    },
+    primaryButtonText: {
+        color: '#fff',
+        fontSize: 17,
+        fontWeight: '800',
+    },
+    whatsappButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        backgroundColor: '#25D366',
+        paddingVertical: 16,
+        borderRadius: 16,
+        marginBottom: 12,
+        shadowColor: '#25D366',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 4,
     },
-    primaryButtonText: {
+    whatsappButtonText: {
         color: '#fff',
-        fontSize: 17,
+        fontSize: 16,
         fontWeight: '700',
     },
     secondaryButton: {
@@ -433,17 +482,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-        backgroundColor: `${theme.colors.primary}12`,
+        backgroundColor: theme.colors.surfaceLight,
         paddingVertical: 16,
-        borderRadius: 14,
+        borderRadius: 16,
         marginBottom: 12,
         borderWidth: 1.5,
-        borderColor: theme.colors.primary,
+        borderColor: theme.colors.border,
     },
     secondaryButtonText: {
-        color: theme.colors.primary,
+        color: theme.colors.text.primary,
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     tertiaryButton: {
         flexDirection: 'row',
@@ -451,14 +500,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 10,
         paddingVertical: 14,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderRadius: 16,
     },
     tertiaryButtonText: {
-        color: theme.colors.text.secondary,
+        color: theme.colors.text.tertiary,
         fontSize: 15,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     errorText: {
         color: theme.colors.text.secondary,

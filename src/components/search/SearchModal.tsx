@@ -47,7 +47,7 @@ export function SearchModal({
 
     // Filtros locais (estado do modal)
     const [destination, setDestination] = useState(initialFilters?.destination || '');
-    const [duration, setDuration] = useState<number>(initialFilters?.duration || 7);
+    const [duration, setDuration] = useState<number | undefined>(initialFilters?.duration);
     const [priceMin, setPriceMin] = useState<number>(initialFilters?.priceMin || 0);
     const [priceMax, setPriceMax] = useState<number>(initialFilters?.priceMax || 15000);
     const [activeDurationChip, setActiveDurationChip] = useState<number | null>(null);
@@ -124,10 +124,10 @@ export function SearchModal({
 
     const handleClearFilters = () => {
         setDestination('');
-        setDuration(7);
+        setDuration(undefined);
         setPriceMin(0);
         setPriceMax(15000);
-        setActiveDurationChip(null);
+        setActiveDurationChip(0); // Select 'Qualquer' by default when clearing
         setTravelIntent(null);
         setSelectedCategory(null);
     };
@@ -148,9 +148,16 @@ export function SearchModal({
     };
 
     const handleDurationChip = (index: number, min: number, max: number) => {
+        if (index === 0) {
+            // "Qualquer" selected
+            setActiveDurationChip(0);
+            setDuration(undefined);
+            return;
+        }
+        
         if (activeDurationChip === index) {
-            setActiveDurationChip(null);
-            setDuration(7);
+            setActiveDurationChip(0);
+            setDuration(undefined);
         } else {
             setActiveDurationChip(index);
             setDuration(min === max ? min : Math.round((min + max) / 2));
@@ -239,7 +246,7 @@ export function SearchModal({
                                 <Text style={styles.filterLabel}>Duração da Viagem</Text>
                             </View>
                             <Text style={styles.filterValue}>
-                                {duration === 1 ? '1 dia' : `${duration} dias`}
+                                {duration === undefined ? 'Qualquer' : duration === 1 ? '1 dia' : `${duration} dias`}
                             </Text>
                         </View>
 
@@ -276,7 +283,7 @@ export function SearchModal({
                             style={styles.slider}
                             minimumValue={1}
                             maximumValue={30}
-                            value={duration}
+                            value={duration || 1} // Fallback to 1 if undefined for slider display
                             onValueChange={(val: number) => {
                                 setDuration(Math.round(val));
                                 setActiveDurationChip(null);

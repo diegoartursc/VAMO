@@ -21,6 +21,9 @@ export interface BookedPackage {
     agencyLogo: string;
     price: number;
     currency: string;
+    voucherUrl?: string;      // Post-purchase voucher
+    eticketUrl?: string;      // Post-purchase e-ticket
+    autoMessage?: string;     // Instructions from agency
 }
 
 export interface PurchasedItineraryItem {
@@ -91,6 +94,9 @@ export const upcomingPackages: BookedPackage[] = [
         agencyLogo: '🏖️',
         price: 8500,
         currency: 'BRL',
+        voucherUrl: 'https://example.com/voucher.pdf',
+        eticketUrl: 'https://example.com/eticket.pdf',
+        autoMessage: 'Bem-vindo(a) à sua viagem para Paris!\nSeu transfer estará aguardando no portão 3 do aeroporto Charles de Gaulle. Para qualquer emergência, ligue para nosso WhatsApp +33 1 2345-6789.',
     },
     {
         id: 'pkg-2',

@@ -9,8 +9,9 @@ import {
     Dimensions,
     Animated,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect } from 'react';
 import { theme } from '../../src/theme/theme';
 import { Package } from '../../src/types';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
@@ -23,12 +24,27 @@ const { width } = Dimensions.get('window');
 
 export default function PackagesScreen() {
     const router = useRouter();
-    const { filters, applyFilters, filteredPackages: searchFilteredPackages, hasActiveFilters, allPackages } = useSearch();
+    const { intent } = useLocalSearchParams<{ intent?: string }>();
+    const {
+        filters,
+        applyFilters,
+        filteredPackages: searchFilteredPackages,
+        hasActiveFilters,
+        allPackages,
+        setTravelIntent
+    } = useSearch();
 
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [favorites, setFavorites] = useState<string[]>([]); // Track favorite package IDs
     const [toastVisible, setToastVisible] = useState(false);
     const [toastOpacity] = useState(new Animated.Value(0));
+
+    // Handle search intent from query params (e.g., from Home Page shortcuts)
+    useEffect(() => {
+        if (intent) {
+            setTravelIntent(intent);
+        }
+    }, [intent]);
 
     // Toggle favorite status
     const toggleFavorite = (packageId: string) => {

@@ -96,6 +96,13 @@ enum BookingDocumentType {
   INFO
 }
 
+enum DepartureStatus {
+  ABERTA
+  QUASE_LOTADO
+  ESGOTADO
+  ENCERRADA
+}
+
 // ─────────────────────────────────────────────
 // ADMIN
 // ─────────────────────────────────────────────
@@ -314,6 +321,7 @@ model Package {
   agency              Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   images              PackageImage[]
   pricingWindows      PackagePricingWindow[]
+  departures          PackageDeparture[]
   reviews             Review[]
   purchases           PurchaseHistory[]
   savedItems          SavedItem[]
@@ -349,6 +357,25 @@ model PackagePricingWindow {
   purchases      PurchaseHistory[]
 
   @@map("package_pricing_windows")
+}
+
+model PackageDeparture {
+  id                    String          @id @default(cuid())
+  packageId             String
+  startDate             DateTime
+  price                 Float
+  capacityTotal         Int             // total group capacity
+  capacityVamo          Int             // slots allocated to VAMO
+  capacityVamoAvailable Int             // remaining VAMO slots
+  minPeople             Int?            // minimum to confirm departure
+  status                DepartureStatus @default(ABERTA)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  package               Package         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  bookings              PurchaseHistory[] @relation("DepartureBookings")
+
+  @@map("package_departures")
 }
 
 // ─────────────────────────────────────────────
@@ -610,6 +637,7 @@ model PurchaseHistory {
   travelerId      String
   packageId       String
   pricingWindowId String?
+  departureId     String?        // link to specific departure
   totalPrice      Float
   travelers       Int            @default(1)
   status          PurchaseStatus @default(PENDING)
@@ -623,12 +651,17 @@ model PurchaseHistory {
   travelDate      DateTime?
   travelEndDate   DateTime?
   preparation     Json?          // preparation tips grouped by category
+  // Post-purchase documents (filled by agency per sale)
+  voucherUrl      String?
+  eticketUrl      String?
+  autoMessage     String?        @db.Text
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   traveler        Traveler              @relation(fields: [travelerId], references: [id], onDelete: Cascade)
   package         Package               @relation(fields: [packageId], references: [id], onDelete: Cascade)
   pricingWindow   PackagePricingWindow? @relation(fields: [pricingWindowId], references: [id], onDelete: SetNull)
+  departure       PackageDeparture?     @relation("DepartureBookings", fields: [departureId], references: [id], onDelete: SetNull)
   timeline        BookingTimeline[]
   documents       BookingDocument[]
   bookingInclusions BookingInclusion[]

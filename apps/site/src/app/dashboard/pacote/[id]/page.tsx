@@ -8,7 +8,7 @@ import { getSession } from "@/lib/auth";
    CONSTANTS & TYPES
    ═══════════════════════════════════════════════════ */
 
-type SectionKey = "destination" | "duration" | "style" | "categories" | "price" | "inclusions" | "itinerary" | "docs";
+type SectionKey = "destination" | "duration" | "style" | "categories" | "price" | "inclusions" | "itinerary" | "departures";
 
 interface SectionDef { key: SectionKey; icon: string; title: string; }
 
@@ -20,7 +20,7 @@ const SECTIONS: SectionDef[] = [
     { key: "price", icon: "5", title: "Preço" },
     { key: "inclusions", icon: "6", title: "Inclusões e Experiência" },
     { key: "itinerary", icon: "7", title: "Roteiro Dia a Dia" },
-    { key: "docs", icon: "8", title: "Documentação" },
+    { key: "departures", icon: "8", title: "Saídas e Disponibilidade" },
 ];
 
 const COUNTRIES = [
@@ -145,10 +145,6 @@ const EMPTY_FORM = {
     notRecommendedFor: [] as string[],
     importantInfo: [] as string[],
     routeDetails: null as any,
-    whatsappOfficial: "",
-    autoMessage: "",
-    voucherUrl: "",
-    eticketUrl: "",
     status: "ACTIVE",
 };
 
@@ -184,6 +180,21 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     const addPkgActivity = (di: number) => setPkgDays(d => { const u = [...d]; u[di].activities = [...u[di].activities, { time: "", title: "", location: "", description: "", tips: "", duration: "" }]; return u; });
     const updatePkgActivity = (di: number, ai: number, f: string, v: any) => setPkgDays(d => { const u = [...d]; (u[di].activities[ai] as any)[f] = v; return u; });
     const removePkgActivity = (di: number, ai: number) => setPkgDays(d => { const u = [...d]; u[di].activities.splice(ai, 1); return [...u]; });
+
+    // ─── Departures state ───
+    interface Departure { id?: string; startDate: string; price: number; capacityTotal: number; capacityVamo: number; capacityVamoAvailable: number; minPeople: number | null; status: string; editing: boolean; }
+    const [departures, setDepartures] = useState<Departure[]>([]);
+    const EMPTY_DEPARTURE: Departure = { startDate: "", price: 0, capacityTotal: 20, capacityVamo: 10, capacityVamoAvailable: 10, minPeople: null, status: "ABERTA", editing: true };
+    const addDeparture = () => setDepartures(d => [...d, { ...EMPTY_DEPARTURE }]);
+    const updateDeparture = (i: number, f: string, v: any) => setDepartures(d => { const u = [...d]; (u[i] as any)[f] = v; return u; });
+    const removeDeparture = (i: number) => setDepartures(d => d.filter((_, idx) => idx !== i));
+    const duplicateDeparture = (i: number) => setDepartures(d => {
+        const orig = d[i];
+        return [...d, { ...orig, id: undefined, startDate: "", capacityVamoAvailable: orig.capacityVamo, status: "ABERTA", editing: true }];
+    });
+    const toggleDepartureEdit = (i: number) => setDepartures(d => {
+        const u = [...d]; u[i].editing = !u[i].editing; return u;
+    });
 
     // ─── Auto-save timer ───
     const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
@@ -325,7 +336,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
             case "price": return !!(form.priceMin || form.priceMin === 0) && !!form.description;
             case "inclusions": return form.includedItems.length > 0 || form.includes.length > 0;
             case "itinerary": return pkgDays.length > 0;
-            case "docs": return !!(form.whatsappOfficial);
+            case "departures": return departures.length > 0 && departures.some(d => !!d.startDate && d.price > 0);
             default: return false;
         }
     };
@@ -995,62 +1006,138 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                         )}
                     </div>
 
-                    {/* ═══ BLOCO 8 — DOCUMENTAÇÃO ═══ */}
-                    <div ref={el => { sectionRefs.current.docs = el; }} className={`editor-section ${openSections.has("docs") ? "open" : ""}`}>
-                        <button className="editor-section-header" onClick={() => toggleSection("docs")}>
+                    {/* ═══ BLOCO 8 — SAÍDAS E DISPONIBILIDADE ═══ */}
+                    <div ref={el => { sectionRefs.current.departures = el; }} className={`editor-section ${openSections.has("departures") ? "open" : ""}`}>
+                        <button className="editor-section-header" onClick={() => toggleSection("departures")}>
                             <span className="editor-section-icon">8</span>
-                            <h2>Documentação e Pós-compra</h2>
-                            <span className={`editor-section-badge ${isSectionComplete("docs") ? "complete" : "incomplete"}`}>
-                                {isSectionComplete("docs") ? "Completo" : "Pendente"}
+                            <h2>Saídas e Disponibilidade</h2>
+                            <span className={`editor-section-badge ${isSectionComplete("departures") ? "complete" : "incomplete"}`}>
+                                {departures.length > 0 ? `${departures.length} saída(s)` : "Pendente"}
                             </span>
-                            <span className="editor-section-arrow">{openSections.has("docs") ? "▲" : "▼"}</span>
+                            <span className="editor-section-arrow">{openSections.has("departures") ? "▲" : "▼"}</span>
                         </button>
-                        {openSections.has("docs") && (
+                        {openSections.has("departures") && (
                             <div className="editor-section-body">
-                                <div className="editor-row">
-                                    <div className="editor-field">
-                                        <label>URL do Voucher</label>
-                                        <input
-                                            type="url"
-                                            value={form.voucherUrl}
-                                            onChange={e => setForm(f => ({ ...f, voucherUrl: e.target.value }))}
-                                            placeholder="https://..."
-                                            className="editor-input"
-                                        />
+                                <p className="editor-field-hint">Defina as datas disponíveis da viagem, preço por pessoa e quantidade de vagas disponíveis.</p>
+
+                                {departures.map((dep, di) => (
+                                    <div key={di} className="editor-day-card" style={{ borderLeft: dep.status === 'ESGOTADO' ? '4px solid #e53e3e' : dep.status === 'QUASE_LOTADO' ? '4px solid #f6ad55' : '4px solid #38a169' }}>
+                                        <div className="editor-day-header">
+                                            <div className="editor-day-number" style={{ flex: 1 }}>
+                                                <div className="editor-day-badge" style={{ background: dep.status === 'ESGOTADO' ? '#e53e3e' : dep.status === 'QUASE_LOTADO' ? '#f6ad55' : '#38a169' }}>
+                                                    {di + 1}
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <strong style={{ fontSize: 15 }}>
+                                                        {dep.startDate ? new Date(dep.startDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Nova Saída'}
+                                                    </strong>
+                                                    {!dep.editing && dep.startDate && (
+                                                        <div style={{ fontSize: 13, color: '#718096', marginTop: 2 }}>
+                                                            R$ {dep.price.toLocaleString('pt-BR')} · Vagas VAMO: {dep.capacityVamoAvailable}/{dep.capacityVamo} · {dep.status}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                <button className="btn-add-item" onClick={() => toggleDepartureEdit(di)} title={dep.editing ? 'Salvar' : 'Editar'}>
+                                                    {dep.editing ? '💾' : '✏️'}
+                                                </button>
+                                                <button className="btn-add-item" onClick={() => duplicateDeparture(di)} title="Duplicar saída">📋</button>
+                                                {dep.status !== 'ESGOTADO' && (
+                                                    <button className="btn-add-item" onClick={() => updateDeparture(di, 'status', 'ENCERRADA')} title="Encerrar vendas">🔒</button>
+                                                )}
+                                                <button className="btn-remove" onClick={() => removeDeparture(di)}>🗑️</button>
+                                            </div>
+                                        </div>
+
+                                        {dep.editing && (
+                                            <div className="editor-day-body">
+                                                <div className="editor-row">
+                                                    <div className="editor-field">
+                                                        <label>Data de início da viagem *</label>
+                                                        <input
+                                                            type="date"
+                                                            value={dep.startDate}
+                                                            onChange={e => updateDeparture(di, 'startDate', e.target.value)}
+                                                            className="editor-input"
+                                                        />
+                                                    </div>
+                                                    <div className="editor-field">
+                                                        <label>Preço por pessoa (R$) *</label>
+                                                        <input
+                                                            type="number"
+                                                            value={dep.price || ''}
+                                                            onChange={e => updateDeparture(di, 'price', parseFloat(e.target.value) || 0)}
+                                                            placeholder="7200"
+                                                            className="editor-input"
+                                                            min={0}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="editor-row">
+                                                    <div className="editor-field">
+                                                        <label>Capacidade total do grupo</label>
+                                                        <input
+                                                            type="number"
+                                                            value={dep.capacityTotal || ''}
+                                                            onChange={e => updateDeparture(di, 'capacityTotal', parseInt(e.target.value) || 0)}
+                                                            placeholder="20"
+                                                            className="editor-input"
+                                                            min={1}
+                                                        />
+                                                    </div>
+                                                    <div className="editor-field">
+                                                        <label>Vagas destinadas ao VAMO *</label>
+                                                        <input
+                                                            type="number"
+                                                            value={dep.capacityVamo || ''}
+                                                            onChange={e => {
+                                                                const v = parseInt(e.target.value) || 0;
+                                                                updateDeparture(di, 'capacityVamo', v);
+                                                                updateDeparture(di, 'capacityVamoAvailable', v);
+                                                            }}
+                                                            placeholder="10"
+                                                            className="editor-input"
+                                                            min={1}
+                                                            max={dep.capacityTotal}
+                                                        />
+                                                        <span className="editor-field-hint" style={{ fontSize: 11 }}>Quantidade de vagas dessa saída que serão vendidas através do VAMO.</span>
+                                                    </div>
+                                                </div>
+                                                <div className="editor-row">
+                                                    <div className="editor-field">
+                                                        <label>Mínimo de participantes</label>
+                                                        <input
+                                                            type="number"
+                                                            value={dep.minPeople ?? ''}
+                                                            onChange={e => updateDeparture(di, 'minPeople', e.target.value ? parseInt(e.target.value) : null)}
+                                                            placeholder="Ex: 10"
+                                                            className="editor-input"
+                                                            min={0}
+                                                        />
+                                                        <span className="editor-field-hint" style={{ fontSize: 11 }}>Mínimo de pessoas necessárias para confirmar a viagem. Deixe vazio se não houver mínimo.</span>
+                                                    </div>
+                                                    <div className="editor-field">
+                                                        <label>Status da saída</label>
+                                                        <select
+                                                            value={dep.status}
+                                                            onChange={e => updateDeparture(di, 'status', e.target.value)}
+                                                            className="editor-input"
+                                                        >
+                                                            <option value="ABERTA">🟢 Aberta</option>
+                                                            <option value="QUASE_LOTADO">🟡 Quase lotado</option>
+                                                            <option value="ESGOTADO">🔴 Esgotado</option>
+                                                            <option value="ENCERRADA">⚫ Encerrada</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="editor-field">
-                                        <label>URL do E-ticket</label>
-                                        <input
-                                            type="url"
-                                            value={form.eticketUrl}
-                                            onChange={e => setForm(f => ({ ...f, eticketUrl: e.target.value }))}
-                                            placeholder="https://..."
-                                            className="editor-input"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="editor-row">
-                                    <div className="editor-field">
-                                        <label>WhatsApp oficial da agência</label>
-                                        <input
-                                            type="tel"
-                                            value={form.whatsappOfficial}
-                                            onChange={e => setForm(f => ({ ...f, whatsappOfficial: e.target.value }))}
-                                            placeholder="+55 11 99999-9999"
-                                            className="editor-input"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="editor-field">
-                                    <label>Mensagem automática pós-compra</label>
-                                    <textarea
-                                        value={form.autoMessage}
-                                        onChange={e => setForm(f => ({ ...f, autoMessage: e.target.value }))}
-                                        placeholder="Mensagem que o comprador recebe automaticamente após a compra..."
-                                        className="editor-textarea"
-                                        rows={3}
-                                    />
-                                </div>
+                                ))}
+
+                                <button className="btn-add-item full-width" onClick={addDeparture}>+ Adicionar saída</button>
+                                {departures.length === 0 && <p className="editor-field-hint" style={{ marginTop: 8 }}>📅 Adicione pelo menos uma data de saída para que viajantes possam reservar.</p>}
                             </div>
                         )}
                     </div>

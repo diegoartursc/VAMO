@@ -83,7 +83,7 @@ const MOCK_SESSION: AuthSession = {
     },
     agency: {
         id: 'mock-agency-id',
-        name: 'VAMO Demo Agency',
+        name: 'VAMO Global Travel',
         verified: true,
         logo: null,
         cnpj: '00.000.000/0001-00'

@@ -15,7 +15,10 @@ export default function AgenciaDashboardPage() {
             try {
                 const s = await getSession();
                 if (s) setSession(s);
-                const pkgs = await getAgencyPackages(s?.agency?.id || "mock");
+
+                // If ADMIN, fetch all packages (passing no agencyId)
+                const isAuthAdmin = s?.employee?.role === "ADMIN";
+                const pkgs = await getAgencyPackages(isAuthAdmin ? "" : (s?.agency?.id || "mock"));
                 setPackages(pkgs || []);
             } catch {
                 // mock data already handled in api.ts
@@ -59,7 +62,7 @@ export default function AgenciaDashboardPage() {
             <div className="dash-header">
                 <h1 className="dash-title">Visão Geral</h1>
                 <p className="dash-subtitle">
-                    {session?.agency?.name || "Sua Agência"} — Gerencie pacotes, vendas e avaliações
+                    {session?.employee?.role === "ADMIN" ? "VAMO Admin Control" : (session?.agency?.name || "Sua Agência")} — Gerencie pacotes, vendas e avaliações
                 </p>
             </div>
 

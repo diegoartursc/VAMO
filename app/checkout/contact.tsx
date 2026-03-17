@@ -12,6 +12,14 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/services/api';
+import { theme } from '../../src/theme/theme';
+
+// Mock user data for auto-fill
+const USER = {
+    name: 'Usuário VAMO',
+    email: 'usuario@email.com',
+    phone: '(11) 99999-9999',
+};
 
 export default function CheckoutContactScreen() {
     const router = useRouter();
@@ -34,10 +42,10 @@ export default function CheckoutContactScreen() {
     const [timeRemaining, setTimeRemaining] = useState(20 * 60); // 20 minutes
 
     // Form states
-    const [fullName, setFullName] = useState('');
-    const [email, setEmail] = useState('');
+    const [fullName, setFullName] = useState(USER.name);
+    const [email, setEmail] = useState(USER.email);
     const [countryCode, setCountryCode] = useState('+55');
-    const [phone, setPhone] = useState('');
+    const [phone, setPhone] = useState(USER.phone);
     const [summaryExpanded, setSummaryExpanded] = useState(false);
 
     // Timer countdown
@@ -99,8 +107,9 @@ export default function CheckoutContactScreen() {
 
     if (!packageData) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Carregando...</Text>
+            <View style={[styles.container, styles.loadingContainer]}>
+                <Ionicons name="airplane" size={48} color={theme.colors.primary} />
+                <Text style={styles.loadingText}>Preparando seu pedido...</Text>
             </View>
         );
     }
@@ -110,7 +119,7 @@ export default function CheckoutContactScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={24} color="#fff" />
+                    <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Pedido</Text>
                 <View style={{ width: 40 }} />
@@ -211,7 +220,7 @@ export default function CheckoutContactScreen() {
                             <Ionicons
                                 name={summaryExpanded ? 'chevron-up' : 'chevron-down'}
                                 size={20}
-                                color="#fff"
+                                color={theme.colors.text.primary}
                             />
                         </View>
                     </View>
@@ -261,7 +270,17 @@ export default function CheckoutContactScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+    },
+    loadingText: {
+        fontSize: 16,
+        color: theme.colors.text.secondary,
+        fontWeight: '500',
     },
     header: {
         flexDirection: 'row',
@@ -270,19 +289,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#3a3a3a',
+        borderBottomColor: theme.colors.border,
     },
-    backButton: {
-        width: 40,
-    },
+    backButton: { width: 40 },
     headerTitle: {
         fontSize: 18,
-        fontWeight: '600',
-        color: '#fff',
+        fontWeight: '700',
+        color: theme.colors.text.primary,
     },
-    scrollView: {
-        flex: 1,
-    },
+    scrollView: { flex: 1 },
     progressContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -290,38 +305,24 @@ const styles = StyleSheet.create({
         paddingVertical: 24,
         paddingHorizontal: 60,
     },
-    progressStep: {
-        alignItems: 'center',
-    },
+    progressStep: { alignItems: 'center' },
     stepCircle: {
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: '#3a3a3a',
+        backgroundColor: theme.colors.surfaceLight,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,
     },
-    stepCircleActive: {
-        backgroundColor: '#14b8a6',
-    },
-    stepNumber: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    stepLabel: {
-        fontSize: 13,
-        color: '#999',
-    },
-    stepLabelActive: {
-        color: '#fff',
-        fontWeight: '600',
-    },
+    stepCircleActive: { backgroundColor: theme.colors.primary },
+    stepNumber: { color: theme.colors.text.inverse, fontSize: 14, fontWeight: '700' },
+    stepLabel: { fontSize: 13, color: theme.colors.text.tertiary },
+    stepLabelActive: { color: theme.colors.text.primary, fontWeight: '700' },
     progressConnector: {
         flex: 1,
         height: 2,
-        backgroundColor: '#3a3a3a',
+        backgroundColor: theme.colors.border,
         marginHorizontal: 12,
         marginBottom: 28,
     },
@@ -329,18 +330,19 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#dc2626',
+        backgroundColor: theme.colors.error,
         paddingHorizontal: 16,
         paddingVertical: 10,
         marginHorizontal: 16,
-        borderRadius: 8,
+        borderRadius: 12,
         gap: 8,
         marginBottom: 24,
+        ...theme.shadows.small,
     },
     timerText: {
         color: '#fff',
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     formSection: {
         paddingHorizontal: 16,
@@ -348,24 +350,25 @@ const styles = StyleSheet.create({
     },
     formTitle: {
         fontSize: 20,
-        fontWeight: '700',
-        color: '#fff',
+        fontWeight: '800',
+        color: theme.colors.text.primary,
         marginBottom: 12,
+        letterSpacing: -0.5,
     },
-    securityBADGE: {
+    securityBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
         marginBottom: 16,
     },
     securityText: {
-        color: '#14b8a6',
+        color: theme.colors.success,
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     requiredLabel: {
         fontSize: 13,
-        color: '#999',
+        color: theme.colors.text.tertiary,
         marginBottom: 20,
     },
     inputGroup: {
@@ -373,47 +376,49 @@ const styles = StyleSheet.create({
     },
     inputLabel: {
         fontSize: 14,
-        color: '#999',
+        color: theme.colors.text.secondary,
         marginBottom: 8,
+        fontWeight: '500',
     },
     input: {
-        backgroundColor: '#2a2a2a',
-        borderRadius: 8,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 14,
         fontSize: 16,
-        color: '#fff',
-        borderWidth: 1,
-        borderColor: '#3a3a3a',
+        color: theme.colors.text.primary,
+        borderWidth: 1.5,
+        borderColor: theme.colors.border,
     },
     pickerContainer: {
-        backgroundColor: '#2a2a2a',
-        borderRadius: 8,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 14,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderWidth: 1.5,
+        borderColor: theme.colors.border,
     },
     pickerValue: {
         fontSize: 16,
-        color: '#fff',
+        color: theme.colors.text.primary,
     },
     disclaimer: {
         fontSize: 13,
-        color: '#999',
+        color: theme.colors.text.tertiary,
         lineHeight: 18,
         marginTop: 8,
     },
     summaryContainer: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: theme.colors.surface,
         marginHorizontal: 16,
-        borderRadius: 12,
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: theme.colors.border,
         overflow: 'hidden',
+        ...theme.shadows.small,
     },
     summaryHeader: {
         flexDirection: 'row',
@@ -423,8 +428,8 @@ const styles = StyleSheet.create({
     },
     summaryTitle: {
         fontSize: 16,
-        fontWeight: '600',
-        color: '#fff',
+        fontWeight: '700',
+        color: theme.colors.text.primary,
     },
     summaryHeaderRight: {
         flexDirection: 'row',
@@ -433,7 +438,7 @@ const styles = StyleSheet.create({
     },
     summaryCountText: {
         fontSize: 14,
-        color: '#999',
+        color: theme.colors.text.secondary,
     },
     summaryDetails: {
         paddingHorizontal: 16,
@@ -442,8 +447,8 @@ const styles = StyleSheet.create({
     },
     packageTitle: {
         fontSize: 15,
-        fontWeight: '600',
-        color: '#fff',
+        fontWeight: '700',
+        color: theme.colors.text.primary,
         marginBottom: 8,
     },
     detailRow: {
@@ -453,7 +458,7 @@ const styles = StyleSheet.create({
     },
     detailText: {
         fontSize: 14,
-        color: '#ccc',
+        color: theme.colors.text.secondary,
     },
     footer: {
         flexDirection: 'row',
@@ -461,41 +466,32 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 16,
-        backgroundColor: '#2a2a2a',
+        backgroundColor: theme.colors.surface,
         borderTopWidth: 1,
-        borderTopColor: '#3a3a3a',
+        borderTopColor: theme.colors.border,
+        ...theme.shadows.large,
     },
     footerPrice: {
         fontSize: 20,
-        fontWeight: '700',
-        color: '#fff',
+        fontWeight: '800',
+        color: theme.colors.text.primary,
     },
     footerLabel: {
         fontSize: 13,
-        color: '#999',
+        color: theme.colors.text.tertiary,
         marginTop: 2,
     },
     continueButton: {
-        backgroundColor: '#14b8a6',
+        backgroundColor: theme.colors.primary,
         paddingVertical: 14,
         paddingHorizontal: 32,
-        borderRadius: 10,
+        borderRadius: 12,
+        ...theme.shadows.button,
     },
     continueButtonText: {
-        color: '#fff',
+        color: theme.colors.text.onPrimary,
         fontSize: 16,
         fontWeight: '700',
     },
-    errorText: {
-        color: '#fff',
-        fontSize: 16,
-        textAlign: 'center',
-        marginTop: 40,
-    },
-    securityBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginBottom: 16,
-    },
+    errorText: { color: theme.colors.text.secondary, fontSize: 16, textAlign: 'center', marginTop: 40 },
 });
