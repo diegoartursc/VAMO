@@ -292,14 +292,14 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
         setSaving(true);
         try {
-            const payload = buildPayload();
+            const payload = { ...buildPayload(), status: "PENDING_REVIEW" };
             if (isNew) {
                 const created = await createItinerary(payload);
-                setToast({ msg: "Roteiro criado com sucesso!", type: "success" });
+                setToast({ msg: "Roteiro enviado para revisão!", type: "success" });
                 window.location.href = `/dashboard/roteiro/${created.id}`;
             } else {
                 await updateItinerary(id, payload);
-                setToast({ msg: "Alterações salvas!", type: "success" });
+                setToast({ msg: "Alterações enviadas para revisão!", type: "success" });
                 setDirty(false);
             }
         } catch (err: any) { setToast({ msg: err.message, type: "error" }); }

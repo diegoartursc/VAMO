@@ -50,9 +50,12 @@ export default function PremiumReviewsSection({
         return (
             <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map((star) => (
-                    <Text key={star} style={styles.star}>
-                        {star <= rating ? '★' : '☆'}
-                    </Text>
+                    <Ionicons
+                        key={star}
+                        name={star <= rating ? 'star' : 'star-outline'}
+                        size={16}
+                        color="#FFD700"
+                    />
                 ))}
             </View>
         );
@@ -76,7 +79,7 @@ export default function PremiumReviewsSection({
             <View style={styles.aggregateSection}>
                 <Text style={styles.aggregateTitle}>Avaliações de clientes</Text>
                 <View style={styles.ratingDisplay}>
-                    {renderStars(5)}
+                    {renderStars(Math.round(averageRating))}
                     <Text style={styles.ratingNumber}>{averageRating}/5</Text>
                 </View>
                 <Text style={styles.ratingSubtext}>
@@ -222,10 +225,6 @@ const styles = StyleSheet.create({
     starsRow: {
         flexDirection: 'row',
         gap: 4,
-    },
-    star: {
-        fontSize: 24,
-        color: '#FFD700',
     },
     ratingNumber: {
         fontSize: 32,

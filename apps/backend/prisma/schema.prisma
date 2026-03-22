@@ -70,6 +70,9 @@ enum ItineraryStatus {
 }
 
 enum PurchaseStatus {
+  AWAITING_QUOTE
+  PROCESSING
+  DOCS_SENT
   PENDING
   CONFIRMED
   CANCELLED
@@ -101,6 +104,24 @@ enum DepartureStatus {
   QUASE_LOTADO
   ESGOTADO
   ENCERRADA
+}
+
+enum QuoteStatus {
+  AWAITING_QUOTE
+  QUOTED
+  ACCEPTED
+  EXPIRED
+  REJECTED
+}
+
+enum AgencyDocType {
+  BOARDING_PASS
+  HOTEL_VOUCHER
+  HOTEL_CHECKIN
+  TRANSFER_VOUCHER
+  TOUR_TICKET
+  INSURANCE
+  OTHER
 }
 
 // ─────────────────────────────────────────────
@@ -651,6 +672,8 @@ model PurchaseHistory {
   travelDate      DateTime?
   travelEndDate   DateTime?
   preparation     Json?          // preparation tips grouped by category
+  // Flight quote fields
+  originCity      String?
   // Post-purchase documents (filled by agency per sale)
   voucherUrl      String?
   eticketUrl      String?
@@ -665,6 +688,8 @@ model PurchaseHistory {
   timeline        BookingTimeline[]
   documents       BookingDocument[]
   bookingInclusions BookingInclusion[]
+  flightQuote     FlightQuote?
+  agencyDocuments AgencyDocument[]
 
   @@map("purchase_history")
 }
@@ -713,6 +738,57 @@ model BookingInclusion {
   purchase   PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@map("booking_inclusions")
+}
+
+// ─────────────────────────────────────────────
+// FLIGHT QUOTES
+// ─────────────────────────────────────────────
+
+model FlightQuote {
+  id               String      @id @default(cuid())
+  purchaseId       String      @unique
+  // Dados do pedido do usuário
+  originCity       String
+  originAirport    String?
+  // Dados preenchidos pela agência
+  airline          String?
+  flightDetails    String?     @db.Text
+  flightImageUrl   String?
+  airfarePrice     Float?
+  totalPrice       Float?
+  // Controle
+  status           QuoteStatus @default(AWAITING_QUOTE)
+  expiresAt        DateTime?
+  quotedAt         DateTime?
+  acceptedAt       DateTime?
+  agencyNote       String?     @db.Text
+  userNote         String?     @db.Text
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  purchase         PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@map("flight_quotes")
+}
+
+// ─────────────────────────────────────────────
+// AGENCY DOCUMENTS (sent by agency to traveler)
+// ─────────────────────────────────────────────
+
+model AgencyDocument {
+  id           String        @id @default(cuid())
+  purchaseId   String
+  title        String
+  description  String?       @db.Text
+  type         AgencyDocType
+  fileUrl      String
+  fileName     String?
+  sentAt       DateTime      @default(now())
+  viewedAt     DateTime?
+
+  purchase     PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@map("agency_documents")
 }
 
 // ─────────────────────────────────────────────

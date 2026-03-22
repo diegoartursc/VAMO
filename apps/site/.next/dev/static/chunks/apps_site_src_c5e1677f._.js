@@ -13,6 +13,8 @@ __turbopack_context__.s([
     ()=>deletePackage,
     "getAgencyPackages",
     ()=>getAgencyPackages,
+    "getAgencySales",
+    ()=>getAgencySales,
     "getDashboardStats",
     ()=>getDashboardStats,
     "getItineraries",
@@ -28,7 +30,9 @@ __turbopack_context__.s([
     "updateItinerary",
     ()=>updateItinerary,
     "updatePackage",
-    ()=>updatePackage
+    ()=>updatePackage,
+    "updateSaleDocuments",
+    ()=>updateSaleDocuments
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
 /**
@@ -54,16 +58,79 @@ async function fetchApi(endpoint, options) {
     }
     return res.json();
 }
+const MOCK_ITINERARIES = [
+    {
+        id: "mock-1",
+        title: "Chapada Diamantina — 7 dias",
+        destination: "Lençóis",
+        country: "Brasil",
+        status: "active",
+        sales: 24,
+        revenue: 7176,
+        rating: 4.9,
+        reviewCount: 18,
+        duration: 7,
+        price: 299,
+        updatedAt: new Date().toISOString()
+    },
+    {
+        id: "mock-2",
+        title: "Jalapão Selvagem",
+        destination: "Palmas",
+        country: "Brasil",
+        status: "active",
+        sales: 11,
+        revenue: 1650,
+        rating: 4.7,
+        reviewCount: 9,
+        duration: 5,
+        price: 150,
+        updatedAt: new Date(Date.now() - 86400000 * 3).toISOString()
+    },
+    {
+        id: "mock-3",
+        title: "Fernando de Noronha — Mergulho",
+        destination: "Fernando de Noronha",
+        country: "Brasil",
+        status: "pending",
+        sales: 0,
+        revenue: 0,
+        rating: null,
+        reviewCount: 0,
+        duration: 6,
+        price: 2500,
+        updatedAt: new Date(Date.now() - 86400000 * 7).toISOString()
+    }
+];
 async function getDashboardStats(creatorId) {
     const query = creatorId ? `?creatorId=${creatorId}` : '';
-    return fetchApi(`/itineraries/dashboard/stats${query}`);
+    try {
+        const stats = await fetchApi(`/itineraries/dashboard/stats${query}`);
+        // Return mock data if no itineraries found (for demo/development)
+        if (!stats.itineraries || stats.itineraries.length === 0) throw new Error('Empty');
+        return stats;
+    } catch  {
+        return {
+            totalRevenue: 13650,
+            totalSales: 35,
+            averageRating: 4.8,
+            totalReviews: 27,
+            activeItineraries: 2,
+            totalItineraries: 3,
+            itineraries: MOCK_ITINERARIES
+        };
+    }
 }
 async function getItineraries() {
     const stats = await getDashboardStats();
     return stats.itineraries;
 }
 async function getItineraryById(id) {
-    return fetchApi(`/itineraries/${id}`);
+    try {
+        return await fetchApi(`/itineraries/${id}`);
+    } catch  {
+        return MOCK_ITINERARIES.find((i)=>i.id === id) || MOCK_ITINERARIES[0] || null;
+    }
 }
 async function createItinerary(data) {
     return fetchApi('/itineraries', {
@@ -82,15 +149,78 @@ async function deleteItinerary(id) {
         method: 'DELETE'
     });
 }
+// ─── Packages CRUD ───
+const MOCK_PACKAGES = [
+    {
+        id: "pkg-1",
+        title: "Paris Romântica — 10 dias",
+        destination: "Paris",
+        country: "França",
+        duration: 10,
+        status: "ACTIVE",
+        priceMin: 8500,
+        priceMax: 12000,
+        qualityScore: 85,
+        rating: 4.8,
+        reviewCount: 32,
+        recentPurchases: 7
+    },
+    {
+        id: "pkg-2",
+        title: "Japão Completo",
+        destination: "Tóquio",
+        country: "Japão",
+        duration: 15,
+        status: "ACTIVE",
+        priceMin: 14000,
+        priceMax: 18000,
+        qualityScore: 92,
+        rating: 4.9,
+        reviewCount: 19,
+        recentPurchases: 4
+    },
+    {
+        id: "pkg-3",
+        title: "Grécia — Ilhas e Cultura",
+        destination: "Atenas",
+        country: "Grécia",
+        duration: 12,
+        status: "PAUSED",
+        priceMin: 9800,
+        priceMax: 13500,
+        qualityScore: 68,
+        rating: 4.5,
+        reviewCount: 11,
+        recentPurchases: 0
+    }
+];
 async function getPackages(agencyId) {
     const query = agencyId ? `?agencyId=${agencyId}` : '';
-    return fetchApi(`/packages${query}`);
+    try {
+        return await fetchApi(`/packages${query}`);
+    } catch  {
+        return MOCK_PACKAGES;
+    }
 }
 async function getAgencyPackages(agencyId) {
-    return fetchApi(`/packages?agencyId=${agencyId}`);
+    try {
+        const pkgs = await fetchApi(`/packages?agencyId=${agencyId}`);
+        // Return mock data if no packages found (for demo/development)
+        if (!pkgs || pkgs.length === 0) throw new Error('Empty');
+        return pkgs;
+    } catch  {
+        return MOCK_PACKAGES;
+    }
 }
 async function getPackageById(id) {
-    return fetchApi(`/packages/${id}`);
+    try {
+        return await fetchApi(`/packages/${id}`);
+    } catch  {
+        // Try exact match first, then index-based match (for numeric IDs like "1","2","3")
+        const pkg = MOCK_PACKAGES.find((p)=>p.id === id) || MOCK_PACKAGES[parseInt(id, 10) - 1] || MOCK_PACKAGES[0];
+        if (pkg) return pkg;
+        throw new Error("Pacote não encontrado");
+    }
 }
 async function createPackage(data) {
     return fetchApi('/packages', {
@@ -109,8 +239,34 @@ async function deletePackage(id) {
         method: 'DELETE'
     });
 }
+async function getAgencySales(agencyId) {
+    try {
+        return await fetchApi(`/sales/${agencyId}`);
+    } catch  {
+        return [];
+    }
+}
+async function updateSaleDocuments(purchaseId, data) {
+    return fetchApi(`/sales/${purchaseId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+}
 async function getPackageDashboardStats(agencyId) {
-    return fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+    try {
+        const stats = await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        if (!stats.packages || stats.packages.length === 0) throw new Error('Empty');
+        return stats;
+    } catch  {
+        return {
+            totalPackages: MOCK_PACKAGES.length,
+            activePackages: MOCK_PACKAGES.filter((p)=>p.status === "ACTIVE").length,
+            totalRevenue: 312500,
+            totalSales: 11,
+            averageQualityScore: 82,
+            packages: MOCK_PACKAGES
+        };
+    }
 }
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
@@ -172,9 +328,9 @@ const SECTIONS = [
         title: "Roteiro Dia a Dia"
     },
     {
-        key: "docs",
+        key: "departures",
         icon: "8",
-        title: "Documentação"
+        title: "Saídas e Disponibilidade"
     }
 ];
 const COUNTRIES = [
@@ -472,10 +628,6 @@ function getDurationLabel(days) {
     notRecommendedFor: [],
     importantInfo: [],
     routeDetails: null,
-    whatsappOfficial: "",
-    autoMessage: "",
-    voucherUrl: "",
-    eticketUrl: "",
     status: "ACTIVE"
 };
 function PackageEditorPage({ params }) {
@@ -550,6 +702,52 @@ function PackageEditorPage({ params }) {
             return [
                 ...u
             ];
+        });
+    const [departures, setDepartures] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const EMPTY_DEPARTURE = {
+        startDate: "",
+        price: 0,
+        capacityTotal: 20,
+        capacityVamo: 10,
+        capacityVamoAvailable: 10,
+        minPeople: null,
+        status: "ABERTA",
+        editing: true
+    };
+    const addDeparture = ()=>setDepartures((d)=>[
+                ...d,
+                {
+                    ...EMPTY_DEPARTURE
+                }
+            ]);
+    const updateDeparture = (i, f, v)=>setDepartures((d)=>{
+            const u = [
+                ...d
+            ];
+            u[i][f] = v;
+            return u;
+        });
+    const removeDeparture = (i)=>setDepartures((d)=>d.filter((_, idx)=>idx !== i));
+    const duplicateDeparture = (i)=>setDepartures((d)=>{
+            const orig = d[i];
+            return [
+                ...d,
+                {
+                    ...orig,
+                    id: undefined,
+                    startDate: "",
+                    capacityVamoAvailable: orig.capacityVamo,
+                    status: "ABERTA",
+                    editing: true
+                }
+            ];
+        });
+    const toggleDepartureEdit = (i)=>setDepartures((d)=>{
+            const u = [
+                ...d
+            ];
+            u[i].editing = !u[i].editing;
+            return u;
         });
     // ─── Auto-save timer ───
     const autoSaveRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
@@ -750,8 +948,8 @@ function PackageEditorPage({ params }) {
                 return form.includedItems.length > 0 || form.includes.length > 0;
             case "itinerary":
                 return pkgDays.length > 0;
-            case "docs":
-                return !!form.whatsappOfficial;
+            case "departures":
+                return departures.length > 0 && departures.some((d)=>!!d.startDate && d.price > 0);
             default:
                 return false;
         }
@@ -814,7 +1012,7 @@ function PackageEditorPage({ params }) {
                         }
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 365,
+                        lineNumber: 376,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -826,7 +1024,7 @@ function PackageEditorPage({ params }) {
                         }
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 366,
+                        lineNumber: 377,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -838,18 +1036,18 @@ function PackageEditorPage({ params }) {
                         }
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 367,
+                        lineNumber: 378,
                         columnNumber: 21
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                lineNumber: 364,
+                lineNumber: 375,
                 columnNumber: 17
             }, this)
         }, void 0, false, {
             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-            lineNumber: 363,
+            lineNumber: 374,
             columnNumber: 13
         }, this);
     }
@@ -863,14 +1061,14 @@ function PackageEditorPage({ params }) {
                         children: toast.type === "success" ? "" : ""
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 378,
+                        lineNumber: 389,
                         columnNumber: 21
                     }, this),
                     toast.msg
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                lineNumber: 377,
+                lineNumber: 388,
                 columnNumber: 17
             }, this),
             validationErrors.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -880,7 +1078,7 @@ function PackageEditorPage({ params }) {
                         children: "Campos obrigatórios pendentes:"
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 386,
+                        lineNumber: 397,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("ul", {
@@ -888,18 +1086,18 @@ function PackageEditorPage({ params }) {
                                 children: e
                             }, i, false, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 387,
+                                lineNumber: 398,
                                 columnNumber: 57
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 387,
+                        lineNumber: 398,
                         columnNumber: 21
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                lineNumber: 385,
+                lineNumber: 396,
                 columnNumber: 17
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -914,7 +1112,7 @@ function PackageEditorPage({ params }) {
                                 children: "← Voltar"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 394,
+                                lineNumber: 405,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
@@ -922,13 +1120,13 @@ function PackageEditorPage({ params }) {
                                 children: form.title || "Novo Pacote"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 395,
+                                lineNumber: 406,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 393,
+                        lineNumber: 404,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -948,7 +1146,7 @@ function PackageEditorPage({ params }) {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 400,
+                                        lineNumber: 411,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -959,13 +1157,13 @@ function PackageEditorPage({ params }) {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 401,
+                                        lineNumber: 412,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 399,
+                                lineNumber: 410,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -975,19 +1173,19 @@ function PackageEditorPage({ params }) {
                                 children: saving ? "Salvando..." : "Publicar Pacote"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 403,
+                                lineNumber: 414,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 397,
+                        lineNumber: 408,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                lineNumber: 392,
+                lineNumber: 403,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1004,7 +1202,7 @@ function PackageEditorPage({ params }) {
                                         children: s.icon
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 419,
+                                        lineNumber: 430,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1012,25 +1210,25 @@ function PackageEditorPage({ params }) {
                                         children: s.title
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 420,
+                                        lineNumber: 431,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                         className: `editor-nav-dot ${isSectionComplete(s.key) ? "complete" : ""}`
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 421,
+                                        lineNumber: 432,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, s.key, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 414,
+                                lineNumber: 425,
                                 columnNumber: 25
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 412,
+                        lineNumber: 423,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1051,14 +1249,14 @@ function PackageEditorPage({ params }) {
                                                 children: "1"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 432,
+                                                lineNumber: 443,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                                 children: "Destino"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 433,
+                                                lineNumber: 444,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1066,7 +1264,7 @@ function PackageEditorPage({ params }) {
                                                 children: isSectionComplete("destination") ? "Completo" : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 434,
+                                                lineNumber: 445,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1074,13 +1272,13 @@ function PackageEditorPage({ params }) {
                                                 children: openSections.has("destination") ? "▲" : "▼"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 437,
+                                                lineNumber: 448,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 431,
+                                        lineNumber: 442,
                                         columnNumber: 25
                                     }, this),
                                     openSections.has("destination") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1093,7 +1291,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Título do Pacote *"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 442,
+                                                        lineNumber: 453,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1107,13 +1305,13 @@ function PackageEditorPage({ params }) {
                                                         className: "editor-input"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 443,
+                                                        lineNumber: 454,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 441,
+                                                lineNumber: 452,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1129,7 +1327,7 @@ function PackageEditorPage({ params }) {
                                                                 children: "País *"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 453,
+                                                                lineNumber: 464,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1145,7 +1343,7 @@ function PackageEditorPage({ params }) {
                                                                         children: "Selecione o país"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                        lineNumber: 459,
+                                                                        lineNumber: 470,
                                                                         columnNumber: 45
                                                                     }, this),
                                                                     COUNTRIES.map((c)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1153,19 +1351,19 @@ function PackageEditorPage({ params }) {
                                                                             children: c
                                                                         }, c, false, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 460,
+                                                                            lineNumber: 471,
                                                                             columnNumber: 65
                                                                         }, this))
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 454,
+                                                                lineNumber: 465,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 452,
+                                                        lineNumber: 463,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1178,7 +1376,7 @@ function PackageEditorPage({ params }) {
                                                                 children: "Continente"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 464,
+                                                                lineNumber: 475,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1188,19 +1386,19 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input readonly"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 465,
+                                                                lineNumber: 476,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 463,
+                                                        lineNumber: 474,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 451,
+                                                lineNumber: 462,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1216,7 +1414,7 @@ function PackageEditorPage({ params }) {
                                                                 children: "Cidade Principal *"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 470,
+                                                                lineNumber: 481,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1230,13 +1428,13 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 471,
+                                                                lineNumber: 482,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 469,
+                                                        lineNumber: 480,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1249,7 +1447,7 @@ function PackageEditorPage({ params }) {
                                                                 children: "Aeroporto Principal"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 480,
+                                                                lineNumber: 491,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1263,19 +1461,19 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 481,
+                                                                lineNumber: 492,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 479,
+                                                        lineNumber: 490,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 468,
+                                                lineNumber: 479,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1294,21 +1492,21 @@ function PackageEditorPage({ params }) {
                                                                         }))
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 494,
+                                                                lineNumber: 505,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "editor-toggle-track"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 499,
+                                                                lineNumber: 510,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "editor-toggle-thumb"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 500,
+                                                                lineNumber: 511,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1321,23 +1519,23 @@ function PackageEditorPage({ params }) {
                                                                 children: "Multi-destino"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 501,
+                                                                lineNumber: 512,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 493,
+                                                        lineNumber: 504,
                                                         columnNumber: 41
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                    lineNumber: 492,
+                                                    lineNumber: 503,
                                                     columnNumber: 37
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 491,
+                                                lineNumber: 502,
                                                 columnNumber: 33
                                             }, this),
                                             form.multiDestination && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1347,7 +1545,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Cidades Adicionais"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 508,
+                                                        lineNumber: 519,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1361,18 +1559,18 @@ function PackageEditorPage({ params }) {
                                                                         children: "×"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                        lineNumber: 513,
+                                                                        lineNumber: 524,
                                                                         columnNumber: 53
                                                                     }, this)
                                                                 ]
                                                             }, i, true, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 511,
+                                                                lineNumber: 522,
                                                                 columnNumber: 49
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 509,
+                                                        lineNumber: 520,
                                                         columnNumber: 41
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1387,7 +1585,7 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 518,
+                                                                lineNumber: 529,
                                                                 columnNumber: 45
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1396,31 +1594,31 @@ function PackageEditorPage({ params }) {
                                                                 children: "+"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 526,
+                                                                lineNumber: 537,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 517,
+                                                        lineNumber: 528,
                                                         columnNumber: 41
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 507,
+                                                lineNumber: 518,
                                                 columnNumber: 37
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 440,
+                                        lineNumber: 451,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 430,
+                                lineNumber: 441,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1438,14 +1636,14 @@ function PackageEditorPage({ params }) {
                                                 children: "2"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 537,
+                                                lineNumber: 548,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                                 children: "Duração"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 538,
+                                                lineNumber: 549,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1453,7 +1651,7 @@ function PackageEditorPage({ params }) {
                                                 children: isSectionComplete("duration") ? "Completo" : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 539,
+                                                lineNumber: 550,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1461,13 +1659,13 @@ function PackageEditorPage({ params }) {
                                                 children: openSections.has("duration") ? "▲" : "▼"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 542,
+                                                lineNumber: 553,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 536,
+                                        lineNumber: 547,
                                         columnNumber: 25
                                     }, this),
                                     openSections.has("duration") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1482,7 +1680,7 @@ function PackageEditorPage({ params }) {
                                                             children: "Número de dias *"
                                                         }, void 0, false, {
                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 548,
+                                                            lineNumber: 559,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1495,32 +1693,6 @@ function PackageEditorPage({ params }) {
                                                                     })),
                                                             onFocus: (e)=>e.target.select(),
                                                             className: "editor-input"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 549,
-                                                            columnNumber: 41
-                                                        }, this)
-                                                    ]
-                                                }, void 0, true, {
-                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                    lineNumber: 547,
-                                                    columnNumber: 37
-                                                }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                    className: "editor-field",
-                                                    children: [
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                            children: "Número de noites"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 559,
-                                                            columnNumber: 41
-                                                        }, this),
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                            type: "number",
-                                                            value: form.nights,
-                                                            readOnly: true,
-                                                            className: "editor-input readonly"
                                                         }, void 0, false, {
                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
                                                             lineNumber: 560,
@@ -1536,10 +1708,36 @@ function PackageEditorPage({ params }) {
                                                     className: "editor-field",
                                                     children: [
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                            children: "Número de noites"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                            lineNumber: 570,
+                                                            columnNumber: 41
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                            type: "number",
+                                                            value: form.nights,
+                                                            readOnly: true,
+                                                            className: "editor-input readonly"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                            lineNumber: 571,
+                                                            columnNumber: 41
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                    lineNumber: 569,
+                                                    columnNumber: 37
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "editor-field",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                                             children: "Classificação"
                                                         }, void 0, false, {
                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 563,
+                                                            lineNumber: 574,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1547,30 +1745,30 @@ function PackageEditorPage({ params }) {
                                                             children: form.duration >= 1 ? getDurationLabel(form.duration) : "—"
                                                         }, void 0, false, {
                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 564,
+                                                            lineNumber: 575,
                                                             columnNumber: 41
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                    lineNumber: 562,
+                                                    lineNumber: 573,
                                                     columnNumber: 37
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                            lineNumber: 546,
+                                            lineNumber: 557,
                                             columnNumber: 33
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 545,
+                                        lineNumber: 556,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 535,
+                                lineNumber: 546,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1588,14 +1786,14 @@ function PackageEditorPage({ params }) {
                                                 children: "3"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 576,
+                                                lineNumber: 587,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                                 children: "Estilo de Viagem"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 577,
+                                                lineNumber: 588,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1603,7 +1801,7 @@ function PackageEditorPage({ params }) {
                                                 children: isSectionComplete("style") ? "Completo" : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 578,
+                                                lineNumber: 589,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1611,13 +1809,13 @@ function PackageEditorPage({ params }) {
                                                 children: openSections.has("style") ? "▲" : "▼"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 581,
+                                                lineNumber: 592,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 575,
+                                        lineNumber: 586,
                                         columnNumber: 25
                                     }, this),
                                     openSections.has("style") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1631,7 +1829,7 @@ function PackageEditorPage({ params }) {
                                                         children: "3"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 585,
+                                                        lineNumber: 596,
                                                         columnNumber: 80
                                                     }, this),
                                                     " estilos (",
@@ -1640,7 +1838,7 @@ function PackageEditorPage({ params }) {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 585,
+                                                lineNumber: 596,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1655,25 +1853,25 @@ function PackageEditorPage({ params }) {
                                                         children: ts.label
                                                     }, ts.key, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 591,
+                                                        lineNumber: 602,
                                                         columnNumber: 45
                                                     }, this);
                                                 })
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 586,
+                                                lineNumber: 597,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 584,
+                                        lineNumber: 595,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 574,
+                                lineNumber: 585,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1691,14 +1889,14 @@ function PackageEditorPage({ params }) {
                                                 children: "4"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 609,
+                                                lineNumber: 620,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                                 children: "Categorias Temáticas"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 610,
+                                                lineNumber: 621,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1706,7 +1904,7 @@ function PackageEditorPage({ params }) {
                                                 children: isSectionComplete("categories") ? "Completo" : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 611,
+                                                lineNumber: 622,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1714,13 +1912,13 @@ function PackageEditorPage({ params }) {
                                                 children: openSections.has("categories") ? "▲" : "▼"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 614,
+                                                lineNumber: 625,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 608,
+                                        lineNumber: 619,
                                         columnNumber: 25
                                     }, this),
                                     openSections.has("categories") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1735,7 +1933,7 @@ function PackageEditorPage({ params }) {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 618,
+                                                lineNumber: 629,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1750,25 +1948,25 @@ function PackageEditorPage({ params }) {
                                                         children: cat.label
                                                     }, cat.key, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 624,
+                                                        lineNumber: 635,
                                                         columnNumber: 45
                                                     }, this);
                                                 })
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 619,
+                                                lineNumber: 630,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 617,
+                                        lineNumber: 628,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 607,
+                                lineNumber: 618,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1786,14 +1984,14 @@ function PackageEditorPage({ params }) {
                                                 children: "5"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 642,
+                                                lineNumber: 653,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                                 children: "Preço"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 643,
+                                                lineNumber: 654,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1801,7 +1999,7 @@ function PackageEditorPage({ params }) {
                                                 children: isSectionComplete("price") ? "Completo" : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 644,
+                                                lineNumber: 655,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1809,13 +2007,13 @@ function PackageEditorPage({ params }) {
                                                 children: openSections.has("price") ? "▲" : "▼"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 647,
+                                                lineNumber: 658,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 641,
+                                        lineNumber: 652,
                                         columnNumber: 25
                                     }, this),
                                     openSections.has("price") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1831,7 +2029,7 @@ function PackageEditorPage({ params }) {
                                                                 children: "Preço base por pessoa *"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 653,
+                                                                lineNumber: 664,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1841,37 +2039,6 @@ function PackageEditorPage({ params }) {
                                                                 onChange: (e)=>setForm((f)=>({
                                                                             ...f,
                                                                             priceMin: parseFloat(e.target.value) || 0
-                                                                        })),
-                                                                onFocus: (e)=>e.target.select(),
-                                                                className: "editor-input"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 654,
-                                                                columnNumber: 41
-                                                            }, this)
-                                                        ]
-                                                    }, void 0, true, {
-                                                        fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 652,
-                                                        columnNumber: 37
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                        className: "editor-field",
-                                                        children: [
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                                children: "Preço máximo estimado"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 664,
-                                                                columnNumber: 41
-                                                            }, this),
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                                type: "number",
-                                                                min: 0,
-                                                                value: form.priceMax,
-                                                                onChange: (e)=>setForm((f)=>({
-                                                                            ...f,
-                                                                            priceMax: parseFloat(e.target.value) || 0
                                                                         })),
                                                                 onFocus: (e)=>e.target.select(),
                                                                 className: "editor-input"
@@ -1890,10 +2057,41 @@ function PackageEditorPage({ params }) {
                                                         className: "editor-field",
                                                         children: [
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                                children: "Moeda"
+                                                                children: "Preço máximo estimado"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
                                                                 lineNumber: 675,
+                                                                columnNumber: 41
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                type: "number",
+                                                                min: 0,
+                                                                value: form.priceMax,
+                                                                onChange: (e)=>setForm((f)=>({
+                                                                            ...f,
+                                                                            priceMax: parseFloat(e.target.value) || 0
+                                                                        })),
+                                                                onFocus: (e)=>e.target.select(),
+                                                                className: "editor-input"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                lineNumber: 676,
+                                                                columnNumber: 41
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                        lineNumber: 674,
+                                                        columnNumber: 37
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "editor-field",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                children: "Moeda"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                lineNumber: 686,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1908,24 +2106,24 @@ function PackageEditorPage({ params }) {
                                                                         children: c
                                                                     }, c, false, {
                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                        lineNumber: 681,
+                                                                        lineNumber: 692,
                                                                         columnNumber: 66
                                                                     }, this))
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 676,
+                                                                lineNumber: 687,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 674,
+                                                        lineNumber: 685,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 651,
+                                                lineNumber: 662,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1938,7 +2136,7 @@ function PackageEditorPage({ params }) {
                                                                 children: "Preço promocional (opcional)"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 687,
+                                                                lineNumber: 698,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1954,13 +2152,13 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 688,
+                                                                lineNumber: 699,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 686,
+                                                        lineNumber: 697,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1970,7 +2168,7 @@ function PackageEditorPage({ params }) {
                                                                 children: "Parcelas (máx)"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 699,
+                                                                lineNumber: 710,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1985,19 +2183,19 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 700,
+                                                                lineNumber: 711,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 698,
+                                                        lineNumber: 709,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 685,
+                                                lineNumber: 696,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2007,7 +2205,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Descrição curta *"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 712,
+                                                        lineNumber: 723,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -2021,13 +2219,13 @@ function PackageEditorPage({ params }) {
                                                         rows: 2
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 713,
+                                                        lineNumber: 724,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 711,
+                                                lineNumber: 722,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2037,7 +2235,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Política de cancelamento"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 723,
+                                                        lineNumber: 734,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -2051,13 +2249,13 @@ function PackageEditorPage({ params }) {
                                                         rows: 2
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 724,
+                                                        lineNumber: 735,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 722,
+                                                lineNumber: 733,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2075,20 +2273,20 @@ function PackageEditorPage({ params }) {
                                                                         }))
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 735,
+                                                                lineNumber: 746,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 children: "Cancelamento gratuito"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 740,
+                                                                lineNumber: 751,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 734,
+                                                        lineNumber: 745,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -2103,20 +2301,20 @@ function PackageEditorPage({ params }) {
                                                                         }))
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 743,
+                                                                lineNumber: 754,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 children: "All Inclusive"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 748,
+                                                                lineNumber: 759,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 742,
+                                                        lineNumber: 753,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -2131,38 +2329,38 @@ function PackageEditorPage({ params }) {
                                                                         }))
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 751,
+                                                                lineNumber: 762,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 children: "Destaque"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 756,
+                                                                lineNumber: 767,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 750,
+                                                        lineNumber: 761,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 733,
+                                                lineNumber: 744,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 650,
+                                        lineNumber: 661,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 640,
+                                lineNumber: 651,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2180,14 +2378,14 @@ function PackageEditorPage({ params }) {
                                                 children: "6"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 766,
+                                                lineNumber: 777,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                                 children: "Inclusões e Experiência"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 767,
+                                                lineNumber: 778,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2195,7 +2393,7 @@ function PackageEditorPage({ params }) {
                                                 children: isSectionComplete("inclusions") ? "Completo" : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 768,
+                                                lineNumber: 779,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2203,13 +2401,13 @@ function PackageEditorPage({ params }) {
                                                 children: openSections.has("inclusions") ? "▲" : "▼"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 771,
+                                                lineNumber: 782,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 765,
+                                        lineNumber: 776,
                                         columnNumber: 25
                                     }, this),
                                     openSections.has("inclusions") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2222,7 +2420,7 @@ function PackageEditorPage({ params }) {
                                                         children: "O que está incluso"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 777,
+                                                        lineNumber: 788,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2236,18 +2434,18 @@ function PackageEditorPage({ params }) {
                                                                         children: "×"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                        lineNumber: 782,
+                                                                        lineNumber: 793,
                                                                         columnNumber: 49
                                                                     }, this)
                                                                 ]
                                                             }, i, true, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 780,
+                                                                lineNumber: 791,
                                                                 columnNumber: 45
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 778,
+                                                        lineNumber: 789,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2262,7 +2460,7 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 787,
+                                                                lineNumber: 798,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2271,19 +2469,19 @@ function PackageEditorPage({ params }) {
                                                                 children: "+"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 795,
+                                                                lineNumber: 806,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 786,
+                                                        lineNumber: 797,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 776,
+                                                lineNumber: 787,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2293,7 +2491,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Destaques do pacote"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 801,
+                                                        lineNumber: 812,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2307,18 +2505,18 @@ function PackageEditorPage({ params }) {
                                                                         children: "×"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                        lineNumber: 806,
+                                                                        lineNumber: 817,
                                                                         columnNumber: 49
                                                                     }, this)
                                                                 ]
                                                             }, i, true, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 804,
+                                                                lineNumber: 815,
                                                                 columnNumber: 45
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 802,
+                                                        lineNumber: 813,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2333,7 +2531,7 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 811,
+                                                                lineNumber: 822,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2342,19 +2540,19 @@ function PackageEditorPage({ params }) {
                                                                 children: "+"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 819,
+                                                                lineNumber: 830,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 810,
+                                                        lineNumber: 821,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 800,
+                                                lineNumber: 811,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2364,7 +2562,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Descrição completa"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 825,
+                                                        lineNumber: 836,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -2378,13 +2576,13 @@ function PackageEditorPage({ params }) {
                                                         rows: 4
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 826,
+                                                        lineNumber: 837,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 824,
+                                                lineNumber: 835,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2394,7 +2592,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Introdução emocional"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 837,
+                                                        lineNumber: 848,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -2408,13 +2606,13 @@ function PackageEditorPage({ params }) {
                                                         rows: 2
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 838,
+                                                        lineNumber: 849,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 836,
+                                                lineNumber: 847,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2424,7 +2622,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Público ideal"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 849,
+                                                        lineNumber: 860,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2438,18 +2636,18 @@ function PackageEditorPage({ params }) {
                                                                         children: "×"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                        lineNumber: 854,
+                                                                        lineNumber: 865,
                                                                         columnNumber: 49
                                                                     }, this)
                                                                 ]
                                                             }, i, true, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 852,
+                                                                lineNumber: 863,
                                                                 columnNumber: 45
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 850,
+                                                        lineNumber: 861,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2464,7 +2662,7 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 859,
+                                                                lineNumber: 870,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2473,19 +2671,19 @@ function PackageEditorPage({ params }) {
                                                                 children: "+"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 867,
+                                                                lineNumber: 878,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 858,
+                                                        lineNumber: 869,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 848,
+                                                lineNumber: 859,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2495,7 +2693,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Não recomendado para"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 873,
+                                                        lineNumber: 884,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2509,18 +2707,18 @@ function PackageEditorPage({ params }) {
                                                                         children: "×"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                        lineNumber: 878,
+                                                                        lineNumber: 889,
                                                                         columnNumber: 49
                                                                     }, this)
                                                                 ]
                                                             }, i, true, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 876,
+                                                                lineNumber: 887,
                                                                 columnNumber: 45
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 874,
+                                                        lineNumber: 885,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2535,7 +2733,7 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 883,
+                                                                lineNumber: 894,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2544,19 +2742,19 @@ function PackageEditorPage({ params }) {
                                                                 children: "+"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 891,
+                                                                lineNumber: 902,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 882,
+                                                        lineNumber: 893,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 872,
+                                                lineNumber: 883,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2566,7 +2764,7 @@ function PackageEditorPage({ params }) {
                                                         children: "Informações importantes"
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 897,
+                                                        lineNumber: 908,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2580,18 +2778,18 @@ function PackageEditorPage({ params }) {
                                                                         children: "×"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                        lineNumber: 902,
+                                                                        lineNumber: 913,
                                                                         columnNumber: 49
                                                                     }, this)
                                                                 ]
                                                             }, i, true, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 900,
+                                                                lineNumber: 911,
                                                                 columnNumber: 45
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 898,
+                                                        lineNumber: 909,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2606,7 +2804,7 @@ function PackageEditorPage({ params }) {
                                                                 className: "editor-input"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 907,
+                                                                lineNumber: 918,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2615,31 +2813,31 @@ function PackageEditorPage({ params }) {
                                                                 children: "+"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 915,
+                                                                lineNumber: 926,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 906,
+                                                        lineNumber: 917,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 896,
+                                                lineNumber: 907,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 774,
+                                        lineNumber: 785,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 764,
+                                lineNumber: 775,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2657,14 +2855,14 @@ function PackageEditorPage({ params }) {
                                                 children: "7"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 925,
+                                                lineNumber: 936,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                                 children: "Roteiro Dia a Dia"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 926,
+                                                lineNumber: 937,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2672,7 +2870,7 @@ function PackageEditorPage({ params }) {
                                                 children: pkgDays.length > 0 ? `${pkgDays.length} dia(s)` : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 927,
+                                                lineNumber: 938,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2680,13 +2878,13 @@ function PackageEditorPage({ params }) {
                                                 children: openSections.has("itinerary") ? "▲" : "▼"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 930,
+                                                lineNumber: 941,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 924,
+                                        lineNumber: 935,
                                         columnNumber: 25
                                     }, this),
                                     openSections.has("itinerary") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2697,7 +2895,7 @@ function PackageEditorPage({ params }) {
                                                 children: "Descreva o que o viajante fará em cada dia do pacote. Quanto mais detalhado, mais confiança você transmite."
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 934,
+                                                lineNumber: 945,
                                                 columnNumber: 33
                                             }, this),
                                             pkgDays.map((day, di)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2714,7 +2912,7 @@ function PackageEditorPage({ params }) {
                                                                             children: di + 1
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 939,
+                                                                            lineNumber: 950,
                                                                             columnNumber: 49
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2724,13 +2922,13 @@ function PackageEditorPage({ params }) {
                                                                             placeholder: `Título do Dia ${di + 1} — ex: Chegada em Paris`
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 940,
+                                                                            lineNumber: 951,
                                                                             columnNumber: 49
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                    lineNumber: 938,
+                                                                    lineNumber: 949,
                                                                     columnNumber: 45
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2739,13 +2937,13 @@ function PackageEditorPage({ params }) {
                                                                     children: "🗑️"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                    lineNumber: 947,
+                                                                    lineNumber: 958,
                                                                     columnNumber: 45
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 937,
+                                                            lineNumber: 948,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2758,7 +2956,7 @@ function PackageEditorPage({ params }) {
                                                                             children: "Resumo do dia"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 951,
+                                                                            lineNumber: 962,
                                                                             columnNumber: 49
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2768,13 +2966,13 @@ function PackageEditorPage({ params }) {
                                                                             placeholder: "Ex: Chegada, city tour e jantar no Marais"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 952,
+                                                                            lineNumber: 963,
                                                                             columnNumber: 49
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                    lineNumber: 950,
+                                                                    lineNumber: 961,
                                                                     columnNumber: 45
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2784,7 +2982,7 @@ function PackageEditorPage({ params }) {
                                                                             children: "Descrição completa do dia"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 960,
+                                                                            lineNumber: 971,
                                                                             columnNumber: 49
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -2795,13 +2993,13 @@ function PackageEditorPage({ params }) {
                                                                             placeholder: "Descreva como o dia se desenrola, o que está incluso, dicas..."
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 961,
+                                                                            lineNumber: 972,
                                                                             columnNumber: 49
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                    lineNumber: 959,
+                                                                    lineNumber: 970,
                                                                     columnNumber: 45
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2816,7 +3014,7 @@ function PackageEditorPage({ params }) {
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 970,
+                                                                            lineNumber: 981,
                                                                             columnNumber: 49
                                                                         }, this),
                                                                         day.activities.map((act, ai)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2832,7 +3030,7 @@ function PackageEditorPage({ params }) {
                                                                                                 placeholder: "09:00"
                                                                                             }, void 0, false, {
                                                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                                lineNumber: 974,
+                                                                                                lineNumber: 985,
                                                                                                 columnNumber: 61
                                                                                             }, this),
                                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2845,7 +3043,7 @@ function PackageEditorPage({ params }) {
                                                                                                 }
                                                                                             }, void 0, false, {
                                                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                                lineNumber: 975,
+                                                                                                lineNumber: 986,
                                                                                                 columnNumber: 61
                                                                                             }, this),
                                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2855,7 +3053,7 @@ function PackageEditorPage({ params }) {
                                                                                                 placeholder: "2h"
                                                                                             }, void 0, false, {
                                                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                                lineNumber: 976,
+                                                                                                lineNumber: 987,
                                                                                                 columnNumber: 61
                                                                                             }, this),
                                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2864,13 +3062,13 @@ function PackageEditorPage({ params }) {
                                                                                                 children: "✕"
                                                                                             }, void 0, false, {
                                                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                                lineNumber: 977,
+                                                                                                lineNumber: 988,
                                                                                                 columnNumber: 61
                                                                                             }, this)
                                                                                         ]
                                                                                     }, void 0, true, {
                                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                        lineNumber: 973,
+                                                                                        lineNumber: 984,
                                                                                         columnNumber: 57
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2882,12 +3080,12 @@ function PackageEditorPage({ params }) {
                                                                                             placeholder: "📍 Local / Endereço"
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                            lineNumber: 980,
+                                                                                            lineNumber: 991,
                                                                                             columnNumber: 61
                                                                                         }, this)
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                        lineNumber: 979,
+                                                                                        lineNumber: 990,
                                                                                         columnNumber: 57
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2904,18 +3102,18 @@ function PackageEditorPage({ params }) {
                                                                                             rows: 2
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                            lineNumber: 983,
+                                                                                            lineNumber: 994,
                                                                                             columnNumber: 61
                                                                                         }, this)
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                        lineNumber: 982,
+                                                                                        lineNumber: 993,
                                                                                         columnNumber: 57
                                                                                     }, this)
                                                                                 ]
                                                                             }, ai, true, {
                                                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                                lineNumber: 972,
+                                                                                lineNumber: 983,
                                                                                 columnNumber: 53
                                                                             }, this)),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2924,25 +3122,25 @@ function PackageEditorPage({ params }) {
                                                                             children: "+ Atividade"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                            lineNumber: 987,
+                                                                            lineNumber: 998,
                                                                             columnNumber: 49
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                    lineNumber: 969,
+                                                                    lineNumber: 980,
                                                                     columnNumber: 45
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 949,
+                                                            lineNumber: 960,
                                                             columnNumber: 41
                                                         }, this)
                                                     ]
                                                 }, di, true, {
                                                     fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                    lineNumber: 936,
+                                                    lineNumber: 947,
                                                     columnNumber: 37
                                                 }, this)),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2951,7 +3149,7 @@ function PackageEditorPage({ params }) {
                                                 children: "+ Adicionar Dia"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 992,
+                                                lineNumber: 1003,
                                                 columnNumber: 33
                                             }, this),
                                             pkgDays.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2962,239 +3160,532 @@ function PackageEditorPage({ params }) {
                                                 children: "💡 Opcional mas altamente recomendado — pacotes com roteiro detalhado convertem 3x mais."
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 993,
+                                                lineNumber: 1004,
                                                 columnNumber: 58
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 933,
+                                        lineNumber: 944,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 923,
+                                lineNumber: 934,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 ref: (el)=>{
-                                    sectionRefs.current.docs = el;
+                                    sectionRefs.current.departures = el;
                                 },
-                                className: `editor-section ${openSections.has("docs") ? "open" : ""}`,
+                                className: `editor-section ${openSections.has("departures") ? "open" : ""}`,
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                         className: "editor-section-header",
-                                        onClick: ()=>toggleSection("docs"),
+                                        onClick: ()=>toggleSection("departures"),
                                         children: [
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                 className: "editor-section-icon",
                                                 children: "8"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 1001,
+                                                lineNumber: 1012,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                                                children: "Documentação e Pós-compra"
+                                                children: "Saídas e Disponibilidade"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 1002,
+                                                lineNumber: 1013,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: `editor-section-badge ${isSectionComplete("docs") ? "complete" : "incomplete"}`,
-                                                children: isSectionComplete("docs") ? "Completo" : "Pendente"
+                                                className: `editor-section-badge ${isSectionComplete("departures") ? "complete" : "incomplete"}`,
+                                                children: departures.length > 0 ? `${departures.length} saída(s)` : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 1003,
+                                                lineNumber: 1014,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                 className: "editor-section-arrow",
-                                                children: openSections.has("docs") ? "▲" : "▼"
+                                                children: openSections.has("departures") ? "▲" : "▼"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 1006,
+                                                lineNumber: 1017,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 1000,
+                                        lineNumber: 1011,
                                         columnNumber: 25
                                     }, this),
-                                    openSections.has("docs") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    openSections.has("departures") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "editor-section-body",
                                         children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: "editor-row",
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                        className: "editor-field",
-                                                        children: [
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                                children: "URL do Voucher"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 1012,
-                                                                columnNumber: 41
-                                                            }, this),
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                                type: "url",
-                                                                value: form.voucherUrl,
-                                                                onChange: (e)=>setForm((f)=>({
-                                                                            ...f,
-                                                                            voucherUrl: e.target.value
-                                                                        })),
-                                                                placeholder: "https://...",
-                                                                className: "editor-input"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 1013,
-                                                                columnNumber: 41
-                                                            }, this)
-                                                        ]
-                                                    }, void 0, true, {
-                                                        fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 1011,
-                                                        columnNumber: 37
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                        className: "editor-field",
-                                                        children: [
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                                children: "URL do E-ticket"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 1022,
-                                                                columnNumber: 41
-                                                            }, this),
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                                type: "url",
-                                                                value: form.eticketUrl,
-                                                                onChange: (e)=>setForm((f)=>({
-                                                                            ...f,
-                                                                            eticketUrl: e.target.value
-                                                                        })),
-                                                                placeholder: "https://...",
-                                                                className: "editor-input"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                                lineNumber: 1023,
-                                                                columnNumber: 41
-                                                            }, this)
-                                                        ]
-                                                    }, void 0, true, {
-                                                        fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 1021,
-                                                        columnNumber: 37
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 1010,
-                                                columnNumber: 33
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: "editor-row",
-                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                    className: "editor-field",
-                                                    children: [
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                            children: "WhatsApp oficial da agência"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 1034,
-                                                            columnNumber: 41
-                                                        }, this),
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                            type: "tel",
-                                                            value: form.whatsappOfficial,
-                                                            onChange: (e)=>setForm((f)=>({
-                                                                        ...f,
-                                                                        whatsappOfficial: e.target.value
-                                                                    })),
-                                                            placeholder: "+55 11 99999-9999",
-                                                            className: "editor-input"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                            lineNumber: 1035,
-                                                            columnNumber: 41
-                                                        }, this)
-                                                    ]
-                                                }, void 0, true, {
-                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                    lineNumber: 1033,
-                                                    columnNumber: 37
-                                                }, this)
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "editor-field-hint",
+                                                children: "Defina as datas disponíveis da viagem, preço por pessoa e quantidade de vagas disponíveis."
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 1032,
+                                                lineNumber: 1021,
                                                 columnNumber: 33
                                             }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: "editor-field",
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                        children: "Mensagem automática pós-compra"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 1045,
-                                                        columnNumber: 37
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
-                                                        value: form.autoMessage,
-                                                        onChange: (e)=>setForm((f)=>({
-                                                                    ...f,
-                                                                    autoMessage: e.target.value
-                                                                })),
-                                                        placeholder: "Mensagem que o comprador recebe automaticamente após a compra...",
-                                                        className: "editor-textarea",
-                                                        rows: 3
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                        lineNumber: 1046,
-                                                        columnNumber: 37
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
+                                            departures.map((dep, di)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "editor-day-card",
+                                                    style: {
+                                                        borderLeft: dep.status === 'ESGOTADO' ? '4px solid #e53e3e' : dep.status === 'QUASE_LOTADO' ? '4px solid #f6ad55' : '4px solid #38a169'
+                                                    },
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "editor-day-header",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    className: "editor-day-number",
+                                                                    style: {
+                                                                        flex: 1
+                                                                    },
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                            className: "editor-day-badge",
+                                                                            style: {
+                                                                                background: dep.status === 'ESGOTADO' ? '#e53e3e' : dep.status === 'QUASE_LOTADO' ? '#f6ad55' : '#38a169'
+                                                                            },
+                                                                            children: di + 1
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1027,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                            style: {
+                                                                                flex: 1
+                                                                            },
+                                                                            children: [
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                                                                    style: {
+                                                                                        fontSize: 15
+                                                                                    },
+                                                                                    children: dep.startDate ? new Date(dep.startDate + 'T12:00:00').toLocaleDateString('pt-BR', {
+                                                                                        day: '2-digit',
+                                                                                        month: 'long',
+                                                                                        year: 'numeric'
+                                                                                    }) : 'Nova Saída'
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1031,
+                                                                                    columnNumber: 53
+                                                                                }, this),
+                                                                                !dep.editing && dep.startDate && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                    style: {
+                                                                                        fontSize: 13,
+                                                                                        color: '#718096',
+                                                                                        marginTop: 2
+                                                                                    },
+                                                                                    children: [
+                                                                                        "R$ ",
+                                                                                        dep.price.toLocaleString('pt-BR'),
+                                                                                        " · Vagas VAMO: ",
+                                                                                        dep.capacityVamoAvailable,
+                                                                                        "/",
+                                                                                        dep.capacityVamo,
+                                                                                        " · ",
+                                                                                        dep.status
+                                                                                    ]
+                                                                                }, void 0, true, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1035,
+                                                                                    columnNumber: 57
+                                                                                }, this)
+                                                                            ]
+                                                                        }, void 0, true, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1030,
+                                                                            columnNumber: 49
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                    lineNumber: 1026,
+                                                                    columnNumber: 45
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    style: {
+                                                                        display: 'flex',
+                                                                        gap: 6
+                                                                    },
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                            className: "btn-add-item",
+                                                                            onClick: ()=>toggleDepartureEdit(di),
+                                                                            title: dep.editing ? 'Salvar' : 'Editar',
+                                                                            children: dep.editing ? '💾' : '✏️'
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1042,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                            className: "btn-add-item",
+                                                                            onClick: ()=>duplicateDeparture(di),
+                                                                            title: "Duplicar saída",
+                                                                            children: "📋"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1045,
+                                                                            columnNumber: 49
+                                                                        }, this),
+                                                                        dep.status !== 'ESGOTADO' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                            className: "btn-add-item",
+                                                                            onClick: ()=>updateDeparture(di, 'status', 'ENCERRADA'),
+                                                                            title: "Encerrar vendas",
+                                                                            children: "🔒"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1047,
+                                                                            columnNumber: 53
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                            className: "btn-remove",
+                                                                            onClick: ()=>removeDeparture(di),
+                                                                            children: "🗑️"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1049,
+                                                                            columnNumber: 49
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                    lineNumber: 1041,
+                                                                    columnNumber: 45
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                            lineNumber: 1025,
+                                                            columnNumber: 41
+                                                        }, this),
+                                                        dep.editing && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "editor-day-body",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    className: "editor-row",
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                            className: "editor-field",
+                                                                            children: [
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                                    children: "Data de início da viagem *"
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1057,
+                                                                                    columnNumber: 57
+                                                                                }, this),
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                                    type: "date",
+                                                                                    value: dep.startDate,
+                                                                                    onChange: (e)=>updateDeparture(di, 'startDate', e.target.value),
+                                                                                    className: "editor-input"
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1058,
+                                                                                    columnNumber: 57
+                                                                                }, this)
+                                                                            ]
+                                                                        }, void 0, true, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1056,
+                                                                            columnNumber: 53
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                            className: "editor-field",
+                                                                            children: [
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                                    children: "Preço por pessoa (R$) *"
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1066,
+                                                                                    columnNumber: 57
+                                                                                }, this),
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                                    type: "number",
+                                                                                    value: dep.price || '',
+                                                                                    onChange: (e)=>updateDeparture(di, 'price', parseFloat(e.target.value) || 0),
+                                                                                    placeholder: "7200",
+                                                                                    className: "editor-input",
+                                                                                    min: 0
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1067,
+                                                                                    columnNumber: 57
+                                                                                }, this)
+                                                                            ]
+                                                                        }, void 0, true, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1065,
+                                                                            columnNumber: 53
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                    lineNumber: 1055,
+                                                                    columnNumber: 49
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    className: "editor-row",
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                            className: "editor-field",
+                                                                            children: [
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                                    children: "Capacidade total do grupo"
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1079,
+                                                                                    columnNumber: 57
+                                                                                }, this),
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                                    type: "number",
+                                                                                    value: dep.capacityTotal || '',
+                                                                                    onChange: (e)=>updateDeparture(di, 'capacityTotal', parseInt(e.target.value) || 0),
+                                                                                    placeholder: "20",
+                                                                                    className: "editor-input",
+                                                                                    min: 1
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1080,
+                                                                                    columnNumber: 57
+                                                                                }, this)
+                                                                            ]
+                                                                        }, void 0, true, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1078,
+                                                                            columnNumber: 53
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                            className: "editor-field",
+                                                                            children: [
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                                    children: "Vagas destinadas ao VAMO *"
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1090,
+                                                                                    columnNumber: 57
+                                                                                }, this),
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                                    type: "number",
+                                                                                    value: dep.capacityVamo || '',
+                                                                                    onChange: (e)=>{
+                                                                                        const v = parseInt(e.target.value) || 0;
+                                                                                        updateDeparture(di, 'capacityVamo', v);
+                                                                                        updateDeparture(di, 'capacityVamoAvailable', v);
+                                                                                    },
+                                                                                    placeholder: "10",
+                                                                                    className: "editor-input",
+                                                                                    min: 1,
+                                                                                    max: dep.capacityTotal
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1091,
+                                                                                    columnNumber: 57
+                                                                                }, this),
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                                    className: "editor-field-hint",
+                                                                                    style: {
+                                                                                        fontSize: 11
+                                                                                    },
+                                                                                    children: "Quantidade de vagas dessa saída que serão vendidas através do VAMO."
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1104,
+                                                                                    columnNumber: 57
+                                                                                }, this)
+                                                                            ]
+                                                                        }, void 0, true, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1089,
+                                                                            columnNumber: 53
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                    lineNumber: 1077,
+                                                                    columnNumber: 49
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                    className: "editor-row",
+                                                                    children: [
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                            className: "editor-field",
+                                                                            children: [
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                                    children: "Mínimo de participantes"
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1109,
+                                                                                    columnNumber: 57
+                                                                                }, this),
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                                    type: "number",
+                                                                                    value: dep.minPeople ?? '',
+                                                                                    onChange: (e)=>updateDeparture(di, 'minPeople', e.target.value ? parseInt(e.target.value) : null),
+                                                                                    placeholder: "Ex: 10",
+                                                                                    className: "editor-input",
+                                                                                    min: 0
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1110,
+                                                                                    columnNumber: 57
+                                                                                }, this),
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                                    className: "editor-field-hint",
+                                                                                    style: {
+                                                                                        fontSize: 11
+                                                                                    },
+                                                                                    children: "Mínimo de pessoas necessárias para confirmar a viagem. Deixe vazio se não houver mínimo."
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1118,
+                                                                                    columnNumber: 57
+                                                                                }, this)
+                                                                            ]
+                                                                        }, void 0, true, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1108,
+                                                                            columnNumber: 53
+                                                                        }, this),
+                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                            className: "editor-field",
+                                                                            children: [
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                                    children: "Status da saída"
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1121,
+                                                                                    columnNumber: 57
+                                                                                }, this),
+                                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                                                                                    value: dep.status,
+                                                                                    onChange: (e)=>updateDeparture(di, 'status', e.target.value),
+                                                                                    className: "editor-input",
+                                                                                    children: [
+                                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                                                            value: "ABERTA",
+                                                                                            children: "🟢 Aberta"
+                                                                                        }, void 0, false, {
+                                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                            lineNumber: 1127,
+                                                                                            columnNumber: 61
+                                                                                        }, this),
+                                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                                                            value: "QUASE_LOTADO",
+                                                                                            children: "🟡 Quase lotado"
+                                                                                        }, void 0, false, {
+                                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                            lineNumber: 1128,
+                                                                                            columnNumber: 61
+                                                                                        }, this),
+                                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                                                            value: "ESGOTADO",
+                                                                                            children: "🔴 Esgotado"
+                                                                                        }, void 0, false, {
+                                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                            lineNumber: 1129,
+                                                                                            columnNumber: 61
+                                                                                        }, this),
+                                                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                                                            value: "ENCERRADA",
+                                                                                            children: "⚫ Encerrada"
+                                                                                        }, void 0, false, {
+                                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                            lineNumber: 1130,
+                                                                                            columnNumber: 61
+                                                                                        }, this)
+                                                                                    ]
+                                                                                }, void 0, true, {
+                                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                                    lineNumber: 1122,
+                                                                                    columnNumber: 57
+                                                                                }, this)
+                                                                            ]
+                                                                        }, void 0, true, {
+                                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                            lineNumber: 1120,
+                                                                            columnNumber: 53
+                                                                        }, this)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                                    lineNumber: 1107,
+                                                                    columnNumber: 49
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                            lineNumber: 1054,
+                                                            columnNumber: 45
+                                                        }, this)
+                                                    ]
+                                                }, di, true, {
+                                                    fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                    lineNumber: 1024,
+                                                    columnNumber: 37
+                                                }, this)),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                className: "btn-add-item full-width",
+                                                onClick: addDeparture,
+                                                children: "+ Adicionar saída"
+                                            }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                                lineNumber: 1044,
+                                                lineNumber: 1139,
                                                 columnNumber: 33
+                                            }, this),
+                                            departures.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "editor-field-hint",
+                                                style: {
+                                                    marginTop: 8
+                                                },
+                                                children: "📅 Adicione pelo menos uma data de saída para que viajantes possam reservar."
+                                            }, void 0, false, {
+                                                fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
+                                                lineNumber: 1140,
+                                                columnNumber: 61
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                        lineNumber: 1009,
+                                        lineNumber: 1020,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                                lineNumber: 999,
+                                lineNumber: 1010,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                        lineNumber: 427,
+                        lineNumber: 438,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-                lineNumber: 410,
+                lineNumber: 421,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/dashboard/pacote/[id]/page.tsx",
-        lineNumber: 374,
+        lineNumber: 385,
         columnNumber: 9
     }, this);
 }
-_s(PackageEditorPage, "4KZz7miV2rodAma034NQFaTbZQ4=");
+_s(PackageEditorPage, "XeV/BiNkr69hXSSMH1/9iubaLyk=");
 _c = PackageEditorPage;
 var _c;
 __turbopack_context__.k.register(_c, "PackageEditorPage");

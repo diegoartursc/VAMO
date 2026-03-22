@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 // ─────────────────────────────────────────────
 router.get('/:packageId', async (req: Request, res: Response) => {
     try {
-        const { packageId } = req.params;
+        const packageId = req.params.packageId as string;
         const { includeAll } = req.query;
 
         const where: any = { packageId };

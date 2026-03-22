@@ -65,7 +65,7 @@ const MOCK_SESSION = {
     },
     agency: {
         id: 'mock-agency-id',
-        name: 'VAMO Demo Agency',
+        name: 'VAMO Global Travel',
         verified: true,
         logo: null,
         cnpj: '00.000.000/0001-00'
@@ -252,24 +252,31 @@ const ICONS = {
         lineNumber: 31,
         columnNumber: 18
     }, ("TURBOPACK compile-time value", void 0)),
+    users: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(SvgIcon, {
+        d: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75"
+    }, void 0, false, {
+        fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
+        lineNumber: 32,
+        columnNumber: 12
+    }, ("TURBOPACK compile-time value", void 0)),
     messageCircle: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(CircleIcon, {
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
             d: "M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
         }, void 0, false, {
             fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-            lineNumber: 34,
+            lineNumber: 35,
             columnNumber: 13
         }, ("TURBOPACK compile-time value", void 0))
     }, void 0, false, {
         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-        lineNumber: 33,
+        lineNumber: 34,
         columnNumber: 9
     }, ("TURBOPACK compile-time value", void 0)),
     inbox: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(SvgIcon, {
         d: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6"
     }, void 0, false, {
         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-        lineNumber: 37,
+        lineNumber: 38,
         columnNumber: 12
     }, ("TURBOPACK compile-time value", void 0)),
     settings: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(CircleIcon, {
@@ -280,27 +287,27 @@ const ICONS = {
                 r: "3"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                lineNumber: 40,
+                lineNumber: 41,
                 columnNumber: 13
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
                 d: "M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                lineNumber: 41,
+                lineNumber: 42,
                 columnNumber: 13
             }, ("TURBOPACK compile-time value", void 0))
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-        lineNumber: 39,
+        lineNumber: 40,
         columnNumber: 9
     }, ("TURBOPACK compile-time value", void 0)),
     logout: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(SvgIcon, {
         d: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9"
     }, void 0, false, {
         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-        lineNumber: 44,
+        lineNumber: 45,
         columnNumber: 13
     }, ("TURBOPACK compile-time value", void 0)),
     user: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(CircleIcon, {
@@ -310,7 +317,7 @@ const ICONS = {
                 d: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                lineNumber: 47,
+                lineNumber: 48,
                 columnNumber: 13
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
@@ -319,13 +326,13 @@ const ICONS = {
                 r: "4"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                lineNumber: 48,
+                lineNumber: 49,
                 columnNumber: 13
             }, ("TURBOPACK compile-time value", void 0))
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-        lineNumber: 46,
+        lineNumber: 47,
         columnNumber: 9
     }, ("TURBOPACK compile-time value", void 0))
 };
@@ -358,6 +365,11 @@ const NAV_SECTIONS = [
     {
         label: "NEGÓCIOS",
         items: [
+            {
+                href: "/agencia/vendas",
+                label: "Vendas / Clientes",
+                icon: ICONS.users
+            },
             {
                 href: "/agencia/financeiro",
                 label: "Financeiro",
@@ -418,13 +430,13 @@ function AgenciaLayout({ children }) {
                                         children: "O"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                        lineNumber: 100,
+                                        lineNumber: 102,
                                         columnNumber: 69
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                lineNumber: 100,
+                                lineNumber: 102,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -432,13 +444,13 @@ function AgenciaLayout({ children }) {
                                 children: "Agência"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                lineNumber: 101,
+                                lineNumber: 103,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                        lineNumber: 99,
+                        lineNumber: 101,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -449,7 +461,7 @@ function AgenciaLayout({ children }) {
                                 children: ICONS.user
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                lineNumber: 106,
+                                lineNumber: 108,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -460,7 +472,7 @@ function AgenciaLayout({ children }) {
                                         children: userName
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                        lineNumber: 108,
+                                        lineNumber: 110,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -468,19 +480,19 @@ function AgenciaLayout({ children }) {
                                         children: agencyName
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                        lineNumber: 109,
+                                        lineNumber: 111,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                lineNumber: 107,
+                                lineNumber: 109,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                        lineNumber: 105,
+                        lineNumber: 107,
                         columnNumber: 17
                     }, this),
                     NAV_SECTIONS.map((section)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -490,7 +502,7 @@ function AgenciaLayout({ children }) {
                                     children: section.label
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                    lineNumber: 116,
+                                    lineNumber: 118,
                                     columnNumber: 25
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
@@ -504,38 +516,38 @@ function AgenciaLayout({ children }) {
                                                     children: item.label
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                                    lineNumber: 125,
+                                                    lineNumber: 127,
                                                     columnNumber: 37
                                                 }, this),
                                                 isActive(item.href) && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                     className: "dash-sidebar-active-dot"
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                                    lineNumber: 126,
+                                                    lineNumber: 128,
                                                     columnNumber: 61
                                                 }, this)
                                             ]
                                         }, item.href, true, {
                                             fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                            lineNumber: 119,
+                                            lineNumber: 121,
                                             columnNumber: 33
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                    lineNumber: 117,
+                                    lineNumber: 119,
                                     columnNumber: 25
                                 }, this)
                             ]
                         }, section.label, true, {
                             fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                            lineNumber: 115,
+                            lineNumber: 117,
                             columnNumber: 21
                         }, this)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "dash-sidebar-spacer"
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                        lineNumber: 133,
+                        lineNumber: 135,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -543,7 +555,7 @@ function AgenciaLayout({ children }) {
                         children: "CONTA"
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                        lineNumber: 136,
+                        lineNumber: 138,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -555,13 +567,13 @@ function AgenciaLayout({ children }) {
                                 children: "Configurações"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                lineNumber: 139,
+                                lineNumber: 141,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                        lineNumber: 137,
+                        lineNumber: 139,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -573,19 +585,19 @@ function AgenciaLayout({ children }) {
                                 children: "Sair"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                                lineNumber: 143,
+                                lineNumber: 145,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                        lineNumber: 141,
+                        lineNumber: 143,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                lineNumber: 97,
+                lineNumber: 99,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -593,13 +605,13 @@ function AgenciaLayout({ children }) {
                 children: children
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-                lineNumber: 147,
+                lineNumber: 149,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/agencia/layout.tsx",
-        lineNumber: 96,
+        lineNumber: 98,
         columnNumber: 9
     }, this);
 }

@@ -16,12 +16,14 @@ import DatePickerModal from '../../src/components/DatePickerModal';
 import ParticipantsModal from '../../src/components/ParticipantsModal';
 
 export default function AvailabilityScreen() {
-    const { id, date, adults, children, price } = useLocalSearchParams<{
+    const { id, date, adults, children, price, originCity, checkedBags: checkedBagsParam } = useLocalSearchParams<{
         id: string;
         date: string;
         adults: string;
         children: string;
         price: string;
+        originCity: string;
+        checkedBags: string;
     }>();
 
     const router = useRouter();
@@ -35,6 +37,7 @@ export default function AvailabilityScreen() {
     const childrenCount = parseInt(children!) || 0;
     const pricePerPerson = parseFloat(price!) || 0;
     const pricePerChild = pricePerPerson * 0.5;
+    const checkedBags = parseInt(checkedBagsParam!) || 0;
 
     const [expandedOption, setExpandedOption] = useState<string | null>('option-1');
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -103,6 +106,8 @@ export default function AvailabilityScreen() {
                 optionId: option.id,
                 totalPrice: getOptionTotal(option),
                 pricePerPerson: option.pricePerAdult,
+                originCity: originCity || '',
+                checkedBags: checkedBags.toString(),
             },
         });
     };
@@ -172,6 +177,38 @@ export default function AvailabilityScreen() {
 
                     <View style={styles.summaryDivider} />
 
+                    {/* Origin City */}
+                    {originCity ? (
+                        <>
+                            <View style={styles.summaryRow}>
+                                <Ionicons name="airplane-outline" size={20} color="#fff" />
+                                <View style={styles.summaryRowContent}>
+                                    <Text style={styles.summaryLabel}>Cidade de origem</Text>
+                                    <Text style={styles.summaryValue}>
+                                        Saindo de {originCity}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={styles.summaryDivider} />
+                        </>
+                    ) : null}
+
+                    {/* Checked Bags */}
+                    {checkedBags > 0 ? (
+                        <>
+                            <View style={styles.summaryDivider} />
+                            <View style={styles.summaryRow}>
+                                <Ionicons name="bag-outline" size={20} color="#fff" />
+                                <View style={styles.summaryRowContent}>
+                                    <Text style={styles.summaryLabel}>Bagagens despachadas</Text>
+                                    <Text style={styles.summaryValue}>
+                                        {checkedBags} mala{checkedBags > 1 ? 's' : ''} de 23kg
+                                    </Text>
+                                </View>
+                            </View>
+                        </>
+                    ) : null}
+
                     {/* Price summary row */}
                     <View style={styles.summaryRow}>
                         <Ionicons name="pricetag-outline" size={20} color="#fff" />
@@ -238,14 +275,14 @@ export default function AvailabilityScreen() {
                                         <View style={styles.policyRow}>
                                             <Ionicons name="card-outline" size={18} color={theme.colors.primary} />
                                             <Text style={styles.policyText}>
-                                                Cadastre seu cartão agora. A cobrança só será realizada após a confirmação da agência (no mesmo dia).
+                                                Sua solicitação está sujeita à verificação de disponibilidade. Caso a viagem inclua voos, uma cotação final será enviada para aprovação antes de qualquer pagamento.
                                             </Text>
                                         </View>
 
                                         <View style={styles.policyRow}>
                                             <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
                                             <Text style={styles.policyText}>
-                                                Cancelamento gratuito em até 7 dias após a compra.
+                                                Cancelamento gratuito em até 7 dias após a confirmação do pagamento.
                                             </Text>
                                         </View>
 
@@ -276,7 +313,7 @@ export default function AvailabilityScreen() {
                                         style={styles.bookButton}
                                         onPress={() => handleBookNow(option)}
                                     >
-                                        <Text style={styles.bookButtonText}>Reservar agora</Text>
+                                        <Text style={styles.bookButtonText}>Continuar</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}

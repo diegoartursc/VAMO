@@ -5,7 +5,7 @@
 
 // ─── Types ──────────────────────────────────────────────
 
-export type BookingStatus = 'confirmed' | 'pending_payment' | 'cancelled';
+export type BookingStatus = 'confirmed' | 'pending_payment' | 'cancelled' | 'awaiting_quote';
 export type SavedItemType = 'package' | 'itinerary';
 
 export interface BookedPackage {
@@ -125,6 +125,21 @@ export const upcomingPackages: BookedPackage[] = [
         agencyLogo: '🌴',
         price: 22000,
         currency: 'BRL',
+    },
+    {
+        id: 'pkg-4',
+        title: 'Santorini Dream',
+        destination: 'Santorini',
+        country: 'Grécia',
+        image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=1600',
+        travelDate: '2026-09-01',
+        travelEndDate: '2026-09-10',
+        status: 'awaiting_quote',
+        agencyName: 'VAMO Global Travel',
+        agencyLogo: '✈️',
+        price: 9200,
+        currency: 'BRL',
+        autoMessage: 'Estamos cotando o melhor valor aéreo saindo de Florianópolis para você! Aguarde a proposta.',
     },
 ];
 

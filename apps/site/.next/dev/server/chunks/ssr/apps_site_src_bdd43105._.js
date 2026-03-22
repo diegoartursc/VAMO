@@ -13,6 +13,8 @@ __turbopack_context__.s([
     ()=>deletePackage,
     "getAgencyPackages",
     ()=>getAgencyPackages,
+    "getAgencySales",
+    ()=>getAgencySales,
     "getDashboardStats",
     ()=>getDashboardStats,
     "getItineraries",
@@ -28,7 +30,9 @@ __turbopack_context__.s([
     "updateItinerary",
     ()=>updateItinerary,
     "updatePackage",
-    ()=>updatePackage
+    ()=>updatePackage,
+    "updateSaleDocuments",
+    ()=>updateSaleDocuments
 ]);
 /**
  * Dashboard API utility — connects to VAMO backend
@@ -100,7 +104,10 @@ const MOCK_ITINERARIES = [
 async function getDashboardStats(creatorId) {
     const query = creatorId ? `?creatorId=${creatorId}` : '';
     try {
-        return await fetchApi(`/itineraries/dashboard/stats${query}`);
+        const stats = await fetchApi(`/itineraries/dashboard/stats${query}`);
+        // Return mock data if no itineraries found (for demo/development)
+        if (!stats.itineraries || stats.itineraries.length === 0) throw new Error('Empty');
+        return stats;
     } catch  {
         return {
             totalRevenue: 13650,
@@ -196,13 +203,23 @@ async function getPackages(agencyId) {
 }
 async function getAgencyPackages(agencyId) {
     try {
-        return await fetchApi(`/packages?agencyId=${agencyId}`);
+        const pkgs = await fetchApi(`/packages?agencyId=${agencyId}`);
+        // Return mock data if no packages found (for demo/development)
+        if (!pkgs || pkgs.length === 0) throw new Error('Empty');
+        return pkgs;
     } catch  {
         return MOCK_PACKAGES;
     }
 }
 async function getPackageById(id) {
-    return fetchApi(`/packages/${id}`);
+    try {
+        return await fetchApi(`/packages/${id}`);
+    } catch  {
+        // Try exact match first, then index-based match (for numeric IDs like "1","2","3")
+        const pkg = MOCK_PACKAGES.find((p)=>p.id === id) || MOCK_PACKAGES[parseInt(id, 10) - 1] || MOCK_PACKAGES[0];
+        if (pkg) return pkg;
+        throw new Error("Pacote não encontrado");
+    }
 }
 async function createPackage(data) {
     return fetchApi('/packages', {
@@ -221,9 +238,24 @@ async function deletePackage(id) {
         method: 'DELETE'
     });
 }
+async function getAgencySales(agencyId) {
+    try {
+        return await fetchApi(`/sales/${agencyId}`);
+    } catch  {
+        return [];
+    }
+}
+async function updateSaleDocuments(purchaseId, data) {
+    return fetchApi(`/sales/${purchaseId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+}
 async function getPackageDashboardStats(agencyId) {
     try {
-        return await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        const stats = await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        if (!stats.packages || stats.packages.length === 0) throw new Error('Empty');
+        return stats;
     } catch  {
         return {
             totalPackages: MOCK_PACKAGES.length,
@@ -2579,18 +2611,21 @@ function RoteiroEditorPage({ params }) {
         }
         setSaving(true);
         try {
-            const payload = buildPayload();
+            const payload = {
+                ...buildPayload(),
+                status: "PENDING_REVIEW"
+            };
             if (isNew) {
                 const created = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createItinerary"])(payload);
                 setToast({
-                    msg: "Roteiro criado com sucesso!",
+                    msg: "Roteiro enviado para revisão!",
                     type: "success"
                 });
                 window.location.href = `/dashboard/roteiro/${created.id}`;
             } else {
                 await (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["updateItinerary"])(id, payload);
                 setToast({
-                    msg: "Alterações salvas!",
+                    msg: "Alterações enviadas para revisão!",
                     type: "success"
                 });
                 setDirty(false);

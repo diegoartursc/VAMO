@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getSession, type AuthSession } from "../../lib/auth";
-import { getAgencyPackages } from "../../lib/api";
+import { getAgencyPackages, getAgencySales } from "../../lib/api";
 
 export default function DashboardPage() {
     const [session, setSession] = useState<AuthSession | null>(null);
     const [packages, setPackages] = useState<any[]>([]);
+    const [sales, setSales] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -18,8 +19,13 @@ export default function DashboardPage() {
                 if (!s) return;
                 setSession(s);
 
-                const pkgs = await getAgencyPackages(s.agency.id);
+                const [pkgs, sls] = await Promise.all([
+                    getAgencyPackages(s.agency.id),
+                    getAgencySales(s.agency.id)
+                ]);
+                
                 setPackages(pkgs || []);
+                setSales(sls || []);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -95,8 +101,8 @@ export default function DashboardPage() {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
                     </div>
                     <div className="dash-stat-label">Vendas Totais</div>
-                    <div className="dash-stat-value">{packages.reduce((sum, p) => sum + (p.recentPurchases || 0), 0)}</div>
-                    <div className="dash-stat-change">{packages.reduce((sum, p) => sum + (p.reviewCount || 0), 0)} avaliações</div>
+                    <div className="dash-stat-value">{sales.length}</div>
+                    <div className="dash-stat-change">{formatCurrency(sales.reduce((sum, s) => sum + (s.totalPrice || 0), 0))} em receita</div>
                 </div>
                 <div className="dash-stat-card">
                     <div className="dash-stat-icon">

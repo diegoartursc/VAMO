@@ -226,6 +226,9 @@ export default function PackageDetailScreen() {
                                 <Text style={styles.priceValue}>{packageData.price?.min ? packageData.price.min.toLocaleString('pt-BR') : 'Consulte'}</Text>
                             </View>
                             <Text style={styles.priceLabel}>por pessoa</Text>
+                            <Text style={{ fontSize: 13, color: theme.colors.text.tertiary, marginTop: 6, width: '100%', lineHeight: 18 }}>
+                                * Valor referente apenas à parte terrestre. As passagens aéreas serão cotadas pela agência a partir da sua cidade após a solicitação.
+                            </Text>
                         </View>
 
                         {/* Primary CTA */}
@@ -363,7 +366,7 @@ export default function PackageDetailScreen() {
                                     onPress={() => setShowParticipants(true)}
                                     activeOpacity={0.8}
                                 >
-                                    <Text style={styles.bookButtonText}>Reservar esta saída</Text>
+                                    <Text style={styles.bookButtonText}>Verificar Disponibilidade</Text>
                                     <Ionicons name="arrow-forward" size={20} color="#fff" />
                                 </TouchableOpacity>
                             )}
@@ -387,19 +390,18 @@ export default function PackageDetailScreen() {
                         <View style={styles.centralHeader}>
                             <Ionicons name="sparkles" size={24} color={theme.colors.primary} />
                             <View style={{ flex: 1, marginLeft: 12 }}>
-                                <Text style={styles.centralTitle}>Sua viagem organizada no VAMO</Text>
+                                <Text style={styles.centralTitle}>Como funciona a reserva</Text>
                                 <Text style={styles.centralSubtitle}>
-                                    Após a compra, você terá acesso à sua Central da Viagem com todos os detalhes organizados.
+                                    Seu pacote em 4 passos simples. O aéreo será pago apenas após a sua aprovação.
                                 </Text>
                             </View>
                         </View>
                         <View style={styles.centralList}>
                             {[
-                                { icon: 'time-outline', text: 'Status atualizado da reserva' },
-                                { icon: 'document-text-outline', text: 'Voucher e documentos digitais' },
-                                { icon: 'clipboard-outline', text: 'Detalhes completos do que está incluso' },
-                                { icon: 'checkmark-circle-outline', text: 'Checklist para se preparar' },
-                                { icon: 'chatbubble-outline', text: 'Contato via WhatsApp com a agência' },
+                                { icon: 'send-outline', text: '1. Solicitação gratuita da viagem' },
+                                { icon: 'airplane-outline', text: '2. Agência cota o aéreo do seu aeroporto' },
+                                { icon: 'card-outline', text: '3. Você revisa os preços totais e efetua o pagamento' },
+                                { icon: 'map-outline', text: '4. Viagem confirmada na sua Central!' },
                             ].map((item, i) => (
                                 <View key={i} style={styles.centralListItem}>
                                     <Ionicons name={item.icon as any} size={20} color={theme.colors.primary} />
@@ -418,13 +420,26 @@ export default function PackageDetailScreen() {
                             </Text>
                         )}
                         <Text style={styles.description}>{packageData.description}</Text>
+                        
+                        {packageData.fullDescription && (
+                            <Text style={[styles.description, { marginTop: 12 }]}>
+                                {packageData.fullDescription}
+                            </Text>
+                        )}
                     </View>
 
-                    {/* Full Description */}
-                    {packageData.fullDescription && (
-                        <CollapsibleSection title="Descrição completa">
-                            <Text style={styles.description}>{packageData.fullDescription}</Text>
-                        </CollapsibleSection>
+                    {/* Premium Reviews Section - Moved up for visibility */}
+                    {reviews.length > 0 && (
+                        <View style={[styles.section, { marginTop: 8 }]}>
+                            <PremiumReviewsSection
+                                reviews={reviews}
+                                averageRating={getAverageRating(id)}
+                                totalReviews={packageData.reviewCount}
+                                categoryRatings={getCategoryRatings(id)}
+                                communityPhotos={getCommunityPhotos(id)}
+                                topRatedSummary={getTopRatedCategoriesText(id)}
+                            />
+                        </View>
                     )}
 
                     {/* Included Items */}
@@ -475,86 +490,9 @@ export default function PackageDetailScreen() {
                         </CollapsibleSection>
                     )}
 
-                    {/* Itinerary */}
-                    {packageData.itinerary && (
-                        <View style={styles.section}>
-                            <CollapsibleSection title="Itinerário Detalhado">
-                                <View style={{ backgroundColor: theme.colors.surfaceLight, borderRadius: 12, padding: 16 }}>
-                                    
-                                    {/* Main Stop */}
-                                    {packageData.itinerary.mainStop && (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                                            <Ionicons name="location" size={20} color={theme.colors.primary} />
-                                            <Text style={{ fontSize: 16, fontWeight: '700', marginLeft: 8, color: theme.colors.text.primary }}>
-                                                {packageData.itinerary.mainStop}
-                                            </Text>
-                                        </View>
-                                    )}
-
-                                    {/* Transport */}
-                                    {packageData.itinerary.transport && (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, padding: 12, backgroundColor: '#fff', borderRadius: 8 }}>
-                                            <Ionicons name="bus" size={18} color={theme.colors.text.secondary} />
-                                            <View style={{ marginLeft: 12 }}>
-                                                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>
-                                                    {packageData.itinerary.transport.type}
-                                                </Text>
-                                                {packageData.itinerary.transport.duration && (
-                                                    <Text style={{ fontSize: 13, color: theme.colors.text.secondary }}>
-                                                        Duração aprox: {packageData.itinerary.transport.duration}
-                                                    </Text>
-                                                )}
-                                            </View>
-                                        </View>
-                                    )}
-
-                                    {/* Main Activity */}
-                                    {packageData.itinerary.mainActivity && (
-                                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 }}>
-                                            <View style={{ marginTop: 2 }}>
-                                                <Ionicons name="flag" size={18} color={theme.colors.primary} />
-                                            </View>
-                                            <View style={{ marginLeft: 12, flex: 1 }}>
-                                                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>
-                                                    {packageData.itinerary.mainActivity.activity}
-                                                </Text>
-                                                {packageData.itinerary.mainActivity.duration && (
-                                                    <Text style={{ fontSize: 13, color: theme.colors.text.secondary, marginTop: 4 }}>
-                                                        Duração da atividade: {packageData.itinerary.mainActivity.duration}
-                                                    </Text>
-                                                )}
-                                                {packageData.itinerary.mainActivity.location && (
-                                                    <Text style={{ fontSize: 13, color: theme.colors.text.secondary, marginTop: 2 }}>
-                                                        Local: {packageData.itinerary.mainActivity.location}
-                                                    </Text>
-                                                )}
-                                            </View>
-                                        </View>
-                                    )}
-
-                                    {/* Pickups */}
-                                    {packageData.itinerary.pickupLocations && packageData.itinerary.pickupLocations.length > 0 && (
-                                        <View style={{ marginTop: 8 }}>
-                                            <Text style={{ fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary, marginBottom: 8 }}>
-                                                Pontos de embarque:
-                                            </Text>
-                                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                                                {packageData.itinerary.pickupLocations.map((loc: string, i: number) => (
-                                                    <View key={i} style={{ backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, borderWidth: 1, borderColor: theme.colors.borderLight }}>
-                                                        <Text style={{ fontSize: 11, color: theme.colors.text.secondary }}>{loc}</Text>
-                                                    </View>
-                                                ))}
-                                            </View>
-                                        </View>
-                                    )}
-                                </View>
-                            </CollapsibleSection>
-                        </View>
-                    )}
-
-                    {/* Highlights */}
+                    {/* Highlights - High visibility */}
                     {packageData.highlights && packageData.highlights.length > 0 && (
-                        <CollapsibleSection title="Destaques" defaultExpanded>
+                        <CollapsibleSection title="Destaques da Viagem" defaultExpanded>
                             <View style={styles.highlightsContainer}>
                                 {packageData.highlights.map((highlight: string, index: number) => (
                                     <View key={index} style={styles.highlightRow}>
@@ -568,14 +506,104 @@ export default function PackageDetailScreen() {
                         </CollapsibleSection>
                     )}
 
+                    {/* Itinerary - Premium Timeline look */}
+                    {packageData.itinerary && (
+                        <View style={styles.section}>
+                            <CollapsibleSection title="Itinerário Sugerido" defaultExpanded>
+                                <View style={{ paddingVertical: 8 }}>
+                                    {/* Timeline Vertical Line */}
+                                    <View style={{
+                                        position: 'absolute',
+                                        left: 15,
+                                        top: 30,
+                                        bottom: 30,
+                                        width: 2,
+                                        backgroundColor: theme.colors.primary + '30',
+                                        zIndex: 0
+                                    }} />
+
+                                    {/* Pickup Points */}
+                                    {packageData.itinerary.pickupLocations && packageData.itinerary.pickupLocations.length > 0 && (
+                                        <View style={{ flexDirection: 'row', gap: 16, marginBottom: 24 }}>
+                                            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, borderWidth: 2, borderColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                                                <Ionicons name="location" size={16} color={theme.colors.primary} />
+                                            </View>
+                                            <View style={{ flex: 1, paddingTop: 4 }}>
+                                                <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text.secondary, marginBottom: 8, textTransform: 'uppercase' }}>Embarque</Text>
+                                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                                                    {packageData.itinerary.pickupLocations.map((loc: string, i: number) => (
+                                                        <View key={i} style={{ backgroundColor: theme.colors.surfaceLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.borderLight }}>
+                                                            <Text style={{ fontSize: 11, color: theme.colors.text.secondary }}>{loc}</Text>
+                                                        </View>
+                                                    ))}
+                                                </View>
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {/* Transport Step */}
+                                    {packageData.itinerary.transport && (
+                                        <View style={{ flexDirection: 'row', gap: 16, marginBottom: 24 }}>
+                                            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, borderWidth: 2, borderColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                                                <Ionicons name="airplane" size={16} color={theme.colors.primary} />
+                                            </View>
+                                            <View style={{ flex: 1, paddingTop: 4 }}>
+                                                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.colors.text.primary }}>{packageData.itinerary.transport.type}</Text>
+                                                <Text style={{ fontSize: 13, color: theme.colors.text.secondary, marginTop: 2 }}>Duração estimada: {packageData.itinerary.transport.duration}</Text>
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {/* Main Activity / Stop */}
+                                    <View style={{ flexDirection: 'row', gap: 16, marginBottom: 24 }}>
+                                        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                                            <Ionicons name="star" size={16} color="#fff" />
+                                        </View>
+                                        <View style={{ flex: 1, paddingTop: 4 }}>
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.primary, marginBottom: 4, textTransform: 'uppercase' }}>Atração Principal</Text>
+                                            <Text style={{ fontSize: 16, fontWeight: '800', color: theme.colors.text.primary }}>{packageData.itinerary.mainStop}</Text>
+                                            {packageData.itinerary.mainActivity && (
+                                                <View style={{ marginTop: 8, backgroundColor: theme.colors.surfaceLight, padding: 12, borderRadius: 12 }}>
+                                                    <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>{packageData.itinerary.mainActivity.activity}</Text>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                                                        <Ionicons name="time-outline" size={14} color={theme.colors.text.tertiary} />
+                                                        <Text style={{ fontSize: 12, color: theme.colors.text.tertiary }}>{packageData.itinerary.mainActivity.duration}</Text>
+                                                    </View>
+                                                    {packageData.itinerary.mainActivity.comfortIndicators?.customMessage && (
+                                                        <Text style={{ fontSize: 12, color: theme.colors.primary, marginTop: 8, fontWeight: '500' }}>
+                                                            ✨ {packageData.itinerary.mainActivity.comfortIndicators.customMessage}
+                                                        </Text>
+                                                    )}
+                                                </View>
+                                            )}
+                                        </View>
+                                    </View>
+
+                                    {/* Return / Finish */}
+                                    <View style={{ flexDirection: 'row', gap: 16 }}>
+                                        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, borderWidth: 2, borderColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                                            <Ionicons name="flag" size={16} color={theme.colors.primary} />
+                                        </View>
+                                        <View style={{ flex: 1, paddingTop: 4 }}>
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text.secondary, marginBottom: 4 }}>RETORNO / FILIAL</Text>
+                                            <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>
+                                                {packageData.itinerary.returnLocations?.join(', ') || 'Local de origem'}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </CollapsibleSection>
+                        </View>
+                    )}
+
                     {/* Perfect For Block - User Identification */}
                     {packageData.perfectFor && packageData.perfectFor.length > 0 && (
                         <View style={styles.perfectForContainer}>
-                            <Text style={styles.perfectForTitle}>Para quem essa viagem é perfeita</Text>
+                            <Text style={styles.perfectForTitle}>Esta viagem é perfeita para você se...</Text>
 
                             <View style={styles.perfectForItems}>
                                 {packageData.perfectFor.map((item: string, index: number) => {
-                                    const icons = ['airplane', 'star', 'calendar-clear'] as const;
+                                    const icons = ['heart', 'sparkles', 'planet'] as const;
                                     return (
                                         <View key={index} style={styles.perfectForItem}>
                                             <View style={styles.perfectForIconCircle}>
@@ -631,19 +659,7 @@ export default function PackageDetailScreen() {
                         />
                     )}
 
-                    {/* Premium Reviews Section */}
-                    {reviews.length > 0 && (
-                        <View style={styles.section}>
-                            <PremiumReviewsSection
-                                reviews={reviews}
-                                averageRating={getAverageRating(id)}
-                                totalReviews={packageData.reviewCount}
-                                categoryRatings={getCategoryRatings(id)}
-                                communityPhotos={getCommunityPhotos(id)}
-                                topRatedSummary={getTopRatedCategoriesText(id)}
-                            />
-                        </View>
-                    )}
+
 
                     {/* Related Packages Section */}
                     {relatedPackages.length > 0 && (
@@ -732,7 +748,7 @@ export default function PackageDetailScreen() {
             <DatePickerModal
                 visible={showDatePicker}
                 onClose={() => setShowDatePicker(false)}
-                onSelectDate={(date: Date, adultsCount: number, childrenCount: number, pricePerPerson: number) => {
+                onSelectDate={(date: Date, adultsCount: number, childrenCount: number, pricePerPerson: number, originCity: string, checkedBags: number) => {
                     setSelectedDate(date);
                     setAdults(adultsCount);
                     setChildren(childrenCount);
@@ -745,6 +761,8 @@ export default function PackageDetailScreen() {
                             children: childrenCount.toString(),
                             price: pricePerPerson.toString(),
                             packageId: id,
+                            originCity,
+                            checkedBags: checkedBags.toString(),
                         },
                     });
                 }}

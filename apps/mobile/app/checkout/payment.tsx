@@ -28,6 +28,8 @@ export default function CheckoutPaymentScreen() {
         email,
         countryCode,
         phone,
+        originCity,
+        checkedBags,
     } = useLocalSearchParams();
 
     const [packageData, setPackageData] = useState<any>(null);
@@ -52,9 +54,9 @@ export default function CheckoutPaymentScreen() {
     };
 
     const handleConfirmPayment = () => {
-        // Navega diretamente para confirmação para evitar erros de modal no navegador
+        // Navigate to awaiting quote screen
         router.push({
-            pathname: '/booking-confirmed',
+            pathname: '/booking-awaiting-quote',
             params: {
                 packageId: packageId as string,
                 bookingId: `VAMO-${Date.now().toString(36).toUpperCase()}`,
@@ -65,6 +67,8 @@ export default function CheckoutPaymentScreen() {
                 adults: adults as string,
                 children: children as string,
                 paymentMethod: paymentMethod as string,
+                originCity: originCity as string,
+                checkedBags: checkedBags as string,
             },
         } as any);
     };
@@ -106,6 +110,7 @@ export default function CheckoutPaymentScreen() {
                         <Text style={[styles.stepLabel, styles.stepLabelActive]}>Pagamento</Text>
                     </View>
                 </View>
+
 
                 {/* Payment Timing */}
                 <View style={styles.section}>
@@ -242,6 +247,15 @@ export default function CheckoutPaymentScreen() {
                                             Cancelamento gratuito
                                         </Text>
                                     </View>
+                                    
+                                    {checkedBags ? (
+                                        <View style={styles.detailRow}>
+                                            <Ionicons name="bag" size={16} color="#999" />
+                                            <Text style={styles.detailText}>
+                                                {checkedBags === '0' ? 'Sem bagagem despachada (só de mão)' : `${checkedBags} bagagem(ns) despachada(s) de 23kg`}
+                                            </Text>
+                                        </View>
+                                    ) : null}
                                 </View>
 
                                 <Text style={styles.totalInSummary}>
@@ -304,7 +318,9 @@ export default function CheckoutPaymentScreen() {
                         ]}
                         onPress={handleConfirmPayment}
                     >
-                        <Text style={styles.confirmButtonText}>Confirmar pagamento</Text>
+                        <Text style={styles.confirmButtonText}>
+                            Confirmar pagamento
+                        </Text>
                     </Pressable>
                 )}
             </View>

@@ -21,7 +21,10 @@ import {
     formatTripDates,
     formatFullDate,
     TimelineStepStatus,
+    RequiredDocItem,
+    UploadStatus,
 } from '../../src/data/mockBookingDetail';
+
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +35,25 @@ export default function PurchasedPackageScreen() {
 
     const [now, setNow] = useState(new Date());
     const [expandedDay, setExpandedDay] = useState<number | null>(1);
+    // Track upload status per required document: { docId -> UploadStatus }
+    const [uploadStatuses, setUploadStatuses] = useState<Record<string, UploadStatus>>({});
+
+    const handleUpload = (doc: RequiredDocItem) => {
+        Alert.alert(
+            `Enviar: ${doc.name}`,
+            `Selecione o arquivo para enviar.\n\n${doc.description}`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: '📎 Selecionar Arquivo',
+                    onPress: () => {
+                        setUploadStatuses(prev => ({ ...prev, [doc.id]: 'reviewing' }));
+                        Alert.alert('Enviado!', `${doc.name} foi enviado para análise da agência.`);
+                    },
+                },
+            ]
+        );
+    };
 
     // Update countdown every minute
     useEffect(() => {
@@ -131,6 +153,95 @@ export default function PurchasedPackageScreen() {
                         </View>
                     )}
                 </View>
+
+                {/* ═══ FLIGHT QUOTE STATUS BANNER ═══ */}
+
+
+                {/* ═══ AGENCY DOCUMENTS SECTION ═══ */}
+                {(() => {
+                    const mockAgencyDocs = [
+                        {
+                            id: 'ad-1',
+                            title: 'Bilhete Aéreo LATAM — FLN → CDG',
+                            type: 'BOARDING_PASS',
+                            sentAt: '2026-03-10',
+                            viewedAt: null,
+                            fileUrl: 'https://example.com/bilhete.pdf',
+                        },
+                        {
+                            id: 'ad-2',
+                            title: 'Voucher Hotel Le Marais Paris',
+                            type: 'HOTEL_VOUCHER',
+                            sentAt: '2026-03-12',
+                            viewedAt: '2026-03-12',
+                            fileUrl: 'https://example.com/voucher.pdf',
+                        },
+                    ];
+
+                    const docTypeIcons: Record<string, string> = {
+                        BOARDING_PASS: '✈️',
+                        HOTEL_VOUCHER: '🏨',
+                        HOTEL_CHECKIN: '🔑',
+                        TRANSFER_VOUCHER: '🚐',
+                        TOUR_TICKET: '🎟️',
+                        INSURANCE: '🛡️',
+                        OTHER: '📎',
+                    };
+
+                    if (mockAgencyDocs.length === 0) return null;
+
+                    return (
+                        <View style={{
+                            marginHorizontal: 16, marginBottom: 12,
+                        }}>
+                            <View style={{
+                                backgroundColor: 'rgba(20, 184, 166, 0.08)',
+                                borderRadius: 12, padding: 12, marginBottom: 12,
+                                flexDirection: 'row', alignItems: 'center', gap: 10,
+                                borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.2)',
+                            }}>
+                                <Text style={{ fontSize: 20 }}>🎉</Text>
+                                <Text style={{ fontSize: 14, fontWeight: '600', color: '#14b8a6', flex: 1 }}>
+                                    A agência enviou seus documentos de viagem!
+                                </Text>
+                            </View>
+
+                            {mockAgencyDocs.map(doc => (
+                                <TouchableOpacity
+                                    key={doc.id}
+                                    style={{
+                                        backgroundColor: theme.colors.surface,
+                                        borderRadius: 12, padding: 14, marginBottom: 8,
+                                        borderWidth: 1, borderColor: theme.colors.border,
+                                        flexDirection: 'row', alignItems: 'center', gap: 12,
+                                    }}
+                                    onPress={() => Alert.alert('Abrir documento', doc.title)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={{
+                                        width: 42, height: 42, borderRadius: 10,
+                                        backgroundColor: 'rgba(20, 184, 166, 0.1)',
+                                        alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        <Text style={{ fontSize: 22 }}>
+                                            {docTypeIcons[doc.type] || '📄'}
+                                        </Text>
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary, marginBottom: 2 }}>
+                                            {doc.title}
+                                        </Text>
+                                        <Text style={{ fontSize: 12, color: theme.colors.text.tertiary }}>
+                                            Enviado em {new Date(doc.sentAt).toLocaleDateString('pt-BR')}
+                                            {doc.viewedAt ? ' · ✅ Visualizado' : ''}
+                                        </Text>
+                                    </View>
+                                    <Ionicons name="open-outline" size={18} color={theme.colors.primary} />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    );
+                })()}
 
                 {/* ═══ BOTÃO — VER DETALHES DO PACOTE ═══ */}
                 <TouchableOpacity
@@ -288,6 +399,62 @@ export default function PurchasedPackageScreen() {
                         </View>
                     )}
 
+                    {/* ═══ BLOCO 3.5 — DOCUMENTOS EXIGIDOS PELA AGÊNCIA ═══ */}
+                    {booking.requiredDocuments && booking.requiredDocuments.length > 0 && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>📎 Documentos Exigidos</Text>
+                            <Text style={styles.reqDocSubtitle}>A agência precisa verificar estes documentos antes da viagem.</Text>
+                            {booking.requiredDocuments.map((doc) => {
+                                const status: UploadStatus = uploadStatuses[doc.id] || 'pending';
+                                const statusConfig = {
+                                    pending:   { label: 'Pendente',    bg: '#FEF3C7', color: '#D97706', icon: 'time-outline' as const },
+                                    uploading: { label: 'Enviando…',   bg: '#EFF6FF', color: '#3B82F6', icon: 'cloud-upload-outline' as const },
+                                    reviewing: { label: 'Em análise',  bg: '#EFF6FF', color: '#3B82F6', icon: 'hourglass-outline' as const },
+                                    approved:  { label: 'Aprovado ✓',  bg: '#DCFCE7', color: '#16A34A', icon: 'checkmark-circle' as const },
+                                    rejected:  { label: 'Rejeitado',   bg: '#FEE2E2', color: '#DC2626', icon: 'close-circle' as const },
+                                };
+                                const sc = statusConfig[status];
+                                return (
+                                    <View key={doc.id} style={styles.reqDocCard}>
+                                        <View style={styles.reqDocLeft}>
+                                            <Text style={styles.reqDocName}>
+                                                {doc.name}
+                                                {doc.required && <Text style={styles.reqDocRequired}> *</Text>}
+                                            </Text>
+                                            <Text style={styles.reqDocDesc}>{doc.description}</Text>
+                                        </View>
+                                        <View style={styles.reqDocRight}>
+                                            <View style={[styles.reqDocStatus, { backgroundColor: sc.bg }]}>
+                                                <Ionicons name={sc.icon} size={12} color={sc.color} />
+                                                <Text style={[styles.reqDocStatusText, { color: sc.color }]}>{sc.label}</Text>
+                                            </View>
+                                            {status === 'pending' && (
+                                                <TouchableOpacity
+                                                    style={styles.reqDocUploadBtn}
+                                                    onPress={() => handleUpload(doc)}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
+                                                    <Text style={styles.reqDocUploadBtnText}>Enviar</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            {status === 'reviewing' && (
+                                                <TouchableOpacity
+                                                    style={[styles.reqDocUploadBtn, { backgroundColor: '#94A3B8' }]}
+                                                    onPress={() => Alert.alert('Em análise', 'Seu documento está sendo revisado pela agência.')}
+                                                >
+                                                    <Ionicons name="hourglass-outline" size={14} color="#fff" />
+                                                    <Text style={styles.reqDocUploadBtnText}>Ver status</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                            <Text style={styles.reqDocNote}>* Documentos obrigatórios para confirmação da viagem</Text>
+                        </View>
+                    )}
+
                     {/* ═══ BLOCO 3 — DOCUMENTOS ═══ */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>📄 Documentos</Text>
@@ -423,7 +590,29 @@ export default function PurchasedPackageScreen() {
 
                     <View style={{ height: 40 }} />
                 </View>
-            </ScrollView>
+                    {/* BOTÃO - VER DETALHES DO PACOTE (Universal) */}
+                    <View style={{ marginHorizontal: 20, marginBottom: 30, marginTop: 10 }}>
+                        <TouchableOpacity 
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 8,
+                                backgroundColor: '#F1F5F9',
+                                borderRadius: 12,
+                                paddingVertical: 16,
+                                borderWidth: 1,
+                                borderColor: '#E2E8F0',
+                            }}
+                            onPress={() => router.push(`/package/${booking.packageId}`)}
+                        >
+                            <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
+                            <Text style={{ color: theme.colors.primary, fontSize: 15, fontWeight: '600' }}>
+                                Ver detalhes do pacote
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
         </View>
     );
 }
@@ -1008,5 +1197,79 @@ const styles = StyleSheet.create({
         backgroundColor: `${theme.colors.primary}15`,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+
+    // ─── DOCUMENTOS EXIGIDOS ──────────────
+    reqDocSubtitle: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginBottom: 12,
+        lineHeight: 18,
+    },
+    reqDocCard: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 12,
+        backgroundColor: theme.colors.surface,
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    reqDocLeft: {
+        flex: 1,
+    },
+    reqDocName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    reqDocRequired: {
+        color: '#EF4444',
+        fontWeight: '700',
+    },
+    reqDocDesc: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        lineHeight: 16,
+    },
+    reqDocRight: {
+        alignItems: 'flex-end',
+        gap: 8,
+    },
+    reqDocStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 20,
+    },
+    reqDocStatusText: {
+        fontSize: 10,
+        fontWeight: '600',
+    },
+    reqDocUploadBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 8,
+        backgroundColor: theme.colors.primary,
+    },
+    reqDocUploadBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    reqDocNote: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginTop: 4,
+        fontStyle: 'italic',
     },
 });

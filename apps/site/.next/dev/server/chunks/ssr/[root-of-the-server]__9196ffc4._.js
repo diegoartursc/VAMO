@@ -156,9 +156,9 @@ function CriadoresPage() {
                                     columnNumber: 25
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$react$2d$server$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["default"], {
-                                    href: "/login",
+                                    href: "/criador",
                                     className: "btn-secondary",
-                                    children: "Já tenho conta"
+                                    children: "Acessar Meu Painel →"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/criadores/page.tsx",
                                     lineNumber: 31,
@@ -823,7 +823,7 @@ function CriadoresPage() {
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
-                                        href: "#",
+                                        href: "mailto:contato@vamo.app",
                                         children: "Central de ajuda"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/criadores/page.tsx",
@@ -831,7 +831,9 @@ function CriadoresPage() {
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
-                                        href: "#",
+                                        href: "https://wa.me/5511999999999?text=Olá! Preciso de ajuda.",
+                                        target: "_blank",
+                                        rel: "noopener noreferrer",
                                         children: "WhatsApp"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/criadores/page.tsx",
@@ -855,7 +857,7 @@ function CriadoresPage() {
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
-                                        href: "#",
+                                        href: "/termos",
                                         children: "Termos de uso"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/criadores/page.tsx",
@@ -863,7 +865,7 @@ function CriadoresPage() {
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
-                                        href: "#",
+                                        href: "/privacidade",
                                         children: "Privacidade"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/criadores/page.tsx",

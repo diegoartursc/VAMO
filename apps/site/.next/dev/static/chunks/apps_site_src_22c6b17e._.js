@@ -13,6 +13,8 @@ __turbopack_context__.s([
     ()=>deletePackage,
     "getAgencyPackages",
     ()=>getAgencyPackages,
+    "getAgencySales",
+    ()=>getAgencySales,
     "getDashboardStats",
     ()=>getDashboardStats,
     "getItineraries",
@@ -28,7 +30,9 @@ __turbopack_context__.s([
     "updateItinerary",
     ()=>updateItinerary,
     "updatePackage",
-    ()=>updatePackage
+    ()=>updatePackage,
+    "updateSaleDocuments",
+    ()=>updateSaleDocuments
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
 /**
@@ -54,16 +58,79 @@ async function fetchApi(endpoint, options) {
     }
     return res.json();
 }
+const MOCK_ITINERARIES = [
+    {
+        id: "mock-1",
+        title: "Chapada Diamantina — 7 dias",
+        destination: "Lençóis",
+        country: "Brasil",
+        status: "active",
+        sales: 24,
+        revenue: 7176,
+        rating: 4.9,
+        reviewCount: 18,
+        duration: 7,
+        price: 299,
+        updatedAt: new Date().toISOString()
+    },
+    {
+        id: "mock-2",
+        title: "Jalapão Selvagem",
+        destination: "Palmas",
+        country: "Brasil",
+        status: "active",
+        sales: 11,
+        revenue: 1650,
+        rating: 4.7,
+        reviewCount: 9,
+        duration: 5,
+        price: 150,
+        updatedAt: new Date(Date.now() - 86400000 * 3).toISOString()
+    },
+    {
+        id: "mock-3",
+        title: "Fernando de Noronha — Mergulho",
+        destination: "Fernando de Noronha",
+        country: "Brasil",
+        status: "pending",
+        sales: 0,
+        revenue: 0,
+        rating: null,
+        reviewCount: 0,
+        duration: 6,
+        price: 2500,
+        updatedAt: new Date(Date.now() - 86400000 * 7).toISOString()
+    }
+];
 async function getDashboardStats(creatorId) {
     const query = creatorId ? `?creatorId=${creatorId}` : '';
-    return fetchApi(`/itineraries/dashboard/stats${query}`);
+    try {
+        const stats = await fetchApi(`/itineraries/dashboard/stats${query}`);
+        // Return mock data if no itineraries found (for demo/development)
+        if (!stats.itineraries || stats.itineraries.length === 0) throw new Error('Empty');
+        return stats;
+    } catch  {
+        return {
+            totalRevenue: 13650,
+            totalSales: 35,
+            averageRating: 4.8,
+            totalReviews: 27,
+            activeItineraries: 2,
+            totalItineraries: 3,
+            itineraries: MOCK_ITINERARIES
+        };
+    }
 }
 async function getItineraries() {
     const stats = await getDashboardStats();
     return stats.itineraries;
 }
 async function getItineraryById(id) {
-    return fetchApi(`/itineraries/${id}`);
+    try {
+        return await fetchApi(`/itineraries/${id}`);
+    } catch  {
+        return MOCK_ITINERARIES.find((i)=>i.id === id) || MOCK_ITINERARIES[0] || null;
+    }
 }
 async function createItinerary(data) {
     return fetchApi('/itineraries', {
@@ -82,15 +149,78 @@ async function deleteItinerary(id) {
         method: 'DELETE'
     });
 }
+// ─── Packages CRUD ───
+const MOCK_PACKAGES = [
+    {
+        id: "pkg-1",
+        title: "Paris Romântica — 10 dias",
+        destination: "Paris",
+        country: "França",
+        duration: 10,
+        status: "ACTIVE",
+        priceMin: 8500,
+        priceMax: 12000,
+        qualityScore: 85,
+        rating: 4.8,
+        reviewCount: 32,
+        recentPurchases: 7
+    },
+    {
+        id: "pkg-2",
+        title: "Japão Completo",
+        destination: "Tóquio",
+        country: "Japão",
+        duration: 15,
+        status: "ACTIVE",
+        priceMin: 14000,
+        priceMax: 18000,
+        qualityScore: 92,
+        rating: 4.9,
+        reviewCount: 19,
+        recentPurchases: 4
+    },
+    {
+        id: "pkg-3",
+        title: "Grécia — Ilhas e Cultura",
+        destination: "Atenas",
+        country: "Grécia",
+        duration: 12,
+        status: "PAUSED",
+        priceMin: 9800,
+        priceMax: 13500,
+        qualityScore: 68,
+        rating: 4.5,
+        reviewCount: 11,
+        recentPurchases: 0
+    }
+];
 async function getPackages(agencyId) {
     const query = agencyId ? `?agencyId=${agencyId}` : '';
-    return fetchApi(`/packages${query}`);
+    try {
+        return await fetchApi(`/packages${query}`);
+    } catch  {
+        return MOCK_PACKAGES;
+    }
 }
 async function getAgencyPackages(agencyId) {
-    return fetchApi(`/packages?agencyId=${agencyId}`);
+    try {
+        const pkgs = await fetchApi(`/packages?agencyId=${agencyId}`);
+        // Return mock data if no packages found (for demo/development)
+        if (!pkgs || pkgs.length === 0) throw new Error('Empty');
+        return pkgs;
+    } catch  {
+        return MOCK_PACKAGES;
+    }
 }
 async function getPackageById(id) {
-    return fetchApi(`/packages/${id}`);
+    try {
+        return await fetchApi(`/packages/${id}`);
+    } catch  {
+        // Try exact match first, then index-based match (for numeric IDs like "1","2","3")
+        const pkg = MOCK_PACKAGES.find((p)=>p.id === id) || MOCK_PACKAGES[parseInt(id, 10) - 1] || MOCK_PACKAGES[0];
+        if (pkg) return pkg;
+        throw new Error("Pacote não encontrado");
+    }
 }
 async function createPackage(data) {
     return fetchApi('/packages', {
@@ -109,8 +239,34 @@ async function deletePackage(id) {
         method: 'DELETE'
     });
 }
+async function getAgencySales(agencyId) {
+    try {
+        return await fetchApi(`/sales/${agencyId}`);
+    } catch  {
+        return [];
+    }
+}
+async function updateSaleDocuments(purchaseId, data) {
+    return fetchApi(`/sales/${purchaseId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+}
 async function getPackageDashboardStats(agencyId) {
-    return fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+    try {
+        const stats = await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        if (!stats.packages || stats.packages.length === 0) throw new Error('Empty');
+        return stats;
+    } catch  {
+        return {
+            totalPackages: MOCK_PACKAGES.length,
+            activePackages: MOCK_PACKAGES.filter((p)=>p.status === "ACTIVE").length,
+            totalRevenue: 312500,
+            totalSales: 11,
+            averageQualityScore: 82,
+            packages: MOCK_PACKAGES
+        };
+    }
 }
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);

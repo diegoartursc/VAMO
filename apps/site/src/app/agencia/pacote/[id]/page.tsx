@@ -12,14 +12,18 @@ import { Target, DollarSign, Compass, Tag, Package, CheckSquare, FileText, MapPi
    CONSTANTS & TYPES
    ═══════════════════════════════════════════════════ */
 
-type SectionKey = "basicos" | "perfil" | "oferta" | "docs";
+type SectionKey = "basicos" | "duracao" | "perfil" | "preco" | "inclusoes" | "roteiro" | "docs" | "disponibilidade";
 interface SectionDef { key: SectionKey; icon: React.ReactNode; title: string; }
 
 const SECTIONS: SectionDef[] = [
     { key: "basicos", icon: <MapPin size={16} />, title: "Básicos" },
+    { key: "duracao", icon: <Compass size={16} />, title: "Duração" },
     { key: "perfil", icon: <Tag size={16} />, title: "Perfil do Pacote" },
-    { key: "oferta", icon: <DollarSign size={16} />, title: "Preço e Oferta" },
+    { key: "preco", icon: <DollarSign size={16} />, title: "Preço e Oferta" },
+    { key: "inclusoes", icon: <Package size={16} />, title: "Inclusões e Bagagem" },
+    { key: "roteiro", icon: <Compass size={16} />, title: "Roteiro Dia a Dia" },
     { key: "docs", icon: <FileText size={16} />, title: "Documentação" },
+    { key: "disponibilidade", icon: <CheckSquare size={16} />, title: "Disponibilidade" },
 ];
 
 const COUNTRIES = [
@@ -76,7 +80,7 @@ function getDurationLabel(days: number): string {
     return "+15 dias";
 }
 
-function calcQualityScore(form: any): number {
+function calcQualityScore(form: any, pkgDays: any[], departures: any[]): number {
     let s = 0;
     const c = (v: any, p: number) => { if (v && (typeof v !== "string" || v.trim())) s += p; };
     const a = (v: any[], p: number) => { if (v && v.length > 0) s += p; };
@@ -85,14 +89,22 @@ function calcQualityScore(form: any): number {
     a(form.categories, 8); a(form.travelStyles, 8);
     a(form.highlights, 5); a(form.includedItems, 5);
     c(form.cancellationPolicy, 3); c(form.whatsappOfficial, 2);
+    // New scoring for itinerary and departures
+    if (pkgDays.length >= form.duration) s += 15;
+    else if (pkgDays.length > 0) s += 8;
+    if (departures.length > 0) s += 15;
     return Math.min(s, 100);
 }
 
 const SECTION_TIPS: Record<SectionKey, string[]> = {
-    basicos: ["Escolha um país e cidade bem conhecidos para maior visibilidade", "Multi-destino atrai viajantes que querem conhecer várias cidades de uma vez", "Duração e noites são calculadas automaticamente"],
+    basicos: ["Escolha um país e cidade bem conhecidos para maior visibilidade", "Multi-destino atrai viajantes que querem conhecer várias cidades de uma vez"],
+    duracao: ["Duração e noites são calculadas automaticamente"],
     perfil: ["Selecione até 3 estilos para atingir o público certo", "Luxo e Família têm os maiores tickets médios", "Máximo 5 categorias para não diluir o perfil do pacote"],
-    oferta: ["Pacotes com cancelamento gratuito convertem 40% mais", "Parcele em até 12x para facilitar a decisão de compra", "Liste tudo que está incluso — eleva a percepção de valor"],
+    preco: ["Parcele em até 12x para facilitar a decisão de compra", "Preços competitivos aumentam a conversão"],
+    inclusoes: ["Liste tudo que está incluso — eleva a percepção de valor", "Bagagens são um diferencial importante"],
+    roteiro: ["Descreva as atividades diárias para encantar o cliente"],
     docs: ["O WhatsApp oficial é o canal de contato mostrado ao comprador após a compra", "Voucher e e-ticket são enviados automaticamente após o pagamento"],
+    disponibilidade: ["Mantenha as datas atualizadas para evitar overbooking"],
 };
 
 const EMPTY_FORM = {
@@ -109,7 +121,10 @@ const EMPTY_FORM = {
     perfectFor: [] as string[], notRecommendedFor: [] as string[],
     importantInfo: [] as string[],
     whatsappOfficial: "", autoMessage: "", voucherUrl: "", eticketUrl: "",
+    requiredDocuments: [] as string[],
     status: "ACTIVE",
+    routeDetails: null as any,
+    departures: [] as any[],
 };
 
 /* Tag input state keys for new fields */
@@ -135,6 +150,27 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     const [newPerfectFor, setNewPerfectFor] = useState("");
     const [newNotRecommended, setNewNotRecommended] = useState("");
     const [newImportantInfo, setNewImportantInfo] = useState("");
+    const [newRequiredDoc, setNewRequiredDoc] = useState("");
+
+    // ─── Day-by-day itinerary state ───
+    interface PkgActivity { time: string; title: string; location: string; description: string; tips: string; duration: string; }
+    interface PkgDay { title: string; summary: string; description: string; activities: PkgActivity[]; }
+    const [pkgDays, setPkgDays] = useState<PkgDay[]>([]);
+    const addPkgDay = () => setPkgDays(d => [...d, { title: `Dia ${d.length + 1}`, summary: "", description: "", activities: [] }]);
+    const removePkgDay = (i: number) => setPkgDays(d => d.filter((_, idx) => idx !== i));
+    const updatePkgDay = (i: number, f: string, v: any) => setPkgDays(d => { const u = [...d]; (u[i] as any)[f] = v; return u; });
+    const addPkgActivity = (di: number) => setPkgDays(d => { const u = [...d]; u[di].activities = [...u[di].activities, { time: "", title: "", location: "", description: "", tips: "", duration: "" }]; return u; });
+    const updatePkgActivity = (di: number, ai: number, f: string, v: any) => setPkgDays(d => { const u = [...d]; (u[di].activities[ai] as any)[f] = v; return u; });
+    const removePkgActivity = (di: number, ai: number) => setPkgDays(d => { const u = [...d]; u[di].activities.splice(ai, 1); return [...u]; });
+
+    // ─── Departures state ───
+    interface Departure { id?: string; startDate: string; price: number; capacityTotal: number; capacityVamo: number; capacityVamoAvailable: number; minPeople: number | null; status: string; editing: boolean; }
+    const [departures, setDepartures] = useState<Departure[]>([]);
+    const EMPTY_DEPARTURE: Departure = { startDate: "", price: 0, capacityTotal: 20, capacityVamo: 10, capacityVamoAvailable: 10, minPeople: null, status: "ABERTA", editing: true };
+    const addDeparture = () => setDepartures(d => [...d, { ...EMPTY_DEPARTURE }]);
+    const updateDeparture = (i: number, f: string, v: any) => setDepartures(d => { const u = [...d]; (u[i] as any)[f] = v; return u; });
+    const removeDeparture = (i: number) => setDepartures(d => d.filter((_, idx) => idx !== i));
+    const toggleDepartureEdit = (i: number) => setDepartures(d => { const u = [...d]; u[i].editing = !u[i].editing; return u; });
 
     const markDirty = useCallback(() => setDirty(true), []);
     const upd = (field: string, val: any) => { setForm(f => ({ ...f, [field]: val })); markDirty(); };
@@ -161,7 +197,8 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
             try {
                 const data = await getPackageById(id);
                 setForm(prev => ({
-                    ...prev, ...data,
+                    ...prev,
+                    ...data,
                     priceMin: data.price?.min ?? data.priceMin ?? 0,
                     priceMax: data.price?.max ?? data.priceMax ?? 0,
                     travelStyles: data.travelStyles || [],
@@ -197,10 +234,22 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
         if (!form.title.trim() || !form.destination || !form.country) {
             showToast("Preencha título, cidade e país", "error"); return;
         }
-        if (form.priceMin <= 0) { showToast("Defina um preço válido", "error"); return; }
+        if (form.priceMin <= 0) { showToast("Defina um preço base por pessoa válido", "error"); return; }
         setSaving(true);
         try {
-            const payload = { ...form, qualityScore: calcQualityScore(form) };
+            const payload = {
+                ...form,
+                qualityScore: calcQualityScore(form, pkgDays, departures),
+                itinerary: pkgDays,
+                departures: departures.map(d => ({
+                    ...d,
+                    price: Number(d.price),
+                    capacityTotal: Number(d.capacityTotal),
+                    capacityVamo: Number(d.capacityVamo),
+                    capacityVamoAvailable: Number(d.capacityVamoAvailable)
+                }))
+            };
+
             if (isNew) {
                 await createPackage(payload);
                 showToast("Pacote criado com sucesso!", "success");
@@ -241,16 +290,20 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     // ─── Section completion ───
     const isSectionComplete = useCallback((key: SectionKey): boolean => {
         switch (key) {
-            case "basicos": return !!(form.country && form.destination && form.duration >= 1);
+            case "basicos": return !!(form.country && form.destination);
+            case "duracao": return form.duration >= 1;
             case "perfil": return form.travelStyles.length >= 1 && form.categories.length >= 1;
-            case "oferta": return form.priceMin > 0 && !!form.description.trim() && form.includedItems.length > 0;
+            case "preco": return form.priceMin > 0 && !!form.description.trim();
+            case "inclusoes": return form.includedItems.length > 0;
+            case "roteiro": return pkgDays.length > 0;
             case "docs": return !!form.whatsappOfficial;
+            case "disponibilidade": return departures.length > 0;
             default: return false;
         }
-    }, [form]);
+    }, [form, pkgDays, departures]);
 
     const completedSteps = new Set(SECTIONS.filter(s => isSectionComplete(s.key)).map(s => s.key));
-    const qualityScore = calcQualityScore(form);
+    const qualityScore = calcQualityScore(form, pkgDays, departures);
 
     // ─── Stepper navigation ───
     const formScrollRef = useRef<HTMLDivElement>(null);
@@ -304,20 +357,6 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                         <input className="form-input" value={form.airport} onChange={e => upd("airport", e.target.value)} placeholder="Ex: CDG, GRU" />
                     </div>
                 </div>
-                <div className="form-row" style={{ marginTop: 8 }}>
-                    <div className="form-group">
-                        <label className="form-label">Número de dias *</label>
-                        <input className="form-input" type="number" min={1} value={form.duration} onChange={e => upd("duration", parseInt(e.target.value) || 1)} />
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label">Noites</label>
-                        <input className="form-input" type="number" value={form.nights} readOnly style={{ opacity: 0.6 }} />
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label">Classificação</label>
-                        <div className="editor-duration-badge" style={{ marginTop: 8 }}>{form.duration >= 1 ? getDurationLabel(form.duration) : "—"}</div>
-                    </div>
-                </div>
                 <div className="form-group" style={{ marginTop: 16 }}>
                     <label className="editor-toggle-row" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
                         <label className="editor-toggle">
@@ -343,6 +382,23 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                         </div>
                     </div>
                 )}
+            </>);
+
+            case "duracao": return (<>
+                <div className="form-row">
+                    <div className="form-group">
+                        <label className="form-label">Número de dias *</label>
+                        <input className="form-input" type="number" min={1} value={form.duration} onChange={e => upd("duration", parseInt(e.target.value) || 1)} />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Noites</label>
+                        <input className="form-input" type="number" value={form.nights} readOnly style={{ opacity: 0.6 }} />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Classificação</label>
+                        <div className="editor-duration-badge" style={{ marginTop: 8 }}>{form.duration >= 1 ? getDurationLabel(form.duration) : "—"}</div>
+                    </div>
+                </div>
             </>);
 
             case "perfil": return (<>
@@ -376,7 +432,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                 </div>
             </>);
 
-            case "oferta": return (<>
+            case "preco": return (<>
                 <div className="form-row">
                     <div className="form-group">
                         <label className="form-label">Preço base por pessoa *</label>
@@ -401,10 +457,8 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                     <div className="form-group">
                         <label className="form-label">Parcelas (máx)</label>
                         <input className="form-input" type="number" min={1} max={24} value={form.installments} onChange={e => upd("installments", parseInt(e.target.value) || 1)} />
-                        {form.installments > 0 && form.priceMin > 0 && <span className="form-helper">Até {form.installments}x de {form.currency === "BRL" ? "R$" : form.currency} {(form.priceMin / form.installments).toFixed(2)}</span>}
                     </div>
                 </div>
-
                 <div style={{ padding: "16px 0", borderTop: "1px solid rgba(226, 232, 240, 0.6)", borderBottom: "1px solid rgba(226, 232, 240, 0.6)", margin: "20px 0" }}>
                     {[
                         { label: "Cancelamento gratuito", field: "hasFreeCancellation", val: form.hasFreeCancellation },
@@ -420,12 +474,17 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                         </div>
                     ))}
                 </div>
-
                 <div className="form-group">
                     <label className="form-label">Descrição curta *</label>
                     <textarea className="form-input" value={form.description} onChange={e => upd("description", e.target.value)} placeholder="Uma frase que resume o pacote..." style={{ minHeight: 80 }} />
                 </div>
+                <div className="form-group">
+                    <label className="form-label">Política de cancelamento</label>
+                    <textarea className="form-input" value={form.cancellationPolicy} onChange={e => upd("cancellationPolicy", e.target.value)} placeholder="Ex: Cancelamento gratuito até 7 dias antes da viagem..." style={{ minHeight: 60 }} />
+                </div>
+            </>);
 
+            case "inclusoes": return (<>
                 <div className="form-group">
                     <label className="form-label">O que está incluso</label>
                     <div className="editor-tag-list">
@@ -440,7 +499,6 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                         <button className="btn-add-item" onClick={() => addTag("includedItems", newInclude, setNewInclude)}>+</button>
                     </div>
                 </div>
-
                 <div className="form-group" style={{ marginTop: 16 }}>
                     <label className="form-label">Destaques do pacote</label>
                     <div className="editor-tag-list">
@@ -455,90 +513,149 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                         <button className="btn-add-item" onClick={() => addTag("highlights", newHighlight, setNewHighlight)}>+</button>
                     </div>
                 </div>
+                <div className="form-group" style={{ 
+                    marginTop: 24, 
+                    padding: 16, 
+                    background: "rgba(20, 184, 166, 0.05)", 
+                    border: "1px solid rgba(20, 184, 166, 0.2)", 
+                    borderRadius: 12 
+                }}>
+                    <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Package size={18} color="#14b8a6" /> 
+                        Informações de Bagagem
+                    </label>
+                    <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ padding: 8, background: "white", borderRadius: 8, border: "1px solid #e2e8f0" }}>🎒</div>
+                            <div>
+                                <div style={{ fontSize: 13, fontWeight: 600 }}>1 bolsa ou mochila até 10kg</div>
+                                <div style={{ fontSize: 11, color: "#64748b" }}>Item pessoal (abaixo do assento) — Já incluso</div>
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ padding: 8, background: "white", borderRadius: 8, border: "1px solid #e2e8f0" }}>🧳</div>
+                            <div>
+                                <div style={{ fontSize: 13, fontWeight: 600 }}>1 mala de mão até 12kg</div>
+                                <div style={{ fontSize: 11, color: "#64748b" }}>Sujeito a despacho gratuito pela cia aérea — Já incluso</div>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: 8, padding: 12, background: "white", borderRadius: 10, border: "1px dashed #cbd5e1" }}>
+                            <p style={{ fontSize: 12, color: "#475569", margin: 0 }}>
+                                💡 <strong>Dica:</strong> O viajante poderá solicitar bagagens despachadas de 23kg extras durante o processo de reserva. Você poderá cobrar por elas na cotação aérea.
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="form-group" style={{ marginTop: 16 }}>
                     <label className="form-label">Descrição completa (Opcional)</label>
                     <textarea className="form-input" value={form.fullDescription} onChange={e => upd("fullDescription", e.target.value)} placeholder="Detalhes completos do itinerário e experiências..." style={{ minHeight: 120 }} />
                 </div>
-
                 <div className="form-group">
                     <label className="form-label">Introdução Emocional (Opcional)</label>
                     <textarea className="form-input" value={form.emotionalIntro} onChange={e => upd("emotionalIntro", e.target.value)} placeholder="Ex: Imagine caminhar pelas ruas de Paris ao pôr do sol..." style={{ minHeight: 80 }} />
-                    <span className="form-helper">Texto inspirador exibido antes da descrição no app</span>
                 </div>
-
-                {/* Para quem é perfeito */}
                 <div className="form-group" style={{ marginTop: 16 }}>
-                    <label className="form-label">Para quem essa viagem é perfeita</label>
-                    <div className="editor-tag-list">
-                        {form.perfectFor.map((item, i) => (
-                            <span key={i} className="editor-tag editor-tag-green">{item}<button onClick={() => removeTag("perfectFor", i)}>×</button></span>
-                        ))}
-                    </div>
-                    <div className="editor-tag-input-row">
-                        <input className="form-input" value={newPerfectFor} onChange={e => setNewPerfectFor(e.target.value)}
-                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("perfectFor", newPerfectFor, setNewPerfectFor); } }}
-                            placeholder="Ex: Casais, Primeira viagem à Europa (Enter para adicionar)" />
-                        <button className="btn-add-item" onClick={() => addTag("perfectFor", newPerfectFor, setNewPerfectFor)}>+</button>
-                    </div>
-                </div>
-
-                {/* Não indicado para */}
-                <div className="form-group" style={{ marginTop: 16 }}>
-                    <label className="form-label">Não indicado para</label>
-                    <div className="editor-tag-list">
-                        {form.notRecommendedFor.map((item, i) => (
-                            <span key={i} className="editor-tag" style={{ backgroundColor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)' }}>{item}<button onClick={() => removeTag("notRecommendedFor", i)}>×</button></span>
-                        ))}
-                    </div>
-                    <div className="editor-tag-input-row">
-                        <input className="form-input" value={newNotRecommended} onChange={e => setNewNotRecommended(e.target.value)}
-                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("notRecommendedFor", newNotRecommended, setNewNotRecommended); } }}
-                            placeholder="Ex: Pessoas com dificuldade de locomoção" />
-                        <button className="btn-add-item" onClick={() => addTag("notRecommendedFor", newNotRecommended, setNewNotRecommended)}>+</button>
+                    <label className="form-label">Público e Avisos</label>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                        <div>
+                            <label className="form-label" style={{ fontSize: 13 }}>Para quem é perfeito</label>
+                            <div className="editor-tag-input-row">
+                                <input className="form-input" value={newPerfectFor} onChange={e => setNewPerfectFor(e.target.value)} placeholder="Ex: Casais" onKeyDown={e => e.key === "Enter" && addTag("perfectFor", newPerfectFor, setNewPerfectFor)} />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="form-label" style={{ fontSize: 13 }}>Informações Importantes</label>
+                            <div className="editor-tag-input-row">
+                                <input className="form-input" value={newImportantInfo} onChange={e => setNewImportantInfo(e.target.value)} placeholder="Ex: Visto" onKeyDown={e => e.key === "Enter" && addTag("importantInfo", newImportantInfo, setNewImportantInfo)} />
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </>);
 
-                {/* Informações importantes */}
-                <div className="form-group" style={{ marginTop: 16 }}>
-                    <label className="form-label">Informações Importantes / Avisos</label>
-                    <div className="editor-tag-list">
-                        {form.importantInfo.map((item, i) => (
-                            <span key={i} className="editor-tag" style={{ backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)' }}>{item}<button onClick={() => removeTag("importantInfo", i)}>×</button></span>
-                        ))}
-                    </div>
-                    <div className="editor-tag-input-row">
-                        <input className="form-input" value={newImportantInfo} onChange={e => setNewImportantInfo(e.target.value)}
-                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("importantInfo", newImportantInfo, setNewImportantInfo); } }}
-                            placeholder="Ex: Visto obrigatório, Vacina febre amarela" />
-                        <button className="btn-add-item" onClick={() => addTag("importantInfo", newImportantInfo, setNewImportantInfo)}>+</button>
-                    </div>
-                </div>
-
+            case "roteiro": return (<>
                 <div className="form-group">
-                    <label className="form-label">Política de cancelamento</label>
-                    <textarea className="form-input" value={form.cancellationPolicy} onChange={e => upd("cancellationPolicy", e.target.value)} placeholder="Ex: Cancelamento gratuito até 7 dias antes da viagem..." style={{ minHeight: 60 }} />
+                    <label className="form-label">Itinerário Dia a Dia</label>
+                    <p className="form-helper">Descreva as atividades para cada dia da viagem.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
+                        {pkgDays.map((day, di) => (
+                            <div key={di} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 16 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                                    <h4 style={{ margin: 0, fontWeight: 700 }}>{day.title}</h4>
+                                    <button onClick={() => removePkgDay(di)} style={{ color: "#ef4444", fontSize: 12 }}>Remover Dia</button>
+                                </div>
+                                <input className="form-input" style={{ marginBottom: 8 }} value={day.summary} onChange={e => updatePkgDay(di, "summary", e.target.value)} placeholder="Resumo do dia (ex: Chegada e City Tour)" />
+                                <textarea className="form-input" style={{ minHeight: 60 }} value={day.description} onChange={updatePkgDay.bind(null, di, "description")} placeholder="Descrição detalhada do dia..." />
+                                
+                                <div style={{ marginTop: 12 }}>
+                                    {day.activities.map((act, ai) => (
+                                        <div key={ai} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                                            <input className="form-input" style={{ width: 80 }} value={act.time} onChange={e => updatePkgActivity(di, ai, "time", e.target.value)} placeholder="09:00" />
+                                            <input className="form-input" style={{ flex: 1 }} value={act.title} onChange={e => updatePkgActivity(di, ai, "title", e.target.value)} placeholder="Atividade" />
+                                            <button onClick={() => removePkgActivity(di, ai)} style={{ color: "#94a3b8" }}>×</button>
+                                        </div>
+                                    ))}
+                                    <button className="btn-add-item" style={{ fontSize: 12 }} onClick={() => addPkgActivity(di)}>+ Adicionar Atividade</button>
+                                </div>
+                            </div>
+                        ))}
+                        <button className="btn-add-item full-width" onClick={addPkgDay}>+ Adicionar Novo Dia ao Roteiro</button>
+                    </div>
                 </div>
             </>);
 
             case "docs": return (<>
                 <div className="form-group">
+                    <label className="form-label">Documentos Exigidos</label>
+                    <div className="editor-tag-list">
+                        {form.requiredDocuments.map((doc, i) => (
+                            <span key={i} className="editor-tag">{doc}<button onClick={() => removeTag("requiredDocuments", i)}>×</button></span>
+                        ))}
+                    </div>
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newRequiredDoc} onChange={e => setNewRequiredDoc(e.target.value)} placeholder="Ex: Passaporte" onKeyDown={e => e.key === "Enter" && addTag("requiredDocuments", newRequiredDoc, setNewRequiredDoc)} />
+                        <button className="btn-add-item" onClick={() => addTag("requiredDocuments", newRequiredDoc, setNewRequiredDoc)}>+</button>
+                    </div>
+                </div>
+                <div className="form-group" style={{ marginTop: 16 }}>
                     <label className="form-label">WhatsApp Oficial *</label>
-                    <input className="form-input" value={form.whatsappOfficial} onChange={e => upd("whatsappOfficial", e.target.value)} placeholder="Ex: +55 11 99999-9999" />
-                    <span className="form-helper">Exibido ao comprador após a confirmação para tirar dúvidas</span>
+                    <input className="form-input" value={form.whatsappOfficial} onChange={e => upd("whatsappOfficial", e.target.value)} placeholder="+55..." />
                 </div>
                 <div className="form-group">
-                    <label className="form-label">Mensagem automática</label>
-                    <textarea className="form-input" value={form.autoMessage} onChange={e => upd("autoMessage", e.target.value)} placeholder="Olá! Obrigado pela compra do seu pacote..." style={{ minHeight: 80 }} />
+                    <label className="form-label">Mensagem Automática</label>
+                    <textarea className="form-input" value={form.autoMessage} onChange={e => upd("autoMessage", e.target.value)} placeholder="Olá!..." />
                 </div>
-                <div className="form-row">
-                    <div className="form-group">
-                        <label className="form-label">URL do Voucher (Opcional)</label>
-                        <input className="form-input" value={form.voucherUrl} onChange={e => upd("voucherUrl", e.target.value)} placeholder="https://..." />
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label">URL do E-ticket (Opcional)</label>
-                        <input className="form-input" value={form.eticketUrl} onChange={e => upd("eticketUrl", e.target.value)} placeholder="https://..." />
+            </>);
+
+            case "disponibilidade": return (<>
+                <div className="form-group">
+                    <label className="form-label">Saídas e Vagas</label>
+                    <p className="form-helper">Defina as datas de saída e o número de vagas disponíveis.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
+                        {departures.map((dep, i) => (
+                            <div key={i} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 16 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                                    <strong style={{ fontSize: 14 }}>{dep.startDate || "Nova Saída"}</strong>
+                                    <button onClick={() => removeDeparture(i)} style={{ color: "#ef4444", fontSize: 12 }}>Excluir</button>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ fontSize: 11 }}>Data de Início</label>
+                                        <input type="date" className="form-input" value={dep.startDate} onChange={e => updateDeparture(i, "startDate", e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ fontSize: 11 }}>Preço (R$)</label>
+                                        <input type="number" className="form-input" value={dep.price} onChange={e => updateDeparture(i, "price", parseFloat(e.target.value))} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ fontSize: 11 }}>Vagas VAMO</label>
+                                        <input type="number" className="form-input" value={dep.capacityVamo} onChange={e => updateDeparture(i, "capacityVamo", parseInt(e.target.value))} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <button className="btn-add-item full-width" onClick={addDeparture}>+ Adicionar Nova Data de Saída</button>
                     </div>
                 </div>
             </>);
@@ -643,6 +760,11 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                         highlights={form.highlights}
                         travelStyles={form.travelStyles}
                         categories={form.categories}
+                        days={pkgDays.map((d, i) => ({
+                            dayNumber: i + 1,
+                            title: d.title,
+                            activities: d.activities.map(a => ({ title: a.title, time: a.time }))
+                        }))}
                         type="pacote"
                     />
                 </div>

@@ -153,6 +153,10 @@
 - ✅ Componentes compartilhados: `FilterBar`, `ItemList`, `EmptyState`, `ApproveRejectModal`
 - ✅ Sistema de toast de feedback unificado
 - ✅ Cores alinhadas ao Design System (#1A3263, #5A6B8C, #28C9BF, #FF5252)
+- ✅ **[Novo]** Fallback automático para Mock Data nos dashboards quando o BD retorna vazio
+
+#### Site Institucional (Melhorias)
+- ✅ **[Novo]** Seção "Baixar o App" remodelada com badges CSS/SVG profissionais (Google Play e App Store) em português.
 
 ---
 

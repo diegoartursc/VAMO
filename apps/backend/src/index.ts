@@ -12,6 +12,8 @@ import myTripsRoutes from './routes/my-trips';
 import adminRoutes from './routes/admin';
 import departureRoutes from './routes/departures';
 import salesRoutes from './routes/sales';
+import flightQuoteRoutes from './routes/flight-quotes';
+import agencyDocRoutes from './routes/agency-documents';
 
 // Load environment variables
 dotenv.config();
@@ -29,6 +31,10 @@ const limiter = rateLimit({
 app.use(cors());
 app.use(express.json());
 app.use('/api', limiter);
+
+// Serve static files from public/uploads
+import path from 'path';
+app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -54,6 +60,8 @@ app.use('/api/my-trips', myTripsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/departures', departureRoutes);
 app.use('/api/sales', salesRoutes);
+app.use('/api/quotes', flightQuoteRoutes);
+app.use('/api/agency-docs', agencyDocRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

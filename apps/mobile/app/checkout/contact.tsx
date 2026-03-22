@@ -23,7 +23,7 @@ const USER = {
 
 export default function CheckoutContactScreen() {
     const router = useRouter();
-    const { packageId, date, time, adults, children, optionId, totalPrice } = useLocalSearchParams<{
+    const { packageId, date, time, adults, children, optionId, totalPrice, originCity, checkedBags } = useLocalSearchParams<{
         packageId: string;
         date: string;
         time: string;
@@ -31,6 +31,8 @@ export default function CheckoutContactScreen() {
         children: string;
         optionId: string;
         totalPrice: string;
+        originCity: string;
+        checkedBags: string;
     }>();
 
     const [packageData, setPackageData] = useState<any>(null);
@@ -39,6 +41,7 @@ export default function CheckoutContactScreen() {
         getPackageById(packageId!).then(setPackageData).catch(console.error);
     }, [packageId]);
     const selectedDate = new Date(date!);
+    const isQuoteFlow = !!originCity;
     const [timeRemaining, setTimeRemaining] = useState(20 * 60); // 20 minutes
 
     // Form states
@@ -48,8 +51,9 @@ export default function CheckoutContactScreen() {
     const [phone, setPhone] = useState(USER.phone);
     const [summaryExpanded, setSummaryExpanded] = useState(false);
 
-    // Timer countdown
+    // Timer countdown — only when NOT in quote flow
     useEffect(() => {
+        if (isQuoteFlow) return;
         const interval = setInterval(() => {
             setTimeRemaining((prev) => {
                 if (prev <= 0) {
@@ -86,23 +90,45 @@ export default function CheckoutContactScreen() {
             return;
         }
 
-        // Navega para payment
-        router.push({
-            pathname: `/checkout/payment` as any,
-            params: {
-                packageId,
-                date,
-                time,
-                adults,
-                children,
-                optionId,
-                totalPrice,
-                fullName,
-                email,
-                countryCode,
-                phone,
-            },
-        });
+        if (isQuoteFlow) {
+            // Bypass payment — go directly to awaiting-quote
+            router.push({
+                pathname: '/booking-awaiting-quote',
+                params: {
+                    packageId: packageId as string,
+                    bookingId: `VAMO-${Date.now().toString(36).toUpperCase()}`,
+                    fullName,
+                    email,
+                    totalPrice: totalPrice as string,
+                    date: date as string,
+                    adults: adults as string,
+                    children: children as string,
+                    paymentMethod: 'pending',
+                    originCity: originCity as string,
+                    checkedBags: checkedBags as string,
+                },
+            } as any);
+        } else {
+            // Normal flow — go to payment
+            router.push({
+                pathname: `/checkout/payment` as any,
+                params: {
+                    packageId,
+                    date,
+                    time,
+                    adults,
+                    children,
+                    optionId,
+                    totalPrice,
+                    fullName,
+                    email,
+                    countryCode,
+                    phone,
+                    originCity: originCity || '',
+                    checkedBags: checkedBags || '0',
+                },
+            });
+        }
     };
 
     if (!packageData) {
@@ -143,11 +169,34 @@ export default function CheckoutContactScreen() {
                     </View>
                 </View>
 
-                {/* Timer Badge */}
-                <View style={styles.timerBadge}>
-                    <Ionicons name="time" size={16} color="#fff" />
-                    <Text style={styles.timerText}>Reservado por {formatTime(timeRemaining)} minutos</Text>
-                </View>
+                {/* Timer Badge — hidden for quote flow */}
+                {!isQuoteFlow && (
+                    <View style={styles.timerBadge}>
+                        <Ionicons name="time" size={16} color="#fff" />
+                        <Text style={styles.timerText}>Reservado por {formatTime(timeRemaining)} minutos</Text>
+                    </View>
+                )}
+
+                {/* Quote Flow Info Banner */}
+                {isQuoteFlow && (
+                    <View style={{
+                        marginHorizontal: 16, marginBottom: 20, padding: 16,
+                        backgroundColor: 'rgba(20, 184, 166, 0.08)',
+                        borderRadius: 14, borderWidth: 1,
+                        borderColor: 'rgba(20, 184, 166, 0.25)',
+                        flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+                    }}>
+                        <Ionicons name="airplane" size={22} color="#14b8a6" style={{ marginTop: 2 }} />
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 15, fontWeight: '700', color: '#14b8a6', marginBottom: 4 }}>
+                                Cotação aérea personalizada
+                            </Text>
+                            <Text style={{ fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19 }}>
+                                Seu voo saindo de {originCity} com {checkedBags === '0' || !checkedBags ? 'apenas bagagem de mão (10kg) inclusa' : `${checkedBags} bagagem(ns) despachada(s) de 23kg`} será cotado pela agência. Preencha seus dados para solicitar!
+                            </Text>
+                        </View>
+                    </View>
+                )}
 
                 {/* Contact Form */}
                 <View style={styles.formSection}>
@@ -260,7 +309,9 @@ export default function CheckoutContactScreen() {
                     <Text style={styles.footerLabel}>Total</Text>
                 </View>
                 <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-                    <Text style={styles.continueButtonText}>Ir para pagamento</Text>
+                    <Text style={styles.continueButtonText}>
+                        {isQuoteFlow ? '✈️ Solicitar cotação aérea' : 'Ir para pagamento'}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>

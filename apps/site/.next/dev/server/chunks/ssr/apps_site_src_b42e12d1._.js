@@ -13,6 +13,8 @@ __turbopack_context__.s([
     ()=>deletePackage,
     "getAgencyPackages",
     ()=>getAgencyPackages,
+    "getAgencySales",
+    ()=>getAgencySales,
     "getDashboardStats",
     ()=>getDashboardStats,
     "getItineraries",
@@ -28,7 +30,9 @@ __turbopack_context__.s([
     "updateItinerary",
     ()=>updateItinerary,
     "updatePackage",
-    ()=>updatePackage
+    ()=>updatePackage,
+    "updateSaleDocuments",
+    ()=>updateSaleDocuments
 ]);
 /**
  * Dashboard API utility — connects to VAMO backend
@@ -100,7 +104,10 @@ const MOCK_ITINERARIES = [
 async function getDashboardStats(creatorId) {
     const query = creatorId ? `?creatorId=${creatorId}` : '';
     try {
-        return await fetchApi(`/itineraries/dashboard/stats${query}`);
+        const stats = await fetchApi(`/itineraries/dashboard/stats${query}`);
+        // Return mock data if no itineraries found (for demo/development)
+        if (!stats.itineraries || stats.itineraries.length === 0) throw new Error('Empty');
+        return stats;
     } catch  {
         return {
             totalRevenue: 13650,
@@ -196,7 +203,10 @@ async function getPackages(agencyId) {
 }
 async function getAgencyPackages(agencyId) {
     try {
-        return await fetchApi(`/packages?agencyId=${agencyId}`);
+        const pkgs = await fetchApi(`/packages?agencyId=${agencyId}`);
+        // Return mock data if no packages found (for demo/development)
+        if (!pkgs || pkgs.length === 0) throw new Error('Empty');
+        return pkgs;
     } catch  {
         return MOCK_PACKAGES;
     }
@@ -205,7 +215,8 @@ async function getPackageById(id) {
     try {
         return await fetchApi(`/packages/${id}`);
     } catch  {
-        const pkg = MOCK_PACKAGES.find((p)=>p.id === id);
+        // Try exact match first, then index-based match (for numeric IDs like "1","2","3")
+        const pkg = MOCK_PACKAGES.find((p)=>p.id === id) || MOCK_PACKAGES[parseInt(id, 10) - 1] || MOCK_PACKAGES[0];
         if (pkg) return pkg;
         throw new Error("Pacote não encontrado");
     }
@@ -227,9 +238,24 @@ async function deletePackage(id) {
         method: 'DELETE'
     });
 }
+async function getAgencySales(agencyId) {
+    try {
+        return await fetchApi(`/sales/${agencyId}`);
+    } catch  {
+        return [];
+    }
+}
+async function updateSaleDocuments(purchaseId, data) {
+    return fetchApi(`/sales/${purchaseId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+}
 async function getPackageDashboardStats(agencyId) {
     try {
-        return await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        const stats = await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        if (!stats.packages || stats.packages.length === 0) throw new Error('Empty');
+        return stats;
     } catch  {
         return {
             totalPackages: MOCK_PACKAGES.length,
@@ -269,7 +295,9 @@ function AgenciaDashboardPage() {
             try {
                 const s = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$auth$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getSession"])();
                 if (s) setSession(s);
-                const pkgs = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getAgencyPackages"])(s?.agency?.id || "mock");
+                // If ADMIN, fetch all packages (passing no agencyId)
+                const isAuthAdmin = s?.employee?.role === "ADMIN";
+                const pkgs = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getAgencyPackages"])(isAuthAdmin ? "" : s?.agency?.id || "mock");
                 setPackages(pkgs || []);
             } catch  {
             // mock data already handled in api.ts
@@ -295,7 +323,7 @@ function AgenciaDashboardPage() {
                         children: "Visão Geral"
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 43,
+                        lineNumber: 46,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -303,13 +331,13 @@ function AgenciaDashboardPage() {
                         children: "Carregando dados..."
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 44,
+                        lineNumber: 47,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                lineNumber: 42,
+                lineNumber: 45,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -330,7 +358,7 @@ function AgenciaDashboardPage() {
                                 children: "—"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 49,
+                                lineNumber: 52,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -338,18 +366,18 @@ function AgenciaDashboardPage() {
                                 children: "..."
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 50,
+                                lineNumber: 53,
                                 columnNumber: 25
                             }, this)
                         ]
                     }, i, true, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 48,
+                        lineNumber: 51,
                         columnNumber: 21
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                lineNumber: 46,
+                lineNumber: 49,
                 columnNumber: 13
             }, this)
         ]
@@ -364,24 +392,24 @@ function AgenciaDashboardPage() {
                         children: "Visão Geral"
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 60,
+                        lineNumber: 63,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                         className: "dash-subtitle",
                         children: [
-                            session?.agency?.name || "Sua Agência",
+                            session?.employee?.role === "ADMIN" ? "VAMO Admin Control" : session?.agency?.name || "Sua Agência",
                             " — Gerencie pacotes, vendas e avaliações"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 61,
+                        lineNumber: 64,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                lineNumber: 59,
+                lineNumber: 62,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -395,7 +423,7 @@ function AgenciaDashboardPage() {
                                 children: "Pacotes Ativos"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 69,
+                                lineNumber: 72,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -403,7 +431,7 @@ function AgenciaDashboardPage() {
                                 children: activePackages.length
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 70,
+                                lineNumber: 73,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -414,13 +442,13 @@ function AgenciaDashboardPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 71,
+                                lineNumber: 74,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 68,
+                        lineNumber: 71,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -431,7 +459,7 @@ function AgenciaDashboardPage() {
                                 children: "Vendas Totais"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 74,
+                                lineNumber: 77,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -439,7 +467,7 @@ function AgenciaDashboardPage() {
                                 children: totalSales
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 75,
+                                lineNumber: 78,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -450,13 +478,13 @@ function AgenciaDashboardPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 76,
+                                lineNumber: 79,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 73,
+                        lineNumber: 76,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -467,7 +495,7 @@ function AgenciaDashboardPage() {
                                 children: "Avaliação Média"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 81,
+                                lineNumber: 84,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -475,7 +503,7 @@ function AgenciaDashboardPage() {
                                 children: avgRating
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 82,
+                                lineNumber: 85,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -483,13 +511,13 @@ function AgenciaDashboardPage() {
                                 children: "de 5.0 estrelas"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 83,
+                                lineNumber: 86,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 80,
+                        lineNumber: 83,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -500,7 +528,7 @@ function AgenciaDashboardPage() {
                                 children: "Qualidade Média"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 86,
+                                lineNumber: 89,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -514,7 +542,7 @@ function AgenciaDashboardPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 87,
+                                lineNumber: 90,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -522,19 +550,19 @@ function AgenciaDashboardPage() {
                                 children: "Quality Score"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 91,
+                                lineNumber: 94,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 85,
+                        lineNumber: 88,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                lineNumber: 67,
+                lineNumber: 70,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -552,7 +580,7 @@ function AgenciaDashboardPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 98,
+                                lineNumber: 101,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -562,18 +590,18 @@ function AgenciaDashboardPage() {
                                     children: "+ Novo Pacote"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                    lineNumber: 100,
+                                    lineNumber: 103,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 99,
+                                lineNumber: 102,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 97,
+                        lineNumber: 100,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -587,7 +615,7 @@ function AgenciaDashboardPage() {
                                 children: "Pacote"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 105,
+                                lineNumber: 108,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -595,7 +623,7 @@ function AgenciaDashboardPage() {
                                 children: "Status"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 106,
+                                lineNumber: 109,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -603,7 +631,7 @@ function AgenciaDashboardPage() {
                                 children: "Preço"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 107,
+                                lineNumber: 110,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -611,7 +639,7 @@ function AgenciaDashboardPage() {
                                 children: "Vendas"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 108,
+                                lineNumber: 111,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -619,7 +647,7 @@ function AgenciaDashboardPage() {
                                 children: "Score"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 109,
+                                lineNumber: 112,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -627,13 +655,13 @@ function AgenciaDashboardPage() {
                                 children: "Ações"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                lineNumber: 110,
+                                lineNumber: 113,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 104,
+                        lineNumber: 107,
                         columnNumber: 17
                     }, this),
                     packages.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -657,18 +685,18 @@ function AgenciaDashboardPage() {
                                     children: "Crie seu primeiro pacote →"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                    lineNumber: 117,
+                                    lineNumber: 120,
                                     columnNumber: 29
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                            lineNumber: 115,
+                            lineNumber: 118,
                             columnNumber: 25
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                        lineNumber: 114,
+                        lineNumber: 117,
                         columnNumber: 21
                     }, this) : packages.map((pkg)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "table-row",
@@ -689,7 +717,7 @@ function AgenciaDashboardPage() {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                            lineNumber: 126,
+                                            lineNumber: 129,
                                             columnNumber: 33
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -702,13 +730,13 @@ function AgenciaDashboardPage() {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                            lineNumber: 127,
+                                            lineNumber: 130,
                                             columnNumber: 33
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                    lineNumber: 125,
+                                    lineNumber: 128,
                                     columnNumber: 29
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -718,12 +746,12 @@ function AgenciaDashboardPage() {
                                         children: pkg.status === "ACTIVE" || pkg.status === "active" ? "Ativo" : pkg.status === "PAUSED" || pkg.status === "paused" ? "Pausado" : "Arquivado"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                        lineNumber: 130,
+                                        lineNumber: 133,
                                         columnNumber: 33
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                    lineNumber: 129,
+                                    lineNumber: 132,
                                     columnNumber: 29
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -731,7 +759,7 @@ function AgenciaDashboardPage() {
                                     children: pkg.priceMin != null ? formatCurrency(pkg.priceMin) : pkg.price?.min != null ? formatCurrency(pkg.price.min) : "—"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                    lineNumber: 134,
+                                    lineNumber: 137,
                                     columnNumber: 29
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -739,7 +767,7 @@ function AgenciaDashboardPage() {
                                     children: (pkg.recentPurchases || 0) > 0 ? pkg.recentPurchases : "—"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                    lineNumber: 137,
+                                    lineNumber: 140,
                                     columnNumber: 29
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -755,12 +783,12 @@ function AgenciaDashboardPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                        lineNumber: 141,
+                                        lineNumber: 144,
                                         columnNumber: 33
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                    lineNumber: 140,
+                                    lineNumber: 143,
                                     columnNumber: 29
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -773,29 +801,29 @@ function AgenciaDashboardPage() {
                                             children: "✏️"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                            lineNumber: 150,
+                                            lineNumber: 153,
                                             columnNumber: 37
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                        lineNumber: 149,
+                                        lineNumber: 152,
                                         columnNumber: 33
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                                    lineNumber: 148,
+                                    lineNumber: 151,
                                     columnNumber: 29
                                 }, this)
                             ]
                         }, pkg.id, true, {
                             fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                            lineNumber: 124,
+                            lineNumber: 127,
                             columnNumber: 25
                         }, this))
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/agencia/page.tsx",
-                lineNumber: 96,
+                lineNumber: 99,
                 columnNumber: 13
             }, this)
         ]

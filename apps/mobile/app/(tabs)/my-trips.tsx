@@ -51,6 +51,7 @@ const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: s
     confirmed: { label: 'Confirmado', color: '#16A34A', bg: '#DCFCE7' },
     pending_payment: { label: 'Aguardando pagamento', color: '#D97706', bg: '#FEF3C7' },
     cancelled: { label: 'Cancelado', color: '#DC2626', bg: '#FEE2E2' },
+    awaiting_quote: { label: 'Aguardando agência', color: '#0891B2', bg: '#CFFAFE' },
 };
 
 // ─── Main Component ─────────────────────────────────────
@@ -312,7 +313,15 @@ function UpcomingTab({ items }: { items: BookedPackage[] }) {
                         <UpcomingCard
                             key={pkg.id}
                             pkg={pkg}
-                            onPress={() => router.push(`/purchased-package/${pkg.id}`)}
+                            onPress={() => {
+                                if (pkg.status === 'awaiting_quote') {
+                                    router.push(`/booking-awaiting-quote/${pkg.id}`);
+                                } else if (pkg.status === 'pending_payment') {
+                                    router.push(`/quote-details/${pkg.id}`);
+                                } else {
+                                    router.push(`/purchased-package/${pkg.id}`);
+                                }
+                            }}
                         />
                     ))}
                 </View>

@@ -7,6 +7,7 @@ import {
     StyleSheet,
     ScrollView,
     Pressable,
+    TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AvailableDate } from '../types';
@@ -14,7 +15,7 @@ import { AvailableDate } from '../types';
 interface DatePickerModalProps {
     visible: boolean;
     onClose: () => void;
-    onSelectDate?: (date: Date, adults: number, children: number, pricePerPerson: number) => void;
+    onSelectDate?: (date: Date, adults: number, children: number, pricePerPerson: number, originCity: string, checkedBags: number) => void;
     packageTitle?: string;
     agencyName?: string;
     agencyPhone?: string;
@@ -32,15 +33,33 @@ export default function DatePickerModal({
 }: DatePickerModalProps) {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
-    const [viewMode, setViewMode] = useState<'travelers' | 'dates' | 'confirmation' | 'success'>('travelers');
+    const [viewMode, setViewMode] = useState<'travelers' | 'origin' | 'baggage' | 'dates' | 'confirmation' | 'success'>('travelers');
     const [adultsCount, setAdultsCount] = useState(1);
     const [childrenCount, setChildrenCount] = useState(0);
+    const [originCity, setOriginCity] = useState('');
+    const [originSearch, setOriginSearch] = useState('');
+    const [checkedBags, setCheckedBags] = useState(0);
+
+    const BRAZILIAN_CITIES = [
+        'São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador', 'Fortaleza',
+        'Belo Horizonte', 'Manaus', 'Curitiba', 'Recife', 'Porto Alegre',
+        'Belém', 'Goiânia', 'Guarulhos', 'Campinas', 'São Luís',
+        'Maceió', 'Florianópolis', 'Natal', 'Campo Grande', 'Teresina',
+        'João Pessoa', 'Aracaju', 'Cuiabá', 'Vitória', 'Palmas',
+        'Londrina', 'Joinville', 'Uberlândia', 'Ribeirão Preto', 'Foz do Iguaçu',
+    ];
+
+    const filteredCities = originSearch.length > 0
+        ? BRAZILIAN_CITIES.filter(c => c.toLowerCase().includes(originSearch.toLowerCase()))
+        : BRAZILIAN_CITIES.slice(0, 10);
 
     const handleDateSelect = (dateItem: AvailableDate) => {
         const date = new Date(dateItem.date + 'T12:00:00');
         setSelectedDate(date);
         setSelectedPrice(dateItem.price);
-        setViewMode('confirmation');
+        
+        // Agora navega para a tela de bagagens em vez de finalizar
+        setViewMode('baggage');
     };
 
     // Calculate total for a given per-person price
@@ -56,7 +75,7 @@ export default function DatePickerModal({
 
     const handleConfirm = () => {
         if (selectedDate && onSelectDate && selectedPrice) {
-            onSelectDate(selectedDate, adultsCount, childrenCount, selectedPrice);
+            onSelectDate(selectedDate, adultsCount, childrenCount, selectedPrice, originCity, checkedBags);
         }
         setViewMode('success');
     };
@@ -69,6 +88,9 @@ export default function DatePickerModal({
             setSelectedPrice(null);
             setAdultsCount(1);
             setChildrenCount(0);
+            setOriginCity('');
+            setOriginSearch('');
+            setCheckedBags(0);
         }, 300);
     };
 
@@ -108,7 +130,7 @@ export default function DatePickerModal({
         <View style={styles.fullContainer}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                    <Ionicons name="close" size={28} color="#fff" />
+                    <Ionicons name="close" size={28} color="#1A3263" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Quem vai viajar?</Text>
             </View>
@@ -184,10 +206,273 @@ export default function DatePickerModal({
             <View style={styles.bottomAction}>
                 <TouchableOpacity
                     style={styles.confirmButton}
-                    onPress={() => setViewMode('dates')}
+                    onPress={() => setViewMode('origin')}
                 >
-                    <Text style={styles.confirmButtonText}>Ver datas disponíveis</Text>
+                    <Text style={styles.confirmButtonText}>Continuar</Text>
                     <Ionicons name="arrow-forward" size={20} color="#fff" />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    // ─── Step 1.5: Origin City ─────────────────────────────
+    const renderOrigin = () => (
+        <View style={styles.fullContainer}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => setViewMode('travelers')} style={styles.closeButton}>
+                    <Ionicons name="arrow-back" size={28} color="#1A3263" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>De onde você sai?</Text>
+            </View>
+
+            <ScrollView style={{ flex: 1, paddingHorizontal: 20 }}>
+                {/* Explanation */}
+                <View style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 10,
+                    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+                    borderRadius: 12, padding: 14, marginBottom: 20,
+                    borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.2)',
+                }}>
+                    <Ionicons name="airplane" size={22} color="#14b8a6" />
+                    <Text style={{ flex: 1, fontSize: 14, color: '#64748B', lineHeight: 20 }}>
+                        Informar sua cidade nos ajuda a cotar o melhor voo para você.
+                    </Text>
+                </View>
+
+                {/* Search Input */}
+                <View style={{
+                    backgroundColor: '#F8F9FA', borderRadius: 12, paddingHorizontal: 14,
+                    flexDirection: 'row', alignItems: 'center', gap: 10,
+                    borderWidth: 1.5, borderColor: originCity ? '#14b8a6' : '#E2E8F0',
+                    marginBottom: 16,
+                }}>
+                    <Ionicons name="search" size={20} color="#94A3B8" />
+                    <TextInput
+                        style={{
+                            flex: 1, color: '#1A3263', fontSize: 16, paddingVertical: 14,
+                        }}
+                        placeholder="Ex: Florianópolis"
+                        placeholderTextColor="#94A3B8"
+                        value={originSearch || originCity}
+                        onChangeText={(text) => {
+                            setOriginSearch(text);
+                            if (originCity) setOriginCity('');
+                        }}
+                        autoFocus
+                    />
+                    {(originSearch || originCity) ? (
+                        <TouchableOpacity onPress={() => { setOriginSearch(''); setOriginCity(''); }}>
+                            <Ionicons name="close-circle" size={20} color="#666" />
+                        </TouchableOpacity>
+                    ) : null}
+                </View>
+
+                {/* Selected city badge */}
+                {originCity ? (
+                    <View style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 8,
+                        backgroundColor: 'rgba(20, 184, 166, 0.12)',
+                        borderRadius: 10, padding: 12, marginBottom: 16,
+                        borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.3)',
+                    }}>
+                        <Ionicons name="checkmark-circle" size={20} color="#14b8a6" />
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: '#14b8a6' }}>
+                            Saindo de {originCity}
+                        </Text>
+                    </View>
+                ) : null}
+
+                {/* City suggestions */}
+                {!originCity && (
+                    <View style={{ gap: 6 }}>
+                        <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '600', marginBottom: 6 }}>
+                            {originSearch ? 'Resultados' : 'Cidades populares'}
+                        </Text>
+                        {filteredCities.map((city) => (
+                            <TouchableOpacity
+                                key={city}
+                                style={{
+                                    flexDirection: 'row', alignItems: 'center', gap: 12,
+                                    backgroundColor: '#F8F9FA', borderRadius: 10,
+                                    padding: 14, borderWidth: 1, borderColor: '#E2E8F0',
+                                }}
+                                onPress={() => {
+                                    setOriginCity(city);
+                                    setOriginSearch('');
+                                }}
+                            >
+                                <Ionicons name="location-outline" size={18} color="#14b8a6" />
+                                <Text style={{ fontSize: 15, color: '#1A3263', fontWeight: '500' }}>{city}</Text>
+                            </TouchableOpacity>
+                        ))}
+                        {filteredCities.length === 0 && originSearch.length > 0 && (
+                            <TouchableOpacity
+                                style={{
+                                    flexDirection: 'row', alignItems: 'center', gap: 12,
+                                    backgroundColor: '#F8F9FA', borderRadius: 10,
+                                    padding: 14, borderWidth: 1, borderColor: '#14b8a6',
+                                }}
+                                onPress={() => {
+                                    setOriginCity(originSearch);
+                                    setOriginSearch('');
+                                }}
+                            >
+                                <Ionicons name="add-circle" size={18} color="#14b8a6" />
+                                <Text style={{ fontSize: 15, color: '#14b8a6', fontWeight: '600' }}>
+                                    Usar "{originSearch}"
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+
+                <View style={{ height: 120 }} />
+            </ScrollView>
+
+            {/* Continue button */}
+            {originCity ? (
+                <View style={styles.bottomAction}>
+                    <TouchableOpacity
+                        style={styles.confirmButton}
+                        onPress={() => setViewMode('dates')}
+                    >
+                        <Text style={styles.confirmButtonText}>Continuar</Text>
+                        <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            ) : null}
+        </View>
+    );
+
+    // ─── Step 1.7: Baggage ────────────────────────────────
+    const renderBaggage = () => (
+        <View style={styles.fullContainer}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => setViewMode('dates')} style={styles.closeButton}>
+                    <Ionicons name="arrow-back" size={28} color="#1A3263" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Bagagens</Text>
+            </View>
+
+            <ScrollView style={{ flex: 1, paddingHorizontal: 20 }}>
+                {/* Included baggage info */}
+                <View style={{
+                    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+                    borderRadius: 12, padding: 16, marginBottom: 24,
+                    borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.2)',
+                }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                        <Ionicons name="checkmark-circle" size={20} color="#14b8a6" />
+                        <Text style={{ fontSize: 15, fontWeight: '700', color: '#14b8a6' }}>Já incluso na passagem</Text>
+                    </View>
+
+                    <View style={{ gap: 16, paddingLeft: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                            <Ionicons name="briefcase-outline" size={24} color="#14b8a6" style={{ marginTop: 2 }} />
+                            <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1A3263' }}>1 bolsa ou mochila até 10 kg</Text>
+                                    <Ionicons name="information-circle-outline" size={16} color="#94A3B8" />
+                                </View>
+                                <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>Deve ir debaixo do assento da frente</Text>
+                            </View>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                            <Ionicons name="bag-handle-outline" size={24} color="#14b8a6" style={{ marginTop: 2 }} />
+                            <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1A3263' }}>1 mala pequena até 12 kg</Text>
+                                    <Ionicons name="information-circle-outline" size={16} color="#94A3B8" />
+                                </View>
+                                <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>Sujeita a ser despachada no embarque</Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Checked bags selector */}
+                <Text style={{ fontSize: 17, fontWeight: '700', color: '#1A3263', marginBottom: 6 }}>
+                    Bagagens despachadas
+                </Text>
+                <Text style={{ fontSize: 14, color: '#64748B', lineHeight: 20, marginBottom: 16 }}>
+                    Selecione quantas malas de 23kg você vai precisar despachar. Cada viajante pode despachar até 2 malas.
+                </Text>
+
+                <View style={{
+                    backgroundColor: '#F8F9FA', borderRadius: 12, padding: 16, borderWidth: 1.5,
+                    borderColor: checkedBags > 0 ? '#14b8a6' : '#E2E8F0',
+                }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: 'rgba(20,184,166,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="briefcase" size={24} color="#14b8a6" />
+                            </View>
+                            <View>
+                                <Text style={{ fontSize: 16, fontWeight: '700', color: '#1A3263' }}>
+                                    {checkedBags === 0 ? 'Nenhuma mala' : `${checkedBags} mala${checkedBags > 1 ? 's' : ''} de 23kg`}
+                                </Text>
+                                <Text style={{ fontSize: 13, color: '#64748B' }}>
+                                    {checkedBags === 0 ? 'Só bagagem de mão' : `${checkedBags * 23}kg no total`}
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            <TouchableOpacity
+                                style={[{
+                                    width: 36, height: 36, borderRadius: 18,
+                                    backgroundColor: checkedBags <= 0 ? '#F1F5F9' : 'rgba(20,184,166,0.1)',
+                                    justifyContent: 'center', alignItems: 'center',
+                                    borderWidth: 1, borderColor: checkedBags <= 0 ? '#E2E8F0' : 'rgba(20,184,166,0.3)',
+                                }]}
+                                onPress={() => setCheckedBags(Math.max(0, checkedBags - 1))}
+                                disabled={checkedBags <= 0}
+                            >
+                                <Text style={{ fontSize: 18, color: checkedBags <= 0 ? '#CBD5E1' : '#14b8a6', fontWeight: '600' }}>−</Text>
+                            </TouchableOpacity>
+                            <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A3263', minWidth: 24, textAlign: 'center' }}>{checkedBags}</Text>
+                            <TouchableOpacity
+                                style={[{
+                                    width: 36, height: 36, borderRadius: 18,
+                                    backgroundColor: 'rgba(20,184,166,0.1)',
+                                    justifyContent: 'center', alignItems: 'center',
+                                    borderWidth: 1, borderColor: 'rgba(20,184,166,0.3)',
+                                }]}
+                                onPress={() => setCheckedBags(Math.min(2, checkedBags + 1))}
+                            >
+                                <Text style={{ fontSize: 18, color: '#14b8a6', fontWeight: '600' }}>+</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Note about pricing */}
+                <View style={{
+                    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+                    backgroundColor: '#FEF3C7', borderRadius: 10, padding: 12, marginTop: 16,
+                    borderWidth: 1, borderColor: 'rgba(217, 119, 6, 0.2)',
+                }}>
+                    <Ionicons name="information-circle" size={20} color="#D97706" />
+                    <Text style={{ flex: 1, fontSize: 13, color: '#92400E', lineHeight: 19 }}>
+                        A quantidade de bagagens despachadas influencia no preço da passagem aérea que será cotada pela agência.
+                    </Text>
+                </View>
+
+                <View style={{ height: 120 }} />
+            </ScrollView>
+
+            {/* Final Action button */}
+            <View style={styles.bottomAction}>
+                <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={() => {
+                        if (selectedDate && onSelectDate && selectedPrice) {
+                            onSelectDate(selectedDate, adultsCount, childrenCount, selectedPrice, originCity, checkedBags);
+                        }
+                    }}
+                >
+                    <Text style={styles.confirmButtonText}>Confirmar Seleção</Text>
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
                 </TouchableOpacity>
             </View>
         </View>
@@ -203,8 +488,8 @@ export default function DatePickerModal({
         return (
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setViewMode('travelers')} style={styles.closeButton}>
-                        <Ionicons name="arrow-back" size={28} color="#fff" />
+                    <TouchableOpacity onPress={() => setViewMode('origin')} style={styles.closeButton}>
+                        <Ionicons name="arrow-back" size={28} color="#1A3263" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Selecionar datas</Text>
                 </View>
@@ -308,7 +593,7 @@ export default function DatePickerModal({
                     onPress={() => setViewMode('dates')}
                     style={styles.closeButton}
                 >
-                    <Ionicons name="arrow-back" size={28} color="#fff" />
+                    <Ionicons name="arrow-back" size={28} color="#1A3263" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Confirmar reserva</Text>
             </View>
@@ -500,6 +785,8 @@ export default function DatePickerModal({
         >
             <View style={styles.container}>
                 {viewMode === 'travelers' && renderTravelers()}
+                {viewMode === 'origin' && renderOrigin()}
+                {viewMode === 'baggage' && renderBaggage()}
                 {viewMode === 'dates' && renderDates()}
                 {viewMode === 'confirmation' && renderConfirmation()}
                 {viewMode === 'success' && renderSuccess()}
@@ -511,11 +798,11 @@ export default function DatePickerModal({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#FFFFFF',
     },
     fullContainer: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#FFFFFF',
     },
     scrollView: {
         flex: 1,
@@ -526,7 +813,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 20,
         paddingBottom: 15,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#FFFFFF',
     },
     closeButton: {
         marginRight: 15,
@@ -534,11 +821,11 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 20,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1A3263',
     },
     packageName: {
         fontSize: 14,
-        color: '#999',
+        color: '#64748B',
         paddingHorizontal: 20,
         marginBottom: 4,
     },
@@ -612,11 +899,11 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     dateCard: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#F8F9FA',
         borderRadius: 14,
         padding: 16,
         borderWidth: 1.5,
-        borderColor: '#3a3a3a',
+        borderColor: '#E2E8F0',
         position: 'relative',
     },
     dateCardSelected: {
@@ -669,12 +956,12 @@ const styles = StyleSheet.create({
     dateTextPrimary: {
         fontSize: 17,
         fontWeight: '700',
-        color: '#fff',
+        color: '#1A3263',
         marginBottom: 3,
     },
     dateTextSecondary: {
         fontSize: 13,
-        color: '#999',
+        color: '#64748B',
         textTransform: 'capitalize',
     },
     dateCardRight: {
@@ -691,7 +978,7 @@ const styles = StyleSheet.create({
     },
     priceLabel: {
         fontSize: 11,
-        color: '#888',
+        color: '#94A3B8',
         marginTop: 2,
     },
     spotsLeftBadge: {
@@ -715,13 +1002,13 @@ const styles = StyleSheet.create({
     emptyStateText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#999',
+        color: '#64748B',
         marginTop: 16,
         textAlign: 'center',
     },
     emptyStateSubtext: {
         fontSize: 14,
-        color: '#666',
+        color: '#94A3B8',
         marginTop: 8,
         textAlign: 'center',
     },
@@ -735,38 +1022,38 @@ const styles = StyleSheet.create({
         paddingTop: 20,
     },
     confirmDateCard: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#F8F9FA',
         borderRadius: 16,
         padding: 30,
         alignItems: 'center',
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: '#E2E8F0',
     },
     selectedDateText: {
         fontSize: 20,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1A3263',
         marginTop: 15,
         textAlign: 'center',
     },
     summaryCard: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#F8F9FA',
         borderRadius: 12,
         padding: 20,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: '#E2E8F0',
     },
     summaryLabel: {
         fontSize: 13,
-        color: '#888',
+        color: '#64748B',
         marginBottom: 8,
         fontWeight: '500',
     },
     summaryValue: {
         fontSize: 16,
-        color: '#fff',
+        color: '#1A3263',
         fontWeight: '600',
     },
     counterRow: {
@@ -781,16 +1068,16 @@ const styles = StyleSheet.create({
     counterLabel: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1A3263',
         marginBottom: 2,
     },
     counterSublabel: {
         fontSize: 13,
-        color: '#888',
+        color: '#94A3B8',
     },
     counterDivider: {
         height: 1,
-        backgroundColor: '#3a3a3a',
+        backgroundColor: '#E2E8F0',
         marginVertical: 16,
     },
     travelerCounter: {
@@ -807,7 +1094,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     counterButtonDisabled: {
-        backgroundColor: '#3a3a3a',
+        backgroundColor: '#E2E8F0',
     },
     counterButtonText: {
         fontSize: 22,
@@ -815,27 +1102,27 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     counterButtonTextDisabled: {
-        color: '#666',
+        color: '#CBD5E1',
     },
     travelerCount: {
         fontSize: 22,
-        color: '#fff',
+        color: '#1A3263',
         fontWeight: '700',
         minWidth: 30,
         textAlign: 'center',
     },
     priceBreakdownCard: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#F8F9FA',
         borderRadius: 12,
         padding: 20,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: '#E2E8F0',
     },
     priceBreakdownTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#888',
+        color: '#64748B',
         marginBottom: 16,
     },
     priceRow: {
@@ -846,22 +1133,22 @@ const styles = StyleSheet.create({
     },
     priceRowLabel: {
         fontSize: 14,
-        color: '#ccc',
+        color: '#64748B',
     },
     priceRowValue: {
         fontSize: 14,
-        color: '#ccc',
+        color: '#64748B',
         fontWeight: '500',
     },
     totalDivider: {
         height: 1,
-        backgroundColor: '#3a3a3a',
+        backgroundColor: '#E2E8F0',
         marginVertical: 10,
     },
     totalLabel: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#fff',
+        color: '#1A3263',
     },
     totalValue: {
         fontSize: 20,
@@ -889,10 +1176,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: '#E2E8F0',
     },
     cancelButtonText: {
-        color: '#888',
+        color: '#64748B',
         fontSize: 16,
         fontWeight: '600',
     },
@@ -909,7 +1196,7 @@ const styles = StyleSheet.create({
     infoText: {
         flex: 1,
         fontSize: 13,
-        color: '#ccc',
+        color: '#64748B',
         lineHeight: 18,
     },
     // ── Success ──
@@ -925,23 +1212,23 @@ const styles = StyleSheet.create({
     successTitle: {
         fontSize: 28,
         fontWeight: '700',
-        color: '#fff',
+        color: '#1A3263',
         textAlign: 'center',
         marginBottom: 10,
     },
     successSubtitle: {
         fontSize: 15,
-        color: '#999',
+        color: '#64748B',
         textAlign: 'center',
         marginBottom: 40,
     },
     successSummaryCard: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#F8F9FA',
         borderRadius: 16,
         padding: 20,
         marginBottom: 30,
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: '#E2E8F0',
     },
     summaryRow: {
         flexDirection: 'row',
@@ -953,7 +1240,7 @@ const styles = StyleSheet.create({
     },
     summaryRowLabel: {
         fontSize: 13,
-        color: '#888',
+        color: '#64748B',
         marginBottom: 5,
     },
     summaryRowValue: {
@@ -963,7 +1250,7 @@ const styles = StyleSheet.create({
     },
     summaryDivider: {
         height: 1,
-        backgroundColor: '#3a3a3a',
+        backgroundColor: '#E2E8F0',
         marginVertical: 15,
     },
     nextStepsCard: {
@@ -977,7 +1264,7 @@ const styles = StyleSheet.create({
     nextStepsTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#fff',
+        color: '#1A3263',
         marginBottom: 20,
     },
     stepItem: {
@@ -1002,7 +1289,7 @@ const styles = StyleSheet.create({
     stepText: {
         flex: 1,
         fontSize: 14,
-        color: '#ccc',
+        color: '#64748B',
         lineHeight: 20,
         paddingTop: 4,
     },
@@ -1032,11 +1319,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#3a3a3a',
+        borderColor: '#E2E8F0',
         marginBottom: 40,
     },
     doneButtonText: {
-        color: '#888',
+        color: '#64748B',
         fontSize: 16,
         fontWeight: '600',
     },

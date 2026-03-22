@@ -58,6 +58,11 @@ router.get('/', async (req: Request, res: Response) => {
             description: pkg.description,
             highlights: pkg.highlights,
             badge: pkg.badge?.toLowerCase(),
+            availableDates: (pkg.departures || []).map((d: any) => ({
+                date: d.startDate.toISOString().split('T')[0],
+                price: d.price,
+                spotsLeft: d.capacityVamoAvailable,
+            })),
             inclusions: pkg.inclusions,
             categories: pkg.categories,
             hasFreeCancellation: pkg.hasFreeCancellation,
@@ -72,11 +77,6 @@ router.get('/', async (req: Request, res: Response) => {
             notRecommendedFor: pkg.notRecommendedFor,
             importantInfo: pkg.importantInfo,
             perfectFor: pkg.perfectFor,
-            availableDates: pkg.pricingWindows.map(pw => ({
-                date: pw.startDate.toISOString().split('T')[0],
-                price: pw.price,
-                spotsLeft: pw.availableSlots,
-            })),
         }));
 
         res.json(result);
@@ -94,7 +94,7 @@ router.get('/featured', async (req: Request, res: Response) => {
             include: {
                 agency: { select: { id: true, name: true, logo: true, verified: true, contactUrl: true, whatsapp: true } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
-                pricingWindows: { where: { startDate: { gte: new Date() } }, orderBy: { startDate: 'asc' }, select: { startDate: true, endDate: true, price: true, availableSlots: true } },
+                departures: { where: { status: { in: ['ABERTA', 'QUASE_LOTADO'] }, startDate: { gte: new Date() } }, orderBy: { startDate: 'asc' } },
             },
         });
 
@@ -111,9 +111,9 @@ router.get('/featured', async (req: Request, res: Response) => {
             isAllInclusive: pkg.isAllInclusive, recentPurchases: pkg.recentPurchases,
             priceComparison: pkg.priceComparison, priceDiscount: pkg.priceDiscount,
             itinerary: pkg.routeDetails,
-            availableDates: pkg.pricingWindows.map((pw: any) => ({
-                date: pw.startDate.toISOString().split('T')[0],
-                price: pw.price, spotsLeft: pw.availableSlots,
+            availableDates: (pkg.departures || []).map((d: any) => ({
+                date: d.startDate.toISOString().split('T')[0],
+                price: d.price, spotsLeft: d.capacityVamoAvailable,
             })),
         }));
 
@@ -159,9 +159,9 @@ router.get('/:id', async (req: Request, res: Response) => {
             includedItems: p.includedItems, notRecommendedFor: p.notRecommendedFor,
             importantInfo: p.importantInfo, perfectFor: p.perfectFor,
             maxSlots: p.maxSlots,
-            availableDates: (p.pricingWindows || []).map((pw: any) => ({
-                date: pw.startDate.toISOString().split('T')[0],
-                price: pw.price, spotsLeft: pw.availableSlots,
+            availableDates: (p.departures || []).map((d: any) => ({
+                date: d.startDate.toISOString().split('T')[0],
+                price: d.price, spotsLeft: d.capacityVamoAvailable,
             })),
             departures: p.departures || [],
             reviews: (p.reviews || []).map((r: any) => ({

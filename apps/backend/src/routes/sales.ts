@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // GET all sales for a specific agency
 router.get('/:agencyId', async (req, res) => {
     try {
-        const { agencyId } = req.params;
+        const agencyId = req.params.agencyId as string;
         const sales = await prisma.purchaseHistory.findMany({
             where: {
                 package: {
@@ -46,7 +46,7 @@ router.get('/:agencyId', async (req, res) => {
 // PUT update post-purchase documents for a specific sale
 router.put('/:purchaseId', async (req, res) => {
     try {
-        const { purchaseId } = req.params;
+        const purchaseId = req.params.purchaseId as string;
         const { voucherUrl, eticketUrl, autoMessage } = req.body;
 
         const updatedSale = await prisma.purchaseHistory.update({

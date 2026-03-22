@@ -57,6 +57,15 @@ export interface ItineraryDay {
     activities: ItineraryActivity[];
 }
 
+export type UploadStatus = 'pending' | 'uploading' | 'reviewing' | 'approved' | 'rejected';
+
+export interface RequiredDocItem {
+    id: string;
+    name: string;      // Ex: "Passaporte", "Visto Americano"
+    description: string;
+    required: boolean;
+}
+
 export interface BookingDetail {
     id: string;
     packageId: string;
@@ -79,11 +88,14 @@ export interface BookingDetail {
     paymentMethod: string;
     contactName: string;
     contactEmail: string;
+    checkedBags: number;
     timeline: TimelineStep[];
     documents: TripDocument[];
     inclusions: TripInclusion[];
     preparation: PreparationItem[];
     detailedItinerary?: ItineraryDay[];
+    /** Documents the agency requires the traveler to upload */
+    requiredDocuments?: RequiredDocItem[];
 }
 
 // ─── Helpers ────────────────────────────────────────────
@@ -137,35 +149,36 @@ export const mockBookings: BookingDetail[] = [
         paymentMethod: 'Cartão de crédito •••• 4532',
         contactName: 'Diego Artur',
         contactEmail: 'diego@email.com',
+        checkedBags: 2,
         timeline: [
             {
                 id: 'tl-1',
                 title: 'Pagamento confirmado',
-                description: 'Pagamento processado com sucesso',
+                description: 'Transação recebida com sucesso',
                 status: 'completed',
                 icon: 'checkmark-circle',
                 completedDate: '2026-02-14',
             },
             {
                 id: 'tl-2',
-                title: 'Emissão das passagens',
-                description: 'Bilhetes aéreos em processamento',
+                title: 'Envio de Documentos',
+                description: 'Aguardando seus passaportes/RG para emissão',
                 status: 'in_progress',
-                icon: 'airplane',
+                icon: 'id-card',
             },
             {
                 id: 'tl-3',
-                title: 'Voucher do hotel',
-                description: 'Confirmação da hospedagem',
+                title: 'Emissão de Passagens e Hotel',
+                description: 'Agência reservando e emitindo bilhetes',
                 status: 'pending',
-                icon: 'bed',
+                icon: 'airplane',
             },
             {
                 id: 'tl-4',
-                title: 'Check-in disponível',
-                description: 'Disponível 48h antes do embarque',
+                title: 'Viagem Liberada',
+                description: 'Todos os vouchers disponíveis na Central',
                 status: 'pending',
-                icon: 'log-in',
+                icon: 'bag-check',
             },
         ],
         documents: [
@@ -456,6 +469,11 @@ export const mockBookings: BookingDetail[] = [
                 ],
             },
         ],
+        requiredDocuments: [
+            { id: 'req-1', name: 'Passaporte', description: 'Foto da página de dados (válido +6 meses)', required: true },
+            { id: 'req-2', name: 'Seguro Viagem', description: 'Apólice cobrindo o período da viagem', required: true },
+            { id: 'req-3', name: 'Vacina Febre Amarela', description: 'Comprovante de vacinação (se aplicável)', required: false },
+        ],
     },
     {
         id: 'pkg-2',
@@ -476,6 +494,7 @@ export const mockBookings: BookingDetail[] = [
         paymentMethod: 'PIX',
         contactName: 'Diego Artur',
         contactEmail: 'diego@email.com',
+        checkedBags: 1,
         timeline: [
             {
                 id: 'tl-1',
@@ -537,6 +556,11 @@ export const mockBookings: BookingDetail[] = [
                 items: ['Não beba água da torneira', 'Resort tem tudo incluso', 'Excursões opcionais no local'],
             },
         ],
+        requiredDocuments: [
+            { id: 'req-1', name: 'Passaporte', description: 'Foto da página de dados (válido)', required: true },
+            { id: 'req-2', name: 'Seguro Viagem', description: 'Apólice com cobertura internacional', required: true },
+            { id: 'req-3', name: 'Formulário Migratório México', description: 'Preenchido online antes do embarque', required: true },
+        ],
     },
     {
         id: 'pkg-3',
@@ -557,6 +581,7 @@ export const mockBookings: BookingDetail[] = [
         paymentMethod: 'Cartão — parcela 1/12',
         contactName: 'Diego Artur',
         contactEmail: 'diego@email.com',
+        checkedBags: 0,
         timeline: [
             {
                 id: 'tl-1',
@@ -621,6 +646,7 @@ export const mockBookings: BookingDetail[] = [
         paymentMethod: 'Cartão de crédito •••• 8821',
         contactName: 'Diego Artur',
         contactEmail: 'diego@email.com',
+        checkedBags: 2,
         timeline: [
             { id: 'tl-1', title: 'Pagamento confirmado', description: 'Concluído', status: 'completed', icon: 'checkmark-circle', completedDate: '2025-07-01' },
             { id: 'tl-2', title: 'Emissão das passagens', description: 'Concluído', status: 'completed', icon: 'airplane', completedDate: '2025-08-05' },
@@ -645,6 +671,142 @@ export const mockBookings: BookingDetail[] = [
             { id: 'prep-2', icon: '🌤️', title: 'Clima na época', items: ['Temperatura: 20°C a 28°C', 'Ensolarado'] },
             { id: 'prep-3', icon: '💶', title: 'Moeda local', items: ['Euro (EUR)'] },
             { id: 'prep-4', icon: '💡', title: 'Dicas importantes', items: ['Calçados confortáveis', 'Protetor solar'] },
+        ],
+    },
+    // ─── Dubai Luxo e Tradição (Aguardando Pagamento) ────
+    {
+        id: 'pkg-7',
+        packageId: '7',
+        bookingCode: 'VAMO-2026-DXB-3901',
+        title: 'Dubai Luxo e Tradição',
+        destination: 'Dubai',
+        country: 'Emirados Árabes',
+        image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1600',
+        travelDate: '2026-12-20',
+        travelEndDate: '2026-12-27',
+        status: 'pending_payment',
+        agencyName: 'Hurb',
+        agencyLogo: '🌴',
+        price: 10000,
+        currency: 'BRL',
+        travelers: { adults: 2, children: 0 },
+        paymentMethod: '',
+        contactName: 'Diego Artur',
+        contactEmail: 'diego@email.com',
+        checkedBags: 2,
+        timeline: [
+            { id: 'tl-1', title: 'Solicitação enviada', description: 'Pedido recebido pela agência', status: 'completed', icon: 'checkmark-circle', completedDate: '2026-03-10' },
+            { id: 'tl-2', title: 'Cotação aérea', description: 'Agência cotou os voos', status: 'completed', icon: 'airplane', completedDate: '2026-03-15' },
+            { id: 'tl-3', title: 'Aguardando pagamento', description: 'Proposta pronta — efetue o pagamento', status: 'in_progress', icon: 'card' },
+            { id: 'tl-4', title: 'Confirmação', description: 'Viagem confirmada após pagamento', status: 'pending', icon: 'bag-check' },
+        ],
+        documents: [
+            { id: 'doc-1', title: 'Voucher', description: 'Disponível após pagamento', icon: 'document-text', type: 'voucher', available: false },
+            { id: 'doc-2', title: 'Bilhetes Aéreos', description: 'Disponível após pagamento', icon: 'airplane', type: 'ticket', available: false },
+            { id: 'doc-3', title: 'Política de Cancelamento', description: 'Termos e condições', icon: 'shield-checkmark', type: 'policy', available: true },
+            { id: 'doc-4', title: 'Informações Importantes', description: 'Detalhes sobre a viagem', icon: 'information-circle', type: 'info', available: true },
+        ],
+        inclusions: [
+            { id: 'inc-1', icon: '✈️', label: 'Voo ida e volta', detail: 'São Paulo (GRU) → Dubai (DXB)' },
+            { id: 'inc-2', icon: '🏨', label: 'Hotel 5 estrelas', detail: 'Atlantis The Palm — 7 noites' },
+            { id: 'inc-3', icon: '🍽️', label: 'Café da manhã', detail: 'Incluso diariamente' },
+            { id: 'inc-4', icon: '🚐', label: 'Transfer', detail: 'Aeroporto ↔ Hotel' },
+            { id: 'inc-5', icon: '🏜️', label: 'Safari no deserto', detail: '1 dia com jantar beduíno' },
+        ],
+        preparation: [
+            { id: 'prep-1', icon: '📄', title: 'Documentos necessários', items: ['Passaporte válido (6+ meses)', 'Seguro viagem'] },
+            { id: 'prep-2', icon: '🌤️', title: 'Clima na época', items: ['Temperatura: 18°C a 26°C', 'Seco e ensolarado'] },
+            { id: 'prep-3', icon: '💰', title: 'Moeda local', items: ['Dirham (AED)', 'Cotação aprox: R$ 1,40'] },
+            { id: 'prep-4', icon: '💡', title: 'Dicas importantes', items: ['Roupas modestas em público', 'Álcool só em locais licenciados'] },
+        ],
+    },
+    // ─── Cusco e Machu Picchu (Aguardando Pagamento) ─────
+    {
+        id: 'pkg-mock-quote2',
+        packageId: 'mock-quote2',
+        bookingCode: 'VAMO-2026-CUZ-5520',
+        title: 'Cusco e Machu Picchu',
+        destination: 'Cusco',
+        country: 'Peru',
+        image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600',
+        travelDate: '2026-10-15',
+        travelEndDate: '2026-10-22',
+        status: 'pending_payment',
+        agencyName: 'VAMO Expeditions',
+        agencyLogo: '🦙',
+        price: 4500,
+        currency: 'BRL',
+        travelers: { adults: 1, children: 0 },
+        paymentMethod: '',
+        contactName: 'Diego Artur',
+        contactEmail: 'diego@email.com',
+        checkedBags: 0,
+        timeline: [
+            { id: 'tl-1', title: 'Solicitação enviada', description: 'Pedido recebido pela agência', status: 'completed', icon: 'checkmark-circle', completedDate: '2026-03-08' },
+            { id: 'tl-2', title: 'Cotação aérea', description: 'Agência cotou os voos', status: 'completed', icon: 'airplane', completedDate: '2026-03-12' },
+            { id: 'tl-3', title: 'Aguardando pagamento', description: 'Proposta pronta — efetue o pagamento', status: 'in_progress', icon: 'card' },
+            { id: 'tl-4', title: 'Confirmação', description: 'Viagem confirmada após pagamento', status: 'pending', icon: 'bag-check' },
+        ],
+        documents: [
+            { id: 'doc-1', title: 'Voucher', description: 'Disponível após pagamento', icon: 'document-text', type: 'voucher', available: false },
+            { id: 'doc-2', title: 'Bilhetes Aéreos', description: 'Disponível após pagamento', icon: 'airplane', type: 'ticket', available: false },
+            { id: 'doc-3', title: 'Política de Cancelamento', description: 'Termos e condições', icon: 'shield-checkmark', type: 'policy', available: true },
+        ],
+        inclusions: [
+            { id: 'inc-1', icon: '✈️', label: 'Voo ida e volta', detail: 'Florianópolis (FLN) → Cusco (CUZ)' },
+            { id: 'inc-2', icon: '🏨', label: 'Hotel 3 estrelas', detail: 'Hotel Cusco Plaza — 7 noites' },
+            { id: 'inc-3', icon: '🚂', label: 'Trem para Machu Picchu', detail: 'PeruRail Vistadome ida e volta' },
+            { id: 'inc-4', icon: '🗣️', label: 'Guia local', detail: 'Guia bilíngue nos passeios' },
+        ],
+        preparation: [
+            { id: 'prep-1', icon: '📄', title: 'Documentos necessários', items: ['Passaporte válido ou RG', 'Seguro viagem'] },
+            { id: 'prep-2', icon: '🌤️', title: 'Clima na época', items: ['Temperatura: 5°C a 18°C', 'Início da estação seca'] },
+            { id: 'prep-3', icon: '💰', title: 'Moeda local', items: ['Sol Peruano (PEN)', 'Cotação aprox: R$ 1,50'] },
+            { id: 'prep-4', icon: '💡', title: 'Dicas importantes', items: ['Aclimatação de altitude', 'Chá de coca contra o soroche'] },
+        ],
+    },
+    // ─── Santorini Dream (Aguardando Cotação) ────────────
+    {
+        id: 'pkg-mock-quote1',
+        packageId: 'mock-quote1',
+        bookingCode: 'VAMO-2026-JTR-9981',
+        title: 'Santorini Dream',
+        destination: 'Santorini',
+        country: 'Grécia',
+        image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=1600',
+        travelDate: '2026-09-01',
+        travelEndDate: '2026-09-10',
+        status: 'pending_payment',
+        agencyName: 'VAMO Global Travel',
+        agencyLogo: '✈️',
+        price: 9200,
+        currency: 'BRL',
+        travelers: { adults: 2, children: 0 },
+        paymentMethod: '',
+        contactName: 'Diego Artur',
+        contactEmail: 'diego@email.com',
+        checkedBags: 1,
+        timeline: [
+            { id: 'tl-1', title: 'Solicitação enviada', description: 'Pedido recebido pela agência', status: 'completed', icon: 'checkmark-circle', completedDate: '2026-03-05' },
+            { id: 'tl-2', title: 'Buscando melhor voo', description: 'Agência cotando passagens de Florianópolis', status: 'in_progress', icon: 'search' },
+            { id: 'tl-3', title: 'Proposta e pagamento', description: 'Aguardando cotação para envio', status: 'pending', icon: 'card' },
+            { id: 'tl-4', title: 'Confirmação', description: 'Viagem confirmada após pagamento', status: 'pending', icon: 'bag-check' },
+        ],
+        documents: [
+            { id: 'doc-1', title: 'Voucher', description: 'Disponível após confirmação', icon: 'document-text', type: 'voucher', available: false },
+            { id: 'doc-2', title: 'Bilhetes Aéreos', description: 'Disponível após confirmação', icon: 'airplane', type: 'ticket', available: false },
+        ],
+        inclusions: [
+            { id: 'inc-1', icon: '✈️', label: 'Voo ida e volta', detail: 'Florianópolis (FLN) → Santorini (JTR)' },
+            { id: 'inc-2', icon: '🏨', label: 'Hotel boutique', detail: 'Cave hotel em Oia — 9 noites' },
+            { id: 'inc-3', icon: '🍽️', label: 'Café da manhã', detail: 'Incluso diariamente' },
+            { id: 'inc-4', icon: '⛵', label: 'Passeio de barco', detail: 'Sunset cruise pelo caldera' },
+        ],
+        preparation: [
+            { id: 'prep-1', icon: '📄', title: 'Documentos necessários', items: ['Passaporte válido (6+ meses)', 'Seguro viagem obrigatório'] },
+            { id: 'prep-2', icon: '🌤️', title: 'Clima na época', items: ['Temperatura: 22°C a 30°C', 'Ensolarado, seco'] },
+            { id: 'prep-3', icon: '💶', title: 'Moeda local', items: ['Euro (EUR)', 'Cotação aprox: R$ 6,20'] },
+            { id: 'prep-4', icon: '💡', title: 'Dicas importantes', items: ['Calçados confortáveis para escadarias', 'Protetor solar e chapéu'] },
         ],
     },
 ];

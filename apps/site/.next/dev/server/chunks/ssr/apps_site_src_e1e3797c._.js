@@ -13,6 +13,8 @@ __turbopack_context__.s([
     ()=>deletePackage,
     "getAgencyPackages",
     ()=>getAgencyPackages,
+    "getAgencySales",
+    ()=>getAgencySales,
     "getDashboardStats",
     ()=>getDashboardStats,
     "getItineraries",
@@ -28,7 +30,9 @@ __turbopack_context__.s([
     "updateItinerary",
     ()=>updateItinerary,
     "updatePackage",
-    ()=>updatePackage
+    ()=>updatePackage,
+    "updateSaleDocuments",
+    ()=>updateSaleDocuments
 ]);
 /**
  * Dashboard API utility — connects to VAMO backend
@@ -100,7 +104,10 @@ const MOCK_ITINERARIES = [
 async function getDashboardStats(creatorId) {
     const query = creatorId ? `?creatorId=${creatorId}` : '';
     try {
-        return await fetchApi(`/itineraries/dashboard/stats${query}`);
+        const stats = await fetchApi(`/itineraries/dashboard/stats${query}`);
+        // Return mock data if no itineraries found (for demo/development)
+        if (!stats.itineraries || stats.itineraries.length === 0) throw new Error('Empty');
+        return stats;
     } catch  {
         return {
             totalRevenue: 13650,
@@ -196,7 +203,10 @@ async function getPackages(agencyId) {
 }
 async function getAgencyPackages(agencyId) {
     try {
-        return await fetchApi(`/packages?agencyId=${agencyId}`);
+        const pkgs = await fetchApi(`/packages?agencyId=${agencyId}`);
+        // Return mock data if no packages found (for demo/development)
+        if (!pkgs || pkgs.length === 0) throw new Error('Empty');
+        return pkgs;
     } catch  {
         return MOCK_PACKAGES;
     }
@@ -205,7 +215,8 @@ async function getPackageById(id) {
     try {
         return await fetchApi(`/packages/${id}`);
     } catch  {
-        const pkg = MOCK_PACKAGES.find((p)=>p.id === id);
+        // Try exact match first, then index-based match (for numeric IDs like "1","2","3")
+        const pkg = MOCK_PACKAGES.find((p)=>p.id === id) || MOCK_PACKAGES[parseInt(id, 10) - 1] || MOCK_PACKAGES[0];
         if (pkg) return pkg;
         throw new Error("Pacote não encontrado");
     }
@@ -227,9 +238,24 @@ async function deletePackage(id) {
         method: 'DELETE'
     });
 }
+async function getAgencySales(agencyId) {
+    try {
+        return await fetchApi(`/sales/${agencyId}`);
+    } catch  {
+        return [];
+    }
+}
+async function updateSaleDocuments(purchaseId, data) {
+    return fetchApi(`/sales/${purchaseId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+}
 async function getPackageDashboardStats(agencyId) {
     try {
-        return await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        const stats = await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        if (!stats.packages || stats.packages.length === 0) throw new Error('Empty');
+        return stats;
     } catch  {
         return {
             totalPackages: MOCK_PACKAGES.length,
@@ -1629,7 +1655,10 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$compo
 var __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$components$2f$dashboard$2f$PhonePreview$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/apps/site/src/components/dashboard/PhonePreview.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$components$2f$dashboard$2f$QualityCoach$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/apps/site/src/components/dashboard/QualityCoach.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$dollar$2d$sign$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__DollarSign$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/dollar-sign.js [app-ssr] (ecmascript) <export default as DollarSign>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$compass$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Compass$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/compass.js [app-ssr] (ecmascript) <export default as Compass>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$tag$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Tag$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/tag.js [app-ssr] (ecmascript) <export default as Tag>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Package$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/package.js [app-ssr] (ecmascript) <export default as Package>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$square$2d$check$2d$big$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckSquare$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/square-check-big.js [app-ssr] (ecmascript) <export default as CheckSquare>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$file$2d$text$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__FileText$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/file-text.js [app-ssr] (ecmascript) <export default as FileText>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/map-pin.js [app-ssr] (ecmascript) <export default as MapPin>");
 "use client";
@@ -1655,26 +1684,59 @@ const SECTIONS = [
         title: "Básicos"
     },
     {
-        key: "perfil",
-        icon: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$tag$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Tag$3e$__["Tag"], {
+        key: "duracao",
+        icon: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$compass$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Compass$3e$__["Compass"], {
             size: 16
         }, void 0, false, {
             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
             lineNumber: 20,
-            columnNumber: 28
+            columnNumber: 29
         }, ("TURBOPACK compile-time value", void 0)),
-        title: "Perfil do Pacote"
+        title: "Duração"
     },
     {
-        key: "oferta",
-        icon: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$dollar$2d$sign$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__DollarSign$3e$__["DollarSign"], {
+        key: "perfil",
+        icon: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$tag$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Tag$3e$__["Tag"], {
             size: 16
         }, void 0, false, {
             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
             lineNumber: 21,
             columnNumber: 28
         }, ("TURBOPACK compile-time value", void 0)),
+        title: "Perfil do Pacote"
+    },
+    {
+        key: "preco",
+        icon: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$dollar$2d$sign$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__DollarSign$3e$__["DollarSign"], {
+            size: 16
+        }, void 0, false, {
+            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+            lineNumber: 22,
+            columnNumber: 27
+        }, ("TURBOPACK compile-time value", void 0)),
         title: "Preço e Oferta"
+    },
+    {
+        key: "inclusoes",
+        icon: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Package$3e$__["Package"], {
+            size: 16
+        }, void 0, false, {
+            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+            lineNumber: 23,
+            columnNumber: 31
+        }, ("TURBOPACK compile-time value", void 0)),
+        title: "Inclusões e Bagagem"
+    },
+    {
+        key: "roteiro",
+        icon: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$compass$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Compass$3e$__["Compass"], {
+            size: 16
+        }, void 0, false, {
+            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+            lineNumber: 24,
+            columnNumber: 29
+        }, ("TURBOPACK compile-time value", void 0)),
+        title: "Roteiro Dia a Dia"
     },
     {
         key: "docs",
@@ -1682,10 +1744,21 @@ const SECTIONS = [
             size: 16
         }, void 0, false, {
             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-            lineNumber: 22,
+            lineNumber: 25,
             columnNumber: 26
         }, ("TURBOPACK compile-time value", void 0)),
         title: "Documentação"
+    },
+    {
+        key: "disponibilidade",
+        icon: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$square$2d$check$2d$big$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckSquare$3e$__["CheckSquare"], {
+            size: 16
+        }, void 0, false, {
+            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+            lineNumber: 26,
+            columnNumber: 37
+        }, ("TURBOPACK compile-time value", void 0)),
+        title: "Disponibilidade"
     }
 ];
 const COUNTRIES = [
@@ -1867,7 +1940,7 @@ function getDurationLabel(days) {
     if (days === 15) return "15 dias";
     return "+15 dias";
 }
-function calcQualityScore(form) {
+function calcQualityScore(form, pkgDays, departures) {
     let s = 0;
     const c = (v, p)=>{
         if (v && (typeof v !== "string" || v.trim())) s += p;
@@ -1887,12 +1960,18 @@ function calcQualityScore(form) {
     a(form.includedItems, 5);
     c(form.cancellationPolicy, 3);
     c(form.whatsappOfficial, 2);
+    // New scoring for itinerary and departures
+    if (pkgDays.length >= form.duration) s += 15;
+    else if (pkgDays.length > 0) s += 8;
+    if (departures.length > 0) s += 15;
     return Math.min(s, 100);
 }
 const SECTION_TIPS = {
     basicos: [
         "Escolha um país e cidade bem conhecidos para maior visibilidade",
-        "Multi-destino atrai viajantes que querem conhecer várias cidades de uma vez",
+        "Multi-destino atrai viajantes que querem conhecer várias cidades de uma vez"
+    ],
+    duracao: [
         "Duração e noites são calculadas automaticamente"
     ],
     perfil: [
@@ -1900,14 +1979,23 @@ const SECTION_TIPS = {
         "Luxo e Família têm os maiores tickets médios",
         "Máximo 5 categorias para não diluir o perfil do pacote"
     ],
-    oferta: [
-        "Pacotes com cancelamento gratuito convertem 40% mais",
+    preco: [
         "Parcele em até 12x para facilitar a decisão de compra",
-        "Liste tudo que está incluso — eleva a percepção de valor"
+        "Preços competitivos aumentam a conversão"
+    ],
+    inclusoes: [
+        "Liste tudo que está incluso — eleva a percepção de valor",
+        "Bagagens são um diferencial importante"
+    ],
+    roteiro: [
+        "Descreva as atividades diárias para encantar o cliente"
     ],
     docs: [
         "O WhatsApp oficial é o canal de contato mostrado ao comprador após a compra",
         "Voucher e e-ticket são enviados automaticamente após o pagamento"
+    ],
+    disponibilidade: [
+        "Mantenha as datas atualizadas para evitar overbooking"
     ]
 };
 const EMPTY_FORM = {
@@ -1944,8 +2032,16 @@ const EMPTY_FORM = {
     autoMessage: "",
     voucherUrl: "",
     eticketUrl: "",
-    status: "ACTIVE"
+    requiredDocuments: [],
+    status: "ACTIVE",
+    routeDetails: null,
+    departures: []
 };
+/* Tag input state keys for new fields */ const NEW_TAG_FIELDS = [
+    "perfectFor",
+    "notRecommendedFor",
+    "importantInfo"
+];
 function PackageEditorPage({ params }) {
     const { id } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["use"])(params);
     const isNew = id === "new";
@@ -1960,6 +2056,93 @@ function PackageEditorPage({ params }) {
     const [cityInput, setCityInput] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
     const [newInclude, setNewInclude] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
     const [newHighlight, setNewHighlight] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
+    const [newPerfectFor, setNewPerfectFor] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
+    const [newNotRecommended, setNewNotRecommended] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
+    const [newImportantInfo, setNewImportantInfo] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
+    const [newRequiredDoc, setNewRequiredDoc] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
+    const [pkgDays, setPkgDays] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
+    const addPkgDay = ()=>setPkgDays((d)=>[
+                ...d,
+                {
+                    title: `Dia ${d.length + 1}`,
+                    summary: "",
+                    description: "",
+                    activities: []
+                }
+            ]);
+    const removePkgDay = (i)=>setPkgDays((d)=>d.filter((_, idx)=>idx !== i));
+    const updatePkgDay = (i, f, v)=>setPkgDays((d)=>{
+            const u = [
+                ...d
+            ];
+            u[i][f] = v;
+            return u;
+        });
+    const addPkgActivity = (di)=>setPkgDays((d)=>{
+            const u = [
+                ...d
+            ];
+            u[di].activities = [
+                ...u[di].activities,
+                {
+                    time: "",
+                    title: "",
+                    location: "",
+                    description: "",
+                    tips: "",
+                    duration: ""
+                }
+            ];
+            return u;
+        });
+    const updatePkgActivity = (di, ai, f, v)=>setPkgDays((d)=>{
+            const u = [
+                ...d
+            ];
+            u[di].activities[ai][f] = v;
+            return u;
+        });
+    const removePkgActivity = (di, ai)=>setPkgDays((d)=>{
+            const u = [
+                ...d
+            ];
+            u[di].activities.splice(ai, 1);
+            return [
+                ...u
+            ];
+        });
+    const [departures, setDepartures] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
+    const EMPTY_DEPARTURE = {
+        startDate: "",
+        price: 0,
+        capacityTotal: 20,
+        capacityVamo: 10,
+        capacityVamoAvailable: 10,
+        minPeople: null,
+        status: "ABERTA",
+        editing: true
+    };
+    const addDeparture = ()=>setDepartures((d)=>[
+                ...d,
+                {
+                    ...EMPTY_DEPARTURE
+                }
+            ]);
+    const updateDeparture = (i, f, v)=>setDepartures((d)=>{
+            const u = [
+                ...d
+            ];
+            u[i][f] = v;
+            return u;
+        });
+    const removeDeparture = (i)=>setDepartures((d)=>d.filter((_, idx)=>idx !== i));
+    const toggleDepartureEdit = (i)=>setDepartures((d)=>{
+            const u = [
+                ...d
+            ];
+            u[i].editing = !u[i].editing;
+            return u;
+        });
     const markDirty = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(()=>setDirty(true), []);
     const upd = (field, val)=>{
         setForm((f)=>({
@@ -2046,14 +2229,22 @@ function PackageEditorPage({ params }) {
             return;
         }
         if (form.priceMin <= 0) {
-            showToast("Defina um preço válido", "error");
+            showToast("Defina um preço base por pessoa válido", "error");
             return;
         }
         setSaving(true);
         try {
             const payload = {
                 ...form,
-                qualityScore: calcQualityScore(form)
+                qualityScore: calcQualityScore(form, pkgDays, departures),
+                itinerary: pkgDays,
+                departures: departures.map((d)=>({
+                        ...d,
+                        price: Number(d.price),
+                        capacityTotal: Number(d.capacityTotal),
+                        capacityVamo: Number(d.capacityVamo),
+                        capacityVamoAvailable: Number(d.capacityVamoAvailable)
+                    }))
             };
             if (isNew) {
                 await (0, __TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createPackage"])(payload);
@@ -2117,21 +2308,31 @@ function PackageEditorPage({ params }) {
     const isSectionComplete = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])((key)=>{
         switch(key){
             case "basicos":
-                return !!(form.country && form.destination && form.duration >= 1);
+                return !!(form.country && form.destination);
+            case "duracao":
+                return form.duration >= 1;
             case "perfil":
                 return form.travelStyles.length >= 1 && form.categories.length >= 1;
-            case "oferta":
-                return form.priceMin > 0 && !!form.description.trim() && form.includedItems.length > 0;
+            case "preco":
+                return form.priceMin > 0 && !!form.description.trim();
+            case "inclusoes":
+                return form.includedItems.length > 0;
+            case "roteiro":
+                return pkgDays.length > 0;
             case "docs":
                 return !!form.whatsappOfficial;
+            case "disponibilidade":
+                return departures.length > 0;
             default:
                 return false;
         }
     }, [
-        form
+        form,
+        pkgDays,
+        departures
     ]);
     const completedSteps = new Set(SECTIONS.filter((s)=>isSectionComplete(s.key)).map((s)=>s.key));
-    const qualityScore = calcQualityScore(form);
+    const qualityScore = calcQualityScore(form, pkgDays, departures);
     // ─── Stepper navigation ───
     const formScrollRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"])(null);
     const handleStepClick = (i)=>{
@@ -2201,6 +2402,33 @@ function PackageEditorPage({ params }) {
                 return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "form-group",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "form-label",
+                                    children: "Título do Pacote *"
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 334,
+                                    columnNumber: 21
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                    className: "form-input",
+                                    value: form.title,
+                                    onChange: (e)=>upd("title", e.target.value),
+                                    placeholder: 'Ex: "Paris Romântica – 7 Dias Inesquecíveis"'
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 335,
+                                    columnNumber: 21
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                            lineNumber: 333,
+                            columnNumber: 17
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "form-row",
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2211,7 +2439,7 @@ function PackageEditorPage({ params }) {
                                             children: "País *"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 276,
+                                            lineNumber: 339,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -2224,7 +2452,7 @@ function PackageEditorPage({ params }) {
                                                     children: "Selecione o país"
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                    lineNumber: 278,
+                                                    lineNumber: 341,
                                                     columnNumber: 29
                                                 }, this),
                                                 COUNTRIES.map((c)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -2232,19 +2460,19 @@ function PackageEditorPage({ params }) {
                                                         children: c
                                                     }, c, false, {
                                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                        lineNumber: 279,
+                                                        lineNumber: 342,
                                                         columnNumber: 49
                                                     }, this))
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 277,
+                                            lineNumber: 340,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 275,
+                                    lineNumber: 338,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2255,7 +2483,7 @@ function PackageEditorPage({ params }) {
                                             children: "Continente"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 283,
+                                            lineNumber: 346,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2267,19 +2495,19 @@ function PackageEditorPage({ params }) {
                                             }
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 284,
+                                            lineNumber: 347,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 282,
+                                    lineNumber: 345,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 274,
+                            lineNumber: 337,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2293,7 +2521,7 @@ function PackageEditorPage({ params }) {
                                             children: "Cidade Principal *"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 289,
+                                            lineNumber: 352,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2303,13 +2531,13 @@ function PackageEditorPage({ params }) {
                                             placeholder: "Ex: Paris, Roma..."
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 290,
+                                            lineNumber: 353,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 288,
+                                    lineNumber: 351,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2320,7 +2548,7 @@ function PackageEditorPage({ params }) {
                                             children: "Aeroporto"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 293,
+                                            lineNumber: 356,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2330,117 +2558,19 @@ function PackageEditorPage({ params }) {
                                             placeholder: "Ex: CDG, GRU"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 294,
+                                            lineNumber: 357,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 292,
+                                    lineNumber: 355,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 287,
-                            columnNumber: 17
-                        }, this),
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "form-row",
-                            style: {
-                                marginTop: 8
-                            },
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "form-group",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                            className: "form-label",
-                                            children: "Número de dias *"
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 299,
-                                            columnNumber: 25
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                            className: "form-input",
-                                            type: "number",
-                                            min: 1,
-                                            value: form.duration,
-                                            onChange: (e)=>upd("duration", parseInt(e.target.value) || 1)
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 300,
-                                            columnNumber: 25
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 298,
-                                    columnNumber: 21
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "form-group",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                            className: "form-label",
-                                            children: "Noites"
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 303,
-                                            columnNumber: 25
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                            className: "form-input",
-                                            type: "number",
-                                            value: form.nights,
-                                            readOnly: true,
-                                            style: {
-                                                opacity: 0.6
-                                            }
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 304,
-                                            columnNumber: 25
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 302,
-                                    columnNumber: 21
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "form-group",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                            className: "form-label",
-                                            children: "Classificação"
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 307,
-                                            columnNumber: 25
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "editor-duration-badge",
-                                            style: {
-                                                marginTop: 8
-                                            },
-                                            children: form.duration >= 1 ? getDurationLabel(form.duration) : "—"
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 308,
-                                            columnNumber: 25
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 306,
-                                    columnNumber: 21
-                                }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 297,
+                            lineNumber: 350,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2466,27 +2596,27 @@ function PackageEditorPage({ params }) {
                                                 onChange: (e)=>upd("multiDestination", e.target.checked)
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                lineNumber: 314,
+                                                lineNumber: 363,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                 className: "editor-toggle-track"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                lineNumber: 315,
+                                                lineNumber: 364,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                 className: "editor-toggle-thumb"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                lineNumber: 315,
+                                                lineNumber: 364,
                                                 columnNumber: 69
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                        lineNumber: 313,
+                                        lineNumber: 362,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2497,18 +2627,18 @@ function PackageEditorPage({ params }) {
                                         children: "Roteiro Multi-destino"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                        lineNumber: 317,
+                                        lineNumber: 366,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 312,
+                                lineNumber: 361,
                                 columnNumber: 21
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 311,
+                            lineNumber: 360,
                             columnNumber: 17
                         }, this),
                         form.multiDestination && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2519,7 +2649,7 @@ function PackageEditorPage({ params }) {
                                     children: "Cidades Adicionais"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 322,
+                                    lineNumber: 371,
                                     columnNumber: 25
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2533,18 +2663,18 @@ function PackageEditorPage({ params }) {
                                                     children: "×"
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                    lineNumber: 325,
+                                                    lineNumber: 374,
                                                     columnNumber: 73
                                                 }, this)
                                             ]
                                         }, i, true, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 325,
+                                            lineNumber: 374,
                                             columnNumber: 33
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 323,
+                                    lineNumber: 372,
                                     columnNumber: 25
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2563,7 +2693,7 @@ function PackageEditorPage({ params }) {
                                             placeholder: "Adicionar cidade (pressione Enter)"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 329,
+                                            lineNumber: 378,
                                             columnNumber: 29
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2572,23 +2702,121 @@ function PackageEditorPage({ params }) {
                                             children: "+"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 332,
+                                            lineNumber: 381,
                                             columnNumber: 29
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 328,
+                                    lineNumber: 377,
                                     columnNumber: 25
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 321,
+                            lineNumber: 370,
                             columnNumber: 21
                         }, this)
                     ]
                 }, void 0, true);
+            case "duracao":
+                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "form-row",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "form-group",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                        className: "form-label",
+                                        children: "Número de dias *"
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                        lineNumber: 390,
+                                        columnNumber: 25
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                        className: "form-input",
+                                        type: "number",
+                                        min: 1,
+                                        value: form.duration,
+                                        onChange: (e)=>upd("duration", parseInt(e.target.value) || 1)
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                        lineNumber: 391,
+                                        columnNumber: 25
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 389,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "form-group",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                        className: "form-label",
+                                        children: "Noites"
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                        lineNumber: 394,
+                                        columnNumber: 25
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                        className: "form-input",
+                                        type: "number",
+                                        value: form.nights,
+                                        readOnly: true,
+                                        style: {
+                                            opacity: 0.6
+                                        }
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                        lineNumber: 395,
+                                        columnNumber: 25
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 393,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "form-group",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                        className: "form-label",
+                                        children: "Classificação"
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                        lineNumber: 398,
+                                        columnNumber: 25
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "editor-duration-badge",
+                                        style: {
+                                            marginTop: 8
+                                        },
+                                        children: form.duration >= 1 ? getDurationLabel(form.duration) : "—"
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                        lineNumber: 399,
+                                        columnNumber: 25
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 397,
+                                columnNumber: 21
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                        lineNumber: 388,
+                        columnNumber: 17
+                    }, this)
+                }, void 0, false);
             case "perfil":
                 return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
                     children: [
@@ -2600,7 +2828,7 @@ function PackageEditorPage({ params }) {
                                     children: "Estilo de Viagem"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 340,
+                                    lineNumber: 406,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2612,7 +2840,7 @@ function PackageEditorPage({ params }) {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 341,
+                                    lineNumber: 407,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2627,18 +2855,18 @@ function PackageEditorPage({ params }) {
                                             children: ts.label
                                         }, ts.key, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 344,
+                                            lineNumber: 410,
                                             columnNumber: 29
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 342,
+                                    lineNumber: 408,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 339,
+                            lineNumber: 405,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2649,7 +2877,7 @@ function PackageEditorPage({ params }) {
                                     children: "Categorias Temáticas"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 354,
+                                    lineNumber: 420,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2661,7 +2889,7 @@ function PackageEditorPage({ params }) {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 355,
+                                    lineNumber: 421,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2673,23 +2901,23 @@ function PackageEditorPage({ params }) {
                                             children: cat.label
                                         }, cat.key, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 358,
+                                            lineNumber: 424,
                                             columnNumber: 29
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 356,
+                                    lineNumber: 422,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 353,
+                            lineNumber: 419,
                             columnNumber: 17
                         }, this)
                     ]
                 }, void 0, true);
-            case "oferta":
+            case "preco":
                 return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2703,7 +2931,7 @@ function PackageEditorPage({ params }) {
                                             children: "Preço base por pessoa *"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 372,
+                                            lineNumber: 438,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2714,13 +2942,13 @@ function PackageEditorPage({ params }) {
                                             onChange: (e)=>upd("priceMin", parseFloat(e.target.value) || 0)
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 373,
+                                            lineNumber: 439,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 371,
+                                    lineNumber: 437,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2731,7 +2959,7 @@ function PackageEditorPage({ params }) {
                                             children: "Promoção (opcional)"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 376,
+                                            lineNumber: 442,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2743,13 +2971,13 @@ function PackageEditorPage({ params }) {
                                             placeholder: "Deixe vazio se não houver"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 377,
+                                            lineNumber: 443,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 375,
+                                    lineNumber: 441,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2760,7 +2988,7 @@ function PackageEditorPage({ params }) {
                                             children: "Moeda"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 380,
+                                            lineNumber: 446,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -2772,24 +3000,24 @@ function PackageEditorPage({ params }) {
                                                     children: c
                                                 }, c, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                    lineNumber: 382,
+                                                    lineNumber: 448,
                                                     columnNumber: 50
                                                 }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 381,
+                                            lineNumber: 447,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 379,
+                                    lineNumber: 445,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 370,
+                            lineNumber: 436,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2803,7 +3031,7 @@ function PackageEditorPage({ params }) {
                                             children: "Preço máximo estimado"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 388,
+                                            lineNumber: 454,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2814,13 +3042,13 @@ function PackageEditorPage({ params }) {
                                             onChange: (e)=>upd("priceMax", parseFloat(e.target.value) || 0)
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 389,
+                                            lineNumber: 455,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 387,
+                                    lineNumber: 453,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2831,7 +3059,7 @@ function PackageEditorPage({ params }) {
                                             children: "Parcelas (máx)"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 392,
+                                            lineNumber: 458,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2843,34 +3071,19 @@ function PackageEditorPage({ params }) {
                                             onChange: (e)=>upd("installments", parseInt(e.target.value) || 1)
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 393,
+                                            lineNumber: 459,
                                             columnNumber: 25
-                                        }, this),
-                                        form.installments > 0 && form.priceMin > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                            className: "form-helper",
-                                            children: [
-                                                "Até ",
-                                                form.installments,
-                                                "x de ",
-                                                form.currency === "BRL" ? "R$" : form.currency,
-                                                " ",
-                                                (form.priceMin / form.installments).toFixed(2)
-                                            ]
-                                        }, void 0, true, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 394,
-                                            columnNumber: 72
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 391,
+                                    lineNumber: 457,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 386,
+                            lineNumber: 452,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2910,12 +3123,12 @@ function PackageEditorPage({ params }) {
                                                 children: t.label
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                lineNumber: 405,
+                                                lineNumber: 469,
                                                 columnNumber: 65
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 405,
+                                            lineNumber: 469,
                                             columnNumber: 29
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -2927,38 +3140,38 @@ function PackageEditorPage({ params }) {
                                                     onChange: (e)=>upd(t.field, e.target.checked)
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                    lineNumber: 407,
+                                                    lineNumber: 471,
                                                     columnNumber: 33
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                     className: "editor-toggle-track"
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                    lineNumber: 408,
+                                                    lineNumber: 472,
                                                     columnNumber: 33
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                     className: "editor-toggle-thumb"
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                    lineNumber: 408,
+                                                    lineNumber: 472,
                                                     columnNumber: 73
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 406,
+                                            lineNumber: 470,
                                             columnNumber: 29
                                         }, this)
                                     ]
                                 }, i, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 404,
+                                    lineNumber: 468,
                                     columnNumber: 25
                                 }, this))
                         }, void 0, false, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 398,
+                            lineNumber: 462,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2969,7 +3182,7 @@ function PackageEditorPage({ params }) {
                                     children: "Descrição curta *"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 415,
+                                    lineNumber: 478,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -2982,15 +3195,50 @@ function PackageEditorPage({ params }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 416,
+                                    lineNumber: 479,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 414,
+                            lineNumber: 477,
                             columnNumber: 17
                         }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "form-group",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "form-label",
+                                    children: "Política de cancelamento"
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 482,
+                                    columnNumber: 21
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
+                                    className: "form-input",
+                                    value: form.cancellationPolicy,
+                                    onChange: (e)=>upd("cancellationPolicy", e.target.value),
+                                    placeholder: "Ex: Cancelamento gratuito até 7 dias antes da viagem...",
+                                    style: {
+                                        minHeight: 60
+                                    }
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 483,
+                                    columnNumber: 21
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                            lineNumber: 481,
+                            columnNumber: 17
+                        }, this)
+                    ]
+                }, void 0, true);
+            case "inclusoes":
+                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+                    children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "form-group",
                             children: [
@@ -2999,7 +3247,7 @@ function PackageEditorPage({ params }) {
                                     children: "O que está incluso"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 420,
+                                    lineNumber: 489,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3013,18 +3261,18 @@ function PackageEditorPage({ params }) {
                                                     children: "×"
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                    lineNumber: 423,
+                                                    lineNumber: 492,
                                                     columnNumber: 89
                                                 }, this)
                                             ]
                                         }, i, true, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 423,
+                                            lineNumber: 492,
                                             columnNumber: 29
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 421,
+                                    lineNumber: 490,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3043,7 +3291,7 @@ function PackageEditorPage({ params }) {
                                             placeholder: "Ex: Voo, Hotel (separe por vírgula para adicionar vários)"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 427,
+                                            lineNumber: 496,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3052,19 +3300,19 @@ function PackageEditorPage({ params }) {
                                             children: "+"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 430,
+                                            lineNumber: 499,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 426,
+                                    lineNumber: 495,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 419,
+                            lineNumber: 488,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3078,7 +3326,7 @@ function PackageEditorPage({ params }) {
                                     children: "Destaques do pacote"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 435,
+                                    lineNumber: 503,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3092,18 +3340,18 @@ function PackageEditorPage({ params }) {
                                                     children: "×"
                                                 }, void 0, false, {
                                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                    lineNumber: 438,
+                                                    lineNumber: 506,
                                                     columnNumber: 69
                                                 }, this)
                                             ]
                                         }, i, true, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 438,
+                                            lineNumber: 506,
                                             columnNumber: 29
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 436,
+                                    lineNumber: 504,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3122,7 +3370,7 @@ function PackageEditorPage({ params }) {
                                             placeholder: "Ex: City tour VIP (separe por vírgula para adicionar vários)"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 442,
+                                            lineNumber: 510,
                                             columnNumber: 25
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3131,19 +3379,219 @@ function PackageEditorPage({ params }) {
                                             children: "+"
                                         }, void 0, false, {
                                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 445,
+                                            lineNumber: 513,
                                             columnNumber: 25
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 441,
+                                    lineNumber: 509,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 434,
+                            lineNumber: 502,
+                            columnNumber: 17
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "form-group",
+                            style: {
+                                marginTop: 24,
+                                padding: 16,
+                                background: "rgba(20, 184, 166, 0.05)",
+                                border: "1px solid rgba(20, 184, 166, 0.2)",
+                                borderRadius: 12
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "form-label",
+                                    style: {
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8
+                                    },
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Package$3e$__["Package"], {
+                                            size: 18,
+                                            color: "#14b8a6"
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 524,
+                                            columnNumber: 25
+                                        }, this),
+                                        "Informações de Bagagem"
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 523,
+                                    columnNumber: 21
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    style: {
+                                        marginTop: 12,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 10
+                                    },
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            style: {
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 10
+                                            },
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    style: {
+                                                        padding: 8,
+                                                        background: "white",
+                                                        borderRadius: 8,
+                                                        border: "1px solid #e2e8f0"
+                                                    },
+                                                    children: "🎒"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 529,
+                                                    columnNumber: 29
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            style: {
+                                                                fontSize: 13,
+                                                                fontWeight: 600
+                                                            },
+                                                            children: "1 bolsa ou mochila até 10kg"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 531,
+                                                            columnNumber: 33
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            style: {
+                                                                fontSize: 11,
+                                                                color: "#64748b"
+                                                            },
+                                                            children: "Item pessoal (abaixo do assento) — Já incluso"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 532,
+                                                            columnNumber: 33
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 530,
+                                                    columnNumber: 29
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 528,
+                                            columnNumber: 25
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            style: {
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 10
+                                            },
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    style: {
+                                                        padding: 8,
+                                                        background: "white",
+                                                        borderRadius: 8,
+                                                        border: "1px solid #e2e8f0"
+                                                    },
+                                                    children: "🧳"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 536,
+                                                    columnNumber: 29
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            style: {
+                                                                fontSize: 13,
+                                                                fontWeight: 600
+                                                            },
+                                                            children: "1 mala de mão até 12kg"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 538,
+                                                            columnNumber: 33
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            style: {
+                                                                fontSize: 11,
+                                                                color: "#64748b"
+                                                            },
+                                                            children: "Sujeito a despacho gratuito pela cia aérea — Já incluso"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 539,
+                                                            columnNumber: 33
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 537,
+                                                    columnNumber: 29
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 535,
+                                            columnNumber: 25
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            style: {
+                                                marginTop: 8,
+                                                padding: 12,
+                                                background: "white",
+                                                borderRadius: 10,
+                                                border: "1px dashed #cbd5e1"
+                                            },
+                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                style: {
+                                                    fontSize: 12,
+                                                    color: "#475569",
+                                                    margin: 0
+                                                },
+                                                children: [
+                                                    "💡 ",
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                                        children: "Dica:"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                        lineNumber: 544,
+                                                        columnNumber: 36
+                                                    }, this),
+                                                    " O viajante poderá solicitar bagagens despachadas de 23kg extras durante o processo de reserva. Você poderá cobrar por elas na cotação aérea."
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                lineNumber: 543,
+                                                columnNumber: 29
+                                            }, this)
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 542,
+                                            columnNumber: 25
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 527,
+                                    columnNumber: 21
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                            lineNumber: 516,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3157,7 +3605,7 @@ function PackageEditorPage({ params }) {
                                     children: "Descrição completa (Opcional)"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 450,
+                                    lineNumber: 551,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -3170,13 +3618,13 @@ function PackageEditorPage({ params }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 451,
+                                    lineNumber: 552,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 449,
+                            lineNumber: 550,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3184,33 +3632,341 @@ function PackageEditorPage({ params }) {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                     className: "form-label",
-                                    children: "Política de cancelamento"
+                                    children: "Introdução Emocional (Opcional)"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 455,
+                                    lineNumber: 555,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
                                     className: "form-input",
-                                    value: form.cancellationPolicy,
-                                    onChange: (e)=>upd("cancellationPolicy", e.target.value),
-                                    placeholder: "Ex: Cancelamento gratuito até 7 dias antes da viagem...",
+                                    value: form.emotionalIntro,
+                                    onChange: (e)=>upd("emotionalIntro", e.target.value),
+                                    placeholder: "Ex: Imagine caminhar pelas ruas de Paris ao pôr do sol...",
                                     style: {
-                                        minHeight: 60
+                                        minHeight: 80
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 456,
+                                    lineNumber: 556,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 454,
+                            lineNumber: 554,
+                            columnNumber: 17
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "form-group",
+                            style: {
+                                marginTop: 16
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "form-label",
+                                    children: "Público e Avisos"
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 559,
+                                    columnNumber: 21
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    style: {
+                                        display: "grid",
+                                        gridTemplateColumns: "1fr 1fr",
+                                        gap: 16
+                                    },
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                    className: "form-label",
+                                                    style: {
+                                                        fontSize: 13
+                                                    },
+                                                    children: "Para quem é perfeito"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 562,
+                                                    columnNumber: 29
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "editor-tag-input-row",
+                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                        className: "form-input",
+                                                        value: newPerfectFor,
+                                                        onChange: (e)=>setNewPerfectFor(e.target.value),
+                                                        placeholder: "Ex: Casais",
+                                                        onKeyDown: (e)=>e.key === "Enter" && addTag("perfectFor", newPerfectFor, setNewPerfectFor)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                        lineNumber: 564,
+                                                        columnNumber: 33
+                                                    }, this)
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 563,
+                                                    columnNumber: 29
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 561,
+                                            columnNumber: 25
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                    className: "form-label",
+                                                    style: {
+                                                        fontSize: 13
+                                                    },
+                                                    children: "Informações Importantes"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 568,
+                                                    columnNumber: 29
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "editor-tag-input-row",
+                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                        className: "form-input",
+                                                        value: newImportantInfo,
+                                                        onChange: (e)=>setNewImportantInfo(e.target.value),
+                                                        placeholder: "Ex: Visto",
+                                                        onKeyDown: (e)=>e.key === "Enter" && addTag("importantInfo", newImportantInfo, setNewImportantInfo)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                        lineNumber: 570,
+                                                        columnNumber: 33
+                                                    }, this)
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 569,
+                                                    columnNumber: 29
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 567,
+                                            columnNumber: 25
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 560,
+                                    columnNumber: 21
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                            lineNumber: 558,
                             columnNumber: 17
                         }, this)
                     ]
                 }, void 0, true);
+            case "roteiro":
+                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "form-group",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                className: "form-label",
+                                children: "Itinerário Dia a Dia"
+                            }, void 0, false, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 579,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "form-helper",
+                                children: "Descreva as atividades para cada dia da viagem."
+                            }, void 0, false, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 580,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                style: {
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 16,
+                                    marginTop: 16
+                                },
+                                children: [
+                                    pkgDays.map((day, di)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            style: {
+                                                background: "#f8fafc",
+                                                border: "1px solid #e2e8f0",
+                                                borderRadius: 12,
+                                                padding: 16
+                                            },
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    style: {
+                                                        display: "flex",
+                                                        justifyContent: "space-between",
+                                                        alignItems: "center",
+                                                        marginBottom: 12
+                                                    },
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h4", {
+                                                            style: {
+                                                                margin: 0,
+                                                                fontWeight: 700
+                                                            },
+                                                            children: day.title
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 585,
+                                                            columnNumber: 37
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                            onClick: ()=>removePkgDay(di),
+                                                            style: {
+                                                                color: "#ef4444",
+                                                                fontSize: 12
+                                                            },
+                                                            children: "Remover Dia"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 586,
+                                                            columnNumber: 37
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 584,
+                                                    columnNumber: 33
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                    className: "form-input",
+                                                    style: {
+                                                        marginBottom: 8
+                                                    },
+                                                    value: day.summary,
+                                                    onChange: (e)=>updatePkgDay(di, "summary", e.target.value),
+                                                    placeholder: "Resumo do dia (ex: Chegada e City Tour)"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 588,
+                                                    columnNumber: 33
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
+                                                    className: "form-input",
+                                                    style: {
+                                                        minHeight: 60
+                                                    },
+                                                    value: day.description,
+                                                    onChange: updatePkgDay.bind(null, di, "description"),
+                                                    placeholder: "Descrição detalhada do dia..."
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 589,
+                                                    columnNumber: 33
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    style: {
+                                                        marginTop: 12
+                                                    },
+                                                    children: [
+                                                        day.activities.map((act, ai)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                style: {
+                                                                    display: "flex",
+                                                                    gap: 8,
+                                                                    marginBottom: 8
+                                                                },
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                        className: "form-input",
+                                                                        style: {
+                                                                            width: 80
+                                                                        },
+                                                                        value: act.time,
+                                                                        onChange: (e)=>updatePkgActivity(di, ai, "time", e.target.value),
+                                                                        placeholder: "09:00"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                        lineNumber: 594,
+                                                                        columnNumber: 45
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                        className: "form-input",
+                                                                        style: {
+                                                                            flex: 1
+                                                                        },
+                                                                        value: act.title,
+                                                                        onChange: (e)=>updatePkgActivity(di, ai, "title", e.target.value),
+                                                                        placeholder: "Atividade"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                        lineNumber: 595,
+                                                                        columnNumber: 45
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                        onClick: ()=>removePkgActivity(di, ai),
+                                                                        style: {
+                                                                            color: "#94a3b8"
+                                                                        },
+                                                                        children: "×"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                        lineNumber: 596,
+                                                                        columnNumber: 45
+                                                                    }, this)
+                                                                ]
+                                                            }, ai, true, {
+                                                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                lineNumber: 593,
+                                                                columnNumber: 41
+                                                            }, this)),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                            className: "btn-add-item",
+                                                            style: {
+                                                                fontSize: 12
+                                                            },
+                                                            onClick: ()=>addPkgActivity(di),
+                                                            children: "+ Adicionar Atividade"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 599,
+                                                            columnNumber: 37
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 591,
+                                                    columnNumber: 33
+                                                }, this)
+                                            ]
+                                        }, di, true, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 583,
+                                            columnNumber: 29
+                                        }, this)),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        className: "btn-add-item full-width",
+                                        onClick: addPkgDay,
+                                        children: "+ Adicionar Novo Dia ao Roteiro"
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                        lineNumber: 603,
+                                        columnNumber: 25
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 581,
+                                columnNumber: 21
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                        lineNumber: 578,
+                        columnNumber: 17
+                    }, this)
+                }, void 0, false);
             case "docs":
                 return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
                     children: [
@@ -3219,34 +3975,100 @@ function PackageEditorPage({ params }) {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                     className: "form-label",
+                                    children: "Documentos Exigidos"
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 610,
+                                    columnNumber: 21
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "editor-tag-list",
+                                    children: form.requiredDocuments.map((doc, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            className: "editor-tag",
+                                            children: [
+                                                doc,
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                    onClick: ()=>removeTag("requiredDocuments", i),
+                                                    children: "×"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 613,
+                                                    columnNumber: 71
+                                                }, this)
+                                            ]
+                                        }, i, true, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 613,
+                                            columnNumber: 29
+                                        }, this))
+                                }, void 0, false, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 611,
+                                    columnNumber: 21
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "editor-tag-input-row",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                            className: "form-input",
+                                            value: newRequiredDoc,
+                                            onChange: (e)=>setNewRequiredDoc(e.target.value),
+                                            placeholder: "Ex: Passaporte",
+                                            onKeyDown: (e)=>e.key === "Enter" && addTag("requiredDocuments", newRequiredDoc, setNewRequiredDoc)
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 617,
+                                            columnNumber: 25
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                            className: "btn-add-item",
+                                            onClick: ()=>addTag("requiredDocuments", newRequiredDoc, setNewRequiredDoc),
+                                            children: "+"
+                                        }, void 0, false, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 618,
+                                            columnNumber: 25
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                    lineNumber: 616,
+                                    columnNumber: 21
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                            lineNumber: 609,
+                            columnNumber: 17
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "form-group",
+                            style: {
+                                marginTop: 16
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "form-label",
                                     children: "WhatsApp Oficial *"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 462,
+                                    lineNumber: 622,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
                                     className: "form-input",
                                     value: form.whatsappOfficial,
                                     onChange: (e)=>upd("whatsappOfficial", e.target.value),
-                                    placeholder: "Ex: +55 11 99999-9999"
+                                    placeholder: "+55..."
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 463,
-                                    columnNumber: 21
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                    className: "form-helper",
-                                    children: "Exibido ao comprador após a confirmação para tirar dúvidas"
-                                }, void 0, false, {
-                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 464,
+                                    lineNumber: 623,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 461,
+                            lineNumber: 621,
                             columnNumber: 17
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3254,102 +4076,236 @@ function PackageEditorPage({ params }) {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                     className: "form-label",
-                                    children: "Mensagem automática"
+                                    children: "Mensagem Automática"
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 467,
+                                    lineNumber: 626,
                                     columnNumber: 21
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
                                     className: "form-input",
                                     value: form.autoMessage,
                                     onChange: (e)=>upd("autoMessage", e.target.value),
-                                    placeholder: "Olá! Obrigado pela compra do seu pacote...",
-                                    style: {
-                                        minHeight: 80
-                                    }
+                                    placeholder: "Olá!..."
                                 }, void 0, false, {
                                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 468,
+                                    lineNumber: 627,
                                     columnNumber: 21
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 466,
-                            columnNumber: 17
-                        }, this),
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "form-row",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "form-group",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                            className: "form-label",
-                                            children: "URL do Voucher (Opcional)"
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 472,
-                                            columnNumber: 25
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                            className: "form-input",
-                                            value: form.voucherUrl,
-                                            onChange: (e)=>upd("voucherUrl", e.target.value),
-                                            placeholder: "https://..."
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 473,
-                                            columnNumber: 25
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 471,
-                                    columnNumber: 21
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "form-group",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                            className: "form-label",
-                                            children: "URL do E-ticket (Opcional)"
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 476,
-                                            columnNumber: 25
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                            className: "form-input",
-                                            value: form.eticketUrl,
-                                            onChange: (e)=>upd("eticketUrl", e.target.value),
-                                            placeholder: "https://..."
-                                        }, void 0, false, {
-                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                            lineNumber: 477,
-                                            columnNumber: 25
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                    lineNumber: 475,
-                                    columnNumber: 21
-                                }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                            lineNumber: 470,
+                            lineNumber: 625,
                             columnNumber: 17
                         }, this)
                     ]
                 }, void 0, true);
+            case "disponibilidade":
+                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "form-group",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                className: "form-label",
+                                children: "Saídas e Vagas"
+                            }, void 0, false, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 633,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "form-helper",
+                                children: "Defina as datas de saída e o número de vagas disponíveis."
+                            }, void 0, false, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 634,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                style: {
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 16,
+                                    marginTop: 16
+                                },
+                                children: [
+                                    departures.map((dep, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            style: {
+                                                background: "white",
+                                                border: "1px solid #e2e8f0",
+                                                borderRadius: 12,
+                                                padding: 16
+                                            },
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    style: {
+                                                        display: "flex",
+                                                        justifyContent: "space-between",
+                                                        alignItems: "center",
+                                                        marginBottom: 12
+                                                    },
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                                            style: {
+                                                                fontSize: 14
+                                                            },
+                                                            children: dep.startDate || "Nova Saída"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 639,
+                                                            columnNumber: 37
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                            onClick: ()=>removeDeparture(i),
+                                                            style: {
+                                                                color: "#ef4444",
+                                                                fontSize: 12
+                                                            },
+                                                            children: "Excluir"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 640,
+                                                            columnNumber: 37
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 638,
+                                                    columnNumber: 33
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "form-row",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "form-group",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                    className: "form-label",
+                                                                    style: {
+                                                                        fontSize: 11
+                                                                    },
+                                                                    children: "Data de Início"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                    lineNumber: 644,
+                                                                    columnNumber: 41
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                    type: "date",
+                                                                    className: "form-input",
+                                                                    value: dep.startDate,
+                                                                    onChange: (e)=>updateDeparture(i, "startDate", e.target.value)
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                    lineNumber: 645,
+                                                                    columnNumber: 41
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 643,
+                                                            columnNumber: 37
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "form-group",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                    className: "form-label",
+                                                                    style: {
+                                                                        fontSize: 11
+                                                                    },
+                                                                    children: "Preço (R$)"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                    lineNumber: 648,
+                                                                    columnNumber: 41
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                    type: "number",
+                                                                    className: "form-input",
+                                                                    value: dep.price,
+                                                                    onChange: (e)=>updateDeparture(i, "price", parseFloat(e.target.value))
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                    lineNumber: 649,
+                                                                    columnNumber: 41
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 647,
+                                                            columnNumber: 37
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "form-group",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                                    className: "form-label",
+                                                                    style: {
+                                                                        fontSize: 11
+                                                                    },
+                                                                    children: "Vagas VAMO"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                    lineNumber: 652,
+                                                                    columnNumber: 41
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                    type: "number",
+                                                                    className: "form-input",
+                                                                    value: dep.capacityVamo,
+                                                                    onChange: (e)=>updateDeparture(i, "capacityVamo", parseInt(e.target.value))
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                                    lineNumber: 653,
+                                                                    columnNumber: 41
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                            lineNumber: 651,
+                                                            columnNumber: 37
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                                    lineNumber: 642,
+                                                    columnNumber: 33
+                                                }, this)
+                                            ]
+                                        }, i, true, {
+                                            fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                            lineNumber: 637,
+                                            columnNumber: 29
+                                        }, this)),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        className: "btn-add-item full-width",
+                                        onClick: addDeparture,
+                                        children: "+ Adicionar Nova Data de Saída"
+                                    }, void 0, false, {
+                                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                        lineNumber: 658,
+                                        columnNumber: 25
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                                lineNumber: 635,
+                                columnNumber: 21
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
+                        lineNumber: 632,
+                        columnNumber: 17
+                    }, this)
+                }, void 0, false);
             default:
                 return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                     children: "Seção não encontrada."
                 }, void 0, false, {
                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                    lineNumber: 482,
+                    lineNumber: 663,
                     columnNumber: 29
                 }, this);
         }
@@ -3361,34 +4317,34 @@ function PackageEditorPage({ params }) {
                 className: "editor-skeleton-bar short"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                lineNumber: 488,
+                lineNumber: 669,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "editor-skeleton-bar medium"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                lineNumber: 488,
+                lineNumber: 669,
                 columnNumber: 58
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "editor-skeleton-section"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                lineNumber: 489,
+                lineNumber: 670,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "editor-skeleton-section"
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                lineNumber: 489,
+                lineNumber: 670,
                 columnNumber: 56
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-        lineNumber: 487,
+        lineNumber: 668,
         columnNumber: 9
     }, this);
     const currentSection = SECTIONS[activeStep];
@@ -3400,7 +4356,7 @@ function PackageEditorPage({ params }) {
                 children: toast.msg
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                lineNumber: 497,
+                lineNumber: 678,
                 columnNumber: 23
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3415,7 +4371,7 @@ function PackageEditorPage({ params }) {
                                 children: "← Voltar"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 502,
+                                lineNumber: 683,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3426,7 +4382,7 @@ function PackageEditorPage({ params }) {
                                         children: isNew ? "Novo Pacote" : form.title || "Editar Pacote"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                        lineNumber: 504,
+                                        lineNumber: 685,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3434,19 +4390,19 @@ function PackageEditorPage({ params }) {
                                         children: "Painel da Agência"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                        lineNumber: 505,
+                                        lineNumber: 686,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 503,
+                                lineNumber: 684,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                        lineNumber: 501,
+                        lineNumber: 682,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3459,14 +4415,14 @@ function PackageEditorPage({ params }) {
                                         className: "save-status-dot"
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                        lineNumber: 509,
+                                        lineNumber: 690,
                                         columnNumber: 69
                                     }, this),
                                     " Não salvo"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 509,
+                                lineNumber: 690,
                                 columnNumber: 31
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3476,19 +4432,19 @@ function PackageEditorPage({ params }) {
                                 children: saving ? "Salvando..." : "Publicar Pacote"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 510,
+                                lineNumber: 691,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                        lineNumber: 508,
+                        lineNumber: 689,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                lineNumber: 500,
+                lineNumber: 681,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3506,12 +4462,12 @@ function PackageEditorPage({ params }) {
                     onStepClick: handleStepClick
                 }, void 0, false, {
                     fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                    lineNumber: 518,
+                    lineNumber: 699,
                     columnNumber: 17
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                lineNumber: 517,
+                lineNumber: 698,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3532,7 +4488,7 @@ function PackageEditorPage({ params }) {
                                                 children: currentSection.icon
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                lineNumber: 533,
+                                                lineNumber: 714,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -3540,7 +4496,7 @@ function PackageEditorPage({ params }) {
                                                 children: currentSection.title
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                lineNumber: 534,
+                                                lineNumber: 715,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3548,13 +4504,13 @@ function PackageEditorPage({ params }) {
                                                 children: isSectionComplete(currentSection.key) ? "Completo ✓" : "Pendente"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                lineNumber: 535,
+                                                lineNumber: 716,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                        lineNumber: 532,
+                                        lineNumber: 713,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3562,13 +4518,13 @@ function PackageEditorPage({ params }) {
                                         children: renderSection(currentSection.key)
                                     }, void 0, false, {
                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                        lineNumber: 539,
+                                        lineNumber: 720,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 531,
+                                lineNumber: 712,
                                 columnNumber: 21
                             }, this),
                             SECTION_TIPS[currentSection.key]?.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3580,19 +4536,19 @@ function PackageEditorPage({ params }) {
                                                 className: "editor-tip-dot"
                                             }, void 0, false, {
                                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                                lineNumber: 549,
+                                                lineNumber: 730,
                                                 columnNumber: 37
                                             }, this),
                                             tip
                                         ]
                                     }, i, true, {
                                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                        lineNumber: 548,
+                                        lineNumber: 729,
                                         columnNumber: 33
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 546,
+                                lineNumber: 727,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$components$2f$dashboard$2f$StepperNav$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["StepperActions"], {
@@ -3605,13 +4561,13 @@ function PackageEditorPage({ params }) {
                                 isLastStep: activeStep === SECTIONS.length - 1
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 557,
+                                lineNumber: 738,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                        lineNumber: 529,
+                        lineNumber: 710,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3622,7 +4578,7 @@ function PackageEditorPage({ params }) {
                                 tips: qualityTips
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 570,
+                                lineNumber: 751,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$apps$2f$site$2f$src$2f$components$2f$dashboard$2f$PhonePreview$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -3636,28 +4592,36 @@ function PackageEditorPage({ params }) {
                                 highlights: form.highlights,
                                 travelStyles: form.travelStyles,
                                 categories: form.categories,
+                                days: pkgDays.map((d, i)=>({
+                                        dayNumber: i + 1,
+                                        title: d.title,
+                                        activities: d.activities.map((a)=>({
+                                                title: a.title,
+                                                time: a.time
+                                            }))
+                                    })),
                                 type: "pacote"
                             }, void 0, false, {
                                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                                lineNumber: 571,
+                                lineNumber: 752,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                        lineNumber: 569,
+                        lineNumber: 750,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-                lineNumber: 527,
+                lineNumber: 708,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/apps/site/src/app/agencia/pacote/[id]/page.tsx",
-        lineNumber: 496,
+        lineNumber: 677,
         columnNumber: 9
     }, this);
 }

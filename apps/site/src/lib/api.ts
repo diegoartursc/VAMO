@@ -58,7 +58,10 @@ const MOCK_ITINERARIES: DashboardItinerary[] = [
 export async function getDashboardStats(creatorId?: string): Promise<DashboardStats> {
     const query = creatorId ? `?creatorId=${creatorId}` : '';
     try {
-        return await fetchApi(`/itineraries/dashboard/stats${query}`);
+        const stats = await fetchApi<DashboardStats>(`/itineraries/dashboard/stats${query}`);
+        // Return mock data if no itineraries found (for demo/development)
+        if (!stats.itineraries || stats.itineraries.length === 0) throw new Error('Empty');
+        return stats;
     } catch {
         return {
             totalRevenue: 13650,
@@ -124,7 +127,10 @@ export async function getPackages(agencyId?: string): Promise<any[]> {
 
 export async function getAgencyPackages(agencyId: string): Promise<any[]> {
     try {
-        return await fetchApi(`/packages?agencyId=${agencyId}`);
+        const pkgs = await fetchApi<any[]>(`/packages?agencyId=${agencyId}`);
+        // Return mock data if no packages found (for demo/development)
+        if (!pkgs || pkgs.length === 0) throw new Error('Empty');
+        return pkgs;
     } catch {
         return MOCK_PACKAGES;
     }
@@ -134,7 +140,10 @@ export async function getPackageById(id: string): Promise<any> {
     try {
         return await fetchApi(`/packages/${id}`);
     } catch {
-        const pkg = MOCK_PACKAGES.find(p => p.id === id);
+        // Try exact match first, then index-based match (for numeric IDs like "1","2","3")
+        const pkg = MOCK_PACKAGES.find(p => p.id === id)
+            || MOCK_PACKAGES[parseInt(id, 10) - 1]
+            || MOCK_PACKAGES[0];
         if (pkg) return pkg;
         throw new Error("Pacote não encontrado");
     }
@@ -188,7 +197,9 @@ export interface PackageDashboardStats {
 
 export async function getPackageDashboardStats(agencyId: string): Promise<PackageDashboardStats> {
     try {
-        return await fetchApi(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        const stats = await fetchApi<PackageDashboardStats>(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        if (!stats.packages || stats.packages.length === 0) throw new Error('Empty');
+        return stats;
     } catch {
         return {
             totalPackages: MOCK_PACKAGES.length,
