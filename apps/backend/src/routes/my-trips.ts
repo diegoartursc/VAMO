@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/my-trips/:travelerId
 router.get('/:travelerId', async (req: Request, res: Response) => {
@@ -46,40 +45,7 @@ router.get('/:travelerId', async (req: Request, res: Response) => {
             currency: p.package.currency || 'BRL',
         }));
         
-        // --- Append UI Mock Items so the user can test the new Layout visually ---
-        const uiMocks = [
-            {
-                id: 'pkg-mock-quote1',
-                title: 'Santorini Dream',
-                destination: 'Santorini',
-                country: 'Grécia',
-                image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=1600',
-                travelDate: '2026-09-01',
-                travelEndDate: '2026-09-10',
-                status: 'awaiting_quote',
-                agencyName: 'VAMO Global Travel',
-                agencyLogo: '✈️',
-                price: 9200,
-                currency: 'BRL',
-                autoMessage: 'Estamos cotando o melhor valor aéreo saindo de Florianópolis para você! Aguarde a proposta.',
-            },
-            {
-                id: 'pkg-mock-quote2',
-                title: 'Cusco e Machu Picchu',
-                destination: 'Cusco',
-                country: 'Peru',
-                image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600',
-                travelDate: '2026-10-15',
-                travelEndDate: '2026-10-22',
-                status: 'pending_payment',
-                agencyName: 'VAMO Expeditions',
-                agencyLogo: '🦙',
-                price: 4500,
-                currency: 'BRL',
-            }
-        ];
-        
-        const upcomingPackages = [...mappedData, ...uiMocks];
+        const upcomingPackages = mappedData;
 
         // ─── Past Packages (travel date in the past or status completed) ───
         const pastPurchases = await prisma.purchaseHistory.findMany({

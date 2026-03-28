@@ -22,7 +22,7 @@ export interface Review {
 const MOCK_REVIEWS: Review[] = [
     {
         id: '1',
-        packageId: '1',
+        packageId: 'pkg-1',
         user: {
             name: 'Salomé',
             location: 'Portugal',
@@ -47,7 +47,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '2',
-        packageId: '1',
+        packageId: 'pkg-1',
         user: {
             name: 'William',
             location: 'Brasil',
@@ -62,7 +62,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '3',
-        packageId: '1',
+        packageId: 'pkg-1',
         user: {
             name: 'Ana Clara',
             location: 'Brasil',
@@ -80,7 +80,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '4',
-        packageId: '2',
+        packageId: 'pkg-2',
         user: {
             name: 'Carlos',
             location: 'México',
@@ -95,7 +95,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '5',
-        packageId: '2',
+        packageId: 'pkg-2',
         user: {
             name: 'Marina',
             location: 'Espanha',

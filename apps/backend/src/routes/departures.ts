@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, DepartureStatus } from '@prisma/client';
+import { DepartureStatus } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // ─────────────────────────────────────────────
 // GET /api/departures/:packageId - List departures for a package (public)

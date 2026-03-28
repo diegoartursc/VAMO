@@ -234,4 +234,41 @@ router.get('/me', async (req: Request, res: Response) => {
     }
 });
 
+// POST /api/auth/refresh - Renew access token using refresh token
+router.post('/refresh', async (req: Request, res: Response) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({ error: 'Refresh token é obrigatório' });
+        }
+
+        const decoded = verifyToken(refreshToken) as { agencyId: string; employeeId: string } | null;
+        if (!decoded) {
+            return res.status(401).json({ error: 'Refresh token inválido ou expirado' });
+        }
+
+        // Verify employee still exists and is active
+        const employee = await prisma.agencyEmployee.findUnique({
+            where: { id: decoded.employeeId },
+            select: { id: true, agencyId: true, email: true, active: true },
+        });
+
+        if (!employee || !employee.active) {
+            return res.status(401).json({ error: 'Conta não encontrada ou desativada' });
+        }
+
+        // Issue new access token
+        const accessToken = generateAccessToken({
+            agencyId: employee.agencyId,
+            employeeId: employee.id,
+            email: employee.email,
+        });
+
+        res.json({ accessToken });
+    } catch (error) {
+        console.error('Refresh token error:', error);
+        res.status(401).json({ error: 'Falha ao renovar token' });
+    }
+});
+
 export default router;

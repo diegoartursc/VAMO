@@ -136,7 +136,12 @@ export default function CheckoutPaymentScreen() {
                         <View style={{ flex: 1 }}>
                             <Text style={styles.optionText}>Pagar depois</Text>
                             <Text style={styles.optionSubtext}>
-                                Efetuaremos a cobrança em seu cartão em seg., mar. 9
+                                Efetuaremos a cobrança em seu cartão em{' '}
+                                {(() => {
+                                    const d = new Date();
+                                    d.setDate(d.getDate() + 3);
+                                    return d.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
+                                })()}
                             </Text>
                         </View>
                     </Pressable>

@@ -34,7 +34,7 @@ const agencies: Agency[] = [
 
 export const mockPackages: Package[] = [
     {
-        id: '1',
+        id: 'pkg-1',
         title: 'Paris Romântica - 7 Dias Inesquecíveis',
         destination: 'Paris',
         country: 'França',
@@ -147,7 +147,7 @@ export const mockPackages: Package[] = [
         ],
     },
     {
-        id: '2',
+        id: 'pkg-2',
         title: 'Caribe All Inclusive - Cancún',
         destination: 'Cancún',
         country: 'México',

@@ -27,8 +27,31 @@ const limiter = rateLimit({
     max: 100, // limit each IP to 100 requests per windowMs
 });
 
-// Middleware
-app.use(cors());
+// Allowed origins: site dashboard, local dev, and Expo mobile app
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+
+// Always allow local dev origins
+const DEFAULT_DEV_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:8081', // Expo web
+    'http://localhost:19006', // Expo Go
+];
+
+const corsOrigins = ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS : DEFAULT_DEV_ORIGINS;
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        if (corsOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
+}));
 app.use(express.json());
 app.use('/api', limiter);
 

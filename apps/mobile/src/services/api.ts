@@ -6,7 +6,10 @@ import { mockPackages } from '../data/mockPackages';
 import { mockItineraries } from '../data/mockItineraries';
 import { mockCreators, getFeaturedCreators as mockFeaturedCreators } from '../data/mockCreators';
 
-const API_BASE_URL = 'http://localhost:3333/api';
+// Em celular físico, localhost não aponta para o seu computador.
+// Defina EXPO_PUBLIC_API_URL no arquivo .env do mobile com o IP da sua máquina.
+// Exemplo: EXPO_PUBLIC_API_URL=http://192.168.1.100:3333/api
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
 // ─── Helper ───
 async function fetchApi<T>(endpoint: string): Promise<T> {

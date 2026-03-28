@@ -59,7 +59,7 @@ export default function DashboardPage() {
                 <div className="dash-header">
                     <h1 className="dash-title">Visão Geral</h1>
                     <p className="dash-subtitle" style={{ color: "#e74c3c" }}>
-                        Erro ao carregar: {error}. Verifique se o backend está rodando em localhost:3000.
+                        Erro ao carregar: {error}. Verifique se o backend está rodando em localhost:3333.
                     </p>
                 </div>
             </>

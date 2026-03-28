@@ -14,7 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme/theme';
-import { getPackageById, getRelatedPackages } from '../../src/services/api';
+import { getPackageById, getRelatedPackages, getReviews } from '../../src/services/api';
 import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../src/data/mockReviews';
 import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
 import { Alert, Linking } from 'react-native';
@@ -36,7 +36,8 @@ export default function PackageDetailScreen() {
     const [packageData, setPackageData] = useState<any>(null);
     const [relatedPackages, setRelatedPackages] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const reviews = getReviewsByPackageId(id);
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [reviewStats, setReviewStats] = useState({ total: 0, averageRating: 0 });
     const [showAllReviews, setShowAllReviews] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showParticipants, setShowParticipants] = useState(false);
@@ -59,6 +60,21 @@ export default function PackageDetailScreen() {
             console.error(err);
             setLoading(false);
         });
+
+        getReviews({ packageId: id }).then(data => {
+            setReviews(data.reviews);
+            setReviewStats(data.stats);
+        }).catch(err => {
+            console.error('Failed to fetch reviews:', err);
+            // Fallback to mock data if API fails
+            const mockReviews = getReviewsByPackageId(id);
+            setReviews(mockReviews);
+            setReviewStats({ 
+                total: mockReviews.length, 
+                averageRating: getAverageRating(id) 
+            });
+        });
+
         getRelatedPackages(id).then(setRelatedPackages).catch(() => setRelatedPackages([]));
     }, [id]);
 
@@ -659,7 +675,17 @@ export default function PackageDetailScreen() {
                         />
                     )}
 
-
+                    {/* Avaliações / Reviews Section */}
+                    {reviews.length > 0 && (
+                        <PremiumReviewsSection
+                            reviews={reviews}
+                            averageRating={reviewStats.averageRating || getAverageRating(id)}
+                            totalReviews={reviewStats.total || reviews.length}
+                            categoryRatings={getCategoryRatings(id)}
+                            communityPhotos={getCommunityPhotos(id)}
+                            topRatedSummary={getTopRatedCategoriesText(id)}
+                        />
+                    )}
 
                     {/* Related Packages Section */}
                     {relatedPackages.length > 0 && (

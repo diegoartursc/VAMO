@@ -11,5 +11,9 @@
     "dev:backend": "npm run dev --workspace=apps/backend",
     "build:mobile": "npm run build:web --workspace=apps/mobile",
     "build:site": "npm run build --workspace=apps/site"
+  },
+  "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.3"
   }
 }

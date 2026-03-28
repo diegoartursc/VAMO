@@ -59,13 +59,14 @@ npx expo start
 - 📖 **[Descritivo Completo](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/DESCRITIVO_COMPLETO.md)** - Visão do produto e princípios
 - 📊 **[Resumo Executivo](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/RESUMO_EXECUTIVO.md)** - Para investidores e mercado
 - 🔧 **[Estratégia de Integração](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/ESTRATEGIA_INTEGRACAO_AGENCIAS.md)** - Guia técnico
+- 🏆 **[Modelo de Referência (Paris)](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/product/MODELO_REFERENCIA.md)** - Padrão de dados e fluxo do projeto
 
 ### Documentação Técnica
 
-- 🎨 [Design System](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/design/design_system.md)
-- 🛠️ [Arquitetura Backend](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/backend/ARQUITETURA_BACKEND.md)
+- 🔧 [Estratégia de Integração](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/ESTRATEGIA_INTEGRACAO_AGENCIAS.md)
 - 📊 [Status do Projeto](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/STATUS_PROJETO.md)
-- 📝 [Changelog](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/changelog/)
+- 📝 [Changelog de Hoje (28/03/2026)](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/changelog/2026-03-28_bug_fixes.md)
+- 📝 [Histórico do Changelog](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/changelog/)
 
 ---
 
@@ -161,4 +162,5 @@ Este é um projeto proprietário. Para informações sobre colaborações ou par
 
 - [Descritivo Completo](./docs/DESCRITIVO_COMPLETO.md)
 - [Estratégia de Integração](./docs/ESTRATEGIA_INTEGRACAO_AGENCIAS.md)
+- [Modelo de Referência (Paris)](./docs/product/MODELO_REFERENCIA.md)
 - [Design System](./docs/design/design_system.md)

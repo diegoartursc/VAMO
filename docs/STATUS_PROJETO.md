@@ -4,7 +4,7 @@
 
 **VAMO** é uma plataforma mobile-first que simplifica a decisão de viagem, conectando viajantes a agências verificadas e criadores de roteiros independentes.
 
-**Status Atual:** MVP Frontend Completo ✅ | Backend MVP Implementado ✅ | Dashboards Operacionais ✅ | Fase 2.5 Concluída ✅
+**Status Atual:** MVP Frontend Completo ✅ | Backend MVP Implementado ✅ | Dashboards Operacionais ✅ | Fase 2.5 Concluída & Hardened ✅
 
 ---
 
@@ -82,6 +82,7 @@
 - ✅ Theme centralizado
 - ✅ Constants centralizadas (CATEGORIES)
 - ✅ Providers migrados para src/providers
+- ✅ **Infrastructure Hardened**: Prisma Singleton real implementado (`lib/prisma.ts`)
 - ✅ Backup strategy implementada
 
 ### 🚀 Novas Features (Fevereiro 2026)
@@ -98,6 +99,7 @@
 - ✅ Pacotes relacionados na página de detalhes
 - ✅ Descrição imersiva nos pacotes (parágrafo sensorial)
 - ✅ "Meu Roteiro" exibe a experiência real do viajante (sem alternância de tier econômico/conforto/luxo)
+- ✅ **Padrão Paris Romântica (Março 2026)**: Estabelecido como modelo de referência para estrutura de dados, dashboard de 8 etapas e fluxo de reviews.
 
 ### 🛠️ Backend MVP (Fevereiro 2026)
 - ✅ Projeto Node.js + Express + TypeScript configurado

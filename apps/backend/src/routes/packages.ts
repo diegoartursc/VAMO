@@ -1,9 +1,79 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
+
+// GET /api/packages/dashboard/stats - Dashboard stats for an agency
+// NOTE: Must be registered BEFORE /:id to avoid being caught by the param route
+router.get('/dashboard/stats', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const { agencyId } = req.query;
+        const where: any = {};
+        if (agencyId) where.agencyId = agencyId as string;
+
+        const packages = await prisma.package.findMany({
+            where,
+            include: {
+                departures: {
+                    include: {
+                        _count: { select: { bookings: true } },
+                    },
+                },
+                reviews: { select: { rating: true } },
+            },
+        });
+
+        const totalPackages = packages.length;
+        const activePackages = packages.filter((p: any) =>
+            p.status === 'APPROVED' || p.status === 'ACTIVE'
+        ).length;
+
+        let totalRevenue = 0;
+        let totalSales = 0;
+
+        for (const pkg of packages) {
+            for (const dep of (pkg as any).departures) {
+                const bookingsCount = dep._count.bookings;
+                totalSales += bookingsCount;
+                totalRevenue += bookingsCount * dep.price;
+            }
+        }
+
+        const allRatings = packages.flatMap((p: any) => p.reviews.map((r: any) => r.rating));
+        const averageQualityScore = packages.length > 0
+            ? Math.round(packages.reduce((sum: number, p: any) => sum + (p.qualityScore || 0), 0) / packages.length)
+            : 0;
+
+        const result = {
+            totalPackages,
+            activePackages,
+            totalRevenue,
+            totalSales,
+            averageQualityScore,
+            packages: packages.map((p: any) => ({
+                id: p.id,
+                title: p.title,
+                destination: p.destination,
+                country: p.country,
+                status: p.status,
+                priceMin: p.priceMin,
+                priceMax: p.priceMax,
+                qualityScore: p.qualityScore,
+                rating: p.rating,
+                reviewCount: p.reviewCount,
+                recentPurchases: p.recentPurchases,
+                duration: p.duration,
+                updatedAt: p.updatedAt,
+            })),
+        };
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching package dashboard stats:', error);
+        res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+    }
+});
 
 // GET /api/packages - List all packages (public, or filtered by agencyId query param)
 router.get('/', async (req: Request, res: Response) => {
@@ -263,13 +333,15 @@ function calcQualityScore(data: any): number {
 }
 
 // ─── POST /api/packages ─── Create (requires auth)
-router.post('/', authMiddleware, async (req: Request, res: Response) => {
+router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
         const data = req.body;
 
+        // Always use agencyId from the JWT token — never trust body for this
+        const agencyId = req.agency!.agencyId;
+
         // Validation
         const errors: string[] = [];
-        if (!data.agencyId) errors.push('agencyId é obrigatório');
         if (!data.title?.trim()) errors.push('Título é obrigatório');
         if (!data.destination?.trim()) errors.push('Destino é obrigatório');
         if (!data.country?.trim()) errors.push('País é obrigatório');
@@ -289,7 +361,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
         const pkg = await prisma.package.create({
             data: {
-                agencyId: data.agencyId,
+                agencyId,
                 title: data.title,
                 destination: data.destination,
                 country: data.country,
@@ -345,9 +417,25 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // ─── PUT /api/packages/:id ─── Update (requires auth)
-router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
         const data = req.body;
+
+        // Ownership check: the package must belong to the requester's agency
+        const existing = await prisma.package.findUnique({
+            where: { id: req.params.id as string },
+            select: { agencyId: true },
+        });
+
+        if (!existing) {
+            res.status(404).json({ error: 'Pacote não encontrado' });
+            return;
+        }
+
+        if (existing.agencyId !== req.agency!.agencyId) {
+            res.status(403).json({ error: 'Acesso negado: este pacote não pertence à sua agência' });
+            return;
+        }
 
         // Validation
         const errors: string[] = [];
@@ -398,8 +486,24 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // ─── DELETE /api/packages/:id ─── Soft delete (archive, requires auth)
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
+        // Ownership check
+        const existing = await prisma.package.findUnique({
+            where: { id: req.params.id as string },
+            select: { agencyId: true },
+        });
+
+        if (!existing) {
+            res.status(404).json({ error: 'Pacote não encontrado' });
+            return;
+        }
+
+        if (existing.agencyId !== req.agency!.agencyId) {
+            res.status(403).json({ error: 'Acesso negado: este pacote não pertence à sua agência' });
+            return;
+        }
+
         const pkg = await prisma.package.update({
             where: { id: req.params.id as string },
             data: { status: 'ARCHIVED' },
