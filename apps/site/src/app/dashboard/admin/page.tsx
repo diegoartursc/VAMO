@@ -348,12 +348,12 @@ export default function AdminDashboardPage() {
 
                 {/* Footer */}
                 <div style={{ padding: "12px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                    <button onClick={() => { }} style={{
+                    <button disabled style={{
                         display: "flex", alignItems: "center", gap: "10px", width: "100%",
                         padding: "9px 12px", borderRadius: "10px", border: "none",
-                        background: "transparent", color: "#64748B", cursor: "pointer",
+                        background: "transparent", color: "#64748B", cursor: "not-allowed", opacity: 0.5,
                         fontSize: "13px", fontWeight: "500", textAlign: "left", marginBottom: "2px",
-                    }}>{Icon.settings({ size: 17, color: "#475569" })}<span>Configurações</span></button>
+                    }} title="Configurações em desenvolvimento">{Icon.settings({ size: 17, color: "#475569" })}<span>Configurações</span></button>
                     <button onClick={logout} style={{
                         display: "flex", alignItems: "center", gap: "10px", width: "100%",
                         padding: "9px 12px", borderRadius: "10px", border: "none",

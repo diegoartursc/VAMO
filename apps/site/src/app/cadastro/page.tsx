@@ -61,9 +61,9 @@ export default function CadastroPage() {
             <div className="auth-side">
                 <div className="auth-side-content">
                     <div className="auth-side-logo">VAMO</div>
-                    <h2>Cadastre sua Agência</h2>
+                    <h2>Torne-se um Criador</h2>
                     <p>
-                        Crie sua conta gratuita e comece a publicar pacotes de
+                        Crie sua conta gratuita e comece a publicar roteiros de
                         viagem na maior plataforma de turismo do Brasil.
                     </p>
                     <div className="auth-side-features">
@@ -83,7 +83,7 @@ export default function CadastroPage() {
                             <div className="auth-feature-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                             </div>
-                            <span>Editor de pacotes completo</span>
+                            <span>Editor de roteiros completo</span>
                         </div>
                     </div>
                 </div>
@@ -99,7 +99,7 @@ export default function CadastroPage() {
                     </div>
                     <h1 className="auth-title">Criar Conta</h1>
                     <p className="auth-subtitle">
-                        Preencha os dados da sua agência para começar
+                        Preencha seus dados para começar a criar roteiros
                     </p>
 
                     {error && (
@@ -110,10 +110,10 @@ export default function CadastroPage() {
                     )}
 
                     <form className="auth-form" onSubmit={handleSubmit}>
-                        <div className="form-section-label">Dados da Agência</div>
+                        <div className="form-section-label">Dados do Criador</div>
                         <div className="form-group">
-                            <label className="form-label">Nome da Agência</label>
-                            <input type="text" className="form-input" placeholder="Viagens Fantásticas Ltda" value={form.agencyName} onChange={set("agencyName")} required />
+                            <label className="form-label">Nome do Perfil</label>
+                            <input type="text" className="form-input" placeholder="Viagens da Ana" value={form.agencyName} onChange={set("agencyName")} required />
                         </div>
                         <div className="form-row">
                             <div className="form-group">

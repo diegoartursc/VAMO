@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
 
 const router = Router();
@@ -85,8 +86,11 @@ router.get('/featured', async (req: Request, res: Response) => {
 router.get('/dashboard/stats', async (req: Request, res: Response) => {
     try {
         const { creatorId } = req.query;
-        const where: any = {};
-        if (creatorId) where.creatorId = creatorId as string;
+        if (!creatorId) {
+            res.status(400).json({ error: 'creatorId is required' });
+            return;
+        }
+        const where: any = { creatorId: creatorId as string };
 
         const itineraries = await prisma.itinerary.findMany({
             where,
@@ -206,7 +210,7 @@ function calcItineraryQuality(data: any): number {
 
 // ─── CREATE ───
 // POST /api/itineraries (requires auth)
-router.post('/', authMiddleware, async (req: Request, res: Response) => {
+router.post('/', authMiddleware, createAuditMiddleware('CREATE'), async (req: AuthRequest, res: Response) => {
     try {
         const {
             creatorId, title, destination, country, description,
@@ -334,7 +338,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
 // ─── UPDATE ───
 // PUT /api/itineraries/:id (requires auth)
-router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id', authMiddleware, createAuditMiddleware('UPDATE'), async (req: AuthRequest, res: Response) => {
     try {
         const id = req.params.id as string;
         const {
@@ -526,7 +530,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 
 // ─── DELETE ───
 // DELETE /api/itineraries/:id (requires auth)
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, createAuditMiddleware('DELETE'), async (req: AuthRequest, res: Response) => {
     try {
         const id = req.params.id as string;
         const { hard } = req.query;

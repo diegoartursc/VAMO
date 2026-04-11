@@ -27,8 +27,8 @@ function OverviewContent() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "24px" }}>
                     {[
                         { label: "Total Pendente", value: stats.totalPending + creators.length, icon: Icon.hourglass, color: "#D97706", bg: "rgba(217,119,6,0.08)" },
-                        { label: "Pacotes Pendentes", value: stats.pendingPackages, icon: Icon.package, color: "#1FA89F", bg: "rgba(31,168,159,0.08)" },
                         { label: "Roteiros Pendentes", value: stats.pendingItineraries, icon: Icon.map, color: "#6366F1", bg: "rgba(99,102,241,0.08)" },
+                        { label: "Roteiristas Ativos", value: creators.length, icon: Icon.compass, color: "#1FA89F", bg: "rgba(31,168,159,0.08)" },
                         { label: "Aprovados Hoje", value: stats.approvedToday, icon: Icon.checkCircle, color: "#16A34A", bg: "rgba(22,163,74,0.08)" },
                     ].map(stat => (
                         <div key={stat.label} style={{
@@ -50,20 +50,20 @@ function OverviewContent() {
 
             {/* Quick lists */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                {/* Pending packages */}
+                {/* Pending itineraries */}
                 <div style={{ background: "#fff", borderRadius: "18px", padding: "20px", border: "1px solid rgba(226,232,240,0.7)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-                        {Icon.package({ size: 16, color: "#1FA89F" })}
-                        <span style={{ fontSize: "13px", fontWeight: "700", color: "#1A3263" }}>Pacotes pendentes</span>
-                        <span style={{ marginLeft: "auto", fontSize: "11px", fontWeight: "700", color: "#1FA89F", background: "rgba(31,168,159,0.1)", padding: "2px 8px", borderRadius: "8px" }}>{packages.length}</span>
+                        {Icon.map({ size: 16, color: "#6366F1" })}
+                        <span style={{ fontSize: "13px", fontWeight: "700", color: "#1A3263" }}>Roteiros pendentes</span>
+                        <span style={{ marginLeft: "auto", fontSize: "11px", fontWeight: "700", color: "#6366F1", background: "rgba(99,102,241,0.1)", padding: "2px 8px", borderRadius: "8px" }}>{itineraries.length}</span>
                     </div>
-                    {packages.slice(0, 3).map(p => (
+                    {itineraries.slice(0, 3).map(p => (
                         <div key={p.id} style={{ padding: "8px 0", borderBottom: "1px solid #F0F2F5", fontSize: "13px", color: "#1A3263" }}>
-                            {p.title} <span style={{ color: "#98989D" }}>· {p.agency?.name}</span>
+                            {p.title} <span style={{ color: "#98989D" }}>· {p.creator?.name || 'Criador'}</span>
                         </div>
                     ))}
-                    {packages.length === 0 && <div style={{ fontSize: "13px", color: "#98989D" }}>Nenhum pacote pendente</div>}
-                    {packages.length > 3 && <Link href="/admin/pacotes" style={{ marginTop: "8px", display: "inline-block", fontSize: "12px", color: "#28C9BF", fontWeight: "600", textDecoration: "none" }}>Ver todos →</Link>}
+                    {itineraries.length === 0 && <div style={{ fontSize: "13px", color: "#98989D" }}>Nenhum roteiro pendente</div>}
+                    {itineraries.length > 3 && <Link href="/admin/roteiros" style={{ marginTop: "8px", display: "inline-block", fontSize: "12px", color: "#28C9BF", fontWeight: "600", textDecoration: "none" }}>Ver todos →</Link>}
                 </div>
 
                 {/* Pending creators */}

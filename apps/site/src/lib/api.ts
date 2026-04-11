@@ -50,10 +50,23 @@ export interface DashboardItinerary {
 }
 
 const MOCK_ITINERARIES: DashboardItinerary[] = [
-    { id: "mock-1", title: "Chapada Diamantina — 7 dias", destination: "Lençóis", country: "Brasil", status: "active", sales: 24, revenue: 7176, rating: 4.9, reviewCount: 18, duration: 7, price: 299, updatedAt: new Date().toISOString() },
-    { id: "mock-2", title: "Jalapão Selvagem", destination: "Palmas", country: "Brasil", status: "active", sales: 11, revenue: 1650, rating: 4.7, reviewCount: 9, duration: 5, price: 150, updatedAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-    { id: "mock-3", title: "Fernando de Noronha — Mergulho", destination: "Fernando de Noronha", country: "Brasil", status: "pending", sales: 0, revenue: 0, rating: null, reviewCount: 0, duration: 6, price: 2500, updatedAt: new Date(Date.now() - 86400000 * 7).toISOString() },
+    { id: "mock-1", title: "[MOCK] Chapada Diamantina — 7 dias", destination: "Lençóis", country: "Brasil", status: "active", sales: 24, revenue: 7176, rating: 4.9, reviewCount: 18, duration: 7, price: 299, updatedAt: new Date().toISOString() },
+    { id: "mock-2", title: "[MOCK] Jalapão Selvagem", destination: "Palmas", country: "Brasil", status: "active", sales: 11, revenue: 1650, rating: 4.7, reviewCount: 9, duration: 5, price: 150, updatedAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+    { id: "mock-3", title: "[MOCK] Fernando de Noronha — Mergulho", destination: "Fernando de Noronha", country: "Brasil", status: "pending", sales: 0, revenue: 0, rating: null, reviewCount: 0, duration: 6, price: 2500, updatedAt: new Date(Date.now() - 86400000 * 7).toISOString() },
 ];
+
+/**
+ * Helper to safely return mock data with warning
+ * In production, always throws error instead
+ */
+function useMockData<T>(mockData: T, context: string): T {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error(`Backend unavailable (${context}). Please try again later.`);
+    }
+    // Development: warn user about mock data
+    console.warn(`⚠️ [API] Backend offline, using MOCK DATA for development (${context})`);
+    return mockData;
+}
 
 export async function getDashboardStats(creatorId?: string): Promise<DashboardStats> {
     const query = creatorId ? `?creatorId=${creatorId}` : '';
@@ -62,8 +75,8 @@ export async function getDashboardStats(creatorId?: string): Promise<DashboardSt
         // Return mock data if no itineraries found (for demo/development)
         if (!stats.itineraries || stats.itineraries.length === 0) throw new Error('Empty');
         return stats;
-    } catch {
-        return {
+    } catch (error) {
+        return useMockData({
             totalRevenue: 13650,
             totalSales: 35,
             averageRating: 4.8,
@@ -71,7 +84,7 @@ export async function getDashboardStats(creatorId?: string): Promise<DashboardSt
             activeItineraries: 2,
             totalItineraries: 3,
             itineraries: MOCK_ITINERARIES,
-        };
+        }, 'getDashboardStats');
     }
 }
 
@@ -84,8 +97,9 @@ export async function getItineraries(): Promise<DashboardItinerary[]> {
 export async function getItineraryById(id: string): Promise<any> {
     try {
         return await fetchApi(`/itineraries/${id}`);
-    } catch {
-        return MOCK_ITINERARIES.find(i => i.id === id) || MOCK_ITINERARIES[0] || null;
+    } catch (error) {
+        const mockData = MOCK_ITINERARIES.find(i => i.id === id) || MOCK_ITINERARIES[0] || null;
+        return useMockData(mockData, `getItineraryById(${id})`);
     }
 }
 
@@ -111,28 +125,28 @@ export async function deleteItinerary(id: string): Promise<any> {
 
 // ─── Packages CRUD ───
 const MOCK_PACKAGES: any[] = [
-    { id: "pkg-1", title: "Paris Romântica — 10 dias", destination: "Paris", country: "França", duration: 10, status: "ACTIVE", priceMin: 8500, priceMax: 12000, qualityScore: 85, rating: 4.8, reviewCount: 32, recentPurchases: 7 },
-    { id: "pkg-2", title: "Japão Completo", destination: "Tóquio", country: "Japão", duration: 15, status: "ACTIVE", priceMin: 14000, priceMax: 18000, qualityScore: 92, rating: 4.9, reviewCount: 19, recentPurchases: 4 },
-    { id: "pkg-3", title: "Grécia — Ilhas e Cultura", destination: "Atenas", country: "Grécia", duration: 12, status: "PAUSED", priceMin: 9800, priceMax: 13500, qualityScore: 68, rating: 4.5, reviewCount: 11, recentPurchases: 0 },
+    { id: "pkg-1", title: "[MOCK] Paris Romântica — 10 dias", destination: "Paris", country: "França", duration: 10, status: "ACTIVE", priceMin: 8500, priceMax: 12000, qualityScore: 85, rating: 4.8, reviewCount: 32, recentPurchases: 7 },
+    { id: "pkg-2", title: "[MOCK] Japão Completo", destination: "Tóquio", country: "Japão", duration: 15, status: "ACTIVE", priceMin: 14000, priceMax: 18000, qualityScore: 92, rating: 4.9, reviewCount: 19, recentPurchases: 4 },
+    { id: "pkg-3", title: "[MOCK] Grécia — Ilhas e Cultura", destination: "Atenas", country: "Grécia", duration: 12, status: "PAUSED", priceMin: 9800, priceMax: 13500, qualityScore: 68, rating: 4.5, reviewCount: 11, recentPurchases: 0 },
 ];
 
 export async function getPackages(agencyId?: string): Promise<any[]> {
-    const query = agencyId ? `?agencyId=${agencyId}` : '';
     try {
-        return await fetchApi(`/packages${query}`);
-    } catch {
-        return MOCK_PACKAGES;
+        // Note: agencyId param is ignored in public API (returns ONLY ACTIVE packages)
+        return await fetchApi(`/packages`);
+    } catch (error) {
+        return useMockData(MOCK_PACKAGES, 'getPackages');
     }
 }
 
 export async function getAgencyPackages(agencyId: string): Promise<any[]> {
     try {
-        const pkgs = await fetchApi<any[]>(`/packages?agencyId=${agencyId}`);
+        const pkgs = await fetchApi<any[]>(`/packages/dashboard/stats`);
         // Return mock data if no packages found (for demo/development)
         if (!pkgs || pkgs.length === 0) throw new Error('Empty');
         return pkgs;
-    } catch {
-        return MOCK_PACKAGES;
+    } catch (error) {
+        return useMockData(MOCK_PACKAGES, `getAgencyPackages(${agencyId})`);
     }
 }
 
@@ -197,17 +211,17 @@ export interface PackageDashboardStats {
 
 export async function getPackageDashboardStats(agencyId: string): Promise<PackageDashboardStats> {
     try {
-        const stats = await fetchApi<PackageDashboardStats>(`/packages/dashboard/stats?agencyId=${agencyId}`);
+        const stats = await fetchApi<PackageDashboardStats>(`/packages/dashboard/stats`);
         if (!stats.packages || stats.packages.length === 0) throw new Error('Empty');
         return stats;
-    } catch {
-        return {
+    } catch (error) {
+        return useMockData({
             totalPackages: MOCK_PACKAGES.length,
             activePackages: MOCK_PACKAGES.filter(p => p.status === "ACTIVE").length,
             totalRevenue: 312500,
             totalSales: 11,
             averageQualityScore: 82,
             packages: MOCK_PACKAGES,
-        };
+        }, `getPackageDashboardStats(${agencyId})`);
     }
 }

@@ -32,14 +32,14 @@ export default function HeroSection({
 
                 {/* Headlines */}
                 <div className="hero-titles">
-                    <h1 className="hero-headline">Explore novas<br />fronteiras</h1>
-                    <div className="hero-tagline">Viajar ficou simples.</div>
+                    <h1 className="hero-headline">Onde será sua<br />próxima aventura?</h1>
+                    <div className="hero-tagline">Roteiros de quem já viveu.</div>
                 </div>
 
                 {/* Description */}
                 <p className="hero-description">
-                    Roteiros exclusivos de viajantes<br />
-                    e agências verificadas.
+                    Roteiros exclusivos criados por viajantes<br />
+                    experientes e especialistas.
                 </p>
 
                 {/* Download App Section */}
@@ -88,14 +88,14 @@ export default function HeroSection({
 
                 {/* Other CTAs */}
                 <div style={{ display: 'flex', gap: '16px', marginTop: '24px', flexWrap: 'wrap' }}>
-                    <Link href="/cadastro" style={{
+                    <a href="#como-funciona" style={{
                         display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px',
                         background: 'rgba(255, 255, 255, 0.15)', color: '#fff', fontWeight: 600,
                         borderRadius: '9999px', border: '1px solid rgba(255, 255, 255, 0.2)',
                         backdropFilter: 'blur(10px)', textDecoration: 'none', transition: 'all 0.3s'
                     }}>
-                        🏢 Sou Agência
-                    </Link>
+                        🌍 Explorar Roteiros
+                    </a>
                     <Link href="/criadores" style={{
                         display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px',
                         background: 'rgba(255, 255, 255, 0.15)', color: '#fff', fontWeight: 600,

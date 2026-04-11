@@ -58,31 +58,8 @@ const ICONS = {
 };
 
 /* ═══════════════════════════════════════════════════
-   ROLE-SPECIFIC NAV — Agency (Pacotes) vs Creator (Roteiros)
+   SIDEBAR NAV — Creator (Roteiros)
    ═══════════════════════════════════════════════════ */
-function getAgencyNav() {
-    return [
-        {
-            label: "MENU",
-            items: [{ href: "/dashboard", label: "Visão Geral", icon: ICONS.home }],
-        },
-        {
-            label: "PACOTES",
-            items: [
-                { href: "/dashboard/pacotes", label: "Meus Pacotes", icon: ICONS.package },
-                { href: "/dashboard/pacote/novo", label: "Novo Pacote", icon: ICONS.plusCircle },
-            ],
-        },
-        {
-            label: "NEGÓCIOS",
-            items: [
-                { href: "/dashboard/vendas", label: "Minhas Vendas", icon: ICONS.shoppingBag },
-                { href: "/dashboard/comentarios", label: "Comentários", icon: ICONS.messageCircle },
-            ],
-        },
-    ];
-}
-
 function getCreatorNav() {
     return [
         {
@@ -133,15 +110,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return <>{children}</>;
     }
 
-    // Determine role: agency employee → Pacotes; creator → Roteiros
-    const isAgency = !!session?.agency;
-    const navSections = isAgency ? getAgencyNav() : getCreatorNav();
-    const badge = isAgency ? "Agência" : "Roteirista";
+    // Always use creator nav (roteiros-first model)
+    const navSections = getCreatorNav();
+    const badge = "Roteirista";
     const userName = sessionLoading ? "..." : (session?.employee?.name || "Usuário");
-    const subtitle = sessionLoading ? "..." : (isAgency ? session?.agency?.name : "Criador de Roteiros");
+    const subtitle = sessionLoading ? "..." : "Criador de Roteiros";
 
     return (
-        <div className="dash-shell" data-theme={isAgency ? "agency" : "creator"}>
+        <div className="dash-shell" data-theme="creator">
             {/* ─── Dark Navy Sidebar ─── */}
             <aside className="dash-sidebar">
                 {/* Brand */}

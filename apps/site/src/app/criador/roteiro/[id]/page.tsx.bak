@@ -279,7 +279,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             images: images.filter(Boolean),
             days: days.map((d, i) => ({ ...d, dayNumber: i + 1, activities: d.activities.map(a => ({ ...a, latitude: a.latitude ? parseFloat(a.latitude) : undefined, longitude: a.longitude ? parseFloat(a.longitude) : undefined })) })),
             accommodations, transports, checklists: checklistItems,
-            faqQuestions: faqItems,
         };
     }, [title, subtitle, destination, country, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, offlineDownload, allowPdf, allowShare, highlightItems, inclusionItems, spendingBreakdown, spendingCurrency, images, days, accommodations, transports, checklistItems]);
 
@@ -297,7 +296,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             if (isNew) {
                 const created = await createItinerary(payload);
                 setToast({ msg: "Roteiro enviado para revisão!", type: "success" });
-                router.push(`/dashboard/roteiro/${created.id}`);
+                window.location.href = `/dashboard/roteiro/${created.id}`;
             } else {
                 await updateItinerary(id, payload);
                 setToast({ msg: "Alterações enviadas para revisão!", type: "success" });

@@ -14,7 +14,7 @@ export default function NotificationDemo() {
             image: require('../../assets/demo-place.jpg'),
             actionLabel: 'Ir para o carrinho',
             onAction: () => {
-                console.log('Navegando para o carrinho...');
+                // Handle cart navigation
             },
             duration: 8000,
         });
@@ -27,7 +27,7 @@ export default function NotificationDemo() {
             message: 'Você receberá um email com os detalhes',
             actionLabel: 'Ver detalhes',
             onAction: () => {
-                console.log('Abrindo detalhes...');
+                // Handle details navigation
             },
         });
     };

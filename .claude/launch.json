@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Backend (API)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/backend"],
+      "port": 3333
+    },
+    {
+      "name": "Site (Dashboard Next.js)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/site"],
+      "port": 3000
+    },
+    {
+      "name": "Mobile (Expo Web)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/mobile"],
+      "port": 8081
+    }
+  ]
+}

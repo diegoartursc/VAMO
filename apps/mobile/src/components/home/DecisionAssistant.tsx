@@ -22,26 +22,26 @@ interface DecisionAssistantProps {
 const QUESTIONS = [
     {
         id: 1,
-        question: 'Como você prefere viajar?',
+        question: 'Qual é o seu estilo de viagem?',
         options: [
-            { label: '🎯 Tudo pronto, só aproveitar', value: 'package' },
-            { label: '🗺️ Planejar cada detalhe', value: 'itinerary' },
+            { label: '🎒 Mochilão e aventura', value: 'aventura' },
+            { label: '🏨 Conforto e tranquilidade', value: 'conforto' },
         ],
     },
     {
         id: 2,
-        question: 'Qual seu nível de experiência?',
+        question: 'O que te move a viajar?',
         options: [
-            { label: '🌱 Primeira viagem internacional', value: 'package' },
-            { label: '✈️ Já viajei bastante', value: 'itinerary' },
+            { label: '🍝 Gastronomia e cultura', value: 'gastronomia' },
+            { label: '📸 Paisagens e experiências', value: 'experiencias' },
         ],
     },
     {
         id: 3,
-        question: 'O que importa mais pra você?',
+        question: 'Com quem você viaja?',
         options: [
-            { label: '🛡️ Segurança e suporte', value: 'package' },
-            { label: '💰 Economizar e ter flexibilidade', value: 'itinerary' },
+            { label: '👫 Casal ou amigos', value: 'casal' },
+            { label: '👨‍👩‍👧‍👦 Família com crianças', value: 'familia' },
         ],
     },
 ];
@@ -58,16 +58,12 @@ export default function DecisionAssistant({ visible, onClose }: DecisionAssistan
         if (currentQuestion < QUESTIONS.length - 1) {
             setCurrentQuestion(currentQuestion + 1);
         } else {
-            // Calculate result
-            const packageCount = newAnswers.filter(a => a === 'package').length;
-            const result = packageCount >= 2 ? 'packages' : 'itineraries';
-
             onClose();
             setCurrentQuestion(0);
             setAnswers([]);
 
-            // Navigate to recommended tab
-            router.push(`/(tabs)/${result}`);
+            // Always navigate to itineraries
+            router.push(`/(tabs)/itineraries`);
         }
     };
 
@@ -120,7 +116,7 @@ export default function DecisionAssistant({ visible, onClose }: DecisionAssistan
 
                     {/* Footer hint */}
                     <Text style={styles.hint}>
-                        Vamos encontrar a melhor opção para você
+                        Vamos encontrar o roteiro ideal para você
                     </Text>
                 </View>
             </BlurView>

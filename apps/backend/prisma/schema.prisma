@@ -881,3 +881,24 @@ model Destination {
   @@unique([name, country])
   @@map("destinations")
 }
+
+// ─────────────────────────────────────────────
+// AUDIT LOG (LGPD compliance — track all actions)
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // 'CREATE' | 'UPDATE' | 'DELETE'
+  target    String   // 'packages/pkg-id', 'itineraries/itin-id', 'creators/creator-id'
+  who       String   // agencyId, employeeId, travelerId, or adminId
+  timestamp DateTime @default(now()) @db.Timestamp()
+  ip        String?
+  changes   Json?    // { before: {...}, after: {...} } for UPDATE; {} for CREATE/DELETE
+  createdAt DateTime @default(now())
+
+  @@index([who])
+  @@index([target])
+  @@index([timestamp])
+  @@index([action])
+  @@map("audit_logs")
+}

@@ -83,7 +83,10 @@ As pastas `logs-de-prompts/` e `logs_de_prompts/` (note: duas pastas com nomes d
 O `README.md` na raiz é o cartão de visita do projeto para qualquer pessoa que abrir o repositório. Atualmente está desatualizado: não explica a estrutura de monorepo, não lista os pré-requisitos corretos, não tem os comandos certos.
 
 ### Problema 6: Changelog abandonado
-Existe um arquivo `docs/changelog/2026-01-30_bug_fixes.md` — boa iniciativa — mas parou em janeiro. A sessão de hoje corrigiu 15 bugs e nada foi registrado.
+Existe um arquivo `docs/changelog/2026-01-30_bug_fixes.md` — boa iniciativa — mas parou em janeiro. A sessão de hoje corrigiu 17 bugs e nada foi registrado.
+
+### Problema 7: Modelo de referência da UI não estava documentado
+A página de detalhe de pacote (`apps/mobile/app/package/[id].tsx`) com o pacote *Paris Romântica* (`pkg-1`) como dados de referência é o **padrão oficial de layout** do app — mas isso não estava escrito em lugar nenhum. Qualquer desenvolvedor novo ou IA poderia alterar essa tela sem saber que ela é o modelo que todos os outros 10 pacotes seguem. Isso foi corrigido: a seção "Modelos de referência de UI" foi adicionada ao `docs/CLAUDE.md`.
 
 ---
 

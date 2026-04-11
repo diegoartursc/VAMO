@@ -111,7 +111,7 @@ export default function ProfileScreen() {
                 saved: 'Você ainda não salvou nenhum item.',
             };
             Alert.alert('Nada aqui ainda', messages[type], [
-                { text: 'Explorar', onPress: () => router.push('/(tabs)/packages') },
+                { text: 'Explorar', onPress: () => router.push('/(tabs)/itineraries') },
                 { text: 'OK' },
             ]);
         } else {
@@ -175,7 +175,7 @@ export default function ProfileScreen() {
                     <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}>
                         <Icon name="briefcase" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.trips}</Text>
-                        <Text style={styles.statLabel}>Meus Pacotes</Text>
+                        <Text style={styles.statLabel}>Reservas</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}>
                         <Icon name="book-open" size={22} color={theme.colors.primary} />
@@ -221,9 +221,9 @@ export default function ProfileScreen() {
                                 <Text style={styles.nextTripEmptyText}>Você ainda não tem viagens programadas.</Text>
                                 <TouchableOpacity
                                     style={styles.nextTripExploreCta}
-                                    onPress={() => router.push('/(tabs)/packages')}
+                                    onPress={() => router.push('/(tabs)/itineraries')}
                                 >
-                                    <Text style={styles.nextTripExploreText}>Explorar pacotes →</Text>
+                                    <Text style={styles.nextTripExploreText}>Explorar roteiros →</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -273,7 +273,7 @@ export default function ProfileScreen() {
                         onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}
                     >
                         <Icon name="briefcase" size={20} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText}>Meus Pacotes</Text>
+                        <Text style={styles.shortcutText}>Reservas</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
@@ -331,7 +331,7 @@ export default function ProfileScreen() {
                                 </View>
                                 <View>
                                     <Text style={styles.storeTitle}>Portal do Criador</Text>
-                                    <Text style={styles.storeSubtitle}>Crie roteiros pelo site vamo.app</Text>
+                                    <Text style={styles.storeSubtitle}>Transforme suas viagens em roteiros e ganhe comissão</Text>
                                 </View>
                             </View>
                             <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
@@ -487,10 +487,10 @@ export default function ProfileScreen() {
             </Modal>
 
             <InfoModal visible={showAboutModal} title="Sobre o VAMO"
-                content={`VAMO — Sua plataforma de viagens\n\nVersão 1.0.0\n\nDescubra experiências únicas e pacotes de viagem personalizados. Conectamos você às melhores agências e criadores de roteiros.\n\n© 2026 VAMO. Todos os direitos reservados.`}
+                content={`VAMO — Sua plataforma de roteiros de viagem\n\nVersão 1.0.0\n\nDescubra roteiros detalhados criados por viajantes experientes. Planeje sua viagem com quem já esteve lá.\n\n© 2026 VAMO. Todos os direitos reservados.`}
                 onClose={() => setShowAboutModal(false)} />
             <InfoModal visible={showHowItWorksModal} title="Como funciona"
-                content={`1. Explore\nNavegue por pacotes de viagem e roteiros de viajantes experientes.\n\n2. Escolha\nSelecione a experiência perfeita para você e verifique a disponibilidade.\n\n3. Reserve\nComplete seu cadastro e finalize a reserva com segurança.\n\n4. Viaje!\nReceba todas as informações por email e aproveite sua aventura.`}
+                content={`1. Explore\nNavegue por roteiros criados por viajantes experientes.\n\n2. Escolha\nSelecione o roteiro perfeito para você e confira os detalhes.\n\n3. Adquira\nFinalize a compra do roteiro com segurança.\n\n4. Viaje!\nReceba todas as informações e aproveite sua aventura.`}
                 onClose={() => setShowHowItWorksModal(false)} />
         </View>
     );

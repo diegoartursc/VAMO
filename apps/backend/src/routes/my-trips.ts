@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
+import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import prisma from '../lib/prisma';
 
 const router = Router();
 
-// GET /api/my-trips/:travelerId
-router.get('/:travelerId', async (req: Request, res: Response) => {
+// GET /api/my-trips - Get current traveler's trips (requires auth)
+router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
     try {
-        const travelerId = req.params.travelerId as string;
+        const travelerId = req.traveler!.travelerId;
         const now = new Date();
 
         // ─── Upcoming Packages (travel date in the future, not cancelled) ───

@@ -1,6 +1,9 @@
 /**
  * VAMO API Service — Gateway to backend database
  * Tries real API first, falls back to mock data when API is unavailable
+ *
+ * IMPORTANT: Mock data is ONLY for development
+ * In production (EAS build), API must be working
  */
 import { mockPackages } from '../data/mockPackages';
 import { mockItineraries } from '../data/mockItineraries';
@@ -10,12 +13,25 @@ import { mockCreators, getFeaturedCreators as mockFeaturedCreators } from '../da
 // Defina EXPO_PUBLIC_API_URL no arquivo .env do mobile com o IP da sua máquina.
 // Exemplo: EXPO_PUBLIC_API_URL=http://192.168.1.100:3333/api
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
+const IS_DEVELOPMENT = __DEV__; // Expo global
 
 // ─── Helper ───
 async function fetchApi<T>(endpoint: string): Promise<T> {
     const res = await fetch(`${API_BASE_URL}${endpoint}`);
     if (!res.ok) throw new Error(`API Error: ${res.status} ${res.statusText}`);
     return res.json();
+}
+
+/**
+ * Safely use mock data with warning in development
+ * In production, always throws error
+ */
+function useMockData<T>(mockData: T, context: string): T {
+    if (!IS_DEVELOPMENT) {
+        throw new Error(`Backend unavailable (${context}). Please check your internet connection.`);
+    }
+    console.warn(`⚠️ [API] Using MOCK DATA for development (${context})`);
+    return mockData;
 }
 
 // ─── Packages ───
@@ -33,8 +49,8 @@ export async function getPackages(params?: {
         if (params?.sort) query.set('sort', params.sort);
         const qs = query.toString();
         return await fetchApi(`/packages${qs ? `?${qs}` : ''}`);
-    } catch {
-        return mockPackages;
+    } catch (error) {
+        return useMockData(mockPackages, 'getPackages');
     }
 }
 
@@ -42,18 +58,21 @@ export async function getPackageById(id: string): Promise<any | null> {
     try {
         const result = await fetchApi(`/packages/${id}`);
         if (result) return result;
-    } catch { /* fall through to mock */ }
-    return mockPackages.find(p => p.id === id) || null;
+    } catch (error) {
+        const mockPkg = mockPackages.find(p => p.id === id);
+        if (mockPkg) return useMockData(mockPkg, `getPackageById(${id})`);
+        return null;
+    }
 }
 
 export async function getFeaturedPackages(): Promise<any[]> {
     try { return await fetchApi('/packages/featured'); }
-    catch { return mockPackages.filter(p => p.featured); }
+    catch (error) { return useMockData(mockPackages.filter(p => p.featured), 'getFeaturedPackages'); }
 }
 
 export async function getRelatedPackages(id: string): Promise<any[]> {
     try { return await fetchApi(`/packages/${id}/related`); }
-    catch { return mockPackages.filter(p => p.id !== id).slice(0, 4); }
+    catch (error) { return useMockData(mockPackages.filter(p => p.id !== id).slice(0, 4), `getRelatedPackages(${id})`); }
 }
 
 // ─── Itineraries ───
@@ -67,8 +86,8 @@ export async function getItineraries(params?: {
         if (params?.sort) query.set('sort', params.sort);
         const qs = query.toString();
         return await fetchApi(`/itineraries${qs ? `?${qs}` : ''}`);
-    } catch {
-        return mockItineraries;
+    } catch (error) {
+        return useMockData(mockItineraries, 'getItineraries');
     }
 }
 
@@ -76,35 +95,41 @@ export async function getItineraryById(id: string): Promise<any | null> {
     try {
         const result = await fetchApi(`/itineraries/${id}`);
         if (result) return result;
-    } catch { /* fall through to mock */ }
-    return mockItineraries.find(i => i.id === id) || null;
+    } catch (error) {
+        const mockItinerary = mockItineraries.find(i => i.id === id);
+        if (mockItinerary) return useMockData(mockItinerary, `getItineraryById(${id})`);
+        return null;
+    }
 }
 
 export async function getFeaturedItineraries(): Promise<any[]> {
     try { return await fetchApi('/itineraries/featured'); }
-    catch { return mockItineraries.filter(i => i.featured); }
+    catch (error) { return useMockData(mockItineraries.filter(i => i.featured), 'getFeaturedItineraries'); }
 }
 
 // ─── Creators ───
 export async function getCreators(): Promise<any[]> {
     try { return await fetchApi('/creators'); }
-    catch { return mockCreators; }
+    catch (error) { return useMockData(mockCreators, 'getCreators'); }
 }
 
 export async function getCreatorById(id: string): Promise<any | null> {
     try {
         const result = await fetchApi(`/creators/${id}`);
         if (result) return result;
-    } catch { /* fall through to mock */ }
-    return mockCreators.find(c => c.id === id) || null;
+    } catch (error) {
+        const mockCreator = mockCreators.find(c => c.id === id);
+        if (mockCreator) return useMockData(mockCreator, `getCreatorById(${id})`);
+        return null;
+    }
 }
 
 export async function getFeaturedCreators(): Promise<any[]> {
     try {
         const creators = await getCreators();
         return creators.slice(0, 5);
-    } catch {
-        return mockFeaturedCreators();
+    } catch (error) {
+        return useMockData(mockFeaturedCreators(), 'getFeaturedCreators');
     }
 }
 
@@ -145,16 +170,17 @@ export async function getMyTrips(travelerId: string): Promise<{
     savedItems: any[];
 }> {
     try {
-        return await fetchApi(`/my-trips/${travelerId}`);
-    } catch {
-        // Fallback to local mock data
+        return await fetchApi(`/my-trips`);
+    } catch (error) {
+        // Fallback to local mock data (development only)
         const { upcomingPackages, pastPackages, purchasedItineraries, savedItems } = require('../data/mockMyTrips');
-        return {
+        const mockData = {
             upcomingPackages,
             pastPackages,
             purchasedItineraries,
             savedItems,
         };
+        return useMockData(mockData, `getMyTrips(${travelerId})`);
     }
 }
 

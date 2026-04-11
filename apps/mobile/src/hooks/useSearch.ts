@@ -31,8 +31,7 @@ export function useSearch() {
                     setLoading(false);
                 }
             } catch (err) {
-                console.error('Failed to load data from API:', err);
-                console.warn('Using mock data as fallback');
+                // API failed, using fallback mock data
                 if (!cancelled) {
                     setAllPackages(mockPackages);
                     setAllItineraries(mockItineraries);

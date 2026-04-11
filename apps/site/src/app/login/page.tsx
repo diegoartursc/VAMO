@@ -24,7 +24,7 @@ export default function LoginPage() {
 
         try {
             await login(email, password);
-            router.push("/agencia");
+            router.push("/dashboard");
         } catch (err: any) {
             setError(err.message || "Erro ao fazer login");
         } finally {
@@ -38,9 +38,9 @@ export default function LoginPage() {
             <div className="auth-side">
                 <div className="auth-side-content">
                     <div className="auth-side-logo">VAMO</div>
-                    <h2>Portal da Agência</h2>
+                    <h2>Portal do Criador</h2>
                     <p>
-                        Gerencie seus pacotes de viagem, acompanhe vendas e
+                        Gerencie seus roteiros de viagem, acompanhe vendas e
                         conecte-se com milhares de viajantes.
                     </p>
                     <div className="auth-side-features">
@@ -54,13 +54,13 @@ export default function LoginPage() {
                             <div className="auth-feature-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                             </div>
-                            <span>Editor de pacotes interativo</span>
+                            <span>Editor de roteiros interativo</span>
                         </div>
                         <div className="auth-side-feature">
                             <div className="auth-feature-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
                             </div>
-                            <span>Gestão de preços e disponibilidade</span>
+                            <span>Gestão de conteúdo e preços</span>
                         </div>
                         <div className="auth-side-feature">
                             <div className="auth-feature-icon">
@@ -82,7 +82,7 @@ export default function LoginPage() {
                     </div>
                     <h1 className="auth-title">Bem-vindo de volta</h1>
                     <p className="auth-subtitle">
-                        Entre no Portal da Agência para gerenciar seus pacotes
+                        Entre no Portal do Criador para gerenciar seus roteiros
                     </p>
 
                     {error && (

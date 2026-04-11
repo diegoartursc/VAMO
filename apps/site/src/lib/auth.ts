@@ -166,6 +166,6 @@ export async function getSession(): Promise<AuthSession | null> {
 export function logout() {
     clearTokens();
     if (typeof window !== 'undefined') {
-        window.location.href = '/';
+        window.location.replace('/');
     }
 }

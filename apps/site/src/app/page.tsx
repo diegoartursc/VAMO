@@ -8,7 +8,7 @@ export default function Home() {
 
       {/* ═══ TRUST BADGE ═══ */}
       <div className="trust-badge">
-        🛡️ Agências verificadas &nbsp;•&nbsp; 💰 Preço final garantido &nbsp;•&nbsp; 🔒 Compra segura
+        🗺️ Roteiros verificados &nbsp;•&nbsp; 🎒 Dicas de especialistas &nbsp;•&nbsp; 🔒 Compra segura
       </div>
 
       {/* ═══ COMO FUNCIONA ═══ */}
@@ -25,19 +25,19 @@ export default function Home() {
             <div className="step-number">1</div>
             <div className="step-icon">🔍</div>
             <h3>Explore</h3>
-            <p>Navegue por pacotes de viagem e roteiros de viajantes experientes.</p>
+            <p>Navegue por roteiros detalhados criados por viajantes experientes.</p>
           </div>
           <div className="step-card">
             <div className="step-number">2</div>
             <div className="step-icon">💎</div>
             <h3>Escolha</h3>
-            <p>Selecione a experiência perfeita e verifique disponibilidade.</p>
+            <p>Selecione o roteiro perfeito e confira todos os detalhes do itinerário.</p>
           </div>
           <div className="step-card">
             <div className="step-number">3</div>
             <div className="step-icon">🔒</div>
             <h3>Reserve</h3>
-            <p>Complete seu cadastro e finalize a reserva com segurança.</p>
+            <p>Adquira o roteiro e receba acesso imediato a todo o conteúdo.</p>
           </div>
           <div className="step-card">
             <div className="step-number">4</div>
@@ -60,13 +60,13 @@ export default function Home() {
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon teal">✅</div>
-            <h3>Agências verificadas</h3>
-            <p>Todas as agências passam por um processo rigoroso de verificação antes de publicar pacotes.</p>
+            <h3>Roteiros verificados</h3>
+            <p>Todos os roteiros passam por uma curadoria para garantir a melhor experiência para você.</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon amber">💰</div>
-            <h3>Preço final garantido</h3>
-            <p>O preço que você vê é o preço que você paga. Sem taxas escondidas ou surpresas.</p>
+            <h3>Dicas de especialistas</h3>
+            <p>Acesse informações privilegiadas de quem já esteve no destino e conhece cada detalhe.</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon blue">🗺️</div>
@@ -80,8 +80,8 @@ export default function Home() {
           </div>
           <div className="feature-card">
             <div className="feature-icon purple">📊</div>
-            <h3>Compare preços</h3>
-            <p>Veja pacotes de diferentes agências para o mesmo destino lado a lado.</p>
+            <h3>Fácil planejamento</h3>
+            <p>Economize dezenas de horas de pesquisa com itinerários prontos para seguir.</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon pink">💬</div>
@@ -150,7 +150,7 @@ export default function Home() {
           <div className="testimonial-card">
             <div className="testimonial-stars">★★★★★</div>
             <p className="testimonial-text">
-              &ldquo;Encontrei um pacote para o Japão com preço muito melhor do que nas agências tradicionais. Viagem perfeita do início ao fim.&rdquo;
+              &ldquo;Encontrei um roteiro incrível do Japão com dicas que só quem já morou lá sabe. Viagem perfeita do início ao fim.&rdquo;
             </p>
             <div className="testimonial-author">
               <div className="testimonial-avatar">🧑‍🎨</div>
@@ -173,8 +173,8 @@ export default function Home() {
           <div className="faq-item">
             <div className="faq-question">O que é o VAMO?</div>
             <p className="faq-answer">
-              O VAMO é uma plataforma que conecta viajantes a pacotes verificados de agências e
-              roteiros criados por viajantes experientes. Tudo em um só lugar.
+              O VAMO é uma plataforma onde você encontra roteiros de viagem detalhados
+              criados por viajantes experientes e especialistas. Tudo em um só lugar.
             </p>
           </div>
           <div className="faq-item">
@@ -186,10 +186,10 @@ export default function Home() {
             </p>
           </div>
           <div className="faq-item">
-            <div className="faq-question">As agências são confiáveis?</div>
+            <div className="faq-question">Os roteiros são confiáveis?</div>
             <p className="faq-answer">
-              Sim! Todas as agências passam por um processo de verificação antes de publicar
-              pacotes na plataforma. Monitoramos avaliações e garantimos padrões de qualidade.
+              Sim! Todos os roteiros passam por um processo de curadoria antes de serem
+              publicados na plataforma. Monitoramos avaliações e garantimos a qualidade do conteúdo.
             </p>
           </div>
           <div className="faq-item">
@@ -217,8 +217,8 @@ export default function Home() {
               VAM<span>O</span>
             </div>
             <p className="footer-desc">
-              Sua plataforma de viagens. Conectamos viajantes às melhores
-              experiências ao redor do mundo.
+              Roteiros de viagem criados por quem já esteve lá.
+              Descubra destinos incríveis ao redor do mundo.
             </p>
           </div>
           <div className="footer-column">

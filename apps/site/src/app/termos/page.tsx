@@ -33,9 +33,9 @@ export default function TermosPage() {
         <section style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, color: '#28c9bf', marginBottom: 8 }}>2. Descrição do Serviço</h2>
           <p style={{ color: '#c5d0e0', lineHeight: 1.7 }}>
-            A VAMO é uma plataforma de marketplace de viagens que conecta viajantes a agências verificadas e
-            criadores de roteiros independentes. Nossa plataforma facilita a descoberta, comparação e reserva
-            de pacotes de viagem e roteiros personalizados.
+            A VAMO é uma plataforma de roteiros de viagem que conecta viajantes a
+            criadores de conteúdo de viagem independentes. Nossa plataforma facilita a descoberta e aquisição
+            de roteiros detalhados criados por viajantes experientes.
           </p>
         </section>
 
@@ -51,8 +51,8 @@ export default function TermosPage() {
         <section style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, color: '#28c9bf', marginBottom: 8 }}>4. Reservas e Pagamentos</h2>
           <p style={{ color: '#c5d0e0', lineHeight: 1.7 }}>
-            As reservas realizadas através da VAMO estão sujeitas à disponibilidade e às políticas de cancelamento
-            de cada agência ou criador. Os pagamentos são processados de forma segura através de nossos parceiros
+            As compras realizadas através da VAMO estão sujeitas à disponibilidade e às políticas
+            de cada criador. Os pagamentos são processados de forma segura através de nossos parceiros
             de pagamento autorizados.
           </p>
         </section>

@@ -1,7 +1,10 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET must be set in environment variables. See .env.example for setup instructions.');
+}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
@@ -16,12 +19,12 @@ export const comparePassword = async (
     return bcrypt.compare(password, hash);
 };
 
-export const generateAccessToken = (payload: { agencyId: string; employeeId: string; email: string }) => {
+export const generateAccessToken = (payload: { agencyId: string; employeeId: string; email: string } | { travelerId: string; email: string }) => {
     const options: SignOptions = { expiresIn: JWT_EXPIRES_IN as any };
     return jwt.sign(payload, JWT_SECRET, options);
 };
 
-export const generateRefreshToken = (payload: { agencyId: string; employeeId: string }) => {
+export const generateRefreshToken = (payload: { agencyId: string; employeeId: string } | { travelerId: string; email: string }) => {
     const options: SignOptions = { expiresIn: JWT_REFRESH_EXPIRES_IN as any };
     return jwt.sign(payload, JWT_SECRET, options);
 };

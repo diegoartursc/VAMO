@@ -63,7 +63,7 @@ export const itineraryFAQs: Record<string, FAQData> = {
  * FAQs for travel packages, keyed by package ID.
  */
 export const packageFAQs: Record<string, FAQData> = {
-    '1': {
+    'pkg-1': {
         items: [
             {
                 question: 'O que está incluído no pacote?',
@@ -87,7 +87,7 @@ export const packageFAQs: Record<string, FAQData> = {
             },
         ],
     },
-    '2': {
+    'pkg-2': {
         items: [
             {
                 question: 'Qual o tamanho máximo do grupo?',

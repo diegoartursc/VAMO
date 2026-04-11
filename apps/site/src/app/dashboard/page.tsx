@@ -59,7 +59,7 @@ export default function DashboardPage() {
                 <div className="dash-header">
                     <h1 className="dash-title">Visão Geral</h1>
                     <p className="dash-subtitle" style={{ color: "#e74c3c" }}>
-                        Erro ao carregar: {error}. Verifique se o backend está rodando em localhost:3333.
+                        Erro ao carregar dados. Tente recarregar a página.
                     </p>
                 </div>
             </>
@@ -82,7 +82,7 @@ export default function DashboardPage() {
             <div className="dash-header">
                 <h1 className="dash-title">Visão Geral</h1>
                 <p className="dash-subtitle">
-                    {session?.agency.name} — Acompanhe seus pacotes e vendas
+                    Acompanhe seus roteiros e vendas
                 </p>
             </div>
 
@@ -92,9 +92,9 @@ export default function DashboardPage() {
                     <div className="dash-stat-icon">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 7V5a4 4 0 00-8 0v2" /></svg>
                     </div>
-                    <div className="dash-stat-label">Pacotes Ativos</div>
+                    <div className="dash-stat-label">Roteiros Ativos</div>
                     <div className="dash-stat-value teal">{activePackages.length}</div>
-                    <div className="dash-stat-change">{packages.length} total cadastrados</div>
+                    <div className="dash-stat-change">{packages.length} total publicados</div>
                 </div>
                 <div className="dash-stat-card">
                     <div className="dash-stat-icon">
@@ -129,14 +129,14 @@ export default function DashboardPage() {
             {/* Recent Packages */}
             <div className="itinerary-table">
                 <div className="table-header">
-                    <h3 className="table-title">Seus Pacotes</h3>
-                    <Link href="/dashboard/pacote/new">
-                        <button className="btn-new">+ Novo Pacote</button>
+                    <h3 className="table-title">Seus Roteiros</h3>
+                    <Link href="/dashboard/roteiro/novo">
+                        <button className="btn-new">+ Novo Roteiro</button>
                     </Link>
                 </div>
 
                 <div className="table-row table-row-head">
-                    <div className="table-cell">Pacote</div>
+                    <div className="table-cell">Roteiro</div>
                     <div className="table-cell">Status</div>
                     <div className="table-cell">Preço</div>
                     <div className="table-cell">Score</div>
@@ -146,9 +146,9 @@ export default function DashboardPage() {
                 {packages.length === 0 ? (
                     <div className="table-row">
                         <div className="table-cell" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "2rem" }}>
-                            Nenhum pacote cadastrado.{" "}
-                            <Link href="/dashboard/pacote/new" style={{ color: "var(--primary)", fontWeight: 600 }}>
-                                Crie seu primeiro pacote!
+                            Nenhum roteiro publicado.{" "}
+                            <Link href="/dashboard/roteiro/novo" style={{ color: "var(--primary)", fontWeight: 600 }}>
+                                Crie seu primeiro roteiro!
                             </Link>
                         </div>
                     </div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                             <div className="table-cell table-actions">
-                                <Link href={`/dashboard/pacote/${pkg.id}`}>
+                                <Link href={`/dashboard/roteiro/${pkg.id}`}>
                                     <button className="table-action-btn" title="Editar">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                                     </button>

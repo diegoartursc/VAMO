@@ -39,7 +39,7 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-    { key: 'upcoming', label: 'Meus Pacotes', icon: 'briefcase' },
+    { key: 'upcoming', label: 'Reservas', icon: 'briefcase' },
     { key: 'itineraries', label: 'Meus Roteiros', icon: 'book-open' },
     { key: 'saved', label: 'Salvos', icon: 'heart' },
     { key: 'past', label: 'Realizados', icon: 'trips' },
@@ -285,8 +285,8 @@ function UpcomingTab({ items }: { items: BookedPackage[] }) {
                 icon="plane"
                 title="Você ainda não tem viagens agendadas"
                 message="Que tal planejar a sua próxima aventura?"
-                ctaLabel="Explorar pacotes"
-                onCtaPress={() => router.push('/(tabs)/packages')}
+                ctaLabel="Explorar roteiros"
+                onCtaPress={() => router.push('/(tabs)/itineraries')}
             />
         );
     }
@@ -526,9 +526,9 @@ function SavedTab({ items }: { items: SavedItem[] }) {
             <EmptyState
                 icon="heart"
                 title="Você ainda não salvou nenhuma viagem"
-                message="Explore nossos pacotes e roteiros e salve seus favoritos!"
-                ctaLabel="Explorar"
-                onCtaPress={() => router.push('/(tabs)/packages')}
+                message="Explore nossos roteiros e salve seus favoritos!"
+                ctaLabel="Explorar roteiros"
+                onCtaPress={() => router.push('/(tabs)/itineraries')}
             />
         );
     }

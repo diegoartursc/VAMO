@@ -444,13 +444,13 @@ export default function PackageDetailScreen() {
                         )}
                     </View>
 
-                    {/* Premium Reviews Section - Moved up for visibility */}
+                    {/* Premium Reviews Section */}
                     {reviews.length > 0 && (
                         <View style={[styles.section, { marginTop: 8 }]}>
                             <PremiumReviewsSection
                                 reviews={reviews}
-                                averageRating={getAverageRating(id)}
-                                totalReviews={packageData.reviewCount}
+                                averageRating={reviewStats.averageRating || getAverageRating(id)}
+                                totalReviews={reviewStats.total || packageData.reviewCount}
                                 categoryRatings={getCategoryRatings(id)}
                                 communityPhotos={getCommunityPhotos(id)}
                                 topRatedSummary={getTopRatedCategoriesText(id)}
@@ -672,18 +672,6 @@ export default function PackageDetailScreen() {
                         <FAQSection
                             items={getPackageFAQ(id)}
                             creatorName={packageData.agency.name}
-                        />
-                    )}
-
-                    {/* Avaliações / Reviews Section */}
-                    {reviews.length > 0 && (
-                        <PremiumReviewsSection
-                            reviews={reviews}
-                            averageRating={reviewStats.averageRating || getAverageRating(id)}
-                            totalReviews={reviewStats.total || reviews.length}
-                            categoryRatings={getCategoryRatings(id)}
-                            communityPhotos={getCommunityPhotos(id)}
-                            topRatedSummary={getTopRatedCategoriesText(id)}
                         />
                     )}
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
-/* ─── Icon helpers (same pattern as Agência/Roteirista) ─── */
+/* ─── Icon helpers ─── */
 const SvgIcon = ({ d, size = 18 }: { d: string; size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -57,14 +57,12 @@ const NAV_SECTIONS = [
         label: "MODERAÇÃO",
         items: [
             { href: "/admin", label: "Visão Geral", icon: ICONS.home, exact: true },
-            { href: "/admin/pacotes", label: "Pacotes", icon: ICONS.package },
             { href: "/admin/roteiros", label: "Roteiros", icon: ICONS.map },
         ],
     },
     {
         label: "GESTÃO",
         items: [
-            { href: "/admin/agencias", label: "Agências", icon: ICONS.building },
             { href: "/admin/roteiristas", label: "Roteiristas", icon: ICONS.compass },
             { href: "/admin/clientes", label: "Clientes", icon: ICONS.users },
         ],

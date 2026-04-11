@@ -27,9 +27,7 @@ import { SearchModal } from '../../src/components/search/SearchModal';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
-import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
-import { PackageCard } from '../../src/components/cards/PackageCard';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
 
 
@@ -64,9 +62,9 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
                 </View>
 
                 <View style={styles.heroContent}>
-                    <Text style={styles.heroTitle}>Explore novas{'\n'}fronteiras.</Text>
-                    <Text style={styles.heroTagline}>Viajar ficou simples.</Text>
-                    <Text style={styles.heroSubtitle}>Roteiros exclusivos de viajantes{'\n'}e agências verificadas.</Text>
+                    <Text style={styles.heroTitle}>Onde será sua{'\n'}próxima aventura?</Text>
+                    <Text style={styles.heroTagline}>Roteiros de quem já viveu.</Text>
+                    <Text style={styles.heroSubtitle}>Planejamentos detalhados por{'\n'}especialistas que já estiveram lá.</Text>
 
                     {/* Search Bar - Glassmorphism */}
                     <TouchableOpacity style={styles.heroSearchBar} activeOpacity={0.9} onPress={onSearchPress}>
@@ -79,21 +77,21 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
 
                     {/* Explore Shortcuts 2x2 Grid */}
                     <View style={styles.heroShortcutsGrid}>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?sort=popular')}>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
                             <Text style={styles.heroShortcutEmoji}>🔥</Text>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Destinos em alta</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?intent=custo-beneficio')}>
-                            <Text style={styles.heroShortcutEmoji}>💰</Text>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Melhor custo</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Mais populares</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>✨</Text>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Experiências únicas</Text>
+                            <Text style={styles.heroShortcutEmoji}>🍽️</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Gastronômicos</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>🗺️</Text>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Roteiros prontos</Text>
+                            <Text style={styles.heroShortcutEmoji}>🎒</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Mochilão</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
+                            <Text style={styles.heroShortcutEmoji}>👨‍👩‍👧‍👦</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Com crianças</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -111,12 +109,9 @@ export default function HomeScreen() {
     const [decisionAssistantVisible, setDecisionAssistantVisible] = useState(false);
 
     // Filter logic
-    const displayedPackages = hasActiveFilters ? filteredPackages : allPackages.filter(p => p.featured);
-
-    // Favorites Logic
+    // Favorites Logic (itineraries)
     const [favorites, setFavorites] = useState<string[]>([]);
     const { showAnimation } = useFavoriteAnimation();
-    const [lastSearchedDestination, setLastSearchedDestination] = useState<string | null>('Paris');
 
     useEffect(() => {
         analytics.homeViewed();
@@ -147,7 +142,7 @@ export default function HomeScreen() {
                 <View style={styles.trustBar}>
                     <View style={styles.trustItem}>
                         <Icon name="verified" size={14} color={theme.colors.text.secondary} />
-                        <Text style={styles.trustText}>Agências Verificadas</Text>
+                        <Text style={styles.trustText}>Roteiros Verificados</Text>
                     </View>
                     <View style={styles.trustItem}>
                         <Icon name="shield-check" size={14} color={theme.colors.text.secondary} />
@@ -166,41 +161,42 @@ export default function HomeScreen() {
                     </View>
                     <View style={styles.quizContent}>
                         <Text style={styles.quizTitle}>Não sabe para onde ir?</Text>
-                        <Text style={styles.quizSubtitle}>Descubra o destino ideal em 3 passos</Text>
+                        <Text style={styles.quizSubtitle}>Encontre o roteiro perfeito em 3 passos</Text>
                     </View>
                     <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
                 </TouchableOpacity>
 
-                {/* 4. Featured Packages */}
+                {/* 4. Roteiros em Destaque */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/packages')}>
+                        <Text style={styles.sectionTitle}>Roteiros em Destaque</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
                             <Text style={styles.seeAllText}>Ver todos</Text>
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.sectionSubtitle}>Experiências completas com curadoria VAMO.</Text>
+                    <Text style={styles.sectionSubtitle}>Os mais bem avaliados pela comunidade VAMO.</Text>
 
-                    {displayedPackages.slice(0, 5).map((pkg, index) => (
-                        <PackageCard
-                            key={pkg.id}
-                            pkg={pkg}
-                            onPress={() => router.push(`/package/${pkg.id}`)}
-                            isFavorite={favorites.includes(pkg.id)}
-                            onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
-                        />
-                    ))}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
+                        {allItineraries.filter(i => i.featured).slice(0, 5).map((itinerary) => (
+                            <ItineraryCard
+                                key={itinerary.id}
+                                width={280}
+                                itinerary={itinerary}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            />
+                        ))}
+                    </ScrollView>
                 </View>
 
-                {/* 5. Creator Itineraries */}
+                {/* 5. Novos Roteiros */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Roteiros de Especialistas</Text>
+                        <Text style={styles.sectionTitle}>Novos Roteiros</Text>
                         <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
                             <Text style={styles.seeAllText}>Explorar</Text>
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.sectionSubtitle}>Planejamento detalhado por quem entende.</Text>
+                    <Text style={styles.sectionSubtitle}>Planejamentos recém-publicados por especialistas.</Text>
 
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
                         {allItineraries.slice(0, 5).map((itinerary) => (
@@ -222,7 +218,7 @@ export default function HomeScreen() {
                             <TouchableOpacity
                                 key={dest.id}
                                 style={styles.destinationCard}
-                                onPress={() => router.push(`/(tabs)/packages?destination=${dest.name}`)}
+                                onPress={() => router.push(`/(tabs)/itineraries`)}
                             >
                                 <Image source={{ uri: dest.image }} style={styles.destinationImage} />
                                 <View style={styles.destinationOverlay} />
@@ -249,7 +245,7 @@ export default function HomeScreen() {
                 onSearch={(newFilters) => {
                     applyFilters(newFilters);
                     setSearchModalVisible(false);
-                    router.push('/(tabs)/packages');
+                    router.push('/(tabs)/itineraries');
                 }}
                 context="home"
                 initialFilters={filters}
