@@ -30,7 +30,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Tab definitions ────────────────────────────────────
 
-type TabKey = 'itineraries' | 'saved' | 'past';
+type TabKey = 'itineraries';
 
 interface TabDef {
     key: TabKey;
@@ -40,8 +40,6 @@ interface TabDef {
 
 const TABS: TabDef[] = [
     { key: 'itineraries', label: 'Meus Roteiros', icon: 'book-open' },
-    { key: 'saved', label: 'Salvos', icon: 'heart' },
-    { key: 'past', label: 'Realizados', icon: 'trips' },
 ];
 
 // ─── Status helpers ─────────────────────────────────────
@@ -113,8 +111,6 @@ export default function MyTripsScreen() {
                 ) : (
                     <>
                         {activeTab === 'itineraries' && <ItinerariesTab items={data.purchasedItineraries} />}
-                        {activeTab === 'saved' && <SavedTab items={data.savedItems} />}
-                        {activeTab === 'past' && <PastTab items={data.pastPackages} />}
                     </>
                 )}
 
@@ -272,75 +268,6 @@ function ActionButton({
     );
 }
 
-// ─── TAB: Realizadas ────────────────────────────────────
-
-function PastTab({ items }: { items: BookedPackage[] }) {
-    const router = useRouter();
-
-    if (items.length === 0) {
-        return (
-            <EmptyState
-                icon="briefcase"
-                title="Nenhuma viagem realizada"
-                message="Suas viagens concluídas aparecerão aqui."
-            />
-        );
-    }
-
-    return (
-        <>
-            {items.map((pkg) => (
-                <PastCard key={pkg.id} pkg={pkg} />
-            ))}
-        </>
-    );
-}
-
-function PastCard({ pkg }: { pkg: BookedPackage }) {
-    const router = useRouter();
-
-    return (
-        <TouchableOpacity
-            style={styles.pastCard}
-            onPress={() => router.push(`/purchased-package/${pkg.id}`)}
-            activeOpacity={0.7}
-        >
-            <Image source={{ uri: pkg.image }} style={styles.pastImage} />
-            <View style={styles.pastContent}>
-                <Text style={styles.pastTitle} numberOfLines={1}>{pkg.title}</Text>
-                <Text style={styles.pastDestination} numberOfLines={1}>
-                    {pkg.destination}, {pkg.country}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Icon name="calendar" size={11} color={theme.colors.text.tertiary} />
-                    <Text style={styles.pastDate}>
-                        {formatDate(pkg.travelDate)}
-                    </Text>
-                </View>
-
-                <View style={styles.pastActions}>
-                    <ActionButton
-                        label="Avaliar"
-                        icon="star"
-                        onPress={() => Alert.alert('Avaliação', 'Em breve você poderá avaliar!')}
-                        variant="primary"
-                    />
-                    <ActionButton
-                        label="Detalhes"
-                        icon="eye"
-                        onPress={() => router.push(`/purchased-package/${pkg.id}`)}
-                    />
-                    <ActionButton
-                        label="Repetir"
-                        icon="refresh"
-                        onPress={() => router.push(`/purchased-package/${pkg.id}`)}
-                    />
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-}
-
 // ─── TAB: Meus Roteiros ─────────────────────────────────
 
 function ItinerariesTab({ items }: { items: PurchasedItineraryItem[] }) {
@@ -393,71 +320,6 @@ function ItineraryCard({ itin }: { itin: PurchasedItineraryItem }) {
                 </Text>
             </View>
             <View style={styles.itineraryAction}>
-                <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
-            </View>
-        </TouchableOpacity>
-    );
-}
-
-// ─── TAB: Salvos ────────────────────────────────────────
-
-function SavedTab({ items }: { items: SavedItem[] }) {
-    const router = useRouter();
-
-    if (items.length === 0) {
-        return (
-            <EmptyState
-                icon="heart"
-                title="Você ainda não salvou nenhuma viagem"
-                message="Explore nossos roteiros e salve seus favoritos!"
-                ctaLabel="Explorar roteiros"
-                onCtaPress={() => router.push('/(tabs)/itineraries')}
-            />
-        );
-    }
-
-    return (
-        <>
-            {items.map((item) => (
-                <SavedCard key={item.id} item={item} />
-            ))}
-        </>
-    );
-}
-
-function SavedCard({ item }: { item: SavedItem }) {
-    const router = useRouter();
-    const isPackage = item.type === 'package';
-
-    return (
-        <TouchableOpacity
-            style={styles.savedCard}
-            onPress={() =>
-                router.push(isPackage ? `/package/${item.id}` : `/itinerary/${item.id}`)
-            }
-            activeOpacity={0.7}
-        >
-            <View style={styles.savedImageContainer}>
-                <Image source={{ uri: item.image }} style={styles.savedImage} />
-                <View style={[styles.savedTypeBadge, isPackage ? styles.savedTypePkg : styles.savedTypeItin]}>
-                    <Text style={styles.savedTypeBadgeText}>
-                        {isPackage ? 'Pacote' : 'Roteiro'}
-                    </Text>
-                </View>
-            </View>
-            <View style={styles.savedContent}>
-                <Text style={styles.savedTitle} numberOfLines={1}>{item.title}</Text>
-                <Text style={styles.savedDestination} numberOfLines={1}>
-                    {item.destination}, {item.country}
-                </Text>
-                <Text style={styles.savedPrice}>
-                    {isPackage
-                        ? `A partir de R$ ${item.price.toLocaleString('pt-BR')}`
-                        : `R$ ${item.price.toFixed(2).replace('.', ',')}`
-                    }
-                </Text>
-            </View>
-            <View style={styles.savedAction}>
                 <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
             </View>
         </TouchableOpacity>

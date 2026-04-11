@@ -21,31 +21,24 @@ export default function TabsLayout() {
                 <Tabs.Screen
                     name="index"
                     options={{
-                        title: 'Início',
-                        tabBarIcon: ({ focused, color }) => <TabIcon name="home" focused={focused} color={color} />,
+                        title: 'Busca',
+                        tabBarIcon: ({ focused, color }) => <TabIcon name="search" focused={focused} color={color} />,
                     }}
                 />
                 <Tabs.Screen
-                    name="packages"
+                    name="saved"
                     options={{
-                        href: null, // [PAUSADO] Funcionalidade de pacotes de agências foi pausada - foco exclusivo em roteiros de criadores
-                        title: 'Pacotes',
-                        tabBarIcon: ({ focused, color }) => <TabIcon name="package" focused={focused} color={color} />,
+                        href: '/saved',
+                        title: 'Favoritos',
+                        tabBarIcon: ({ focused, color }) => <TabIcon name="heart" focused={focused} color={color} />,
                     }}
                 />
                 <Tabs.Screen
-                    name="itineraries"
+                    name="cart"
                     options={{
-                        href: '/itineraries',
-                        title: 'Roteiros',
-                        tabBarIcon: ({ focused, color }) => <TabIcon name="map" focused={focused} color={color} />,
-                    }}
-                />
-                <Tabs.Screen
-                    name="my-trips"
-                    options={{
-                        title: 'Minhas Viagens',
-                        tabBarIcon: ({ focused, color }) => <TabIcon name="trips" focused={focused} color={color} />,
+                        href: '/cart',
+                        title: 'Carrinho',
+                        tabBarIcon: ({ focused, color }) => <TabIcon name="shopping-bag" focused={focused} color={color} />,
                     }}
                 />
                 <Tabs.Screen
@@ -53,6 +46,29 @@ export default function TabsLayout() {
                     options={{
                         title: 'Perfil',
                         tabBarIcon: ({ focused, color }) => <TabIcon name="user" focused={focused} color={color} />,
+                    }}
+                />
+
+                {/* Hidden screens - acessíveis por navegação interna */}
+                <Tabs.Screen
+                    name="itineraries"
+                    options={{
+                        href: null,
+                        title: 'Roteiros',
+                    }}
+                />
+                <Tabs.Screen
+                    name="my-trips"
+                    options={{
+                        href: null,
+                        title: 'Minhas Viagens',
+                    }}
+                />
+                <Tabs.Screen
+                    name="packages"
+                    options={{
+                        href: null,
+                        title: 'Pacotes',
                     }}
                 />
             </Tabs>
