@@ -28,6 +28,7 @@ export default function TabsLayout() {
                 <Tabs.Screen
                     name="packages"
                     options={{
+                        href: null, // [PAUSADO] Funcionalidade de pacotes de agências foi pausada - foco exclusivo em roteiros de criadores
                         title: 'Pacotes',
                         tabBarIcon: ({ focused, color }) => <TabIcon name="package" focused={focused} color={color} />,
                     }}

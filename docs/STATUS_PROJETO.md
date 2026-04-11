@@ -1,10 +1,12 @@
-# 📋 Status do Projeto VAMO - Março 2026
+# 📋 Status do Projeto VAMO - Abril 2026
 
 ## 🎯 Visão Geral
 
-**VAMO** é uma plataforma mobile-first que simplifica a decisão de viagem, conectando viajantes a agências verificadas e criadores de roteiros independentes.
+**VAMO** é uma plataforma mobile-first que conecta viajantes a **criadores independentes de roteiros digitais**.
 
-**Status Atual:** MVP Frontend Completo ✅ | Backend MVP Implementado ✅ | Dashboards Operacionais ✅ | Fase 2.5 Concluída & Hardened ✅
+> 📌 **Mudança de Escopo (Abril 2026):** Foco exclusivo em **Roteiros de Criadores**. Funcionalidades de pacotes de agências foram pausadas.
+
+**Status Atual:** MVP Roteiros Frontend Completo ✅ | Backend Roteiros MVP Implementado ✅ | Dashboard de Criadores Operacional ✅
 
 ---
 

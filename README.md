@@ -2,7 +2,9 @@
 
 > **VAMO torna viajar mais simples do que você imagina.**
 
-**VAMO** é uma plataforma mobile-first que simplifica a tomada de decisão em viagens, conectando viajantes a agências de turismo verificadas e criadores independentes de roteiros.
+**VAMO** é uma plataforma mobile-first que conecta viajantes a **criadores independentes de roteiros digitais**. Permite explorar, comprar e acessar roteiros curados com informações detalhadas de viagem.
+
+> 📌 **Status MVP (Abril 2026):** Foco exclusivo em **Roteiros de Criadores**. Funcionalidades de pacotes de agências estão em pausa.
 
 ---
 
@@ -72,30 +74,36 @@ npx expo start
 
 ## 📱 Status do Projeto
 
-### ✅ Concluído (Janeiro-Fevereiro 2026)
+### ✅ Concluído — Roteiros (Foco MVP)
 - Interface mobile completa com design premium
-- Sistema de busca inteligente e filtros avançados
-- Página de detalhes de pacotes com itinerário
+- **Página de detalhe de roteiros** com itinerário, estimativa de gastos e highlights
 - Sistema de reviews com fotos e verificação
 - Seções colapsáveis para reduzir sobrecarga cognitiva
-- Flow completo de booking (6 etapas)
+- **Flow completo de compra de roteiros** (4 etapas)
 - Sistema de favoritos com animações
 - Seção "Continue sua busca" na Home
 - Analytics service com eventos detalhados
-- Price Alert e Worry-Free Block
-- Indicadores de conforto no itinerário
-- Backend com autenticação JWT e CRUD de pacotes
+- Badge de criador verificado
+- Disclaimer de produto digital
+- Backend com autenticação JWT e CRUD de roteiros
 - Decision Assistant (quiz de 3 perguntas)
+- Dashboard para criadores gerenciarem roteiros
+
+### ⏸️ Pausado (Desenvolvido mas não é foco MVP)
+- Página de detalhes de **pacotes de agências** (em pausa)
+- Sistema de booking de pacotes (em pausa)
+- Dashboard de agências (em pausa)
 
 ### 🔄 Em Desenvolvimento
-- Integração frontend ↔ backend (migração de mock data para APIs)
-- Dashboard para agências parceiras
-- Sistema de pagamentos
+- Integração frontend ↔ backend (migração de mock data para APIs de roteiros)
+- Sistema de pagamentos para roteiros
+- Melhorias no Discovery (recomendações, busca avançada)
 
-### 🔮 Próximos Passos
-- Sistema de reservas com gateway de pagamento
-- Marketplace de roteiros independentes
-- Dashboard para agências parceiras
+### 🔮 Próximos Passos (Post-MVP)
+- Sistema de reservas e pagamento real
+- Autenticação de viajantes
+- Programa de afiliados para criadores
+- **[Futuro]** Funcionalidades de pacotes de agências
 
 ---
 
@@ -136,13 +144,17 @@ VAMO/
 - ✅ Price Alert e notificações
 - ✅ Backend API com JWT e Prisma
 
-### Planejadas
-- 🔜 Integração frontend ↔ backend
-- 🔜 Sistema de reservas online com pagamento
-- 🔜 Marketplace de roteiros DIY
-- 🔜 Programa de fidelidade
+### Planejadas (MVP — Roteiros)
+- 🔜 Integração frontend ↔ backend (APIs de roteiros)
+- 🔜 Sistema de pagamento real (Stripe/Asaas)
+- 🔜 Autenticação de viajantes
 - 🔜 Notificações push
-- 🔜 Chat com agências
+- 🔜 Chat com criadores
+
+### Futuro (Post-MVP)
+- 🔮 **[Pausado]** Pacotes de agências
+- 🔮 Programa de fidelidade
+- 🔮 Afiliação entre criadores
 
 ---
 
