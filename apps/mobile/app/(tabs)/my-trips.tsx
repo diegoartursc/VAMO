@@ -30,7 +30,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Tab definitions ────────────────────────────────────
 
-type TabKey = 'upcoming' | 'past' | 'itineraries' | 'saved';
+type TabKey = 'itineraries' | 'saved' | 'past';
 
 interface TabDef {
     key: TabKey;
@@ -39,7 +39,6 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-    { key: 'upcoming', label: 'Reservas', icon: 'briefcase' },
     { key: 'itineraries', label: 'Meus Roteiros', icon: 'book-open' },
     { key: 'saved', label: 'Salvos', icon: 'heart' },
     { key: 'past', label: 'Realizados', icon: 'trips' },
@@ -61,7 +60,7 @@ const TRAVELER_ID = 'trav-diego'; // Hardcoded until auth is implemented
 export default function MyTripsScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const [activeTab, setActiveTab] = useState<TabKey>('upcoming');
+    const [activeTab, setActiveTab] = useState<TabKey>('itineraries');
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<{
         upcomingPackages: BookedPackage[];
@@ -113,7 +112,6 @@ export default function MyTripsScreen() {
                     </View>
                 ) : (
                     <>
-                        {activeTab === 'upcoming' && <UpcomingTab items={data.upcomingPackages} />}
                         {activeTab === 'itineraries' && <ItinerariesTab items={data.purchasedItineraries} />}
                         {activeTab === 'saved' && <SavedTab items={data.savedItems} />}
                         {activeTab === 'past' && <PastTab items={data.pastPackages} />}
@@ -270,121 +268,6 @@ function ActionButton({
             >
                 {label}
             </Text>
-        </TouchableOpacity>
-    );
-}
-
-// ─── TAB: Próximas ──────────────────────────────────────
-
-function UpcomingTab({ items }: { items: BookedPackage[] }) {
-    const router = useRouter();
-
-    if (items.length === 0) {
-        return (
-            <EmptyState
-                icon="plane"
-                title="Você ainda não tem viagens agendadas"
-                message="Que tal planejar a sua próxima aventura?"
-                ctaLabel="Explorar roteiros"
-                onCtaPress={() => router.push('/(tabs)/itineraries')}
-            />
-        );
-    }
-
-    // Group by month/year
-    const grouped = useMemo(() => {
-        const map = new Map<string, BookedPackage[]>();
-        items
-            .sort((a, b) => new Date(a.travelDate).getTime() - new Date(b.travelDate).getTime())
-            .forEach((pkg) => {
-                const key = formatMonthYear(pkg.travelDate);
-                if (!map.has(key)) map.set(key, []);
-                map.get(key)!.push(pkg);
-            });
-        return Array.from(map.entries());
-    }, [items]);
-
-    return (
-        <>
-            {grouped.map(([month, packages]) => (
-                <View key={month}>
-                    <SectionHeader title={month} />
-                    {packages.map((pkg) => (
-                        <UpcomingCard
-                            key={pkg.id}
-                            pkg={pkg}
-                            onPress={() => {
-                                if (pkg.status === 'awaiting_quote') {
-                                    router.push(`/booking-awaiting-quote/${pkg.id}`);
-                                } else if (pkg.status === 'pending_payment') {
-                                    router.push(`/quote-details/${pkg.id}`);
-                                } else {
-                                    router.push(`/purchased-package/${pkg.id}`);
-                                }
-                            }}
-                        />
-                    ))}
-                </View>
-            ))}
-        </>
-    );
-}
-
-function UpcomingCard({ pkg, onPress }: { pkg: BookedPackage; onPress: () => void }) {
-    const days = getDaysUntil(pkg.travelDate);
-
-    return (
-        <TouchableOpacity style={styles.upcomingCard} onPress={onPress} activeOpacity={0.7}>
-            <Image source={{ uri: pkg.image }} style={styles.upcomingImage} />
-            <View style={styles.upcomingContent}>
-                <View style={styles.upcomingTop}>
-                    <Text style={styles.upcomingTitle} numberOfLines={1}>{pkg.title}</Text>
-                    <Text style={styles.upcomingDestination} numberOfLines={1}>
-                        {pkg.destination}, {pkg.country}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Icon name="calendar" size={11} color={theme.colors.text.tertiary} />
-                        <Text style={styles.upcomingDate}>
-                            {formatDate(pkg.travelDate)}
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.upcomingBottom}>
-                    <StatusBadge status={pkg.status} />
-                    {days > 0 && <CountdownBadge days={days} />}
-                </View>
-
-                <View style={[styles.upcomingActions, { flexWrap: 'wrap' }]}>
-                    <ActionButton
-                        label="Detalhes"
-                        icon="eye"
-                        onPress={onPress}
-                        variant="primary"
-                    />
-                    {pkg.voucherUrl && (
-                        <ActionButton
-                            label="Voucher"
-                            icon="download"
-                            onPress={() => Linking.openURL(pkg.voucherUrl!)}
-                        />
-                    )}
-                    {pkg.eticketUrl && (
-                        <ActionButton
-                            label="Passagens"
-                            icon="file-text"
-                            onPress={() => Linking.openURL(pkg.eticketUrl!)}
-                        />
-                    )}
-                    {pkg.autoMessage && (
-                        <ActionButton
-                            label="Aviso"
-                            icon="message-circle"
-                            onPress={() => Alert.alert('Mensagem da Agência', pkg.autoMessage)}
-                        />
-                    )}
-                </View>
-            </View>
         </TouchableOpacity>
     );
 }
