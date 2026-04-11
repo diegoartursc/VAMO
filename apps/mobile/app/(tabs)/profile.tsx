@@ -34,23 +34,17 @@ const USER = {
     email: 'usuario@email.com',
     avatar: 'circle-user',
     since: '2026',
-    stats: { trips: 3, itineraries: 2, saved: 7 },
+    stats: { itineraries: 2, saved: 7 },
     destinations: 3,
     createdItineraries: 2,
-    nextTrip: {
-        destination: 'Paris',
-        date: '15 Mar 2026',
-        status: 'Confirmado',
-    } as { destination: string; date: string; status: string } | null,
 };
 
-// Milestones for "Sua Jornada"
+// Milestones for "Sua Jornada" - apenas roteiros
 const MILESTONES = [
-    { id: 'first_trip', label: 'Primeira viagem realizada', done: USER.stats.trips > 0 },
     { id: 'first_itinerary', label: 'Primeiro roteiro criado', done: USER.stats.itineraries > 0 },
     { id: 'five_destinations', label: '5 destinos visitados', done: USER.destinations >= 5 },
     { id: 'first_review', label: 'Primeira avaliação', done: true },
-    { id: 'ten_saved', label: '10 viagens salvas', done: USER.stats.saved >= 10 },
+    { id: 'ten_saved', label: '10 roteiros salvos', done: USER.stats.saved >= 10 },
 ];
 
 export default function ProfileScreen() {
@@ -102,13 +96,12 @@ export default function ProfileScreen() {
         ]);
     };
 
-    const handleStatPress = (type: 'trips' | 'itineraries' | 'saved') => {
+    const handleStatPress = (type: 'itineraries' | 'saved') => {
         haptics.light();
         if (USER.stats[type] === 0) {
             const messages: Record<string, string> = {
-                trips: 'Você ainda não realizou nenhuma viagem.',
                 itineraries: 'Você ainda não criou nenhum roteiro.',
-                saved: 'Você ainda não salvou nenhum item.',
+                saved: 'Você ainda não salvou nenhum roteiro.',
             };
             Alert.alert('Nada aqui ainda', messages[type], [
                 { text: 'Explorar', onPress: () => router.push('/(tabs)/itineraries') },
@@ -172,11 +165,6 @@ export default function ProfileScreen() {
 
                 {/* ══════════ 2. QUICK STATS ══════════ */}
                 <View style={styles.statsRow}>
-                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}>
-                        <Icon name="briefcase" size={22} color={theme.colors.primary} />
-                        <Text style={styles.statValue}>{USER.stats.trips}</Text>
-                        <Text style={styles.statLabel}>Reservas</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}>
                         <Icon name="book-open" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.itineraries}</Text>
@@ -187,47 +175,6 @@ export default function ProfileScreen() {
                         <Text style={styles.statValue}>{USER.stats.saved}</Text>
                         <Text style={styles.statLabel}>Salvos</Text>
                     </TouchableOpacity>
-                </View>
-
-                {/* ══════════ 8. PRÓXIMA VIAGEM ══════════ */}
-                <View style={styles.sectionSpaced}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Icon name="plane" size={16} color={theme.colors.primary} />
-                        <Text style={styles.sectionTitle}>Próxima Viagem</Text>
-                    </View>
-                    <View style={styles.sectionCard}>
-                        {USER.nextTrip ? (
-                            <TouchableOpacity
-                                style={styles.nextTripContent}
-                                onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.nextTripLeft}>
-                                    <Text style={styles.nextTripDestination}>{USER.nextTrip.destination}</Text>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                        <Icon name="calendar" size={11} color={theme.colors.text.tertiary} />
-                                        <Text style={styles.nextTripDate}>{USER.nextTrip.date}</Text>
-                                    </View>
-                                </View>
-                                <View style={styles.nextTripStatusBadge}>
-                                    <View style={styles.statusDot} />
-                                    <Text style={styles.nextTripStatus}>{USER.nextTrip.status}</Text>
-                                </View>
-                                <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
-                            </TouchableOpacity>
-                        ) : (
-                            <View style={styles.nextTripEmpty}>
-                                <Icon name="plane" size={28} color={theme.colors.text.tertiary} />
-                                <Text style={styles.nextTripEmptyText}>Você ainda não tem viagens programadas.</Text>
-                                <TouchableOpacity
-                                    style={styles.nextTripExploreCta}
-                                    onPress={() => router.push('/(tabs)/itineraries')}
-                                >
-                                    <Text style={styles.nextTripExploreText}>Explorar roteiros →</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </View>
                 </View>
 
                 {/* ══════════ 3. SUA JORNADA NO VAMO ══════════ */}
@@ -268,13 +215,6 @@ export default function ProfileScreen() {
 
                 {/* ══════════ SHORTCUTS ══════════ */}
                 <View style={styles.shortcutsRow}>
-                    <TouchableOpacity
-                        style={styles.shortcutButton}
-                        onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}
-                    >
-                        <Icon name="briefcase" size={20} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText}>Reservas</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
                         onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}
