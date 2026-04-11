@@ -46,7 +46,7 @@ export default function HeroSection({
                 <div style={{ marginTop: '32px' }}>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                         {/* Google Play Badge */}
-                        <Link href="#" style={{
+                        <a href="https://play.google.com/store/apps/details?id=com.vamo.app" target="_blank" rel="noopener noreferrer" style={{
                             display: 'inline-flex', alignItems: 'center', gap: '10px',
                             padding: '10px 20px 10px 14px',
                             background: '#000', color: '#fff',
@@ -64,9 +64,9 @@ export default function HeroSection({
                                 <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9, textTransform: 'uppercase' as const, letterSpacing: '0.03em' }}>Disponível no</span>
                                 <span style={{ fontSize: '16px', fontWeight: 600 }}>Google Play</span>
                             </div>
-                        </Link>
+                        </a>
                         {/* App Store Badge */}
-                        <Link href="#" style={{
+                        <a href="https://apps.apple.com/app/vamo/id6476234567" target="_blank" rel="noopener noreferrer" style={{
                             display: 'inline-flex', alignItems: 'center', gap: '10px',
                             padding: '10px 20px 10px 14px',
                             background: '#000', color: '#fff',
@@ -81,7 +81,7 @@ export default function HeroSection({
                                 <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9 }}>Baixar na</span>
                                 <span style={{ fontSize: '16px', fontWeight: 600 }}>App Store</span>
                             </div>
-                        </Link>
+                        </a>
                     </div>
                 </div>
 
