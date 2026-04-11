@@ -32,7 +32,6 @@ router.get('/', async (req: Request, res: Response) => {
 
         res.json(result);
     } catch (error) {
-        console.error('Error fetching creators:', error);
         res.status(500).json({ error: 'Failed to fetch creators' });
     }
 });
@@ -74,7 +73,6 @@ router.get('/:id', async (req: Request, res: Response) => {
 
         res.json(result);
     } catch (error) {
-        console.error('Error fetching creator:', error);
         res.status(500).json({ error: 'Failed to fetch creator' });
     }
 });
