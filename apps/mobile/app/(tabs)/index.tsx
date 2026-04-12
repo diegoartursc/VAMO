@@ -218,19 +218,151 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
 
-                {/* 6. Popular Destinations (Grid) */}
+                {/* 6a. Continue sua busca */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Destinos em Alta</Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Continue sua busca</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
+                            <Text style={styles.seeAllText}>Ver todos</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.sectionSubtitle}>Roteiros que podem te interessar.</Text>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
+                        {allItineraries.slice(2, 7).map((itinerary) => (
+                            <TouchableOpacity
+                                key={itinerary.id}
+                                style={{
+                                    width: 200,
+                                    backgroundColor: '#FFFFFF',
+                                    borderRadius: 12,
+                                    overflow: 'hidden',
+                                    ...theme.shadows.small,
+                                    borderWidth: 1,
+                                    borderColor: theme.colors.borderLight,
+                                }}
+                                activeOpacity={0.85}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            >
+                                <Image
+                                    source={{ uri: itinerary.images?.[0] }}
+                                    style={{ width: '100%', height: 160 }}
+                                    resizeMode="cover"
+                                />
+                                <View style={{ padding: 10 }}>
+                                    <Text
+                                        style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 6 }}
+                                        numberOfLines={1}
+                                    >
+                                        {itinerary.title}
+                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <Icon name="location" size={12} color={theme.colors.text.tertiary} />
+                                        <Text style={{ fontSize: 11, color: theme.colors.text.tertiary }} numberOfLines={1}>
+                                            {itinerary.destination}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* 6b. Experiencias inesqueciveis */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Experiências inesquecíveis</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
+                            <Text style={styles.seeAllText}>Ver todos</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.sectionSubtitle}>Vivências que você nunca vai esquecer.</Text>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
+                        {allItineraries.filter(i => i.featured).slice(0, 4).map((itinerary) => (
+                            <TouchableOpacity
+                                key={itinerary.id}
+                                style={{
+                                    width: 260,
+                                    backgroundColor: '#FFFFFF',
+                                    borderRadius: 16,
+                                    overflow: 'hidden',
+                                    ...theme.shadows.small,
+                                    borderWidth: 1,
+                                    borderColor: theme.colors.borderLight,
+                                }}
+                                activeOpacity={0.85}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            >
+                                <View style={{ position: 'relative' }}>
+                                    <Image
+                                        source={{ uri: itinerary.images?.[0] }}
+                                        style={{ width: '100%', height: 160 }}
+                                        resizeMode="cover"
+                                    />
+                                    <View style={{
+                                        position: 'absolute',
+                                        top: 10,
+                                        left: 10,
+                                        backgroundColor: '#0D9488',
+                                        borderRadius: 6,
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 3,
+                                    }}>
+                                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFFFFF' }}>
+                                            {itinerary.category || 'Destaque'}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={{ padding: 12 }}>
+                                    <Text
+                                        style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 8 }}
+                                        numberOfLines={2}
+                                    >
+                                        {itinerary.title}
+                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Icon name="star" size={13} color="#F59E0B" strokeWidth={0} />
+                                            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text.primary }}>
+                                                {itinerary.rating?.toFixed(1) ?? '4.8'}
+                                            </Text>
+                                        </View>
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: theme.colors.text.primary }}>
+                                            {itinerary.price != null ? `R$ ${itinerary.price}` : 'Gratis'}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* 7. Popular Destinations (Grid) */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={[styles.sectionTitle, { paddingLeft: 0 }]}>Destinos em Alta</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
+                            <Text style={styles.seeAllText}>Ver todos</Text>
+                        </TouchableOpacity>
+                    </View>
                     <View style={styles.destinationsGrid}>
                         {POPULAR_DESTINATIONS.map((dest) => (
                             <TouchableOpacity
                                 key={dest.id}
                                 style={styles.destinationCard}
                                 onPress={() => router.push(`/(tabs)/itineraries`)}
+                                activeOpacity={0.9}
                             >
-                                <Image source={{ uri: dest.image }} style={styles.destinationImage} />
-                                <View style={styles.destinationOverlay} />
-                                <Text style={styles.destinationName}>{dest.name}</Text>
+                                <Image source={{ uri: dest.image }} style={[styles.destinationImage, { opacity: 0.85 }]} blurRadius={1} />
+                                <LinearGradient
+                                    colors={['transparent', 'rgba(0,0,0,0.55)']}
+                                    style={StyleSheet.absoluteFillObject}
+                                />
+                                <View style={styles.destinationNameContainer}>
+                                    <Text style={styles.destinationName}>{dest.name}</Text>
+                                    <Text style={styles.destinationCount}>{dest.count} roteiros</Text>
+                                </View>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -732,23 +864,34 @@ const styles = StyleSheet.create({
     },
     destinationCard: {
         width: (width - 52) / 2,
-        height: 120,
-        borderRadius: 12,
+        height: 140,
+        borderRadius: 16,
         overflow: 'hidden',
+        ...theme.shadows.small,
     },
     destinationImage: {
         width: '100%',
         height: '100%',
     },
-    destinationOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+    destinationNameContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        alignItems: 'center',
     },
     destinationName: {
-        position: 'absolute',
-        bottom: 12, left: 12,
         color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '700',
+        fontSize: 15,
+        fontWeight: '800',
+        textAlign: 'center',
+    },
+    destinationCount: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.8)',
+        fontWeight: '500',
+        marginTop: 2,
     }
 });
