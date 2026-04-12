@@ -39,7 +39,7 @@ const MODULE_OPTIONS = [
     { key: "voo", icon: "✈️", label: "Meu voo", desc: "Sugestões de voo" },
 ];
 const CHECKLIST_CATS = ["documentos", "mala", "pre-viagem", "custom"];
-type SectionKey = "identity" | "commerce" | "modules" | "itinerary" | "spending" | "checklist" | "postpurchase";
+type SectionKey = "identity" | "commerce" | "modules" | "itinerary" | "spending" | "flight" | "checklist" | "postpurchase";
 interface SectionDef { key: SectionKey; icon: string; title: string; }
 const SECTIONS: SectionDef[] = [
     { key: "identity", icon: "🎯", title: "Identidade e Indexação" },
@@ -47,17 +47,28 @@ const SECTIONS: SectionDef[] = [
     { key: "modules", icon: "📦", title: "Módulos do Roteiro" },
     { key: "itinerary", icon: "🗓️", title: "Itinerário Estruturado" },
     { key: "spending", icon: "💳", title: "Estimativa de Gasto" },
-    { key: "checklist", icon: "✅", title: "Checklist e FAQ" },
+    { key: "flight", icon: "✈️", title: "Meu Voo" },
+    { key: "checklist", icon: "✅", title: "Checklist" },
     { key: "postpurchase", icon: "⚙️", title: "Configuração Pós-compra" },
 ];
+/* Map: which module key activates which editor section */
+const SECTION_MODULE_MAP: Partial<Record<SectionKey, string>> = {
+    itinerary: "itinerario",
+    spending: "gasto",
+    flight: "voo",
+    checklist: "checklist",
+};
 
 interface Activity { title: string; description: string; time: string; duration: string; location: string; type: string; icon: string; tips: string; latitude: string; longitude: string; category: string; }
 interface Day { dayNumber: number; title: string; summary: string; description: string; activities: Activity[]; }
 interface Accommodation { name: string; neighborhood: string; description: string; priceRange: string; rating: string; externalLink: string; }
 interface Transport { description: string; passTypes: string; estimatedPrice: string; notes: string; }
 interface ChecklistItem { category: string; item: string; isDefault: boolean; }
-interface FaqItem { question: string; answer: string; }
 interface BreakdownItem { category: string; min: string; max: string; }
+interface RestaurantItem { name: string; cuisine: string; location: string; description: string; priceRange: string; hours: string; externalLink: string; tips: string; }
+interface FlightLeg { airline: string; route: string; departure: string; arrival: string; duration: string; stops: number; pricePaid: string; }
+const EMPTY_FLIGHT_LEG: FlightLeg = { airline: "", route: "", departure: "", arrival: "", duration: "", stops: 0, pricePaid: "" };
+const CUISINE_OPTIONS = ["Ramen", "Sushi", "Tempura", "Izakaya", "Yakitori", "Italiana", "Francesa", "Brasileira", "Mexicana", "Indiana", "Tailandesa", "Fast Food", "Café", "Padaria", "Bistrô", "Fine Dining", "Street Food", "Vegetariana", "Frutos do Mar", "Outro"];
 
 const DEFAULT_CREATOR_ID = "creator-diego-001";
 const SPENDING_CATS = ["🏨 Hospedagem", "🍽️ Alimentação", "🚌 Transporte", "🎫 Atrações", "🎁 Extras"];
@@ -135,19 +146,29 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [spendingBreakdown, setSpendingBreakdown] = useState<BreakdownItem[]>([]);
     const [spendingCurrency, setSpendingCurrency] = useState("BRL");
 
-    /* ─── Bloco 6: Checklist + FAQ ─── */
+    /* ─── Bloco 6: Meu Voo ─── */
+    const [flightOutbound, setFlightOutbound] = useState<FlightLeg>({ ...EMPTY_FLIGHT_LEG });
+    const [flightReturn, setFlightReturn] = useState<FlightLeg>({ ...EMPTY_FLIGHT_LEG });
+    const [flightTips, setFlightTips] = useState<string[]>([]);
+    const [newFlightTip, setNewFlightTip] = useState("");
+
+    /* ─── Bloco 7: Checklist ─── */
     const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
-    const [faqItems, setFaqItems] = useState<FaqItem[]>([]);
     const [newCheckItem, setNewCheckItem] = useState("");
     const [newCheckCat, setNewCheckCat] = useState("documentos");
 
-    /* ─── Bloco 7: Pós-compra ─── */
+    /* ─── Bloco 8: Pós-compra ─── */
     const [allowPdf, setAllowPdf] = useState(false);
     const [allowShare, setAllowShare] = useState(true);
 
     /* ─── Hospedagem & Transporte ─── */
     const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
     const [transports, setTransports] = useState<Transport[]>([]);
+
+    /* ─── Restaurantes & Dicas Gerais ─── */
+    const [restaurants, setRestaurants] = useState<RestaurantItem[]>([]);
+    const [generalTips, setGeneralTips] = useState<string[]>([]);
+    const [newGeneralTip, setNewGeneralTip] = useState("");
 
     /* ─── Quality score ─── */
     const qualityScore = calcQuality({ title, subtitle, destination, country, description, duration, price, travelStyles, categories, activeModules, highlightItems, inclusionItems: inclusionItems, days, spendingBreakdown, productType, promoPrice });
@@ -204,8 +225,20 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 setChecklistItems((data.checklists || []).map((c: any) => ({
                     category: c.category || "documentos", item: c.item || "", isDefault: c.isDefault ?? true,
                 })));
-                // FAQ
-                setFaqItems((data.faqQuestions || []).map((f: any) => ({ question: f.question || "", answer: f.answer || "" })));
+                // Flight
+                if (data.flightInfo) {
+                    setFlightOutbound(data.flightInfo.outbound || { ...EMPTY_FLIGHT_LEG });
+                    setFlightReturn(data.flightInfo.return || { ...EMPTY_FLIGHT_LEG });
+                    setFlightTips(data.flightInfo.tips || []);
+                }
+                // Restaurants
+                setRestaurants((data.restaurants || []).map((r: any) => ({
+                    name: r.name || "", cuisine: r.cuisine || "", location: r.location || "",
+                    description: r.description || "", priceRange: r.priceRange || "",
+                    hours: r.hours || "", externalLink: r.externalLink || "", tips: r.tips || "",
+                })));
+                // General Tips
+                setGeneralTips(data.generalTips || []);
             })
             .catch((err) => setToast({ msg: `Erro ao carregar: ${err.message}`, type: "error" }))
             .finally(() => setLoading(false));
@@ -227,8 +260,15 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             images: images.filter(Boolean),
             days: days.map((d, i) => ({ ...d, dayNumber: i + 1, activities: d.activities.map(a => ({ ...a, latitude: a.latitude ? parseFloat(a.latitude) : undefined, longitude: a.longitude ? parseFloat(a.longitude) : undefined })) })),
             accommodations, transports, checklists: checklistItems,
+            flightInfo: (flightOutbound.airline || flightReturn.airline) ? {
+                outbound: flightOutbound,
+                return: flightReturn,
+                tips: flightTips.filter(t => t.trim()),
+            } : undefined,
+            restaurants: restaurants.filter(r => r.name.trim()),
+            generalTips: generalTips.filter(t => t.trim()),
         };
-    }, [title, subtitle, destination, country, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, offlineDownload, allowPdf, allowShare, highlightItems, inclusionItems, spendingBreakdown, spendingCurrency, images, days, accommodations, transports, checklistItems]);
+    }, [title, subtitle, destination, country, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, offlineDownload, allowPdf, allowShare, highlightItems, inclusionItems, spendingBreakdown, spendingCurrency, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTips, restaurants, generalTips]);
 
     /* ─── Save ─── */
     const handleSave = async () => {
@@ -273,11 +313,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             case "modules": return activeModules.length >= 1;
             case "itinerary": return days.length >= 3;
             case "spending": return spendingBreakdown.length > 0;
-            case "checklist": return checklistItems.length > 0 || faqItems.length > 0;
+            case "flight": return !!(flightOutbound.airline || flightReturn.airline);
+            case "checklist": return checklistItems.length > 0;
             case "postpurchase": return true;
             default: return false;
         }
-    }, [title, destination, country, categories, price, activeModules, days, spendingBreakdown, checklistItems, faqItems]);
+    }, [title, destination, country, categories, price, activeModules, days, spendingBreakdown, checklistItems, flightOutbound, flightReturn]);
 
     /* ─── Chip toggle ─── */
     const toggleChip = (arr: string[], set: (v: string[]) => void, key: string, max: number) => {
@@ -396,10 +437,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     {installments && price > 0 && <span className="form-helper">Até {installments}x de R$ {(price / installments).toFixed(2)}</span>}
                 </div>
                 {[
-                    { label: "⚡ Acesso imediato", desc: "Liberado logo após o pagamento", val: immediateAccess, set: setImmediateAccess },
-                    { label: "♾️ Acesso vitalício", desc: "Sem prazo de expiração", val: lifetimeAccess, set: setLifetimeAccess },
                     { label: "📥 Download offline", desc: "Pode baixar para acessar sem internet", val: offlineDownload, set: setOfflineDownload },
-                    { label: "⭐ Em destaque", desc: "Aparece na seção principal", val: featured, set: setFeatured },
                 ].map(t => (
                     <div className="editor-toggle-row" key={t.label}>
                         <div className="editor-toggle-info"><span className="editor-toggle-label">{t.label}</span><span className="editor-toggle-desc">{t.desc}</span></div>
@@ -513,7 +551,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     <button className="btn-add-item" onClick={() => setImages([...images, ""])}>+ Imagem</button>
                 </div>
 
-                {/* ── Hospedagem ── */}
+                {/* ── Hospedagem (gated by module) ── */}
+                {activeModules.includes("hospedagem") && (
                 <div className="editor-subsection" style={{ marginTop: 24 }}>
                     <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}>🏨 Hospedagens Sugeridas</h4>
                     {accommodations.map((acc, i) => (
@@ -537,8 +576,10 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     ))}
                     <button className="btn-add-item" onClick={addAccommodation}>+ Hospedagem</button>
                 </div>
+                )}
 
-                {/* ── Transporte ── */}
+                {/* ── Transporte (gated by module) ── */}
+                {activeModules.includes("transporte") && (
                 <div className="editor-subsection" style={{ marginTop: 24 }}>
                     <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "var(--text-secondary)" }}>🚌 Opções de Transporte</h4>
                     {transports.map((t, i) => (
@@ -558,6 +599,60 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     ))}
                     <button className="btn-add-item" onClick={addTransport}>+ Opção de Transporte</button>
                 </div>
+                )}
+
+                {/* ── Restaurantes Selecionados (gated by module) ── */}
+                {activeModules.includes("restaurantes") && (
+                <div className="editor-subsection" style={{ marginTop: 24 }}>
+                    <h4 style={{ margin: "0 0 4px", fontSize: 14, color: "var(--text-secondary)" }}>🍽️ Restaurantes Selecionados</h4>
+                    <span className="form-helper" style={{ marginBottom: 12, display: "block" }}>Recomende restaurantes e experiências gastronômicas para o viajante.</span>
+                    {restaurants.map((rest, i) => (
+                        <div className="editor-activity-card" key={i} style={{ marginBottom: 12 }}>
+                            <div className="editor-activity-row">
+                                <input className="form-input" value={rest.name} onChange={e => { const u = [...restaurants]; u[i].name = e.target.value; setRestaurants(u); markDirty(); }} placeholder="Nome do restaurante *" style={{ flex: 2 }} />
+                                <select className="form-input" value={rest.cuisine} onChange={e => { const u = [...restaurants]; u[i].cuisine = e.target.value; setRestaurants(u); markDirty(); }} style={{ width: 140 }}>
+                                    <option value="">Culinária</option>
+                                    {CUISINE_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <button className="btn-remove" onClick={() => { setRestaurants(restaurants.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
+                            </div>
+                            <div className="editor-activity-row">
+                                <input className="form-input" value={rest.location} onChange={e => { const u = [...restaurants]; u[i].location = e.target.value; setRestaurants(u); markDirty(); }} placeholder="Localização / Bairro *" />
+                                <input className="form-input" value={rest.priceRange} onChange={e => { const u = [...restaurants]; u[i].priceRange = e.target.value; setRestaurants(u); markDirty(); }} placeholder="Preço por pessoa (ex: R$ 30-60)" />
+                            </div>
+                            <div className="editor-activity-row">
+                                <textarea className="form-input" value={rest.description} onChange={e => { const u = [...restaurants]; u[i].description = e.target.value; setRestaurants(u); markDirty(); }} placeholder="Descrição / Por que recomendar" style={{ minHeight: 50 }} rows={2} />
+                            </div>
+                            <div className="editor-activity-row">
+                                <input className="form-input" value={rest.hours} onChange={e => { const u = [...restaurants]; u[i].hours = e.target.value; setRestaurants(u); markDirty(); }} placeholder="Horário (ex: 17:00 - 23:00)" />
+                                <input className="form-input" value={rest.externalLink} onChange={e => { const u = [...restaurants]; u[i].externalLink = e.target.value; setRestaurants(u); markDirty(); }} placeholder="Link externo (Google Maps, reserva)" />
+                            </div>
+                            <div className="editor-activity-row">
+                                <textarea className="form-input" value={rest.tips} onChange={e => { const u = [...restaurants]; u[i].tips = e.target.value; setRestaurants(u); markDirty(); }} placeholder="💡 Dicas de experiência (ex: Chegar às 19h para evitar fila)" style={{ minHeight: 40 }} rows={2} />
+                            </div>
+                        </div>
+                    ))}
+                    <button className="btn-add-item" onClick={() => { setRestaurants([...restaurants, { name: "", cuisine: "", location: "", description: "", priceRange: "", hours: "", externalLink: "", tips: "" }]); markDirty(); }}>+ Restaurante</button>
+                </div>
+                )}
+
+                {/* ── Dicas Gerais do Viajante (gated by module) ── */}
+                {activeModules.includes("dicas") && (
+                <div className="editor-subsection" style={{ marginTop: 24 }}>
+                    <h4 style={{ margin: "0 0 4px", fontSize: 14, color: "var(--text-secondary)" }}>💡 Dicas Gerais do Viajante</h4>
+                    <span className="form-helper" style={{ marginBottom: 12, display: "block" }}>Compartilhe dicas úteis baseadas na sua experiência real no destino.</span>
+                    {generalTips.map((tip, i) => (
+                        <div className="editor-checklist-item" key={i}>
+                            <span style={{ flex: 1 }}>{tip}</span>
+                            <button className="btn-remove" onClick={() => { setGeneralTips(generalTips.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
+                        </div>
+                    ))}
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newGeneralTip} onChange={e => setNewGeneralTip(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newGeneralTip.trim()) { setGeneralTips([...generalTips, newGeneralTip.trim()]); setNewGeneralTip(""); markDirty(); } }} placeholder="Ex: Comprei ida e volta pela LATAM com 3 meses de antecedência..." />
+                        <button className="btn-add-item" onClick={() => { if (newGeneralTip.trim()) { setGeneralTips([...generalTips, newGeneralTip.trim()]); setNewGeneralTip(""); markDirty(); } }}>+</button>
+                    </div>
+                </div>
+                )}
             </>);
 
             /* ═══ BLOCO 5: GASTO ═══ */
@@ -596,7 +691,51 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 )}
             </>);
 
-            /* ═══ BLOCO 6: CHECKLIST + FAQ ═══ */
+            /* ═══ BLOCO 6: MEU VOO ═══ */
+            case "flight": {
+                const renderFlightLeg = (leg: FlightLeg, setLeg: (l: FlightLeg) => void, label: string, icon: string) => (
+                    <>
+                        <h4 style={{ margin: "16px 0 8px", fontSize: 14 }}>{icon} {label}</h4>
+                        <div className="editor-activity-card" style={{ marginBottom: 10 }}>
+                            <div className="editor-activity-row">
+                                <input className="form-input" value={leg.airline} onChange={e => { setLeg({ ...leg, airline: e.target.value }); markDirty(); }} placeholder="Companhia aérea (ex: LATAM)" style={{ flex: 1 }} />
+                                <input className="form-input" value={leg.route} onChange={e => { setLeg({ ...leg, route: e.target.value }); markDirty(); }} placeholder="Rota (ex: GRU → CDG)" style={{ flex: 1 }} />
+                            </div>
+                            <div className="editor-activity-row">
+                                <input className="form-input" value={leg.departure} onChange={e => { setLeg({ ...leg, departure: e.target.value }); markDirty(); }} placeholder="Saída (ex: 22:30)" />
+                                <input className="form-input" value={leg.arrival} onChange={e => { setLeg({ ...leg, arrival: e.target.value }); markDirty(); }} placeholder="Chegada (ex: 14:15 +1)" />
+                                <input className="form-input" value={leg.duration} onChange={e => { setLeg({ ...leg, duration: e.target.value }); markDirty(); }} placeholder="Duração (ex: 11h45)" />
+                            </div>
+                            <div className="editor-activity-row">
+                                <div className="form-group" style={{ flex: 0, margin: 0 }}>
+                                    <label className="form-label" style={{ fontSize: 12, margin: 0 }}>Paradas</label>
+                                    <input className="form-input" type="number" value={leg.stops} onChange={e => { setLeg({ ...leg, stops: parseInt(e.target.value) || 0 }); markDirty(); }} min={0} style={{ width: 80 }} />
+                                </div>
+                                <input className="form-input" value={leg.pricePaid} onChange={e => { setLeg({ ...leg, pricePaid: e.target.value }); markDirty(); }} placeholder="Preço pago (ex: R$ 3.450)" style={{ flex: 1 }} />
+                            </div>
+                        </div>
+                    </>
+                );
+                return (<>
+                    <span className="form-helper">Informe os dados do voo que você usou/recomenda para esse destino.</span>
+                    {renderFlightLeg(flightOutbound, setFlightOutbound, "Voo de Ida", "🛫")}
+                    {renderFlightLeg(flightReturn, setFlightReturn, "Voo de Volta", "🛬")}
+
+                    <h4 style={{ margin: "24px 0 8px", fontSize: 14 }}>💬 Dicas sobre o Voo</h4>
+                    {flightTips.map((tip, i) => (
+                        <div className="editor-checklist-item" key={i}>
+                            <span style={{ flex: 1 }}>{tip}</span>
+                            <button className="btn-remove" onClick={() => { setFlightTips(flightTips.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
+                        </div>
+                    ))}
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newFlightTip} onChange={e => setNewFlightTip(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newFlightTip.trim()) { setFlightTips([...flightTips, newFlightTip.trim()]); setNewFlightTip(""); markDirty(); } }} placeholder="Ex: Voo noturno é a melhor opção — dormi no avião e cheguei de manhã" />
+                        <button className="btn-add-item" onClick={() => { if (newFlightTip.trim()) { setFlightTips([...flightTips, newFlightTip.trim()]); setNewFlightTip(""); markDirty(); } }}>+</button>
+                    </div>
+                </>);
+            }
+
+            /* ═══ BLOCO 7: CHECKLIST ═══ */
             case "checklist": return (<>
                 <h4 style={{ margin: "0 0 8px" }}>✅ Checklist</h4>
                 <div className="editor-checklist-add">
@@ -622,15 +761,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     );
                 })}
 
-                <h4 style={{ margin: "24px 0 8px" }}>❓ FAQ</h4>
-                {faqItems.map((faq, i) => (
-                    <div className="editor-faq-item" key={i}>
-                        <input className="form-input" value={faq.question} onChange={e => { const u = [...faqItems]; u[i].question = e.target.value; setFaqItems(u); markDirty(); }} placeholder="Pergunta" />
-                        <textarea className="form-input" value={faq.answer} onChange={e => { const u = [...faqItems]; u[i].answer = e.target.value; setFaqItems(u); markDirty(); }} placeholder="Resposta" style={{ minHeight: 60 }} />
-                        <button className="btn-remove" onClick={() => { setFaqItems(faqItems.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
+                <div style={{ marginTop: 24, padding: "14px 16px", backgroundColor: "#F0F7FF", borderRadius: 10, borderLeft: "3px solid var(--teal)" }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)", marginBottom: 4 }}>💬 Perguntas & Respostas</div>
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                        A seção de Perguntas é gerada automaticamente pelos usuários. Quando alguém fizer uma pergunta na página do seu roteiro, ela aparecerá na sua <strong>Dashboard → Perguntas</strong> para você responder.
                     </div>
-                ))}
-                <button className="btn-add-item" onClick={() => { setFaqItems([...faqItems, { question: "", answer: "" }]); markDirty(); }}>+ Pergunta</button>
+                </div>
             </>);
 
             /* ═══ BLOCO 7: PÓS-COMPRA ═══ */
@@ -672,7 +808,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
             {/* Sections */}
             <div className="editor-sections">
-                {SECTIONS.map(sec => (
+                {SECTIONS.filter(sec => {
+                    const requiredModule = SECTION_MODULE_MAP[sec.key];
+                    if (!requiredModule) return true; // always visible (identity, commerce, modules, postpurchase)
+                    return activeModules.includes(requiredModule);
+                }).map(sec => (
                     <div key={sec.key} ref={el => { sectionRefs.current[sec.key] = el; }} className={`editor-section ${openSections.has(sec.key) ? "open" : ""} ${activeSection === sec.key ? "active" : ""}`}>
                         <button className="editor-section-header" onClick={() => { toggleSection(sec.key); setActiveSection(sec.key); }}>
                             <span className="editor-section-icon">{sec.icon}</span>

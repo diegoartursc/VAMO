@@ -184,4 +184,43 @@ export async function getMyTrips(travelerId: string): Promise<{
     }
 }
 
+// ─── Reviews ────────────────────────────────────────────
 
+async function postApi<T>(endpoint: string, body: object): Promise<T> {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
+    return data;
+}
+
+export async function submitItineraryReview(params: {
+    travelerId: string;
+    itineraryId: string;
+    rating: number;
+    comment: string;
+    photos: string[];
+}): Promise<{ review: { id: string; rating: number; comment: string } }> {
+    return postApi('/reviews', params);
+}
+
+export async function getMyReviews(travelerId: string): Promise<{
+    reviews: Array<{
+        id: string;
+        itineraryId: string | null;
+        rating: number;
+        comment: string;
+        date: string;
+        photos: string[];
+        itinerary: { id: string; title: string; destination: string; country: string; image: string | null } | null;
+    }>;
+}> {
+    try {
+        return await fetchApi(`/reviews/my?travelerId=${encodeURIComponent(travelerId)}`);
+    } catch {
+        return { reviews: [] };
+    }
+}

@@ -1,6 +1,7 @@
 export interface Review {
     id: string;
     packageId: string;
+    userId: string;
     user: {
         name: string;
         location: string;
@@ -22,6 +23,7 @@ export interface Review {
 const MOCK_REVIEWS: Review[] = [
     {
         id: '1',
+        userId: 'user-salome',
         packageId: 'pkg-1',
         user: {
             name: 'Salomé',
@@ -47,6 +49,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '2',
+        userId: 'user-william',
         packageId: 'pkg-1',
         user: {
             name: 'William',
@@ -62,6 +65,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '3',
+        userId: 'user-anaclara',
         packageId: 'pkg-1',
         user: {
             name: 'Ana Clara',
@@ -80,6 +84,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '4',
+        userId: 'user-carlos',
         packageId: 'pkg-2',
         user: {
             name: 'Carlos',
@@ -95,6 +100,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '5',
+        userId: 'user-marina',
         packageId: 'pkg-2',
         user: {
             name: 'Marina',
@@ -113,6 +119,7 @@ const MOCK_REVIEWS: Review[] = [
     // Itinerary Reviews
     {
         id: '6',
+        userId: 'user-roberta',
         packageId: 'itinerary-1', // Paris Econômica
         user: {
             name: 'Roberta',
@@ -131,6 +138,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '7',
+        userId: 'trav-diego',
         packageId: 'itinerary-1',
         user: {
             name: 'Felipe',
@@ -149,6 +157,7 @@ const MOCK_REVIEWS: Review[] = [
     },
     {
         id: '8',
+        userId: 'user-camila',
         packageId: 'itinerary-1',
         user: {
             name: 'Camila',
@@ -227,4 +236,27 @@ export function getTopRatedCategoriesText(packageId: string): string {
         const otherCategories = topCategories.slice(0, -1).join(', ');
         return `Viajantes elogiam principalmente ${otherCategories} e ${lastCategory}`;
     }
+}
+
+// ─── User-scoped helpers ────────────────────────────────
+
+export function getReviewsByUserId(userId: string): Review[] {
+    return MOCK_REVIEWS.filter(review => review.userId === userId);
+}
+
+export function hasUserReviewed(userId: string, packageId: string): boolean {
+    return MOCK_REVIEWS.some(r => r.userId === userId && r.packageId === packageId);
+}
+
+export function getUserReviewForPackage(userId: string, packageId: string): Review | undefined {
+    return MOCK_REVIEWS.find(r => r.userId === userId && r.packageId === packageId);
+}
+
+export function addReview(review: Omit<Review, 'id'>): Review {
+    const newReview: Review = {
+        ...review,
+        id: `review-${Date.now()}`,
+    };
+    MOCK_REVIEWS.push(newReview);
+    return newReview;
 }

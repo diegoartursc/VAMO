@@ -34,11 +34,19 @@ export default function TabsLayout() {
                     }}
                 />
                 <Tabs.Screen
+                    name="my-trips"
+                    options={{
+                        href: '/my-trips',
+                        title: 'Meus Roteiros',
+                        tabBarIcon: ({ focused, color }) => <TabIcon name="book-open" focused={focused} color={color} />,
+                    }}
+                />
+                <Tabs.Screen
                     name="cart"
                     options={{
                         href: '/cart',
                         title: 'Carrinho',
-                        tabBarIcon: ({ focused, color }) => <TabIcon name="shopping-bag" focused={focused} color={color} />,
+                        tabBarIcon: ({ focused, color }) => <TabIcon name="shopping-cart" focused={focused} color={color} />,
                     }}
                 />
                 <Tabs.Screen
@@ -55,13 +63,6 @@ export default function TabsLayout() {
                     options={{
                         href: null,
                         title: 'Roteiros',
-                    }}
-                />
-                <Tabs.Screen
-                    name="my-trips"
-                    options={{
-                        href: null,
-                        title: 'Minhas Viagens',
                     }}
                 />
                 <Tabs.Screen

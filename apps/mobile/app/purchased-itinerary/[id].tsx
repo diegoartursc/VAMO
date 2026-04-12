@@ -21,6 +21,9 @@ import {
     getPurchasedItineraryById,
 } from '../../src/data/mockPurchasedItineraries';
 import { haptics } from '../../src/services/haptics';
+import { hasUserReviewed, getUserReviewForPackage } from '../../src/data/mockReviews';
+import { Icon } from '../../src/components/common/Icons';
+import ReviewModal from '../../src/components/reviews/ReviewModal';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +37,8 @@ export default function PurchasedItineraryScreen() {
     const [customDays, setCustomDays] = useState(itinerary?.duration || 7);
     const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
     const [completedChecklist, setCompletedChecklist] = useState<Set<string>>(new Set());
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [reviewed, setReviewed] = useState(false);
 
     if (!itinerary) {
         return (
@@ -492,6 +497,64 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     )}
 
+                    {/* ══════════ BLOCO 6.5 — RESTAURANTES & GASTRONOMIA ══════════ */}
+                    {itinerary.restaurants && itinerary.restaurants.length > 0 && (
+                        <View style={styles.block}>
+                            <Text style={styles.blockTitle}>🍽️ Restaurantes & Gastronomia</Text>
+                            {itinerary.restaurants.map((rest, i) => (
+                                <View key={i} style={styles.restaurantCard}>
+                                    <View style={styles.restaurantHeader}>
+                                        <View style={{ flex: 1 }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                <Text style={styles.restaurantName}>{rest.name}</Text>
+                                                {rest.cuisine ? (
+                                                    <View style={styles.cuisineTag}>
+                                                        <Text style={styles.cuisineTagText}>{rest.cuisine}</Text>
+                                                    </View>
+                                                ) : null}
+                                            </View>
+                                            <Text style={styles.restaurantLocation}>📍 {rest.location}</Text>
+                                        </View>
+                                        {rest.priceRange && (
+                                            <View style={styles.restaurantPriceBadge}>
+                                                <Text style={styles.restaurantPrice}>{rest.priceRange}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                    {rest.description ? (
+                                        <Text style={styles.restaurantDesc}>{rest.description}</Text>
+                                    ) : null}
+                                    {rest.hours ? (
+                                        <Text style={styles.restaurantHours}>🕐 {rest.hours}</Text>
+                                    ) : null}
+                                    {rest.tips ? (
+                                        <View style={styles.restaurantTipBox}>
+                                            <Text style={styles.restaurantTip}>💡 {rest.tips}</Text>
+                                        </View>
+                                    ) : null}
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
+                    {/* ══════════ BLOCO 6.7 — DICAS GERAIS DO VIAJANTE ══════════ */}
+                    {itinerary.generalTips && itinerary.generalTips.length > 0 && (
+                        <View style={styles.block}>
+                            <Text style={styles.blockTitle}>💡 Dicas do Viajante</Text>
+                            <Text style={styles.generalTipsSubtitle}>
+                                Recomendações de {itinerary.creator.name}
+                            </Text>
+                            <View style={styles.generalTipsBox}>
+                                {itinerary.generalTips.map((tip, i) => (
+                                    <View key={i} style={styles.generalTipRow}>
+                                        <Text style={styles.generalTipBullet}>•</Text>
+                                        <Text style={styles.generalTipText}>{tip}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+
                     {/* ══════════ BLOCO 7 — CHECKLIST ══════════ */}
                     <View style={styles.block}>
                         <Text style={styles.blockTitle}>✅ Checklist de Planejamento</Text>
@@ -565,9 +628,67 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     )}
 
+                    {/* ══════════ BLOCO 9 — AVALIAR ROTEIRO ══════════ */}
+                    <View style={styles.block}>
+                        <Text style={styles.blockTitle}>⭐ Avaliar este Roteiro</Text>
+                        {reviewed || hasUserReviewed('trav-diego', `itinerary-${id}`) ? (
+                            <View style={styles.reviewDoneCard}>
+                                <View style={styles.reviewDoneHeader}>
+                                    <Icon name="verified" size={20} color={theme.colors.primary} />
+                                    <Text style={styles.reviewDoneTitle}>Você já avaliou!</Text>
+                                </View>
+                                {(() => {
+                                    const existing = getUserReviewForPackage('trav-diego', `itinerary-${id}`);
+                                    return existing ? (
+                                        <>
+                                            <View style={styles.reviewDoneStars}>
+                                                {[1,2,3,4,5].map(s => (
+                                                    <Ionicons key={s} name={s <= existing.rating ? 'star' : 'star-outline'} size={18} color="#FFD700" />
+                                                ))}
+                                            </View>
+                                            <Text style={styles.reviewDoneText} numberOfLines={3}>{existing.text}</Text>
+                                        </>
+                                    ) : (
+                                        <Text style={styles.reviewDoneText}>Avaliação enviada com sucesso!</Text>
+                                    );
+                                })()}
+                            </View>
+                        ) : (
+                            <View style={styles.reviewCTACard}>
+                                <LinearGradient
+                                    colors={[theme.colors.primary + '15', theme.colors.primary + '05']}
+                                    style={styles.reviewCTAGradient}
+                                >
+                                    <Ionicons name="chatbubble-ellipses-outline" size={36} color={theme.colors.primary} />
+                                    <Text style={styles.reviewCTATitle}>Como foi sua experiência?</Text>
+                                    <Text style={styles.reviewCTASubtitle}>
+                                        Sua avaliação ajuda outros viajantes a decidirem.
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.reviewCTAButton}
+                                        onPress={() => { haptics.light(); setShowReviewModal(true); }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Ionicons name="star" size={18} color="#fff" />
+                                        <Text style={styles.reviewCTAButtonText}>Escrever Avaliação</Text>
+                                    </TouchableOpacity>
+                                </LinearGradient>
+                            </View>
+                        )}
+                    </View>
+
                     <View style={{ height: 40 }} />
                 </View>
             </ScrollView>
+
+            {/* Review Modal */}
+            <ReviewModal
+                visible={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                itineraryId={id ?? ''}
+                itineraryTitle={itinerary.title}
+                onSuccess={() => { setReviewed(true); setShowReviewModal(false); }}
+            />
         </View>
     );
 }
@@ -833,4 +954,154 @@ const styles = StyleSheet.create({
     },
     receiveIcon: { fontSize: 20 },
     receiveLabel: { flex: 1, fontSize: 14, color: theme.colors.text.primary, fontWeight: '500' },
+
+    // ── Block 9: Review CTA
+    reviewCTACard: {
+        borderRadius: 16, overflow: 'hidden',
+        borderWidth: 1, borderColor: theme.colors.primary + '20',
+    },
+    reviewCTAGradient: {
+        padding: 28, alignItems: 'center',
+    },
+    reviewCTATitle: {
+        fontSize: 18, fontWeight: '800', color: theme.colors.text.primary,
+        marginTop: 12, marginBottom: 6,
+    },
+    reviewCTASubtitle: {
+        fontSize: 13, color: theme.colors.text.secondary,
+        textAlign: 'center', marginBottom: 20, lineHeight: 19,
+    },
+    reviewCTAButton: {
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+        backgroundColor: theme.colors.primary, paddingHorizontal: 24,
+        paddingVertical: 14, borderRadius: 100,
+    },
+    reviewCTAButtonText: {
+        fontSize: 15, fontWeight: '700', color: '#fff',
+    },
+    reviewDoneCard: {
+        backgroundColor: theme.colors.surface, borderRadius: 16,
+        padding: 20, borderWidth: 1, borderColor: theme.colors.borderLight,
+    },
+    reviewDoneHeader: {
+        flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10,
+    },
+    reviewDoneTitle: {
+        fontSize: 15, fontWeight: '700', color: theme.colors.primary,
+    },
+    reviewDoneStars: {
+        flexDirection: 'row', gap: 4, marginBottom: 8,
+    },
+    reviewDoneText: {
+        fontSize: 14, color: theme.colors.text.secondary, lineHeight: 20, marginBottom: 14,
+    },
+    reviewEditBtn: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8,
+        backgroundColor: theme.colors.primary + '10', borderRadius: 10,
+    },
+    reviewEditBtnText: {
+        fontSize: 13, fontWeight: '600', color: theme.colors.primary,
+    },
+
+    // ─── Restaurant Block ───
+    restaurantCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        padding: 14,
+        marginBottom: 10,
+    },
+    restaurantHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+    },
+    restaurantName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    cuisineTag: {
+        backgroundColor: theme.colors.primary + '15',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    cuisineTagText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: theme.colors.primary,
+    },
+    restaurantLocation: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
+    },
+    restaurantPriceBadge: {
+        backgroundColor: '#F0FFF4',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    restaurantPrice: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#16A34A',
+    },
+    restaurantDesc: {
+        fontSize: 13,
+        color: theme.colors.text.primary,
+        lineHeight: 19,
+        marginBottom: 6,
+    },
+    restaurantHours: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 6,
+    },
+    restaurantTipBox: {
+        backgroundColor: '#FFFBEB',
+        borderRadius: 8,
+        padding: 10,
+        marginTop: 4,
+    },
+    restaurantTip: {
+        fontSize: 12,
+        color: '#92400E',
+        lineHeight: 18,
+    },
+
+    // ─── General Tips Block ───
+    generalTipsSubtitle: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginBottom: 12,
+    },
+    generalTipsBox: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        padding: 16,
+    },
+    generalTipRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 10,
+    },
+    generalTipBullet: {
+        fontSize: 16,
+        color: theme.colors.primary,
+        lineHeight: 22,
+        fontWeight: '700',
+    },
+    generalTipText: {
+        fontSize: 14,
+        color: theme.colors.text.primary,
+        lineHeight: 22,
+        flex: 1,
+    },
 });

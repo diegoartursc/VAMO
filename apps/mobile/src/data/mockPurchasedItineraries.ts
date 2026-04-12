@@ -107,6 +107,16 @@ export interface AccommodationOption {
     rating?: number;
 }
 
+export interface RestaurantInfo {
+    name: string;
+    cuisine: string;
+    location: string;
+    description: string;
+    priceRange?: string;
+    hours?: string;
+    tips?: string;
+}
+
 export interface ReceiveItem {
     icon: string;
     label: string;
@@ -131,6 +141,8 @@ export interface PurchasedItinerary extends Itinerary {
     flightInfo?: FlightInfo;
     accommodationOptions?: AccommodationOption[];
     receiveList?: ReceiveItem[];
+    restaurants?: RestaurantInfo[];
+    generalTips?: string[];
 }
 
 export const mockPurchasedItineraries: PurchasedItinerary[] = [
@@ -529,6 +541,43 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             { icon: '💰', label: 'Estimativa de gastos interativa' },
             { icon: '✅', label: 'Checklist de planejamento' },
         ],
+        restaurants: [
+            {
+                name: 'Chez Janou',
+                cuisine: 'Bistrô',
+                location: 'Le Marais, 3ème',
+                description: 'Bistrô autêntico com o melhor mousse de chocolate de Paris. Ambiente acolhedor e preços acessíveis.',
+                priceRange: 'R$ 80-150 por pessoa',
+                hours: '12:00 - 23:00',
+                tips: 'Reserve com antecedência. O mousse de chocolate é obrigatório!',
+            },
+            {
+                name: "L'As du Fallafel",
+                cuisine: 'Street Food',
+                location: 'Le Marais, Rue des Rosiers',
+                description: 'O melhor falafel de Paris, talvez do mundo. Fila vale a pena!',
+                priceRange: 'R$ 30-50 por pessoa',
+                hours: '11:00 - 23:30 (fecha sáb)',
+                tips: 'Vá entre 11h-12h para pegar fila menor. Peça o especial com berinjela.',
+            },
+            {
+                name: 'Le Bouillon Chartier',
+                cuisine: 'Francesa',
+                location: 'Grands Boulevards, 9ème',
+                description: 'Restaurante tradicional desde 1896 com preços incrivelmente baixos para Paris.',
+                priceRange: 'R$ 40-80 por pessoa',
+                hours: '11:30 - 22:00',
+                tips: 'Não aceita reservas — chegue cedo. O interior Art Nouveau é imperdível.',
+            },
+        ],
+        generalTips: [
+            'Comprei ida e volta pela LATAM com 3 meses de antecedência e saiu ótimo',
+            'Voo noturno é a melhor opção — dormi no avião e cheguei em Paris de manhã',
+            'Leve um travesseiro de pescoço e meias grossas, o ar-condicionado é forte',
+            'No CDG, pegue o RER B direto pra cidade — muito mais barato que táxi',
+            'Compre o Paris Visite Pass de 5 dias logo no primeiro dia — economiza muito',
+            'Baixe o app RATP para ver linhas de metrô em tempo real',
+        ],
     },
     // ─── Tóquio Completo ────────────────────────────────────
     {
@@ -802,6 +851,53 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             { icon: '🍣', label: 'Restaurantes selecionados' },
             { icon: '💰', label: 'Estimativa de gastos interativa' },
             { icon: '✅', label: 'Checklist de planejamento' },
+        ],
+        restaurants: [
+            {
+                name: 'Omoide Yokocho Ramen',
+                cuisine: 'Ramen',
+                location: 'Omoide Yokocho, Shinjuku',
+                description: 'Rua de yakitori e ramen autêntico. Prove o yakitori de pele de frango.',
+                priceRange: 'R$ 30-60 por pessoa',
+                hours: '17:00 - 23:00',
+                tips: 'Chegar às 19h para evitar fila. Pechinche no copo de sake.',
+            },
+            {
+                name: 'Sukiyaki Fuji',
+                cuisine: 'Fine Dining',
+                location: 'Ginza, Tóquio',
+                description: 'Experiência de sukiyaki tradicional com carne wagyu.',
+                priceRange: 'R$ 150-250 por pessoa',
+                hours: '11:30 - 21:30',
+                tips: 'Reservar com antecedência pelo site. Menu em inglês disponível.',
+            },
+            {
+                name: 'Ichiran Ramen',
+                cuisine: 'Ramen',
+                location: 'Shibuya, Tóquio',
+                description: 'Ramen em cabines individuais — experiência única e deliciosa.',
+                priceRange: 'R$ 40-60 por pessoa',
+                hours: '24h',
+                tips: 'Experimente a versão extra-picante. Peça o ovo mole adicional.',
+            },
+            {
+                name: 'Tsukiji Outer Market',
+                cuisine: 'Sushi',
+                location: 'Tsukiji, Chuo',
+                description: 'Mercado de peixe fresco com sushi e sashimi do dia.',
+                priceRange: 'R$ 50-120 por pessoa',
+                hours: '05:00 - 14:00',
+                tips: 'Chegue antes das 7h para ver os melhores peixes. Fechar no domingo.',
+            },
+        ],
+        generalTips: [
+            'Fui de Emirates e valeu cada centavo — serviço e comida excelentes',
+            'Conexão em Dubai foi tranquila, aeroporto é enorme mas bem sinalizado',
+            'Reserve assento na janela no trecho Dubai→Tóquio pra ver o Monte Fuji',
+            'No Narita, compre o Suica Card já no aeroporto — facilita tudo em Tóquio',
+            'Leve um guarda-chuva compacto — abril chove bastante em Tóquio',
+            'Aprenda a dizer "sumimasen" (com licença) — os japoneses adoram educação',
+            'Dinheiro em espécie é essencial — muitos restaurantes não aceitam cartão',
         ],
     },
     // ─── Bali & Tailândia ───────────────────────────────────

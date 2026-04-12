@@ -130,8 +130,22 @@ export default function RoteirosPage() {
                             </div>
                             <div className="table-cell table-actions">
                                 <Link href={`/dashboard/roteiro/${it.id}`}>
-                                    <button className="table-action-btn" title="Editar">✏️</button>
+                                    <button className="table-action-btn" title="Editar roteiro">✏️</button>
                                 </Link>
+                                <a
+                                    href={`http://localhost:8081/itinerary/${it.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <button className="table-action-btn" title="Ver página pública do roteiro">👁️</button>
+                                </a>
+                                <a
+                                    href={`http://localhost:8081/purchased-itinerary/${it.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <button className="table-action-btn" title="Ver como o comprador vê (Meu Roteiro)">📖</button>
+                                </a>
                                 <button
                                     className="table-action-btn"
                                     title="Arquivar"

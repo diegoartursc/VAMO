@@ -149,18 +149,6 @@ export default function ProfileScreen() {
                         <Text style={styles.sinceText}>Viajante desde {USER.since}</Text>
                     </View>
 
-                    {/* Traveler Identity Line */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-                        <Icon name="globe" size={13} color="rgba(255,255,255,0.7)" />
-                        <Text style={styles.identityLine}>
-                            {USER.destinations} destinos visitados
-                        </Text>
-                        <Text style={{ color: 'rgba(255,255,255,0.5)' }}>•</Text>
-                        <Icon name="map" size={13} color="rgba(255,255,255,0.7)" />
-                        <Text style={styles.identityLine}>
-                            {USER.createdItineraries} roteiros criados
-                        </Text>
-                    </View>
                 </LinearGradient>
 
                 {/* ══════════ 2. QUICK STATS ══════════ */}
@@ -217,17 +205,40 @@ export default function ProfileScreen() {
                 <View style={styles.shortcutsRow}>
                     <TouchableOpacity
                         style={styles.shortcutButton}
-                        onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}
+                        onPress={() => router.push('/(tabs)/my-trips')}
                     >
-                        <Icon name="map" size={20} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText}>Meus Roteiros</Text>
+                        <Icon name="book-open" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Meus Roteiros</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
-                        onPress={() => router.push('/(tabs)/my-trips?tab=saved')}
+                        onPress={() => router.push('/(tabs)/saved')}
                     >
-                        <Icon name="heart" size={20} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText}>Favoritos</Text>
+                        <Icon name="heart" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Favoritos</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.shortcutButton}
+                        onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
+                    >
+                        <Icon name="edit" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Roteiros Criados</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={[styles.shortcutsRow, { marginTop: 8 }]}>
+                    <TouchableOpacity
+                        style={styles.shortcutButton}
+                        onPress={() => { haptics.light(); router.push('/my-reviews'); }}
+                    >
+                        <Icon name="star" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Avaliações</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.shortcutButton}
+                        onPress={() => { haptics.light(); router.push('/my-questions'); }}
+                    >
+                        <Icon name="message-circle" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Perguntas</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -750,7 +761,8 @@ const styles = StyleSheet.create({
         borderWidth: 1.5, borderColor: theme.colors.primary + '40',
     },
     shortcutText: {
-        fontSize: 14, fontWeight: '600', color: theme.colors.primary,
+        fontSize: 12, fontWeight: '600', color: theme.colors.primary,
+        flexShrink: 1,
     },
 
     // Sections
