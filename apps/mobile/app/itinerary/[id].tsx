@@ -24,6 +24,8 @@ import { shareService } from '../../src/services/sharing';
 import { haptics } from '../../src/services/haptics';
 import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
 import { Icon } from '../../src/components/common/Icons';
+import { CoverCarousel } from '../../src/components/common/CoverCarousel';
+import { LinearGradient } from 'expo-linear-gradient';
 import FAQSection from '../../src/components/FAQSection';
 import { getItineraryFAQ } from '../../src/data/mockFAQ';
 import { PurchaseSuccessModal } from '../../src/components/modals/PurchaseSuccessModal';
@@ -77,7 +79,13 @@ export default function ItineraryDetailScreen() {
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* Hero Image */}
                 <View style={styles.heroContainer}>
-                    <Image source={{ uri: itinerary.images[0] }} style={styles.heroImage} />
+                    <CoverCarousel images={itinerary.images} height={420} />
+                    {/* Bottom gradient for smooth transition to content sheet */}
+                    <LinearGradient
+                        colors={['transparent', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.6)']}
+                        style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 }}
+                        pointerEvents="none"
+                    />
 
                     {/* Navigation Header with Blur */}
                     <BlurView intensity={80} tint="dark" style={styles.navBlur}>
@@ -108,15 +116,20 @@ export default function ItineraryDetailScreen() {
                     {/* Creator Badge */}
                     <View style={styles.creatorRow}>
                         <View style={styles.creatorBadge}>
-                            <Text style={styles.creatorAvatar}>{itinerary.creator.avatar}</Text>
+                            <View style={styles.creatorAvatarCircle}>
+                                <Icon name="circle-user" size={22} color={theme.colors.primary} />
+                            </View>
                             <View>
                                 <View style={styles.creatorNameRow}>
                                     <Text style={styles.creatorName}>{itinerary.creator.name}</Text>
                                     <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
                                 </View>
-                                <Text style={styles.creatorStats}>
-                                    ⭐ {itinerary.creator.rating} • {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
-                                </Text>
+                                <View style={styles.creatorStatsRow}>
+                                    <Icon name="star" size={11} color="#F59E0B" strokeWidth={2.5} />
+                                    <Text style={styles.creatorStats}>
+                                        {itinerary.creator.rating} · {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
+                                    </Text>
+                                </View>
                             </View>
                         </View>
 
@@ -141,40 +154,47 @@ export default function ItineraryDetailScreen() {
                     </View>
 
                     {/* Stats Row */}
-                    <View style={styles.statsRow}>
+                    <View style={styles.statsCard}>
                         <View style={styles.statItem}>
-                            <Ionicons name="star" size={18} color="#FFD700" />
+                            <Icon name="star" size={16} color="#F59E0B" strokeWidth={2.5} />
                             <Text style={styles.statText}>{itinerary.rating}</Text>
                             <Text style={styles.statLabel}>({itinerary.reviewCount})</Text>
                         </View>
+                        <View style={styles.statDivider} />
                         <View style={styles.statItem}>
-                            <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+                            <Icon name="calendar" size={16} color={theme.colors.primary} />
                             <Text style={styles.statText}>{itinerary.duration} dias</Text>
                         </View>
+                        <View style={styles.statDivider} />
                         <View style={styles.statItem}>
-                            <Ionicons name="eye-outline" size={18} color={theme.colors.primary} />
+                            <Icon name="verified" size={16} color={theme.colors.primary} />
                             <Text style={styles.statText}>Digital</Text>
                         </View>
                     </View>
 
                     {/* Price & CTA */}
-                    <View style={styles.priceSection}>
+                    <LinearGradient
+                        colors={['#1A3263', '#162A55']}
+                        style={styles.priceSection}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
                         <View>
-                            <Text style={styles.priceLabel}>Roteiro completo</Text>
+                            <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.65)' }]}>Roteiro completo</Text>
                             <View style={styles.priceRow}>
-                                <Text style={styles.priceSymbol}>R$</Text>
-                                <Text style={styles.priceValue}>{itinerary.price.toFixed(2).replace('.', ',')}</Text>
+                                <Text style={[styles.priceSymbol, { color: '#28C9BF' }]}>R$</Text>
+                                <Text style={[styles.priceValue, { color: '#FFFFFF' }]}>{itinerary.price.toFixed(2).replace('.', ',')}</Text>
                             </View>
-                            <Text style={styles.priceNote}>• Acesso imediato após compra</Text>
+                            <Text style={[styles.priceNote, { color: 'rgba(255,255,255,0.5)' }]}>• Acesso imediato após compra</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.buyButton}
                             onPress={handleBuyNow}
                         >
                             <Text style={styles.buyButtonText}>Comprar Agora</Text>
-                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            <Icon name="chevron-right" size={18} color="#fff" strokeWidth={2.5} />
                         </TouchableOpacity>
-                    </View>
+                    </LinearGradient>
 
                     {/* Aviso: Produto Digital */}
                     <View style={styles.productNotice}>
@@ -186,7 +206,7 @@ export default function ItineraryDetailScreen() {
 
                     {/* Estimativa de Gasto */}
                     {itinerary.estimatedSpending && (
-                        <CollapsibleSection title="💰 Estimativa de Gasto" defaultExpanded={false}>
+                        <CollapsibleSection title="Estimativa de Gasto" defaultExpanded={false}>
                             <View style={styles.spendingEstimate}>
                                 <View style={styles.spendingHeader}>
                                     <Text style={styles.spendingRange}>
@@ -399,7 +419,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     heroContainer: {
-        height: 400,
+        height: 420,
         position: 'relative',
     },
     heroImage: {
@@ -459,8 +479,13 @@ const styles = StyleSheet.create({
         gap: 12,
         ...theme.shadows.small,
     },
-    creatorAvatar: {
-        fontSize: 32,
+    creatorAvatarCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: theme.colors.primary + '15',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     creatorNameRow: {
         flexDirection: 'row',
@@ -475,6 +500,12 @@ const styles = StyleSheet.create({
     creatorStats: {
         fontSize: 12,
         color: theme.colors.text.secondary,
+        marginTop: 2,
+    },
+    creatorStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         marginTop: 2,
     },
     title: {
@@ -494,10 +525,23 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: theme.colors.text.secondary,
     },
-    statsRow: {
+    statsCard: {
         flexDirection: 'row',
-        gap: 20,
+        alignItems: 'center',
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
         marginBottom: 20,
+        gap: 0,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    statDivider: {
+        width: 1,
+        height: 28,
+        backgroundColor: theme.colors.border,
+        marginHorizontal: 16,
     },
     statItem: {
         flexDirection: 'row',
@@ -712,10 +756,14 @@ const styles = StyleSheet.create({
     trustBox: {
         flexDirection: 'row',
         gap: 12,
-        backgroundColor: theme.colors.surfaceLight,
+        backgroundColor: `${theme.colors.primary}08`,
         padding: 16,
         borderRadius: 12,
         marginTop: 16,
+        borderWidth: 1,
+        borderColor: `${theme.colors.primary}20`,
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.primary,
     },
     trustContent: {
         flex: 1,
