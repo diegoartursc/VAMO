@@ -27,6 +27,7 @@ export interface Itinerary {
         min: number;
         max: number;
         currency: string;
+        flightDeparture?: string;
         breakdown?: {
             category: string;
             amount: string;
@@ -76,6 +77,7 @@ export const mockItineraries: Itinerary[] = [
             min: 5500,
             max: 7000,
             currency: 'BRL',
+            flightDeparture: 'São Paulo (GRU)',
             breakdown: [
                 {
                     category: '🏨 Hospedagem',

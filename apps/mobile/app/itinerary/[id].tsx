@@ -207,36 +207,70 @@ export default function ItineraryDetailScreen() {
                     {/* Estimativa de Gasto */}
                     {itinerary.estimatedSpending && (
                         <CollapsibleSection title="Estimativa de Gasto" defaultExpanded={false}>
-                            <View style={styles.spendingEstimate}>
-                                <View style={styles.spendingHeader}>
-                                    <Text style={styles.spendingRange}>
-                                        {itinerary.estimatedSpending.currency} {itinerary.estimatedSpending.min.toLocaleString('pt-BR')} - {itinerary.estimatedSpending.max.toLocaleString('pt-BR')}
+                            {/* Total Range Card */}
+                            <LinearGradient
+                                colors={['#1A3263', '#1E4D8C']}
+                                style={styles.spendingTotalCard}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <View>
+                                    <Text style={styles.spendingTotalLabel}>Estimativa total · {itinerary.duration} dias</Text>
+                                    <Text style={styles.spendingTotalRange}>
+                                        {itinerary.estimatedSpending.currency === 'BRL' ? 'R$' : itinerary.estimatedSpending.currency}{' '}
+                                        {itinerary.estimatedSpending.min.toLocaleString('pt-BR')} — {itinerary.estimatedSpending.max.toLocaleString('pt-BR')}
                                     </Text>
-                                    <Text style={styles.spendingNote}>
-                                        *Valores aproximados para {itinerary.duration} dias
-                                    </Text>
+                                    {itinerary.estimatedSpending.flightDeparture && (
+                                        <View style={styles.flightDepartureRow}>
+                                            <Icon name="plane" size={12} color="rgba(255,255,255,0.7)" />
+                                            <Text style={styles.flightDepartureText}>
+                                                Voo incluso saindo de {itinerary.estimatedSpending.flightDeparture}
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
+                                <Text style={styles.spendingTotalNote}>*valores aproximados</Text>
+                            </LinearGradient>
 
-                                {itinerary.estimatedSpending.breakdown && (
-                                    <View style={styles.spendingBreakdown}>
-                                        {itinerary.estimatedSpending.breakdown.map((item: any, index: number) => (
+                            {/* Breakdown Items */}
+                            {itinerary.estimatedSpending.breakdown && (
+                                <View style={styles.spendingBreakdown}>
+                                    {itinerary.estimatedSpending.breakdown.map((item: any, index: number) => {
+                                        // Strip leading emoji from category name
+                                        const cleanCategory = item.category.replace(/^[\p{Emoji}\s]+/u, '').trim();
+                                        // Map category to icon
+                                        const catLower = cleanCategory.toLowerCase();
+                                        const iconName: any =
+                                            catLower.includes('hosped') || catLower.includes('hotel') ? 'hotel' :
+                                            catLower.includes('aliment') || catLower.includes('comida') || catLower.includes('gastro') ? 'utensils' :
+                                            catLower.includes('transport') ? 'car' :
+                                            catLower.includes('voo') || catLower.includes('passagem') ? 'plane' :
+                                            catLower.includes('atra') || catLower.includes('tour') ? 'compass' :
+                                            'star';
+                                        return (
                                             <View key={index} style={styles.breakdownItem}>
-                                                <View style={styles.breakdownHeader}>
-                                                    <Text style={styles.breakdownCategory}>{item.category}</Text>
+                                                <View style={styles.breakdownIconWrap}>
+                                                    <Icon name={iconName} size={18} color={theme.colors.primary} />
+                                                </View>
+                                                <View style={styles.breakdownContent}>
+                                                    <Text style={styles.breakdownCategory}>{cleanCategory}</Text>
+                                                    <Text style={styles.breakdownDescription}>{item.description}</Text>
+                                                </View>
+                                                <View style={styles.breakdownAmountBadge}>
                                                     <Text style={styles.breakdownAmount}>{item.amount}</Text>
                                                 </View>
-                                                <Text style={styles.breakdownDescription}>{item.description}</Text>
                                             </View>
-                                        ))}
-                                    </View>
-                                )}
-
-                                <View style={styles.spendingDisclaimer}>
-                                    <Ionicons name="information-circle-outline" size={16} color={theme.colors.text.secondary} />
-                                    <Text style={styles.disclaimerText}>
-                                        Valores estimados podem variar conforme época do ano e estilo de viagem
-                                    </Text>
+                                        );
+                                    })}
                                 </View>
+                            )}
+
+                            {/* Disclaimer */}
+                            <View style={styles.spendingDisclaimer}>
+                                <Icon name="info" size={15} color={theme.colors.text.tertiary} />
+                                <Text style={styles.disclaimerText}>
+                                    Valores estimados podem variar conforme época do ano e estilo de viagem
+                                </Text>
                             </View>
                         </CollapsibleSection>
                     )}
@@ -648,68 +682,103 @@ const styles = StyleSheet.create({
     },
 
     // Spending Estimate Styles
-    spendingEstimate: {
-        gap: 16,
+    spendingTotalCard: {
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
     },
-    spendingHeader: {
-        marginBottom: 8,
-    },
-    spendingRange: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: theme.colors.success,
-        marginBottom: 4,
-    },
-    spendingNote: {
+    spendingTotalLabel: {
         fontSize: 12,
-        color: theme.colors.text.secondary,
+        color: 'rgba(255,255,255,0.65)',
+        fontWeight: '500',
+        marginBottom: 6,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    spendingTotalRange: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: -0.5,
+    },
+    flightDepartureRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginTop: 8,
+    },
+    flightDepartureText: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.75)',
+        fontWeight: '500',
+    },
+    spendingTotalNote: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.4)',
+        marginTop: 10,
         fontStyle: 'italic',
     },
     spendingBreakdown: {
-        gap: 12,
-        marginTop: 8,
+        gap: 10,
+        marginBottom: 16,
     },
     breakdownItem: {
-        backgroundColor: theme.colors.surfaceLight,
-        padding: 12,
-        borderRadius: 8,
-        borderLeftWidth: 3,
-        borderLeftColor: theme.colors.primary,
-    },
-    breakdownHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        gap: 12,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 12,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    breakdownIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: theme.colors.primary + '12',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    breakdownContent: {
+        flex: 1,
     },
     breakdownCategory: {
         fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    breakdownAmount: {
-        fontSize: 14,
         fontWeight: '700',
-        color: theme.colors.success,
+        color: theme.colors.text.primary,
+        marginBottom: 2,
     },
     breakdownDescription: {
         fontSize: 12,
         color: theme.colors.text.secondary,
         lineHeight: 16,
     },
+    breakdownAmountBadge: {
+        backgroundColor: theme.colors.primary + '15',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+    },
+    breakdownAmount: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
     spendingDisclaimer: {
         flexDirection: 'row',
         gap: 8,
+        alignItems: 'flex-start',
         backgroundColor: theme.colors.surfaceLight,
         padding: 12,
-        borderRadius: 8,
-        marginTop: 8,
+        borderRadius: 10,
+        marginTop: 4,
     },
     disclaimerText: {
         flex: 1,
-        fontSize: 11,
-        color: theme.colors.text.secondary,
-        lineHeight: 15,
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        lineHeight: 17,
     },
 
     // Highlights Styles
