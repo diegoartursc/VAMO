@@ -106,7 +106,7 @@ export default function BookingConfirmedScreen() {
 
                     {/* Hero Text */}
                     <View style={styles.heroTextContainer}>
-                        <Text style={styles.heroTitle}>🎉 Sua viagem está confirmada!</Text>
+                        <Text style={styles.heroTitle}>Sua viagem está confirmada!</Text>
                         <Text style={styles.heroSubtitle}>{packageData.title}</Text>
                         {date && (
                             <Text style={styles.heroDate}>{formatDate(date as string)}</Text>

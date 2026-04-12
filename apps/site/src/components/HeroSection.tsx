@@ -25,8 +25,16 @@ export default function HeroSection({
                         />
                     </Link>
                     <div className="hero-user-actions" style={{ display: 'flex', gap: '12px' }}>
-                        <span style={{ fontSize: '20px', cursor: 'pointer' }}>❓</span>
-                        <span style={{ fontSize: '20px', cursor: 'pointer' }}>🔔</span>
+                        <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.85)' }}>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </span>
+                        <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.85)' }}>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                        </span>
                     </div>
                 </header>
 
@@ -94,7 +102,7 @@ export default function HeroSection({
                         borderRadius: '9999px', border: '1px solid rgba(255, 255, 255, 0.2)',
                         backdropFilter: 'blur(10px)', textDecoration: 'none', transition: 'all 0.3s'
                     }}>
-                        🌍 Explorar Roteiros
+                        Explorar Roteiros →
                     </a>
                     <Link href="/criadores" style={{
                         display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px',
@@ -102,7 +110,7 @@ export default function HeroSection({
                         borderRadius: '9999px', border: '1px solid rgba(255, 255, 255, 0.2)',
                         backdropFilter: 'blur(10px)', textDecoration: 'none', transition: 'all 0.3s'
                     }}>
-                        ✍️ Sou Roteirista
+                        Sou Roteirista →
                     </Link>
                 </div>
             </div>

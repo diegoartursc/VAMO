@@ -78,19 +78,27 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
                     {/* Explore Shortcuts 2x2 Grid */}
                     <View style={styles.heroShortcutsGrid}>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>🔥</Text>
+                            <View style={styles.heroShortcutIconWrap}>
+                                <Icon name="star" size={18} color={theme.colors.primary} strokeWidth={2} />
+                            </View>
                             <Text style={styles.heroShortcutText} numberOfLines={2}>Mais populares</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>🍽️</Text>
+                            <View style={styles.heroShortcutIconWrap}>
+                                <Icon name="utensils" size={18} color={theme.colors.primary} strokeWidth={2} />
+                            </View>
                             <Text style={styles.heroShortcutText} numberOfLines={2}>Gastronômicos</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>🎒</Text>
+                            <View style={styles.heroShortcutIconWrap}>
+                                <Icon name="backpack" size={18} color={theme.colors.primary} strokeWidth={2} />
+                            </View>
                             <Text style={styles.heroShortcutText} numberOfLines={2}>Mochilão</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>👨‍👩‍👧‍👦</Text>
+                            <View style={styles.heroShortcutIconWrap}>
+                                <Icon name="users" size={18} color={theme.colors.primary} strokeWidth={2} />
+                            </View>
                             <Text style={styles.heroShortcutText} numberOfLines={2}>Com crianças</Text>
                         </TouchableOpacity>
                     </View>
@@ -519,9 +527,14 @@ const styles = StyleSheet.create({
         minHeight: 64,
         justifyContent: 'center',
     },
-    heroShortcutEmoji: {
-        fontSize: 20,
-        marginBottom: 6,
+    heroShortcutIconWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: 'rgba(40,201,191,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
     },
     heroShortcutText: {
         fontSize: 12,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../theme/theme';
 import { Icon, IconName } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
@@ -13,67 +14,117 @@ export interface ItineraryCardProps {
 }
 
 export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress, width }) => {
+    // Mostrar no máximo 3 chips para não poluir
+    const chips = ITINERARY_INCLUSIONS.slice(0, 3);
+
     return (
         <TouchableOpacity
-            style={[styles.itineraryCard, width ? { width } : {}]}
+            style={[styles.card, width ? { width } : {}]}
             onPress={onPress}
-            activeOpacity={0.9}
+            activeOpacity={0.92}
         >
-            <CoverCarousel
-                images={itinerary.images}
-                height={180}
-            />
+            {/* ── Imagem com overlay ── */}
+            <View style={styles.imageWrapper}>
+                <CoverCarousel images={itinerary.images} height={200} />
 
-            {/* Badge overlay */}
-            <View style={styles.cardBadge}>
-                <VerifiedBadge level={itinerary.creator?.verificationLevel || 1} size="small" />
-            </View>
+                {/* Gradiente inferior na imagem para leitura */}
+                <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.45)']}
+                    style={styles.imageGradient}
+                    pointerEvents="none"
+                />
 
-            <View style={styles.itineraryContent}>
-                {/* Bloco 1: Autoridade (linha única compacta) */}
-                <View style={styles.authorRow}>
-                    <Icon name="circle-user" size={28} color={theme.colors.text.secondary} />
-                    <Text style={styles.authorName}>{itinerary.creator?.name}</Text>
-                    <VerifiedBadge level={itinerary.creator?.verificationLevel || 1} size="small" showLabel={false} />
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 'auto' }}>
-                        <Icon name="star" size={12} color="#F59E0B" strokeWidth={2} />
-                        <Text style={styles.authorStats}>
-                            {itinerary.creator?.rating} • {itinerary.creator?.salesCount?.toLocaleString('pt-BR')} vendas
-                        </Text>
-                    </View>
+                {/* Preço flutuante sobre imagem */}
+                <View style={styles.priceBadge}>
+                    <Text style={styles.priceBadgeText}>
+                        R$ {itinerary.price?.toFixed(2).replace('.', ',')}
+                    </Text>
                 </View>
 
-                {/* Bloco 2: Título + Proposta */}
-                <Text style={styles.itineraryTitle} numberOfLines={2}>
+                {/* Badge de verificação */}
+                <View style={styles.verifiedBadge}>
+                    <VerifiedBadge
+                        level={itinerary.creator?.verificationLevel || 1}
+                        size="small"
+                    />
+                </View>
+
+                {/* Duração sobre imagem */}
+                {itinerary.duration && (
+                    <View style={styles.durationBadge}>
+                        <Icon name="calendar" size={12} color="rgba(255,255,255,0.9)" />
+                        <Text style={styles.durationText}>{itinerary.duration} dias</Text>
+                    </View>
+                )}
+            </View>
+
+            {/* ── Conteúdo ── */}
+            <View style={styles.content}>
+
+                {/* Linha do criador */}
+                <View style={styles.creatorRow}>
+                    <View style={styles.creatorLeft}>
+                        <View style={styles.creatorAvatar}>
+                            <Icon name="circle-user" size={20} color={theme.colors.primary} />
+                        </View>
+                        <View>
+                            <Text style={styles.creatorName} numberOfLines={1}>
+                                {itinerary.creator?.name}
+                            </Text>
+                            <View style={styles.ratingRow}>
+                                <Icon name="star" size={11} color="#F59E0B" strokeWidth={2.5} />
+                                <Text style={styles.ratingText}>
+                                    {itinerary.creator?.rating?.toFixed(1)}
+                                </Text>
+                                <Text style={styles.ratingDivider}>·</Text>
+                                <Text style={styles.salesText}>
+                                    {itinerary.creator?.salesCount?.toLocaleString('pt-BR')} vendas
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                    <VerifiedBadge
+                        level={itinerary.creator?.verificationLevel || 1}
+                        size="small"
+                        showLabel={false}
+                    />
+                </View>
+
+                {/* Título */}
+                <Text style={styles.title} numberOfLines={2}>
                     {itinerary.title}
                 </Text>
 
-                <Text style={styles.itineraryDescription} numberOfLines={1}>
+                {/* Descrição */}
+                <Text style={styles.description} numberOfLines={2}>
                     {itinerary.description}
                 </Text>
 
-                {/* Bloco 3: Features em chips compactos */}
-                <View style={styles.chipsContainer}>
-                    {ITINERARY_INCLUSIONS.map((item) => (
+                {/* Chips de inclusões */}
+                <View style={styles.chipsRow}>
+                    {chips.map((item) => (
                         <View key={item.id} style={styles.chip}>
-                            <Icon name={item.icon as IconName} size={14} color={item.iconColor} />
+                            <Icon name={item.icon as IconName} size={13} color={theme.colors.primary} />
                             <Text style={styles.chipText}>{item.title}</Text>
                         </View>
                     ))}
                 </View>
 
-                {/* Bloco 4: Preço + CTA */}
-                <View style={styles.itineraryFooter}>
-                    <View>
-                        <Text style={styles.price}>R$ {itinerary.price?.toFixed(2).replace('.', ',')}</Text>
-                        <Text style={styles.priceLabel}>Roteiro completo</Text>
+                {/* Footer: destino + CTA */}
+                <View style={styles.footer}>
+                    <View style={styles.destinationRow}>
+                        <Icon name="location" size={13} color={theme.colors.text.tertiary} />
+                        <Text style={styles.destinationText} numberOfLines={1}>
+                            {itinerary.destination}, {itinerary.country}
+                        </Text>
                     </View>
                     <TouchableOpacity
-                        style={styles.buyButton}
+                        style={styles.ctaButton}
                         onPress={onPress}
+                        activeOpacity={0.85}
                     >
-                        <Text style={styles.buyButtonText}>Quero esse roteiro</Text>
-                        <Icon name="chevron-right" size={16} color="#FFFFFF" strokeWidth={2.5} />
+                        <Text style={styles.ctaText}>Ver roteiro</Text>
+                        <Icon name="chevron-right" size={14} color="#FFF" strokeWidth={2.5} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -82,102 +133,190 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
 };
 
 const styles = StyleSheet.create({
-    itineraryCard: {
+    card: {
         backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.lg,
+        borderRadius: theme.borderRadius.xl,
         overflow: 'hidden',
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
         ...theme.shadows.medium,
-        marginBottom: 16,
     },
-    cardBadge: {
+
+    // ── Imagem ──
+    imageWrapper: {
+        position: 'relative',
+    },
+    imageGradient: {
         position: 'absolute',
-        top: theme.spacing.sm,
-        right: theme.spacing.sm,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 80,
     },
-    itineraryContent: {
-        padding: 12,
+    priceBadge: {
+        position: 'absolute',
+        bottom: 12,
+        left: 14,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 20,
+        backdropFilter: 'blur(4px)',
     },
-    authorRow: {
+    priceBadgeText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#FFF',
+        letterSpacing: -0.3,
+    },
+    verifiedBadge: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+    },
+    durationBadge: {
+        position: 'absolute',
+        bottom: 12,
+        right: 14,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        marginBottom: 8,
-        flexWrap: 'wrap',
+        gap: 4,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 20,
     },
-    authorName: {
-        fontSize: 13,
+    durationText: {
+        fontSize: 11,
         fontWeight: '600',
-        color: theme.colors.text.primary,
+        color: 'rgba(255,255,255,0.9)',
     },
-    authorStats: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginLeft: 'auto',
+
+    // ── Conteúdo ──
+    content: {
+        padding: 16,
     },
-    itineraryTitle: {
-        fontSize: 16,
+
+    // Criador
+    creatorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    creatorLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
+    creatorAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: theme.colors.primary + '15',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    creatorName: {
+        fontSize: 13,
         fontWeight: '700',
         color: theme.colors.text.primary,
-        marginBottom: 4,
-        lineHeight: 22,
+        marginBottom: 2,
     },
-    itineraryDescription: {
+    ratingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+    },
+    ratingText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#F59E0B',
+    },
+    ratingDivider: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+    },
+    salesText: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+    },
+
+    // Título
+    title: {
+        fontSize: 17,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        lineHeight: 23,
+        letterSpacing: -0.3,
+        marginBottom: 6,
+    },
+    description: {
         fontSize: 13,
         color: theme.colors.text.secondary,
-        lineHeight: 18,
-        marginBottom: 8,
+        lineHeight: 19,
+        marginBottom: 12,
     },
-    chipsContainer: {
+
+    // Chips
+    chipsRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         gap: 6,
-        marginBottom: 10,
+        marginBottom: 14,
+        flexWrap: 'wrap',
     },
     chip: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: theme.colors.surfaceLight || '#F8F9FA',
-        paddingHorizontal: 8,
+        backgroundColor: theme.colors.primary + '10',
+        paddingHorizontal: 9,
         paddingVertical: 5,
-        borderRadius: 6,
+        borderRadius: 8,
         borderWidth: 1,
-        borderColor: theme.colors.borderLight || '#E5E7EB',
+        borderColor: theme.colors.primary + '20',
     },
     chipText: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: theme.colors.text.primary,
+        fontSize: 11,
+        fontWeight: '600',
+        color: theme.colors.primary,
     },
-    itineraryFooter: {
+
+    // Footer
+    footer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 2,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderLight,
     },
-    priceLabel: {
-        fontSize: 11,
-        color: theme.colors.text.secondary,
-        marginTop: 2,
+    destinationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        flex: 1,
     },
-    price: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: theme.colors.success,
-        lineHeight: 28,
+    destinationText: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        fontWeight: '500',
     },
-    buyButton: {
-        backgroundColor: theme.colors.success,
+    ctaButton: {
+        backgroundColor: theme.colors.primary,
         paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingVertical: 9,
         borderRadius: theme.borderRadius.full,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 5,
+        ...theme.shadows.button,
     },
-    buyButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: theme.colors.text.inverse,
+    ctaText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#FFF',
     },
 });

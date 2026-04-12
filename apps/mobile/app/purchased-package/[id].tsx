@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
+import { Icon } from '../../src/components/common/Icons';
 import {
     getBookingById,
     getDaysUntilTrip,
@@ -200,7 +201,7 @@ export default function PurchasedPackageScreen() {
                                 flexDirection: 'row', alignItems: 'center', gap: 10,
                                 borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.2)',
                             }}>
-                                <Text style={{ fontSize: 20 }}>🎉</Text>
+                                <Icon name="verified" size={20} color="#14b8a6" />
                                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#14b8a6', flex: 1 }}>
                                     A agência enviou seus documentos de viagem!
                                 </Text>
@@ -266,7 +267,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* ═══ BLOCO 2 — LINHA DO TEMPO ═══ */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>📋 Linha do Tempo</Text>
+                        <Text style={styles.sectionTitle}>Linha do Tempo</Text>
                         <View style={styles.timelineContainer}>
                             {booking.timeline.map((step, index) => {
                                 const config = timelineStatusConfig[step.status];
@@ -314,7 +315,7 @@ export default function PurchasedPackageScreen() {
                     {/* ═══ BLOCO 2.5 — ITINERÁRIO DETALHADO ═══ */}
                     {booking.detailedItinerary && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>🗺️ Itinerário Detalhado</Text>
+                            <Text style={styles.sectionTitle}>Itinerário Detalhado</Text>
                             <View style={styles.itineraryContainer}>
                                 {booking.detailedItinerary.map((dayItem) => {
                                     const isExpanded = expandedDay === dayItem.day;
@@ -402,7 +403,7 @@ export default function PurchasedPackageScreen() {
                     {/* ═══ BLOCO 3.5 — DOCUMENTOS EXIGIDOS PELA AGÊNCIA ═══ */}
                     {booking.requiredDocuments && booking.requiredDocuments.length > 0 && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>📎 Documentos Exigidos</Text>
+                            <Text style={styles.sectionTitle}>Documentos Exigidos</Text>
                             <Text style={styles.reqDocSubtitle}>A agência precisa verificar estes documentos antes da viagem.</Text>
                             {booking.requiredDocuments.map((doc) => {
                                 const status: UploadStatus = uploadStatuses[doc.id] || 'pending';
@@ -457,7 +458,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* ═══ BLOCO 3 — DOCUMENTOS ═══ */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>📄 Documentos</Text>
+                        <Text style={styles.sectionTitle}>Documentos</Text>
                         <View style={styles.documentsGrid}>
                             {booking.documents.map((doc) => (
                                 <TouchableOpacity
@@ -503,7 +504,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* ═══ BLOCO 4 — INCLUSÕES OBJETIVAS ═══ */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>✅ O que está incluso</Text>
+                        <Text style={styles.sectionTitle}>O que está incluso</Text>
                         <View style={styles.inclusionsContainer}>
                             {booking.inclusions.map((inc) => (
                                 <View key={inc.id} style={styles.inclusionRow}>
@@ -519,7 +520,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* ═══ BLOCO 5 — PREPARAÇÃO PARA A VIAGEM ═══ */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>🎒 Preparação para a Viagem</Text>
+                        <Text style={styles.sectionTitle}>Preparação para a Viagem</Text>
                         {booking.preparation.map((prep) => (
                             <View key={prep.id} style={styles.prepCard}>
                                 <View style={styles.prepHeader}>
@@ -539,7 +540,7 @@ export default function PurchasedPackageScreen() {
                     {/* ═══ BLOCO 6 — PÓS-VIAGEM (CONDICIONAL) ═══ */}
                     {postTrip && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>🌟 Pós-Viagem</Text>
+                            <Text style={styles.sectionTitle}>Pós-Viagem</Text>
                             <View style={styles.postTripCard}>
                                 <Text style={styles.postTripTitle}>Como foi sua experiência?</Text>
                                 <Text style={styles.postTripSubtitle}>

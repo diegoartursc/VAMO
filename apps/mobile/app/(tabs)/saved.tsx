@@ -78,11 +78,11 @@ export default function SavedScreen() {
                         <View
                             style={[
                                 styles.cardImage,
-                                { backgroundColor: theme.colors.surface }
+                                { backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' }
                             ]}
                         >
-                            {itinerary.image && (
-                                <Text style={{ fontSize: 40, textAlign: 'center' }}>📍</Text>
+                            {!itinerary.image && (
+                                <Icon name="location" size={32} color={theme.colors.text.tertiary} />
                             )}
                         </View>
                         <View style={styles.cardContent}>

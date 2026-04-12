@@ -44,7 +44,7 @@ export default function PurchasedItineraryScreen() {
         return (
             <View style={styles.container}>
                 <View style={styles.errorContainer}>
-                    <Text style={styles.errorEmoji}>📋</Text>
+                    <Icon name="file" size={48} color={theme.colors.text.tertiary} />
                     <Text style={styles.errorText}>Roteiro não encontrado</Text>
                     <TouchableOpacity style={styles.errorButton} onPress={() => router.back()}>
                         <Text style={styles.errorButtonText}>Voltar</Text>
@@ -136,7 +136,10 @@ export default function PurchasedItineraryScreen() {
                     {/* Info overlay */}
                     <View style={styles.headerInfo}>
                         <Text style={styles.headerTitle} numberOfLines={2}>{itinerary.title}</Text>
-                        <Text style={styles.headerDest}>📍 {itinerary.destination}, {itinerary.country}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 }}>
+                                <Icon name="location" size={13} color="rgba(255,255,255,0.85)" />
+                                <Text style={[styles.headerDest, { marginBottom: 0 }]}>{itinerary.destination}, {itinerary.country}</Text>
+                            </View>
                         <View style={styles.headerMeta}>
                             <View style={styles.creatorBadge}>
                                 <Text style={styles.creatorAvatar}>{itinerary.creator.avatar}</Text>
@@ -162,7 +165,7 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ BLOCO 1.5 — RESUMO DA EXPERIÊNCIA ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>🧳 Sobre a Experiência</Text>
+                        <Text style={styles.blockTitle}>Sobre a Experiência</Text>
                         <View style={styles.tripInfoCard}>
                             <View style={styles.tripInfoRow}>
                                 <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
@@ -209,7 +212,7 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ BLOCO 2 — ESTIMATIVA DE GASTO ══════════ */}
                     {itinerary.spendingProfile && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>💰 Estimativa de Gasto</Text>
+                            <Text style={styles.blockTitle}>Estimativa de Gasto</Text>
 
                             {/* Experience Badge — shows the actual tier of this trip */}
                             <View style={styles.experienceBadge}>
@@ -281,10 +284,10 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ BLOCO 2.5 — MEU VOO ══════════ */}
                     {itinerary.flightInfo && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>✈️ Meu Voo</Text>
+                            <Text style={styles.blockTitle}>Meu Voo</Text>
 
                             {/* Ida */}
-                            <Text style={styles.subTitle}>🛫 Ida</Text>
+                            <Text style={styles.subTitle}>Ida</Text>
                             <View style={styles.flightCard}>
                                 <View style={styles.flightHeader}>
                                     <Text style={styles.flightAirline}>{itinerary.flightInfo.outbound.airline}</Text>
@@ -294,16 +297,16 @@ export default function PurchasedItineraryScreen() {
                                 </View>
                                 <Text style={styles.flightRoute}>{itinerary.flightInfo.outbound.route}</Text>
                                 <View style={styles.flightDetails}>
-                                    <Text style={styles.flightTime}>🕐 {itinerary.flightInfo.outbound.departure} → {itinerary.flightInfo.outbound.arrival}</Text>
-                                    <Text style={styles.flightDuration}>⏱ {itinerary.flightInfo.outbound.duration}</Text>
+                                    <Text style={styles.flightTime}>{itinerary.flightInfo.outbound.departure} → {itinerary.flightInfo.outbound.arrival}</Text>
+                                    <Text style={styles.flightDuration}>{itinerary.flightInfo.outbound.duration}</Text>
                                     <Text style={styles.flightStops}>
-                                        {itinerary.flightInfo.outbound.stops === 0 ? '✅ Direto' : `🔄 ${itinerary.flightInfo.outbound.stops} parada${itinerary.flightInfo.outbound.stops > 1 ? 's' : ''}`}
+                                        {itinerary.flightInfo.outbound.stops === 0 ? 'Direto' : `${itinerary.flightInfo.outbound.stops} parada${itinerary.flightInfo.outbound.stops > 1 ? 's' : ''}`}
                                     </Text>
                                 </View>
                             </View>
 
                             {/* Volta */}
-                            <Text style={styles.subTitle}>🛬 Volta</Text>
+                            <Text style={styles.subTitle}>Volta</Text>
                             <View style={styles.flightCard}>
                                 <View style={styles.flightHeader}>
                                     <Text style={styles.flightAirline}>{itinerary.flightInfo.return.airline}</Text>
@@ -313,10 +316,10 @@ export default function PurchasedItineraryScreen() {
                                 </View>
                                 <Text style={styles.flightRoute}>{itinerary.flightInfo.return.route}</Text>
                                 <View style={styles.flightDetails}>
-                                    <Text style={styles.flightTime}>🕐 {itinerary.flightInfo.return.departure} → {itinerary.flightInfo.return.arrival}</Text>
-                                    <Text style={styles.flightDuration}>⏱ {itinerary.flightInfo.return.duration}</Text>
+                                    <Text style={styles.flightTime}>{itinerary.flightInfo.return.departure} → {itinerary.flightInfo.return.arrival}</Text>
+                                    <Text style={styles.flightDuration}>{itinerary.flightInfo.return.duration}</Text>
                                     <Text style={styles.flightStops}>
-                                        {itinerary.flightInfo.return.stops === 0 ? '✅ Direto' : `🔄 ${itinerary.flightInfo.return.stops} parada${itinerary.flightInfo.return.stops > 1 ? 's' : ''}`}
+                                        {itinerary.flightInfo.return.stops === 0 ? 'Direto' : `${itinerary.flightInfo.return.stops} parada${itinerary.flightInfo.return.stops > 1 ? 's' : ''}`}
                                     </Text>
                                 </View>
                             </View>
@@ -324,7 +327,7 @@ export default function PurchasedItineraryScreen() {
                             {/* Dicas do viajante */}
                             {itinerary.flightInfo.tips.length > 0 && (
                                 <>
-                                    <Text style={styles.subTitle}>💬 Dicas do viajante</Text>
+                                    <Text style={styles.subTitle}>Dicas do viajante</Text>
                                     <View style={styles.flightTipsCard}>
                                         {itinerary.flightInfo.tips.map((tip, i) => (
                                             <Text key={i} style={styles.flightTip}>• {tip}</Text>
@@ -337,7 +340,7 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ BLOCO 3 — ITINERÁRIO POR DIA ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>📅 Itinerário por Dia</Text>
+                        <Text style={styles.blockTitle}>Itinerário por Dia</Text>
                         {itinerary.days.map(day => (
                             <View key={day.dayNumber} style={styles.dayCard}>
                                 <TouchableOpacity
@@ -376,7 +379,10 @@ export default function PurchasedItineraryScreen() {
                                                         <Text style={styles.activityDuration}>{activity.duration}</Text>
                                                     </View>
                                                     <Text style={styles.activityTitle}>{activity.title}</Text>
-                                                    <Text style={styles.activityLocation}>📍 {activity.location}</Text>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}>
+                                                        <Icon name="location" size={11} color={theme.colors.text.secondary} />
+                                                        <Text style={[styles.activityLocation, { marginBottom: 0 }]}>{activity.location}</Text>
+                                                    </View>
                                                     <Text style={styles.activityDesc} numberOfLines={3}>
                                                         {activity.description}
                                                     </Text>
@@ -384,7 +390,7 @@ export default function PurchasedItineraryScreen() {
                                                     {/* Tips */}
                                                     {activity.tips.length > 0 && (
                                                         <View style={styles.tipsContainer}>
-                                                            <Text style={styles.tipsTitle}>💡 Dicas:</Text>
+                                                            <Text style={styles.tipsTitle}>Dicas:</Text>
                                                             {activity.tips.map((tip, ti) => (
                                                                 <Text key={ti} style={styles.tipText}>• {tip}</Text>
                                                             ))}
@@ -422,7 +428,7 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ BLOCO 4 — MAPA INTEGRADO ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>🗺️ Mapa Integrado</Text>
+                        <Text style={styles.blockTitle}>Mapa Integrado</Text>
                         <TouchableOpacity style={styles.mapCard} onPress={handleOpenMap} activeOpacity={0.8}>
                             <LinearGradient
                                 colors={[theme.colors.primary + '15', theme.colors.primary + '05']}
@@ -440,7 +446,7 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ BLOCO 5 — HOSPEDAGEM RECOMENDADA ══════════ */}
                     {itinerary.accommodationOptions && itinerary.accommodationOptions.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>🏨 Onde Fiquei</Text>
+                            <Text style={styles.blockTitle}>Onde Fiquei</Text>
 
                             {itinerary.accommodationOptions.map(acc => (
                                 <View key={acc.id} style={styles.accCard}>
@@ -452,7 +458,10 @@ export default function PurchasedItineraryScreen() {
                                             <Text style={styles.accPrice}>{acc.priceRange}</Text>
                                         </View>
                                     </View>
-                                    <Text style={styles.accLocation}>📍 {acc.location}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}>
+                                        <Icon name="location" size={11} color={theme.colors.text.secondary} />
+                                        <Text style={[styles.accLocation, { marginBottom: 0 }]}>{acc.location}</Text>
+                                    </View>
                                     <Text style={styles.accDesc}>{acc.description}</Text>
                                     {acc.rating && (
                                         <View style={styles.accRating}>
@@ -468,7 +477,7 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ BLOCO 6 — TRANSPORTE ══════════ */}
                     {itinerary.transport && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>🚇 Transporte</Text>
+                            <Text style={styles.blockTitle}>Transporte</Text>
 
                             <View style={styles.transportHeader}>
                                 <Text style={styles.transportMode}>{itinerary.transport.mainMode}</Text>
@@ -500,7 +509,7 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ BLOCO 6.5 — RESTAURANTES & GASTRONOMIA ══════════ */}
                     {itinerary.restaurants && itinerary.restaurants.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>🍽️ Restaurantes & Gastronomia</Text>
+                            <Text style={styles.blockTitle}>Restaurantes & Gastronomia</Text>
                             {itinerary.restaurants.map((rest, i) => (
                                 <View key={i} style={styles.restaurantCard}>
                                     <View style={styles.restaurantHeader}>
@@ -513,7 +522,10 @@ export default function PurchasedItineraryScreen() {
                                                     </View>
                                                 ) : null}
                                             </View>
-                                            <Text style={styles.restaurantLocation}>📍 {rest.location}</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                                                <Icon name="location" size={11} color={theme.colors.text.secondary} />
+                                                <Text style={styles.restaurantLocation}>{rest.location}</Text>
+                                            </View>
                                         </View>
                                         {rest.priceRange && (
                                             <View style={styles.restaurantPriceBadge}>
@@ -525,7 +537,7 @@ export default function PurchasedItineraryScreen() {
                                         <Text style={styles.restaurantDesc}>{rest.description}</Text>
                                     ) : null}
                                     {rest.hours ? (
-                                        <Text style={styles.restaurantHours}>🕐 {rest.hours}</Text>
+                                        <Text style={styles.restaurantHours}>{rest.hours}</Text>
                                     ) : null}
                                     {rest.tips ? (
                                         <View style={styles.restaurantTipBox}>
@@ -540,7 +552,7 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ BLOCO 6.7 — DICAS GERAIS DO VIAJANTE ══════════ */}
                     {itinerary.generalTips && itinerary.generalTips.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>💡 Dicas do Viajante</Text>
+                            <Text style={styles.blockTitle}>Dicas do Viajante</Text>
                             <Text style={styles.generalTipsSubtitle}>
                                 Recomendações de {itinerary.creator.name}
                             </Text>
@@ -557,7 +569,7 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ BLOCO 7 — CHECKLIST ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>✅ Checklist de Planejamento</Text>
+                        <Text style={styles.blockTitle}>Checklist de Planejamento</Text>
                         <Text style={styles.checklistProgress}>
                             {completedChecklist.size} de {itinerary.checklist.length} concluídos
                         </Text>
@@ -579,9 +591,9 @@ export default function PurchasedItineraryScreen() {
                             const items = itinerary.checklist.filter(c => c.category === category);
                             if (items.length === 0) return null;
                             const categoryLabels: Record<string, string> = {
-                                'documents': '📄 Documentos',
-                                'packing': '🧳 Mala',
-                                'pre-trip': '📋 Pré-viagem',
+                                'documents': 'Documentos',
+                                'packing': 'Mala',
+                                'pre-trip': 'Pré-viagem',
                             };
                             return (
                                 <View key={category} style={styles.checkCategory}>
@@ -615,7 +627,7 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ BLOCO 8 — O QUE VOCÊ VAI RECEBER ══════════ */}
                     {itinerary.receiveList && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>🎁 O que você recebeu</Text>
+                            <Text style={styles.blockTitle}>O que você recebeu</Text>
                             <View style={styles.receiveCard}>
                                 {itinerary.receiveList.map((item, i) => (
                                     <View key={i} style={styles.receiveRow}>
@@ -630,7 +642,7 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ BLOCO 9 — AVALIAR ROTEIRO ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>⭐ Avaliar este Roteiro</Text>
+                        <Text style={styles.blockTitle}>Avaliar este Roteiro</Text>
                         {reviewed || hasUserReviewed('trav-diego', `itinerary-${id}`) ? (
                             <View style={styles.reviewDoneCard}>
                                 <View style={styles.reviewDoneHeader}>
