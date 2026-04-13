@@ -23,9 +23,7 @@ export default function RootLayout() {
                         <Stack.Screen
                             name="itinerary/[id]"
                             options={{
-                                headerShown: true,
-                                headerTitle: 'Detalhes do Roteiro',
-                                headerBackTitle: 'Voltar',
+                                headerShown: false,
                             }}
                         />
                         <Stack.Screen

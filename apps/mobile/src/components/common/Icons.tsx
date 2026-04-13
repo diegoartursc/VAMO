@@ -25,6 +25,7 @@ import {
     MapPin,
     Mountain,
     Trees,
+    Sun,
     // Actions & Status
     Heart,
     HeartPulse,
@@ -89,7 +90,7 @@ export type IconName =
     | 'card' | 'globe' | 'help' | 'file' | 'settings' | 'info'
     | 'image' | 'camera' | 'location' | 'compass' | 'navigation'
     | 'gem' | 'piggy-bank' | 'wallet' | 'trophy' | 'landmark'
-    | 'utensils' | 'lightbulb' | 'mountain' | 'trees'
+    | 'utensils' | 'lightbulb' | 'mountain' | 'trees' | 'sun'
     | 'users' | 'circle-user' | 'bell' | 'edit' | 'lock'
     | 'book-open' | 'briefcase' | 'backpack' | 'more-horizontal'
     | 'palette' | 'trash' | 'clipboard-list' | 'message-circle'
@@ -131,6 +132,7 @@ const ICON_MAP: Record<string, any> = {
     location: MapPin,
     mountain: Mountain,
     trees: Trees,
+    sun: Sun,
 
     // Actions & Status
     heart: Heart,

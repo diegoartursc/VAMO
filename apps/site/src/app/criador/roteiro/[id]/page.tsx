@@ -36,7 +36,6 @@ const CATEGORY_OPTIONS = [
 ];
 const MODULE_OPTIONS = [
     { key: "itinerario", icon: <CalendarDays size={18} />, label: "Itinerário por dia", desc: "Roteiro dia a dia completo" },
-    { key: "mapa", icon: <Map size={18} />, label: "Mapa integrado", desc: "Mapa com todos os pontos" },
     { key: "hospedagem", icon: <Hotel size={18} />, label: "Hospedagens", desc: "Hotéis e hospedagens sugeridas" },
     { key: "transporte", icon: <Bus size={18} />, label: "Transporte", desc: "Dicas de locomoção" },
     { key: "gasto", icon: <CreditCard size={18} />, label: "Estimativa de gasto", desc: "Quanto você vai gastar" },
@@ -72,13 +71,13 @@ const SECTION_TIPS: Record<SectionKey, string[]> = {
     ],
     modules: [
         "Quanto mais módulos ativos, maior a percepção de valor",
-        "Mapa integrado e checklist são os módulos mais valorizados pelos viajantes",
+        "Checklist e dicas exclusivas são os módulos mais valorizados pelos viajantes",
         "Módulos desativados não aparecem para o comprador",
     ],
     itinerary: [
         "Organize pelo menos 3 dias para um roteiro completo",
         "Inclua horários nas atividades — viajantes adoram cronogramas",
-        "Adicione localização para as atividades aparecerem no mapa",
+        "Adicione localização e horários detalhados para cada atividade",
         "Você pode arrastar os dias para reordenar",
     ],
     spending: [
@@ -475,14 +474,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         </button>
                     ))}</div>
                 </div>
-                <div className="form-group">
-                    <label className="form-label">Tipo de Produto</label>
-                    <select className="form-input" value={productType} onChange={e => { setProductType(e.target.value); markDirty(); }}>
-                        <option value="DIGITAL">Digital</option>
-                        <option value="PRESENCIAL">Presencial</option>
-                        <option value="HIBRIDO">Híbrido</option>
-                    </select>
-                </div>
             </>);
 
             /* ═══ BLOCO 2: COMERCIAL ═══ */
@@ -502,11 +493,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             <option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
                         </select>
                     </div>
-                </div>
-                <div className="form-group">
-                    <label className="form-label">Parcelamento (parcelas)</label>
-                    <input className="form-input" type="number" value={installments ?? ""} onChange={e => { setInstallments(e.target.value ? parseInt(e.target.value) : null); markDirty(); }} placeholder="ex: 12" min={1} max={24} />
-                    {installments && price > 0 && <span className="form-helper">Até {installments}x de R$ {(price / installments).toFixed(2)}</span>}
                 </div>
                 {[
                     { label: <><Zap size={14} /> Acesso imediato</>, desc: "Liberado logo após o pagamento", val: immediateAccess, set: setImmediateAccess },
@@ -609,7 +595,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         ))}
                     </div>
                     <div className="editor-tag-input-row">
-                        <input className="form-input" value={newInclusion} onChange={e => setNewInclusion(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newInclusion.trim()) { setInclusionItems([...inclusionItems, newInclusion.trim()]); setNewInclusion(""); markDirty(); } }} placeholder="Ex: Roteiro dia a dia (10 dias), Mapa interativo..." />
+                        <input className="form-input" value={newInclusion} onChange={e => setNewInclusion(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newInclusion.trim()) { setInclusionItems([...inclusionItems, newInclusion.trim()]); setNewInclusion(""); markDirty(); } }} placeholder="Ex: Roteiro dia a dia (10 dias), Checklist de viagem..." />
                         <button className="btn-add-item" onClick={() => { if (newInclusion.trim()) { setInclusionItems([...inclusionItems, newInclusion.trim()]); setNewInclusion(""); markDirty(); } }}>+</button>
                     </div>
                 </div>

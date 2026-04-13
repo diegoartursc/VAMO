@@ -224,7 +224,7 @@ export default function ItineraryDetailScreen() {
                                         <View style={styles.flightDepartureRow}>
                                             <Icon name="plane" size={12} color="rgba(255,255,255,0.7)" />
                                             <Text style={styles.flightDepartureText}>
-                                                Voo incluso saindo de {itinerary.estimatedSpending.flightDeparture}
+                                                Voo saindo de {itinerary.estimatedSpending.flightDeparture}
                                             </Text>
                                         </View>
                                     )}

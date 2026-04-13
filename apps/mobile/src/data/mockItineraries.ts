@@ -61,7 +61,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.9,
         reviewCount: 456,
-        inclusions: ['Planilha', 'Mapa'],
+        inclusions: ['Planilha'],
         duration: 10,
         featured: true,
         highlights: [
@@ -126,7 +126,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.8,
         reviewCount: 312,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Frases'],
+        inclusions: ['Planilha', 'Guia de Frases'],
         duration: 15,
         featured: true,
         highlights: [
@@ -189,7 +189,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.7,
         reviewCount: 234,
-        inclusions: ['Planilha', 'Mapa'],
+        inclusions: ['Planilha'],
         duration: 7,
         featured: true,
         highlights: [
@@ -252,7 +252,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.8,
         reviewCount: 189,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Museus'],
+        inclusions: ['Planilha', 'Guia de Museus'],
         duration: 5,
         featured: false,
         highlights: [
@@ -315,7 +315,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.9,
         reviewCount: 421,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes'],
+        inclusions: ['Planilha', 'Guia de Restaurantes'],
         duration: 12,
         featured: true,
         highlights: [
@@ -378,7 +378,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.8,
         reviewCount: 278,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes'],
+        inclusions: ['Planilha', 'Guia de Restaurantes'],
         duration: 8,
         featured: true,
         highlights: [
@@ -441,7 +441,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.7,
         reviewCount: 167,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Trilha'],
+        inclusions: ['Planilha', 'Guia de Trilha'],
         duration: 9,
         featured: true,
         highlights: [
@@ -504,7 +504,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.9,
         reviewCount: 389,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Templos'],
+        inclusions: ['Planilha', 'Guia de Templos'],
         duration: 14,
         featured: true,
         highlights: [
@@ -567,7 +567,7 @@ export const mockItineraries: Itinerary[] = [
         ],
         rating: 4.6,
         reviewCount: 145,
-        inclusions: ['Planilha', 'Mapa', 'Guia de Restaurantes'],
+        inclusions: ['Planilha', 'Guia de Restaurantes'],
         duration: 6,
         featured: false,
         highlights: [

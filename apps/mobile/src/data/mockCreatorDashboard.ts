@@ -65,7 +65,6 @@ export const EMPTY_ITINERARY_TEMPLATE: PurchasedItinerary = {
     receiveList: [
         { icon: '📋', label: 'Itinerário completo dia a dia' },
         { icon: '🏨', label: 'Hospedagens recomendadas por faixa' },
-        { icon: '🗺️', label: 'Mapa com pontos marcados' },
         { icon: '🚇', label: 'Guia de locomoção local' },
         { icon: '💡', label: 'Dicas exclusivas do criador' },
         { icon: '🍽️', label: 'Restaurantes selecionados' },

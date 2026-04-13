@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import {
     getPurchasedItineraryById,
+    AttractionInfo,
 } from '../../src/data/mockPurchasedItineraries';
 import { haptics } from '../../src/services/haptics';
 import { hasUserReviewed, getUserReviewForPackage } from '../../src/data/mockReviews';
@@ -37,7 +38,6 @@ export default function PurchasedItineraryScreen() {
     const [customDays, setCustomDays] = useState(itinerary?.duration || 7);
     const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
     const [completedChecklist, setCompletedChecklist] = useState<Set<string>>(new Set());
-    const [showReviewModal, setShowReviewModal] = useState(false);
     const [reviewed, setReviewed] = useState(false);
 
     if (!itinerary) {
@@ -426,23 +426,6 @@ export default function PurchasedItineraryScreen() {
                         ))}
                     </View>
 
-                    {/* ══════════ BLOCO 4 — MAPA INTEGRADO ══════════ */}
-                    <View style={styles.block}>
-                        <Text style={styles.blockTitle}>Mapa Integrado</Text>
-                        <TouchableOpacity style={styles.mapCard} onPress={handleOpenMap} activeOpacity={0.8}>
-                            <LinearGradient
-                                colors={[theme.colors.primary + '15', theme.colors.primary + '05']}
-                                style={styles.mapGradient}
-                            >
-                                <Ionicons name="map" size={40} color={theme.colors.primary} />
-                                <Text style={styles.mapTitle}>Ver no mapa</Text>
-                                <Text style={styles.mapSubtitle}>
-                                    Todos os pontos de {itinerary.destination} marcados
-                                </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-
                     {/* ══════════ BLOCO 5 — HOSPEDAGEM RECOMENDADA ══════════ */}
                     {itinerary.accommodationOptions && itinerary.accommodationOptions.length > 0 && (
                         <View style={styles.block}>
@@ -469,6 +452,88 @@ export default function PurchasedItineraryScreen() {
                                             <Text style={styles.accRatingText}>{acc.rating}</Text>
                                         </View>
                                     )}
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
+                    {/* ══════════ BLOCO 5.5 — PASSEIOS & ATRAÇÕES ══════════ */}
+                    {itinerary.attractions && itinerary.attractions.length > 0 && (
+                        <View style={styles.block}>
+                            <Text style={styles.blockTitle}>Passeios & Atrações</Text>
+                            <Text style={styles.blockSubtitle}>
+                                {itinerary.attractions.length} atrações selecionadas pelo criador
+                            </Text>
+                            {itinerary.attractions.map((att: AttractionInfo, i: number) => (
+                                <View key={i} style={styles.attractionCard}>
+                                    {/* Header: nome + tipo + preço */}
+                                    <View style={styles.attractionHeader}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.attractionName}>{att.name}</Text>
+                                            <View style={styles.attractionMeta}>
+                                                {att.type ? (
+                                                    <View style={styles.attractionTypeBadge}>
+                                                        <Text style={styles.attractionTypeText}>{att.type}</Text>
+                                                    </View>
+                                                ) : null}
+                                                {att.location ? (
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                                                        <Icon name="location" size={11} color={theme.colors.text.secondary} />
+                                                        <Text style={styles.attractionLocation} numberOfLines={1}>{att.location}</Text>
+                                                    </View>
+                                                ) : null}
+                                            </View>
+                                        </View>
+                                        {att.ticketPrice ? (
+                                            <View style={styles.attractionPriceBadge}>
+                                                <Icon name="card" size={12} color={theme.colors.primary} />
+                                                <Text style={styles.attractionPrice}>{att.ticketPrice}</Text>
+                                            </View>
+                                        ) : null}
+                                    </View>
+
+                                    {/* Info row: horário + duração */}
+                                    {(att.hours || att.duration) ? (
+                                        <View style={styles.attractionInfoRow}>
+                                            {att.hours ? (
+                                                <View style={styles.attractionInfoChip}>
+                                                    <Icon name="clock" size={12} color={theme.colors.text.secondary} />
+                                                    <Text style={styles.attractionInfoText}>{att.hours}</Text>
+                                                </View>
+                                            ) : null}
+                                            {att.duration ? (
+                                                <View style={styles.attractionInfoChip}>
+                                                    <Icon name="compass" size={12} color={theme.colors.text.secondary} />
+                                                    <Text style={styles.attractionInfoText}>{att.duration}</Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
+                                    ) : null}
+
+                                    {/* Descrição */}
+                                    {att.description ? (
+                                        <Text style={styles.attractionDesc}>{att.description}</Text>
+                                    ) : null}
+
+                                    {/* Dica */}
+                                    {att.tips ? (
+                                        <View style={styles.attractionTipBox}>
+                                            <Icon name="lightbulb" size={13} color={theme.colors.primary} />
+                                            <Text style={styles.attractionTip}>{att.tips}</Text>
+                                        </View>
+                                    ) : null}
+
+                                    {/* Link externo */}
+                                    {att.externalLink ? (
+                                        <TouchableOpacity
+                                            style={styles.attractionLinkBtn}
+                                            onPress={() => { haptics.light(); Linking.openURL(att.externalLink!); }}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Icon name="external-link" size={14} color={theme.colors.primary} />
+                                            <Text style={styles.attractionLinkText}>Ver site oficial</Text>
+                                        </TouchableOpacity>
+                                    ) : null}
                                 </View>
                             ))}
                         </View>
@@ -678,7 +743,7 @@ export default function PurchasedItineraryScreen() {
                                     </Text>
                                     <TouchableOpacity
                                         style={styles.reviewCTAButton}
-                                        onPress={() => { haptics.light(); setShowReviewModal(true); }}
+                                        onPress={() => { haptics.light(); router.push({ pathname: '/write-review', params: { itineraryId: id } } as any); }}
                                         activeOpacity={0.8}
                                     >
                                         <Ionicons name="star" size={18} color="#fff" />
@@ -693,14 +758,7 @@ export default function PurchasedItineraryScreen() {
                 </View>
             </ScrollView>
 
-            {/* Review Modal */}
-            <ReviewModal
-                visible={showReviewModal}
-                onClose={() => setShowReviewModal(false)}
-                itineraryId={id ?? ''}
-                itineraryTitle={itinerary.title}
-                onSuccess={() => { setReviewed(true); setShowReviewModal(false); }}
-            />
+
         </View>
     );
 }
@@ -1115,5 +1173,134 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
         lineHeight: 22,
         flex: 1,
+    },
+
+    // ── Passeios & Atrações
+    blockSubtitle: {
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+        marginBottom: 14,
+        marginTop: -4,
+    },
+    attractionCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.small,
+    },
+    attractionHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        marginBottom: 8,
+    },
+    attractionName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 6,
+    },
+    attractionMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    attractionTypeBadge: {
+        backgroundColor: theme.colors.primary + '18',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    attractionTypeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
+    attractionLocation: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        flex: 1,
+    },
+    attractionPriceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: theme.colors.primary + '10',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '25',
+        flexShrink: 0,
+    },
+    attractionPrice: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
+    attractionInfoRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 10,
+        flexWrap: 'wrap',
+    },
+    attractionInfoChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    attractionInfoText: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        fontWeight: '500',
+    },
+    attractionDesc: {
+        fontSize: 14,
+        color: theme.colors.text.primary,
+        lineHeight: 21,
+        marginBottom: 10,
+    },
+    attractionTipBox: {
+        flexDirection: 'row',
+        gap: 8,
+        alignItems: 'flex-start',
+        backgroundColor: theme.colors.primary + '0D',
+        borderRadius: 10,
+        padding: 10,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '1A',
+    },
+    attractionTip: {
+        fontSize: 13,
+        color: theme.colors.text.primary,
+        lineHeight: 19,
+        flex: 1,
+    },
+    attractionLinkBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        alignSelf: 'flex-start',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+    },
+    attractionLinkText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: theme.colors.primary,
     },
 });

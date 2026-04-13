@@ -132,38 +132,24 @@ const MODULE_OPTIONS = [
 ];
 const CHECKLIST_CATS = ["documentos", "mala", "pre-viagem", "custom"];
 type SectionKey = "identity" | "commerce" | "modules" | "highlights" | "itinerary" | "spending" | "flight" | "accommodations" | "attractions" | "transport" | "tips" | "restaurants" | "checklist" | "postpurchase" | "media";
-interface SectionDef { key: SectionKey; icon: string; title: string; subtitle?: string; required?: boolean; }
+interface SectionDef { key: SectionKey; icon: string; title: string; }
 const SECTIONS: SectionDef[] = [
-    { key: "identity",      icon: "🎯", title: "Identidade e Indexação",    subtitle: "Título, destino e categorias — o que o viajante vê primeiro na vitrine",            required: true },
-    { key: "commerce",      icon: "💰", title: "Estrutura Comercial",        subtitle: "Defina o preço do seu roteiro",                                                        required: true },
-    { key: "modules",       icon: "📦", title: "Módulos do Roteiro",         subtitle: "O que está incluído — o comprador decide com base nos módulos ativos",               required: true },
-    { key: "highlights",    icon: "⭐", title: "Destaques da Viagem",        subtitle: "Os momentos únicos que diferenciam seu roteiro dos demais" },
-    { key: "itinerary",     icon: "🗓️", title: "Itinerário Estruturado",    subtitle: "O coração do roteiro — dia a dia detalhado que o viajante vai seguir",              required: true },
-    { key: "spending",      icon: "💳", title: "Estimativa de Gasto",        subtitle: "Calculada automaticamente a partir dos preços preenchidos nos módulos" },
-    { key: "flight",        icon: "✈️", title: "Meu Voo",                   subtitle: "Sugestões de voo para o destino — aumenta a confiança do comprador" },
-    { key: "accommodations",icon: "🏨", title: "Hospedagens",                subtitle: "Hotéis e hospedagens recomendadas — item mais consultado antes da compra" },
-    { key: "attractions",   icon: "🎫", title: "Passeios & Atrações",        subtitle: "Passeios imperdíveis com horários, preços e dicas de experiência" },
-    { key: "transport",     icon: "🚌", title: "Transporte",                 subtitle: "Como se locomover no destino — metrô, passes e dicas de mobilidade" },
-    { key: "tips",          icon: "💡", title: "Dicas Exclusivas",           subtitle: "Segredos e dicas práticas que só quem foi sabe — seu grande diferencial" },
-    { key: "restaurants",   icon: "🍴", title: "Restaurantes & Gastronomia", subtitle: "Onde comer bem — experiências gastronômicas autênticas e locais" },
-    { key: "checklist",     icon: "✅", title: "Checklist",                  subtitle: "Lista de preparação que o viajante usa antes e durante a viagem" },
-    { key: "media",         icon: "📸", title: "Fotos e Vídeos",             subtitle: "Imagens reais da sua viagem — fotos autênticas aumentam a conversão" },
-    { key: "postpurchase",  icon: "⚙️", title: "Configuração Pós-compra",   subtitle: "Permissões e acessos liberados após a compra do roteiro" },
+    { key: "identity", icon: "🎯", title: "Identidade e Indexação" },
+    { key: "commerce", icon: "💰", title: "Estrutura Comercial" },
+    { key: "modules", icon: "📦", title: "Módulos do Roteiro" },
+    { key: "highlights", icon: "⭐", title: "Destaques da Viagem" },
+    { key: "itinerary", icon: "🗓️", title: "Itinerário Estruturado" },
+    { key: "spending", icon: "💳", title: "Estimativa de Gasto" },
+    { key: "flight", icon: "✈️", title: "Meu Voo" },
+    { key: "accommodations", icon: "🏨", title: "Hospedagens" },
+    { key: "attractions", icon: "🎫", title: "Passeios & Atrações" },
+    { key: "transport", icon: "🚌", title: "Transporte" },
+    { key: "tips", icon: "💡", title: "Dicas Exclusivas" },
+    { key: "restaurants", icon: "🍴", title: "Restaurantes & Gastronomia" },
+    { key: "checklist", icon: "✅", title: "Checklist" },
+    { key: "media", icon: "📸", title: "Fotos e Vídeos" },
+    { key: "postpurchase", icon: "⚙️", title: "Configuração Pós-compra" },
 ];
-/* ─── Empty state definitions per section ─── */
-const EMPTY_STATES: Partial<Record<SectionKey, { icon: string; title: string; desc: string; cta: string }>> = {
-    highlights:     { icon: "⭐", title: "Quais foram os momentos inesquecíveis?", desc: "Liste as experiências únicas que só seu roteiro oferece — é o que chama atenção na vitrine.", cta: "+ Adicionar destaque" },
-    itinerary:      { icon: "🗓️", title: "Construa o roteiro dia a dia", desc: "Um itinerário detalhado é o principal argumento de venda. Viajantes decidem com base nisso.", cta: "+ Adicionar primeiro dia" },
-    flight:         { icon: "✈️", title: "Como foi o voo para esse destino?", desc: "Sugestões de voo com preços reais ajudam o viajante a planejar o orçamento completo.", cta: "+ Informar voo" },
-    accommodations: { icon: "🏨", title: "Que hospedagem você recomendaria a um amigo?", desc: "Hospedagens bem descritas aumentam 3x a confiança de compra. Fale o que só quem esteve lá sabe.", cta: "+ Adicionar hospedagem" },
-    attractions:    { icon: "🎫", title: "Quais atrações são absolutamente imperdíveis?", desc: "Passeios com preços, horários e dicas exclusivas são os mais valorizados pelos compradores.", cta: "+ Adicionar atração" },
-    transport:      { icon: "🚌", title: "Como você se locomoveu no destino?", desc: "Dicas de transporte real economizam horas de pesquisa — e justificam o preço do seu roteiro.", cta: "+ Adicionar transporte" },
-    tips:           { icon: "💡", title: "Quais segredos só você sabe?", desc: "Dicas exclusivas são seu maior diferencial. Viajantes pagam mais por roteiros com insights locais reais.", cta: "+ Adicionar dica" },
-    restaurants:    { icon: "🍴", title: "Onde você comeu melhor nessa viagem?", desc: "Restaurantes autênticos e fora do circuito turístico são o que viajantes mais buscam.", cta: "+ Adicionar restaurante" },
-    checklist:      { icon: "✅", title: "O que o viajante precisa levar e preparar?", desc: "Um checklist completo aumenta a satisfação pós-compra e reduz dúvidas de suporte.", cta: "+ Adicionar item" },
-    media:          { icon: "📸", title: "Mostre como foi essa viagem de verdade", desc: "Fotos reais e autênticas transmitem confiança. Roteiros com imagens convertem muito mais.", cta: "+ Adicionar foto" },
-};
-
 /* Map: which module key activates which editor section */
 const SECTION_MODULE_MAP: Partial<Record<SectionKey, string>> = {
     itinerary: "itinerario",
@@ -179,15 +165,15 @@ const SECTION_MODULE_MAP: Partial<Record<SectionKey, string>> = {
 
 interface Activity { title: string; description: string; time: string; duration: string; location: string; mapLink?: string; type: string; icon: string; tips: string; latitude: string; longitude: string; category: string; }
 interface Day { dayNumber: number; title: string; summary: string; description: string; activities: Activity[]; }
-interface Accommodation { name: string; address: string; mapLink: string; description: string; priceValue: string; priceCurrency: string; rating: string; externalLink: string; tips: string; }
+interface Accommodation { name: string; neighborhood: string; description: string; priceValue: string; priceCurrency: string; rating: string; externalLink: string; }
 interface Transport { description: string; passTypes: string; priceValue: string; priceCurrency: string; notes: string; }
 interface ChecklistItem { category: string; item: string; isDefault: boolean; }
 interface BreakdownItem { category: string; min: string; max: string; currency: string; }
 interface RestaurantItem { name: string; cuisine: string; location: string; description: string; priceValue: string; priceCurrency: string; hours: string; externalLink: string; tips: string; }
-interface AttractionItem { name: string; type: string; location: string; mapLink: string; description: string; ticketValue: string; ticketCurrency: string; hours: string; duration: string; externalLink: string; tips: string; }
+interface AttractionItem { name: string; type: string; location: string; description: string; ticketValue: string; ticketCurrency: string; hours: string; duration: string; externalLink: string; tips: string; }
 const ATTRACTION_TYPES = ["Museu", "Monumento", "Parque", "Tour", "Mirante", "Igreja", "Palácio", "Praia", "Trilha", "Show / Espetáculo", "Parque Temático", "Mercado", "Passeio de Barco", "Outro"];
-interface FlightLeg { airline: string; originAirport: string; destinationAirport: string; departureDate: string; arrivalDate: string; stops: number; }
-const EMPTY_FLIGHT_LEG: FlightLeg = { airline: "", originAirport: "", destinationAirport: "", departureDate: "", arrivalDate: "", stops: 0 };
+interface FlightLeg { airline: string; route: string; departure: string; arrival: string; duration: string; stops: number; pricePaid: string; }
+const EMPTY_FLIGHT_LEG: FlightLeg = { airline: "", route: "", departure: "", arrival: "", duration: "", stops: 0, pricePaid: "" };
 const CUISINE_OPTIONS = ["Ramen", "Sushi", "Tempura", "Izakaya", "Yakitori", "Italiana", "Francesa", "Brasileira", "Mexicana", "Indiana", "Tailandesa", "Fast Food", "Café", "Padaria", "Bistrô", "Fine Dining", "Street Food", "Vegetariana", "Frutos do Mar", "Outro"];
 
 const DEFAULT_CREATOR_ID = "creator-diego-001";
@@ -254,7 +240,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
     const [dirty, setDirty] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
     /* ─── Bloco 1: Identidade ─── */
     const [title, setTitle] = useState("");
@@ -295,8 +280,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     /* ─── Bloco 6: Meu Voo ─── */
     const [flightOutbound, setFlightOutbound] = useState<FlightLeg>({ ...EMPTY_FLIGHT_LEG });
     const [flightReturn, setFlightReturn] = useState<FlightLeg>({ ...EMPTY_FLIGHT_LEG });
-    const [flightTotalPrice, setFlightTotalPrice] = useState("");
-    const [flightPriceCurrency, setFlightPriceCurrency] = useState("BRL");
     const [flightTips, setFlightTips] = useState<string[]>([]);
     const [newFlightTip, setNewFlightTip] = useState("");
 
@@ -328,8 +311,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     /* ─── Quality score ─── */
     const hasSpending = [...accommodations, ...transports, ...restaurants, ...attractions].some(item => parseFloat((item as any).priceValue || (item as any).ticketValue) > 0);
     const qualityScore = calcQuality({ title, subtitle, destination, country, description, duration, price, travelStyles, categories, activeModules, highlights: highlightItems, inclusions: inclusionItems, days, hasSpending, productType, promoPrice });
-    const qualityLabel = qualityScore >= 80 ? "Pronto para publicar" : qualityScore >= 60 ? "Quase lá" : qualityScore >= 30 ? "Em construção" : "Rascunho inicial";
-    const qualityColor = qualityScore >= 80 ? "#22c55e" : qualityScore >= 60 ? "#f59e0b" : qualityScore >= 30 ? "#f97316" : "#94a3b8";
 
     /* ─── Toast auto-dismiss ─── */
     useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 4000); return () => clearTimeout(t); }, [toast]);
@@ -368,10 +349,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 })));
                 // Accommodations
                 setAccommodations((data.accommodations || []).map((a: any) => ({
-                    name: a.name || "", address: a.address || a.neighborhood || "", mapLink: a.mapLink || "",
-                    description: a.description || "",
+                    name: a.name || "", neighborhood: a.neighborhood || "", description: a.description || "",
                     priceValue: a.priceValue || a.priceRange || "", priceCurrency: a.priceCurrency || "BRL",
-                    rating: a.rating?.toString() || "", externalLink: a.externalLink || "", tips: a.tips || "",
+                    rating: a.rating?.toString() || "", externalLink: a.externalLink || "",
                 })));
                 // Transports
                 setTransports((data.transports || []).map((t: any) => ({
@@ -385,18 +365,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 })));
                 // Flight
                 if (data.flightInfo) {
-                    const mapLeg = (l: any): FlightLeg => ({
-                        airline: l?.airline || "",
-                        originAirport: l?.originAirport || "",
-                        destinationAirport: l?.destinationAirport || "",
-                        departureDate: l?.departureDate || l?.departure || "",
-                        arrivalDate: l?.arrivalDate || l?.arrival || "",
-                        stops: l?.stops || 0,
-                    });
-                    setFlightOutbound(mapLeg(data.flightInfo.outbound));
-                    setFlightReturn(mapLeg(data.flightInfo.return));
-                    setFlightTotalPrice(data.flightInfo.totalPrice || "");
-                    setFlightPriceCurrency(data.flightInfo.priceCurrency || "BRL");
+                    setFlightOutbound(data.flightInfo.outbound || { ...EMPTY_FLIGHT_LEG });
+                    setFlightReturn(data.flightInfo.return || { ...EMPTY_FLIGHT_LEG });
                     setFlightTips(data.flightInfo.tips || []);
                 }
                 // Restaurants
@@ -410,7 +380,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 setGeneralTips(data.generalTips || []);
                 // Attractions
                 setAttractions((data.attractions || []).map((a: any) => ({
-                    name: a.name || "", type: a.type || "", location: a.location || "", mapLink: a.mapLink || "",
+                    name: a.name || "", type: a.type || "", location: a.location || "",
                     description: a.description || "", ticketValue: a.ticketValue || a.ticketPrice || "",
                     ticketCurrency: a.ticketCurrency || "BRL",
                     hours: a.hours || "", duration: a.duration || "",
@@ -458,8 +428,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             flightInfo: (flightOutbound.airline || flightReturn.airline) ? {
                 outbound: flightOutbound,
                 return: flightReturn,
-                totalPrice: flightTotalPrice,
-                priceCurrency: flightPriceCurrency,
                 tips: flightTips.filter(t => t.trim()),
             } : undefined,
             restaurants: restaurants.filter(r => r.name.trim()),
@@ -468,7 +436,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             mediaUrls: mediaUrls.filter(Boolean),
             highlightPhotos: highlightPhotos.filter(Boolean),
         };
-    }, [title, subtitle, destination, country, extraCities, extraCountries, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, offlineDownload, allowPdf, allowShare, highlightItems, inclusionItems, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTotalPrice, flightPriceCurrency, flightTips, restaurants, generalTips, attractions, mediaUrls, highlightPhotos]);
+    }, [title, subtitle, destination, country, extraCities, extraCountries, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, offlineDownload, allowPdf, allowShare, highlightItems, inclusionItems, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTips, restaurants, generalTips, attractions, mediaUrls, highlightPhotos]);
 
     /* ─── Save ─── */
     const handleSave = async () => {
@@ -499,12 +467,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     useEffect(() => {
         if (isNew) return;
         autoSaveRef.current = setInterval(() => {
-            if (dirty) {
-                setSaveStatus("saving");
-                updateItinerary(id, buildPayload())
-                    .then(() => { setDirty(false); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2500); })
-                    .catch(() => { setSaveStatus("idle"); });
-            }
+            if (dirty) { updateItinerary(id, buildPayload()).then(() => setDirty(false)).catch(() => { }); }
         }, 30000);
         return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
     }, [id, isNew, dirty, buildPayload]);
@@ -546,7 +509,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const addActivity = (di: number) => { markDirty(); const u = [...days]; u[di].activities = [...u[di].activities, { title: "", description: "", time: "", duration: "", location: "", mapLink: "", type: "activity", icon: "📍", tips: "", latitude: "", longitude: "", category: "" }]; setDays(u); };
     const updateActivity = (di: number, ai: number, f: string, v: any) => { markDirty(); const u = [...days]; u[di].activities[ai] = { ...u[di].activities[ai], [f]: v }; setDays(u); };
     const removeActivity = (di: number, ai: number) => { markDirty(); const u = [...days]; u[di].activities.splice(ai, 1); setDays([...u]); };
-    const addAccommodation = () => { markDirty(); setAccommodations([...accommodations, { name: "", address: "", mapLink: "", description: "", priceValue: "", priceCurrency: "BRL", rating: "", externalLink: "", tips: "" }]); };
+    const addAccommodation = () => { markDirty(); setAccommodations([...accommodations, { name: "", neighborhood: "", description: "", priceValue: "", priceCurrency: "BRL", rating: "", externalLink: "" }]); };
     const addTransport = () => { markDirty(); setTransports([...transports, { description: "", passTypes: "", priceValue: "", priceCurrency: "BRL", notes: "" }]); };
 
     /* ─── Loading ─── */
@@ -557,19 +520,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         </div>
     );
 
-    /* ─── Empty state helper ─── */
-    const EmptyState = ({ sKey, onCta }: { sKey: SectionKey; onCta?: () => void }) => {
-        const s = EMPTY_STATES[sKey]; if (!s) return null;
-        return (
-            <div style={{ textAlign: "center", padding: "32px 24px", background: "var(--surface-light)", borderRadius: 14, border: "1.5px dashed var(--border)", marginBottom: 16 }}>
-                <div style={{ fontSize: 40, marginBottom: 10 }}>{s.icon}</div>
-                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{s.title}</div>
-                <div style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 360, margin: "0 auto 18px", lineHeight: 1.5 }}>{s.desc}</div>
-                {onCta && <button className="btn-add-item" onClick={onCta} style={{ fontSize: 13, padding: "8px 20px" }}>{s.cta}</button>}
-            </div>
-        );
-    };
-
     /* ─── Render section content ─── */
     const renderSection = (key: SectionKey) => {
         switch (key) {
@@ -577,7 +527,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             case "identity": return (<>
                 <div className="form-group">
                     <label className="form-label">Título do Roteiro *</label>
-                    <input className="form-input" value={title} onChange={e => { setTitle(e.target.value); markDirty(); }} placeholder='Ex: "Japão Autêntico: 15 dias de gastronomia, templos e cultura viva"' />
+                    <input className="form-input" value={title} onChange={e => { setTitle(e.target.value); markDirty(); }} placeholder='ex: "Tóquio Autêntica – 15 dias de Cultura"' />
                 </div>
                 <datalist id="countries-list">
                     {COUNTRIES.map(c => <option key={c} value={c} />)}
@@ -669,7 +619,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="form-group">
                     <label className="form-label">Sobre o Roteiro</label>
-                    <textarea className="form-input" style={{ minHeight: 120 }} value={description} onChange={e => { setDescription(e.target.value); markDirty(); }} placeholder="Venda seu roteiro: que experiência única você viveu? Que dor você resolve para o viajante? Por que esse roteiro é diferente de tudo que ele encontra no Google?" />
+                    <textarea className="form-input" style={{ minHeight: 120 }} value={description} onChange={e => { setDescription(e.target.value); markDirty(); }} placeholder="Descreva o que o viajante vai encontrar, como foi sua experiência e o que torna esse roteiro especial..." />
                     <span className="form-helper">{description.length} caracteres</span>
                 </div>
                 <div className="form-group">
@@ -719,7 +669,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
             /* ═══ DESTAQUES DA VIAGEM ═══ */
             case "highlights": return (<>
-                {highlightItems.length === 0 && <EmptyState sKey="highlights" />}
+                <span className="form-helper">Liste os momentos e experiências mais marcantes da sua viagem. Esses destaques aparecem na vitrine do roteiro.</span>
                 <div className="editor-tag-list" style={{ marginBottom: 12 }}>
                     {highlightItems.map((h, i) => (
                         <span key={i} className="editor-tag">
@@ -729,14 +679,13 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     ))}
                 </div>
                 <div className="editor-tag-input-row">
-                    <input className="form-input" value={newHighlight} onChange={e => setNewHighlight(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newHighlight.trim()) { setHighlightItems([...highlightItems, newHighlight.trim()]); setNewHighlight(""); markDirty(); } }} placeholder="Ex: Jantar em restaurante com vista para o Monte Fuji ao entardecer..." />
+                    <input className="form-input" value={newHighlight} onChange={e => setNewHighlight(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newHighlight.trim()) { setHighlightItems([...highlightItems, newHighlight.trim()]); setNewHighlight(""); markDirty(); } }} placeholder="Ex: Subida à Torre Eiffel, Cruzeiro pelo Sena..." />
                     <button className="btn-add-item" onClick={() => { if (newHighlight.trim()) { setHighlightItems([...highlightItems, newHighlight.trim()]); setNewHighlight(""); markDirty(); } }}>+</button>
                 </div>
             </>);
 
             /* ═══ BLOCO 4: ITINERÁRIO ═══ */
             case "itinerary": return (<>
-                {days.length === 0 && <EmptyState sKey="itinerary" onCta={addDay} />}
                 {days.map((day, di) => (
                     <div className="editor-day-card" key={di}>
                         <div className="editor-day-header">
@@ -782,7 +731,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
             /* ═══ HOSPEDAGENS ═══ */
             case "accommodations": return (<>
-                {accommodations.length === 0 && <EmptyState sKey="accommodations" onCta={addAccommodation} />}
+                <span className="form-helper">Cadastre as hospedagens que você usou ou recomenda no destino.</span>
                 {accommodations.map((acc, i) => (
                     <div className="editor-activity-card" key={i} style={{ marginBottom: 10 }}>
                         <div className="editor-activity-row">
@@ -790,13 +739,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             <input className="form-input" value={acc.rating} onChange={e => { const u = [...accommodations]; u[i].rating = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Nota (ex: 8.5)" style={{ width: 90 }} />
                             <button className="btn-remove" onClick={() => { setAccommodations(accommodations.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                         </div>
-                        <div className="editor-activity-row">
-                            <input className="form-input" value={acc.address} onChange={e => { const u = [...accommodations]; u[i].address = e.target.value; setAccommodations(u); markDirty(); }} placeholder="📍 Nome do local ou endereço..." style={{ flex: 1 }} />
-                        </div>
-                        <div className="editor-activity-row">
-                            <input className="form-input" value={acc.mapLink} onChange={e => { const u = [...accommodations]; u[i].mapLink = e.target.value; setAccommodations(u); markDirty(); }} placeholder="🔗 URL da localização (Google Maps)" style={{ flex: 1 }} />
-                        </div>
                         <div className="editor-activity-row" style={{ flexWrap: "wrap", gap: 6 }}>
+                            <input className="form-input" value={acc.neighborhood} onChange={e => { const u = [...accommodations]; u[i].neighborhood = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Bairro / Localização" style={{ flex: 2, minWidth: 120 }} />
                             <input className="form-input" type="number" value={acc.priceValue} onChange={e => { const u = [...accommodations]; u[i].priceValue = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Preço/noite" style={{ width: 110 }} />
                             <select className="form-input" value={acc.priceCurrency} onChange={e => { const u = [...accommodations]; u[i].priceCurrency = e.target.value; setAccommodations(u); markDirty(); }} style={{ width: 90 }}>
                                 {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
@@ -808,13 +752,10 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             )}
                         </div>
                         <div className="editor-activity-row">
-                            <textarea className="form-input" value={acc.description} onChange={e => { const u = [...accommodations]; u[i].description = e.target.value; setAccommodations(u); markDirty(); }} placeholder="O que torna essa hospedagem especial? Localização, café da manhã, atmosfera? Fale o que só quem esteve lá sabe." style={{ minHeight: 50 }} rows={2} />
+                            <textarea className="form-input" value={acc.description} onChange={e => { const u = [...accommodations]; u[i].description = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Descrição curta e dicas" style={{ minHeight: 50 }} rows={2} />
                         </div>
                         <div className="editor-activity-row">
                             <input className="form-input" value={acc.externalLink} onChange={e => { const u = [...accommodations]; u[i].externalLink = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Link externo (Booking, Hostelworld...)" />
-                        </div>
-                        <div className="editor-activity-row">
-                            <textarea className="form-input" value={acc.tips} onChange={e => { const u = [...accommodations]; u[i].tips = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Dica: peça o quarto com vista para o jardim, chegue cedo para garantir vaga..." style={{ minHeight: 40 }} rows={2} />
                         </div>
                     </div>
                 ))}
@@ -823,7 +764,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
             /* ═══ PASSEIOS & ATRAÇÕES ═══ */
             case "attractions": return (<>
-                {attractions.length === 0 && <EmptyState sKey="attractions" onCta={() => { setAttractions([...attractions, { name: "", type: "", location: "", mapLink: "", description: "", ticketValue: "", ticketCurrency: "BRL", hours: "", duration: "", externalLink: "", tips: "" }]); markDirty(); }} />}
+                <span className="form-helper">Cadastre os passeios e atrações imperdíveis que você visitou ou recomenda.</span>
                 {attractions.map((att, i) => (
                     <div className="editor-activity-card" key={i} style={{ marginBottom: 12 }}>
                         <div className="editor-activity-row">
@@ -834,13 +775,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             </select>
                             <button className="btn-remove" onClick={() => { setAttractions(attractions.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                         </div>
-                        <div className="editor-activity-row">
-                            <input className="form-input" value={att.location} onChange={e => { const u = [...attractions]; u[i].location = e.target.value; setAttractions(u); markDirty(); }} placeholder="📍 Nome do local ou endereço..." style={{ flex: 1 }} />
-                        </div>
-                        <div className="editor-activity-row">
-                            <input className="form-input" value={att.mapLink} onChange={e => { const u = [...attractions]; u[i].mapLink = e.target.value; setAttractions(u); markDirty(); }} placeholder="🔗 URL da localização (Google Maps)" style={{ flex: 1 }} />
-                        </div>
                         <div className="editor-activity-row" style={{ flexWrap: "wrap", gap: 6 }}>
+                            <input className="form-input" value={att.location} onChange={e => { const u = [...attractions]; u[i].location = e.target.value; setAttractions(u); markDirty(); }} placeholder="Localização / Endereço *" style={{ flex: 2, minWidth: 120 }} />
                             <input className="form-input" type="number" value={att.ticketValue} onChange={e => { const u = [...attractions]; u[i].ticketValue = e.target.value; setAttractions(u); markDirty(); }} placeholder="Preço ingresso" style={{ width: 120 }} />
                             <select className="form-input" value={att.ticketCurrency} onChange={e => { const u = [...attractions]; u[i].ticketCurrency = e.target.value; setAttractions(u); markDirty(); }} style={{ width: 90 }}>
                                 {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
@@ -866,12 +802,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         </div>
                     </div>
                 ))}
-                <button className="btn-add-item" onClick={() => { setAttractions([...attractions, { name: "", type: "", location: "", mapLink: "", description: "", ticketValue: "", ticketCurrency: "BRL", hours: "", duration: "", externalLink: "", tips: "" }]); markDirty(); }}>+ Passeio / Atração</button>
+                <button className="btn-add-item" onClick={() => { setAttractions([...attractions, { name: "", type: "", location: "", description: "", ticketValue: "", ticketCurrency: "BRL", hours: "", duration: "", externalLink: "", tips: "" }]); markDirty(); }}>+ Passeio / Atração</button>
             </>);
 
             /* ═══ TRANSPORTE ═══ */
             case "transport": return (<>
-                {transports.length === 0 && <EmptyState sKey="transport" onCta={addTransport} />}
+                <span className="form-helper">Descreva as opções de transporte que você usou ou recomenda no destino.</span>
                 {transports.map((t, i) => (
                     <div className="editor-activity-card" key={i} style={{ marginBottom: 10 }}>
                         <div className="editor-activity-row">
@@ -900,7 +836,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
             /* ═══ DICAS EXCLUSIVAS ═══ */
             case "tips": return (<>
-                {generalTips.length === 0 && <EmptyState sKey="tips" />}
+                <span className="form-helper">Compartilhe dicas úteis baseadas na sua experiência real no destino.</span>
                 {generalTips.map((tip, i) => (
                     <div className="editor-checklist-item" key={i}>
                         <span style={{ flex: 1 }}>{tip}</span>
@@ -908,14 +844,14 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     </div>
                 ))}
                 <div className="editor-tag-input-row">
-                    <input className="form-input" value={newGeneralTip} onChange={e => setNewGeneralTip(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newGeneralTip.trim()) { setGeneralTips([...generalTips, newGeneralTip.trim()]); setNewGeneralTip(""); markDirty(); } }} placeholder="Ex: Evite filas comprando o ingresso online com 3 dias de antecedência — economia de 2h na entrada..." />
+                    <input className="form-input" value={newGeneralTip} onChange={e => setNewGeneralTip(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newGeneralTip.trim()) { setGeneralTips([...generalTips, newGeneralTip.trim()]); setNewGeneralTip(""); markDirty(); } }} placeholder="Ex: Compre o passe de transporte no primeiro dia..." />
                     <button className="btn-add-item" onClick={() => { if (newGeneralTip.trim()) { setGeneralTips([...generalTips, newGeneralTip.trim()]); setNewGeneralTip(""); markDirty(); } }}>+</button>
                 </div>
             </>);
 
             /* ═══ RESTAURANTES ═══ */
             case "restaurants": return (<>
-                {restaurants.length === 0 && <EmptyState sKey="restaurants" onCta={() => { setRestaurants([...restaurants, { name: "", cuisine: "", location: "", description: "", priceValue: "", priceCurrency: "BRL", hours: "", externalLink: "", tips: "" }]); markDirty(); }} />}
+                <span className="form-helper">Recomende restaurantes e experiências gastronômicas para o viajante.</span>
                 {restaurants.map((rest, i) => (
                     <div className="editor-activity-card" key={i} style={{ marginBottom: 12 }}>
                         <div className="editor-activity-row">
@@ -955,7 +891,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
             /* ═══ FOTOS E VÍDEOS ═══ */
             case "media": return (<>
-                {!highlightPhotos.some(Boolean) && mediaUrls.length === 0 && <EmptyState sKey="media" />}
+                <span className="form-helper">Adicione fotos e vídeos da sua viagem para enriquecer o roteiro. Máximo 10 arquivos.</span>
 
                 {/* Fotos em Destaque */}
                 <div className="editor-subsection" style={{ marginBottom: 24 }}>
@@ -1083,60 +1019,34 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             /* ═══ BLOCO 6: MEU VOO ═══ */
             case "flight": {
                 const renderFlightLeg = (leg: FlightLeg, setLeg: (l: FlightLeg) => void, label: string, icon: string) => (
-                    <div className="editor-activity-card" style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: "var(--text-secondary)" }}>{icon} {label}</div>
-                        <div className="editor-activity-row">
-                            <input className="form-input" value={leg.airline} onChange={e => { setLeg({ ...leg, airline: e.target.value }); markDirty(); }} placeholder="Companhia aérea (ex: LATAM, Gol, Air France)" style={{ flex: 1 }} />
-                        </div>
-                        <div className="editor-activity-row">
-                            <div className="form-group" style={{ flex: 1, margin: 0 }}>
-                                <label className="form-label" style={{ fontSize: 11 }}>Aeroporto de Origem</label>
-                                <input className="form-input" value={leg.originAirport} onChange={e => { setLeg({ ...leg, originAirport: e.target.value }); markDirty(); }} placeholder="Ex: GRU — São Paulo/Guarulhos" />
+                    <>
+                        <h4 style={{ margin: "16px 0 8px", fontSize: 14 }}>{icon} {label}</h4>
+                        <div className="editor-activity-card" style={{ marginBottom: 10 }}>
+                            <div className="editor-activity-row">
+                                <input className="form-input" value={leg.airline} onChange={e => { setLeg({ ...leg, airline: e.target.value }); markDirty(); }} placeholder="Companhia aérea (ex: LATAM)" style={{ flex: 1 }} />
+                                <input className="form-input" value={leg.route} onChange={e => { setLeg({ ...leg, route: e.target.value }); markDirty(); }} placeholder="Rota (ex: GRU → CDG)" style={{ flex: 1 }} />
                             </div>
-                            <div className="form-group" style={{ flex: 1, margin: 0 }}>
-                                <label className="form-label" style={{ fontSize: 11 }}>Aeroporto de Destino</label>
-                                <input className="form-input" value={leg.destinationAirport} onChange={e => { setLeg({ ...leg, destinationAirport: e.target.value }); markDirty(); }} placeholder="Ex: CDG — Paris/Charles de Gaulle" />
+                            <div className="editor-activity-row">
+                                <input className="form-input" value={leg.departure} onChange={e => { setLeg({ ...leg, departure: e.target.value }); markDirty(); }} placeholder="Saída (ex: 22:30)" />
+                                <input className="form-input" value={leg.arrival} onChange={e => { setLeg({ ...leg, arrival: e.target.value }); markDirty(); }} placeholder="Chegada (ex: 14:15 +1)" />
+                                <input className="form-input" value={leg.duration} onChange={e => { setLeg({ ...leg, duration: e.target.value }); markDirty(); }} placeholder="Duração (ex: 11h45)" />
                             </div>
-                        </div>
-                        <div className="editor-activity-row">
-                            <div className="form-group" style={{ flex: 1, margin: 0 }}>
-                                <label className="form-label" style={{ fontSize: 11 }}>Data de Saída</label>
-                                <input className="form-input" type="date" value={leg.departureDate} onChange={e => { setLeg({ ...leg, departureDate: e.target.value }); markDirty(); }} />
-                            </div>
-                            <div className="form-group" style={{ flex: 1, margin: 0 }}>
-                                <label className="form-label" style={{ fontSize: 11 }}>Data de Chegada</label>
-                                <input className="form-input" type="date" value={leg.arrivalDate} onChange={e => { setLeg({ ...leg, arrivalDate: e.target.value }); markDirty(); }} />
-                            </div>
-                            <div className="form-group" style={{ flex: 0, margin: 0 }}>
-                                <label className="form-label" style={{ fontSize: 11 }}>Paradas</label>
-                                <input className="form-input" type="number" value={leg.stops} onChange={e => { setLeg({ ...leg, stops: parseInt(e.target.value) || 0 }); markDirty(); }} min={0} style={{ width: 80 }} />
+                            <div className="editor-activity-row">
+                                <div className="form-group" style={{ flex: 0, margin: 0 }}>
+                                    <label className="form-label" style={{ fontSize: 12, margin: 0 }}>Paradas</label>
+                                    <input className="form-input" type="number" value={leg.stops} onChange={e => { setLeg({ ...leg, stops: parseInt(e.target.value) || 0 }); markDirty(); }} min={0} style={{ width: 80 }} />
+                                </div>
+                                <input className="form-input" value={leg.pricePaid} onChange={e => { setLeg({ ...leg, pricePaid: e.target.value }); markDirty(); }} placeholder="Preço pago (ex: R$ 3.450)" style={{ flex: 1 }} />
                             </div>
                         </div>
-                    </div>
+                    </>
                 );
                 return (<>
-                    {!flightOutbound.airline && !flightReturn.airline && <EmptyState sKey="flight" />}
-
-                    {/* Preço único ida + volta */}
-                    <div className="editor-activity-card" style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>💳 Valor da Passagem (Ida + Volta)</div>
-                        <div className="editor-activity-row">
-                            <input className="form-input" type="number" value={flightTotalPrice} onChange={e => { setFlightTotalPrice(e.target.value); markDirty(); }} placeholder="Valor total pago pela passagem" style={{ flex: 1 }} />
-                            <select className="form-input" value={flightPriceCurrency} onChange={e => { setFlightPriceCurrency(e.target.value); markDirty(); }} style={{ width: 90 }}>
-                                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
-                            </select>
-                            {toBRL(flightTotalPrice, flightPriceCurrency) && (
-                                <span title={`Cotação: USD 1 = R$ ${formattedRate}`} style={{ fontSize: 12, color: "var(--text-secondary)", background: "var(--surface-light)", borderRadius: 6, padding: "3px 8px", whiteSpace: "nowrap", alignSelf: "center" }}>
-                                    ≈ {toBRL(flightTotalPrice, flightPriceCurrency)}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
+                    <span className="form-helper">Informe os dados do voo que você usou/recomenda para esse destino.</span>
                     {renderFlightLeg(flightOutbound, setFlightOutbound, "Voo de Ida", "🛫")}
                     {renderFlightLeg(flightReturn, setFlightReturn, "Voo de Volta", "🛬")}
 
-                    <h4 style={{ margin: "20px 0 8px", fontSize: 14 }}>💬 Dicas sobre o Voo</h4>
+                    <h4 style={{ margin: "24px 0 8px", fontSize: 14 }}>💬 Dicas sobre o Voo</h4>
                     {flightTips.map((tip, i) => (
                         <div className="editor-checklist-item" key={i}>
                             <span style={{ flex: 1 }}>{tip}</span>
@@ -1144,7 +1054,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         </div>
                     ))}
                     <div className="editor-tag-input-row">
-                        <input className="form-input" value={newFlightTip} onChange={e => setNewFlightTip(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newFlightTip.trim()) { setFlightTips([...flightTips, newFlightTip.trim()]); setNewFlightTip(""); markDirty(); } }} placeholder="Ex: Voo noturno é a melhor opção — dormi no avião e cheguei descansado de manhã" />
+                        <input className="form-input" value={newFlightTip} onChange={e => setNewFlightTip(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newFlightTip.trim()) { setFlightTips([...flightTips, newFlightTip.trim()]); setNewFlightTip(""); markDirty(); } }} placeholder="Ex: Voo noturno é a melhor opção — dormi no avião e cheguei de manhã" />
                         <button className="btn-add-item" onClick={() => { if (newFlightTip.trim()) { setFlightTips([...flightTips, newFlightTip.trim()]); setNewFlightTip(""); markDirty(); } }}>+</button>
                     </div>
                 </>);
@@ -1152,7 +1062,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
             /* ═══ BLOCO 7: CHECKLIST ═══ */
             case "checklist": return (<>
-                {checklistItems.length === 0 && <EmptyState sKey="checklist" />}
+                <h4 style={{ margin: "0 0 8px" }}>✅ Checklist</h4>
                 <div className="editor-checklist-add">
                     <select className="form-input" value={newCheckCat} onChange={e => setNewCheckCat(e.target.value)} style={{ width: 140 }}>
                         {CHECKLIST_CATS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1209,103 +1119,29 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     <h1 className="editor-title">{isNew ? "Novo Roteiro" : title || "Editar Roteiro"}</h1>
                 </div>
                 <div className="editor-header-right">
-                    {/* Ring gauge — Força do Roteiro */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <svg width="44" height="44" viewBox="0 0 44 44" style={{ flexShrink: 0 }}>
-                            <circle cx="22" cy="22" r="18" fill="none" stroke="var(--border)" strokeWidth="4" />
-                            <circle cx="22" cy="22" r="18" fill="none" stroke={qualityColor} strokeWidth="4"
-                                strokeDasharray={`${(qualityScore / 100) * 113} 113`}
-                                strokeLinecap="round"
-                                transform="rotate(-90 22 22)"
-                                style={{ transition: "stroke-dasharray 0.5s ease" }}
-                            />
-                            <text x="22" y="26" textAnchor="middle" fontSize="11" fontWeight="700" fill={qualityColor}>{qualityScore}%</text>
-                        </svg>
-                        <div>
-                            <div style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.2 }}>Força do Roteiro</div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: qualityColor, lineHeight: 1.3 }}>{qualityLabel}</div>
-                        </div>
-                    </div>
-                    {saveStatus === "saving" && <span className="editor-dirty-badge" style={{ color: "var(--text-secondary)" }}>☁️ Salvando...</span>}
-                    {saveStatus === "saved"  && <span className="editor-dirty-badge" style={{ color: "#22c55e" }}>✅ Salvo</span>}
-                    {saveStatus === "idle" && dirty && <span className="editor-dirty-badge">● Não salvo</span>}
+                    <div className={`quality-score-mini ${qualityScore >= 80 ? "high" : qualityScore >= 50 ? "medium" : "low"}`}>{qualityScore}%</div>
+                    {dirty && <span className="editor-dirty-badge">● Não salvo</span>}
                     <button className="editor-save-btn" onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Publicar Roteiro"}</button>
                 </div>
             </div>
 
-            {/* Body: sidebar + sections */}
-            <div style={{ display: "flex", gap: 20, alignItems: "flex-start", padding: "0 20px 48px" }}>
-
-                {/* ── Sticky Sidebar Nav ── */}
-                <nav style={{
-                    position: "sticky", top: 76, width: 216, flexShrink: 0,
-                    background: "var(--surface)", border: "1px solid var(--border)",
-                    borderRadius: 14, padding: "10px 6px",
-                    maxHeight: "calc(100vh - 96px)", overflowY: "auto",
-                    alignSelf: "flex-start",
-                }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "var(--text-secondary)", padding: "2px 10px 8px", borderBottom: "1px solid var(--border)", marginBottom: 4 }}>
-                        SEÇÕES DO ROTEIRO
+            {/* Sections */}
+            <div className="editor-sections">
+                {SECTIONS.filter(sec => {
+                    const requiredModule = SECTION_MODULE_MAP[sec.key];
+                    if (!requiredModule) return true; // always visible (identity, commerce, modules, postpurchase)
+                    return activeModules.includes(requiredModule);
+                }).map(sec => (
+                    <div key={sec.key} ref={el => { sectionRefs.current[sec.key] = el; }} className={`editor-section ${openSections.has(sec.key) ? "open" : ""} ${activeSection === sec.key ? "active" : ""}`}>
+                        <button className="editor-section-header" onClick={() => { toggleSection(sec.key); setActiveSection(sec.key); }}>
+                            <span className="editor-section-icon">{sec.icon}</span>
+                            <span className="editor-section-title">{sec.title}</span>
+                            <span className={`editor-section-status ${isSectionComplete(sec.key) ? "complete" : "pending"}`}>{isSectionComplete(sec.key) ? "Completo" : "Pendente"}</span>
+                            <span className="editor-section-arrow">{openSections.has(sec.key) ? "▲" : "▼"}</span>
+                        </button>
+                        {openSections.has(sec.key) && <div className="editor-section-body">{renderSection(sec.key)}</div>}
                     </div>
-                    {SECTIONS.filter(sec => {
-                        const req = SECTION_MODULE_MAP[sec.key];
-                        return !req || activeModules.includes(req);
-                    }).map(sec => {
-                        const complete = isSectionComplete(sec.key);
-                        const isActive = activeSection === sec.key;
-                        return (
-                            <button key={sec.key} onClick={() => {
-                                if (!openSections.has(sec.key)) toggleSection(sec.key);
-                                setActiveSection(sec.key);
-                                sectionRefs.current[sec.key]?.scrollIntoView({ behavior: "smooth", block: "start" });
-                            }} style={{
-                                display: "flex", alignItems: "center", gap: 7, width: "100%",
-                                textAlign: "left", padding: "7px 10px", borderRadius: 9, border: "none",
-                                background: isActive ? "var(--primary-light, rgba(0,180,120,0.10))" : "transparent",
-                                color: isActive ? "var(--primary)" : "var(--text-primary)",
-                                cursor: "pointer", fontSize: 12.5,
-                                fontWeight: isActive ? 600 : 400, transition: "all 0.15s",
-                            }}>
-                                <span style={{ fontSize: 13, flexShrink: 0 }}>{sec.icon}</span>
-                                <span style={{ flex: 1, lineHeight: 1.3 }}>{sec.title}</span>
-                                <span style={{
-                                    width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-                                    background: complete ? "#22c55e" : "var(--border)",
-                                    boxShadow: complete ? "0 0 5px #22c55e66" : "none",
-                                    transition: "background 0.3s",
-                                }} />
-                            </button>
-                        );
-                    })}
-                </nav>
-
-                {/* ── Main sections ── */}
-                <div className="editor-sections" style={{ flex: 1, minWidth: 0 }}>
-                    {SECTIONS.filter(sec => {
-                        const requiredModule = SECTION_MODULE_MAP[sec.key];
-                        if (!requiredModule) return true;
-                        return activeModules.includes(requiredModule);
-                    }).map(sec => (
-                        <div key={sec.key} ref={el => { sectionRefs.current[sec.key] = el; }} className={`editor-section ${openSections.has(sec.key) ? "open" : ""} ${activeSection === sec.key ? "active" : ""}`}>
-                            <button className="editor-section-header" onClick={() => { toggleSection(sec.key); setActiveSection(sec.key); }}>
-                                <span className="editor-section-icon">{sec.icon}</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                        <span className="editor-section-title">{sec.title}</span>
-                                        {sec.required
-                                            ? <span style={{ fontSize: 10, fontWeight: 700, color: "#f97316", background: "rgba(249,115,22,0.10)", borderRadius: 4, padding: "1px 6px" }}>Obrigatório</span>
-                                            : <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", background: "var(--surface-light)", borderRadius: 4, padding: "1px 6px" }}>Opcional</span>
-                                        }
-                                    </div>
-                                    {sec.subtitle && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, fontWeight: 400, lineHeight: 1.4 }}>{sec.subtitle}</div>}
-                                </div>
-                                <span className={`editor-section-status ${isSectionComplete(sec.key) ? "complete" : "pending"}`}>{isSectionComplete(sec.key) ? "✓" : "·"}</span>
-                                <span className="editor-section-arrow">{openSections.has(sec.key) ? "▲" : "▼"}</span>
-                            </button>
-                            {openSections.has(sec.key) && <div className="editor-section-body">{renderSection(sec.key)}</div>}
-                        </div>
-                    ))}
-                </div>
+                ))}
             </div>
         </div>
     );

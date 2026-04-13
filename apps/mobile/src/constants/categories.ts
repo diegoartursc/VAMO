@@ -7,9 +7,9 @@ export const CATEGORIES = [
     { id: 'esportes', icon: 'trophy', label: 'Esportes' },
     { id: 'cruzeiros', icon: 'ship', label: 'Cruzeiros' },
     { id: 'eurotrip', icon: 'globe', label: 'Eurotrip' },
-    { id: 'relax', icon: 'heart-pulse', label: 'Relax' },
-    { id: 'familia', icon: 'users', label: 'Família' },
-    { id: 'aventura', icon: 'mountain', label: 'Aventura' },
+    { id: 'relax', icon: 'coffee', label: 'Relax' },
+    { id: 'praia', icon: 'sun', label: 'Praia' },
+    { id: 'historico', icon: 'book-open', label: 'Histórico' },
 ] as const;
 
 export type CategoryId = typeof CATEGORIES[number]['id'];

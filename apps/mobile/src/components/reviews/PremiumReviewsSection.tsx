@@ -76,12 +76,13 @@ export default function PremiumReviewsSection({
             <View style={styles.aggregateSection}>
                 <Text style={styles.aggregateTitle}>Avaliações</Text>
                 <View style={styles.ratingDisplay}>
+                    <Icon name="star" size={38} color="#F59E0B" fill="#F59E0B" />
                     <Text style={styles.ratingNumber}>{averageRating.toFixed(1)}</Text>
-                    <View>
-                        {renderStars(Math.round(averageRating), 20)}
-                        <Text style={styles.ratingSubtext}>
+                    <View style={styles.ratingMeta}>
+                        <Text style={styles.ratingCount}>
                             {totalReviews} {totalReviews === 1 ? 'avaliação' : 'avaliações'}
                         </Text>
+                        <Text style={styles.ratingTrust}>100% autênticas</Text>
                     </View>
                 </View>
             </View>
@@ -225,24 +226,38 @@ const styles = StyleSheet.create({
     ratingDisplay: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: 12,
+        backgroundColor: theme.colors.surfaceLight,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
     },
     ratingNumber: {
-        fontSize: 48,
+        fontSize: 44,
         fontWeight: '800',
         color: theme.colors.text.primary,
-        letterSpacing: -2,
-        lineHeight: 52,
+        letterSpacing: -1.5,
+        lineHeight: 48,
+    },
+    ratingMeta: {
+        marginLeft: 4,
+        justifyContent: 'center',
+    },
+    ratingCount: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    ratingTrust: {
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+        marginTop: 2,
     },
     starsRow: {
         flexDirection: 'row',
         gap: 3,
         marginBottom: 4,
-    },
-    ratingSubtext: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        marginTop: 2,
     },
 
     // ── Summary ──

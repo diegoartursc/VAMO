@@ -117,6 +117,18 @@ export interface RestaurantInfo {
     tips?: string;
 }
 
+export interface AttractionInfo {
+    name: string;
+    type: string; // Museu, Parque, Tour, Mirante, etc.
+    location: string;
+    description: string;
+    ticketPrice?: string;
+    hours?: string;
+    duration?: string; // tempo recomendado
+    externalLink?: string;
+    tips?: string;
+}
+
 export interface ReceiveItem {
     icon: string;
     label: string;
@@ -143,6 +155,7 @@ export interface PurchasedItinerary extends Itinerary {
     receiveList?: ReceiveItem[];
     restaurants?: RestaurantInfo[];
     generalTips?: string[];
+    attractions?: AttractionInfo[];
 }
 
 export const mockPurchasedItineraries: PurchasedItinerary[] = [
@@ -169,7 +182,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         ],
         rating: 4.9,
         reviewCount: 456,
-        inclusions: ['Planilha', 'Mapa'],
+        inclusions: ['Planilha'],
         duration: 10,
         featured: true,
         purchaseDate: '2026-01-15',
@@ -534,7 +547,6 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         receiveList: [
             { icon: '📋', label: 'Itinerário completo dia a dia' },
             { icon: '🏨', label: 'Hospedagens recomendadas por faixa' },
-            { icon: '🗺️', label: 'Mapa com pontos marcados' },
             { icon: '🚇', label: 'Guia de locomoção local' },
             { icon: '💡', label: 'Dicas exclusivas do criador' },
             { icon: '🍽️', label: 'Restaurantes selecionados' },
@@ -578,6 +590,62 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             'Compre o Paris Visite Pass de 5 dias logo no primeiro dia — economiza muito',
             'Baixe o app RATP para ver linhas de metrô em tempo real',
         ],
+        attractions: [
+            {
+                name: 'Torre Eiffel',
+                type: 'Monumento',
+                location: 'Champ de Mars, 5 Av. Anatole France',
+                description: 'O símbolo máximo de Paris. Vale muito subir ao 2º andar — a vista é incrível de dia e de noite.',
+                ticketPrice: 'R$ 90–180 (depende do andar)',
+                hours: '09:00 – 23:45 (última subida 22:30)',
+                duration: '2–3h',
+                externalLink: 'https://www.toureiffel.paris',
+                tips: 'Reserve online com até 60 dias de antecedência. Evite fila — chegue cedo ou vá após as 18h.',
+            },
+            {
+                name: 'Museu do Louvre',
+                type: 'Museu',
+                location: 'Rue de Rivoli, Paris 1er',
+                description: 'O maior museu de arte do mundo. A Mona Lisa e a Vênus de Milo ficam aqui. Reserve pelo menos 3h.',
+                ticketPrice: 'R$ 90 (grátis menores de 18 anos)',
+                hours: '09:00 – 18:00 (qui até 21:45), fechado às terças',
+                duration: '3–4h',
+                externalLink: 'https://www.louvre.fr',
+                tips: 'Entre pela pirâmide de vidro ou pela entrada do Carrousel du Louvre para evitar fila.',
+            },
+            {
+                name: 'Cruzeiro pelo Rio Sena',
+                type: 'Tour',
+                location: 'Pont de l\'Alma — Bateaux Mouches',
+                description: 'Passeio de barco de 1h20 min passando pelos principais monumentos às margens do Sena. Imperdível ao entardecer.',
+                ticketPrice: 'R$ 70–120',
+                hours: 'Saídas a cada 30–45 min, 10:00–22:30',
+                duration: '1h20',
+                externalLink: 'https://www.bateaux-mouches.fr',
+                tips: 'O passeio noturno (após 20h) é ainda mais bonito com os monumentos iluminados.',
+            },
+            {
+                name: 'Palácio de Versalhes',
+                type: 'Palácio & Jardins',
+                location: 'Place d\'Armes, Versailles (RER C, 40 min de Paris)',
+                description: 'Palácio real suntuoso com jardins imensos. Separe o dia inteiro. Os jardins musicais do fim de semana são especiais.',
+                ticketPrice: 'R$ 130–200 (palácio + jardins)',
+                hours: '09:00 – 17:30 (fechado segundas)',
+                duration: 'Dia inteiro',
+                externalLink: 'https://www.chateauversailles.fr',
+                tips: 'Vá numa terça para evitar os maiores fluxos. Leve lanche pois os restaurantes internos são caros.',
+            },
+            {
+                name: 'Basílica do Sacré-Cœur',
+                type: 'Igreja & Mirante',
+                location: '35 Rue du Chevalier de la Barre, Montmartre',
+                description: 'Basílica no topo de Montmartre com uma das melhores vistas de Paris. Bairro ao redor cheio de artistas e cafés.',
+                ticketPrice: 'Gratuito (cúpula: R$ 30)',
+                hours: '06:00 – 22:30 (basílica)',
+                duration: '1–2h',
+                tips: 'Cuidado com golpistas de pulseiras na subida. Suba pelas escadas laterais para evitar artistas insistentes.',
+            },
+        ],
     },
     // ─── Tóquio Completo ────────────────────────────────────
     {
@@ -602,7 +670,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         ],
         rating: 4.9,
         reviewCount: 89,
-        inclusions: ['Planilha', 'Mapa'],
+        inclusions: ['Planilha'],
         duration: 14,
         featured: false,
         purchaseDate: '2026-02-01',
@@ -845,7 +913,6 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         receiveList: [
             { icon: '📋', label: 'Itinerário completo dia a dia' },
             { icon: '🏨', label: 'Hospedagens recomendadas por faixa' },
-            { icon: '🗺️', label: 'Mapa com pontos marcados' },
             { icon: '🚇', label: 'Guia de transporte e passes' },
             { icon: '💡', label: 'Dicas exclusivas da criadora' },
             { icon: '🍣', label: 'Restaurantes selecionados' },
@@ -923,7 +990,7 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         ],
         rating: 4.7,
         reviewCount: 64,
-        inclusions: ['Planilha', 'Mapa'],
+        inclusions: ['Planilha'],
         duration: 21,
         featured: false,
         purchaseDate: '2026-02-10',
@@ -1154,7 +1221,6 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
         receiveList: [
             { icon: '📋', label: 'Itinerário completo dia a dia' },
             { icon: '🏨', label: 'Hospedagens recomendadas por faixa' },
-            { icon: '🗺️', label: 'Mapa com pontos marcados' },
             { icon: '🛵', label: 'Guia de transporte local' },
             { icon: '💡', label: 'Dicas exclusivas do criador' },
             { icon: '🍜', label: 'Restaurantes selecionados' },
