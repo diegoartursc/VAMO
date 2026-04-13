@@ -286,19 +286,33 @@ export default function PurchasedItineraryScreen() {
                         <View style={styles.block}>
                             <Text style={styles.blockTitle}>Meu Voo</Text>
 
+                            {/* Preço total */}
+                            {itinerary.flightInfo.totalPrice && (
+                                <View style={[styles.flightPriceBadge, { alignSelf: 'flex-start', marginBottom: 12 }]}>
+                                    <Text style={styles.flightPrice}>
+                                        Total ida + volta: {itinerary.flightInfo.totalPrice}
+                                        {itinerary.flightInfo.priceCurrency ? ` ${itinerary.flightInfo.priceCurrency}` : ''}
+                                    </Text>
+                                </View>
+                            )}
+
                             {/* Ida */}
                             <Text style={styles.subTitle}>Ida</Text>
                             <View style={styles.flightCard}>
                                 <View style={styles.flightHeader}>
                                     <Text style={styles.flightAirline}>{itinerary.flightInfo.outbound.airline}</Text>
-                                    <View style={styles.flightPriceBadge}>
-                                        <Text style={styles.flightPrice}>{itinerary.flightInfo.outbound.pricePaid}</Text>
-                                    </View>
                                 </View>
-                                <Text style={styles.flightRoute}>{itinerary.flightInfo.outbound.route}</Text>
+                                <Text style={styles.flightRoute}>
+                                    {itinerary.flightInfo.outbound.originAirport} → {itinerary.flightInfo.outbound.destinationAirport}
+                                </Text>
+                                {itinerary.flightInfo.outbound.departureDate && (
+                                    <Text style={styles.flightDate}>
+                                        📅 {itinerary.flightInfo.outbound.departureDate}
+                                        {itinerary.flightInfo.outbound.arrivalDate && itinerary.flightInfo.outbound.arrivalDate !== itinerary.flightInfo.outbound.departureDate
+                                            ? ` → ${itinerary.flightInfo.outbound.arrivalDate}` : ''}
+                                    </Text>
+                                )}
                                 <View style={styles.flightDetails}>
-                                    <Text style={styles.flightTime}>{itinerary.flightInfo.outbound.departure} → {itinerary.flightInfo.outbound.arrival}</Text>
-                                    <Text style={styles.flightDuration}>{itinerary.flightInfo.outbound.duration}</Text>
                                     <Text style={styles.flightStops}>
                                         {itinerary.flightInfo.outbound.stops === 0 ? 'Direto' : `${itinerary.flightInfo.outbound.stops} parada${itinerary.flightInfo.outbound.stops > 1 ? 's' : ''}`}
                                     </Text>
@@ -310,14 +324,18 @@ export default function PurchasedItineraryScreen() {
                             <View style={styles.flightCard}>
                                 <View style={styles.flightHeader}>
                                     <Text style={styles.flightAirline}>{itinerary.flightInfo.return.airline}</Text>
-                                    <View style={styles.flightPriceBadge}>
-                                        <Text style={styles.flightPrice}>{itinerary.flightInfo.return.pricePaid}</Text>
-                                    </View>
                                 </View>
-                                <Text style={styles.flightRoute}>{itinerary.flightInfo.return.route}</Text>
+                                <Text style={styles.flightRoute}>
+                                    {itinerary.flightInfo.return.originAirport} → {itinerary.flightInfo.return.destinationAirport}
+                                </Text>
+                                {itinerary.flightInfo.return.departureDate && (
+                                    <Text style={styles.flightDate}>
+                                        📅 {itinerary.flightInfo.return.departureDate}
+                                        {itinerary.flightInfo.return.arrivalDate && itinerary.flightInfo.return.arrivalDate !== itinerary.flightInfo.return.departureDate
+                                            ? ` → ${itinerary.flightInfo.return.arrivalDate}` : ''}
+                                    </Text>
+                                )}
                                 <View style={styles.flightDetails}>
-                                    <Text style={styles.flightTime}>{itinerary.flightInfo.return.departure} → {itinerary.flightInfo.return.arrival}</Text>
-                                    <Text style={styles.flightDuration}>{itinerary.flightInfo.return.duration}</Text>
                                     <Text style={styles.flightStops}>
                                         {itinerary.flightInfo.return.stops === 0 ? 'Direto' : `${itinerary.flightInfo.return.stops} parada${itinerary.flightInfo.return.stops > 1 ? 's' : ''}`}
                                     </Text>
@@ -387,15 +405,20 @@ export default function PurchasedItineraryScreen() {
                                                         {activity.description}
                                                     </Text>
 
-                                                    {/* Tips */}
-                                                    {activity.tips.length > 0 && (
-                                                        <View style={styles.tipsContainer}>
-                                                            <Text style={styles.tipsTitle}>Dicas:</Text>
-                                                            {activity.tips.map((tip, ti) => (
-                                                                <Text key={ti} style={styles.tipText}>• {tip}</Text>
-                                                            ))}
-                                                        </View>
-                                                    )}
+                                                    {/* Tips — accepts string or string[] */}
+                                                    {(() => {
+                                                        const tipsArr = Array.isArray(activity.tips)
+                                                            ? activity.tips
+                                                            : activity.tips ? [activity.tips] : [];
+                                                        return tipsArr.length > 0 ? (
+                                                            <View style={styles.tipsContainer}>
+                                                                <Text style={styles.tipsTitle}>Dicas:</Text>
+                                                                {tipsArr.map((tip, ti) => (
+                                                                    <Text key={ti} style={styles.tipText}>• {tip}</Text>
+                                                                ))}
+                                                            </View>
+                                                        ) : null;
+                                                    })()}
 
                                                     {/* Map link */}
                                                     {activity.mapLink && (
@@ -441,10 +464,12 @@ export default function PurchasedItineraryScreen() {
                                             <Text style={styles.accPrice}>{acc.priceRange}</Text>
                                         </View>
                                     </View>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}>
-                                        <Icon name="location" size={11} color={theme.colors.text.secondary} />
-                                        <Text style={[styles.accLocation, { marginBottom: 0 }]}>{acc.location}</Text>
-                                    </View>
+                                    {(acc.address || acc.location) && (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}>
+                                            <Icon name="location" size={11} color={theme.colors.text.secondary} />
+                                            <Text style={[styles.accLocation, { marginBottom: 0 }]}>{acc.address || acc.location}</Text>
+                                        </View>
+                                    )}
                                     <Text style={styles.accDesc}>{acc.description}</Text>
                                     {acc.rating && (
                                         <View style={styles.accRating}>
@@ -452,6 +477,22 @@ export default function PurchasedItineraryScreen() {
                                             <Text style={styles.accRatingText}>{acc.rating}</Text>
                                         </View>
                                     )}
+                                    {acc.tips ? (
+                                        <View style={[styles.tipsContainer, { marginTop: 8, marginBottom: 0 }]}>
+                                            <Icon name="lightbulb" size={13} color="#F59E0B" />
+                                            <Text style={[styles.tipText, { marginLeft: 4, flex: 1 }]}>💡 {acc.tips}</Text>
+                                        </View>
+                                    ) : null}
+                                    {acc.mapLink ? (
+                                        <TouchableOpacity
+                                            style={styles.miniMapBtn}
+                                            onPress={() => { haptics.light(); Linking.openURL(acc.mapLink!); }}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
+                                            <Text style={styles.miniMapText}>Ver no mapa</Text>
+                                        </TouchableOpacity>
+                                    ) : null}
                                 </View>
                             ))}
                         </View>
@@ -534,40 +575,44 @@ export default function PurchasedItineraryScreen() {
                                             <Text style={styles.attractionLinkText}>Ver site oficial</Text>
                                         </TouchableOpacity>
                                     ) : null}
+                                    {/* Mapa */}
+                                    {att.mapLink ? (
+                                        <TouchableOpacity
+                                            style={[styles.miniMapBtn, { marginTop: att.externalLink ? 6 : 0 }]}
+                                            onPress={() => { haptics.light(); Linking.openURL(att.mapLink!); }}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
+                                            <Text style={styles.miniMapText}>Ver no mapa</Text>
+                                        </TouchableOpacity>
+                                    ) : null}
                                 </View>
                             ))}
                         </View>
                     )}
 
                     {/* ══════════ BLOCO 6 — TRANSPORTE ══════════ */}
-                    {itinerary.transport && (
+                    {itinerary.transport && itinerary.transport.items.length > 0 && (
                         <View style={styles.block}>
                             <Text style={styles.blockTitle}>Transporte</Text>
-
-                            <View style={styles.transportHeader}>
-                                <Text style={styles.transportMode}>{itinerary.transport.mainMode}</Text>
-                                <Text style={styles.transportDesc}>{itinerary.transport.description}</Text>
-                            </View>
-
-                            {/* Passes */}
-                            <Text style={styles.subTitle}>Passes recomendados</Text>
-                            {itinerary.transport.passes.map((pass, i) => (
+                            {itinerary.transport.items.map((item, i) => (
                                 <View key={i} style={styles.passCard}>
                                     <View style={styles.passHeader}>
-                                        <Text style={styles.passName}>{pass.name}</Text>
-                                        <Text style={styles.passPrice}>{pass.price}</Text>
+                                        <Text style={styles.passName}>{item.description}</Text>
+                                        {(item.priceValue) && (
+                                            <Text style={styles.passPrice}>
+                                                {item.priceValue}{item.priceCurrency ? ` ${item.priceCurrency}` : ''}
+                                            </Text>
+                                        )}
                                     </View>
-                                    <Text style={styles.passDesc}>{pass.description}</Text>
+                                    {item.passTypes ? (
+                                        <Text style={[styles.passDesc, { color: theme.colors.primary, fontWeight: '600', marginBottom: 2 }]}>{item.passTypes}</Text>
+                                    ) : null}
+                                    {item.notes ? (
+                                        <Text style={styles.passDesc}>{item.notes}</Text>
+                                    ) : null}
                                 </View>
                             ))}
-
-                            {/* Tips */}
-                            <Text style={styles.subTitle}>Observações importantes</Text>
-                            <View style={styles.tipsBox}>
-                                {itinerary.transport.tips.map((tip, i) => (
-                                    <Text key={i} style={styles.transportTip}>• {tip}</Text>
-                                ))}
-                            </View>
                         </View>
                     )}
 
@@ -608,6 +653,16 @@ export default function PurchasedItineraryScreen() {
                                         <View style={styles.restaurantTipBox}>
                                             <Text style={styles.restaurantTip}>💡 {rest.tips}</Text>
                                         </View>
+                                    ) : null}
+                                    {rest.externalLink ? (
+                                        <TouchableOpacity
+                                            style={styles.attractionLinkBtn}
+                                            onPress={() => { haptics.light(); Linking.openURL(rest.externalLink!); }}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Icon name="external-link" size={14} color={theme.colors.primary} />
+                                            <Text style={styles.attractionLinkText}>Ver reservas</Text>
+                                        </TouchableOpacity>
                                     ) : null}
                                 </View>
                             ))}
@@ -969,6 +1024,7 @@ const styles = StyleSheet.create({
     flightTime: { fontSize: 13, color: theme.colors.text.secondary },
     flightDuration: { fontSize: 13, color: theme.colors.text.secondary },
     flightStops: { fontSize: 13, color: theme.colors.text.secondary },
+    flightDate: { fontSize: 12, color: theme.colors.text.secondary, marginBottom: 6 },
     flightTipsCard: {
         backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16,
         borderWidth: 1, borderColor: theme.colors.borderLight,

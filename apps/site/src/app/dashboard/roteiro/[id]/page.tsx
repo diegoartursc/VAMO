@@ -177,7 +177,7 @@ const SECTION_MODULE_MAP: Partial<Record<SectionKey, string>> = {
     checklist: "checklist",
 };
 
-interface Activity { title: string; description: string; time: string; duration: string; location: string; mapLink?: string; type: string; icon: string; tips: string; latitude: string; longitude: string; category: string; }
+interface Activity { title: string; description: string; time: string; duration: string; location: string; mapLink?: string; type: string; icon: string; tips: string; category: string; }
 interface Day { dayNumber: number; title: string; summary: string; description: string; activities: Activity[]; }
 interface Accommodation { name: string; address: string; mapLink: string; description: string; priceValue: string; priceCurrency: string; rating: string; externalLink: string; tips: string; }
 interface Transport { description: string; passTypes: string; priceValue: string; priceCurrency: string; notes: string; }
@@ -362,7 +362,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     activities: (d.activities || []).map((a: any) => ({
                         title: a.title || "", description: a.description || "", time: a.time || "", duration: a.duration || "",
                         location: a.location || "", type: a.type || "activity", icon: a.icon || "📍",
-                        tips: a.tips || "", latitude: a.latitude?.toString() || "", longitude: a.longitude?.toString() || "",
+                        tips: a.tips || "",
                         category: a.category || "", mapLink: a.mapLink || "",
                     })),
                 })));
@@ -453,7 +453,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             highlights: highlightItems, inclusions: inclusionItems,
             estimatedSpending: { min: spMin, max: spMax, breakdown: autoBreakdown },
             images: images.filter(Boolean),
-            days: days.map((d, i) => ({ ...d, dayNumber: i + 1, activities: d.activities.map(a => ({ ...a, latitude: a.latitude ? parseFloat(a.latitude) : undefined, longitude: a.longitude ? parseFloat(a.longitude) : undefined })) })),
+            days: days.map((d, i) => ({ ...d, dayNumber: i + 1 })),
             accommodations, transports, checklists: checklistItems,
             flightInfo: (flightOutbound.airline || flightReturn.airline) ? {
                 outbound: flightOutbound,
@@ -567,7 +567,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const addDay = () => { markDirty(); setDays([...days, { dayNumber: days.length + 1, title: `Dia ${days.length + 1}`, summary: "", description: "", activities: [] }]); };
     const removeDay = (i: number) => { markDirty(); setDays(days.filter((_, idx) => idx !== i)); };
     const updateDay = (i: number, f: string, v: any) => { markDirty(); const u = [...days]; u[i] = { ...u[i], [f]: v }; setDays(u); };
-    const addActivity = (di: number) => { markDirty(); const u = [...days]; u[di].activities = [...u[di].activities, { title: "", description: "", time: "", duration: "", location: "", mapLink: "", type: "activity", icon: "📍", tips: "", latitude: "", longitude: "", category: "" }]; setDays(u); };
+    const addActivity = (di: number) => { markDirty(); const u = [...days]; u[di].activities = [...u[di].activities, { title: "", description: "", time: "", duration: "", location: "", mapLink: "", type: "activity", icon: "📍", tips: "", category: "" }]; setDays(u); };
     const updateActivity = (di: number, ai: number, f: string, v: any) => { markDirty(); const u = [...days]; u[di].activities[ai] = { ...u[di].activities[ai], [f]: v }; setDays(u); };
     const removeActivity = (di: number, ai: number) => { markDirty(); const u = [...days]; u[di].activities.splice(ai, 1); setDays([...u]); };
     const addAccommodation = () => { markDirty(); setAccommodations([...accommodations, { name: "", address: "", mapLink: "", description: "", priceValue: "", priceCurrency: "BRL", rating: "", externalLink: "", tips: "" }]); };

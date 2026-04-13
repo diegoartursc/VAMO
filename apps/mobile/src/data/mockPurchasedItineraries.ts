@@ -65,36 +65,32 @@ export interface SpendingProfile {
     }[];
 }
 
-export interface TransportInfo {
-    mainMode: string;
+export interface TransportItem {
     description: string;
-    passes: {
-        name: string;
-        price: string;
-        description: string;
-    }[];
-    tips: string[];
+    passTypes?: string;
+    priceValue?: string;
+    priceCurrency?: string;
+    notes?: string;
+}
+
+export interface TransportInfo {
+    items: TransportItem[];
+}
+
+export interface FlightLeg {
+    airline: string;
+    originAirport: string;
+    destinationAirport: string;
+    departureDate?: string;
+    arrivalDate?: string;
+    stops: number;
 }
 
 export interface FlightInfo {
-    outbound: {
-        airline: string;
-        route: string;
-        departure: string;
-        arrival: string;
-        duration: string;
-        stops: number;
-        pricePaid: string;
-    };
-    return: {
-        airline: string;
-        route: string;
-        departure: string;
-        arrival: string;
-        duration: string;
-        stops: number;
-        pricePaid: string;
-    };
+    outbound: FlightLeg;
+    return: FlightLeg;
+    totalPrice?: string;
+    priceCurrency?: string;
     tips: string[];
 }
 
@@ -102,9 +98,14 @@ export interface AccommodationOption {
     id: string;
     name: string;
     priceRange: string;
+    priceCurrency?: string;
     location: string;
+    address?: string;
+    mapLink?: string;
     description: string;
     rating?: number;
+    externalLink?: string;
+    tips?: string;
 }
 
 export interface RestaurantInfo {
@@ -113,18 +114,22 @@ export interface RestaurantInfo {
     location: string;
     description: string;
     priceRange?: string;
+    priceCurrency?: string;
     hours?: string;
+    externalLink?: string;
     tips?: string;
 }
 
 export interface AttractionInfo {
     name: string;
-    type: string; // Museu, Parque, Tour, Mirante, etc.
+    type: string;
     location: string;
+    mapLink?: string;
     description: string;
     ticketPrice?: string;
+    ticketCurrency?: string;
     hours?: string;
-    duration?: string; // tempo recomendado
+    duration?: string;
     externalLink?: string;
     tips?: string;
 }
@@ -481,52 +486,45 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             ],
         },
         transport: {
-            mainMode: 'Metrô + Caminhada',
-            description: 'Paris é uma cidade muito bem servida de transporte público. O metrô cobre praticamente toda a cidade e é a forma mais eficiente de se locomover.',
-            passes: [
+            items: [
                 {
-                    name: 'Paris Visite Pass',
-                    price: '€13,95/dia (zonas 1-3)',
-                    description: 'Passe ilimitado para metrô, ônibus e RER dentro de Paris.',
+                    description: 'Metrô de Paris — cobre praticamente toda a cidade e é a forma mais eficiente de se locomover.',
+                    passTypes: 'Paris Visite Pass (zonas 1-3)',
+                    priceValue: '13,95',
+                    priceCurrency: 'EUR',
+                    notes: 'Passe ilimitado para metrô, ônibus e RER dentro de Paris. Para Versalhes, use zonas 1-5.',
                 },
                 {
-                    name: 'Carnet de 10 viagens',
-                    price: '€16,90',
-                    description: 'Pacote com 10 tickets avulsos para metrô. Mais barato que comprar individual.',
+                    description: 'Carnet de 10 viagens',
+                    passTypes: 'Ticket avulso',
+                    priceValue: '16,90',
+                    priceCurrency: 'EUR',
+                    notes: 'Mais barato que comprar individual. Guarde o ticket até sair da estação.',
                 },
                 {
-                    name: 'Navigo Easy',
-                    price: '€2 (cartão) + recargas',
-                    description: 'Cartão recarregável para metrô, ideal para estadias mais longas.',
+                    description: 'Navigo Easy — cartão recarregável para metrô',
+                    passTypes: 'Cartão recarregável',
+                    priceValue: '2,00',
+                    priceCurrency: 'EUR',
+                    notes: 'Ideal para estadias mais longas. Uber e táxis são caros, evite.',
                 },
-            ],
-            tips: [
-                'O metrô funciona das 5h30 à 1h15 (até 2h15 sextas e sábados)',
-                'Guarde o ticket até sair da estação — há fiscalização',
-                'Uber e táxis são caros, evite para economia',
-                'Para Versalhes, use o RER C (incluso no Paris Visite Pass zonas 1-5)',
-                'Muitos pontos turísticos são acessíveis a pé',
             ],
         },
         flightInfo: {
             outbound: {
                 airline: 'LATAM',
-                route: 'GRU → CDG',
-                departure: '22:30',
-                arrival: '14:15 (+1)',
-                duration: '11h45',
+                originAirport: 'GRU',
+                destinationAirport: 'CDG',
                 stops: 0,
-                pricePaid: 'R$ 3.450',
             },
             return: {
                 airline: 'LATAM',
-                route: 'CDG → GRU',
-                departure: '23:05',
-                arrival: '06:50 (+1)',
-                duration: '11h45',
+                originAirport: 'CDG',
+                destinationAirport: 'GRU',
                 stops: 0,
-                pricePaid: 'R$ 3.450',
             },
+            totalPrice: 'R$ 6.900',
+            priceCurrency: 'BRL',
             tips: [
                 'Comprei ida e volta pela LATAM com 3 meses de antecedência e saiu ótimo',
                 'Voo noturno é a melhor opção — dormi no avião e cheguei em Paris de manhã',
@@ -862,37 +860,38 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             ],
         },
         transport: {
-            mainMode: 'Metrô + Shinkansen',
-            description: 'Tóquio tem uma das redes de transporte mais eficientes do mundo. O Suica card funciona em trens, metrôs e até lojas de conveniência.',
-            passes: [
-                { name: 'JR Pass 14 dias', price: '¥50.000 (~R$ 1.700)', description: 'Acesso ilimitado a trens JR e Shinkansen.' },
-                { name: 'Suica Card', price: '¥2.000 (~R$ 70)', description: 'Cartão recarregável para metrô e lojas.' },
-            ],
-            tips: [
-                'Evite táxi — metrô é mais rápido e barato.',
-                'JR Pass vale muito se sair de Tóquio.',
-                'Última composição de metrô é por volta da meia-noite.',
+            items: [
+                {
+                    description: 'JR Pass — acesso ilimitado a trens JR e Shinkansen em todo o Japão.',
+                    passTypes: 'JR Pass 14 dias',
+                    priceValue: '50000',
+                    priceCurrency: 'JPY',
+                    notes: 'Vale muito se sair de Tóquio. Compre antes de embarcar — não vende no Japão.',
+                },
+                {
+                    description: 'Suica Card — cartão recarregável para metrô, trens locais e lojas de conveniência.',
+                    passTypes: 'Cartão recarregável',
+                    priceValue: '2000',
+                    priceCurrency: 'JPY',
+                    notes: 'Compre no aeroporto ao chegar. Última composição de metrô por volta da meia-noite.',
+                },
             ],
         },
         flightInfo: {
             outbound: {
                 airline: 'Emirates',
-                route: 'GRU → DXB → NRT',
-                departure: '19:30',
-                arrival: '22:00 (+1)',
-                duration: '26h30',
+                originAirport: 'GRU',
+                destinationAirport: 'NRT',
                 stops: 1,
-                pricePaid: 'R$ 4.200',
             },
             return: {
                 airline: 'Emirates',
-                route: 'NRT → DXB → GRU',
-                departure: '22:00',
-                arrival: '21:15 (+1)',
-                duration: '27h15',
+                originAirport: 'NRT',
+                destinationAirport: 'GRU',
                 stops: 1,
-                pricePaid: 'R$ 4.200',
             },
+            totalPrice: 'R$ 8.400',
+            priceCurrency: 'BRL',
             tips: [
                 'Fui de Emirates e valeu cada centavo — serviço e comida excelentes',
                 'Conexão em Dubai foi tranquila, aeroporto é enorme mas bem sinalizado',
@@ -1170,37 +1169,38 @@ export const mockPurchasedItineraries: PurchasedItinerary[] = [
             ],
         },
         transport: {
-            mainMode: 'Scooter + Grab',
-            description: 'Em Bali, scooter é o principal meio de transporte. Grab e Gojek são apps seguros e baratos para corridas.',
-            passes: [
-                { name: 'Aluguel Scooter', price: 'R$ 25/dia', description: 'Scooter automática 110cc com capacete.' },
-                { name: 'Driver Particular (dia)', price: 'R$ 150/dia', description: 'Motorista + carro com AC o dia inteiro.' },
-            ],
-            tips: [
-                'Sempre negocie preço antes de subir.',
-                'Grab é mais barato que táxi convencional.',
-                'Carteira de motorista internacional é exigida para scooter.',
+            items: [
+                {
+                    description: 'Scooter — principal meio de transporte em Bali, prático para explorar a ilha.',
+                    passTypes: 'Aluguel diário',
+                    priceValue: '25',
+                    priceCurrency: 'BRL',
+                    notes: 'Scooter automática 110cc com capacete. Carteira de motorista internacional exigida.',
+                },
+                {
+                    description: 'Driver Particular — motorista com carro AC o dia inteiro, ideal para passeios longos.',
+                    passTypes: 'Driver por dia',
+                    priceValue: '150',
+                    priceCurrency: 'BRL',
+                    notes: 'Grab e Gojek são apps seguros e baratos para corridas avulsas. Sempre negocie o preço antes.',
+                },
             ],
         },
         flightInfo: {
             outbound: {
                 airline: 'Qatar Airways',
-                route: 'GRU → DOH → DPS',
-                departure: '20:00',
-                arrival: '04:10 (+2)',
-                duration: '28h10',
+                originAirport: 'GRU',
+                destinationAirport: 'DPS',
                 stops: 1,
-                pricePaid: 'R$ 3.800',
             },
             return: {
                 airline: 'Qatar Airways',
-                route: 'DPS → DOH → GRU',
-                departure: '01:30',
-                arrival: '18:40',
-                duration: '29h10',
+                originAirport: 'DPS',
+                destinationAirport: 'GRU',
                 stops: 1,
-                pricePaid: 'R$ 3.800',
             },
+            totalPrice: 'R$ 7.600',
+            priceCurrency: 'BRL',
             tips: [
                 'Qatar Airways foi incrível — a conexão em Doha tem lounge gratuíto por 4h+',
                 'A viagem é longa, leve entretenimento e snacks extras',
