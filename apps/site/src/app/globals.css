@@ -3201,6 +3201,16 @@ select.form-input {
   box-shadow: 0 4px 16px rgba(40, 201, 191, 0.15);
 }
 
+.editor-module-card.editor-module-card-warn {
+  border-color: rgba(249, 115, 22, 0.5);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.06), rgba(249, 115, 22, 0.02));
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.12);
+}
+
+.editor-module-card.editor-module-card-warn .editor-module-desc {
+  color: #f97316;
+}
+
 .editor-module-icon {
   font-size: 22px;
   flex-shrink: 0;

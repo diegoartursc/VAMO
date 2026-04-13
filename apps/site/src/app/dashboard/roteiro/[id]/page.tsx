@@ -479,6 +479,30 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         if (days.length < 3) { setToast({ msg: "Cadastre pelo menos 3 dias", type: "error" }); return; }
         if (activeModules.length < 1) { setToast({ msg: "Ative pelo menos 1 módulo", type: "error" }); return; }
 
+        // Módulos ativos devem ter conteúdo preenchido
+        const flightHasData = (flightOutbound.airline || flightOutbound.originAirport || flightReturn.airline || flightReturn.originAirport);
+        const MODULE_CONTENT: Record<string, boolean> = {
+            itinerario: days.some(d => d.activities?.length > 0),
+            voo:        !!flightHasData,
+            hospedagem: accommodations.length > 0,
+            passeios:   attractions.length > 0,
+            transporte: transports.length > 0,
+            dicas:      generalTips.length > 0,
+            restaurantes: restaurants.length > 0,
+            checklist:  checklistItems.length > 0,
+            gasto:      true, // calculado automaticamente
+        };
+        const MODULE_LABELS: Record<string, string> = {
+            itinerario: "Itinerário por dia", voo: "Meu voo", hospedagem: "Hospedagens",
+            passeios: "Passeios & Atrações", transporte: "Transporte", dicas: "Dicas exclusivas",
+            restaurantes: "Restaurantes", checklist: "Checklist interativo", gasto: "Estimativa de gasto",
+        };
+        const moduloVazio = activeModules.find(m => MODULE_CONTENT[m] === false);
+        if (moduloVazio) {
+            setToast({ msg: `Preencha pelo menos 1 item em "${MODULE_LABELS[moduloVazio] || moduloVazio}"`, type: "error" });
+            return;
+        }
+
         setSaving(true);
         try {
             const payload = buildPayload();
@@ -706,16 +730,37 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             </>);
 
             /* ═══ BLOCO 3: MÓDULOS ═══ */
-            case "modules": return (<>
-                <span className="form-helper">Ative os módulos que serão incluídos no roteiro. Cada módulo ativo aparece como chip na vitrine.</span>
-                <div className="editor-module-grid">{MODULE_OPTIONS.map(m => (
-                    <div key={m.key} className={`editor-module-card ${activeModules.includes(m.key) ? "active" : ""}`} onClick={() => toggleChip(activeModules, setActiveModules, m.key, 9)}>
-                        <div className="editor-module-icon">{m.icon}</div>
-                        <div className="editor-module-info"><span className="editor-module-label">{m.label}</span><span className="editor-module-desc">{m.desc}</span></div>
-                        <label className="editor-toggle" onClick={e => e.stopPropagation()}><input type="checkbox" checked={activeModules.includes(m.key)} readOnly /><span className="editor-toggle-track" /><span className="editor-toggle-thumb" /></label>
-                    </div>
-                ))}</div>
-            </>);
+            case "modules": {
+                const flightHasDataM = (flightOutbound.airline || flightOutbound.originAirport || flightReturn.airline || flightReturn.originAirport);
+                const MODULE_CONTENT_MAP: Record<string, boolean> = {
+                    itinerario: days.some(d => d.activities?.length > 0),
+                    voo:        !!flightHasDataM,
+                    hospedagem: accommodations.length > 0,
+                    passeios:   attractions.length > 0,
+                    transporte: transports.length > 0,
+                    dicas:      generalTips.length > 0,
+                    restaurantes: restaurants.length > 0,
+                    checklist:  checklistItems.length > 0,
+                    gasto:      true,
+                };
+                return (<>
+                    <span className="form-helper">Ative os módulos que serão incluídos no roteiro. Módulos ativos precisam ter ao menos 1 item preenchido.</span>
+                    <div className="editor-module-grid">{MODULE_OPTIONS.map(m => {
+                        const isActive = activeModules.includes(m.key);
+                        const isEmpty = isActive && MODULE_CONTENT_MAP[m.key] === false;
+                        return (
+                            <div key={m.key} className={`editor-module-card ${isActive ? "active" : ""} ${isEmpty ? "editor-module-card-warn" : ""}`} onClick={() => toggleChip(activeModules, setActiveModules, m.key, 9)}>
+                                <div className="editor-module-icon">{m.icon}</div>
+                                <div className="editor-module-info">
+                                    <span className="editor-module-label">{m.label}</span>
+                                    <span className="editor-module-desc">{isEmpty ? "⚠️ Nenhum item preenchido" : m.desc}</span>
+                                </div>
+                                <label className="editor-toggle" onClick={e => e.stopPropagation()}><input type="checkbox" checked={isActive} readOnly /><span className="editor-toggle-track" /><span className="editor-toggle-thumb" /></label>
+                            </div>
+                        );
+                    })}</div>
+                </>);
+            }
 
             /* ═══ DESTAQUES DA VIAGEM ═══ */
             case "highlights": return (<>
