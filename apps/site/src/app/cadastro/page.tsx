@@ -9,8 +9,8 @@ export default function CadastroPage() {
     const router = useRouter();
     const [form, setForm] = useState({
         agencyName: "",
-        cnpj: "",
-        whatsapp: "",
+        cpf: "",
+        phone: "",
         employeeName: "",
         email: "",
         password: "",
@@ -41,8 +41,8 @@ export default function CadastroPage() {
         try {
             await register({
                 agencyName: form.agencyName,
-                cnpj: form.cnpj.replace(/\D/g, ""),
-                whatsapp: form.whatsapp || undefined,
+                cpf: form.cpf.replace(/\D/g, ""),
+                phone: form.phone || undefined,
                 employeeName: form.employeeName,
                 email: form.email,
                 password: form.password,
@@ -117,12 +117,12 @@ export default function CadastroPage() {
                         </div>
                         <div className="form-row">
                             <div className="form-group">
-                                <label className="form-label">CNPJ</label>
-                                <input type="text" className="form-input" placeholder="00.000.000/0001-00" value={form.cnpj} onChange={set("cnpj")} required />
+                                <label className="form-label">CPF</label>
+                                <input type="text" className="form-input" placeholder="000.000.000-00" value={form.cpf} onChange={set("cpf")} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">WhatsApp (opcional)</label>
-                                <input type="text" className="form-input" placeholder="(11) 99999-9999" value={form.whatsapp} onChange={set("whatsapp")} />
+                                <label className="form-label">Telefone (opcional)</label>
+                                <input type="text" className="form-input" placeholder="(11) 99999-9999" value={form.phone} onChange={set("phone")} />
                             </div>
                         </div>
 

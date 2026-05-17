@@ -1,9 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getSession, logout, isAuthenticated, type AuthSession } from "../../lib/auth";
+import { getSession, logout, type AuthSession, type TravelerSession } from "../../lib/auth";
+
+type AnySession = TravelerSession | AuthSession;
+
+function isTravelerSession(s: AnySession | null): s is TravelerSession {
+    return !!s && 'travelerId' in s;
+}
+
+function sessionUserName(s: AnySession | null): string | null {
+    if (!s) return null;
+    if (isTravelerSession(s)) return s.name;
+    return s.employee?.name ?? null;
+}
 
 /* ═══════════════════════════════════════════════════
    SVG Icon helpers (Lucide-style)
@@ -88,17 +100,28 @@ function getCreatorNav() {
    ═══════════════════════════════════════════════════ */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const [session, setSession] = useState<AuthSession | null>(null);
+    const router = useRouter();
+    const [session, setSession] = useState<AnySession | null>(null);
     const [sessionLoading, setSessionLoading] = useState(true);
 
     useEffect(() => {
         if (pathname.startsWith("/dashboard/admin")) return;
-        // Dev mode: just try to get session, don't force redirect to login
         getSession()
-            .then((s) => { if (s) setSession(s); })
-            .catch(() => { })
+            .then((s) => {
+                if (!s) {
+                    // Sem sessão real → vai pro login (sem mock!)
+                    router.replace("/login");
+                    return;
+                }
+                console.log('[dashboard.layout] session loaded:', s);
+                setSession(s);
+            })
+            .catch((err) => {
+                console.error('[dashboard.layout] session error:', err);
+                router.replace("/login");
+            })
             .finally(() => setSessionLoading(false));
-    }, []);
+    }, [pathname, router]);
 
     const isActive = (href: string) => {
         if (href === "/dashboard") return pathname === "/dashboard";
@@ -113,8 +136,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Always use creator nav (roteiros-first model)
     const navSections = getCreatorNav();
     const badge = "Roteirista";
-    const userName = sessionLoading ? "..." : (session?.employee?.name || "Usuário");
-    const subtitle = sessionLoading ? "..." : "Criador de Roteiros";
+    const userName = sessionLoading
+        ? "..."
+        : (sessionUserName(session) ?? "Convidado");
+    const subtitle = sessionLoading
+        ? "..."
+        : (isTravelerSession(session) && session.role === 'CREATOR' ? "Criador de Roteiros" : "Conta");
 
     return (
         <div className="dash-shell" data-theme="creator">

@@ -1,9 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getTravelerSession } from "../../../lib/auth";
 
 export default function CriadorConfiguracoesPage() {
     const [saved, setSaved] = useState(false);
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+
+    useEffect(() => {
+        const s = getTravelerSession();
+        if (s) {
+            setName(s.name || "");
+            setEmail(s.email || "");
+        }
+    }, []);
 
     const handleSave = () => {
         setSaved(true);
@@ -34,17 +45,27 @@ export default function CriadorConfiguracoesPage() {
                 </h3>
                 <div className="form-group">
                     <label className="form-label">Nome de Exibição</label>
-                    <input className="form-input" defaultValue="Diego Artur" />
+                    <input
+                        className="form-input"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Seu nome"
+                    />
                 </div>
                 <div className="form-group">
                     <label className="form-label">E-mail de Contato</label>
-                    <input className="form-input" defaultValue="diego@exemplo.com" />
+                    <input
+                        className="form-input"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="seu@email.com"
+                    />
                 </div>
                 <div className="form-group">
                     <label className="form-label">Biografia Curta</label>
                     <textarea
                         className="form-input"
-                        defaultValue="Explorador apaixonado por descobrir culturas únicas. Criador de roteiros para experiências imersivas."
+                        placeholder="Conte um pouco sobre você como criador de roteiros..."
                         style={{ minHeight: "80px" }}
                     />
                 </div>

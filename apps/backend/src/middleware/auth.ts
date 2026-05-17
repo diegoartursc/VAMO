@@ -40,12 +40,8 @@ export const authMiddleware = (
 };
 
 /**
- * Optional auth middleware — used on routes that may be called either
- * by a logged-in user (token attached) OR from MVP/dev contexts where the
- * site has no real login and just sends a `creatorId` in the body.
- *
- * If a token is present and valid → req.agency is populated.
- * If no token / invalid token → request proceeds anonymously.
+ * Optional auth middleware — popula req.agency OU req.traveler conforme o token.
+ * Nunca bloqueia: rotas decidem se exigem identidade.
  */
 export const optionalAuthMiddleware = (
     req: AuthRequest,
