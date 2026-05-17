@@ -439,6 +439,24 @@ model Itinerary {
   // ─── Bloco 7: Configuração Pós-compra ───
   allowPdf         Boolean  @default(false)
   allowShare       Boolean  @default(true)
+  // ─── Comprovante de viagem ───
+  travelProofUrl   String?  @db.Text  // URL do documento enviado pelo criador
+  // ─── Destinos adicionais (multi-destino) ───
+  extraCities      String[]
+  extraCountries   String[]
+  // ─── Módulos como JSON (estrutura semi-livre) ───
+  flightInfo       Json?    // { outbound: {...}, return: {...}, totalPrice, priceCurrency, tips: [] }
+  attractions      Json?    // [{ name, type, location, mapLink, description, hours, duration, externalLink, tips, startDate, endDate, ticketValue, ticketCurrency }]
+  restaurants      Json?    // [{ name, cuisine, location, description, hours, hoursStart, externalLink, tips, startDate, endDate, priceValue, priceCurrency }]
+  generalTips      String[]
+  mediaUrls        String[] // Fotos/vídeos extras
+  highlightPhotos  String[] // 3 fotos de destaque do criador
+  // ─── Datas da viagem (para exibição pós-compra) ───
+  tripStartDate    DateTime?
+  tripEndDate      DateTime?
+  // ─── Perfil de gasto (para pós-compra) ───
+  spendingProfile  Json?    // { icon, label }
+  receiveList      Json?    // [{ icon, label }]
   // ─── Quality ───
   qualityScore     Int      @default(0)
   status           ItineraryStatus @default(DRAFT)
@@ -540,6 +558,15 @@ model ItineraryAccommodation {
   priceRange   String?
   rating       Float?
   externalLink String?
+  // ─── Campos extras do editor ───
+  address      String?
+  mapLink      String?
+  tips         String?   @db.Text
+  nights       Int?
+  startDate    String?   // ISO date string
+  endDate      String?
+  totalPrice   String?   // preço total da estadia
+  priceCurrency String?
   order        Int       @default(0)
   createdAt    DateTime  @default(now())
 
@@ -555,6 +582,11 @@ model ItineraryTransport {
   passTypes      String?
   estimatedPrice String?
   notes          String?   @db.Text
+  // ─── Campos extras do editor ───
+  startDate      String?
+  endDate        String?
+  priceValue     String?
+  priceCurrency  String?
   order          Int       @default(0)
   createdAt      DateTime  @default(now())
 

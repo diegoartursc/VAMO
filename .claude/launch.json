@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev", "--prefix", "apps/site"],
       "port": 3000,
       "autoPort": false
+    },
+    {
+      "name": "mobile",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/mobile"],
+      "port": 8081,
+      "autoPort": false
     }
   ]
 }

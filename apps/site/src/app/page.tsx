@@ -199,7 +199,7 @@ export default function Home() {
           </Link>
           <div className="creators-benefits">
             <div className="creator-benefit"><IconCheck /> Cadastro gratuito</div>
-            <div className="creator-benefit"><IconDollar style={{width:16,height:16}} /> Até 85% de comissão</div>
+            <div className="creator-benefit"><IconDollar /> Até 85% de comissão</div>
             <div className="creator-benefit"><IconTrendingUp /> Dashboard completo</div>
             <div className="creator-benefit"><IconGlobe /> Alcance global</div>
           </div>

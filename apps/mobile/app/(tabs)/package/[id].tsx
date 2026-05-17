@@ -13,20 +13,20 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../src/theme/theme';
-import { getPackageById, getRelatedPackages, getReviews } from '../../src/services/api';
-import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../src/data/mockReviews';
-import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
+import { theme } from '../../../src/theme/theme';
+import { getPackageById, getRelatedPackages, getReviews } from '../../../src/services/api';
+import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../../src/data/mockReviews';
+import PremiumReviewsSection from '../../../src/components/reviews/PremiumReviewsSection';
 import { Alert, Linking } from 'react-native';
-import CollapsibleSection from '../../src/components/common/CollapsibleSection';
-import DatePickerModal from '../../src/components/DatePickerModal';
-import ParticipantsModal from '../../src/components/ParticipantsModal';
+import CollapsibleSection from '../../../src/components/common/CollapsibleSection';
+import DatePickerModal from '../../../src/components/DatePickerModal';
+import ParticipantsModal from '../../../src/components/ParticipantsModal';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFavorites } from '../../src/hooks/useFavorites';
-import { haptics } from '../../src/services/haptics';
-import { shareService } from '../../src/services/sharing';
-import FAQSection from '../../src/components/FAQSection';
-import { getPackageFAQ } from '../../src/data/mockFAQ';
+import { useFavorites } from '../../../src/hooks/useFavorites';
+import { haptics } from '../../../src/services/haptics';
+import { shareService } from '../../../src/services/sharing';
+import FAQSection from '../../../src/components/FAQSection';
+import { getPackageFAQ } from '../../../src/data/mockFAQ';
 
 const { width, height } = Dimensions.get('window');
 

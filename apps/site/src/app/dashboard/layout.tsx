@@ -70,7 +70,7 @@ function getCreatorNav() {
             label: "ROTEIROS",
             items: [
                 { href: "/dashboard/roteiros", label: "Meus Roteiros", icon: ICONS.map },
-                { href: "/dashboard/roteiro/novo", label: "Novo Roteiro", icon: ICONS.plusCircle },
+                { href: "/dashboard/roteiro/new", label: "Novo Roteiro", icon: ICONS.plusCircle },
             ],
         },
         {

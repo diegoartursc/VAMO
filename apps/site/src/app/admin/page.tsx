@@ -59,7 +59,7 @@ function OverviewContent() {
                     </div>
                     {itineraries.slice(0, 3).map(p => (
                         <div key={p.id} style={{ padding: "8px 0", borderBottom: "1px solid #F0F2F5", fontSize: "13px", color: "#1A3263" }}>
-                            {p.title} <span style={{ color: "#98989D" }}>· {p.creator?.name || 'Criador'}</span>
+                            {p.title} <span style={{ color: "#98989D" }}>· {(p as any).creator?.name || 'Criador'}</span>
                         </div>
                     ))}
                     {itineraries.length === 0 && <div style={{ fontSize: "13px", color: "#98989D" }}>Nenhum roteiro pendente</div>}

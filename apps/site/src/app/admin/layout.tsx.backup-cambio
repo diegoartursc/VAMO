@@ -74,9 +74,8 @@ const NAV_SECTIONS = [
         ],
     },
     {
-        label: "SISTEMA & CÂMBIO",
+        label: "SISTEMA",
         items: [
-            { href: "/admin/conversao", label: "Conversão de Moedas", icon: ICONS.dollar },
             { href: "/admin/financeiro", label: "Financeiro", icon: ICONS.wallet },
             { href: "/admin/historico", label: "Histórico", icon: ICONS.clock },
         ],
@@ -88,13 +87,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const router = useRouter();
     const [adminUser, setAdminUser] = useState<{ name: string; role: string } | null>(null);
 
+    /* ─── Dollar rate widget ─── */
+    const [dollarRate, setDollarRate] = useState<string>("5,00");
+    const [editingRate, setEditingRate] = useState(false);
+    const [rateInput, setRateInput] = useState("");
+    const [rateSaved, setRateSaved] = useState(false);
+    const rateInputRef = useRef<HTMLInputElement>(null);
+
     // Don't wrap the login page with the sidebar layout
     const isLoginPage = pathname === "/admin/login";
 
     useEffect(() => {
         const user = localStorage.getItem("adminUser");
         if (user) setAdminUser(JSON.parse(user));
+        // Load saved dollar rate
+        const saved = localStorage.getItem(DOLLAR_RATE_KEY);
+        if (saved) setDollarRate(saved);
     }, []);
+
+    const startEditRate = () => {
+        setRateInput(dollarRate.replace(",", "."));
+        setEditingRate(true);
+        setTimeout(() => rateInputRef.current?.select(), 30);
+    };
+
+    const confirmRate = () => {
+        const num = parseFloat(rateInput.replace(",", "."));
+        if (isNaN(num) || num <= 0) return;
+        const formatted = num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+        setDollarRate(formatted);
+        localStorage.setItem(DOLLAR_RATE_KEY, formatted);
+        // Notify other parts of the app
+        window.dispatchEvent(new CustomEvent("dollarRateUpdated", { detail: { rate: num, formatted } }));
+        setEditingRate(false);
+        setRateSaved(true);
+        setTimeout(() => setRateSaved(false), 2500);
+    };
+
+    const cancelEdit = () => setEditingRate(false);
 
     if (isLoginPage) return <>{children}</>;
 
@@ -146,6 +176,101 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </nav>
                     </div>
                 ))}
+
+                {/* Dollar Rate Widget */}
+                <div className="dash-sidebar-section-label" style={{ marginTop: 8 }}>CÂMBIO</div>
+                <div style={{
+                    margin: "0 0 4px",
+                    background: "rgba(255,255,255,0.06)",
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                        <span style={{ fontSize: 15 }}>🇺🇸</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: 1 }}>USD → BRL</span>
+                    </div>
+
+                    {!editingRate ? (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                            <div>
+                                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", display: "block", marginBottom: 1 }}>1 dólar =</span>
+                                <span style={{ fontSize: 20, fontWeight: 800, color: rateSaved ? "#4ade80" : "#fff", letterSpacing: "-0.5px", transition: "color 0.4s" }}>
+                                    R$ {dollarRate}
+                                </span>
+                            </div>
+                            <button
+                                onClick={startEditRate}
+                                title="Atualizar cotação"
+                                style={{
+                                    display: "flex", alignItems: "center", gap: 4,
+                                    background: "rgba(255,255,255,0.10)", border: "none",
+                                    borderRadius: 7, padding: "5px 9px", cursor: "pointer",
+                                    color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: 600,
+                                    transition: "background 0.15s",
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.18)")}
+                                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
+                            >
+                                <span style={{ width: 13, height: 13, opacity: 0.8 }}>{ICONS.pencil}</span>
+                                Editar
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+                                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>R$</span>
+                                <input
+                                    ref={rateInputRef}
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    value={rateInput}
+                                    onChange={e => setRateInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter") confirmRate(); if (e.key === "Escape") cancelEdit(); }}
+                                    style={{
+                                        flex: 1, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.3)",
+                                        borderRadius: 7, color: "#fff", fontSize: 16, fontWeight: 700,
+                                        padding: "5px 8px", outline: "none", width: "100%",
+                                    }}
+                                    autoFocus
+                                />
+                            </div>
+                            <div style={{ display: "flex", gap: 5 }}>
+                                <button
+                                    onClick={confirmRate}
+                                    style={{
+                                        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                                        background: "#22c55e", border: "none", borderRadius: 7,
+                                        color: "#fff", fontSize: 12, fontWeight: 700, padding: "6px 0",
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    <span style={{ width: 13, height: 13 }}>{ICONS.check}</span>
+                                    Salvar
+                                </button>
+                                <button
+                                    onClick={cancelEdit}
+                                    style={{
+                                        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                                        background: "rgba(255,255,255,0.10)", border: "none", borderRadius: 7,
+                                        color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 600, padding: "6px 0",
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    <span style={{ width: 13, height: 13 }}>{ICONS.x}</span>
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {rateSaved && (
+                        <div style={{ marginTop: 7, fontSize: 11, color: "#4ade80", fontWeight: 600, textAlign: "center" }}>
+                            ✓ Cotação atualizada
+                        </div>
+                    )}
+                </div>
 
                 <div className="dash-sidebar-spacer" />
 

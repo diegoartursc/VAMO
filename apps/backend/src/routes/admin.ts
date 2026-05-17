@@ -13,8 +13,31 @@ async function verifyAdmin(req: Request, res: Response, next: NextFunction): Pro
         res.status(401).json({ error: 'Token obrigatório' });
         return;
     }
+    const token = auth.split(' ')[1];
+
+    // MVP "no-login" bypass: aceita o token fake usado pelo /admin/login do site
+    // em dev. Resolve (ou cria) um admin real no banco para que aprovações/rejeições
+    // tenham um approvedBy válido (FK).
+    if (process.env.NODE_ENV !== 'production' && token === 'mock-admin-token') {
+        let admin = await prisma.admin.findFirst({ where: { active: true } }).catch(() => null);
+        if (!admin) {
+            admin = await prisma.admin.create({
+                data: {
+                    name: 'Dev Admin',
+                    email: 'dev-admin@vamo.local',
+                    passwordHash: await bcrypt.hash('dev-only', 10),
+                    role: 'SUPER_ADMIN',
+                    active: true,
+                },
+            }).catch(() => null);
+        }
+        if (!admin) { res.status(500).json({ error: 'Falha ao resolver admin dev' }); return; }
+        (req as any).admin = admin;
+        next();
+        return;
+    }
+
     try {
-        const token = auth.split(' ')[1];
         const payload = jwt.verify(token, JWT_SECRET) as { adminId: string };
         const admin = await prisma.admin.findUnique({ where: { id: payload.adminId } });
         if (!admin || !admin.active) {
@@ -140,6 +163,7 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
             select: {
                 id: true, title: true, destination: true, status: true,
                 approvalNote: true, approvedAt: true, createdAt: true, qualityScore: true,
+                travelProofUrl: true,
                 creator: { select: { traveler: { select: { name: true } } } },
             },
         }),

@@ -50,7 +50,7 @@ router.get('/my', async (req: Request, res: Response) => {
             where: { travelerId: travelerId as string },
             include: {
                 images: { select: { url: true } },
-                itinerary: { select: { id: true, title: true, destination: true, country: true, images: true } },
+                itinerary: { select: { id: true, title: true, destination: true, country: true, images: { select: { url: true }, take: 1, orderBy: { order: 'asc' } } } },
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -67,7 +67,7 @@ router.get('/my', async (req: Request, res: Response) => {
                 title: r.itinerary.title,
                 destination: r.itinerary.destination,
                 country: r.itinerary.country,
-                image: (r.itinerary.images as string[])?.[0] ?? null,
+                image: r.itinerary.images[0]?.url ?? null,
             } : null,
         }));
 
@@ -116,7 +116,7 @@ router.post('/', async (req: Request, res: Response) => {
                 userName,
                 userInitial,
                 userAvatar: traveler?.avatar ?? null,
-                userLocation: traveler?.location ?? null,
+                userLocation: null,
             },
         });
 

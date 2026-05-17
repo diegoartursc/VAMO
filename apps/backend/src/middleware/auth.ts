@@ -34,3 +34,29 @@ export const authMiddleware = (
         return res.status(401).json({ error: 'Authentication failed' });
     }
 };
+
+/**
+ * Optional auth middleware — used on routes that may be called either
+ * by a logged-in user (token attached) OR from MVP/dev contexts where the
+ * site has no real login and just sends a `creatorId` in the body.
+ *
+ * If a token is present and valid → req.agency is populated.
+ * If no token / invalid token → request proceeds anonymously.
+ */
+export const optionalAuthMiddleware = (
+    req: AuthRequest,
+    _res: Response,
+    next: NextFunction
+) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            const decoded = verifyToken(token);
+            if (decoded && typeof decoded !== 'string' && (decoded as any).agencyId) {
+                req.agency = decoded as { agencyId: string; employeeId: string; email: string };
+            }
+        }
+    } catch { /* ignore — proceed anonymously */ }
+    next();
+};

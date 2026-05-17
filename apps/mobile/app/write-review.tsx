@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { haptics } from '../src/services/haptics';
 import { addReview, getUserReviewForPackage } from '../src/data/mockReviews';
 import { getItineraryById } from '../src/data/mockItineraries';
+import { getPurchasedItineraryById } from '../src/data/mockPurchasedItineraries';
 import * as ImagePicker from 'expo-image-picker';
 
 const TRAVELER_ID = 'trav-diego';
@@ -28,7 +29,7 @@ const STAR_LABELS = ['', 'Péssimo', 'Ruim', 'Bom', 'Muito bom', 'Excelente'];
 export default function WriteReviewScreen() {
     const { itineraryId } = useLocalSearchParams<{ itineraryId: string }>();
     const router = useRouter();
-    const itinerary = getItineraryById(itineraryId);
+    const itinerary = getItineraryById(itineraryId) || getPurchasedItineraryById(itineraryId);
     const existingReview = getUserReviewForPackage(TRAVELER_ID, `itinerary-${itineraryId}`);
 
     const [rating, setRating] = useState(existingReview?.rating || 0);

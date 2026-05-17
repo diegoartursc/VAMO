@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -25,6 +25,7 @@ import { Icon } from '../../src/components/common/Icons';
 import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
+import { DestinationImageCarousel } from '../../src/components/home/DestinationImageCarousel';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
@@ -113,6 +114,32 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
 export default function HomeScreen() {
     const router = useRouter();
     const { applyFilters, filters, filteredPackages, hasActiveFilters, allPackages, allItineraries } = useSearch();
+
+    // Derive popular destinations dynamically from itineraries
+    const popularDestinations = useMemo(() => {
+        const grouped: Record<string, { images: string[]; count: number; featured: number; rating: number }> = {};
+        allItineraries.forEach(it => {
+            const dest = it.destination;
+            if (!dest) return;
+            if (!grouped[dest]) grouped[dest] = { images: [], count: 0, featured: 0, rating: 0 };
+            grouped[dest].count += 1;
+            grouped[dest].rating = Math.max(grouped[dest].rating, it.rating ?? 0);
+            if (it.featured) grouped[dest].featured += 1;
+            // Collect all unique images from this itinerary
+            (it.images ?? []).filter(Boolean).forEach(img => {
+                if (!grouped[dest].images.includes(img)) grouped[dest].images.push(img);
+            });
+        });
+        return Object.entries(grouped)
+            .sort((a, b) => b[1].featured - a[1].featured || b[1].count - a[1].count || b[1].rating - a[1].rating)
+            .slice(0, 6)
+            .map(([name, data]) => ({
+                id: name.toLowerCase().replace(/\s+/g, '-'),
+                name,
+                images: data.images.slice(0, 5), // max 5 per dest
+                count: data.count,
+            }));
+    }, [allItineraries]);
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [decisionAssistantVisible, setDecisionAssistantVisible] = useState(false);
 
@@ -347,21 +374,21 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </View>
                     <View style={styles.destinationsGrid}>
-                        {POPULAR_DESTINATIONS.map((dest) => (
+                        {popularDestinations.map((dest) => (
                             <TouchableOpacity
                                 key={dest.id}
                                 style={styles.destinationCard}
                                 onPress={() => router.push(`/(tabs)/itineraries`)}
                                 activeOpacity={0.9}
                             >
-                                <Image source={{ uri: dest.image }} style={[styles.destinationImage, { opacity: 0.85 }]} blurRadius={1} />
+                                <DestinationImageCarousel images={dest.images} />
                                 <LinearGradient
                                     colors={['transparent', 'rgba(0,0,0,0.55)']}
                                     style={StyleSheet.absoluteFillObject}
                                 />
                                 <View style={styles.destinationNameContainer}>
                                     <Text style={styles.destinationName}>{dest.name}</Text>
-                                    <Text style={styles.destinationCount}>{dest.count} roteiros</Text>
+                                    <Text style={styles.destinationCount}>{dest.count} {dest.count === 1 ? 'roteiro' : 'roteiros'}</Text>
                                 </View>
                             </TouchableOpacity>
                         ))}
@@ -399,12 +426,7 @@ export default function HomeScreen() {
 }
 
 
-const POPULAR_DESTINATIONS = [
-    { id: 'paris', name: 'Paris', image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600', count: 847 },
-    { id: 'tokyo', name: 'Tokyo', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600', count: 623 },
-    { id: 'nyc', name: 'Nova York', image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1600', count: 912 },
-    { id: 'london', name: 'Londres', image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1600', count: 734 },
-];
+// POPULAR_DESTINATIONS removed — now derived dynamically from allItineraries in useMemo above
 
 const styles = StyleSheet.create({
     container: {

@@ -135,21 +135,25 @@ export default function AdminDashboardPage() {
         if (!token) { router.push("/dashboard/admin/login"); return; }
         try {
             const headers = { Authorization: `Bearer ${token}` };
+            const fetchOpts = { headers, cache: 'no-store' as RequestCache };
             const [pendingRes, statsRes] = await Promise.all([
-                fetch(`${API}/admin/pending`, { headers }),
-                fetch(`${API}/admin/stats`, { headers }),
+                fetch(`${API}/admin/pending`, fetchOpts),
+                fetch(`${API}/admin/stats`, fetchOpts),
             ]);
             if (pendingRes.status === 401) { localStorage.removeItem("adminToken"); router.push("/dashboard/admin/login"); return; }
             const pendingData = await pendingRes.json();
             const statsData = await statsRes.json();
+            console.log('[dashboard/admin] /pending', pendingData);
+            console.log('[dashboard/admin] /stats', statsData);
             setPackages(pendingData.packages || []);
             setItineraries(pendingData.itineraries || []);
             setStats(statsData);
-            const creatorsRes = await fetch(`${API}/admin/creators/pending`, { headers });
+            const creatorsRes = await fetch(`${API}/admin/creators/pending`, fetchOpts);
             const creatorsData = await creatorsRes.json();
             setCreators(creatorsData || []);
-            const histRes = await fetch(`${API}/admin/all`, { headers });
+            const histRes = await fetch(`${API}/admin/all`, fetchOpts);
             const histData = await histRes.json();
+            console.log('[dashboard/admin] /all', histData);
             setHistory(histData);
         } catch {
             showToast("Erro ao carregar dados", "error");

@@ -1,36 +1,235 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
+    Animated,
+    Dimensions,
     Image,
-    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import {
     formatDate,
     PurchasedItineraryItem,
 } from '../../src/data/mockMyTrips';
 import { getMyTrips } from '../../src/services/api';
-import { Icon, IconName } from '../../src/components/common/Icons';
+import { Icon } from '../../src/components/common/Icons';
 
-// ─── Constants ──────────────────────────────────────────
+const { width } = Dimensions.get('window');
+const TRAVELER_ID = 'trav-diego';
 
-const TRAVELER_ID = 'trav-diego'; // Hardcoded until auth is implemented
+// ─── Skeleton Loader ────────────────────────────────────
 
-// ─── Main Screen ────────────────────────────────────────
-
-export default function MyTripsScreen() {
-    const router = useRouter();
-    const [loading, setLoading] = useState(true);
-    const [itineraries, setItineraries] = useState<PurchasedItineraryItem[]>([]);
+function SkeletonCard() {
+    const shimmer = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(shimmer, { toValue: 1, duration: 900, useNativeDriver: true }),
+                Animated.timing(shimmer, { toValue: 0, duration: 900, useNativeDriver: true }),
+            ])
+        ).start();
+    }, []);
+
+    const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.75] });
+
+    return (
+        <Animated.View style={[styles.skeletonCard, { opacity }]}>
+            <View style={styles.skeletonImage} />
+            <View style={styles.skeletonBody}>
+                <View style={styles.skeletonBadge} />
+                <View style={styles.skeletonTitle} />
+                <View style={styles.skeletonTitleShort} />
+                <View style={styles.skeletonFooter}>
+                    <View style={styles.skeletonFooterLeft} />
+                    <View style={styles.skeletonFooterRight} />
+                </View>
+            </View>
+        </Animated.View>
+    );
+}
+
+// ─── Itinerary Card ─────────────────────────────────────
+
+function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: number }) {
+    const router = useRouter();
+    const slideAnim = useRef(new Animated.Value(30)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 400,
+                delay: index * 80,
+                useNativeDriver: true,
+            }),
+            Animated.spring(slideAnim, {
+                toValue: 0,
+                delay: index * 80,
+                useNativeDriver: true,
+                tension: 60,
+                friction: 9,
+            }),
+        ]).start();
+    }, []);
+
+    const onPressIn = () =>
+        Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, tension: 100, friction: 6 }).start();
+    const onPressOut = () =>
+        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 100, friction: 6 }).start();
+
+    const priceFormatted = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: itin.currency ?? 'BRL',
+    }).format(itin.price);
+
+    return (
+        <Animated.View
+            style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+            }}
+        >
+            <TouchableOpacity
+                activeOpacity={1}
+                onPressIn={onPressIn}
+                onPressOut={onPressOut}
+                onPress={() => router.push(`/purchased-itinerary/${itin.id}`)}
+                style={styles.card}
+            >
+                {/* Hero Image */}
+                <View style={styles.cardImageContainer}>
+                    <Image source={{ uri: itin.image }} style={styles.cardImage} />
+                    <LinearGradient
+                        colors={['transparent', 'rgba(26,50,99,0.82)']}
+                        style={styles.cardImageOverlay}
+                    />
+
+                    {/* Top row badges */}
+                    <View style={styles.cardTopRow}>
+                        <View style={styles.destinationBadge}>
+                            <Icon name="location" size={11} color="#fff" />
+                            <Text style={styles.destinationText}>
+                                {itin.destination}, {itin.country}
+                            </Text>
+                        </View>
+                        <View style={styles.priceBadge}>
+                            <Text style={styles.priceText}>{priceFormatted}</Text>
+                        </View>
+                    </View>
+
+                    {/* Title over image */}
+                    <View style={styles.cardImageBottom}>
+                        <Text style={styles.cardTitle} numberOfLines={2}>
+                            {itin.title}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Card Footer */}
+                <View style={styles.cardFooter}>
+                    <View style={styles.creatorRow}>
+                        <View style={styles.creatorAvatar}>
+                            <Icon name="circle-user" size={16} color={theme.colors.primary} />
+                        </View>
+                        <Text style={styles.creatorName} numberOfLines={1}>
+                            {itin.creatorName}
+                        </Text>
+                    </View>
+
+                    <View style={styles.footerRight}>
+                        <Icon name="calendar" size={12} color={theme.colors.text.tertiary} />
+                        <Text style={styles.purchaseDate}>
+                            {formatDate(itin.purchaseDate)}
+                        </Text>
+                        <View style={styles.arrowCircle}>
+                            <Icon name="chevron-right" size={14} color={theme.colors.primary} />
+                        </View>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+}
+
+// ─── Empty State ─────────────────────────────────────────
+
+function EmptyState() {
+    const router = useRouter();
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(24)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+            Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 55, friction: 10 }),
+        ]).start();
+    }, []);
+
+    return (
+        <Animated.View style={[styles.emptyState, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <LinearGradient
+                colors={[theme.colors.primary + '18', theme.colors.primary + '08']}
+                style={styles.emptyIconCircle}
+            >
+                <Icon name="book-open" size={40} color={theme.colors.primary} />
+            </LinearGradient>
+
+            <Text style={styles.emptyTitle}>Nenhum roteiro ainda</Text>
+            <Text style={styles.emptySubtitle}>
+                Adquira roteiros de viajantes experientes e acesse todos os detalhes da sua aventura aqui.
+            </Text>
+
+            <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => router.push('/(tabs)/index')}
+                activeOpacity={0.85}
+            >
+                <LinearGradient
+                    colors={theme.colors.gradients.action as unknown as [string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.emptyButtonGradient}
+                >
+                    <Icon name="compass" size={16} color="#fff" />
+                    <Text style={styles.emptyButtonText}>Explorar roteiros</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.emptyHints}>
+                {[
+                    { icon: 'verified', label: 'Roteiros verificados' },
+                    { icon: 'shield-check', label: 'Compra segura' },
+                    { icon: 'star', label: 'Avaliações reais' },
+                ].map((hint) => (
+                    <View key={hint.label} style={styles.emptyHint}>
+                        <Icon name={hint.icon as any} size={14} color={theme.colors.primary} />
+                        <Text style={styles.emptyHintText}>{hint.label}</Text>
+                    </View>
+                ))}
+            </View>
+        </Animated.View>
+    );
+}
+
+// ─── Main Screen ─────────────────────────────────────────
+
+export default function MyTripsScreen() {
+    const [loading, setLoading] = useState(true);
+    const [itineraries, setItineraries] = useState<PurchasedItineraryItem[]>([]);
+    const headerAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+
         let mounted = true;
-        setLoading(true);
         getMyTrips(TRAVELER_ID)
             .then((result) => {
                 if (mounted) {
@@ -38,235 +237,352 @@ export default function MyTripsScreen() {
                     setLoading(false);
                 }
             })
-            .catch(() => {
-                if (mounted) setLoading(false);
-            });
+            .catch(() => { if (mounted) setLoading(false); });
         return () => { mounted = false; };
     }, []);
 
     return (
         <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Meus Roteiros</Text>
-                <Text style={styles.headerSubtitle}>
-                    Roteiros que você comprou
-                </Text>
-            </View>
+            {/* ── Header ── */}
+            <Animated.View style={{ opacity: headerAnim }}>
+                <LinearGradient
+                    colors={theme.colors.gradients.aurora as unknown as [string, string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.header}
+                >
+                    <View style={styles.headerTop}>
+                        <View>
+                            <Text style={styles.headerLabel}>BIBLIOTECA DE VIAGENS</Text>
+                            <Text style={styles.headerTitle}>Meus Roteiros</Text>
+                        </View>
+                        <View style={styles.headerIconCircle}>
+                            <Icon name="book-open" size={22} color="#fff" />
+                        </View>
+                    </View>
 
-            {/* Content */}
+                </LinearGradient>
+            </Animated.View>
+
+            {/* ── Content ── */}
             <ScrollView
-                style={styles.scrollView}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
                 {loading ? (
-                    <View style={styles.loadingState}>
-                        <ActivityIndicator size="large" color={theme.colors.primary} />
-                    </View>
+                    <>
+                        <SkeletonCard />
+                        <SkeletonCard />
+                        <SkeletonCard />
+                    </>
+                ) : itineraries.length === 0 ? (
+                    <EmptyState />
                 ) : (
-                    <ItinerariesTab items={itineraries} />
+                    <>
+                        <Text style={styles.sectionLabel}>
+                            {itineraries.length} {itineraries.length === 1 ? 'roteiro adquirido' : 'roteiros adquiridos'}
+                        </Text>
+                        {itineraries.map((itin, index) => (
+                            <ItineraryCard key={itin.id} itin={itin} index={index} />
+                        ))}
+                    </>
                 )}
-                <View style={{ height: 40 }} />
+                <View style={{ height: 48 }} />
             </ScrollView>
         </View>
     );
 }
 
-// ─── TAB: Meus Roteiros ─────────────────────────────────
-
-function ItinerariesTab({ items }: { items: PurchasedItineraryItem[] }) {
-    const router = useRouter();
-
-    if (items.length === 0) {
-        return (
-            <View style={styles.emptyState}>
-                <Icon name="book-open" size={48} color={theme.colors.text.tertiary} />
-                <Text style={styles.emptyTitle}>Nenhum roteiro comprado ainda</Text>
-                <Text style={styles.emptyText}>
-                    Descubra roteiros criados por viajantes experientes.
-                </Text>
-                <TouchableOpacity
-                    style={styles.emptyButton}
-                    onPress={() => router.push('/(tabs)/index')}
-                >
-                    <Text style={styles.emptyButtonText}>Explorar roteiros</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
-    return (
-        <>
-            {items.map((itin) => (
-                <ItineraryCard key={itin.id} itin={itin} />
-            ))}
-        </>
-    );
-}
-
-// ─── Itinerary Card ─────────────────────────────────────
-
-function ItineraryCard({ itin }: { itin: PurchasedItineraryItem }) {
-    const router = useRouter();
-
-    return (
-        <TouchableOpacity
-            style={styles.itineraryCard}
-            onPress={() => router.push(`/purchased-itinerary/${itin.id}`)}
-            activeOpacity={0.7}
-        >
-            <View style={styles.itineraryLeft}>
-                <Image source={{ uri: itin.image }} style={styles.itineraryImage} />
-            </View>
-            <View style={styles.itineraryContent}>
-                <Text style={styles.itineraryTitle} numberOfLines={1}>
-                    {itin.title}
-                </Text>
-                <Text style={styles.itineraryDestination} numberOfLines={1}>
-                    {itin.destination}, {itin.country}
-                </Text>
-                <View style={styles.itineraryCreatorRow}>
-                    <Icon name="circle-user" size={14} color={theme.colors.text.secondary} />
-                    <Text style={styles.itineraryCreatorName}>{itin.creatorName}</Text>
-                </View>
-                <Text style={styles.itineraryPurchaseDate}>
-                    Comprado em {formatDate(itin.purchaseDate)}
-                </Text>
-            </View>
-            <View style={styles.itineraryAction}>
-                <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
-            </View>
-        </TouchableOpacity>
-    );
-}
-
-// ─── Styles ─────────────────────────────────────────────
+// ─── Styles ──────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.surface,
     },
 
     // Header
     header: {
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 16,
-        backgroundColor: theme.colors.background,
+        paddingTop: 56,
+        paddingBottom: 20,
+        paddingHorizontal: 24,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
     },
-    headerTitle: {
-        fontSize: 28,
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    headerLabel: {
+        fontSize: 11,
         fontWeight: '700',
-        color: theme.colors.text.primary,
+        color: 'rgba(255,255,255,0.6)',
+        letterSpacing: 1.2,
         marginBottom: 4,
     },
-    headerSubtitle: {
-        fontSize: 14,
-        color: theme.colors.text.tertiary,
+    headerTitle: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#fff',
+        letterSpacing: -0.5,
+    },
+    headerIconCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
-    // Content
-    scrollView: {
-        flex: 1,
-    },
+
+    // Scroll
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 16,
+        paddingTop: 20,
+    },
+    sectionLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.colors.text.tertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: 14,
     },
 
-    // Loading
-    loadingState: {
-        paddingVertical: 80,
+    // Card
+    card: {
+        backgroundColor: theme.colors.background,
+        borderRadius: 20,
+        marginBottom: 16,
+        overflow: 'hidden',
+        ...theme.shadows.medium,
+    },
+    cardImageContainer: {
+        position: 'relative',
+        height: 190,
+    },
+    cardImage: {
+        width: '100%',
+        height: '100%',
+    },
+    cardImageOverlay: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    cardTopRow: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        right: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
     },
-
-    // Itinerary Card
-    itineraryCard: {
+    destinationBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.colors.background,
-        borderRadius: 14,
-        marginBottom: 12,
-        padding: 12,
+        gap: 5,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 100,
         borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-        ...theme.shadows.xs,
+        borderColor: 'rgba(255,255,255,0.15)',
     },
-    itineraryLeft: {
-        marginRight: 12,
+    destinationText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#fff',
+        letterSpacing: 0.2,
     },
-    itineraryImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 10,
-        backgroundColor: theme.colors.surfaceLight,
+    priceBadge: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 100,
     },
-    itineraryContent: {
+    priceText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#fff',
+    },
+    cardImageBottom: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 14,
+        paddingBottom: 14,
+        paddingTop: 32,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#fff',
+        lineHeight: 22,
+    },
+
+    // Footer
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+    },
+    creatorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         flex: 1,
-        gap: 2,
     },
-    itineraryTitle: {
-        fontSize: 14,
+    creatorAvatar: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: theme.colors.primary + '18',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    creatorName: {
+        fontSize: 13,
         fontWeight: '600',
         color: theme.colors.text.primary,
+        flex: 1,
     },
-    itineraryDestination: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-    },
-    itineraryCreatorRow: {
+    footerRight: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        marginTop: 2,
     },
-    itineraryCreatorName: {
+    purchaseDate: {
         fontSize: 11,
         color: theme.colors.text.tertiary,
-        fontWeight: '500',
+        marginRight: 6,
     },
-    itineraryPurchaseDate: {
-        fontSize: 10,
-        color: theme.colors.text.tertiary,
-    },
-    itineraryAction: {
-        paddingLeft: 8,
-    },
-
-    // Empty State
-    emptyState: {
+    arrowCircle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: theme.colors.primary + '15',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 80,
-        paddingHorizontal: 40,
+    },
+
+    // Skeleton
+    skeletonCard: {
+        backgroundColor: theme.colors.background,
+        borderRadius: 20,
+        marginBottom: 16,
+        overflow: 'hidden',
+    },
+    skeletonImage: {
+        width: '100%',
+        height: 190,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    skeletonBody: {
+        padding: 14,
+        gap: 8,
+    },
+    skeletonBadge: {
+        width: 100,
+        height: 20,
+        borderRadius: 100,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    skeletonTitle: {
+        width: '90%',
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    skeletonTitleShort: {
+        width: '60%',
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    skeletonFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 4,
+    },
+    skeletonFooterLeft: {
+        width: 100,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    skeletonFooterRight: {
+        width: 80,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+
+    // Empty state
+    emptyState: {
+        alignItems: 'center',
+        paddingTop: 48,
+        paddingBottom: 32,
+        paddingHorizontal: 32,
+    },
+    emptyIconCircle: {
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
     },
     emptyTitle: {
-        fontSize: 18,
-        fontWeight: '700',
+        fontSize: 20,
+        fontWeight: '800',
         color: theme.colors.text.primary,
-        marginTop: 16,
-        marginBottom: 8,
+        marginBottom: 10,
         textAlign: 'center',
     },
-    emptyText: {
+    emptySubtitle: {
         fontSize: 14,
-        color: theme.colors.text.tertiary,
+        color: theme.colors.text.secondary,
         textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 20,
+        lineHeight: 22,
+        marginBottom: 28,
     },
     emptyButton: {
-        backgroundColor: theme.colors.primary,
+        borderRadius: 100,
+        overflow: 'hidden',
+        ...theme.shadows.button,
+        marginBottom: 32,
+    },
+    emptyButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         paddingHorizontal: 28,
         paddingVertical: 14,
-        borderRadius: 100,
-        ...theme.shadows.button,
     },
     emptyButtonText: {
         fontSize: 15,
         fontWeight: '700',
-        color: '#FFF',
+        color: '#fff',
+    },
+    emptyHints: {
+        flexDirection: 'row',
+        gap: 16,
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+    },
+    emptyHint: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+    },
+    emptyHintText: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        fontWeight: '500',
     },
 });

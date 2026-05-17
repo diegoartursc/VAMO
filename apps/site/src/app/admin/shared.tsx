@@ -45,38 +45,7 @@ export const STATUS_COLOR: Record<Status, string> = {
     REJECTED: "#DC2626", ACTIVE: "#16A34A", PAUSED: "#64748B", ARCHIVED: "#64748B",
 };
 
-/* ═══════════════════════════════════════════════════
-   MOCK DATA
-   ═══════════════════════════════════════════════════ */
-export const MOCK_PACKAGES: PendingPackage[] = [
-    { id: "p1", title: "Expedição Safari África do Sul", destination: "Kruger National Park", country: "África do Sul", priceMin: 12000, priceMax: 15000, qualityScore: 70, status: "PENDING_REVIEW", createdAt: "2026-02-23T00:00:00Z", agency: { id: "a1", name: "Wanderlust Premium Travel" } },
-    { id: "p2", title: "Arquipélago de Los Roques", destination: "Los Roques", country: "Venezuela", priceMin: 8000, priceMax: 9500, qualityScore: 70, status: "PENDING_REVIEW", createdAt: "2026-02-23T00:00:00Z", agency: { id: "a1", name: "Wanderlust Premium Travel" } },
-    { id: "p3", title: "Patagônia Selvagem", destination: "El Chaltén", country: "Argentina", priceMin: 7000, priceMax: 11000, qualityScore: 88, status: "APPROVED", createdAt: "2026-02-20T00:00:00Z", agency: { id: "a2", name: "Trekking Sul" } },
-    { id: "p4", title: "Japão Sakura 2026", destination: "Tóquio / Kyoto", country: "Japão", priceMin: 14000, priceMax: 18000, qualityScore: 92, status: "ACTIVE", createdAt: "2026-02-15T00:00:00Z", agency: { id: "a3", name: "Oriente Viagens" } },
-    { id: "p5", title: "Toscana & Costa Amalfitana", destination: "Florença / Positano", country: "Itália", priceMin: 9500, priceMax: 13000, qualityScore: 85, status: "ACTIVE", createdAt: "2026-02-10T00:00:00Z", agency: { id: "a2", name: "Trekking Sul" } },
-    { id: "p6", title: "Deserto do Atacama", destination: "San Pedro de Atacama", country: "Chile", priceMin: 5000, priceMax: 7500, qualityScore: 60, status: "REJECTED", createdAt: "2026-02-08T00:00:00Z", agency: { id: "a4", name: "Andes Tours" }, approvalNote: "Imagens insuficientes" },
-    { id: "p7", title: "Maldivas Resort Exclusivo", destination: "Malé", country: "Maldivas", priceMin: 20000, priceMax: 30000, qualityScore: 78, status: "PAUSED", createdAt: "2026-02-01T00:00:00Z", agency: { id: "a3", name: "Oriente Viagens" } },
-    { id: "p8", title: "Rota 66 de Moto", destination: "Chicago → Los Angeles", country: "EUA", priceMin: 10000, priceMax: 14000, qualityScore: 55, status: "DRAFT", createdAt: "2026-01-28T00:00:00Z", agency: { id: "a5", name: "Moto Aventura" } },
-];
-
-export const MOCK_ITINERARIES: PendingItinerary[] = [
-    { id: "i1", title: "Tóquio Autêntica – 15 dias", destination: "Tóquio", country: "Japão", price: 4500, qualityScore: 82, status: "PENDING_REVIEW", createdAt: "2026-02-22T00:00:00Z", creator: { id: "c1", traveler: { name: "Carlos Silva" } } },
-    { id: "i2", title: "Patagônia dos Sonhos", destination: "El Chaltén", country: "Argentina", price: 3200, qualityScore: 78, status: "PENDING_REVIEW", createdAt: "2026-02-21T00:00:00Z", creator: { id: "c2", traveler: { name: "Ana Costa" } } },
-    { id: "i3", title: "Bangkok & Ilhas do Sul", destination: "Bangkok / Koh Samui", country: "Tailândia", price: 3800, qualityScore: 91, status: "APPROVED", createdAt: "2026-02-18T00:00:00Z", creator: { id: "c3", traveler: { name: "Rafael Moura" } } },
-    { id: "i4", title: "Road Trip pela Islândia", destination: "Reykjavik + Ring Road", country: "Islândia", price: 5500, qualityScore: 95, status: "ACTIVE", createdAt: "2026-02-15T00:00:00Z", creator: { id: "c1", traveler: { name: "Carlos Silva" } } },
-    { id: "i5", title: "Marrocos Camelos e Medinas", destination: "Marrakesh / Fes", country: "Marrocos", price: 2800, qualityScore: 72, status: "ACTIVE", createdAt: "2026-02-12T00:00:00Z", creator: { id: "c4", traveler: { name: "Beatriz Lima" } } },
-    { id: "i6", title: "Peru: Machu Picchu & Lago Titicaca", destination: "Cusco / Puno", country: "Peru", price: 3500, qualityScore: 65, status: "REJECTED", createdAt: "2026-02-10T00:00:00Z", creator: { id: "c5", traveler: { name: "João Ferreira" } }, approvalNote: "Descrição de dias incompleta" },
-    { id: "i7", title: "Safari Quênia & Tanzânia", destination: "Masai Mara / Serengeti", country: "Quênia / Tanzânia", price: 8000, qualityScore: 88, status: "PAUSED", createdAt: "2026-02-05T00:00:00Z", creator: { id: "c2", traveler: { name: "Ana Costa" } } },
-];
-
-export const MOCK_AGENCIES: MockAgency[] = [
-    { id: "ag1", name: "Wanderlust Premium Travel", cnpj: "12.345.678/0001-90", manager: "Fernanda Costa", email: "fernanda@wanderlust.com", status: "ACTIVE", createdAt: "2025-06-10T00:00:00Z", packagesCount: 8, qualityAvg: 82 },
-    { id: "ag2", name: "Trekking Sul Expedições", cnpj: "23.456.789/0001-01", manager: "Marcos Ribeiro", email: "marcos@trekkingsul.com", status: "ACTIVE", createdAt: "2025-09-15T00:00:00Z", packagesCount: 5, qualityAvg: 88 },
-    { id: "ag3", name: "Oriente Viagens", cnpj: "34.567.890/0001-12", manager: "Yuki Tanaka", email: "yuki@orienteviagens.com", status: "REVIEW", createdAt: "2026-01-20T00:00:00Z", packagesCount: 2, qualityAvg: 75 },
-    { id: "ag4", name: "Andes Tours", cnpj: "45.678.901/0001-23", manager: "Pablo Herrera", email: "pablo@andestours.com", status: "PENDING", createdAt: "2026-02-18T00:00:00Z", packagesCount: 0, qualityAvg: 0 },
-    { id: "ag5", name: "Moto Aventura BR", cnpj: "56.789.012/0001-34", manager: "Ricardo Lopes", email: "ricardo@motoaventura.com", status: "PENDING", createdAt: "2026-02-25T00:00:00Z", packagesCount: 0, qualityAvg: 0 },
-    { id: "ag6", name: "Sun Beach Turismo", cnpj: "67.890.123/0001-45", manager: "Camila Dias", email: "camila@sunbeach.com", status: "SUSPENDED", createdAt: "2025-04-01T00:00:00Z", packagesCount: 3, qualityAvg: 42 },
-];
+export const MOCK_AGENCIES: MockAgency[] = [];
 
 /* ═══════════════════════════════════════════════════
    ICONS (SVG – shared across admin views)
@@ -165,30 +134,30 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
         if (!token) { router.push("/admin/login"); return; }
         try {
             const headers = { Authorization: `Bearer ${token}` };
+            const fetchOpts = { headers, cache: 'no-store' as RequestCache };
             const [pendingRes, statsRes] = await Promise.all([
-                fetch(`${API}/admin/pending`, { headers }),
-                fetch(`${API}/admin/stats`, { headers }),
+                fetch(`${API}/admin/pending`, fetchOpts),
+                fetch(`${API}/admin/stats`, fetchOpts),
             ]);
             if (pendingRes.status === 401) { localStorage.removeItem("adminToken"); router.push("/admin/login"); return; }
 
-            let pkgs: PendingPackage[] = [], its: PendingItinerary[] = [], allPkgs = MOCK_PACKAGES, allIts = MOCK_ITINERARIES;
+            let pkgs: PendingPackage[] = [], its: PendingItinerary[] = [], allPkgs: PendingPackage[] = [], allIts: PendingItinerary[] = [];
             if (pendingRes.ok) {
                 const pendingData = await pendingRes.json();
                 pkgs = pendingData.packages || [];
                 its = pendingData.itineraries || [];
-            } else {
-                pkgs = MOCK_PACKAGES.filter(p => p.status === "PENDING_REVIEW");
-                its = MOCK_ITINERARIES.filter(i => i.status === "PENDING_REVIEW");
+                console.log('[admin/shared] /pending returned', { packages: pkgs.length, itineraries: its.length, items: its.map(i => i.title) });
             }
 
             try {
-                const allRes = await fetch(`${API}/admin/all`, { headers });
+                const allRes = await fetch(`${API}/admin/all`, fetchOpts);
                 if (allRes.ok) {
                     const allData = await allRes.json();
-                    allPkgs = allData.packages || MOCK_PACKAGES;
-                    allIts = allData.itineraries || MOCK_ITINERARIES;
+                    allPkgs = allData.packages || [];
+                    allIts = allData.itineraries || [];
+                    console.log('[admin/shared] /all returned', { packages: allPkgs.length, itineraries: allIts.length, items: allIts.map(i => i.title) });
                 }
-            } catch { /* use mock */ }
+            } catch { /* backend unavailable, keep empty */ }
 
             setPackages(pkgs); setItineraries(its);
             setAllPackages(allPkgs); setAllItineraries(allIts);
@@ -197,14 +166,12 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
             if (statsRes.ok) { try { s = await statsRes.json(); } catch { } }
             setStats(s);
 
-            const creatorsRes = await fetch(`${API}/admin/creators/pending`, { headers });
+            const creatorsRes = await fetch(`${API}/admin/creators/pending`, fetchOpts);
             if (creatorsRes.ok) { const cd = await creatorsRes.json(); setCreators(cd || []); }
         } catch {
-            const pending = MOCK_PACKAGES.filter(p => p.status === "PENDING_REVIEW");
-            const pendingI = MOCK_ITINERARIES.filter(i => i.status === "PENDING_REVIEW");
-            setPackages(pending); setItineraries(pendingI);
-            setAllPackages(MOCK_PACKAGES); setAllItineraries(MOCK_ITINERARIES);
-            setStats({ pendingPackages: pending.length, pendingItineraries: pendingI.length, totalPending: pending.length + pendingI.length, approvedToday: 2, rejectedTotal: 3 });
+            setPackages([]); setItineraries([]);
+            setAllPackages([]); setAllItineraries([]);
+            setStats({ pendingPackages: 0, pendingItineraries: 0, totalPending: 0, approvedToday: 0, rejectedTotal: 0 });
         } finally { setLoading(false); }
     }, [router]);
 
@@ -292,12 +259,30 @@ export function ItemList({ items, type, onApprove, onReject, emptyMsg, showStatu
                             <div style={{ fontSize: "13px", color: "#5A6B8C" }}>
                                 {item.destination}, {item.country} · <span style={{ color: "#98989D" }}>{type === "packages" ? item.agency?.name : item.creator?.traveler?.name}</span>
                             </div>
-                            <div style={{ display: "flex", gap: "10px", marginTop: "6px", alignItems: "center" }}>
+                            <div style={{ display: "flex", gap: "10px", marginTop: "6px", alignItems: "center", flexWrap: "wrap" }}>
                                 {item.qualityScore !== undefined && (
                                     <span style={{ fontSize: "11px", fontWeight: "700", color: item.qualityScore >= 70 ? "#16A34A" : item.qualityScore >= 40 ? "#D97706" : "#DC2626" }}>Score: {item.qualityScore}%</span>
                                 )}
                                 <span style={{ fontSize: "11px", color: "#98989D" }}>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</span>
                                 {item.approvalNote && <span style={{ fontSize: "11px", color: "#DC2626", fontStyle: "italic" }}>Nota: {item.approvalNote}</span>}
+                                {type === "itineraries" && item.travelProofUrl && (
+                                    <a
+                                        href={item.travelProofUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            fontSize: "11px", fontWeight: "700", color: "#1FA89F",
+                                            textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4,
+                                            background: "rgba(40,201,191,0.08)", padding: "2px 8px", borderRadius: 6,
+                                            border: "1px solid rgba(40,201,191,0.25)",
+                                        }}
+                                    >
+                                        📎 Ver Comprovante de Viagem
+                                    </a>
+                                )}
+                                {type === "itineraries" && !item.travelProofUrl && (
+                                    <span style={{ fontSize: "11px", color: "#DC2626", fontWeight: 600 }}>⚠️ Sem comprovante</span>
+                                )}
                             </div>
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>

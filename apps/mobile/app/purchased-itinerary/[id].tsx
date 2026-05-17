@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    Animated,
     Image,
     Alert,
     Linking,
@@ -24,21 +25,31 @@ import {
 import { haptics } from '../../src/services/haptics';
 import { hasUserReviewed, getUserReviewForPackage } from '../../src/data/mockReviews';
 import { Icon } from '../../src/components/common/Icons';
-import ReviewModal from '../../src/components/reviews/ReviewModal';
 
 const { width } = Dimensions.get('window');
+const HERO_HEIGHT = 340;
 
 export default function PurchasedItineraryScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const itinerary = getPurchasedItineraryById(id);
 
-    // ─── State ──────────────────────────────────────────────
+    // ─── Animations ────────────────────────────────────────
+    const headerAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(headerAnim, {
+            toValue: 1,
+            duration: 700,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
+    // ─── State ─────────────────────────────────────────────
     const [travelers, setTravelers] = useState(1);
     const [customDays, setCustomDays] = useState(itinerary?.duration || 7);
     const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
     const [completedChecklist, setCompletedChecklist] = useState<Set<string>>(new Set());
-    const [reviewed, setReviewed] = useState(false);
 
     if (!itinerary) {
         return (
@@ -54,11 +65,11 @@ export default function PurchasedItineraryScreen() {
         );
     }
 
-    // ─── Computed ────────────────────────────────────────────
+    // ─── Computed ──────────────────────────────────────────
     const currentProfile = itinerary.spendingProfile;
     const totalEstimate = (currentProfile?.dailyCost || 0) * travelers * customDays;
 
-    // ─── Handlers ───────────────────────────────────────────
+    // ─── Handlers ──────────────────────────────────────────
     const toggleDay = (dayNumber: number) => {
         haptics.light();
         setExpandedDays(prev => {
@@ -77,12 +88,6 @@ export default function PurchasedItineraryScreen() {
             else next.add(itemId);
             return next;
         });
-    };
-
-    const handleOpenMap = () => {
-        haptics.light();
-        const query = encodeURIComponent(`${itinerary.destination}, ${itinerary.country}`);
-        Linking.openURL(`https://maps.google.com/?q=${query}`);
     };
 
     const handleDownload = () => {
@@ -110,97 +115,118 @@ export default function PurchasedItineraryScreen() {
         setCustomDays(prev => Math.max(1, Math.min(30, prev + delta)));
     };
 
-    // ─── RENDER ─────────────────────────────────────────────
+    // ─── RENDER ────────────────────────────────────────────
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" />
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <StatusBar barStyle="light-content" />
+            <ScrollView showsVerticalScrollIndicator={false} bounces>
 
-                {/* ══════════ BLOCO 1 — HEADER ══════════ */}
-                <View style={styles.headerBlock}>
-                    <Image source={{ uri: itinerary.images[0] }} style={styles.headerImage} />
+                {/* ══════════ HERO ══════════ */}
+                <View style={styles.heroBlock}>
+                    <Image source={{ uri: itinerary.images[0] }} style={styles.heroImage} />
                     <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.6)']}
-                        style={styles.headerGradient}
+                        colors={theme.colors.gradients.hero as unknown as [string, string, string]}
+                        style={StyleSheet.absoluteFill}
+                        locations={[0, 0.4, 1]}
                     />
+
                     {/* Nav bar */}
                     <View style={styles.navBar}>
                         <TouchableOpacity style={styles.navBtn} onPress={() => router.back()}>
                             <Ionicons name="arrow-back" size={22} color="#fff" />
                         </TouchableOpacity>
-                        <Text style={styles.navTitle}>Meu Roteiro</Text>
+
+                        {/* Purchased badge inside navBar */}
+                        <Animated.View style={[
+                            styles.purchasedBadge,
+                            {
+                                opacity: headerAnim,
+                                transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }],
+                            },
+                        ]}>
+                            <Ionicons name="checkmark-circle" size={14} color="#fff" />
+                            <Text style={styles.purchasedBadgeText}>ROTEIRO COMPRADO</Text>
+                        </Animated.View>
                         <TouchableOpacity style={styles.navBtn} onPress={handleShare}>
                             <Ionicons name="share-outline" size={22} color="#fff" />
                         </TouchableOpacity>
                     </View>
-                    {/* Info overlay */}
-                    <View style={styles.headerInfo}>
-                        <Text style={styles.headerTitle} numberOfLines={2}>{itinerary.title}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 }}>
-                                <Icon name="location" size={13} color="rgba(255,255,255,0.85)" />
-                                <Text style={[styles.headerDest, { marginBottom: 0 }]}>{itinerary.destination}, {itinerary.country}</Text>
-                            </View>
-                        <View style={styles.headerMeta}>
-                            <View style={styles.creatorBadge}>
+
+                    {/* Hero info */}
+                    <Animated.View style={[
+                        styles.heroInfo,
+                        {
+                            opacity: headerAnim,
+                            transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
+                        },
+                    ]}>
+                        <Text style={styles.heroTitle} numberOfLines={2}>{itinerary.title}</Text>
+                        <View style={styles.heroDestRow}>
+                            <Icon name="location" size={13} color="rgba(255,255,255,0.85)" />
+                            <Text style={styles.heroDest}>{itinerary.destination}, {itinerary.country}</Text>
+                            <Text style={styles.heroDot}>·</Text>
+                            <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.85)" />
+                            <Text style={styles.heroDest}>{itinerary.duration} dias</Text>
+                        </View>
+                        <View style={styles.heroMeta}>
+                            <View style={styles.creatorPill}>
                                 <Text style={styles.creatorAvatar}>{itinerary.creator.avatar}</Text>
                                 <Text style={styles.creatorName}>{itinerary.creator.name}</Text>
                             </View>
-                            <View style={styles.ratingBadge}>
-                                <Ionicons name="star" size={14} color="#FFC107" />
+                            <View style={styles.ratingPill}>
+                                <Ionicons name="star" size={13} color="#FFC107" />
                                 <Text style={styles.ratingText}>{itinerary.rating}</Text>
                                 <Text style={styles.reviewCount}>({itinerary.reviewCount})</Text>
                             </View>
                         </View>
-                    </View>
+                    </Animated.View>
                 </View>
 
-                {/* Fixed download button */}
-                <TouchableOpacity style={styles.downloadBar} onPress={handleDownload} activeOpacity={0.8}>
-                    <Ionicons name="cloud-download-outline" size={20} color={theme.colors.primary} />
-                    <Text style={styles.downloadBarText}>Baixar offline</Text>
-                    <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
+                {/* Download bar */}
+                <TouchableOpacity onPress={handleDownload} activeOpacity={0.8}>
+                    <LinearGradient
+                        colors={[theme.colors.primary + '1A', theme.colors.primary + '08']}
+                        style={styles.downloadBar}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                    >
+                        <View style={styles.downloadIconCircle}>
+                            <Ionicons name="cloud-download-outline" size={18} color={theme.colors.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.downloadBarTitle}>Baixar para acesso offline</Text>
+                            <Text style={styles.downloadBarSub}>Disponível em breve</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={theme.colors.primary} />
+                    </LinearGradient>
                 </TouchableOpacity>
 
                 <View style={styles.body}>
 
-                    {/* ══════════ BLOCO 1.5 — RESUMO DA EXPERIÊNCIA ══════════ */}
+                    {/* ══════════ SOBRE A EXPERIÊNCIA ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>Sobre a Experiência</Text>
-                        <View style={styles.tripInfoCard}>
-                            <View style={styles.tripInfoRow}>
-                                <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
-                                <View style={styles.tripInfoContent}>
-                                    <Text style={styles.tripInfoLabel}>Período da viagem</Text>
-                                    <Text style={styles.tripInfoValue}>
-                                        {new Date(itinerary.tripStartDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })} — {new Date(itinerary.tripEndDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                    </Text>
-                                </View>
-                            </View>
-                            <View style={styles.tripInfoDivider} />
-                            <View style={styles.tripInfoRow}>
-                                <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
-                                <View style={styles.tripInfoContent}>
-                                    <Text style={styles.tripInfoLabel}>Duração</Text>
-                                    <Text style={styles.tripInfoValue}>{itinerary.duration} dias</Text>
-                                </View>
-                            </View>
-                            <View style={styles.tripInfoDivider} />
-                            <View style={styles.tripInfoRow}>
-                                <Ionicons name="location-outline" size={18} color={theme.colors.primary} />
-                                <View style={styles.tripInfoContent}>
-                                    <Text style={styles.tripInfoLabel}>Destino</Text>
-                                    <Text style={styles.tripInfoValue}>{itinerary.destination}, {itinerary.country}</Text>
-                                </View>
-                            </View>
+                        <SectionTitle icon="compass-outline" label="Sobre a Experiência" />
+                        <View style={styles.card}>
+                            <InfoRow
+                                icon="calendar-outline"
+                                label="Período da viagem"
+                                value={`${new Date(itinerary.tripStartDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })} — ${new Date(itinerary.tripEndDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                            />
+                            <View style={styles.cardDivider} />
+                            <InfoRow icon="time-outline" label="Duração" value={`${itinerary.duration} dias`} />
+                            <View style={styles.cardDivider} />
+                            <InfoRow icon="location-outline" label="Destino" value={`${itinerary.destination}, ${itinerary.country}`} />
                             {itinerary.highlights && itinerary.highlights.length > 0 && (
                                 <>
-                                    <View style={styles.tripInfoDivider} />
-                                    <View style={styles.tripInfoRow}>
-                                        <Ionicons name="star-outline" size={18} color={theme.colors.primary} />
-                                        <View style={styles.tripInfoContent}>
-                                            <Text style={styles.tripInfoLabel}>Destaques</Text>
+                                    <View style={styles.cardDivider} />
+                                    <View style={styles.infoRow}>
+                                        <View style={styles.infoIconCircle}>
+                                            <Ionicons name="star-outline" size={16} color={theme.colors.primary} />
+                                        </View>
+                                        <View style={styles.infoContent}>
+                                            <Text style={styles.infoLabel}>Destaques</Text>
                                             {itinerary.highlights.map((h: string, i: number) => (
-                                                <Text key={i} style={styles.tripInfoHighlight}>• {h}</Text>
+                                                <Text key={i} style={styles.highlightItem}>• {h}</Text>
                                             ))}
                                         </View>
                                     </View>
@@ -209,70 +235,57 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     </View>
 
-                    {/* ══════════ BLOCO 2 — ESTIMATIVA DE GASTO ══════════ */}
+                    {/* ══════════ ESTIMATIVA DE GASTO ══════════ */}
                     {itinerary.spendingProfile && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>Estimativa de Gasto</Text>
+                            <SectionTitle icon="wallet-outline" label="Estimativa de Gasto" />
 
-                            {/* Experience Badge — shows the actual tier of this trip */}
-                            <View style={styles.experienceBadge}>
-                                <Text style={styles.experienceBadgeIcon}>{itinerary.spendingProfile.icon}</Text>
-                                <View>
-                                    <Text style={styles.experienceBadgeLabel}>Experiência vivida</Text>
-                                    <Text style={styles.experienceBadgeValue}>{itinerary.spendingProfile.label}</Text>
-                                </View>
-                            </View>
-
-                            {/* Adjusters */}
                             <View style={styles.adjustersRow}>
-                                <View style={styles.adjuster}>
-                                    <Text style={styles.adjusterLabel}>Viajantes</Text>
-                                    <View style={styles.adjusterControls}>
-                                        <TouchableOpacity style={styles.adjusterBtn} onPress={() => adjustTravelers(-1)}>
-                                            <Ionicons name="remove" size={18} color={theme.colors.primary} />
-                                        </TouchableOpacity>
-                                        <Text style={styles.adjusterValue}>{travelers}</Text>
-                                        <TouchableOpacity style={styles.adjusterBtn} onPress={() => adjustTravelers(1)}>
-                                            <Ionicons name="add" size={18} color={theme.colors.primary} />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                                <View style={styles.adjuster}>
-                                    <Text style={styles.adjusterLabel}>Dias</Text>
-                                    <View style={styles.adjusterControls}>
-                                        <TouchableOpacity style={styles.adjusterBtn} onPress={() => adjustDays(-1)}>
-                                            <Ionicons name="remove" size={18} color={theme.colors.primary} />
-                                        </TouchableOpacity>
-                                        <Text style={styles.adjusterValue}>{customDays}</Text>
-                                        <TouchableOpacity style={styles.adjusterBtn} onPress={() => adjustDays(1)}>
-                                            <Ionicons name="add" size={18} color={theme.colors.primary} />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
+                                <AdjusterCard
+                                    label="Viajantes"
+                                    value={travelers}
+                                    onDecrement={() => adjustTravelers(-1)}
+                                    onIncrement={() => adjustTravelers(1)}
+                                />
+                                <AdjusterCard
+                                    label="Dias"
+                                    value={customDays}
+                                    onDecrement={() => adjustDays(-1)}
+                                    onIncrement={() => adjustDays(1)}
+                                />
                             </View>
 
-                            {/* Total */}
-                            <View style={styles.totalCard}>
-                                <Text style={styles.totalLabel}>Estimativa total</Text>
-                                <Text style={styles.totalAmount}>
+                            <LinearGradient
+                                colors={theme.colors.gradients.aurora as unknown as [string, string, string]}
+                                style={styles.totalGradientCard}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Text style={styles.totalCardLabel}>Estimativa total</Text>
+                                <Text style={styles.totalCardAmount}>
                                     R$ {totalEstimate.toLocaleString('pt-BR')}
                                 </Text>
-                                <Text style={styles.totalDetail}>
+                                <Text style={styles.totalCardDetail}>
                                     {travelers} viajante{travelers > 1 ? 's' : ''} × {customDays} dias × R$ {currentProfile?.dailyCost}/dia
                                 </Text>
-                            </View>
+                            </LinearGradient>
 
-                            {/* Breakdown */}
                             {currentProfile && (
                                 <View style={styles.breakdownCard}>
                                     <Text style={styles.breakdownTitle}>Custo médio diário por pessoa</Text>
                                     {currentProfile.breakdown.map((item, i) => (
-                                        <View key={i} style={styles.breakdownRow}>
+                                        <View
+                                            key={i}
+                                            style={[
+                                                styles.breakdownRow,
+                                                i < currentProfile.breakdown.length - 1 && styles.breakdownRowBorder,
+                                            ]}
+                                        >
                                             <Text style={styles.breakdownCat}>{item.category}</Text>
                                             <Text style={styles.breakdownVal}>R$ {item.amount}</Text>
                                         </View>
                                     ))}
-                                    <View style={[styles.breakdownRow, styles.breakdownTotal]}>
+                                    <View style={styles.breakdownTotalRow}>
                                         <Text style={styles.breakdownTotalLabel}>Total/dia</Text>
                                         <Text style={styles.breakdownTotalVal}>R$ {currentProfile.dailyCost}</Text>
                                     </View>
@@ -281,74 +294,36 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     )}
 
-                    {/* ══════════ BLOCO 2.5 — MEU VOO ══════════ */}
+                    {/* ══════════ MEU VOO ══════════ */}
                     {itinerary.flightInfo && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>Meu Voo</Text>
+                            <SectionTitle icon="airplane-outline" label="Meu Voo" />
 
-                            {/* Preço total */}
                             {itinerary.flightInfo.totalPrice && (
-                                <View style={[styles.flightPriceBadge, { alignSelf: 'flex-start', marginBottom: 12 }]}>
-                                    <Text style={styles.flightPrice}>
-                                        Total ida + volta: {itinerary.flightInfo.totalPrice}
+                                <View style={styles.flightTotalBadge}>
+                                    <Ionicons name="cash-outline" size={15} color={theme.colors.success} />
+                                    <Text style={styles.flightTotalText}>
+                                        Ida + volta: {itinerary.flightInfo.totalPrice}
                                         {itinerary.flightInfo.priceCurrency ? ` ${itinerary.flightInfo.priceCurrency}` : ''}
                                     </Text>
                                 </View>
                             )}
 
-                            {/* Ida */}
-                            <Text style={styles.subTitle}>Ida</Text>
-                            <View style={styles.flightCard}>
-                                <View style={styles.flightHeader}>
-                                    <Text style={styles.flightAirline}>{itinerary.flightInfo.outbound.airline}</Text>
-                                </View>
-                                <Text style={styles.flightRoute}>
-                                    {itinerary.flightInfo.outbound.originAirport} → {itinerary.flightInfo.outbound.destinationAirport}
-                                </Text>
-                                {itinerary.flightInfo.outbound.departureDate && (
-                                    <Text style={styles.flightDate}>
-                                        📅 {itinerary.flightInfo.outbound.departureDate}
-                                        {itinerary.flightInfo.outbound.arrivalDate && itinerary.flightInfo.outbound.arrivalDate !== itinerary.flightInfo.outbound.departureDate
-                                            ? ` → ${itinerary.flightInfo.outbound.arrivalDate}` : ''}
-                                    </Text>
-                                )}
-                                <View style={styles.flightDetails}>
-                                    <Text style={styles.flightStops}>
-                                        {itinerary.flightInfo.outbound.stops === 0 ? 'Direto' : `${itinerary.flightInfo.outbound.stops} parada${itinerary.flightInfo.outbound.stops > 1 ? 's' : ''}`}
-                                    </Text>
-                                </View>
-                            </View>
+                            <Text style={styles.flightLegLabel}>✈ Ida</Text>
+                            <FlightCard flight={itinerary.flightInfo.outbound} />
 
-                            {/* Volta */}
-                            <Text style={styles.subTitle}>Volta</Text>
-                            <View style={styles.flightCard}>
-                                <View style={styles.flightHeader}>
-                                    <Text style={styles.flightAirline}>{itinerary.flightInfo.return.airline}</Text>
-                                </View>
-                                <Text style={styles.flightRoute}>
-                                    {itinerary.flightInfo.return.originAirport} → {itinerary.flightInfo.return.destinationAirport}
-                                </Text>
-                                {itinerary.flightInfo.return.departureDate && (
-                                    <Text style={styles.flightDate}>
-                                        📅 {itinerary.flightInfo.return.departureDate}
-                                        {itinerary.flightInfo.return.arrivalDate && itinerary.flightInfo.return.arrivalDate !== itinerary.flightInfo.return.departureDate
-                                            ? ` → ${itinerary.flightInfo.return.arrivalDate}` : ''}
-                                    </Text>
-                                )}
-                                <View style={styles.flightDetails}>
-                                    <Text style={styles.flightStops}>
-                                        {itinerary.flightInfo.return.stops === 0 ? 'Direto' : `${itinerary.flightInfo.return.stops} parada${itinerary.flightInfo.return.stops > 1 ? 's' : ''}`}
-                                    </Text>
-                                </View>
-                            </View>
+                            <Text style={styles.flightLegLabel}>✈ Volta</Text>
+                            <FlightCard flight={itinerary.flightInfo.return} />
 
-                            {/* Dicas do viajante */}
                             {itinerary.flightInfo.tips.length > 0 && (
                                 <>
-                                    <Text style={styles.subTitle}>Dicas do viajante</Text>
-                                    <View style={styles.flightTipsCard}>
+                                    <Text style={styles.flightLegLabel}>💡 Dicas do viajante</Text>
+                                    <View style={styles.tipsBox}>
                                         {itinerary.flightInfo.tips.map((tip, i) => (
-                                            <Text key={i} style={styles.flightTip}>• {tip}</Text>
+                                            <View key={i} style={styles.tipRow}>
+                                                <View style={styles.tipDot} />
+                                                <Text style={styles.tipText}>{tip}</Text>
+                                            </View>
                                         ))}
                                     </View>
                                 </>
@@ -356,85 +331,95 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     )}
 
-                    {/* ══════════ BLOCO 3 — ITINERÁRIO POR DIA ══════════ */}
+                    {/* ══════════ ITINERÁRIO POR DIA ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>Itinerário por Dia</Text>
+                        <SectionTitle icon="map-outline" label="Itinerário por Dia" />
                         {itinerary.days.map(day => (
                             <View key={day.dayNumber} style={styles.dayCard}>
                                 <TouchableOpacity
                                     style={styles.dayHeader}
                                     onPress={() => toggleDay(day.dayNumber)}
-                                    activeOpacity={0.7}
+                                    activeOpacity={0.75}
                                 >
-                                    <View style={styles.dayBadge}>
-                                        <Text style={styles.dayBadgeText}>Dia {day.dayNumber}</Text>
-                                    </View>
+                                    <LinearGradient
+                                        colors={theme.colors.gradients.action as unknown as [string, string]}
+                                        style={styles.dayNumberBadge}
+                                    >
+                                        <Text style={styles.dayNumberText}>{day.dayNumber}</Text>
+                                        <Text style={styles.dayNumberLabel}>DIA</Text>
+                                    </LinearGradient>
                                     <View style={styles.dayHeaderInfo}>
                                         <Text style={styles.dayTitle} numberOfLines={1}>{day.title}</Text>
                                         <Text style={styles.daySummary} numberOfLines={1}>{day.summary}</Text>
                                     </View>
-                                    <Ionicons
-                                        name={expandedDays.has(day.dayNumber) ? 'chevron-up' : 'chevron-down'}
-                                        size={20}
-                                        color={theme.colors.text.tertiary}
-                                    />
+                                    <View style={[
+                                        styles.chevronCircle,
+                                        expandedDays.has(day.dayNumber) && styles.chevronCircleActive,
+                                    ]}>
+                                        <Ionicons
+                                            name={expandedDays.has(day.dayNumber) ? 'chevron-up' : 'chevron-down'}
+                                            size={16}
+                                            color={expandedDays.has(day.dayNumber) ? '#fff' : theme.colors.text.tertiary}
+                                        />
+                                    </View>
                                 </TouchableOpacity>
 
                                 {expandedDays.has(day.dayNumber) && (
                                     <View style={styles.dayContent}>
                                         {day.activities.map((activity, idx) => (
                                             <View key={activity.id} style={styles.activityRow}>
-                                                <View style={styles.activityTimeline}>
-                                                    <View style={styles.activityDot} />
+                                                <View style={styles.timelineCol}>
+                                                    <View style={styles.timelineDot} />
                                                     {idx < day.activities.length - 1 && (
-                                                        <View style={styles.activityLine} />
+                                                        <View style={styles.timelineLine} />
                                                     )}
                                                 </View>
                                                 <View style={styles.activityContent}>
-                                                    <View style={styles.activityTimeRow}>
+                                                    <View style={styles.activityHeader}>
                                                         <Text style={styles.activityIcon}>{activity.icon}</Text>
                                                         <Text style={styles.activityTime}>{activity.time}</Text>
-                                                        <Text style={styles.activityDuration}>{activity.duration}</Text>
+                                                        {activity.duration ? (
+                                                            <View style={styles.durationChip}>
+                                                                <Text style={styles.durationText}>{activity.duration}</Text>
+                                                            </View>
+                                                        ) : null}
                                                     </View>
                                                     <Text style={styles.activityTitle}>{activity.title}</Text>
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}>
-                                                        <Icon name="location" size={11} color={theme.colors.text.secondary} />
-                                                        <Text style={[styles.activityLocation, { marginBottom: 0 }]}>{activity.location}</Text>
+                                                    <View style={styles.locRow}>
+                                                        <Icon name="location" size={11} color={theme.colors.text.tertiary} />
+                                                        <Text style={styles.activityLocation}>{activity.location}</Text>
                                                     </View>
                                                     <Text style={styles.activityDesc} numberOfLines={3}>
                                                         {activity.description}
                                                     </Text>
 
-                                                    {/* Tips — accepts string or string[] */}
                                                     {(() => {
                                                         const tipsArr = Array.isArray(activity.tips)
                                                             ? activity.tips
                                                             : activity.tips ? [activity.tips] : [];
                                                         return tipsArr.length > 0 ? (
-                                                            <View style={styles.tipsContainer}>
-                                                                <Text style={styles.tipsTitle}>Dicas:</Text>
+                                                            <View style={styles.activityTipBox}>
+                                                                <Text style={styles.activityTipTitle}>💡 Dicas</Text>
                                                                 {tipsArr.map((tip, ti) => (
-                                                                    <Text key={ti} style={styles.tipText}>• {tip}</Text>
+                                                                    <Text key={ti} style={styles.activityTipText}>• {tip}</Text>
                                                                 ))}
                                                             </View>
                                                         ) : null;
                                                     })()}
 
-                                                    {/* Map link */}
                                                     {activity.mapLink && (
                                                         <TouchableOpacity
-                                                            style={styles.miniMapBtn}
+                                                            style={styles.mapBtn}
                                                             onPress={() => Linking.openURL(activity.mapLink!)}
                                                         >
                                                             <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
-                                                            <Text style={styles.miniMapText}>Ver no mapa</Text>
+                                                            <Text style={styles.mapBtnText}>Ver no mapa</Text>
                                                         </TouchableOpacity>
                                                     )}
                                                 </View>
                                             </View>
                                         ))}
 
-                                        {/* Day estimated cost */}
                                         {day.estimatedCost && (
                                             <View style={styles.dayCostBadge}>
                                                 <Ionicons name="wallet-outline" size={14} color={theme.colors.primary} />
@@ -449,25 +434,22 @@ export default function PurchasedItineraryScreen() {
                         ))}
                     </View>
 
-                    {/* ══════════ BLOCO 5 — HOSPEDAGEM RECOMENDADA ══════════ */}
+                    {/* ══════════ ONDE FIQUEI ══════════ */}
                     {itinerary.accommodationOptions && itinerary.accommodationOptions.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>Onde Fiquei</Text>
-
+                            <SectionTitle icon="home-outline" label="Onde Fiquei" />
                             {itinerary.accommodationOptions.map(acc => (
-                                <View key={acc.id} style={styles.accCard}>
+                                <View key={acc.id} style={[styles.card, { marginBottom: 12 }]}>
                                     <View style={styles.accHeader}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.accName}>{acc.name}</Text>
-                                        </View>
+                                        <Text style={styles.accName}>{acc.name}</Text>
                                         <View style={styles.accPriceBadge}>
                                             <Text style={styles.accPrice}>{acc.priceRange}</Text>
                                         </View>
                                     </View>
                                     {(acc.address || acc.location) && (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}>
-                                            <Icon name="location" size={11} color={theme.colors.text.secondary} />
-                                            <Text style={[styles.accLocation, { marginBottom: 0 }]}>{acc.address || acc.location}</Text>
+                                        <View style={styles.locRow}>
+                                            <Icon name="location" size={11} color={theme.colors.text.tertiary} />
+                                            <Text style={styles.accLocation}>{acc.address || acc.location}</Text>
                                         </View>
                                     )}
                                     <Text style={styles.accDesc}>{acc.description}</Text>
@@ -478,19 +460,17 @@ export default function PurchasedItineraryScreen() {
                                         </View>
                                     )}
                                     {acc.tips ? (
-                                        <View style={[styles.tipsContainer, { marginTop: 8, marginBottom: 0 }]}>
-                                            <Icon name="lightbulb" size={13} color="#F59E0B" />
-                                            <Text style={[styles.tipText, { marginLeft: 4, flex: 1 }]}>💡 {acc.tips}</Text>
+                                        <View style={styles.activityTipBox}>
+                                            <Text style={styles.activityTipText}>💡 {acc.tips}</Text>
                                         </View>
                                     ) : null}
                                     {acc.mapLink ? (
                                         <TouchableOpacity
-                                            style={styles.miniMapBtn}
+                                            style={styles.mapBtn}
                                             onPress={() => { haptics.light(); Linking.openURL(acc.mapLink!); }}
-                                            activeOpacity={0.8}
                                         >
                                             <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
-                                            <Text style={styles.miniMapText}>Ver no mapa</Text>
+                                            <Text style={styles.mapBtnText}>Ver no mapa</Text>
                                         </TouchableOpacity>
                                     ) : null}
                                 </View>
@@ -498,133 +478,128 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     )}
 
-                    {/* ══════════ BLOCO 5.5 — PASSEIOS & ATRAÇÕES ══════════ */}
+                    {/* ══════════ PASSEIOS & ATRAÇÕES ══════════ */}
                     {itinerary.attractions && itinerary.attractions.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>Passeios & Atrações</Text>
+                            <SectionTitle icon="camera-outline" label="Passeios & Atrações" />
                             <Text style={styles.blockSubtitle}>
                                 {itinerary.attractions.length} atrações selecionadas pelo criador
                             </Text>
                             {itinerary.attractions.map((att: AttractionInfo, i: number) => (
-                                <View key={i} style={styles.attractionCard}>
-                                    {/* Header: nome + tipo + preço */}
-                                    <View style={styles.attractionHeader}>
+                                <View key={i} style={[styles.card, { marginBottom: 12 }]}>
+                                    <View style={styles.attractionTop}>
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.attractionName}>{att.name}</Text>
-                                            <View style={styles.attractionMeta}>
+                                            <View style={styles.attractionMetaRow}>
                                                 {att.type ? (
-                                                    <View style={styles.attractionTypeBadge}>
-                                                        <Text style={styles.attractionTypeText}>{att.type}</Text>
+                                                    <View style={styles.typeBadge}>
+                                                        <Text style={styles.typeBadgeText}>{att.type}</Text>
                                                     </View>
                                                 ) : null}
                                                 {att.location ? (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                                                        <Icon name="location" size={11} color={theme.colors.text.secondary} />
+                                                    <View style={styles.locRow}>
+                                                        <Icon name="location" size={11} color={theme.colors.text.tertiary} />
                                                         <Text style={styles.attractionLocation} numberOfLines={1}>{att.location}</Text>
                                                     </View>
                                                 ) : null}
                                             </View>
                                         </View>
                                         {att.ticketPrice ? (
-                                            <View style={styles.attractionPriceBadge}>
+                                            <View style={styles.priceBadge}>
                                                 <Icon name="card" size={12} color={theme.colors.primary} />
-                                                <Text style={styles.attractionPrice}>{att.ticketPrice}</Text>
+                                                <Text style={styles.priceBadgeText}>{att.ticketPrice}</Text>
                                             </View>
                                         ) : null}
                                     </View>
 
-                                    {/* Info row: horário + duração */}
                                     {(att.hours || att.duration) ? (
-                                        <View style={styles.attractionInfoRow}>
+                                        <View style={styles.chipsRow}>
                                             {att.hours ? (
-                                                <View style={styles.attractionInfoChip}>
+                                                <View style={styles.infoChip}>
                                                     <Icon name="clock" size={12} color={theme.colors.text.secondary} />
-                                                    <Text style={styles.attractionInfoText}>{att.hours}</Text>
+                                                    <Text style={styles.infoChipText}>{att.hours}</Text>
                                                 </View>
                                             ) : null}
                                             {att.duration ? (
-                                                <View style={styles.attractionInfoChip}>
+                                                <View style={styles.infoChip}>
                                                     <Icon name="compass" size={12} color={theme.colors.text.secondary} />
-                                                    <Text style={styles.attractionInfoText}>{att.duration}</Text>
+                                                    <Text style={styles.infoChipText}>{att.duration}</Text>
                                                 </View>
                                             ) : null}
                                         </View>
                                     ) : null}
 
-                                    {/* Descrição */}
                                     {att.description ? (
                                         <Text style={styles.attractionDesc}>{att.description}</Text>
                                     ) : null}
-
-                                    {/* Dica */}
                                     {att.tips ? (
-                                        <View style={styles.attractionTipBox}>
-                                            <Icon name="lightbulb" size={13} color={theme.colors.primary} />
-                                            <Text style={styles.attractionTip}>{att.tips}</Text>
+                                        <View style={[styles.activityTipBox, { flexDirection: 'row', alignItems: 'flex-start', gap: 6 }]}>
+                                            <Icon name="lightbulb" size={13} color="#F59E0B" />
+                                            <Text style={[styles.activityTipText, { flex: 1 }]}>{att.tips}</Text>
                                         </View>
                                     ) : null}
 
-                                    {/* Link externo */}
-                                    {att.externalLink ? (
-                                        <TouchableOpacity
-                                            style={styles.attractionLinkBtn}
-                                            onPress={() => { haptics.light(); Linking.openURL(att.externalLink!); }}
-                                            activeOpacity={0.8}
-                                        >
-                                            <Icon name="external-link" size={14} color={theme.colors.primary} />
-                                            <Text style={styles.attractionLinkText}>Ver site oficial</Text>
-                                        </TouchableOpacity>
-                                    ) : null}
-                                    {/* Mapa */}
-                                    {att.mapLink ? (
-                                        <TouchableOpacity
-                                            style={[styles.miniMapBtn, { marginTop: att.externalLink ? 6 : 0 }]}
-                                            onPress={() => { haptics.light(); Linking.openURL(att.mapLink!); }}
-                                            activeOpacity={0.8}
-                                        >
-                                            <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
-                                            <Text style={styles.miniMapText}>Ver no mapa</Text>
-                                        </TouchableOpacity>
-                                    ) : null}
+                                    <View style={styles.actionsRow}>
+                                        {att.externalLink ? (
+                                            <TouchableOpacity
+                                                style={styles.outlineBtn}
+                                                onPress={() => { haptics.light(); Linking.openURL(att.externalLink!); }}
+                                            >
+                                                <Icon name="external-link" size={14} color={theme.colors.primary} />
+                                                <Text style={styles.outlineBtnText}>Site oficial</Text>
+                                            </TouchableOpacity>
+                                        ) : null}
+                                        {att.mapLink ? (
+                                            <TouchableOpacity
+                                                style={styles.mapBtn}
+                                                onPress={() => { haptics.light(); Linking.openURL(att.mapLink!); }}
+                                            >
+                                                <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
+                                                <Text style={styles.mapBtnText}>Ver no mapa</Text>
+                                            </TouchableOpacity>
+                                        ) : null}
+                                    </View>
                                 </View>
                             ))}
                         </View>
                     )}
 
-                    {/* ══════════ BLOCO 6 — TRANSPORTE ══════════ */}
+                    {/* ══════════ TRANSPORTE ══════════ */}
                     {itinerary.transport && itinerary.transport.items.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>Transporte</Text>
+                            <SectionTitle icon="navigate-outline" label="Transporte" />
                             {itinerary.transport.items.map((item, i) => (
-                                <View key={i} style={styles.passCard}>
-                                    <View style={styles.passHeader}>
-                                        <Text style={styles.passName}>{item.description}</Text>
-                                        {(item.priceValue) && (
-                                            <Text style={styles.passPrice}>
-                                                {item.priceValue}{item.priceCurrency ? ` ${item.priceCurrency}` : ''}
-                                            </Text>
+                                <View key={i} style={styles.transportCard}>
+                                    <View style={styles.transportHeader}>
+                                        <Text style={styles.transportName}>{item.description}</Text>
+                                        {item.priceValue && (
+                                            <View style={styles.priceBadge}>
+                                                <Text style={styles.priceBadgeText}>
+                                                    {item.priceValue}{item.priceCurrency ? ` ${item.priceCurrency}` : ''}
+                                                </Text>
+                                            </View>
                                         )}
                                     </View>
                                     {item.passTypes ? (
-                                        <Text style={[styles.passDesc, { color: theme.colors.primary, fontWeight: '600', marginBottom: 2 }]}>{item.passTypes}</Text>
+                                        <Text style={styles.transportPassTypes}>{item.passTypes}</Text>
                                     ) : null}
                                     {item.notes ? (
-                                        <Text style={styles.passDesc}>{item.notes}</Text>
+                                        <Text style={styles.transportNotes}>{item.notes}</Text>
                                     ) : null}
                                 </View>
                             ))}
                         </View>
                     )}
 
-                    {/* ══════════ BLOCO 6.5 — RESTAURANTES & GASTRONOMIA ══════════ */}
+                    {/* ══════════ RESTAURANTES & GASTRONOMIA ══════════ */}
                     {itinerary.restaurants && itinerary.restaurants.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>Restaurantes & Gastronomia</Text>
+                            <SectionTitle icon="restaurant-outline" label="Restaurantes & Gastronomia" />
                             {itinerary.restaurants.map((rest, i) => (
-                                <View key={i} style={styles.restaurantCard}>
-                                    <View style={styles.restaurantHeader}>
+                                <View key={i} style={[styles.card, { marginBottom: 12 }]}>
+                                    <View style={styles.restaurantTop}>
                                         <View style={{ flex: 1 }}>
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                            <View style={styles.restaurantNameRow}>
                                                 <Text style={styles.restaurantName}>{rest.name}</Text>
                                                 {rest.cuisine ? (
                                                     <View style={styles.cuisineTag}>
@@ -632,14 +607,14 @@ export default function PurchasedItineraryScreen() {
                                                     </View>
                                                 ) : null}
                                             </View>
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                                                <Icon name="location" size={11} color={theme.colors.text.secondary} />
+                                            <View style={styles.locRow}>
+                                                <Icon name="location" size={11} color={theme.colors.text.tertiary} />
                                                 <Text style={styles.restaurantLocation}>{rest.location}</Text>
                                             </View>
                                         </View>
                                         {rest.priceRange && (
-                                            <View style={styles.restaurantPriceBadge}>
-                                                <Text style={styles.restaurantPrice}>{rest.priceRange}</Text>
+                                            <View style={styles.greenPriceBadge}>
+                                                <Text style={styles.greenPriceText}>{rest.priceRange}</Text>
                                             </View>
                                         )}
                                     </View>
@@ -647,21 +622,20 @@ export default function PurchasedItineraryScreen() {
                                         <Text style={styles.restaurantDesc}>{rest.description}</Text>
                                     ) : null}
                                     {rest.hours ? (
-                                        <Text style={styles.restaurantHours}>{rest.hours}</Text>
+                                        <Text style={styles.restaurantHours}>🕐 {rest.hours}</Text>
                                     ) : null}
                                     {rest.tips ? (
-                                        <View style={styles.restaurantTipBox}>
-                                            <Text style={styles.restaurantTip}>💡 {rest.tips}</Text>
+                                        <View style={styles.activityTipBox}>
+                                            <Text style={styles.activityTipText}>💡 {rest.tips}</Text>
                                         </View>
                                     ) : null}
                                     {rest.externalLink ? (
                                         <TouchableOpacity
-                                            style={styles.attractionLinkBtn}
+                                            style={styles.outlineBtn}
                                             onPress={() => { haptics.light(); Linking.openURL(rest.externalLink!); }}
-                                            activeOpacity={0.8}
                                         >
                                             <Icon name="external-link" size={14} color={theme.colors.primary} />
-                                            <Text style={styles.attractionLinkText}>Ver reservas</Text>
+                                            <Text style={styles.outlineBtnText}>Ver reservas</Text>
                                         </TouchableOpacity>
                                     ) : null}
                                 </View>
@@ -669,17 +643,23 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     )}
 
-                    {/* ══════════ BLOCO 6.7 — DICAS GERAIS DO VIAJANTE ══════════ */}
+                    {/* ══════════ DICAS DO VIAJANTE ══════════ */}
                     {itinerary.generalTips && itinerary.generalTips.length > 0 && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>Dicas do Viajante</Text>
-                            <Text style={styles.generalTipsSubtitle}>
+                            <SectionTitle icon="bulb-outline" label="Dicas do Viajante" />
+                            <Text style={styles.tipsAuthor}>
                                 Recomendações de {itinerary.creator.name}
                             </Text>
-                            <View style={styles.generalTipsBox}>
+                            <View style={styles.generalTipsCard}>
                                 {itinerary.generalTips.map((tip, i) => (
-                                    <View key={i} style={styles.generalTipRow}>
-                                        <Text style={styles.generalTipBullet}>•</Text>
+                                    <View
+                                        key={i}
+                                        style={[
+                                            styles.generalTipRow,
+                                            i < itinerary.generalTips!.length - 1 && styles.generalTipRowBorder,
+                                        ]}
+                                    >
+                                        <View style={styles.tipBulletDot} />
                                         <Text style={styles.generalTipText}>{tip}</Text>
                                     </View>
                                 ))}
@@ -687,83 +667,104 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     )}
 
-                    {/* ══════════ BLOCO 7 — CHECKLIST ══════════ */}
+                    {/* ══════════ CHECKLIST DE PLANEJAMENTO ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>Checklist de Planejamento</Text>
-                        <Text style={styles.checklistProgress}>
-                            {completedChecklist.size} de {itinerary.checklist.length} concluídos
-                        </Text>
-                        {/* Progress bar */}
-                        <View style={styles.progressBarBg}>
-                            <View
-                                style={[
-                                    styles.progressBarFill,
-                                    {
-                                        width: itinerary.checklist.length > 0
-                                            ? `${(completedChecklist.size / itinerary.checklist.length) * 100}%`
-                                            : '0%',
-                                    },
-                                ]}
-                            />
+                        <SectionTitle icon="checkmark-circle-outline" label="Checklist de Planejamento" />
+                        <View style={styles.progressSection}>
+                            <Text style={styles.progressLabel}>
+                                {completedChecklist.size} de {itinerary.checklist.length} concluídos
+                            </Text>
+                            <View style={styles.progressBarBg}>
+                                <LinearGradient
+                                    colors={theme.colors.gradients.action as unknown as [string, string]}
+                                    style={[
+                                        styles.progressBarFill,
+                                        {
+                                            width: itinerary.checklist.length > 0
+                                                ? `${(completedChecklist.size / itinerary.checklist.length) * 100}%`
+                                                : '0%',
+                                        },
+                                    ]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                />
+                            </View>
                         </View>
 
                         {['documents', 'packing', 'pre-trip'].map(category => {
                             const items = itinerary.checklist.filter(c => c.category === category);
                             if (items.length === 0) return null;
-                            const categoryLabels: Record<string, string> = {
-                                'documents': 'Documentos',
-                                'packing': 'Mala',
-                                'pre-trip': 'Pré-viagem',
+                            const categoryConfig: Record<string, { label: string; emoji: string }> = {
+                                documents: { label: 'Documentos', emoji: '📄' },
+                                packing:   { label: 'Mala',       emoji: '🧳' },
+                                'pre-trip':{ label: 'Pré-viagem', emoji: '✅' },
                             };
+                            const { label, emoji } = categoryConfig[category] ?? { label: category, emoji: '•' };
                             return (
                                 <View key={category} style={styles.checkCategory}>
-                                    <Text style={styles.checkCategoryLabel}>{categoryLabels[category]}</Text>
-                                    {items.map(item => {
-                                        const isChecked = completedChecklist.has(item.id) || item.completed;
-                                        return (
-                                            <TouchableOpacity
-                                                key={item.id}
-                                                style={styles.checkItem}
-                                                onPress={() => toggleChecklist(item.id)}
-                                                activeOpacity={0.7}
-                                            >
-                                                <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-                                                    {isChecked && <Ionicons name="checkmark" size={14} color="#fff" />}
-                                                </View>
-                                                <Text style={[
-                                                    styles.checkItemText,
-                                                    isChecked && styles.checkItemTextDone,
-                                                ]}>
-                                                    {item.text}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
+                                    <View style={styles.checkCategoryHeader}>
+                                        <Text style={styles.checkCategoryEmoji}>{emoji}</Text>
+                                        <Text style={styles.checkCategoryLabel}>{label}</Text>
+                                    </View>
+                                    <View style={styles.checkItemsCard}>
+                                        {items.map((item, itemIdx) => {
+                                            const isChecked = completedChecklist.has(item.id) || item.completed;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={item.id}
+                                                    style={[
+                                                        styles.checkItem,
+                                                        itemIdx < items.length - 1 && styles.checkItemBorder,
+                                                    ]}
+                                                    onPress={() => toggleChecklist(item.id)}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
+                                                        {isChecked && <Ionicons name="checkmark" size={13} color="#fff" />}
+                                                    </View>
+                                                    <Text style={[
+                                                        styles.checkItemText,
+                                                        isChecked && styles.checkItemTextDone,
+                                                    ]}>
+                                                        {item.text}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
                                 </View>
                             );
                         })}
                     </View>
 
-                    {/* ══════════ BLOCO 8 — O QUE VOCÊ VAI RECEBER ══════════ */}
+                    {/* ══════════ O QUE VOCÊ RECEBEU ══════════ */}
                     {itinerary.receiveList && (
                         <View style={styles.block}>
-                            <Text style={styles.blockTitle}>O que você recebeu</Text>
-                            <View style={styles.receiveCard}>
+                            <SectionTitle icon="gift-outline" label="O que você recebeu" />
+                            <View style={styles.card}>
                                 {itinerary.receiveList.map((item, i) => (
-                                    <View key={i} style={styles.receiveRow}>
-                                        <Text style={styles.receiveIcon}>{item.icon}</Text>
+                                    <View
+                                        key={i}
+                                        style={[
+                                            styles.receiveRow,
+                                            i < itinerary.receiveList!.length - 1 && styles.receiveRowBorder,
+                                        ]}
+                                    >
+                                        <Text style={styles.receiveEmoji}>{item.icon}</Text>
                                         <Text style={styles.receiveLabel}>{item.label}</Text>
-                                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+                                        <View style={styles.receiveCheckCircle}>
+                                            <Ionicons name="checkmark" size={14} color="#fff" />
+                                        </View>
                                     </View>
                                 ))}
                             </View>
                         </View>
                     )}
 
-                    {/* ══════════ BLOCO 9 — AVALIAR ROTEIRO ══════════ */}
+                    {/* ══════════ AVALIAR ESTE ROTEIRO ══════════ */}
                     <View style={styles.block}>
-                        <Text style={styles.blockTitle}>Avaliar este Roteiro</Text>
-                        {reviewed || hasUserReviewed('trav-diego', `itinerary-${id}`) ? (
+                        <SectionTitle icon="star-outline" label="Avaliar este Roteiro" />
+                        {hasUserReviewed('trav-diego', `itinerary-${id}`) ? (
                             <View style={styles.reviewDoneCard}>
                                 <View style={styles.reviewDoneHeader}>
                                     <Icon name="verified" size={20} color={theme.colors.primary} />
@@ -774,11 +775,18 @@ export default function PurchasedItineraryScreen() {
                                     return existing ? (
                                         <>
                                             <View style={styles.reviewDoneStars}>
-                                                {[1,2,3,4,5].map(s => (
-                                                    <Ionicons key={s} name={s <= existing.rating ? 'star' : 'star-outline'} size={18} color="#FFD700" />
+                                                {[1, 2, 3, 4, 5].map(s => (
+                                                    <Ionicons
+                                                        key={s}
+                                                        name={s <= existing.rating ? 'star' : 'star-outline'}
+                                                        size={20}
+                                                        color="#FFD700"
+                                                    />
                                                 ))}
                                             </View>
-                                            <Text style={styles.reviewDoneText} numberOfLines={3}>{existing.text}</Text>
+                                            <Text style={styles.reviewDoneText} numberOfLines={3}>
+                                                {existing.text}
+                                            </Text>
                                         </>
                                     ) : (
                                         <Text style={styles.reviewDoneText}>Avaliação enviada com sucesso!</Text>
@@ -786,459 +794,200 @@ export default function PurchasedItineraryScreen() {
                                 })()}
                             </View>
                         ) : (
-                            <View style={styles.reviewCTACard}>
-                                <LinearGradient
-                                    colors={[theme.colors.primary + '15', theme.colors.primary + '05']}
-                                    style={styles.reviewCTAGradient}
+                            <LinearGradient
+                                colors={theme.colors.gradients.aurora as unknown as [string, string, string]}
+                                style={styles.reviewCTACard}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="chatbubble-ellipses-outline" size={40} color="rgba(255,255,255,0.9)" />
+                                <Text style={styles.reviewCTATitle}>Como foi sua experiência?</Text>
+                                <Text style={styles.reviewCTASub}>
+                                    Sua avaliação ajuda outros viajantes a decidirem.
+                                </Text>
+                                <TouchableOpacity
+                                    style={styles.reviewCTABtn}
+                                    onPress={() => {
+                                        haptics.light();
+                                        router.push({ pathname: '/write-review', params: { itineraryId: id } } as any);
+                                    }}
+                                    activeOpacity={0.85}
                                 >
-                                    <Ionicons name="chatbubble-ellipses-outline" size={36} color={theme.colors.primary} />
-                                    <Text style={styles.reviewCTATitle}>Como foi sua experiência?</Text>
-                                    <Text style={styles.reviewCTASubtitle}>
-                                        Sua avaliação ajuda outros viajantes a decidirem.
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={styles.reviewCTAButton}
-                                        onPress={() => { haptics.light(); router.push({ pathname: '/write-review', params: { itineraryId: id } } as any); }}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Ionicons name="star" size={18} color="#fff" />
-                                        <Text style={styles.reviewCTAButtonText}>Escrever Avaliação</Text>
-                                    </TouchableOpacity>
-                                </LinearGradient>
-                            </View>
+                                    <Ionicons name="star" size={18} color={theme.colors.primary} />
+                                    <Text style={styles.reviewCTABtnText}>Escrever Avaliação</Text>
+                                </TouchableOpacity>
+                            </LinearGradient>
                         )}
                     </View>
 
-                    <View style={{ height: 40 }} />
+                    <View style={{ height: 48 }} />
                 </View>
             </ScrollView>
-
-
         </View>
     );
 }
 
-// ─── STYLES ─────────────────────────────────────────────────
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.colors.background },
-    errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-    errorEmoji: { fontSize: 48, marginBottom: 16 },
-    errorText: { fontSize: 16, color: theme.colors.text.secondary, marginBottom: 20 },
-    errorButton: { backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-    errorButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+// ─── Sub-components ─────────────────────────────────────────
 
-    // ── Block 1: Header
-    headerBlock: { width: '100%', height: 280, position: 'relative' },
-    headerImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-    headerGradient: { ...StyleSheet.absoluteFillObject },
-    navBar: {
-        position: 'absolute', top: 0, left: 0, right: 0,
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingTop: Platform.OS === 'ios' ? 54 : 24, paddingHorizontal: 16,
-    },
-    navBtn: {
-        width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center',
-    },
-    navTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
-    headerInfo: {
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        padding: 20,
-    },
-    headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
-    headerDest: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginBottom: 10 },
-    headerMeta: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    creatorBadge: {
-        flexDirection: 'row', alignItems: 'center', gap: 6,
-        backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-    },
-    creatorAvatar: { fontSize: 18 },
-    creatorName: { fontSize: 13, fontWeight: '600', color: '#fff' },
-    ratingBadge: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-    },
-    ratingText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-    reviewCount: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+function SectionTitle({ icon, label }: { icon: string; label: string }) {
+    return (
+        <View style={stStyles.row}>
+            <View style={stStyles.iconCircle}>
+                <Ionicons name={icon as any} size={16} color={theme.colors.primary} />
+            </View>
+            <Text style={stStyles.title}>{label}</Text>
+        </View>
+    );
+}
 
-    // Download Bar
-    downloadBar: {
-        flexDirection: 'row', alignItems: 'center', gap: 10,
-        paddingVertical: 14, paddingHorizontal: 20,
-        backgroundColor: theme.colors.primary + '10',
-        borderBottomWidth: 1, borderBottomColor: theme.colors.border,
-    },
-    downloadBarText: { flex: 1, fontSize: 14, fontWeight: '600', color: theme.colors.primary },
-
-    // ── Body
-    body: { padding: 20 },
-
-    // ── Block generic
-    block: { marginBottom: 28 },
-    blockTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text.primary, marginBottom: 16 },
-    subTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginTop: 16, marginBottom: 10 },
-
-    // ── Block 1.5: Trip Info
-    tripInfoCard: {
-        backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20,
-        borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    tripInfoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 4 },
-    tripInfoContent: { flex: 1 },
-    tripInfoLabel: { fontSize: 11, fontWeight: '600', color: theme.colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-    tripInfoValue: { fontSize: 14, fontWeight: '600', color: theme.colors.text.primary, lineHeight: 20 },
-    tripInfoDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginVertical: 10 },
-    tripInfoHighlight: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 20 },
-
-    // ── Block 2: Spending
-    experienceBadge: {
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        backgroundColor: theme.colors.primary + '10', paddingHorizontal: 16, paddingVertical: 12,
-        borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.primary + '30',
-    },
-    experienceBadgeIcon: { fontSize: 28 },
-    experienceBadgeLabel: { fontSize: 11, fontWeight: '600', color: theme.colors.text.tertiary, marginBottom: 2 },
-    experienceBadgeValue: { fontSize: 16, fontWeight: '800', color: theme.colors.primary },
-
-    adjustersRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-    adjuster: {
-        flex: 1, backgroundColor: theme.colors.surface, borderRadius: 14, padding: 14,
-        alignItems: 'center', borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    adjusterLabel: { fontSize: 12, fontWeight: '600', color: theme.colors.text.secondary, marginBottom: 8 },
-    adjusterControls: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-    adjusterBtn: {
-        width: 32, height: 32, borderRadius: 16,
-        backgroundColor: theme.colors.primary + '15',
-        alignItems: 'center', justifyContent: 'center',
-    },
-    adjusterValue: { fontSize: 20, fontWeight: '800', color: theme.colors.text.primary, minWidth: 28, textAlign: 'center' },
-
-    totalCard: {
-        backgroundColor: theme.colors.primary + '10', borderRadius: 16, padding: 20,
-        alignItems: 'center', marginBottom: 12,
-        borderWidth: 1, borderColor: theme.colors.primary + '30',
-    },
-    totalLabel: { fontSize: 12, fontWeight: '600', color: theme.colors.text.secondary, marginBottom: 4 },
-    totalAmount: { fontSize: 28, fontWeight: '900', color: theme.colors.primary, marginBottom: 4 },
-    totalDetail: { fontSize: 12, color: theme.colors.text.tertiary },
-
-    breakdownCard: { backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16 },
-    breakdownTitle: { fontSize: 12, fontWeight: '600', color: theme.colors.text.secondary, marginBottom: 12 },
-    breakdownRow: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
-    },
-    breakdownCat: { fontSize: 14, color: theme.colors.text.primary },
-    breakdownVal: { fontSize: 14, fontWeight: '600', color: theme.colors.text.primary },
-    breakdownTotal: { borderBottomWidth: 0, marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.border },
-    breakdownTotalLabel: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary },
-    breakdownTotalVal: { fontSize: 16, fontWeight: '800', color: theme.colors.primary },
-
-    // ── Block 3: Days
-    dayCard: {
-        backgroundColor: theme.colors.surface, borderRadius: 14, marginBottom: 10,
-        overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    dayHeader: {
-        flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12,
-    },
-    dayBadge: {
-        backgroundColor: theme.colors.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    },
-    dayBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-    dayHeaderInfo: { flex: 1 },
-    dayTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
-    daySummary: { fontSize: 12, color: theme.colors.text.secondary, marginTop: 2 },
-    dayContent: { paddingHorizontal: 14, paddingBottom: 14 },
-
-    activityRow: { flexDirection: 'row', marginBottom: 16 },
-    activityTimeline: { width: 24, alignItems: 'center', marginRight: 12 },
-    activityDot: {
-        width: 10, height: 10, borderRadius: 5,
-        backgroundColor: theme.colors.primary, marginTop: 6,
-    },
-    activityLine: {
-        width: 2, flex: 1, backgroundColor: theme.colors.primary + '30', marginTop: 4,
-    },
-    activityContent: { flex: 1 },
-    activityTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-    activityIcon: { fontSize: 16 },
-    activityTime: { fontSize: 13, fontWeight: '700', color: theme.colors.primary },
-    activityDuration: { fontSize: 11, color: theme.colors.text.tertiary, backgroundColor: theme.colors.surface, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    activityTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 2 },
-    activityLocation: { fontSize: 12, color: theme.colors.text.secondary, marginBottom: 4 },
-    activityDesc: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19, marginBottom: 8 },
-
-    tipsContainer: { backgroundColor: '#FFF8E1', borderRadius: 10, padding: 12, marginBottom: 8 },
-    tipsTitle: { fontSize: 12, fontWeight: '700', color: '#F59E0B', marginBottom: 6 },
-    tipText: { fontSize: 12, color: '#92400E', lineHeight: 18 },
-
-    miniMapBtn: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6,
-        backgroundColor: theme.colors.primary + '10', borderRadius: 8,
-    },
-    miniMapText: { fontSize: 12, fontWeight: '600', color: theme.colors.primary },
-
-    dayCostBadge: {
-        flexDirection: 'row', alignItems: 'center', gap: 6,
-        alignSelf: 'flex-start',
-        backgroundColor: theme.colors.primary + '10', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
-    },
-    dayCostText: { fontSize: 12, fontWeight: '600', color: theme.colors.primary },
-
-    // ── Block 4: Map
-    mapCard: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.primary + '20' },
-    mapGradient: { padding: 32, alignItems: 'center' },
-    mapTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.primary, marginTop: 12 },
-    mapSubtitle: { fontSize: 13, color: theme.colors.text.secondary, marginTop: 4, textAlign: 'center' },
-
-    // ── Block 5: Accommodation
-
-    accCard: {
-        backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16, marginBottom: 10,
-        borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    accHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
-    accName: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
-
-    accPriceBadge: { backgroundColor: theme.colors.primary + '15', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-    accPrice: { fontSize: 12, fontWeight: '700', color: theme.colors.primary },
-    accLocation: { fontSize: 13, color: theme.colors.text.secondary, marginBottom: 4 },
-    accDesc: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19 },
-    accRating: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
-    accRatingText: { fontSize: 13, fontWeight: '700', color: '#F59E0B' },
-
-    // ── Block 2.5: Flights
-    flightCard: {
-        backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16, marginBottom: 10,
-        borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    flightHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    flightAirline: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
-    flightPriceBadge: { backgroundColor: theme.colors.success + '15', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-    flightPrice: { fontSize: 12, fontWeight: '700', color: theme.colors.success },
-    flightRoute: { fontSize: 14, fontWeight: '600', color: theme.colors.primary, marginBottom: 8 },
-    flightDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    flightTime: { fontSize: 13, color: theme.colors.text.secondary },
-    flightDuration: { fontSize: 13, color: theme.colors.text.secondary },
-    flightStops: { fontSize: 13, color: theme.colors.text.secondary },
-    flightDate: { fontSize: 12, color: theme.colors.text.secondary, marginBottom: 6 },
-    flightTipsCard: {
-        backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16,
-        borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    flightTip: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 22 },
-
-    // ── Block 6: Transport
-    transportHeader: {
-        backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16, marginBottom: 12,
-        borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    transportMode: { fontSize: 16, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 6 },
-    transportDesc: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 20 },
-
-    passCard: {
-        backgroundColor: theme.colors.surface, borderRadius: 12, padding: 14, marginBottom: 8,
-        borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    passHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-    passName: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary },
-    passPrice: { fontSize: 13, fontWeight: '700', color: theme.colors.primary },
-    passDesc: { fontSize: 12, color: theme.colors.text.secondary, lineHeight: 18 },
-
-    tipsBox: { backgroundColor: theme.colors.surface, borderRadius: 14, padding: 16 },
-    transportTip: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 22 },
-
-    // ── Block 7: Checklist
-    checklistProgress: { fontSize: 13, color: theme.colors.text.secondary, marginBottom: 10 },
-    progressBarBg: {
-        width: '100%', height: 6, borderRadius: 3,
-        backgroundColor: theme.colors.surface, marginBottom: 16,
-    },
-    progressBarFill: {
-        height: 6, borderRadius: 3, backgroundColor: theme.colors.primary,
-    },
-    checkCategory: { marginBottom: 16 },
-    checkCategoryLabel: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 10 },
-    checkItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-    checkbox: {
-        width: 24, height: 24, borderRadius: 6,
-        borderWidth: 2, borderColor: theme.colors.border,
-        alignItems: 'center', justifyContent: 'center',
-    },
-    checkboxChecked: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-    checkItemText: { fontSize: 14, color: theme.colors.text.primary, flex: 1 },
-    checkItemTextDone: { textDecorationLine: 'line-through', color: theme.colors.text.tertiary },
-
-    // ── Block 8: Receive
-    receiveCard: { backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16 },
-    receiveRow: {
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
-    },
-    receiveIcon: { fontSize: 20 },
-    receiveLabel: { flex: 1, fontSize: 14, color: theme.colors.text.primary, fontWeight: '500' },
-
-    // ── Block 9: Review CTA
-    reviewCTACard: {
-        borderRadius: 16, overflow: 'hidden',
-        borderWidth: 1, borderColor: theme.colors.primary + '20',
-    },
-    reviewCTAGradient: {
-        padding: 28, alignItems: 'center',
-    },
-    reviewCTATitle: {
-        fontSize: 18, fontWeight: '800', color: theme.colors.text.primary,
-        marginTop: 12, marginBottom: 6,
-    },
-    reviewCTASubtitle: {
-        fontSize: 13, color: theme.colors.text.secondary,
-        textAlign: 'center', marginBottom: 20, lineHeight: 19,
-    },
-    reviewCTAButton: {
-        flexDirection: 'row', alignItems: 'center', gap: 8,
-        backgroundColor: theme.colors.primary, paddingHorizontal: 24,
-        paddingVertical: 14, borderRadius: 100,
-    },
-    reviewCTAButtonText: {
-        fontSize: 15, fontWeight: '700', color: '#fff',
-    },
-    reviewDoneCard: {
-        backgroundColor: theme.colors.surface, borderRadius: 16,
-        padding: 20, borderWidth: 1, borderColor: theme.colors.borderLight,
-    },
-    reviewDoneHeader: {
-        flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10,
-    },
-    reviewDoneTitle: {
-        fontSize: 15, fontWeight: '700', color: theme.colors.primary,
-    },
-    reviewDoneStars: {
-        flexDirection: 'row', gap: 4, marginBottom: 8,
-    },
-    reviewDoneText: {
-        fontSize: 14, color: theme.colors.text.secondary, lineHeight: 20, marginBottom: 14,
-    },
-    reviewEditBtn: {
-        flexDirection: 'row', alignItems: 'center', gap: 6,
-        alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8,
-        backgroundColor: theme.colors.primary + '10', borderRadius: 10,
-    },
-    reviewEditBtnText: {
-        fontSize: 13, fontWeight: '600', color: theme.colors.primary,
-    },
-
-    // ─── Restaurant Block ───
-    restaurantCard: {
-        backgroundColor: theme.colors.surface,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-        padding: 14,
-        marginBottom: 10,
-    },
-    restaurantHeader: {
+const stStyles = StyleSheet.create({
+    row: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 8,
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 16,
     },
-    restaurantName: {
-        fontSize: 15,
-        fontWeight: '700',
+    iconCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: theme.colors.primary + '18',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    title: {
+        fontSize: 19,
+        fontWeight: '800',
         color: theme.colors.text.primary,
+        letterSpacing: -0.3,
     },
-    cuisineTag: {
-        backgroundColor: theme.colors.primary + '15',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
-    },
-    cuisineTagText: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: theme.colors.primary,
-    },
-    restaurantLocation: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
+});
+
+function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+    return (
+        <View style={irStyles.row}>
+            <View style={irStyles.iconCircle}>
+                <Ionicons name={icon as any} size={15} color={theme.colors.primary} />
+            </View>
+            <View style={irStyles.content}>
+                <Text style={irStyles.label}>{label}</Text>
+                <Text style={irStyles.value}>{value}</Text>
+            </View>
+        </View>
+    );
+}
+
+const irStyles = StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 4 },
+    iconCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: theme.colors.primary + '12',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginTop: 2,
     },
-    restaurantPriceBadge: {
-        backgroundColor: '#F0FFF4',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    restaurantPrice: {
-        fontSize: 11,
+    content: { flex: 1 },
+    label: {
+        fontSize: 10,
         fontWeight: '700',
-        color: '#16A34A',
+        color: theme.colors.text.tertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+        marginBottom: 3,
     },
-    restaurantDesc: {
-        fontSize: 13,
-        color: theme.colors.text.primary,
-        lineHeight: 19,
-        marginBottom: 6,
-    },
-    restaurantHours: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginBottom: 6,
-    },
-    restaurantTipBox: {
-        backgroundColor: '#FFFBEB',
-        borderRadius: 8,
-        padding: 10,
-        marginTop: 4,
-    },
-    restaurantTip: {
-        fontSize: 12,
-        color: '#92400E',
-        lineHeight: 18,
-    },
+    value: { fontSize: 14, fontWeight: '600', color: theme.colors.text.primary, lineHeight: 20 },
+});
 
-    // ─── General Tips Block ───
-    generalTipsSubtitle: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        marginBottom: 12,
-    },
-    generalTipsBox: {
+function AdjusterCard({
+    label,
+    value,
+    onDecrement,
+    onIncrement,
+}: {
+    label: string;
+    value: number;
+    onDecrement: () => void;
+    onIncrement: () => void;
+}) {
+    return (
+        <View style={adjStyles.card}>
+            <Text style={adjStyles.label}>{label}</Text>
+            <View style={adjStyles.controls}>
+                <TouchableOpacity style={adjStyles.btn} onPress={onDecrement} activeOpacity={0.8}>
+                    <Ionicons name="remove" size={18} color="#fff" />
+                </TouchableOpacity>
+                <Text style={adjStyles.value}>{value}</Text>
+                <TouchableOpacity style={adjStyles.btn} onPress={onIncrement} activeOpacity={0.8}>
+                    <Ionicons name="add" size={18} color="#fff" />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+}
+
+const adjStyles = StyleSheet.create({
+    card: {
+        flex: 1,
         backgroundColor: theme.colors.surface,
-        borderRadius: 14,
+        borderRadius: 18,
+        padding: 16,
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
-        padding: 16,
+        ...theme.shadows.small,
     },
-    generalTipRow: {
-        flexDirection: 'row',
-        gap: 10,
-        marginBottom: 10,
+    label: { fontSize: 12, fontWeight: '600', color: theme.colors.text.secondary, marginBottom: 12 },
+    controls: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    btn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...theme.shadows.button,
     },
-    generalTipBullet: {
-        fontSize: 16,
-        color: theme.colors.primary,
-        lineHeight: 22,
-        fontWeight: '700',
-    },
-    generalTipText: {
-        fontSize: 14,
+    value: {
+        fontSize: 24,
+        fontWeight: '900',
         color: theme.colors.text.primary,
-        lineHeight: 22,
-        flex: 1,
+        minWidth: 32,
+        textAlign: 'center',
     },
+});
 
-    // ── Passeios & Atrações
-    blockSubtitle: {
-        fontSize: 13,
-        color: theme.colors.text.tertiary,
-        marginBottom: 14,
-        marginTop: -4,
-    },
-    attractionCard: {
+function FlightCard({ flight }: { flight: any }) {
+    return (
+        <View style={fcStyles.card}>
+            <View style={fcStyles.top}>
+                <Text style={fcStyles.airline}>{flight.airline}</Text>
+                <View style={fcStyles.stopsBadge}>
+                    <Text style={fcStyles.stopsText}>
+                        {flight.stops === 0
+                            ? 'Direto'
+                            : `${flight.stops} parada${flight.stops > 1 ? 's' : ''}`}
+                    </Text>
+                </View>
+            </View>
+            <Text style={fcStyles.route}>
+                {flight.originAirport} → {flight.destinationAirport}
+            </Text>
+            {flight.departureDate && (
+                <Text style={fcStyles.date}>
+                    📅 {flight.departureDate}
+                    {flight.arrivalDate && flight.arrivalDate !== flight.departureDate
+                        ? ` → ${flight.arrivalDate}`
+                        : ''}
+                </Text>
+            )}
+        </View>
+    );
+}
+
+const fcStyles = StyleSheet.create({
+    card: {
         backgroundColor: theme.colors.surface,
         borderRadius: 16,
         padding: 16,
@@ -1247,41 +996,464 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.borderLight,
         ...theme.shadows.small,
     },
-    attractionHeader: {
+    top: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 8,
     },
+    airline: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
+    stopsBadge: {
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    stopsText: { fontSize: 12, fontWeight: '600', color: theme.colors.text.secondary },
+    route: { fontSize: 14, fontWeight: '700', color: theme.colors.primary, marginBottom: 6 },
+    date: { fontSize: 12, color: theme.colors.text.secondary },
+});
+
+// ─── STYLES ─────────────────────────────────────────────────
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+
+    // Error
+    errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+    errorText: { fontSize: 16, color: theme.colors.text.secondary, marginBottom: 20, marginTop: 16 },
+    errorButton: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 100,
+        ...theme.shadows.button,
+    },
+    errorButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+    // ── Hero ──
+    heroBlock: { width: '100%', height: HERO_HEIGHT, position: 'relative' },
+    heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+
+    purchasedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        ...theme.shadows.button,
+    },
+    purchasedBadgeText: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#fff',
+        letterSpacing: 0.5,
+    },
+    navBar: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 54 : 24,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
+    navBtn: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: 'rgba(0,0,0,0.35)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroInfo: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 20,
+        paddingBottom: 22,
+    },
+    heroTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#fff',
+        marginBottom: 8,
+        lineHeight: 30,
+        letterSpacing: -0.3,
+    },
+    heroDestRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginBottom: 14,
+    },
+    heroDest: { fontSize: 13, color: 'rgba(255,255,255,0.85)' },
+    heroDot: { fontSize: 13, color: 'rgba(255,255,255,0.45)', marginHorizontal: 2 },
+    heroMeta: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    creatorPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.25)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    creatorAvatar: { fontSize: 16 },
+    creatorName: { fontSize: 13, fontWeight: '600', color: '#fff' },
+    ratingPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.25)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    ratingText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    reviewCount: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+
+    // ── Download bar ──
+    downloadBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.borderLight,
+    },
+    downloadIconCircle: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: theme.colors.primary + '20',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    downloadBarTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.primary },
+    downloadBarSub: { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 1 },
+
+    // ── Body ──
+    body: { padding: 20 },
+    block: { marginBottom: 32 },
+    blockSubtitle: {
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+        marginTop: -8,
+        marginBottom: 14,
+    },
+
+    // ── Shared card ──
+    card: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.medium,
+    },
+    cardDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginVertical: 14 },
+
+    // Info rows (inside card)
+    infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 4 },
+    infoIconCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: theme.colors.primary + '12',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 2,
+    },
+    infoContent: { flex: 1 },
+    infoLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: theme.colors.text.tertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+        marginBottom: 3,
+    },
+    highlightItem: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 20 },
+
+    // ── Spending ──
+    adjustersRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+
+    totalGradientCard: {
+        borderRadius: 20,
+        padding: 24,
+        alignItems: 'center',
+        marginBottom: 16,
+        ...theme.shadows.large,
+    },
+    totalCardLabel: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.75)', marginBottom: 6 },
+    totalCardAmount: { fontSize: 34, fontWeight: '900', color: '#fff', marginBottom: 6 },
+    totalCardDetail: { fontSize: 12, color: 'rgba(255,255,255,0.65)' },
+
+    breakdownCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    breakdownTitle: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.colors.text.tertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 12,
+    },
+    breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
+    breakdownRowBorder: { borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+    breakdownCat: { fontSize: 14, color: theme.colors.text.primary },
+    breakdownVal: { fontSize: 14, fontWeight: '600', color: theme.colors.text.primary },
+    breakdownTotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingTop: 12,
+        marginTop: 4,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
+    },
+    breakdownTotalLabel: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary },
+    breakdownTotalVal: { fontSize: 16, fontWeight: '800', color: theme.colors.primary },
+
+    // ── Flight ──
+    flightTotalBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        alignSelf: 'flex-start',
+        backgroundColor: theme.colors.success + '18',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        marginBottom: 16,
+    },
+    flightTotalText: { fontSize: 13, fontWeight: '700', color: theme.colors.success },
+    flightLegLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 8,
+        marginTop: 4,
+    },
+    tipsBox: {
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        gap: 8,
+    },
+    tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    tipDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: theme.colors.primary,
+        marginTop: 7,
+    },
+    tipText: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 20, flex: 1 },
+
+    // ── Day accordion ──
+    dayCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 20,
+        marginBottom: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.medium,
+    },
+    dayHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        gap: 12,
+    },
+    dayNumberBadge: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...theme.shadows.button,
+    },
+    dayNumberText: { fontSize: 20, fontWeight: '900', color: '#fff', lineHeight: 22 },
+    dayNumberLabel: { fontSize: 8, fontWeight: '700', color: 'rgba(255,255,255,0.75)', letterSpacing: 0.8 },
+    dayHeaderInfo: { flex: 1 },
+    dayTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
+    daySummary: { fontSize: 12, color: theme.colors.text.secondary, marginTop: 2 },
+    chevronCircle: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.surfaceLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    chevronCircleActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    dayContent: {
+        paddingHorizontal: 14,
+        paddingBottom: 16,
+        paddingTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderLight,
+    },
+
+    // ── Activity timeline ──
+    activityRow: { flexDirection: 'row', marginBottom: 20 },
+    timelineCol: { width: 20, alignItems: 'center', marginRight: 12 },
+    timelineDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: theme.colors.primary,
+        marginTop: 4,
+        borderWidth: 2,
+        borderColor: theme.colors.primary + '35',
+    },
+    timelineLine: {
+        width: 2,
+        flex: 1,
+        marginTop: 4,
+        backgroundColor: theme.colors.primary + '28',
+        borderRadius: 1,
+    },
+    activityContent: { flex: 1 },
+    activityHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+    activityIcon: { fontSize: 16 },
+    activityTime: { fontSize: 13, fontWeight: '700', color: theme.colors.primary },
+    durationChip: {
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    durationText: { fontSize: 10, fontWeight: '600', color: theme.colors.text.tertiary },
+    activityTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 3,
+    },
+    locRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 6 },
+    activityLocation: { fontSize: 12, color: theme.colors.text.tertiary },
+    activityDesc: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 19,
+        marginBottom: 10,
+    },
+    activityTipBox: {
+        backgroundColor: '#FFFBEB',
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 8,
+        borderLeftWidth: 3,
+        borderLeftColor: '#F59E0B',
+    },
+    activityTipTitle: { fontSize: 11, fontWeight: '700', color: '#92400E', marginBottom: 4 },
+    activityTipText: { fontSize: 12, color: '#92400E', lineHeight: 18 },
+    mapBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        backgroundColor: theme.colors.primary + '12',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '28',
+    },
+    mapBtnText: { fontSize: 12, fontWeight: '600', color: theme.colors.primary },
+    outlineBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+    },
+    outlineBtnText: { fontSize: 12, fontWeight: '600', color: theme.colors.primary },
+    actionsRow: { flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' },
+    dayCostBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        alignSelf: 'flex-start',
+        backgroundColor: theme.colors.primary + '10',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        marginTop: 4,
+    },
+    dayCostText: { fontSize: 12, fontWeight: '600', color: theme.colors.primary },
+
+    // ── Accommodation ──
+    accHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
+    accName: { fontSize: 16, fontWeight: '700', color: theme.colors.text.primary, flex: 1 },
+    accPriceBadge: {
+        backgroundColor: theme.colors.primary + '18',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+    },
+    accPrice: { fontSize: 12, fontWeight: '700', color: theme.colors.primary },
+    accLocation: { fontSize: 12, color: theme.colors.text.tertiary },
+    accDesc: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19, marginBottom: 8 },
+    accRating: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
+    accRatingText: { fontSize: 13, fontWeight: '700', color: '#F59E0B' },
+
+    // ── Attractions ──
+    attractionTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
     attractionName: {
         fontSize: 16,
         fontWeight: '700',
         color: theme.colors.text.primary,
-        marginBottom: 6,
+        marginBottom: 4,
     },
-    attractionMeta: {
+    attractionMetaRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
         flexWrap: 'wrap',
     },
-    attractionTypeBadge: {
+    typeBadge: {
         backgroundColor: theme.colors.primary + '18',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 6,
     },
-    attractionTypeText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: theme.colors.primary,
-    },
-    attractionLocation: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        flex: 1,
-    },
-    attractionPriceBadge: {
+    typeBadgeText: { fontSize: 11, fontWeight: '700', color: theme.colors.primary },
+    attractionLocation: { fontSize: 12, color: theme.colors.text.tertiary },
+    priceBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
@@ -1290,21 +1462,12 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: theme.colors.primary + '25',
+        borderColor: theme.colors.primary + '28',
         flexShrink: 0,
     },
-    attractionPrice: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: theme.colors.primary,
-    },
-    attractionInfoRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginBottom: 10,
-        flexWrap: 'wrap',
-    },
-    attractionInfoChip: {
+    priceBadgeText: { fontSize: 12, fontWeight: '700', color: theme.colors.primary },
+    chipsRow: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+    infoChip: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
@@ -1315,48 +1478,231 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
     },
-    attractionInfoText: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        fontWeight: '500',
-    },
+    infoChipText: { fontSize: 12, color: theme.colors.text.secondary, fontWeight: '500' },
     attractionDesc: {
         fontSize: 14,
         color: theme.colors.text.primary,
         lineHeight: 21,
         marginBottom: 10,
     },
-    attractionTipBox: {
-        flexDirection: 'row',
-        gap: 8,
-        alignItems: 'flex-start',
-        backgroundColor: theme.colors.primary + '0D',
-        borderRadius: 10,
-        padding: 10,
+
+    // ── Transport ──
+    transportCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        padding: 16,
         marginBottom: 10,
         borderWidth: 1,
-        borderColor: theme.colors.primary + '1A',
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.small,
     },
-    attractionTip: {
-        fontSize: 13,
-        color: theme.colors.text.primary,
-        lineHeight: 19,
-        flex: 1,
-    },
-    attractionLinkBtn: {
+    transportHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        alignSelf: 'flex-start',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: theme.colors.primary,
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 6,
     },
-    attractionLinkText: {
+    transportName: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, flex: 1 },
+    transportPassTypes: {
         fontSize: 13,
         fontWeight: '600',
         color: theme.colors.primary,
+        marginBottom: 4,
     },
+    transportNotes: { fontSize: 12, color: theme.colors.text.secondary, lineHeight: 18 },
+
+    // ── Restaurants ──
+    restaurantTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 10,
+    },
+    restaurantNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+    restaurantName: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
+    cuisineTag: {
+        backgroundColor: theme.colors.primary + '18',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    cuisineTagText: { fontSize: 11, fontWeight: '600', color: theme.colors.primary },
+    restaurantLocation: { fontSize: 12, color: theme.colors.text.tertiary },
+    greenPriceBadge: {
+        backgroundColor: '#F0FFF4',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    greenPriceText: { fontSize: 11, fontWeight: '700', color: '#16A34A' },
+    restaurantDesc: {
+        fontSize: 13,
+        color: theme.colors.text.primary,
+        lineHeight: 19,
+        marginBottom: 6,
+    },
+    restaurantHours: { fontSize: 12, color: theme.colors.text.secondary, marginBottom: 6 },
+
+    // ── General tips ──
+    tipsAuthor: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginBottom: 12,
+        marginTop: -6,
+    },
+    generalTipsCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.small,
+    },
+    generalTipRow: {
+        flexDirection: 'row',
+        gap: 10,
+        paddingVertical: 12,
+        alignItems: 'flex-start',
+    },
+    generalTipRowBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.borderLight,
+    },
+    tipBulletDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: theme.colors.primary,
+        marginTop: 7,
+    },
+    generalTipText: {
+        fontSize: 14,
+        color: theme.colors.text.primary,
+        lineHeight: 22,
+        flex: 1,
+    },
+
+    // ── Checklist ──
+    progressSection: { marginBottom: 20 },
+    progressLabel: { fontSize: 13, color: theme.colors.text.secondary, marginBottom: 8 },
+    progressBarBg: {
+        width: '100%',
+        height: 7,
+        borderRadius: 4,
+        backgroundColor: theme.colors.borderLight,
+        overflow: 'hidden',
+    },
+    progressBarFill: { height: 7, borderRadius: 4 },
+    checkCategory: { marginBottom: 16 },
+    checkCategoryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 10,
+    },
+    checkCategoryEmoji: { fontSize: 16 },
+    checkCategoryLabel: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary },
+    checkItemsCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        overflow: 'hidden',
+        ...theme.shadows.small,
+    },
+    checkItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        padding: 14,
+    },
+    checkItemBorder: { borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 7,
+        borderWidth: 2,
+        borderColor: theme.colors.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkboxChecked: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    checkItemText: { fontSize: 14, color: theme.colors.text.primary, flex: 1 },
+    checkItemTextDone: {
+        textDecorationLine: 'line-through',
+        color: theme.colors.text.tertiary,
+    },
+
+    // ── Receive list ──
+    receiveRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingVertical: 12,
+    },
+    receiveRowBorder: { borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+    receiveEmoji: { fontSize: 22, width: 30, textAlign: 'center' },
+    receiveLabel: { flex: 1, fontSize: 14, color: theme.colors.text.primary, fontWeight: '500' },
+    receiveCheckCircle: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    // ── Review ──
+    reviewDoneCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.medium,
+    },
+    reviewDoneHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    reviewDoneTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.primary },
+    reviewDoneStars: { flexDirection: 'row', gap: 4, marginBottom: 10 },
+    reviewDoneText: { fontSize: 14, color: theme.colors.text.secondary, lineHeight: 20 },
+
+    reviewCTACard: {
+        borderRadius: 24,
+        padding: 28,
+        alignItems: 'center',
+        ...theme.shadows.large,
+    },
+    reviewCTATitle: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#fff',
+        marginTop: 14,
+        marginBottom: 6,
+    },
+    reviewCTASub: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.7)',
+        textAlign: 'center',
+        lineHeight: 19,
+        marginBottom: 20,
+    },
+    reviewCTABtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#fff',
+        paddingHorizontal: 28,
+        paddingVertical: 14,
+        borderRadius: 100,
+        ...theme.shadows.large,
+    },
+    reviewCTABtnText: { fontSize: 15, fontWeight: '700', color: theme.colors.primary },
 });

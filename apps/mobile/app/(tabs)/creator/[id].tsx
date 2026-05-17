@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '../../src/theme/theme';
-import { getCreatorById } from '../../src/services/api';
-import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
-import { Icon } from '../../src/components/common/Icons';
+import { theme } from '../../../src/theme/theme';
+import { getCreatorById } from '../../../src/services/api';
+import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
+import { Icon } from '../../../src/components/common/Icons';
 import { Alert } from 'react-native';
-import { shareService } from '../../src/services/sharing';
-import { haptics } from '../../src/services/haptics';
+import { shareService } from '../../../src/services/sharing';
+import { haptics } from '../../../src/services/haptics';
 
 export default function CreatorDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();

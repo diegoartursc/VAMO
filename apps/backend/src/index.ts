@@ -16,6 +16,8 @@ import salesRoutes from './routes/sales';
 import flightQuoteRoutes from './routes/flight-quotes';
 import agencyDocRoutes from './routes/agency-documents';
 import auditLogsRoutes from './routes/audit-logs';
+import ratesRoutes from './routes/rates';
+import uploadsRoutes from './routes/uploads';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +41,7 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
 const DEFAULT_DEV_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:3030', // Claude Preview worktree
     'http://localhost:8081', // Expo web
     'http://localhost:19006', // Expo Go
 ];
@@ -89,6 +92,8 @@ app.use('/api/sales', salesRoutes);
 app.use('/api/quotes', flightQuoteRoutes);
 app.use('/api/agency-docs', agencyDocRoutes);
 app.use('/api/admin/audit-logs', auditLogsRoutes);
+app.use('/api/rates', ratesRoutes);
+app.use('/api/uploads', uploadsRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

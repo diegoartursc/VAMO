@@ -13,22 +13,22 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../src/theme/theme';
-import { getItineraryById } from '../../src/services/api';
-import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../src/data/mockReviews';
+import { theme } from '../../../src/theme/theme';
+import { getItineraryById, getCurrencyRates } from '../../../src/services/api';
+import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../../src/data/mockReviews';
 import { Alert, Linking, Share } from 'react-native';
-import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
-import CollapsibleSection from '../../src/components/common/CollapsibleSection';
-import PremiumReviewsSection from '../../src/components/reviews/PremiumReviewsSection';
-import { shareService } from '../../src/services/sharing';
-import { haptics } from '../../src/services/haptics';
-import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
-import { Icon } from '../../src/components/common/Icons';
-import { CoverCarousel } from '../../src/components/common/CoverCarousel';
+import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
+import CollapsibleSection from '../../../src/components/common/CollapsibleSection';
+import PremiumReviewsSection from '../../../src/components/reviews/PremiumReviewsSection';
+import { shareService } from '../../../src/services/sharing';
+import { haptics } from '../../../src/services/haptics';
+import { ITINERARY_INCLUSIONS } from '../../../src/data/itineraryInclusions';
+import { Icon } from '../../../src/components/common/Icons';
+import { CoverCarousel } from '../../../src/components/common/CoverCarousel';
 import { LinearGradient } from 'expo-linear-gradient';
-import FAQSection from '../../src/components/FAQSection';
-import { getItineraryFAQ } from '../../src/data/mockFAQ';
-import { PurchaseSuccessModal } from '../../src/components/modals/PurchaseSuccessModal';
+import FAQSection from '../../../src/components/FAQSection';
+import { getItineraryFAQ } from '../../../src/data/mockFAQ';
+import { PurchaseSuccessModal } from '../../../src/components/modals/PurchaseSuccessModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,11 +38,21 @@ export default function ItineraryDetailScreen() {
     const [itinerary, setItinerary] = useState<any>(null);
     const [showBuyOptions, setShowBuyOptions] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
+    const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
     const reviews = getReviewsByPackageId(`itinerary-${id}`);
 
     useEffect(() => {
         getItineraryById(id).then(setItinerary).catch(console.error);
+        getCurrencyRates().then(setCurrencyRates).catch(console.error);
     }, [id]);
+
+    /** Converte valor em qualquer moeda para BRL formatado, usando taxas do admin */
+    const toBRL = (value: string | number, currency: string): string => {
+        const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+        if (n <= 0) return 'R$ 0';
+        const brl = currency === 'BRL' ? n : n * (currencyRates[currency] ?? 1);
+        return brl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    };
 
     if (!itinerary) {
         return (
@@ -146,11 +156,40 @@ export default function ItineraryDetailScreen() {
 
                     {/* Title & Location */}
                     <Text style={styles.title}>{itinerary.title}</Text>
-                    <View style={styles.locationRow}>
-                        <Ionicons name="location" size={16} color={theme.colors.primary} />
-                        <Text style={styles.location}>
-                            {itinerary.destination}, {itinerary.country}
-                        </Text>
+                    <View style={[styles.locationRow, { flexWrap: 'wrap', gap: 10 }]}>
+                        {(() => {
+                            const parts: string[] = [];
+                            // Main location
+                            if (itinerary.country && itinerary.destination) parts.push(`${itinerary.country} (${itinerary.destination})`);
+                            else if (itinerary.country) parts.push(itinerary.country);
+                            else if (itinerary.destination) parts.push(itinerary.destination);
+                            // Structured extra locations (new format)
+                            if (itinerary.locations && Array.isArray(itinerary.locations) && itinerary.locations.length > 0) {
+                                itinerary.locations.forEach((loc: { country: string; cities: string[] }) => {
+                                    if (!loc.country && (!loc.cities || loc.cities.length === 0)) return;
+                                    const citiesStr = (loc.cities || []).filter(Boolean).join(", ");
+                                    if (loc.country && citiesStr) parts.push(`${loc.country} (${citiesStr})`);
+                                    else if (loc.country) parts.push(loc.country);
+                                    else if (citiesStr) parts.push(citiesStr);
+                                });
+                            } else {
+                                // Legacy flat arrays fallback
+                                const maxLen = Math.max((itinerary.extraCountries || []).length, (itinerary.extraCities || []).length);
+                                for (let i = 0; i < maxLen; i++) {
+                                    const c = (itinerary.extraCountries || [])[i];
+                                    const d = (itinerary.extraCities || [])[i];
+                                    if (c && d) parts.push(`${c} (${d})`);
+                                    else if (c) parts.push(c);
+                                    else if (d) parts.push(d);
+                                }
+                            }
+                            return parts.map((part, index) => (
+                                <View key={index} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Ionicons name="location" size={16} color={theme.colors.primary} />
+                                    <Text style={styles.location}>{part}</Text>
+                                </View>
+                            ));
+                        })()}
                     </View>
 
                     {/* Stats Row */}
@@ -204,74 +243,143 @@ export default function ItineraryDetailScreen() {
                         </Text>
                     </View>
 
+                    {/* Aviso: Acesso Offline */}
+                    <View style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 10,
+                        backgroundColor: 'rgba(40, 201, 191, 0.08)', borderRadius: 12,
+                        padding: 14, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.colors.primary,
+                    }}>
+                        <Ionicons name="cloud-offline-outline" size={20} color={theme.colors.primary} />
+                        <Text style={{ flex: 1, fontSize: 13, color: theme.colors.text, lineHeight: 18 }}>
+                            <Text style={{ fontWeight: '700', color: theme.colors.primary }}>100% Offline</Text>
+                            {' — '}Após a compra, o roteiro fica disponível para consulta mesmo sem conexão com a internet.
+                        </Text>
+                    </View>
+
                     {/* Estimativa de Gasto */}
                     {itinerary.estimatedSpending && (
-                        <CollapsibleSection title="Estimativa de Gasto" defaultExpanded={false}>
-                            {/* Total Range Card */}
-                            <LinearGradient
-                                colors={['#1A3263', '#1E4D8C']}
-                                style={styles.spendingTotalCard}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <View>
-                                    <Text style={styles.spendingTotalLabel}>Estimativa total · {itinerary.duration} dias</Text>
-                                    <Text style={styles.spendingTotalRange}>
-                                        {itinerary.estimatedSpending.currency === 'BRL' ? 'R$' : itinerary.estimatedSpending.currency}{' '}
-                                        {itinerary.estimatedSpending.min.toLocaleString('pt-BR')} — {itinerary.estimatedSpending.max.toLocaleString('pt-BR')}
-                                    </Text>
-                                    {itinerary.estimatedSpending.flightDeparture && (
-                                        <View style={styles.flightDepartureRow}>
-                                            <Icon name="plane" size={12} color="rgba(255,255,255,0.7)" />
-                                            <Text style={styles.flightDepartureText}>
-                                                Voo saindo de {itinerary.estimatedSpending.flightDeparture}
+                        <CollapsibleSection title="Estimativa de Gastos por Pessoa" defaultExpanded={false}>
+                            {(() => {
+                                const sp = itinerary.estimatedSpending;
+                                // Novo formato: manualEntries com moeda original → converte para BRL dinamicamente
+                                const manualEntries: any[] = (sp.manualEntries || []).filter(
+                                    (e: any) => parseFloat(e.priceValue) > 0
+                                );
+                                const hasManual = manualEntries.length > 0;
+
+                                // Labels e ícones por moduleKey
+                                const MODULE_LABELS: Record<string, string> = {
+                                    voo: 'Passagem Aérea', hospedagem: 'Hospedagem',
+                                    passeios: 'Passeios & Atrações', transporte: 'Transporte Local',
+                                    restaurantes: 'Alimentação', extras: 'Outros Gastos',
+                                };
+                                const MODULE_ICONS: Record<string, string> = {
+                                    voo: 'plane', hospedagem: 'hotel', passeios: 'compass',
+                                    transporte: 'car', restaurantes: 'utensils', extras: 'star',
+                                };
+
+                                // Total BRL calculado na hora (usando taxas do admin)
+                                const totalBRL = hasManual
+                                    ? manualEntries.reduce((sum: number, e: any) => {
+                                          const n = parseFloat(e.priceValue) || 0;
+                                          const rate = e.priceCurrency === 'BRL' ? 1 : (currencyRates[e.priceCurrency] ?? 1);
+                                          return sum + n * rate;
+                                      }, 0)
+                                    : (sp.max || sp.min || 0);
+
+                                const totalFormatted = totalBRL > 0
+                                    ? totalBRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+                                    : null;
+
+                                return (
+                                    <>
+                                        {/* Total Card */}
+                                        {totalFormatted && (
+                                            <LinearGradient
+                                                colors={['#1A3263', '#1E4D8C']}
+                                                style={styles.spendingTotalCard}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 1 }}
+                                            >
+                                                <View>
+                                                    <Text style={styles.spendingTotalLabel}>Estimativa total por pessoa · {itinerary.duration} dias</Text>
+                                                    <Text style={styles.spendingTotalRange}>{totalFormatted}</Text>
+                                                    {sp.flightDeparture && (
+                                                        <View style={styles.flightDepartureRow}>
+                                                            <Icon name="plane" size={12} color="rgba(255,255,255,0.7)" />
+                                                            <Text style={styles.flightDepartureText}>
+                                                                Voo saindo de {sp.flightDeparture}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                <Text style={styles.spendingTotalNote}>*valores aproximados</Text>
+                                            </LinearGradient>
+                                        )}
+
+                                        {/* Itens por categoria — novo formato (manualEntries) */}
+                                        {hasManual && (
+                                            <View style={styles.spendingBreakdown}>
+                                                {manualEntries.map((e: any, index: number) => (
+                                                    <View key={index} style={styles.breakdownItem}>
+                                                        <View style={styles.breakdownIconWrap}>
+                                                            <Icon name={MODULE_ICONS[e.moduleKey] || 'star'} size={18} color={theme.colors.primary} />
+                                                        </View>
+                                                        <View style={styles.breakdownContent}>
+                                                            <Text style={styles.breakdownCategory}>
+                                                                {MODULE_LABELS[e.moduleKey] || e.label || e.moduleKey}
+                                                            </Text>
+                                                        </View>
+                                                        <View style={styles.breakdownAmountBadge}>
+                                                            <Text style={styles.breakdownAmount}>
+                                                                {toBRL(e.priceValue, e.priceCurrency)}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        )}
+
+                                        {/* Fallback: formato antigo (breakdown) */}
+                                        {!hasManual && sp.breakdown && (
+                                            <View style={styles.spendingBreakdown}>
+                                                {sp.breakdown.map((item: any, index: number) => {
+                                                    const cleanCategory = item.category.replace(/^[\p{Emoji}\s]+/u, '').trim();
+                                                    const catLower = cleanCategory.toLowerCase();
+                                                    const iconName: any =
+                                                        catLower.includes('hosped') || catLower.includes('hotel') ? 'hotel' :
+                                                        catLower.includes('aliment') || catLower.includes('comida') ? 'utensils' :
+                                                        catLower.includes('transport') ? 'car' :
+                                                        catLower.includes('voo') || catLower.includes('passagem') ? 'plane' :
+                                                        catLower.includes('atra') || catLower.includes('tour') ? 'compass' : 'star';
+                                                    return (
+                                                        <View key={index} style={styles.breakdownItem}>
+                                                            <View style={styles.breakdownIconWrap}>
+                                                                <Icon name={iconName} size={18} color={theme.colors.primary} />
+                                                            </View>
+                                                            <View style={styles.breakdownContent}>
+                                                                <Text style={styles.breakdownCategory}>{cleanCategory}</Text>
+                                                                <Text style={styles.breakdownDescription}>{item.description}</Text>
+                                                            </View>
+                                                            <View style={styles.breakdownAmountBadge}>
+                                                                <Text style={styles.breakdownAmount}>{item.amount}</Text>
+                                                            </View>
+                                                        </View>
+                                                    );
+                                                })}
+                                            </View>
+                                        )}
+
+                                        {/* Disclaimer */}
+                                        <View style={styles.spendingDisclaimer}>
+                                            <Icon name="info" size={15} color={theme.colors.text.tertiary} />
+                                            <Text style={styles.disclaimerText}>
+                                                Valores estimados em R$ conforme cotação atual. Podem variar por época do ano e estilo de viagem.
                                             </Text>
                                         </View>
-                                    )}
-                                </View>
-                                <Text style={styles.spendingTotalNote}>*valores aproximados</Text>
-                            </LinearGradient>
-
-                            {/* Breakdown Items */}
-                            {itinerary.estimatedSpending.breakdown && (
-                                <View style={styles.spendingBreakdown}>
-                                    {itinerary.estimatedSpending.breakdown.map((item: any, index: number) => {
-                                        // Strip leading emoji from category name
-                                        const cleanCategory = item.category.replace(/^[\p{Emoji}\s]+/u, '').trim();
-                                        // Map category to icon
-                                        const catLower = cleanCategory.toLowerCase();
-                                        const iconName: any =
-                                            catLower.includes('hosped') || catLower.includes('hotel') ? 'hotel' :
-                                            catLower.includes('aliment') || catLower.includes('comida') || catLower.includes('gastro') ? 'utensils' :
-                                            catLower.includes('transport') ? 'car' :
-                                            catLower.includes('voo') || catLower.includes('passagem') ? 'plane' :
-                                            catLower.includes('atra') || catLower.includes('tour') ? 'compass' :
-                                            'star';
-                                        return (
-                                            <View key={index} style={styles.breakdownItem}>
-                                                <View style={styles.breakdownIconWrap}>
-                                                    <Icon name={iconName} size={18} color={theme.colors.primary} />
-                                                </View>
-                                                <View style={styles.breakdownContent}>
-                                                    <Text style={styles.breakdownCategory}>{cleanCategory}</Text>
-                                                    <Text style={styles.breakdownDescription}>{item.description}</Text>
-                                                </View>
-                                                <View style={styles.breakdownAmountBadge}>
-                                                    <Text style={styles.breakdownAmount}>{item.amount}</Text>
-                                                </View>
-                                            </View>
-                                        );
-                                    })}
-                                </View>
-                            )}
-
-                            {/* Disclaimer */}
-                            <View style={styles.spendingDisclaimer}>
-                                <Icon name="info" size={15} color={theme.colors.text.tertiary} />
-                                <Text style={styles.disclaimerText}>
-                                    Valores estimados podem variar conforme época do ano e estilo de viagem
-                                </Text>
-                            </View>
+                                    </>
+                                );
+                            })()}
                         </CollapsibleSection>
                     )}
 

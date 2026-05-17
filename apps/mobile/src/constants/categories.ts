@@ -10,28 +10,27 @@ export const CATEGORIES = [
     { id: 'relax', icon: 'coffee', label: 'Relax' },
     { id: 'praia', icon: 'sun', label: 'Praia' },
     { id: 'historico', icon: 'book-open', label: 'Histórico' },
+    { id: 'festivais', icon: 'party-popper', label: 'Festivais' },
+    { id: 'mochilao', icon: 'backpack', label: 'Mochilão' },
+    { id: 'familia', icon: 'users', label: 'Família' },
+    { id: 'romantico', icon: 'heart', label: 'Romântico' },
+    { id: 'aventura', icon: 'mountain', label: 'Aventura' },
 ] as const;
 
 export type CategoryId = typeof CATEGORIES[number]['id'];
 
-// Intent categories for travel style filter
+// Intent categories — budget/style filter (financial focus only)
 // VAMO 2.0: field renamed from 'emoji' → 'icon'
 export const INTENT_CATEGORIES = [
-    { id: 'luxo', icon: 'gem', label: 'Luxo' },
     { id: 'economico', icon: 'piggy-bank', label: 'Econômico' },
-    { id: 'mochilao', icon: 'backpack', label: 'Mochilão' },
-    { id: 'familia', icon: 'users', label: 'Família' },
-    { id: 'romantico', icon: 'heart', label: 'Romântico' },
-    { id: 'aventura', icon: 'globe', label: 'Aventura' },
+    { id: 'moderado', icon: 'wallet', label: 'Moderado' },
+    { id: 'luxo', icon: 'gem', label: 'Luxo' },
 ] as const;
 
 export const INTENT_FEEDBACK: Record<string, string> = {
-    'luxo': 'Mostrando viagens com foco em conforto e exclusividade',
     'economico': 'Mostrando viagens com melhor custo-benefício',
-    'mochilao': 'Mostrando viagens para quem curte viajar com pouco e explorar bastante',
-    'familia': 'Mostrando viagens perfeitas para curtir com a família',
-    'romantico': 'Mostrando viagens românticas para casais',
-    'aventura': 'Mostrando viagens repletas de aventura e adrenalina',
+    'moderado': 'Mostrando viagens com equilíbrio entre custo e conforto',
+    'luxo': 'Mostrando viagens com foco em conforto e exclusividade',
 };
 
 // Duration quick chips

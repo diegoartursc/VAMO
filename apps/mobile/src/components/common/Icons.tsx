@@ -77,6 +77,7 @@ import {
     Download,
     RefreshCw,
     ShoppingCart,
+    PartyPopper,
 } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 
@@ -94,7 +95,7 @@ export type IconName =
     | 'users' | 'circle-user' | 'bell' | 'edit' | 'lock'
     | 'book-open' | 'briefcase' | 'backpack' | 'more-horizontal'
     | 'palette' | 'trash' | 'clipboard-list' | 'message-circle'
-    | 'eye' | 'download' | 'refresh' | 'shopping-cart';
+    | 'eye' | 'download' | 'refresh' | 'shopping-cart' | 'party-popper';
 
 interface IconProps {
     name: IconName;
@@ -190,6 +191,7 @@ const ICON_MAP: Record<string, any> = {
     download: Download,
     refresh: RefreshCw,
     'shopping-cart': ShoppingCart,
+    'party-popper': PartyPopper,
 };
 
 export const Icon: React.FC<IconProps> = ({

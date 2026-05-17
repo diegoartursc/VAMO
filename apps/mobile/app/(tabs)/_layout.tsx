@@ -72,6 +72,30 @@ export default function TabsLayout() {
                         title: 'Pacotes',
                     }}
                 />
+                <Tabs.Screen
+                    name="itinerary/[id]"
+                    options={{
+                        href: null,
+                        title: 'Experiência Completa',
+                        headerShown: false,
+                    }}
+                />
+                <Tabs.Screen
+                    name="package/[id]"
+                    options={{
+                        href: null,
+                        title: 'Detalhes do Pacote',
+                        headerShown: true,
+                    }}
+                />
+                <Tabs.Screen
+                    name="creator/[id]"
+                    options={{
+                        href: null,
+                        title: 'Perfil do Criador',
+                        headerShown: true,
+                    }}
+                />
             </Tabs>
         </SearchProvider>
     );
