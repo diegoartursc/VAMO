@@ -36,6 +36,20 @@ router.get('/', async (req: Request, res: Response) => {
     }
 });
 
+// GET /api/creators/by-traveler/:travelerId — resolve creatorId a partir do travelerId
+router.get('/by-traveler/:travelerId', async (req: Request, res: Response) => {
+    try {
+        const creator = await (prisma.creator as any).findUnique({
+            where: { travelerId: req.params.travelerId },
+            select: { id: true, travelerId: true, verificationLevel: true },
+        });
+        if (!creator) { res.status(404).json({ error: 'Creator not found for this traveler' }); return; }
+        res.json({ id: creator.id, travelerId: creator.travelerId, verificationLevel: creator.verificationLevel });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch creator' });
+    }
+});
+
 // GET /api/creators/:id
 router.get('/:id', async (req: Request, res: Response) => {
     try {

@@ -10,6 +10,10 @@ const travelerRegisterSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
+    // Campos opcionais — quando presentes, cria também um Creator vinculado
+    profileName: z.string().min(2).optional(),
+    cpf: z.string().optional(),
+    phone: z.string().optional(),
 });
 
 const travelerLoginSchema = z.object({
@@ -43,15 +47,33 @@ router.post('/register', async (req: Request, res: Response) => {
         // Hash password
         const passwordHash = await hashPassword(validatedData.password);
 
-        // Create traveler
-        const traveler = await prisma.traveler.create({
-            data: {
-                name: validatedData.name,
-                email: validatedData.email,
-                passwordHash,
-                authProvider: 'EMAIL',
-            },
+        // Create traveler + creator em transação
+        const result = await prisma.$transaction(async (tx) => {
+            const traveler = await tx.traveler.create({
+                data: {
+                    name: validatedData.name,
+                    email: validatedData.email,
+                    passwordHash,
+                    authProvider: 'EMAIL',
+                },
+            });
+
+            // Se profileName veio no payload → também cria Creator
+            let creator: { id: string } | null = null;
+            if (validatedData.profileName) {
+                creator = await (tx.creator as any).create({
+                    data: {
+                        travelerId: traveler.id,
+                        bio: validatedData.profileName,
+                        verificationLevel: 'BASIC',
+                    },
+                    select: { id: true },
+                });
+            }
+            return { traveler, creator };
         });
+
+        const { traveler, creator } = result;
 
         // Generate tokens
         const accessToken = generateAccessToken({
@@ -63,13 +85,17 @@ router.post('/register', async (req: Request, res: Response) => {
             email: traveler.email,
         });
 
+        console.log('[traveler-auth.register]', { travelerId: traveler.id, creatorId: creator?.id, email: traveler.email });
+
         res.json({
             message: 'Traveler registered successfully',
             traveler: {
                 id: traveler.id,
                 name: traveler.name,
                 email: traveler.email,
+                avatar: traveler.avatar,
             },
+            creator: creator ? { id: creator.id } : null,
             accessToken,
             refreshToken,
         });

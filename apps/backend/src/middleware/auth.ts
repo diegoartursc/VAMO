@@ -7,6 +7,10 @@ export interface AuthRequest extends Request {
         employeeId: string;
         email: string;
     };
+    traveler?: {
+        travelerId: string;
+        email: string;
+    };
 }
 
 export const authMiddleware = (
@@ -53,8 +57,14 @@ export const optionalAuthMiddleware = (
         if (authHeader?.startsWith('Bearer ')) {
             const token = authHeader.substring(7);
             const decoded = verifyToken(token);
-            if (decoded && typeof decoded !== 'string' && (decoded as any).agencyId) {
-                req.agency = decoded as { agencyId: string; employeeId: string; email: string };
+            if (decoded && typeof decoded !== 'string') {
+                const payload = decoded as any;
+                if (payload.agencyId) {
+                    req.agency = payload as { agencyId: string; employeeId: string; email: string };
+                }
+                if (payload.travelerId) {
+                    req.traveler = { travelerId: payload.travelerId, email: payload.email };
+                }
             }
         }
     } catch { /* ignore — proceed anonymously */ }

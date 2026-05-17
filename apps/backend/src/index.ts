@@ -42,6 +42,7 @@ const DEFAULT_DEV_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3030', // Claude Preview worktree
+    'http://localhost:3033', // Site dashboard (worktree)
     'http://localhost:8081', // Expo web
     'http://localhost:19006', // Expo Go
 ];

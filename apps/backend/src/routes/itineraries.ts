@@ -89,17 +89,25 @@ router.get('/featured', async (req: Request, res: Response) => {
 // ─── DASHBOARD STATS ───
 // GET /api/itineraries/dashboard/stats
 // NOTE: Must be registered BEFORE /:id to avoid being caught by the catch-all param
-router.get('/dashboard/stats', async (req: Request, res: Response) => {
+router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
         let { creatorId } = req.query as { creatorId?: string };
-        // MVP "no-login": se nenhum creatorId for passado, usa o primeiro creator
-        // (mesmo fallback usado pelo POST /api/itineraries). Garante consistência
-        // entre criação e listagem do dashboard.
-        if (!creatorId) {
-            const fallback = await prisma.creator.findFirst({ orderBy: { createdAt: 'asc' } });
-            creatorId = fallback?.id;
+
+        // Resolução do creatorId em ordem:
+        // 1. creatorId explícito na query
+        // 2. travelerId do token JWT → resolve creator vinculado
+        // SEM fallback para "primeiro creator" (causa do bug do Diego!)
+        if (!creatorId && req.traveler?.travelerId) {
+            const myCreator = await (prisma.creator as any).findUnique({
+                where: { travelerId: req.traveler.travelerId },
+                select: { id: true },
+            });
+            creatorId = myCreator?.id;
+            console.log('[dashboard/stats] resolved creatorId from token:', { travelerId: req.traveler.travelerId, creatorId });
         }
+
         if (!creatorId) {
+            console.log('[dashboard/stats] no creatorId resolved — returning empty stats');
             res.json({
                 totalRevenue: 0, totalSales: 0, averageRating: 0, totalReviews: 0,
                 activeItineraries: 0, totalItineraries: 0, itineraries: [],
@@ -378,19 +386,25 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
             return;
         }
 
-        // Resolve creator: try supplied id, otherwise fall back to first creator in DB.
-        // This makes the MVP "no-login" dashboard work even if the supplied id doesn't exist.
+        // Resolve creator em ordem:
+        // 1. creatorId enviado explicitamente no body
+        // 2. travelerId do token JWT → busca creator vinculado
+        // SEM fallback para "primeiro creator" (causa o bug do Diego)
         let resolvedCreatorId: string | null = null;
         if (creatorId) {
             const existing = await prisma.creator.findUnique({ where: { id: creatorId } });
             if (existing) resolvedCreatorId = existing.id;
         }
-        if (!resolvedCreatorId) {
-            const fallback = await prisma.creator.findFirst({ orderBy: { createdAt: 'asc' } });
-            resolvedCreatorId = fallback?.id || null;
+        if (!resolvedCreatorId && req.traveler?.travelerId) {
+            const myCreator = await (prisma.creator as any).findUnique({
+                where: { travelerId: req.traveler.travelerId },
+                select: { id: true },
+            });
+            resolvedCreatorId = myCreator?.id || null;
+            console.log('[POST /itineraries] creator resolved from token:', { travelerId: req.traveler.travelerId, creatorId: resolvedCreatorId });
         }
         if (!resolvedCreatorId) {
-            res.status(400).json({ error: 'No creator account available. Please seed at least one creator before submitting an itinerary.' });
+            res.status(401).json({ error: 'Faça login como criador para publicar roteiros.' });
             return;
         }
 
