@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getDashboardStats, deleteItinerary, type DashboardItinerary } from "../../../lib/api";
+import { getTravelerSession } from "../../../lib/auth";
 
 /* ── Status config (SVG only, no emojis) ── */
 const STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
@@ -90,7 +91,9 @@ export default function RoteirosPage() {
     const loadData = () => {
         setLoading(true);
         setError(null);
-        getDashboardStats()
+        const traveler = getTravelerSession();
+        const creatorId = traveler?.creatorId ?? undefined;
+        getDashboardStats(creatorId)
             .then(s => {
                 const sorted = [...(s.itineraries || [])].sort((a, b) => {
                     const pa = STATUS_PRIORITY[a.status] ?? 99;

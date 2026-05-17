@@ -2,10 +2,17 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/backend"],
+      "port": 3333,
+      "autoPort": false
+    },
+    {
       "name": "site",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "apps/site"],
-      "port": 3000,
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/site", "--", "-p", "3033"],
+      "port": 3033,
       "autoPort": false
     },
     {
