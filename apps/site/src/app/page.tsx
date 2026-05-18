@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HeroSection from "@/components/HeroSection";
+import GlobalHeader from "@/components/GlobalHeader";
 
 // ─── SVG Icons (inline, Lucide-style) ───────────────────
 const IconCheck = () => (
@@ -86,6 +87,9 @@ const IconGlobe = () => (
 export default function Home() {
   return (
     <>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <GlobalHeader variant="transparent" />
+      </div>
       <HeroSection />
 
       {/* ═══ TRUST BAR ═══ */}
