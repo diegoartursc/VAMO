@@ -189,6 +189,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* Footer */}
                 <div className="dash-sidebar-section-label">CONTA</div>
 
+                <Link href="/perfil" className="dash-sidebar-link">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 12H5 M12 19l-7-7 7-7" />
+                    </svg>
+                    <span>Voltar ao perfil</span>
+                </Link>
+
                 <Link href="/dashboard/configuracoes" className={`dash-sidebar-link ${isActive("/dashboard/configuracoes") ? "active" : ""}`}>
                     {ICONS.settings}
                     <span>Configurações</span>

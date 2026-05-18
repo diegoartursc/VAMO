@@ -47,7 +47,7 @@ export default function CadastroPage() {
                 email: form.email,
                 password: form.password,
             });
-            router.push("/dashboard");
+            router.push("/perfil");
         } catch (err: any) {
             setError(err.message || "Erro ao cadastrar");
         } finally {

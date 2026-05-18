@@ -315,6 +315,52 @@ export function getCurrentCreatorId(): string | null {
     return t?.creatorId ?? null;
 }
 
+// ─── Unified User (Airbnb-style, multi-role) ───
+export type UserRole = 'TRAVELER' | 'CREATOR' | 'ADMIN';
+
+export interface CurrentUser {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+    roles: UserRole[];
+    creatorId: string | null;
+}
+
+/**
+ * Retorna o usuário logado unificado, com lista de roles.
+ * Um mesmo usuário pode ser TRAVELER + CREATOR (e futuramente + ADMIN).
+ * Null se não houver sessão.
+ */
+export function getCurrentUser(): CurrentUser | null {
+    if (typeof window === 'undefined') return null;
+    const t = getTravelerSession();
+    if (t) {
+        const roles: UserRole[] = ['TRAVELER'];
+        if (t.creatorId) roles.push('CREATOR');
+        return {
+            id: t.travelerId,
+            name: t.name,
+            email: t.email,
+            avatar: t.avatar,
+            roles,
+            creatorId: t.creatorId,
+        };
+    }
+    const a = getAgencySessionRaw();
+    if (a) {
+        return {
+            id: a.employee.id,
+            name: a.employee.name,
+            email: a.employee.email,
+            avatar: null,
+            roles: ['CREATOR'],
+            creatorId: null,
+        };
+    }
+    return null;
+}
+
 /**
  * Helper: retorna o nome do usuário atualmente logado, ou null se não houver sessão.
  * NUNCA retorna "Diego Artur" fixo.
