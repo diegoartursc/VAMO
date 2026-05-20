@@ -1,10 +1,7 @@
 /**
- * VAMO API Service — Gateway to backend database
- * Tries real API first, falls back to mock data when API is unavailable
+ * VAMO API Service — Gateway to backend database.
+ * Sem fallbacks de mock: retorna apenas dados reais do backend.
  */
-import { mockPackages } from '../data/mockPackages';
-import { mockItineraries } from '../data/mockItineraries';
-import { mockCreators, getFeaturedCreators as mockFeaturedCreators } from '../data/mockCreators';
 
 // Em celular físico, localhost não aponta para o seu computador.
 // Defina EXPO_PUBLIC_API_URL no arquivo .env do mobile com o IP da sua máquina.
@@ -34,26 +31,26 @@ export async function getPackages(params?: {
         const qs = query.toString();
         return await fetchApi(`/packages${qs ? `?${qs}` : ''}`);
     } catch {
-        return mockPackages;
+        return [];
     }
 }
 
 export async function getPackageById(id: string): Promise<any | null> {
     try {
-        const result = await fetchApi(`/packages/${id}`);
-        if (result) return result;
-    } catch { /* fall through to mock */ }
-    return mockPackages.find(p => p.id === id) || null;
+        return await fetchApi(`/packages/${id}`);
+    } catch {
+        return null;
+    }
 }
 
 export async function getFeaturedPackages(): Promise<any[]> {
     try { return await fetchApi('/packages/featured'); }
-    catch { return mockPackages.filter(p => p.featured); }
+    catch { return []; }
 }
 
 export async function getRelatedPackages(id: string): Promise<any[]> {
     try { return await fetchApi(`/packages/${id}/related`); }
-    catch { return mockPackages.filter(p => p.id !== id).slice(0, 4); }
+    catch { return []; }
 }
 
 // ─── Itineraries ───
@@ -68,35 +65,77 @@ export async function getItineraries(params?: {
         const qs = query.toString();
         return await fetchApi(`/itineraries${qs ? `?${qs}` : ''}`);
     } catch {
-        return mockItineraries;
+        return [];
     }
 }
 
 export async function getItineraryById(id: string): Promise<any | null> {
     try {
-        const result = await fetchApi(`/itineraries/${id}`);
-        if (result) return result;
-    } catch { /* fall through to mock */ }
-    return mockItineraries.find(i => i.id === id) || null;
+        return await fetchApi(`/itineraries/${id}`);
+    } catch {
+        return null;
+    }
 }
 
 export async function getFeaturedItineraries(): Promise<any[]> {
     try { return await fetchApi('/itineraries/featured'); }
-    catch { return mockItineraries.filter(i => i.featured); }
+    catch { return []; }
+}
+
+/**
+ * Records a purchase. Backend resolves the traveler from the JWT (if present)
+ * or falls back to the first traveler in the DB (development mode).
+ */
+export async function purchaseItinerary(
+    itineraryId: string,
+    paymentMethod: string,
+): Promise<{ id: string; itineraryId: string; alreadyPurchased: boolean }> {
+    const res = await fetch(`${API_BASE_URL}/itineraries/${itineraryId}/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentMethod }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
+    return data;
+}
+
+// ─── Currency Rates ───
+/** Taxas padrão usadas como fallback quando o backend não está disponível */
+const DEFAULT_CURRENCY_RATES: Record<string, number> = {
+    AED: 1.36, ARS: 0.005, AUD: 3.3, BOB: 0.72, BRL: 1.0,
+    CAD: 3.7, CHF: 5.6, CLP: 0.005, CNY: 0.7, COP: 0.001,
+    CRC: 0.01, CUP: 0.21, DOP: 0.085, EGP: 0.1, EUR: 5.4,
+    GBP: 6.3, GTQ: 0.65, IDR: 0.00031, INR: 0.06, JPY: 0.033,
+    KES: 0.038, MAD: 0.5, MXN: 0.3, MYR: 1.12, NOK: 0.47,
+    NZD: 3.0, PEN: 1.34, PHP: 0.089, PYG: 0.00068, SGD: 3.74,
+    THB: 0.15, TRY: 0.15, USD: 5.0, UYU: 0.13, VND: 0.0002, ZAR: 0.27,
+};
+
+/**
+ * Busca as taxas de conversão atuais definidas pelo admin.
+ * Mantém fallback de taxas padrão (não é mock de roteiro, é câmbio).
+ */
+export async function getCurrencyRates(): Promise<Record<string, number>> {
+    try {
+        return await fetchApi<Record<string, number>>('/rates');
+    } catch {
+        return DEFAULT_CURRENCY_RATES;
+    }
 }
 
 // ─── Creators ───
 export async function getCreators(): Promise<any[]> {
     try { return await fetchApi('/creators'); }
-    catch { return mockCreators; }
+    catch { return []; }
 }
 
 export async function getCreatorById(id: string): Promise<any | null> {
     try {
-        const result = await fetchApi(`/creators/${id}`);
-        if (result) return result;
-    } catch { /* fall through to mock */ }
-    return mockCreators.find(c => c.id === id) || null;
+        return await fetchApi(`/creators/${id}`);
+    } catch {
+        return null;
+    }
 }
 
 export async function getFeaturedCreators(): Promise<any[]> {
@@ -104,7 +143,7 @@ export async function getFeaturedCreators(): Promise<any[]> {
         const creators = await getCreators();
         return creators.slice(0, 5);
     } catch {
-        return mockFeaturedCreators();
+        return [];
     }
 }
 
@@ -145,17 +184,49 @@ export async function getMyTrips(travelerId: string): Promise<{
     savedItems: any[];
 }> {
     try {
-        return await fetchApi(`/my-trips/${travelerId}`);
+        return await fetchApi(`/my-trips`);
     } catch {
-        // Fallback to local mock data
-        const { upcomingPackages, pastPackages, purchasedItineraries, savedItems } = require('../data/mockMyTrips');
-        return {
-            upcomingPackages,
-            pastPackages,
-            purchasedItineraries,
-            savedItems,
-        };
+        return { upcomingPackages: [], pastPackages: [], purchasedItineraries: [], savedItems: [] };
     }
 }
 
+// ─── Reviews ────────────────────────────────────────────
 
+async function postApi<T>(endpoint: string, body: object): Promise<T> {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
+    return data;
+}
+
+export async function submitItineraryReview(params: {
+    travelerId: string;
+    itineraryId: string;
+    rating: number;
+    comment: string;
+    photos: string[];
+}): Promise<{ review: { id: string; rating: number; comment: string } }> {
+    return postApi('/reviews', params);
+}
+
+export async function getMyReviews(travelerId: string): Promise<{
+    reviews: Array<{
+        id: string;
+        itineraryId: string | null;
+        rating: number;
+        comment: string;
+        date: string;
+        photos: string[];
+        itinerary: { id: string; title: string; destination: string; country: string; image: string | null } | null;
+    }>;
+}> {
+    try {
+        return await fetchApi(`/reviews/my?travelerId=${encodeURIComponent(travelerId)}`);
+    } catch {
+        return { reviews: [] };
+    }
+}

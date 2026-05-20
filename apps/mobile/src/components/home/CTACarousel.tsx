@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { theme } from '../../theme/theme';
+import { Icon, IconName } from '../common/Icons';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 48; // 24px margin on each side
@@ -17,7 +18,7 @@ const AUTO_SCROLL_INTERVAL = 3500; // 3.5 seconds
 
 interface CTASlide {
     id: number;
-    icon: string;
+    iconName: IconName;
     title: string;
     subtitle: string;
     gradientColors: [string, string];
@@ -27,7 +28,7 @@ interface CTASlide {
 const slides: CTASlide[] = [
     {
         id: 1,
-        icon: '🗺️',
+        iconName: 'map',
         title: 'Conheça os roteiros dos viajantes',
         subtitle: 'Explore experiências autênticas compartilhadas pela comunidade',
         gradientColors: ['#667eea', '#764ba2'],
@@ -35,7 +36,7 @@ const slides: CTASlide[] = [
     },
     {
         id: 2,
-        icon: '💼',
+        iconName: 'briefcase',
         title: 'Quer vender seus roteiros?',
         subtitle: 'Já viajou bastante? Transforme sua experiência em renda extra',
         gradientColors: ['#f093fb', '#f5576c'],
@@ -103,9 +104,15 @@ export const CTACarousel: React.FC = () => {
                             end={{ x: 1, y: 1 }}
                             style={styles.card}
                         >
-                            <Text style={styles.icon}>{slide.icon}</Text>
+                            <View style={styles.iconContainer}>
+                                <Icon name={slide.iconName} size={28} color="#fff" strokeWidth={1.5} />
+                            </View>
                             <Text style={styles.title}>{slide.title}</Text>
                             <Text style={styles.subtitle}>{slide.subtitle}</Text>
+                            <View style={styles.ctaRow}>
+                                <Text style={styles.ctaText}>Explorar</Text>
+                                <Icon name="chevron-right" size={16} color="rgba(255,255,255,0.9)" />
+                            </View>
                         </LinearGradient>
                     </TouchableOpacity>
                 ))}
@@ -140,8 +147,8 @@ const styles = StyleSheet.create({
     },
     card: {
         borderRadius: 20,
-        padding: 32,
-        minHeight: 180,
+        padding: 36,
+        minHeight: 200,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
@@ -150,22 +157,38 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 8,
     },
-    icon: {
-        fontSize: 48,
+    iconContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: 16,
     },
     title: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: '700',
         color: '#fff',
         textAlign: 'center',
         marginBottom: 8,
     },
     subtitle: {
-        fontSize: 14,
+        fontSize: 15,
         color: 'rgba(255, 255, 255, 0.9)',
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 22,
+    },
+    ctaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 16,
+    },
+    ctaText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: 'rgba(255,255,255,0.9)',
     },
     pagination: {
         flexDirection: 'row',

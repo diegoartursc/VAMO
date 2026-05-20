@@ -15,38 +15,25 @@ export default function HeroSection({
             <div className="hero-overlay" />
 
             <div className="hero-content-new">
-                {/* Header / Logo */}
-                <header className="hero-header-new">
-                    <Link href="/" className="hero-logo-new" style={{ textDecoration: 'none' }}>
-                        <img
-                            src="/images/logo_transparent.png"
-                            alt="VAMO Logo"
-                            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
-                        />
-                    </Link>
-                    <div className="hero-user-actions" style={{ display: 'flex', gap: '12px' }}>
-                        <span style={{ fontSize: '20px', cursor: 'pointer' }}>❓</span>
-                        <span style={{ fontSize: '20px', cursor: 'pointer' }}>🔔</span>
-                    </div>
-                </header>
+                {/* Header agora vem do GlobalHeader (Airbnb-style) composto pela page */}
 
                 {/* Headlines */}
                 <div className="hero-titles">
-                    <h1 className="hero-headline">Explore novas<br />fronteiras</h1>
-                    <div className="hero-tagline">Viajar ficou simples.</div>
+                    <h1 className="hero-headline">Onde será sua<br />próxima aventura?</h1>
+                    <div className="hero-tagline">Roteiros de quem já viveu.</div>
                 </div>
 
                 {/* Description */}
                 <p className="hero-description">
-                    Roteiros exclusivos de viajantes<br />
-                    e agências verificadas.
+                    Roteiros exclusivos criados por viajantes<br />
+                    experientes e especialistas.
                 </p>
 
                 {/* Download App Section */}
                 <div style={{ marginTop: '32px' }}>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                         {/* Google Play Badge */}
-                        <Link href="#" style={{
+                        <a href="https://play.google.com/store/apps/details?id=com.vamo.app" target="_blank" rel="noopener noreferrer" style={{
                             display: 'inline-flex', alignItems: 'center', gap: '10px',
                             padding: '10px 20px 10px 14px',
                             background: '#000', color: '#fff',
@@ -64,9 +51,9 @@ export default function HeroSection({
                                 <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9, textTransform: 'uppercase' as const, letterSpacing: '0.03em' }}>Disponível no</span>
                                 <span style={{ fontSize: '16px', fontWeight: 600 }}>Google Play</span>
                             </div>
-                        </Link>
+                        </a>
                         {/* App Store Badge */}
-                        <Link href="#" style={{
+                        <a href="https://apps.apple.com/app/vamo/id6476234567" target="_blank" rel="noopener noreferrer" style={{
                             display: 'inline-flex', alignItems: 'center', gap: '10px',
                             padding: '10px 20px 10px 14px',
                             background: '#000', color: '#fff',
@@ -81,28 +68,28 @@ export default function HeroSection({
                                 <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.9 }}>Baixar na</span>
                                 <span style={{ fontSize: '16px', fontWeight: 600 }}>App Store</span>
                             </div>
-                        </Link>
+                        </a>
                     </div>
                 </div>
 
 
                 {/* Other CTAs */}
                 <div style={{ display: 'flex', gap: '16px', marginTop: '24px', flexWrap: 'wrap' }}>
-                    <Link href="/cadastro" style={{
+                    <a href="#como-funciona" style={{
                         display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px',
                         background: 'rgba(255, 255, 255, 0.15)', color: '#fff', fontWeight: 600,
                         borderRadius: '9999px', border: '1px solid rgba(255, 255, 255, 0.2)',
                         backdropFilter: 'blur(10px)', textDecoration: 'none', transition: 'all 0.3s'
                     }}>
-                        🏢 Sou Agência
-                    </Link>
+                        Explorar Roteiros →
+                    </a>
                     <Link href="/criadores" style={{
                         display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px',
                         background: 'rgba(255, 255, 255, 0.15)', color: '#fff', fontWeight: 600,
                         borderRadius: '9999px', border: '1px solid rgba(255, 255, 255, 0.2)',
                         backdropFilter: 'blur(10px)', textDecoration: 'none', transition: 'all 0.3s'
                     }}>
-                        ✍️ Sou Roteirista
+                        Sou Roteirista →
                     </Link>
                 </div>
             </div>

@@ -57,10 +57,10 @@ const NAV_SECTIONS = [
         items: [{ href: "/agencia", label: "Visão Geral", icon: ICONS.home }],
     },
     {
-        label: "PACOTES",
+        label: "PACOTES [PAUSADO]",
         items: [
-            { href: "/agencia/pacotes", label: "Meus Pacotes", icon: ICONS.package },
-            { href: "/agencia/pacote/new", label: "Novo Pacote", icon: ICONS.plusCircle },
+            { href: "/agencia/pacotes", label: "Meus Pacotes (em pausa)", icon: ICONS.package },
+            { href: "/agencia/pacote/new", label: "Novo Pacote (em pausa)", icon: ICONS.plusCircle },
         ],
     },
     {

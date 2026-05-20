@@ -34,23 +34,17 @@ const USER = {
     email: 'usuario@email.com',
     avatar: 'circle-user',
     since: '2026',
-    stats: { trips: 3, itineraries: 2, saved: 7 },
+    stats: { itineraries: 2, saved: 7 },
     destinations: 3,
     createdItineraries: 2,
-    nextTrip: {
-        destination: 'Paris',
-        date: '15 Mar 2026',
-        status: 'Confirmado',
-    } as { destination: string; date: string; status: string } | null,
 };
 
-// Milestones for "Sua Jornada"
+// Milestones for "Sua Jornada" - apenas roteiros
 const MILESTONES = [
-    { id: 'first_trip', label: 'Primeira viagem realizada', done: USER.stats.trips > 0 },
     { id: 'first_itinerary', label: 'Primeiro roteiro criado', done: USER.stats.itineraries > 0 },
     { id: 'five_destinations', label: '5 destinos visitados', done: USER.destinations >= 5 },
     { id: 'first_review', label: 'Primeira avaliação', done: true },
-    { id: 'ten_saved', label: '10 viagens salvas', done: USER.stats.saved >= 10 },
+    { id: 'ten_saved', label: '10 roteiros salvos', done: USER.stats.saved >= 10 },
 ];
 
 export default function ProfileScreen() {
@@ -102,16 +96,15 @@ export default function ProfileScreen() {
         ]);
     };
 
-    const handleStatPress = (type: 'trips' | 'itineraries' | 'saved') => {
+    const handleStatPress = (type: 'itineraries' | 'saved') => {
         haptics.light();
         if (USER.stats[type] === 0) {
             const messages: Record<string, string> = {
-                trips: 'Você ainda não realizou nenhuma viagem.',
                 itineraries: 'Você ainda não criou nenhum roteiro.',
-                saved: 'Você ainda não salvou nenhum item.',
+                saved: 'Você ainda não salvou nenhum roteiro.',
             };
             Alert.alert('Nada aqui ainda', messages[type], [
-                { text: 'Explorar', onPress: () => router.push('/(tabs)/packages') },
+                { text: 'Explorar', onPress: () => router.push('/(tabs)/itineraries') },
                 { text: 'OK' },
             ]);
         } else {
@@ -156,27 +149,10 @@ export default function ProfileScreen() {
                         <Text style={styles.sinceText}>Viajante desde {USER.since}</Text>
                     </View>
 
-                    {/* Traveler Identity Line */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-                        <Icon name="globe" size={13} color="rgba(255,255,255,0.7)" />
-                        <Text style={styles.identityLine}>
-                            {USER.destinations} destinos visitados
-                        </Text>
-                        <Text style={{ color: 'rgba(255,255,255,0.5)' }}>•</Text>
-                        <Icon name="map" size={13} color="rgba(255,255,255,0.7)" />
-                        <Text style={styles.identityLine}>
-                            {USER.createdItineraries} roteiros criados
-                        </Text>
-                    </View>
                 </LinearGradient>
 
                 {/* ══════════ 2. QUICK STATS ══════════ */}
                 <View style={styles.statsRow}>
-                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}>
-                        <Icon name="briefcase" size={22} color={theme.colors.primary} />
-                        <Text style={styles.statValue}>{USER.stats.trips}</Text>
-                        <Text style={styles.statLabel}>Meus Pacotes</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}>
                         <Icon name="book-open" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{USER.stats.itineraries}</Text>
@@ -187,47 +163,6 @@ export default function ProfileScreen() {
                         <Text style={styles.statValue}>{USER.stats.saved}</Text>
                         <Text style={styles.statLabel}>Salvos</Text>
                     </TouchableOpacity>
-                </View>
-
-                {/* ══════════ 8. PRÓXIMA VIAGEM ══════════ */}
-                <View style={styles.sectionSpaced}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Icon name="plane" size={16} color={theme.colors.primary} />
-                        <Text style={styles.sectionTitle}>Próxima Viagem</Text>
-                    </View>
-                    <View style={styles.sectionCard}>
-                        {USER.nextTrip ? (
-                            <TouchableOpacity
-                                style={styles.nextTripContent}
-                                onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.nextTripLeft}>
-                                    <Text style={styles.nextTripDestination}>{USER.nextTrip.destination}</Text>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                        <Icon name="calendar" size={11} color={theme.colors.text.tertiary} />
-                                        <Text style={styles.nextTripDate}>{USER.nextTrip.date}</Text>
-                                    </View>
-                                </View>
-                                <View style={styles.nextTripStatusBadge}>
-                                    <View style={styles.statusDot} />
-                                    <Text style={styles.nextTripStatus}>{USER.nextTrip.status}</Text>
-                                </View>
-                                <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
-                            </TouchableOpacity>
-                        ) : (
-                            <View style={styles.nextTripEmpty}>
-                                <Icon name="plane" size={28} color={theme.colors.text.tertiary} />
-                                <Text style={styles.nextTripEmptyText}>Você ainda não tem viagens programadas.</Text>
-                                <TouchableOpacity
-                                    style={styles.nextTripExploreCta}
-                                    onPress={() => router.push('/(tabs)/packages')}
-                                >
-                                    <Text style={styles.nextTripExploreText}>Explorar pacotes →</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </View>
                 </View>
 
                 {/* ══════════ 3. SUA JORNADA NO VAMO ══════════ */}
@@ -270,24 +205,40 @@ export default function ProfileScreen() {
                 <View style={styles.shortcutsRow}>
                     <TouchableOpacity
                         style={styles.shortcutButton}
-                        onPress={() => router.push('/(tabs)/my-trips?tab=upcoming')}
+                        onPress={() => router.push('/(tabs)/my-trips')}
                     >
-                        <Icon name="briefcase" size={20} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText}>Meus Pacotes</Text>
+                        <Icon name="book-open" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Meus Roteiros</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
-                        onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}
+                        onPress={() => router.push('/(tabs)/saved')}
                     >
-                        <Icon name="map" size={20} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText}>Meus Roteiros</Text>
+                        <Icon name="heart" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Favoritos</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
-                        onPress={() => router.push('/(tabs)/my-trips?tab=saved')}
+                        onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
                     >
-                        <Icon name="heart" size={20} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText}>Favoritos</Text>
+                        <Icon name="edit" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Roteiros Criados</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={[styles.shortcutsRow, { marginTop: 8 }]}>
+                    <TouchableOpacity
+                        style={styles.shortcutButton}
+                        onPress={() => { haptics.light(); router.push('/my-reviews'); }}
+                    >
+                        <Icon name="star" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Avaliações</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.shortcutButton}
+                        onPress={() => { haptics.light(); router.push('/my-questions'); }}
+                    >
+                        <Icon name="message-circle" size={18} color={theme.colors.primary} />
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Perguntas</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -331,7 +282,7 @@ export default function ProfileScreen() {
                                 </View>
                                 <View>
                                     <Text style={styles.storeTitle}>Portal do Criador</Text>
-                                    <Text style={styles.storeSubtitle}>Crie roteiros pelo site vamo.app</Text>
+                                    <Text style={styles.storeSubtitle}>Transforme suas viagens em roteiros e ganhe comissão</Text>
                                 </View>
                             </View>
                             <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
@@ -487,10 +438,10 @@ export default function ProfileScreen() {
             </Modal>
 
             <InfoModal visible={showAboutModal} title="Sobre o VAMO"
-                content={`VAMO — Sua plataforma de viagens\n\nVersão 1.0.0\n\nDescubra experiências únicas e pacotes de viagem personalizados. Conectamos você às melhores agências e criadores de roteiros.\n\n© 2026 VAMO. Todos os direitos reservados.`}
+                content={`VAMO — Sua plataforma de roteiros de viagem\n\nVersão 1.0.0\n\nDescubra roteiros detalhados criados por viajantes experientes. Planeje sua viagem com quem já esteve lá.\n\n© 2026 VAMO. Todos os direitos reservados.`}
                 onClose={() => setShowAboutModal(false)} />
             <InfoModal visible={showHowItWorksModal} title="Como funciona"
-                content={`1. Explore\nNavegue por pacotes de viagem e roteiros de viajantes experientes.\n\n2. Escolha\nSelecione a experiência perfeita para você e verifique a disponibilidade.\n\n3. Reserve\nComplete seu cadastro e finalize a reserva com segurança.\n\n4. Viaje!\nReceba todas as informações por email e aproveite sua aventura.`}
+                content={`1. Explore\nNavegue por roteiros criados por viajantes experientes.\n\n2. Escolha\nSelecione o roteiro perfeito para você e confira os detalhes.\n\n3. Adquira\nFinalize a compra do roteiro com segurança.\n\n4. Viaje!\nReceba todas as informações e aproveite sua aventura.`}
                 onClose={() => setShowHowItWorksModal(false)} />
         </View>
     );
@@ -810,7 +761,8 @@ const styles = StyleSheet.create({
         borderWidth: 1.5, borderColor: theme.colors.primary + '40',
     },
     shortcutText: {
-        fontSize: 14, fontWeight: '600', color: theme.colors.primary,
+        fontSize: 12, fontWeight: '600', color: theme.colors.primary,
+        flexShrink: 1,
     },
 
     // Sections

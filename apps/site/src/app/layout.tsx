@@ -5,8 +5,8 @@ import "./editor-ux.css";
 
 export const metadata: Metadata = {
   title: "VAMO — Sua plataforma de viagens",
-  description: "Descubra experiências únicas e pacotes de viagem personalizados. Conectamos você às melhores agências e criadores de roteiros.",
-  keywords: "viagem, pacotes, roteiros, turismo, VAMO",
+  description: "Descubra roteiros de viagem detalhados criados por viajantes experientes. Planeje sua próxima aventura com quem já esteve lá.",
+  keywords: "viagem, roteiros, turismo, itinerários, criadores, VAMO",
 };
 
 export default function RootLayout({

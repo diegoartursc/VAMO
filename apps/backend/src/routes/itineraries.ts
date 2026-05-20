@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
+import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
+import { verifyToken } from '../lib/auth';
 
 const router = Router();
 
@@ -12,10 +14,12 @@ router.get('/', async (req: Request, res: Response) => {
         if (destination) where.destination = { contains: destination as string, mode: 'insensitive' };
         if (featured === 'true') where.featured = true;
 
-        let orderBy: any = { featured: 'desc' };
-        if (sort === 'price_asc') orderBy = { price: 'asc' };
-        if (sort === 'price_desc') orderBy = { price: 'desc' };
-        if (sort === 'rating') orderBy = { rating: 'desc' };
+        // Default: featured first, then highest qualityScore, then best rating
+        let orderBy: any = [{ featured: 'desc' }, { qualityScore: 'desc' }, { rating: 'desc' }];
+        if (sort === 'price_asc')   orderBy = [{ price: 'asc' }];
+        if (sort === 'price_desc')  orderBy = [{ price: 'desc' }];
+        if (sort === 'rating')      orderBy = [{ rating: 'desc' }, { qualityScore: 'desc' }];
+        if (sort === 'score')       orderBy = [{ qualityScore: 'desc' }, { rating: 'desc' }];
 
         const itineraries = await prisma.itinerary.findMany({
             where, orderBy,
@@ -38,6 +42,7 @@ router.get('/', async (req: Request, res: Response) => {
             reviewCount: it.reviewCount, inclusions: it.inclusions,
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
+            qualityScore: it.qualityScore,
         }));
 
         res.json(result);
@@ -52,6 +57,7 @@ router.get('/featured', async (req: Request, res: Response) => {
     try {
         const itineraries = await prisma.itinerary.findMany({
             where: { featured: true, status: 'APPROVED' },
+            orderBy: [{ qualityScore: 'desc' }, { rating: 'desc' }],
             include: {
                 creator: { include: { traveler: { select: { name: true, avatar: true } } } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
@@ -71,6 +77,7 @@ router.get('/featured', async (req: Request, res: Response) => {
             reviewCount: it.reviewCount, inclusions: it.inclusions,
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
+            qualityScore: it.qualityScore,
         }));
 
         res.json(result);
@@ -82,11 +89,33 @@ router.get('/featured', async (req: Request, res: Response) => {
 // ─── DASHBOARD STATS ───
 // GET /api/itineraries/dashboard/stats
 // NOTE: Must be registered BEFORE /:id to avoid being caught by the catch-all param
-router.get('/dashboard/stats', async (req: Request, res: Response) => {
+router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const { creatorId } = req.query;
-        const where: any = {};
-        if (creatorId) where.creatorId = creatorId as string;
+        let { creatorId } = req.query as { creatorId?: string };
+
+        // Resolução do creatorId em ordem:
+        // 1. creatorId explícito na query
+        // 2. travelerId do token JWT → resolve creator vinculado
+        // SEM fallback para "primeiro creator" (causa do bug do Diego!)
+        if (!creatorId && req.traveler?.travelerId) {
+            const myCreator = await (prisma.creator as any).findUnique({
+                where: { travelerId: req.traveler.travelerId },
+                select: { id: true },
+            });
+            creatorId = myCreator?.id;
+            console.log('[dashboard/stats] resolved creatorId from token:', { travelerId: req.traveler.travelerId, creatorId });
+        }
+
+        if (!creatorId) {
+            console.log('[dashboard/stats] no creatorId resolved — returning empty stats');
+            res.json({
+                totalRevenue: 0, totalSales: 0, averageRating: 0, totalReviews: 0,
+                activeItineraries: 0, totalItineraries: 0, itineraries: [],
+            });
+            return;
+        }
+        const where: any = { creatorId };
+        console.log('[dashboard/stats] querying creatorId=', creatorId);
 
         const itineraries = await prisma.itinerary.findMany({
             where,
@@ -139,6 +168,9 @@ router.get('/:id', async (req: Request, res: Response) => {
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
                 days: { orderBy: { dayNumber: 'asc' }, include: { activities: { orderBy: { order: 'asc' } } } },
                 files: true,
+                accommodations: { orderBy: { order: 'asc' } },
+                transports:     { orderBy: { order: 'asc' } },
+                checklists:     { orderBy: { order: 'asc' } },
                 reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' }, take: 10 },
             },
         });
@@ -146,6 +178,30 @@ router.get('/:id', async (req: Request, res: Response) => {
         if (!it) { res.status(404).json({ error: 'Itinerary not found' }); return; }
 
         const i = it as any;
+
+        // Map accommodations (format also as accommodationOptions for post-purchase screen)
+        const accommodationList = (i.accommodations || []).map((a: any) => ({
+            id: a.id, name: a.name, neighborhood: a.neighborhood,
+            description: a.description, priceRange: a.priceRange, rating: a.rating,
+            externalLink: a.externalLink, address: a.address, mapLink: a.mapLink,
+            tips: a.tips, nights: a.nights, startDate: a.startDate, endDate: a.endDate,
+            totalPrice: a.totalPrice, priceCurrency: a.priceCurrency, order: a.order,
+        }));
+
+        // Map transports (also as transport.items for post-purchase screen)
+        const transportList = (i.transports || []).map((t: any) => ({
+            id: t.id, description: t.description, passTypes: t.passTypes,
+            estimatedPrice: t.estimatedPrice, notes: t.notes,
+            startDate: t.startDate, endDate: t.endDate,
+            priceValue: t.priceValue, priceCurrency: t.priceCurrency, order: t.order,
+        }));
+
+        // Map checklists (flatten to a single "checklist" array for post-purchase screen)
+        const checklistList = (i.checklists || []).map((c: any) => ({
+            id: c.id, category: c.category, item: c.item,
+            isDefault: c.isDefault, order: c.order, completed: false,
+        }));
+
         const result = {
             id: i.id, title: i.title, destination: i.destination, country: i.country,
             creator: {
@@ -160,6 +216,35 @@ router.get('/:id', async (req: Request, res: Response) => {
             duration: i.duration, featured: i.featured,
             highlights: i.highlights, estimatedSpending: i.estimatedSpending,
             downloadCount: i.downloadCount,
+            // ─── Identidade e comercial ───
+            subtitle: i.subtitle, travelStyles: i.travelStyles, categories: i.categories,
+            productType: i.productType, activeModules: i.activeModules,
+            promoPrice: i.promoPrice, installments: i.installments,
+            immediateAccess: i.immediateAccess, lifetimeAccess: i.lifetimeAccess,
+            offlineDownload: i.offlineDownload, allowPdf: i.allowPdf, allowShare: i.allowShare,
+            travelProofUrl: i.travelProofUrl,
+            qualityScore: i.qualityScore, status: i.status,
+            approvalNote: i.approvalNote, approvedAt: i.approvedAt,
+            // ─── Destinos extras ───
+            extraCities: i.extraCities || [], extraCountries: i.extraCountries || [],
+            // ─── Datas da viagem ───
+            tripStartDate: i.tripStartDate, tripEndDate: i.tripEndDate,
+            // ─── Módulos (JSON) ───
+            flightInfo:   i.flightInfo   || null,
+            attractions:  i.attractions  || [],
+            restaurants:  i.restaurants  || [],
+            generalTips:  i.generalTips  || [],
+            mediaUrls:    i.mediaUrls    || [],
+            highlightPhotos: i.highlightPhotos || [],
+            spendingProfile: i.spendingProfile || null,
+            receiveList:  i.receiveList  || null,
+            // ─── Relações (com alias compat pro mobile pós-compra) ───
+            accommodations: accommodationList,
+            accommodationOptions: accommodationList,  // alias para mobile pós-compra
+            transports: transportList,
+            transport: { items: transportList },       // alias para mobile pós-compra
+            checklists: checklistList,
+            checklist: checklistList,                  // alias para mobile pós-compra
             days: (i.days || []).map((d: any) => ({
                 dayNumber: d.dayNumber, title: d.title, summary: d.summary,
                 description: d.description,
@@ -168,6 +253,7 @@ router.get('/:id', async (req: Request, res: Response) => {
                     duration: a.duration, location: a.location, tips: a.tips,
                     time: a.time, type: a.type, icon: a.icon, images: a.images,
                     mapLink: a.mapLink, completed: a.completed, notes: a.notes,
+                    latitude: a.latitude, longitude: a.longitude, category: a.category,
                 })),
             })),
             files: (i.files || []).map((f: any) => ({ id: f.id, name: f.name, type: f.type, url: f.url, size: f.size })),
@@ -188,25 +274,75 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 
-// ─── QUALITY SCORE CALCULATOR ───
+// ─── QUALITY SCORE CALCULATOR ───────────────────────────────────────────────
+// Blocos (total = 100 pts):
+//   1. Identidade & Indexação  22 pts
+//   2. Comercial               10 pts
+//   3. Imagens de capa          8 pts
+//   4. Itinerário dia a dia    20 pts
+//   5. Módulos de conteúdo     20 pts
+//   6. Estimativa de gasto      5 pts
+//   7. Confiança & Qualidade   15 pts
+// Quanto maior o score, mais destaque no app (home + buscas).
 function calcItineraryQuality(data: any): number {
     let s = 0;
-    const c = (v: any, p: number) => { if (v && (typeof v !== 'string' || v.trim())) s += p; };
-    const a = (v: any[], p: number) => { if (v && v.length > 0) s += p; };
-    c(data.title, 8); c(data.destination, 8); c(data.country, 5); c(data.description, 8);
-    c(data.subtitle, 5); c(data.duration, 3); c(data.price, 10);
-    a(data.travelStyles, 8); a(data.categories, 8);
-    a(data.activeModules, 5); a(data.highlights, 5); a(data.inclusions, 5);
-    a(data.days, 10); // has at least 1 day
-    if (data.days && data.days.length >= 3) s += 5; // bonus for 3+ days
-    if (data.estimatedSpending) s += 5;
-    c(data.productType, 2); c(data.promoPrice, 2);
-    return Math.min(s, 100);
+
+    // Bloco 1 — Identidade & Indexação (22 pts)
+    if (data.title?.trim()) s += 5;
+    if (data.subtitle?.trim()) s += 3;
+    if (data.destination?.trim()) s += 4;
+    if (data.country?.trim()) s += 2;
+    if (data.description?.trim()) s += 3;
+    if ((data.description?.trim().length ?? 0) >= 150) s += 2;
+    if ((data.travelStyles?.length ?? 0) >= 1) s += 3;
+
+    // Bloco 2 — Comercial (10 pts)
+    if (parseFloat(data.price) > 0) s += 6;
+    if ((data.categories?.length ?? 0) >= 1) s += 2;
+    if ((data.promoPrice && parseFloat(data.promoPrice) > 0) || data.installments) s += 2;
+
+    // Bloco 3 — Imagens de capa (8 pts)
+    const imgs = (data.images || []).filter(Boolean);
+    if (imgs.length >= 1) s += 5;
+    if (imgs.length >= 3) s += 3;
+
+    // Bloco 4 — Itinerário dia a dia (20 pts)
+    const days: any[] = data.days || [];
+    if (days.length >= 1) s += 5;
+    if (days.length >= parseInt(data.duration) || days.length >= (data.duration ?? 1)) s += 7;
+    const totalActs = days.reduce((acc: number, d: any) => acc + (d.activities?.length ?? 0), 0);
+    if (days.length > 0 && totalActs / days.length >= 2) s += 5;
+    if (days.some((d: any) => d.activities?.some((a: any) => a.time?.trim()))) s += 3;
+
+    // Bloco 5 — Módulos de conteúdo (20 pts)
+    const accomms   = data.accommodations || [];
+    const attrs     = data.attractions    || [];
+    const rests     = data.restaurants    || [];
+    const transps   = data.transports     || [];
+    const tips      = data.generalTips    || [];
+    const checks    = data.checklists     || [];
+    if (accomms.length >= 1) s += 4;
+    if (attrs.length   >= 1) s += 4;
+    if (rests.length   >= 1) s += 4;
+    if (transps.length >= 1) s += 4;
+    if (tips.filter((t: string) => typeof t === 'string' && t.trim()).length >= 1) s += 2;
+    if (checks.length  >= 1) s += 2;
+
+    // Bloco 6 — Estimativa de gasto (5 pts)
+    const sp = data.estimatedSpending;
+    if (sp && (parseFloat(sp.min) > 0 || parseFloat(sp.max) > 0)) s += 5;
+
+    // Bloco 7 — Confiança & Qualidade (15 pts)
+    if (data.travelProofUrl?.trim()) s += 5;
+    if ((data.highlights || []).filter(Boolean).length >= 2) s += 5;
+    if ((data.inclusions || []).filter(Boolean).length >= 2) s += 5;
+
+    return Math.min(Math.round(s), 100);
 }
 
 // ─── CREATE ───
 // POST /api/itineraries (requires auth)
-router.post('/', authMiddleware, async (req: Request, res: Response) => {
+router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async (req: AuthRequest, res: Response) => {
     try {
         const {
             creatorId, title, destination, country, description,
@@ -218,11 +354,25 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
             immediateAccess, lifetimeAccess, offlineDownload,
             allowPdf, allowShare,
             accommodations, transports, checklists,
+            travelProofUrl,
+            // ─── Novos campos (pós-audit) ───
+            extraCities, extraCountries,
+            flightInfo, attractions, restaurants, generalTips,
+            mediaUrls, highlightPhotos,
+            tripStartDate, tripEndDate,
+            spendingProfile, receiveList,
         } = req.body;
 
-        // Validate required fields
-        if (!creatorId || !title || !destination || !country || !description || !price || !duration) {
-            res.status(400).json({ error: 'Missing required fields: creatorId, title, destination, country, description, price, duration' });
+        // Validate required fields (description is optional — backend stores empty string if absent)
+        const missing: string[] = [];
+        if (!title)       missing.push('title');
+        if (!destination) missing.push('destination');
+        if (!country)     missing.push('country');
+        if (!price)       missing.push('price');
+        if (!duration)    missing.push('duration');
+        if (missing.length) {
+            console.warn('[itineraries.POST] Missing required fields:', missing, 'body keys:', Object.keys(req.body || {}));
+            res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
             return;
         }
         // Validate styles max 3
@@ -236,15 +386,37 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
             return;
         }
 
+        // Resolve creator em ordem:
+        // 1. creatorId enviado explicitamente no body
+        // 2. travelerId do token JWT → busca creator vinculado
+        // SEM fallback para "primeiro creator" (causa o bug do Diego)
+        let resolvedCreatorId: string | null = null;
+        if (creatorId) {
+            const existing = await prisma.creator.findUnique({ where: { id: creatorId } });
+            if (existing) resolvedCreatorId = existing.id;
+        }
+        if (!resolvedCreatorId && req.traveler?.travelerId) {
+            const myCreator = await (prisma.creator as any).findUnique({
+                where: { travelerId: req.traveler.travelerId },
+                select: { id: true },
+            });
+            resolvedCreatorId = myCreator?.id || null;
+            console.log('[POST /itineraries] creator resolved from token:', { travelerId: req.traveler.travelerId, creatorId: resolvedCreatorId });
+        }
+        if (!resolvedCreatorId) {
+            res.status(401).json({ error: 'Faça login como criador para publicar roteiros.' });
+            return;
+        }
+
         const qualityScore = calcItineraryQuality(req.body);
 
         const itinerary = await prisma.itinerary.create({
             data: {
-                creatorId,
+                creatorId: resolvedCreatorId,
                 title,
                 destination,
                 country,
-                description,
+                description: description || '',
                 price: parseFloat(price),
                 currency: currency || 'BRL',
                 duration: parseInt(duration),
@@ -265,6 +437,21 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
                 allowPdf: allowPdf ?? false,
                 allowShare: allowShare ?? true,
                 qualityScore,
+                status: 'PENDING_REVIEW',  // sempre vai para fila de aprovação
+                travelProofUrl: travelProofUrl || undefined,
+                // ─── Novos campos ───
+                extraCities: extraCities || [],
+                extraCountries: extraCountries || [],
+                flightInfo: flightInfo || undefined,
+                attractions: attractions || undefined,
+                restaurants: restaurants || undefined,
+                generalTips: generalTips || [],
+                mediaUrls: mediaUrls || [],
+                highlightPhotos: highlightPhotos || [],
+                tripStartDate: tripStartDate ? new Date(tripStartDate) : undefined,
+                tripEndDate: tripEndDate ? new Date(tripEndDate) : undefined,
+                spendingProfile: spendingProfile || undefined,
+                receiveList: receiveList || undefined,
                 images: images?.length ? {
                     create: images.map((url: string, i: number) => ({ url, order: i })),
                 } : undefined,
@@ -299,13 +486,27 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
                         name: a.name, neighborhood: a.neighborhood || '',
                         description: a.description || '', priceRange: a.priceRange || '',
                         rating: a.rating ? parseFloat(a.rating) : undefined,
-                        externalLink: a.externalLink || '', order: i,
+                        externalLink: a.externalLink || '',
+                        address: a.address || undefined,
+                        mapLink: a.mapLink || undefined,
+                        tips: a.tips || undefined,
+                        nights: a.nights ? parseInt(a.nights) : undefined,
+                        startDate: a.startDate || undefined,
+                        endDate: a.endDate || undefined,
+                        totalPrice: a.totalPrice || undefined,
+                        priceCurrency: a.priceCurrency || undefined,
+                        order: i,
                     })),
                 } : undefined,
                 transports: transports?.length ? {
                     create: transports.map((t: any, i: number) => ({
                         description: t.description || '', passTypes: t.passTypes || '',
-                        estimatedPrice: t.estimatedPrice || '', notes: t.notes || '', order: i,
+                        estimatedPrice: t.estimatedPrice || '', notes: t.notes || '',
+                        startDate: t.startDate || undefined,
+                        endDate: t.endDate || undefined,
+                        priceValue: t.priceValue || undefined,
+                        priceCurrency: t.priceCurrency || undefined,
+                        order: i,
                     })),
                 } : undefined,
                 checklists: checklists?.length ? {
@@ -326,15 +527,24 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         });
 
         res.status(201).json(itinerary);
-    } catch (error) {
-        console.error('Error creating itinerary:', error);
-        res.status(500).json({ error: 'Failed to create itinerary' });
+    } catch (error: any) {
+        // Surface a useful message to the frontend so the user knows what to fix.
+        const code = error?.code;
+        const meta = error?.meta;
+        console.error('[itineraries.POST] Error creating itinerary:', {
+            message: error?.message, code, meta,
+        });
+        let userMessage = 'Failed to create itinerary';
+        if (code === 'P2003') userMessage = `Foreign key constraint failed (${meta?.field_name || 'unknown'}). Verifique se o creatorId existe.`;
+        else if (code === 'P2002') userMessage = `Valor duplicado em ${meta?.target?.join(', ') || 'campo único'}.`;
+        else if (error?.message) userMessage = `Erro do servidor: ${error.message}`;
+        res.status(500).json({ error: userMessage });
     }
 });
 
 // ─── UPDATE ───
 // PUT /api/itineraries/:id (requires auth)
-router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), async (req: AuthRequest, res: Response) => {
     try {
         const id = req.params.id as string;
         const {
@@ -347,6 +557,13 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
             immediateAccess, lifetimeAccess, offlineDownload,
             allowPdf, allowShare,
             accommodations, transports, checklists,
+            travelProofUrl,
+            // ─── Novos campos (pós-audit) ───
+            extraCities, extraCountries,
+            flightInfo, attractions, restaurants, generalTips,
+            mediaUrls, highlightPhotos,
+            tripStartDate, tripEndDate,
+            spendingProfile, receiveList,
         } = req.body;
 
         // Check itinerary exists
@@ -393,6 +610,20 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
         if (offlineDownload !== undefined) updateData.offlineDownload = offlineDownload;
         if (allowPdf !== undefined) updateData.allowPdf = allowPdf;
         if (allowShare !== undefined) updateData.allowShare = allowShare;
+        if (travelProofUrl !== undefined) updateData.travelProofUrl = travelProofUrl;
+        // ─── Novos campos ───
+        if (extraCities !== undefined)     updateData.extraCities = extraCities;
+        if (extraCountries !== undefined)  updateData.extraCountries = extraCountries;
+        if (flightInfo !== undefined)      updateData.flightInfo = flightInfo;
+        if (attractions !== undefined)     updateData.attractions = attractions;
+        if (restaurants !== undefined)     updateData.restaurants = restaurants;
+        if (generalTips !== undefined)     updateData.generalTips = generalTips;
+        if (mediaUrls !== undefined)       updateData.mediaUrls = mediaUrls;
+        if (highlightPhotos !== undefined) updateData.highlightPhotos = highlightPhotos;
+        if (tripStartDate !== undefined)   updateData.tripStartDate = tripStartDate ? new Date(tripStartDate) : null;
+        if (tripEndDate !== undefined)     updateData.tripEndDate = tripEndDate ? new Date(tripEndDate) : null;
+        if (spendingProfile !== undefined) updateData.spendingProfile = spendingProfile;
+        if (receiveList !== undefined)     updateData.receiveList = receiveList;
 
         // Recalculate quality score
         const merged = { ...existing, ...updateData, days, accommodations, transports, checklists };
@@ -462,7 +693,16 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
                                 itineraryId: id, name: a.name, neighborhood: a.neighborhood || '',
                                 description: a.description || '', priceRange: a.priceRange || '',
                                 rating: a.rating ? parseFloat(a.rating) : undefined,
-                                externalLink: a.externalLink || '', order: i,
+                                externalLink: a.externalLink || '',
+                                address: a.address || undefined,
+                                mapLink: a.mapLink || undefined,
+                                tips: a.tips || undefined,
+                                nights: a.nights ? parseInt(a.nights) : undefined,
+                                startDate: a.startDate || undefined,
+                                endDate: a.endDate || undefined,
+                                totalPrice: a.totalPrice || undefined,
+                                priceCurrency: a.priceCurrency || undefined,
+                                order: i,
                             },
                         });
                     }
@@ -479,7 +719,12 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
                             data: {
                                 itineraryId: id, description: t.description || '',
                                 passTypes: t.passTypes || '', estimatedPrice: t.estimatedPrice || '',
-                                notes: t.notes || '', order: i,
+                                notes: t.notes || '',
+                                startDate: t.startDate || undefined,
+                                endDate: t.endDate || undefined,
+                                priceValue: t.priceValue || undefined,
+                                priceCurrency: t.priceCurrency || undefined,
+                                order: i,
                             },
                         });
                     }
@@ -526,7 +771,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 
 // ─── DELETE ───
 // DELETE /api/itineraries/:id (requires auth)
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), async (req: AuthRequest, res: Response) => {
     try {
         const id = req.params.id as string;
         const { hard } = req.query;
@@ -552,6 +797,64 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error deleting itinerary:', error);
         res.status(500).json({ error: 'Failed to delete itinerary' });
+    }
+});
+
+// ─── PURCHASE ───
+// POST /api/itineraries/:id/purchase (traveler-auth optional → falls back to demo traveler)
+// Records an ItinerarySale so the itinerary appears in the traveler's "Meus Roteiros".
+router.post('/:id/purchase', async (req: Request, res: Response) => {
+    try {
+        const itineraryId = req.params.id as string;
+        const { paymentMethod } = req.body || {};
+
+        // Resolve traveler — prefer JWT, fall back to first traveler (demo / dev mode)
+        let travelerId: string | null = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader?.startsWith('Bearer ')) {
+            try {
+                const decoded = verifyToken(authHeader.substring(7)) as any;
+                if (decoded?.travelerId) travelerId = decoded.travelerId;
+            } catch { /* ignore — fall through */ }
+        }
+        if (!travelerId) {
+            const firstTraveler = await prisma.traveler.findFirst({ orderBy: { createdAt: 'asc' } });
+            travelerId = firstTraveler?.id || null;
+        }
+        if (!travelerId) {
+            res.status(400).json({ error: 'No traveler available to record purchase' });
+            return;
+        }
+
+        const itinerary = await prisma.itinerary.findUnique({ where: { id: itineraryId } });
+        if (!itinerary) { res.status(404).json({ error: 'Itinerary not found' }); return; }
+        if (itinerary.status !== 'APPROVED') {
+            res.status(400).json({ error: 'Itinerary is not available for purchase' });
+            return;
+        }
+
+        // Idempotent: if a sale already exists for this traveler+itinerary, return it.
+        const existing = await prisma.itinerarySale.findFirst({
+            where: { itineraryId, travelerId },
+        });
+        if (existing) {
+            res.json({ id: existing.id, itineraryId, travelerId, alreadyPurchased: true });
+            return;
+        }
+
+        const sale = await prisma.itinerarySale.create({
+            data: {
+                itineraryId,
+                travelerId,
+                price: itinerary.price,
+                commission: itinerary.price * 0.15, // 15% platform commission
+            },
+        });
+
+        res.json({ id: sale.id, itineraryId, travelerId, paymentMethod: paymentMethod || 'unknown', alreadyPurchased: false });
+    } catch (error) {
+        console.error('Error creating itinerary purchase:', error);
+        res.status(500).json({ error: 'Failed to record purchase' });
     }
 });
 

@@ -7,7 +7,7 @@ export default function HowItWorks() {
         {
             icon: '🔍',
             title: '1. Escolha',
-            description: 'Navegue pelos pacotes verificados'
+            description: 'Navegue pelos roteiros verificados'
         },
         {
             icon: '💳',

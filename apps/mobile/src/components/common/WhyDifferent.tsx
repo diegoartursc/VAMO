@@ -18,7 +18,7 @@ export default function WhyDifferent() {
         {
             icon: '✓',
             title: 'Sem riscos',
-            description: 'Agências verificadas + compra segura'
+            description: 'Roteiros verificados + compra segura'
         }
     ];
 

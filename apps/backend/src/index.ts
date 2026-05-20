@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth';
+import travelerAuthRoutes from './routes/traveler-auth';
 import packageRoutes from './routes/packages';
 import itineraryRoutes from './routes/itineraries';
 import creatorRoutes from './routes/creators';
@@ -14,6 +15,9 @@ import departureRoutes from './routes/departures';
 import salesRoutes from './routes/sales';
 import flightQuoteRoutes from './routes/flight-quotes';
 import agencyDocRoutes from './routes/agency-documents';
+import auditLogsRoutes from './routes/audit-logs';
+import ratesRoutes from './routes/rates';
+import uploadsRoutes from './routes/uploads';
 
 // Load environment variables
 dotenv.config();
@@ -37,6 +41,8 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
 const DEFAULT_DEV_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:3030', // Claude Preview worktree
+    'http://localhost:3033', // Site dashboard (worktree)
     'http://localhost:8081', // Expo web
     'http://localhost:19006', // Expo Go
 ];
@@ -74,6 +80,7 @@ app.get('/api', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/traveler', travelerAuthRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/itineraries', itineraryRoutes);
 app.use('/api/creators', creatorRoutes);
@@ -85,6 +92,9 @@ app.use('/api/departures', departureRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/quotes', flightQuoteRoutes);
 app.use('/api/agency-docs', agencyDocRoutes);
+app.use('/api/admin/audit-logs', auditLogsRoutes);
+app.use('/api/rates', ratesRoutes);
+app.use('/api/uploads', uploadsRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -1,9 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getSession, logout, isAuthenticated, type AuthSession } from "../../lib/auth";
+import { getSession, logout, type AuthSession, type TravelerSession } from "../../lib/auth";
+
+type AnySession = TravelerSession | AuthSession;
+
+function isTravelerSession(s: AnySession | null): s is TravelerSession {
+    return !!s && 'travelerId' in s;
+}
+
+function sessionUserName(s: AnySession | null): string | null {
+    if (!s) return null;
+    if (isTravelerSession(s)) return s.name;
+    return s.employee?.name ?? null;
+}
 
 /* ═══════════════════════════════════════════════════
    SVG Icon helpers (Lucide-style)
@@ -58,31 +70,8 @@ const ICONS = {
 };
 
 /* ═══════════════════════════════════════════════════
-   ROLE-SPECIFIC NAV — Agency (Pacotes) vs Creator (Roteiros)
+   SIDEBAR NAV — Creator (Roteiros)
    ═══════════════════════════════════════════════════ */
-function getAgencyNav() {
-    return [
-        {
-            label: "MENU",
-            items: [{ href: "/dashboard", label: "Visão Geral", icon: ICONS.home }],
-        },
-        {
-            label: "PACOTES",
-            items: [
-                { href: "/dashboard/pacotes", label: "Meus Pacotes", icon: ICONS.package },
-                { href: "/dashboard/pacote/novo", label: "Novo Pacote", icon: ICONS.plusCircle },
-            ],
-        },
-        {
-            label: "NEGÓCIOS",
-            items: [
-                { href: "/dashboard/vendas", label: "Minhas Vendas", icon: ICONS.shoppingBag },
-                { href: "/dashboard/comentarios", label: "Comentários", icon: ICONS.messageCircle },
-            ],
-        },
-    ];
-}
-
 function getCreatorNav() {
     return [
         {
@@ -93,7 +82,7 @@ function getCreatorNav() {
             label: "ROTEIROS",
             items: [
                 { href: "/dashboard/roteiros", label: "Meus Roteiros", icon: ICONS.map },
-                { href: "/dashboard/roteiro/novo", label: "Novo Roteiro", icon: ICONS.plusCircle },
+                { href: "/dashboard/roteiro/new", label: "Novo Roteiro", icon: ICONS.plusCircle },
             ],
         },
         {
@@ -111,17 +100,28 @@ function getCreatorNav() {
    ═══════════════════════════════════════════════════ */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const [session, setSession] = useState<AuthSession | null>(null);
+    const router = useRouter();
+    const [session, setSession] = useState<AnySession | null>(null);
     const [sessionLoading, setSessionLoading] = useState(true);
 
     useEffect(() => {
         if (pathname.startsWith("/dashboard/admin")) return;
-        // Dev mode: just try to get session, don't force redirect to login
         getSession()
-            .then((s) => { if (s) setSession(s); })
-            .catch(() => { })
+            .then((s) => {
+                if (!s) {
+                    // Sem sessão real → vai pro login (sem mock!)
+                    router.replace("/login");
+                    return;
+                }
+                console.log('[dashboard.layout] session loaded:', s);
+                setSession(s);
+            })
+            .catch((err) => {
+                console.error('[dashboard.layout] session error:', err);
+                router.replace("/login");
+            })
             .finally(() => setSessionLoading(false));
-    }, []);
+    }, [pathname, router]);
 
     const isActive = (href: string) => {
         if (href === "/dashboard") return pathname === "/dashboard";
@@ -133,15 +133,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return <>{children}</>;
     }
 
-    // Determine role: agency employee → Pacotes; creator → Roteiros
-    const isAgency = !!session?.agency;
-    const navSections = isAgency ? getAgencyNav() : getCreatorNav();
-    const badge = isAgency ? "Agência" : "Roteirista";
-    const userName = sessionLoading ? "..." : (session?.employee?.name || "Usuário");
-    const subtitle = sessionLoading ? "..." : (isAgency ? session?.agency?.name : "Criador de Roteiros");
+    // Always use creator nav (roteiros-first model)
+    const navSections = getCreatorNav();
+    const badge = "Roteirista";
+    const userName = sessionLoading
+        ? "..."
+        : (sessionUserName(session) ?? "Convidado");
+    const subtitle = sessionLoading
+        ? "..."
+        : (isTravelerSession(session) && session.role === 'CREATOR' ? "Criador de Roteiros" : "Conta");
 
     return (
-        <div className="dash-shell" data-theme={isAgency ? "agency" : "creator"}>
+        <div className="dash-shell" data-theme="creator">
             {/* ─── Dark Navy Sidebar ─── */}
             <aside className="dash-sidebar">
                 {/* Brand */}
@@ -185,6 +188,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 {/* Footer */}
                 <div className="dash-sidebar-section-label">CONTA</div>
+
+                <Link href="/perfil" className="dash-sidebar-link">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 12H5 M12 19l-7-7 7-7" />
+                    </svg>
+                    <span>Voltar ao perfil</span>
+                </Link>
 
                 <Link href="/dashboard/configuracoes" className={`dash-sidebar-link ${isActive("/dashboard/configuracoes") ? "active" : ""}`}>
                     {ICONS.settings}

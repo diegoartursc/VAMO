@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-/* ─── Icon helpers (same pattern as Agência/Roteirista) ─── */
+export const DOLLAR_RATE_KEY = "adminDollarRate";
+
+/* ─── Icon helpers ─── */
 const SvgIcon = ({ d, size = 18 }: { d: string; size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -31,6 +33,10 @@ const ICONS = {
     ),
     users: <SvgIcon d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75" />,
     wallet: <SvgIcon d="M21 12V7H5a2 2 0 010-4h14v4 M3 5v14a2 2 0 002 2h16v-5 M18 12a1 1 0 100 2 1 1 0 000-2z" />,
+    dollar: <SvgIcon d="M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />,
+    pencil: <SvgIcon d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7 M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />,
+    check: <SvgIcon d="M20 6L9 17l-5-5" />,
+    x: <SvgIcon d="M18 6L6 18 M6 6l12 12" />,
     clock: (
         <CircleIcon>
             <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
@@ -57,21 +63,20 @@ const NAV_SECTIONS = [
         label: "MODERAÇÃO",
         items: [
             { href: "/admin", label: "Visão Geral", icon: ICONS.home, exact: true },
-            { href: "/admin/pacotes", label: "Pacotes", icon: ICONS.package },
             { href: "/admin/roteiros", label: "Roteiros", icon: ICONS.map },
         ],
     },
     {
         label: "GESTÃO",
         items: [
-            { href: "/admin/agencias", label: "Agências", icon: ICONS.building },
             { href: "/admin/roteiristas", label: "Roteiristas", icon: ICONS.compass },
             { href: "/admin/clientes", label: "Clientes", icon: ICONS.users },
         ],
     },
     {
-        label: "SISTEMA",
+        label: "SISTEMA & CÂMBIO",
         items: [
+            { href: "/admin/conversao", label: "Conversão de Moedas", icon: ICONS.dollar },
             { href: "/admin/financeiro", label: "Financeiro", icon: ICONS.wallet },
             { href: "/admin/historico", label: "Histórico", icon: ICONS.clock },
         ],

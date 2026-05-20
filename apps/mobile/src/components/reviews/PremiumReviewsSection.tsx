@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
+import { Icon } from '../common/Icons';
 
 interface Review {
     id: string;
@@ -46,56 +46,58 @@ export default function PremiumReviewsSection({
     const [showAllReviews, setShowAllReviews] = useState(false);
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
-    const renderStars = (rating: number) => {
-        return (
-            <View style={styles.starsRow}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                    <Ionicons
-                        key={star}
-                        name={star <= rating ? 'star' : 'star-outline'}
-                        size={16}
-                        color="#FFD700"
-                    />
-                ))}
-            </View>
-        );
-    };
+    const renderStars = (rating: number, size = 16) => (
+        <View style={styles.starsRow}>
+            {[1, 2, 3, 4, 5].map((star) => (
+                <Icon
+                    key={star}
+                    name="star"
+                    size={size}
+                    color={star <= rating ? '#F59E0B' : '#E2E8F0'}
+                    strokeWidth={star <= rating ? 0 : 1.5}
+                />
+            ))}
+        </View>
+    );
 
-    const renderRatingBar = (label: string, rating: number) => {
-        return (
-            <View style={styles.ratingBarRow}>
-                <Text style={styles.ratingLabel}>{label}</Text>
-                <View style={styles.barContainer}>
-                    <View style={[styles.barFill, { width: `${(rating / 5) * 100}%` }]} />
-                </View>
-                <Text style={styles.ratingValue}>{rating}/5</Text>
+    const renderRatingBar = (label: string, rating: number) => (
+        <View key={label} style={styles.ratingBarRow}>
+            <Text style={styles.ratingLabel}>{label}</Text>
+            <View style={styles.barContainer}>
+                <View style={[styles.barFill, { width: `${(rating / 5) * 100}%` as any }]} />
             </View>
-        );
-    };
+            <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
+        </View>
+    );
 
     return (
         <View style={styles.container}>
-            {/* Aggregate Rating Header */}
+            {/* ── Aggregate Rating ── */}
             <View style={styles.aggregateSection}>
-                <Text style={styles.aggregateTitle}>Avaliações de clientes</Text>
+                <Text style={styles.aggregateTitle}>Avaliações</Text>
                 <View style={styles.ratingDisplay}>
-                    {renderStars(Math.round(averageRating))}
-                    <Text style={styles.ratingNumber}>{averageRating}/5</Text>
+                    <Icon name="star" size={38} color="#F59E0B" fill="#F59E0B" />
+                    <Text style={styles.ratingNumber}>{averageRating.toFixed(1)}</Text>
+                    <View style={styles.ratingMeta}>
+                        <Text style={styles.ratingCount}>
+                            {totalReviews} {totalReviews === 1 ? 'avaliação' : 'avaliações'}
+                        </Text>
+                        <Text style={styles.ratingTrust}>100% autênticas</Text>
+                    </View>
                 </View>
-                <Text style={styles.ratingSubtext}>
-                    com base em {totalReviews} avaliações
-                </Text>
             </View>
 
-            {/* Top-Rated Summary */}
+            {/* ── Top-Rated Summary ── */}
             {topRatedSummary && (
                 <View style={styles.summarySection}>
-                    <Text style={styles.summaryIcon}>🧡</Text>
+                    <View style={styles.summaryIconWrap}>
+                        <Icon name="heart" size={14} color={theme.colors.primary} strokeWidth={2} />
+                    </View>
                     <Text style={styles.summaryText}>{topRatedSummary}</Text>
                 </View>
             )}
 
-            {/* Category Ratings */}
+            {/* ── Category Ratings ── */}
             {categoryRatings && (
                 <View style={styles.categorySection}>
                     {categoryRatings.guide && renderRatingBar('Guia', categoryRatings.guide)}
@@ -104,19 +106,17 @@ export default function PremiumReviewsSection({
                 </View>
             )}
 
-            {/* Community Photos */}
+            {/* ── Community Photos ── */}
             {communityPhotos && communityPhotos.length > 0 && (
                 <View style={styles.photosSection}>
                     <Text style={styles.photosTitle}>Fotos da comunidade</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                         {communityPhotos.map((photo, index) => (
                             <View key={index} style={styles.photoWrapper}>
                                 <Image source={{ uri: photo }} style={styles.communityPhoto} />
                                 {index === communityPhotos.length - 1 && communityPhotos.length > 3 && (
                                     <View style={styles.photoOverlay}>
-                                        <Text style={styles.photoOverlayText}>
-                                            +{communityPhotos.length - 3}
-                                        </Text>
+                                        <Text style={styles.photoOverlayText}>+{communityPhotos.length - 3}</Text>
                                     </View>
                                 )}
                             </View>
@@ -125,56 +125,60 @@ export default function PremiumReviewsSection({
                 </View>
             )}
 
-            {/* Individual Reviews */}
+            {/* ── Individual Reviews ── */}
             <View style={styles.reviewsList}>
                 {displayedReviews.map((review) => (
                     <View key={review.id} style={styles.reviewCard}>
-                        {renderStars(review.rating)}
-
+                        {/* Stars + header row */}
                         <View style={styles.reviewHeader}>
                             <View style={[styles.avatar, { backgroundColor: review.user.avatar }]}>
                                 <Text style={styles.avatarText}>{review.user.initial}</Text>
                             </View>
                             <View style={styles.userInfo}>
                                 <Text style={styles.userName}>
-                                    {review.user.name} {review.user.location && `– ${review.user.location}`}
+                                    {review.user.name}{review.user.location ? ` · ${review.user.location}` : ''}
                                 </Text>
                                 <View style={styles.metaRow}>
+                                    {renderStars(review.rating, 13)}
                                     <Text style={styles.reviewDate}>{review.date}</Text>
-                                    {review.verified && (
-                                        <>
-                                            <Text style={styles.separator}>•</Text>
-                                            <Text style={styles.verifiedBadge}>Reserva verificada</Text>
-                                        </>
-                                    )}
                                 </View>
                             </View>
                             <TouchableOpacity style={styles.menuButton}>
-                                <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.text.tertiary} />
+                                <Icon name="more-horizontal" size={18} color={theme.colors.text.tertiary} />
                             </TouchableOpacity>
                         </View>
 
+                        {/* Verified badge */}
+                        {review.verified && (
+                            <View style={styles.verifiedRow}>
+                                <Icon name="verified" size={13} color={theme.colors.verified} />
+                                <Text style={styles.verifiedBadge}>Compra verificada</Text>
+                            </View>
+                        )}
+
+                        {/* Review text */}
+                        <Text style={styles.reviewText}>{review.text}</Text>
+
+                        {/* Photos */}
                         {review.photos && review.photos.length > 0 && (
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewPhotos}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewPhotos} contentContainerStyle={{ gap: 8 }}>
                                 {review.photos.map((photo, index) => (
                                     <Image key={index} source={{ uri: photo }} style={styles.reviewPhoto} />
                                 ))}
                             </ScrollView>
                         )}
 
-                        <Text style={styles.reviewText}>{review.text}</Text>
-
+                        {/* Creator response */}
                         {review.response && (
                             <View style={styles.responseContainer}>
-                                <Text style={styles.responseTitle}>Resposta do fornecedor</Text>
-                                <Text style={styles.responseDate}>{review.response.date}</Text>
+                                <View style={styles.responseHeader}>
+                                    <Icon name="circle-user" size={14} color={theme.colors.primary} />
+                                    <Text style={styles.responseTitle}>Resposta do criador</Text>
+                                    <Text style={styles.responseDate}>{review.response.date}</Text>
+                                </View>
                                 <Text style={styles.responseText}>{review.response.text}</Text>
                             </View>
                         )}
-
-                        <TouchableOpacity style={styles.translateButton}>
-                            <Text style={styles.translateText}>Traduzir</Text>
-                        </TouchableOpacity>
                     </View>
                 ))}
             </View>
@@ -183,14 +187,16 @@ export default function PremiumReviewsSection({
                 <TouchableOpacity
                     style={styles.showMoreButton}
                     onPress={() => setShowAllReviews(!showAllReviews)}
+                    activeOpacity={0.8}
                 >
                     <Text style={styles.showMoreText}>
                         {showAllReviews ? 'Mostrar menos' : `Ver todas as ${reviews.length} avaliações`}
                     </Text>
-                    <Ionicons
-                        name={showAllReviews ? 'chevron-up' : 'chevron-down'}
-                        size={20}
+                    <Icon
+                        name={showAllReviews ? 'chevron-left' : 'chevron-right'}
+                        size={16}
                         color={theme.colors.primary}
+                        strokeWidth={2.5}
                     />
                 </TouchableOpacity>
             )}
@@ -200,66 +206,98 @@ export default function PremiumReviewsSection({
 
 const styles = StyleSheet.create({
     container: {
-        paddingVertical: 24,
+        paddingVertical: 8,
     },
-    // Aggregate Rating
+
+    // ── Aggregate Rating ──
     aggregateSection: {
-        alignItems: 'center',
-        paddingBottom: 24,
+        paddingBottom: 20,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
-        marginBottom: 24,
+        borderBottomColor: theme.colors.borderLight,
+        marginBottom: 20,
     },
     aggregateTitle: {
-        fontSize: 24,
-        fontWeight: '700',
+        fontSize: 20,
+        fontWeight: '800',
         color: theme.colors.text.primary,
-        marginBottom: 16,
+        marginBottom: 14,
+        letterSpacing: -0.3,
     },
     ratingDisplay: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        marginBottom: 8,
-    },
-    starsRow: {
-        flexDirection: 'row',
-        gap: 4,
+        backgroundColor: theme.colors.surfaceLight,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
     },
     ratingNumber: {
-        fontSize: 32,
+        fontSize: 44,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        letterSpacing: -1.5,
+        lineHeight: 48,
+    },
+    ratingMeta: {
+        marginLeft: 4,
+        justifyContent: 'center',
+    },
+    ratingCount: {
+        fontSize: 15,
         fontWeight: '700',
         color: theme.colors.text.primary,
     },
-    ratingSubtext: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
+    ratingTrust: {
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+        marginTop: 2,
     },
-    // Top-Rated Summary
+    starsRow: {
+        flexDirection: 'row',
+        gap: 3,
+        marginBottom: 4,
+    },
+
+    // ── Summary ──
     summarySection: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         paddingVertical: 12,
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: theme.borderRadius.md,
-        marginBottom: theme.spacing.md,
-        gap: 8,
+        backgroundColor: theme.colors.primary + '0D',
+        borderRadius: 12,
+        marginBottom: 20,
+        gap: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '1A',
     },
-    summaryIcon: {
-        fontSize: 16,
+    summaryIconWrap: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: theme.colors.primary + '18',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     summaryText: {
         flex: 1,
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '600',
         color: theme.colors.text.primary,
-        lineHeight: 22,
+        lineHeight: 20,
     },
-    // Category Ratings
+
+    // ── Category Rating Bars ──
     categorySection: {
-        gap: 12,
+        gap: 14,
         marginBottom: 24,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 14,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
     },
     ratingBarRow: {
         flexDirection: 'row',
@@ -267,78 +305,79 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     ratingLabel: {
-        fontSize: 15,
-        color: theme.colors.text.primary,
-        width: 130,
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        width: 120,
+        fontWeight: '500',
     },
     barContainer: {
         flex: 1,
-        height: 8,
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: 4,
+        height: 6,
+        backgroundColor: theme.colors.border,
+        borderRadius: 3,
         overflow: 'hidden',
     },
     barFill: {
         height: '100%',
         backgroundColor: theme.colors.primary,
-        borderRadius: 4,
+        borderRadius: 3,
     },
     ratingValue: {
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '700',
         color: theme.colors.text.primary,
-        width: 40,
+        width: 36,
         textAlign: 'right',
     },
-    // Community Photos
+
+    // ── Community Photos ──
     photosSection: {
         marginBottom: 24,
     },
     photosTitle: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 12,
     },
-    photosScroll: {
-        marginHorizontal: -20,
-        paddingHorizontal: 20,
-    },
     photoWrapper: {
         position: 'relative',
-        marginRight: 8,
     },
     communityPhoto: {
-        width: 140,
-        height: 180,
+        width: 130,
+        height: 170,
         borderRadius: 12,
     },
     photoOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.45)',
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
     photoOverlayText: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '700',
         color: '#fff',
     },
-    // Individual Reviews
+
+    // ── Review Cards ──
     reviewsList: {
-        gap: 24,
+        gap: 16,
     },
     reviewCard: {
         backgroundColor: theme.colors.surface,
         borderRadius: 16,
         padding: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.small,
     },
     reviewHeader: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        marginTop: 12,
-        marginBottom: 12,
+        gap: 12,
+        marginBottom: 10,
     },
     avatar: {
         width: 40,
@@ -346,7 +385,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
+        flexShrink: 0,
     },
     avatarText: {
         color: '#fff',
@@ -357,92 +396,95 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     userName: {
-        fontSize: 15,
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 4,
     },
     metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
     },
     reviewDate: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-    },
-    separator: {
-        fontSize: 13,
+        fontSize: 12,
         color: theme.colors.text.tertiary,
-    },
-    verifiedBadge: {
-        fontSize: 13,
-        color: theme.colors.verified,
-        fontWeight: '500',
     },
     menuButton: {
         padding: 4,
     },
+    verifiedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginBottom: 10,
+    },
+    verifiedBadge: {
+        fontSize: 12,
+        color: theme.colors.verified,
+        fontWeight: '600',
+    },
+    reviewText: {
+        fontSize: 14,
+        color: theme.colors.text.primary,
+        lineHeight: 21,
+        marginBottom: 12,
+    },
     reviewPhotos: {
         marginBottom: 12,
-        marginHorizontal: -16,
-        paddingHorizontal: 16,
     },
     reviewPhoto: {
         width: 80,
         height: 80,
-        borderRadius: 8,
-        marginRight: 8,
+        borderRadius: 10,
     },
-    reviewText: {
-        fontSize: 15,
-        color: theme.colors.text.primary,
-        lineHeight: 22,
-        marginBottom: 12,
-    },
+
+    // ── Creator Response ──
     responseContainer: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.surfaceLight,
         padding: 12,
         borderLeftWidth: 3,
         borderLeftColor: theme.colors.primary,
-        borderRadius: 8,
-        marginBottom: 12,
+        borderRadius: 10,
+        marginTop: 4,
+    },
+    responseHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 6,
     },
     responseTitle: {
         fontSize: 13,
-        fontWeight: '600',
+        fontWeight: '700',
         color: theme.colors.text.primary,
-        marginBottom: 4,
+        flex: 1,
     },
     responseDate: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginBottom: 8,
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
     },
     responseText: {
-        fontSize: 14,
+        fontSize: 13,
         color: theme.colors.text.secondary,
-        lineHeight: 20,
+        lineHeight: 19,
     },
-    translateButton: {
-        alignSelf: 'flex-start',
-    },
-    translateText: {
-        fontSize: 14,
-        color: theme.colors.primary,
-        fontWeight: '500',
-    },
+
+    // ── Show More ──
     showMoreButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 12,
-        marginTop: 16,
+        gap: 6,
+        paddingVertical: 14,
+        marginTop: 8,
+        borderWidth: 1.5,
+        borderColor: theme.colors.primary,
+        borderRadius: 12,
     },
     showMoreText: {
-        fontSize: 15,
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: '700',
         color: theme.colors.primary,
     },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -25,11 +25,10 @@ import { Icon } from '../../src/components/common/Icons';
 import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
+import { DestinationImageCarousel } from '../../src/components/home/DestinationImageCarousel';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
-import { PackageBadge } from '../../src/components/badges/PackageBadge';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
-import { PackageCard } from '../../src/components/cards/PackageCard';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
 
 
@@ -64,9 +63,9 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
                 </View>
 
                 <View style={styles.heroContent}>
-                    <Text style={styles.heroTitle}>Explore novas{'\n'}fronteiras.</Text>
-                    <Text style={styles.heroTagline}>Viajar ficou simples.</Text>
-                    <Text style={styles.heroSubtitle}>Roteiros exclusivos de viajantes{'\n'}e agências verificadas.</Text>
+                    <Text style={styles.heroTitle}>Onde será sua{'\n'}próxima aventura?</Text>
+                    <Text style={styles.heroTagline}>Roteiros de quem já viveu.</Text>
+                    <Text style={styles.heroSubtitle}>Planejamentos detalhados por{'\n'}especialistas que já estiveram lá.</Text>
 
                     {/* Search Bar - Glassmorphism */}
                     <TouchableOpacity style={styles.heroSearchBar} activeOpacity={0.9} onPress={onSearchPress}>
@@ -79,21 +78,29 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
 
                     {/* Explore Shortcuts 2x2 Grid */}
                     <View style={styles.heroShortcutsGrid}>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?sort=popular')}>
-                            <Text style={styles.heroShortcutEmoji}>🔥</Text>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Destinos em alta</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/packages?intent=custo-beneficio')}>
-                            <Text style={styles.heroShortcutEmoji}>💰</Text>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Melhor custo</Text>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
+                            <View style={styles.heroShortcutIconWrap}>
+                                <Icon name="star" size={18} color={theme.colors.primary} strokeWidth={2} />
+                            </View>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Mais populares</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>✨</Text>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Experiências únicas</Text>
+                            <View style={styles.heroShortcutIconWrap}>
+                                <Icon name="utensils" size={18} color={theme.colors.primary} strokeWidth={2} />
+                            </View>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Gastronômicos</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
-                            <Text style={styles.heroShortcutEmoji}>🗺️</Text>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Roteiros prontos</Text>
+                            <View style={styles.heroShortcutIconWrap}>
+                                <Icon name="backpack" size={18} color={theme.colors.primary} strokeWidth={2} />
+                            </View>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Mochilão</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
+                            <View style={styles.heroShortcutIconWrap}>
+                                <Icon name="users" size={18} color={theme.colors.primary} strokeWidth={2} />
+                            </View>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Com crianças</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -107,16 +114,39 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
 export default function HomeScreen() {
     const router = useRouter();
     const { applyFilters, filters, filteredPackages, hasActiveFilters, allPackages, allItineraries } = useSearch();
+
+    // Derive popular destinations dynamically from itineraries
+    const popularDestinations = useMemo(() => {
+        const grouped: Record<string, { images: string[]; count: number; featured: number; rating: number }> = {};
+        allItineraries.forEach(it => {
+            const dest = it.destination;
+            if (!dest) return;
+            if (!grouped[dest]) grouped[dest] = { images: [], count: 0, featured: 0, rating: 0 };
+            grouped[dest].count += 1;
+            grouped[dest].rating = Math.max(grouped[dest].rating, it.rating ?? 0);
+            if (it.featured) grouped[dest].featured += 1;
+            // Collect all unique images from this itinerary
+            (it.images ?? []).filter(Boolean).forEach(img => {
+                if (!grouped[dest].images.includes(img)) grouped[dest].images.push(img);
+            });
+        });
+        return Object.entries(grouped)
+            .sort((a, b) => b[1].featured - a[1].featured || b[1].count - a[1].count || b[1].rating - a[1].rating)
+            .slice(0, 6)
+            .map(([name, data]) => ({
+                id: name.toLowerCase().replace(/\s+/g, '-'),
+                name,
+                images: data.images.slice(0, 5), // max 5 per dest
+                count: data.count,
+            }));
+    }, [allItineraries]);
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [decisionAssistantVisible, setDecisionAssistantVisible] = useState(false);
 
     // Filter logic
-    const displayedPackages = hasActiveFilters ? filteredPackages : allPackages.filter(p => p.featured);
-
-    // Favorites Logic
+    // Favorites Logic (itineraries)
     const [favorites, setFavorites] = useState<string[]>([]);
     const { showAnimation } = useFavoriteAnimation();
-    const [lastSearchedDestination, setLastSearchedDestination] = useState<string | null>('Paris');
 
     useEffect(() => {
         analytics.homeViewed();
@@ -147,7 +177,7 @@ export default function HomeScreen() {
                 <View style={styles.trustBar}>
                     <View style={styles.trustItem}>
                         <Icon name="verified" size={14} color={theme.colors.text.secondary} />
-                        <Text style={styles.trustText}>Agências Verificadas</Text>
+                        <Text style={styles.trustText}>Roteiros Verificados</Text>
                     </View>
                     <View style={styles.trustItem}>
                         <Icon name="shield-check" size={14} color={theme.colors.text.secondary} />
@@ -166,41 +196,42 @@ export default function HomeScreen() {
                     </View>
                     <View style={styles.quizContent}>
                         <Text style={styles.quizTitle}>Não sabe para onde ir?</Text>
-                        <Text style={styles.quizSubtitle}>Descubra o destino ideal em 3 passos</Text>
+                        <Text style={styles.quizSubtitle}>Encontre o roteiro perfeito em 3 passos</Text>
                     </View>
                     <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
                 </TouchableOpacity>
 
-                {/* 4. Featured Packages */}
+                {/* 4. Roteiros em Destaque */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Pacotes em Destaque</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/packages')}>
+                        <Text style={styles.sectionTitle}>Roteiros em Destaque</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
                             <Text style={styles.seeAllText}>Ver todos</Text>
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.sectionSubtitle}>Experiências completas com curadoria VAMO.</Text>
+                    <Text style={styles.sectionSubtitle}>Os mais bem avaliados pela comunidade VAMO.</Text>
 
-                    {displayedPackages.slice(0, 5).map((pkg, index) => (
-                        <PackageCard
-                            key={pkg.id}
-                            pkg={pkg}
-                            onPress={() => router.push(`/package/${pkg.id}`)}
-                            isFavorite={favorites.includes(pkg.id)}
-                            onToggleFavorite={(e: any) => toggleFavorite(pkg.id, e)}
-                        />
-                    ))}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
+                        {allItineraries.filter(i => i.featured).slice(0, 5).map((itinerary) => (
+                            <ItineraryCard
+                                key={itinerary.id}
+                                width={280}
+                                itinerary={itinerary}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            />
+                        ))}
+                    </ScrollView>
                 </View>
 
-                {/* 5. Creator Itineraries */}
+                {/* 5. Novos Roteiros */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Roteiros de Especialistas</Text>
+                        <Text style={styles.sectionTitle}>Novos Roteiros</Text>
                         <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
                             <Text style={styles.seeAllText}>Explorar</Text>
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.sectionSubtitle}>Planejamento detalhado por quem entende.</Text>
+                    <Text style={styles.sectionSubtitle}>Planejamentos recém-publicados por especialistas.</Text>
 
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
                         {allItineraries.slice(0, 5).map((itinerary) => (
@@ -214,19 +245,151 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
 
-                {/* 6. Popular Destinations (Grid) */}
+                {/* 6a. Continue sua busca */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Destinos em Alta</Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Continue sua busca</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
+                            <Text style={styles.seeAllText}>Ver todos</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.sectionSubtitle}>Roteiros que podem te interessar.</Text>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
+                        {allItineraries.slice(2, 7).map((itinerary) => (
+                            <TouchableOpacity
+                                key={itinerary.id}
+                                style={{
+                                    width: 200,
+                                    backgroundColor: '#FFFFFF',
+                                    borderRadius: 12,
+                                    overflow: 'hidden',
+                                    ...theme.shadows.small,
+                                    borderWidth: 1,
+                                    borderColor: theme.colors.borderLight,
+                                }}
+                                activeOpacity={0.85}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            >
+                                <Image
+                                    source={{ uri: itinerary.images?.[0] }}
+                                    style={{ width: '100%', height: 160 }}
+                                    resizeMode="cover"
+                                />
+                                <View style={{ padding: 10 }}>
+                                    <Text
+                                        style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 6 }}
+                                        numberOfLines={1}
+                                    >
+                                        {itinerary.title}
+                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <Icon name="location" size={12} color={theme.colors.text.tertiary} />
+                                        <Text style={{ fontSize: 11, color: theme.colors.text.tertiary }} numberOfLines={1}>
+                                            {itinerary.destination}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* 6b. Experiencias inesqueciveis */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Experiências inesquecíveis</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
+                            <Text style={styles.seeAllText}>Ver todos</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.sectionSubtitle}>Vivências que você nunca vai esquecer.</Text>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
+                        {allItineraries.filter(i => i.featured).slice(0, 4).map((itinerary) => (
+                            <TouchableOpacity
+                                key={itinerary.id}
+                                style={{
+                                    width: 260,
+                                    backgroundColor: '#FFFFFF',
+                                    borderRadius: 16,
+                                    overflow: 'hidden',
+                                    ...theme.shadows.small,
+                                    borderWidth: 1,
+                                    borderColor: theme.colors.borderLight,
+                                }}
+                                activeOpacity={0.85}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            >
+                                <View style={{ position: 'relative' }}>
+                                    <Image
+                                        source={{ uri: itinerary.images?.[0] }}
+                                        style={{ width: '100%', height: 160 }}
+                                        resizeMode="cover"
+                                    />
+                                    <View style={{
+                                        position: 'absolute',
+                                        top: 10,
+                                        left: 10,
+                                        backgroundColor: '#0D9488',
+                                        borderRadius: 6,
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 3,
+                                    }}>
+                                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFFFFF' }}>
+                                            {itinerary.category || 'Destaque'}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={{ padding: 12 }}>
+                                    <Text
+                                        style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 8 }}
+                                        numberOfLines={2}
+                                    >
+                                        {itinerary.title}
+                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Icon name="star" size={13} color="#F59E0B" strokeWidth={0} />
+                                            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text.primary }}>
+                                                {itinerary.rating?.toFixed(1) ?? '4.8'}
+                                            </Text>
+                                        </View>
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: theme.colors.text.primary }}>
+                                            {itinerary.price != null ? `R$ ${itinerary.price}` : 'Gratis'}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* 7. Popular Destinations (Grid) */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={[styles.sectionTitle, { paddingLeft: 0 }]}>Destinos em Alta</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/itineraries')}>
+                            <Text style={styles.seeAllText}>Ver todos</Text>
+                        </TouchableOpacity>
+                    </View>
                     <View style={styles.destinationsGrid}>
-                        {POPULAR_DESTINATIONS.map((dest) => (
+                        {popularDestinations.map((dest) => (
                             <TouchableOpacity
                                 key={dest.id}
                                 style={styles.destinationCard}
-                                onPress={() => router.push(`/(tabs)/packages?destination=${dest.name}`)}
+                                onPress={() => router.push(`/(tabs)/itineraries`)}
+                                activeOpacity={0.9}
                             >
-                                <Image source={{ uri: dest.image }} style={styles.destinationImage} />
-                                <View style={styles.destinationOverlay} />
-                                <Text style={styles.destinationName}>{dest.name}</Text>
+                                <DestinationImageCarousel images={dest.images} />
+                                <LinearGradient
+                                    colors={['transparent', 'rgba(0,0,0,0.55)']}
+                                    style={StyleSheet.absoluteFillObject}
+                                />
+                                <View style={styles.destinationNameContainer}>
+                                    <Text style={styles.destinationName}>{dest.name}</Text>
+                                    <Text style={styles.destinationCount}>{dest.count} {dest.count === 1 ? 'roteiro' : 'roteiros'}</Text>
+                                </View>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -249,7 +412,7 @@ export default function HomeScreen() {
                 onSearch={(newFilters) => {
                     applyFilters(newFilters);
                     setSearchModalVisible(false);
-                    router.push('/(tabs)/packages');
+                    router.push('/(tabs)/itineraries');
                 }}
                 context="home"
                 initialFilters={filters}
@@ -263,12 +426,7 @@ export default function HomeScreen() {
 }
 
 
-const POPULAR_DESTINATIONS = [
-    { id: 'paris', name: 'Paris', image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1600', count: 847 },
-    { id: 'tokyo', name: 'Tokyo', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600', count: 623 },
-    { id: 'nyc', name: 'Nova York', image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1600', count: 912 },
-    { id: 'london', name: 'Londres', image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1600', count: 734 },
-];
+// POPULAR_DESTINATIONS removed — now derived dynamically from allItineraries in useMemo above
 
 const styles = StyleSheet.create({
     container: {
@@ -523,9 +681,14 @@ const styles = StyleSheet.create({
         minHeight: 64,
         justifyContent: 'center',
     },
-    heroShortcutEmoji: {
-        fontSize: 20,
-        marginBottom: 6,
+    heroShortcutIconWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: 'rgba(40,201,191,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
     },
     heroShortcutText: {
         fontSize: 12,
@@ -723,23 +886,34 @@ const styles = StyleSheet.create({
     },
     destinationCard: {
         width: (width - 52) / 2,
-        height: 120,
-        borderRadius: 12,
+        height: 140,
+        borderRadius: 16,
         overflow: 'hidden',
+        ...theme.shadows.small,
     },
     destinationImage: {
         width: '100%',
         height: '100%',
     },
-    destinationOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+    destinationNameContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        alignItems: 'center',
     },
     destinationName: {
-        position: 'absolute',
-        bottom: 12, left: 12,
         color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '700',
+        fontSize: 15,
+        fontWeight: '800',
+        textAlign: 'center',
+    },
+    destinationCount: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.8)',
+        fontWeight: '500',
+        marginTop: 2,
     }
 });

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Package } from '../types';
+import { Itinerary } from '../data/mockItineraries';
 
 export interface SearchFilters {
     destination: string;
@@ -12,7 +13,7 @@ export interface SearchFilters {
 
 export interface SearchResults {
     packages: Package[];
-    itineraries: any[]; // TODO: Add Itinerary type
+    itineraries: Itinerary[];
     totalResults: number;
 }
 

@@ -93,8 +93,8 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     };
 
     return (
-        <FavoritesContext.Provider value= { value } >
-        { children }
+        <FavoritesContext.Provider value={value}>
+            {children}
         </FavoritesContext.Provider>
     );
 };

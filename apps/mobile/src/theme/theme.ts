@@ -43,10 +43,21 @@ export const theme = {
 
     // Gradientes & Overlays
     gradients: {
-      institutional: ['#1A3263', '#162A55'], // Subtle Navy Gradient for Headers
-      action: ['#28C9BF', '#22ABA2'],        // Subtle Teal Gradient for Buttons
-      overlay: ['transparent', 'rgba(26, 50, 99, 0.8)'], // Image overlays
-      primary: ['#28C9BF', '#1FA89F'], // Teal Gradient
+      institutional: ['#1A3263', '#162A55'],           // Navy deep — headers, perfil
+      action: ['#28C9BF', '#22ABA2'],                  // Teal CTA gradient
+      overlay: ['transparent', 'rgba(26, 50, 99, 0.8)'], // Image overlay (dark)
+      primary: ['#28C9BF', '#1FA89F'],                 // Teal
+      warm: ['#28C9BF', '#1A3263'],                    // Teal → Navy (hero)
+      aurora: ['#1A3263', '#1E4D8C', '#28C9BF'],       // Aurora: Navy → Mid Blue → Teal
+      card: ['transparent', 'rgba(0,0,0,0.5)'],        // Card image bottom overlay
+      hero: ['rgba(26,50,99,0.7)', 'rgba(26,50,99,0.4)', 'rgba(40,201,191,0.15)'], // Hero 3-stop
+    },
+
+    // Backdrop / Glass tokens
+    glass: {
+      light: 'rgba(255,255,255,0.12)',
+      dark: 'rgba(0,0,0,0.35)',
+      primary: 'rgba(40,201,191,0.12)',
     }
   },
 

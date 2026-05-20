@@ -65,7 +65,6 @@ export const EMPTY_ITINERARY_TEMPLATE: PurchasedItinerary = {
     receiveList: [
         { icon: '📋', label: 'Itinerário completo dia a dia' },
         { icon: '🏨', label: 'Hospedagens recomendadas por faixa' },
-        { icon: '🗺️', label: 'Mapa com pontos marcados' },
         { icon: '🚇', label: 'Guia de locomoção local' },
         { icon: '💡', label: 'Dicas exclusivas do criador' },
         { icon: '🍽️', label: 'Restaurantes selecionados' },
@@ -74,33 +73,16 @@ export const EMPTY_ITINERARY_TEMPLATE: PurchasedItinerary = {
     ],
 };
 
-// Mock dashboard data based on Paris Econômica as the flagship
 export const mockCreatorDashboard: CreatorDashboardData = {
-    creatorId: 'diego',
-    creatorName: 'Diego Artur',
-    creatorAvatar: '👨‍✈️',
-    totalRevenue: 61626.60,
-    totalSales: 1234,
-    averageRating: 4.9,
-    itineraries: mockPurchasedItineraries.map((itinerary, index) => ({
-        itinerary,
-        stats: {
-            totalSales: index === 0 ? 1234 : index === 1 ? 89 : 0,
-            totalRevenue: index === 0 ? 61576.60 : index === 1 ? 5331.10 : 0,
-            averageRating: itinerary.rating,
-            reviewCount: itinerary.reviewCount,
-            viewsLast30Days: index === 0 ? 4567 : index === 1 ? 1234 : 0,
-            conversionRate: index === 0 ? 27 : index === 1 ? 7.2 : 0,
-        },
-        status: 'published' as const,
-        lastEditedAt: index === 0 ? '2026-02-15' : '2026-02-10',
-    })),
+    creatorId: '',
+    creatorName: '',
+    creatorAvatar: '',
+    totalRevenue: 0,
+    totalSales: 0,
+    averageRating: 0,
+    itineraries: [],
 };
 
-export const getCreatorDashboard = (creatorId: string): CreatorDashboardData => {
-    return mockCreatorDashboard;
-};
+export const getCreatorDashboard = (creatorId: string): CreatorDashboardData => mockCreatorDashboard;
 
-export const getCreatorItineraryById = (itineraryId: string): CreatorDashboardItinerary | undefined => {
-    return mockCreatorDashboard.itineraries.find(i => i.itinerary.id === itineraryId);
-};
+export const getCreatorItineraryById = (itineraryId: string): CreatorDashboardItinerary | undefined => undefined;

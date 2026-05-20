@@ -23,6 +23,31 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
     return res.json();
 }
 
+// ─── Uploads ───
+export async function uploadFile(file: File): Promise<string> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch(`${API_BASE_URL}/uploads`, { method: 'POST', body: fd });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Falha no upload' }));
+        throw new Error(err.error || `Upload error: ${res.status}`);
+    }
+    const data = await res.json();
+    return data.url as string;
+}
+
+export async function uploadFiles(files: File[]): Promise<string[]> {
+    const fd = new FormData();
+    files.forEach(f => fd.append('files', f));
+    const res = await fetch(`${API_BASE_URL}/uploads/multiple`, { method: 'POST', body: fd });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Falha no upload' }));
+        throw new Error(err.error || `Upload error: ${res.status}`);
+    }
+    const data = await res.json();
+    return (data.urls || []) as string[];
+}
+
 // ─── Dashboard Stats ───
 export interface DashboardStats {
     totalRevenue: number;
@@ -49,29 +74,16 @@ export interface DashboardItinerary {
     updatedAt: string;
 }
 
-const MOCK_ITINERARIES: DashboardItinerary[] = [
-    { id: "mock-1", title: "Chapada Diamantina — 7 dias", destination: "Lençóis", country: "Brasil", status: "active", sales: 24, revenue: 7176, rating: 4.9, reviewCount: 18, duration: 7, price: 299, updatedAt: new Date().toISOString() },
-    { id: "mock-2", title: "Jalapão Selvagem", destination: "Palmas", country: "Brasil", status: "active", sales: 11, revenue: 1650, rating: 4.7, reviewCount: 9, duration: 5, price: 150, updatedAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-    { id: "mock-3", title: "Fernando de Noronha — Mergulho", destination: "Fernando de Noronha", country: "Brasil", status: "pending", sales: 0, revenue: 0, rating: null, reviewCount: 0, duration: 6, price: 2500, updatedAt: new Date(Date.now() - 86400000 * 7).toISOString() },
-];
-
 export async function getDashboardStats(creatorId?: string): Promise<DashboardStats> {
     const query = creatorId ? `?creatorId=${creatorId}` : '';
     try {
         const stats = await fetchApi<DashboardStats>(`/itineraries/dashboard/stats${query}`);
-        // Return mock data if no itineraries found (for demo/development)
-        if (!stats.itineraries || stats.itineraries.length === 0) throw new Error('Empty');
-        return stats;
-    } catch {
         return {
-            totalRevenue: 13650,
-            totalSales: 35,
-            averageRating: 4.8,
-            totalReviews: 27,
-            activeItineraries: 2,
-            totalItineraries: 3,
-            itineraries: MOCK_ITINERARIES,
+            ...stats,
+            itineraries: stats.itineraries || [],
         };
+    } catch (error) {
+        throw error;
     }
 }
 
@@ -82,11 +94,7 @@ export async function getItineraries(): Promise<DashboardItinerary[]> {
 }
 
 export async function getItineraryById(id: string): Promise<any> {
-    try {
-        return await fetchApi(`/itineraries/${id}`);
-    } catch {
-        return MOCK_ITINERARIES.find(i => i.id === id) || MOCK_ITINERARIES[0] || null;
-    }
+    return fetchApi(`/itineraries/${id}`);
 }
 
 export async function createItinerary(data: any): Promise<any> {
@@ -110,43 +118,24 @@ export async function deleteItinerary(id: string): Promise<any> {
 }
 
 // ─── Packages CRUD ───
-const MOCK_PACKAGES: any[] = [
-    { id: "pkg-1", title: "Paris Romântica — 10 dias", destination: "Paris", country: "França", duration: 10, status: "ACTIVE", priceMin: 8500, priceMax: 12000, qualityScore: 85, rating: 4.8, reviewCount: 32, recentPurchases: 7 },
-    { id: "pkg-2", title: "Japão Completo", destination: "Tóquio", country: "Japão", duration: 15, status: "ACTIVE", priceMin: 14000, priceMax: 18000, qualityScore: 92, rating: 4.9, reviewCount: 19, recentPurchases: 4 },
-    { id: "pkg-3", title: "Grécia — Ilhas e Cultura", destination: "Atenas", country: "Grécia", duration: 12, status: "PAUSED", priceMin: 9800, priceMax: 13500, qualityScore: 68, rating: 4.5, reviewCount: 11, recentPurchases: 0 },
-];
-
 export async function getPackages(agencyId?: string): Promise<any[]> {
-    const query = agencyId ? `?agencyId=${agencyId}` : '';
     try {
-        return await fetchApi(`/packages${query}`);
+        return await fetchApi(`/packages`);
     } catch {
-        return MOCK_PACKAGES;
+        return [];
     }
 }
 
 export async function getAgencyPackages(agencyId: string): Promise<any[]> {
     try {
-        const pkgs = await fetchApi<any[]>(`/packages?agencyId=${agencyId}`);
-        // Return mock data if no packages found (for demo/development)
-        if (!pkgs || pkgs.length === 0) throw new Error('Empty');
-        return pkgs;
+        return await fetchApi<any[]>(`/packages/dashboard/stats`) || [];
     } catch {
-        return MOCK_PACKAGES;
+        return [];
     }
 }
 
 export async function getPackageById(id: string): Promise<any> {
-    try {
-        return await fetchApi(`/packages/${id}`);
-    } catch {
-        // Try exact match first, then index-based match (for numeric IDs like "1","2","3")
-        const pkg = MOCK_PACKAGES.find(p => p.id === id)
-            || MOCK_PACKAGES[parseInt(id, 10) - 1]
-            || MOCK_PACKAGES[0];
-        if (pkg) return pkg;
-        throw new Error("Pacote não encontrado");
-    }
+    return fetchApi(`/packages/${id}`);
 }
 
 export async function createPackage(data: any): Promise<any> {
@@ -197,17 +186,9 @@ export interface PackageDashboardStats {
 
 export async function getPackageDashboardStats(agencyId: string): Promise<PackageDashboardStats> {
     try {
-        const stats = await fetchApi<PackageDashboardStats>(`/packages/dashboard/stats?agencyId=${agencyId}`);
-        if (!stats.packages || stats.packages.length === 0) throw new Error('Empty');
-        return stats;
+        const stats = await fetchApi<PackageDashboardStats>(`/packages/dashboard/stats`);
+        return { ...stats, packages: stats.packages || [] };
     } catch {
-        return {
-            totalPackages: MOCK_PACKAGES.length,
-            activePackages: MOCK_PACKAGES.filter(p => p.status === "ACTIVE").length,
-            totalRevenue: 312500,
-            totalSales: 11,
-            averageQualityScore: 82,
-            packages: MOCK_PACKAGES,
-        };
+        return { totalPackages: 0, activePackages: 0, totalRevenue: 0, totalSales: 0, averageQualityScore: 0, packages: [] };
     }
 }

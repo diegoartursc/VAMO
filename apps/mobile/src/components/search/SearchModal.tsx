@@ -54,8 +54,8 @@ export function SearchModal({
 
     // Títulos por contexto
     const contextTitles = {
-        home: 'Buscar Viagens',
-        packages: 'Buscar Pacotes',
+        home: 'Buscar Roteiros',
+        packages: 'Buscar Roteiros',
         itineraries: 'Buscar Roteiros',
     };
 
@@ -67,9 +67,9 @@ export function SearchModal({
     }, [context, filteredPackages, filteredItineraries]);
 
     const resultLabel = useMemo(() => {
-        if (context === 'packages') return 'pacote';
+        if (context === 'packages') return 'roteiro';
         if (context === 'itineraries') return 'roteiro';
-        return 'resultado';
+        return 'roteiro';
     }, [context]);
 
     // Contagem de filtros locais ativos

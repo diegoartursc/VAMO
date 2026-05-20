@@ -143,8 +143,8 @@ export default function CriadoresPage() {
                     <div className="footer-brand">
                         <div className="logo">VAM<span>O</span></div>
                         <p className="footer-desc">
-                            Sua plataforma de viagens. Conectamos viajantes às melhores
-                            experiências ao redor do mundo.
+                            Roteiros de viagem criados por quem já esteve lá.
+                            Descubra destinos incríveis ao redor do mundo.
                         </p>
                     </div>
                     <div className="footer-column">

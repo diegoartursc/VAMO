@@ -135,21 +135,25 @@ export default function AdminDashboardPage() {
         if (!token) { router.push("/dashboard/admin/login"); return; }
         try {
             const headers = { Authorization: `Bearer ${token}` };
+            const fetchOpts = { headers, cache: 'no-store' as RequestCache };
             const [pendingRes, statsRes] = await Promise.all([
-                fetch(`${API}/admin/pending`, { headers }),
-                fetch(`${API}/admin/stats`, { headers }),
+                fetch(`${API}/admin/pending`, fetchOpts),
+                fetch(`${API}/admin/stats`, fetchOpts),
             ]);
             if (pendingRes.status === 401) { localStorage.removeItem("adminToken"); router.push("/dashboard/admin/login"); return; }
             const pendingData = await pendingRes.json();
             const statsData = await statsRes.json();
+            console.log('[dashboard/admin] /pending', pendingData);
+            console.log('[dashboard/admin] /stats', statsData);
             setPackages(pendingData.packages || []);
             setItineraries(pendingData.itineraries || []);
             setStats(statsData);
-            const creatorsRes = await fetch(`${API}/admin/creators/pending`, { headers });
+            const creatorsRes = await fetch(`${API}/admin/creators/pending`, fetchOpts);
             const creatorsData = await creatorsRes.json();
             setCreators(creatorsData || []);
-            const histRes = await fetch(`${API}/admin/all`, { headers });
+            const histRes = await fetch(`${API}/admin/all`, fetchOpts);
             const histData = await histRes.json();
+            console.log('[dashboard/admin] /all', histData);
             setHistory(histData);
         } catch {
             showToast("Erro ao carregar dados", "error");
@@ -348,12 +352,12 @@ export default function AdminDashboardPage() {
 
                 {/* Footer */}
                 <div style={{ padding: "12px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                    <button onClick={() => { }} style={{
+                    <button disabled style={{
                         display: "flex", alignItems: "center", gap: "10px", width: "100%",
                         padding: "9px 12px", borderRadius: "10px", border: "none",
-                        background: "transparent", color: "#64748B", cursor: "pointer",
+                        background: "transparent", color: "#64748B", cursor: "not-allowed", opacity: 0.5,
                         fontSize: "13px", fontWeight: "500", textAlign: "left", marginBottom: "2px",
-                    }}>{Icon.settings({ size: 17, color: "#475569" })}<span>Configurações</span></button>
+                    }} title="Configurações em desenvolvimento">{Icon.settings({ size: 17, color: "#475569" })}<span>Configurações</span></button>
                     <button onClick={logout} style={{
                         display: "flex", alignItems: "center", gap: "10px", width: "100%",
                         padding: "9px 12px", borderRadius: "10px", border: "none",

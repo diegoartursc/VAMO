@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getItineraryById } from '../../src/services/api';
+import { getItineraryById, purchaseItinerary } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
 import { useState as useStateModal } from 'react';
 
@@ -36,23 +36,35 @@ export default function ItineraryPaymentScreen() {
     const [summaryExpanded, setSummaryExpanded] = useState(true);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    const handleConfirmPayment = () => {
-        // Simulate payment processing
-        Alert.alert(
-            'Processando pagamento...',
-            `Método: ${paymentMethod.toUpperCase()}`,
-            [{
-                text: 'OK', onPress: () => {
-                    // Show success modal and navigate
-                    router.replace({
-                        pathname: `/itinerary/${itineraryId}` as any,
-                        params: {
-                            showSuccess: 'true',
-                        },
-                    });
-                }
-            }]
-        );
+    const [processing, setProcessing] = useState(false);
+
+    const handleConfirmPayment = async () => {
+        if (processing) return;
+        setProcessing(true);
+        try {
+            // Record the purchase in the database so it shows up in "Meus Roteiros"
+            await purchaseItinerary(itineraryId as string, paymentMethod);
+
+            Alert.alert(
+                'Pagamento confirmado!',
+                'Seu roteiro já está disponível em Meus Roteiros.',
+                [{
+                    text: 'Ver roteiro', onPress: () => {
+                        router.replace({
+                            pathname: `/itinerary/${itineraryId}` as any,
+                            params: { showSuccess: 'true' },
+                        });
+                    }
+                }]
+            );
+        } catch (err: any) {
+            Alert.alert(
+                'Erro ao processar pagamento',
+                err?.message || 'Tente novamente em instantes.',
+            );
+        } finally {
+            setProcessing(false);
+        }
     };
 
     if (!itinerary) {

@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS "itinerary_checklists" (
     CONSTRAINT "itinerary_checklists_pkey" PRIMARY KEY ("id")
 );
 
--- Step 6: Add columns to itineraries (NO DEFAULT for status yet - enum value not committed)
+-- Step 6: Add columns to itineraries
 ALTER TABLE "itineraries"
   ADD COLUMN IF NOT EXISTS "activeModules" TEXT[],
   ADD COLUMN IF NOT EXISTS "allowPdf" BOOLEAN NOT NULL DEFAULT false,
@@ -128,6 +128,22 @@ ALTER TABLE "itinerary_transports" ADD CONSTRAINT "itinerary_transports_itinerar
 ALTER TABLE "itinerary_checklists" DROP CONSTRAINT IF EXISTS "itinerary_checklists_itineraryId_fkey";
 ALTER TABLE "itinerary_checklists" ADD CONSTRAINT "itinerary_checklists_itineraryId_fkey" FOREIGN KEY ("itineraryId") REFERENCES "itineraries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Step 10: Now set defaults (enum values have been committed above in prior statements)
-ALTER TABLE "itineraries" ALTER COLUMN "status" SET DEFAULT 'DRAFT';
-ALTER TABLE "packages" ALTER COLUMN "status" SET DEFAULT 'DRAFT';
+-- Step 10: Create AUDIT_LOG table for LGPD compliance
+CREATE TABLE "audit_logs" (
+    "id" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "target" TEXT NOT NULL,
+    "who" TEXT NOT NULL,
+    "timestamp" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ip" TEXT,
+    "changes" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
+);
+
+-- Create indexes for efficient audit queries
+CREATE INDEX "audit_logs_who_idx" ON "audit_logs"("who");
+CREATE INDEX "audit_logs_target_idx" ON "audit_logs"("target");
+CREATE INDEX "audit_logs_timestamp_idx" ON "audit_logs"("timestamp");
+CREATE INDEX "audit_logs_action_idx" ON "audit_logs"("action");

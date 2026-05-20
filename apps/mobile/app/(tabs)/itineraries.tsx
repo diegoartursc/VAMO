@@ -38,7 +38,7 @@ export default function ItinerariesScreen() {
                 <View style={styles.headerContent}>
                     <Text style={styles.headerTitle}>Roteiros de Viajantes</Text>
                     <Text style={styles.headerSubtitle}>
-                        Roteiros testados por viajantes reais
+                        Explore roteiros detalhados de quem já viveu cada destino
                     </Text>
                 </View>
             </LinearGradient>

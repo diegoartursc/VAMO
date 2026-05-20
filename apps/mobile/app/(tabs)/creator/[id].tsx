@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '../../src/theme/theme';
-import { getCreatorById } from '../../src/services/api';
-import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
+import { theme } from '../../../src/theme/theme';
+import { getCreatorById } from '../../../src/services/api';
+import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
+import { Icon } from '../../../src/components/common/Icons';
 import { Alert } from 'react-native';
-import { shareService } from '../../src/services/sharing';
-import { haptics } from '../../src/services/haptics';
+import { shareService } from '../../../src/services/sharing';
+import { haptics } from '../../../src/services/haptics';
 
 export default function CreatorDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -66,7 +67,7 @@ export default function CreatorDetailScreen() {
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.stat}>
-                        <Text style={styles.statValue}>⭐ {creator.stats.averageRating}</Text>
+                        <Text style={styles.statValue}>{creator.stats.averageRating}</Text>
                         <Text style={styles.statLabel}>Avaliação</Text>
                     </View>
                     <View style={styles.statDivider} />
@@ -86,7 +87,7 @@ export default function CreatorDetailScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Destinos</Text>
                     <Text style={styles.destinationsList}>
-                        📍 {creator.destinations.join(' • ')}
+                        {creator.destinations.join(' • ')}
                     </Text>
                 </View>
 
@@ -97,7 +98,7 @@ export default function CreatorDetailScreen() {
                         style={{ backgroundColor: theme.colors.surface, padding: 20, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border }}
                         onPress={() => router.push('/(tabs)/itineraries')}
                     >
-                        <Text style={{ fontSize: 28, marginBottom: 8 }}>🗺️</Text>
+                        <Icon name="map" size={28} color={theme.colors.primary} style={{ marginBottom: 8 }} />
                         <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.text.primary, marginBottom: 4 }}>
                             {creator.stats.itinerariesCount} roteiros disponíveis
                         </Text>
@@ -116,7 +117,7 @@ export default function CreatorDetailScreen() {
                             router.push('/(tabs)/itineraries');
                         }}
                     >
-                        <Text style={styles.messageButtonText}>🗺️ Conferir Roteiros</Text>
+                        <Text style={styles.messageButtonText}>Conferir Roteiros</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.followButton, isFollowing && { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.primary }]}

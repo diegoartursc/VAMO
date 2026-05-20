@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect, useRef, use, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getPackageById, createPackage, updatePackage } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import StepperNav, { StepperActions } from "../../../../components/dashboard/StepperNav";
 import PhonePreview from "../../../../components/dashboard/PhonePreview";
 import QualityCoach from "../../../../components/dashboard/QualityCoach";
-import { Target, DollarSign, Compass, Tag, Package, CheckSquare, FileText, MapPin, Trash2, X } from "lucide-react";
+import { Target, DollarSign, Compass, Tag, Package, CheckSquare, FileText, MapPin, Trash2, X, HelpCircle } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════
    CONSTANTS & TYPES
@@ -137,6 +138,7 @@ const NEW_TAG_FIELDS = ["perfectFor", "notRecommendedFor", "importantInfo"] as c
 export default function PackageEditorPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const isNew = id === "new";
+    const router = useRouter();
 
     const [activeStep, setActiveStep] = useState(0);
     const [loading, setLoading] = useState(!isNew);
@@ -151,6 +153,12 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     const [newNotRecommended, setNewNotRecommended] = useState("");
     const [newImportantInfo, setNewImportantInfo] = useState("");
     const [newRequiredDoc, setNewRequiredDoc] = useState("");
+
+    // ─── FAQ state ───
+    interface PkgFaqItem { question: string; answer: string; }
+    const [pkgFaqItems, setPkgFaqItems] = useState<PkgFaqItem[]>([]);
+    const [newFaqQ, setNewFaqQ] = useState("");
+    const [newFaqA, setNewFaqA] = useState("");
 
     // ─── Day-by-day itinerary state ───
     interface PkgActivity { time: string; title: string; location: string; description: string; tips: string; duration: string; }
@@ -210,6 +218,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                     notRecommendedFor: data.notRecommendedFor || [],
                     importantInfo: data.importantInfo || [],
                 }));
+                setPkgFaqItems((data.faqQuestions || []).map((f: any) => ({ question: f.question || "", answer: f.answer || "" })));
             } catch { showToast("Erro ao carregar pacote", "error"); }
             finally { setLoading(false); }
         })();
@@ -240,6 +249,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
             const payload = {
                 ...form,
                 qualityScore: calcQualityScore(form, pkgDays, departures),
+                faqQuestions: pkgFaqItems,
                 itinerary: pkgDays,
                 departures: departures.map(d => ({
                     ...d,
@@ -253,7 +263,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
             if (isNew) {
                 await createPackage(payload);
                 showToast("Pacote criado com sucesso!", "success");
-                window.location.href = "/agencia/pacotes";
+                router.push("/agencia/pacotes");
             } else {
                 await updatePackage(id, payload);
                 showToast("Alterações salvas!", "success");
@@ -556,20 +566,50 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                     <textarea className="form-input" value={form.emotionalIntro} onChange={e => upd("emotionalIntro", e.target.value)} placeholder="Ex: Imagine caminhar pelas ruas de Paris ao pôr do sol..." style={{ minHeight: 80 }} />
                 </div>
                 <div className="form-group" style={{ marginTop: 16 }}>
-                    <label className="form-label">Público e Avisos</label>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                        <div>
-                            <label className="form-label" style={{ fontSize: 13 }}>Para quem é perfeito</label>
-                            <div className="editor-tag-input-row">
-                                <input className="form-input" value={newPerfectFor} onChange={e => setNewPerfectFor(e.target.value)} placeholder="Ex: Casais" onKeyDown={e => e.key === "Enter" && addTag("perfectFor", newPerfectFor, setNewPerfectFor)} />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="form-label" style={{ fontSize: 13 }}>Informações Importantes</label>
-                            <div className="editor-tag-input-row">
-                                <input className="form-input" value={newImportantInfo} onChange={e => setNewImportantInfo(e.target.value)} placeholder="Ex: Visto" onKeyDown={e => e.key === "Enter" && addTag("importantInfo", newImportantInfo, setNewImportantInfo)} />
-                            </div>
-                        </div>
+                    <label className="form-label">Para quem é perfeito</label>
+                    <span className="form-helper">Aparece como chips verdes no app. Ex: Casais, Famílias, Lua de mel</span>
+                    <div className="editor-tag-list">
+                        {form.perfectFor.map((item, i) => (
+                            <span key={i} className="editor-tag editor-tag-green">{item}<button onClick={() => removeTag("perfectFor", i)}>×</button></span>
+                        ))}
+                    </div>
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newPerfectFor} onChange={e => setNewPerfectFor(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("perfectFor", newPerfectFor, setNewPerfectFor); } }}
+                            placeholder="Ex: Casais românticos (Enter ou vírgula para adicionar vários)" />
+                        <button className="btn-add-item" onClick={() => addTag("perfectFor", newPerfectFor, setNewPerfectFor)}>+</button>
+                    </div>
+                </div>
+
+                <div className="form-group" style={{ marginTop: 16 }}>
+                    <label className="form-label">Não indicado para</label>
+                    <span className="form-helper">Aparece como aviso laranja no app. Ex: Pessoas com mobilidade reduzida</span>
+                    <div className="editor-tag-list">
+                        {form.notRecommendedFor.map((item, i) => (
+                            <span key={i} className="editor-tag" style={{ background: "rgba(249,115,22,0.1)", color: "#ea580c" }}>{item}<button onClick={() => removeTag("notRecommendedFor", i)}>×</button></span>
+                        ))}
+                    </div>
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newNotRecommended} onChange={e => setNewNotRecommended(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("notRecommendedFor", newNotRecommended, setNewNotRecommended); } }}
+                            placeholder="Ex: Crianças abaixo de 12 anos, Pessoas com mobilidade reduzida" />
+                        <button className="btn-add-item" onClick={() => addTag("notRecommendedFor", newNotRecommended, setNewNotRecommended)}>+</button>
+                    </div>
+                </div>
+
+                <div className="form-group" style={{ marginTop: 16 }}>
+                    <label className="form-label">Informações Importantes</label>
+                    <span className="form-helper">Aparece como aviso azul no app. Ex: Passaporte obrigatório</span>
+                    <div className="editor-tag-list">
+                        {form.importantInfo.map((item, i) => (
+                            <span key={i} className="editor-tag">{item}<button onClick={() => removeTag("importantInfo", i)}>×</button></span>
+                        ))}
+                    </div>
+                    <div className="editor-tag-input-row">
+                        <input className="form-input" value={newImportantInfo} onChange={e => setNewImportantInfo(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag("importantInfo", newImportantInfo, setNewImportantInfo); } }}
+                            placeholder="Ex: Visto obrigatório, Passaporte com validade mínima de 6 meses" />
+                        <button className="btn-add-item" onClick={() => addTag("importantInfo", newImportantInfo, setNewImportantInfo)}>+</button>
                     </div>
                 </div>
             </>);
@@ -625,6 +665,43 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                 <div className="form-group">
                     <label className="form-label">Mensagem Automática</label>
                     <textarea className="form-input" value={form.autoMessage} onChange={e => upd("autoMessage", e.target.value)} placeholder="Olá!..." />
+                </div>
+
+                <div className="form-group" style={{ marginTop: 16 }}>
+                    <label className="form-label">Voucher URL (opcional)</label>
+                    <input className="form-input" value={form.voucherUrl} onChange={e => upd("voucherUrl", e.target.value)} placeholder="https://..." />
+                    <span className="form-helper">Link para download do voucher após confirmação da reserva</span>
+                </div>
+                <div className="form-group">
+                    <label className="form-label">E-ticket URL (opcional)</label>
+                    <input className="form-input" value={form.eticketUrl} onChange={e => upd("eticketUrl", e.target.value)} placeholder="https://..." />
+                    <span className="form-helper">Link para e-ticket ou confirmação eletrônica</span>
+                </div>
+
+                <div style={{ marginTop: 24, borderTop: "1px solid rgba(226,232,240,0.6)", paddingTop: 20 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <HelpCircle size={16} color="#0ea5e9" />
+                        <label className="form-label" style={{ margin: 0 }}>Perguntas Frequentes (FAQ)</label>
+                    </div>
+                    <span className="form-helper">Responda dúvidas comuns para aumentar a confiança e reduzir mensagens repetidas.</span>
+                    {pkgFaqItems.map((faq, i) => (
+                        <div key={i} style={{ marginTop: 12, padding: 12, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10 }}>
+                            <input className="form-input" value={faq.question}
+                                onChange={e => { const u = [...pkgFaqItems]; u[i].question = e.target.value; setPkgFaqItems(u); markDirty(); }}
+                                placeholder="Pergunta (ex: O voo está incluído?)" style={{ marginBottom: 6 }} />
+                            <textarea className="form-input" value={faq.answer}
+                                onChange={e => { const u = [...pkgFaqItems]; u[i].answer = e.target.value; setPkgFaqItems(u); markDirty(); }}
+                                placeholder="Resposta completa..." style={{ minHeight: 60 }} />
+                            <button style={{ marginTop: 6, fontSize: 12, color: "#ef4444", background: "none", border: "none", cursor: "pointer" }}
+                                onClick={() => { setPkgFaqItems(pkgFaqItems.filter((_, idx) => idx !== i)); markDirty(); }}>
+                                × Remover pergunta
+                            </button>
+                        </div>
+                    ))}
+                    <button className="btn-add-item" style={{ marginTop: 12 }}
+                        onClick={() => { setPkgFaqItems([...pkgFaqItems, { question: "", answer: "" }]); markDirty(); }}>
+                        + Adicionar Pergunta
+                    </button>
                 </div>
             </>);
 

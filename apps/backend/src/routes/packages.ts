@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
+import { CreatePackageSchema, UpdatePackageSchema } from '../schemas/packages';
 
 const router = Router();
 
@@ -8,9 +10,8 @@ const router = Router();
 // NOTE: Must be registered BEFORE /:id to avoid being caught by the param route
 router.get('/dashboard/stats', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const { agencyId } = req.query;
-        const where: any = {};
-        if (agencyId) where.agencyId = agencyId as string;
+        const agencyId = (req as AuthRequest).agency!.agencyId;
+        const where: any = { agencyId };
 
         const packages = await prisma.package.findMany({
             where,
@@ -75,19 +76,15 @@ router.get('/dashboard/stats', authMiddleware, async (req: Request, res: Respons
     }
 });
 
-// GET /api/packages - List all packages (public, or filtered by agencyId query param)
+// GET /api/packages - List all packages (public API, always ACTIVE only)
+// NOTE: To filter by agencyId, use GET /api/packages/dashboard/stats (requires auth)
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const { destination, featured, category, minPrice, maxPrice, sort, agencyId } = req.query;
+        const { destination, featured, category, minPrice, maxPrice, sort } = req.query;
 
         const where: any = {};
-        // If agencyId is provided, show all statuses for that agency (dashboard view)
-        if (agencyId) {
-            where.agencyId = agencyId as string;
-        } else {
-            // Public API: only show APPROVED packages
-            where.status = 'APPROVED';
-        }
+        // Public API: ALWAYS show only ACTIVE packages, never accept agencyId param
+        where.status = 'ACTIVE';
         if (destination) where.destination = { contains: destination as string, mode: 'insensitive' };
         if (featured === 'true') where.featured = true;
         if (category) where.categories = { has: category as string };
@@ -333,28 +330,22 @@ function calcQualityScore(data: any): number {
 }
 
 // ─── POST /api/packages ─── Create (requires auth)
-router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/', authMiddleware, createAuditMiddleware('CREATE'), async (req: AuthRequest, res: Response) => {
     try {
-        const data = req.body;
-
-        // Always use agencyId from the JWT token — never trust body for this
+        // Always use agencyId from JWT token, override any body agencyId
         const agencyId = req.agency!.agencyId;
+        const bodyData = { ...req.body, agencyId };
 
-        // Validation
-        const errors: string[] = [];
-        if (!data.title?.trim()) errors.push('Título é obrigatório');
-        if (!data.destination?.trim()) errors.push('Destino é obrigatório');
-        if (!data.country?.trim()) errors.push('País é obrigatório');
-        if (!data.duration || data.duration < 1) errors.push('Duração é obrigatória');
-        if (!data.priceMin && data.priceMin !== 0) errors.push('Preço base é obrigatório');
-        if (data.travelStyles && data.travelStyles.length > 3) errors.push('Máximo 3 estilos de viagem');
-        if (data.categories && data.categories.length > 5) errors.push('Máximo 5 categorias');
-        if (!data.categories || data.categories.length < 1) errors.push('Mínimo 1 categoria');
-
-        if (errors.length > 0) {
-            res.status(400).json({ error: 'Validação falhou', details: errors });
+        // Validate with Zod
+        const parsed = CreatePackageSchema.safeParse(bodyData);
+        if (!parsed.success) {
+            res.status(422).json({
+                error: 'Validação falhou',
+                details: parsed.error.flatten().fieldErrors
+            });
             return;
         }
+        const data = parsed.data;
 
         const continent = getContinent(data.country);
         const nights = data.duration ? data.duration - 1 : null;
@@ -417,7 +408,7 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
 });
 
 // ─── PUT /api/packages/:id ─── Update (requires auth)
-router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authMiddleware, createAuditMiddleware('UPDATE'), async (req: AuthRequest, res: Response) => {
     try {
         const data = req.body;
 
@@ -486,7 +477,7 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
 });
 
 // ─── DELETE /api/packages/:id ─── Soft delete (archive, requires auth)
-router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.delete('/:id', authMiddleware, createAuditMiddleware('DELETE'), async (req: AuthRequest, res: Response) => {
     try {
         // Ownership check
         const existing = await prisma.package.findUnique({

@@ -3,12 +3,10 @@ import { useSearchContext, SearchFilters } from '../contexts/SearchContext';
 import { getPackages, getItineraries } from '../services/api';
 import { applyAllFilters, applyAllItineraryFilters } from '../utils/searchUtils';
 import { Package } from '../types';
-import { mockPackages } from '../data/mockPackages';
-import { mockItineraries } from '../data/mockItineraries';
 
 /**
- * Hook personalizado para gerenciar busca e filtros
- * Busca dados da API (banco de dados PostgreSQL) com fallback para mock data
+ * Hook personalizado para gerenciar busca e filtros.
+ * Busca dados reais da API (PostgreSQL). Sem fallback de mocks.
  */
 export function useSearch() {
     const context = useSearchContext();
@@ -16,7 +14,6 @@ export function useSearch() {
     const [allItineraries, setAllItineraries] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Fetch data from API on mount, with fallback to mock data
     useEffect(() => {
         let cancelled = false;
         async function loadData() {
@@ -26,18 +23,16 @@ export function useSearch() {
                     getItineraries(),
                 ]);
                 if (!cancelled) {
-                    setAllPackages(pkgs.length > 0 ? pkgs : mockPackages);
-                    setAllItineraries(itins.length > 0 ? itins : mockItineraries);
-                    setLoading(false);
+                    setAllPackages(pkgs || []);
+                    setAllItineraries(itins || []);
                 }
             } catch (err) {
-                console.error('Failed to load data from API:', err);
-                console.warn('Using mock data as fallback');
                 if (!cancelled) {
-                    setAllPackages(mockPackages);
-                    setAllItineraries(mockItineraries);
+                    setAllPackages([]);
+                    setAllItineraries([]);
                 }
-                setLoading(false);
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         }
         loadData();
@@ -57,7 +52,7 @@ export function useSearch() {
             );
         }
 
-        // Apply travel intent filter
+        // Apply travel intent filter (budget/style)
         if (context.travelIntent) {
             if (context.travelIntent === 'luxo') {
                 packages = packages.filter(p =>
@@ -68,6 +63,9 @@ export function useSearch() {
                     (p.priceComparison === 'below' || p.badge === 'value') &&
                     !p.categories?.includes('luxury')
                 );
+            } else if (context.travelIntent === 'moderado') {
+                // Middle ground: exclude pure luxury packages
+                packages = packages.filter(p => !p.categories?.includes('luxury') && p.badge !== 'luxury');
             }
         }
 
@@ -75,12 +73,49 @@ export function useSearch() {
     }, [allPackages, context.filters, context.travelIntent, context.selectedCategory]);
 
     /**
-     * Filtra roteiros com base nos filtros atuais
+     * Filtra roteiros com base nos filtros atuais, categoria e intent de viagem
      */
     const filteredItineraries = useMemo(() => {
         let itineraries = applyAllItineraryFilters(allItineraries, context.filters);
+
+        // Filtro por categoria temática
+        if (context.selectedCategory) {
+            itineraries = itineraries.filter(it =>
+                it.categories?.includes(context.selectedCategory!)
+            );
+        }
+
+        // Filtro por intenção de viagem (estilo)
+        if (context.travelIntent) {
+            if (context.travelIntent === 'luxo') {
+                itineraries = itineraries.filter(it =>
+                    it.travelStyles?.includes('luxo') || it.categories?.includes('luxury')
+                );
+            } else if (context.travelIntent === 'economico' || context.travelIntent === 'custo-beneficio') {
+                itineraries = itineraries.filter(it =>
+                    it.travelStyles?.includes('economico') || it.travelStyles?.includes('mochilao')
+                );
+            } else if (context.travelIntent === 'moderado') {
+                itineraries = itineraries.filter(it =>
+                    !it.travelStyles?.includes('luxo')
+                );
+            } else if (context.travelIntent === 'mochilao') {
+                itineraries = itineraries.filter(it =>
+                    it.travelStyles?.includes('mochilao') || it.travelStyles?.includes('economico')
+                );
+            } else if (context.travelIntent === 'romantico') {
+                itineraries = itineraries.filter(it =>
+                    it.travelStyles?.includes('romantico')
+                );
+            } else if (context.travelIntent === 'aventura') {
+                itineraries = itineraries.filter(it =>
+                    it.travelStyles?.includes('aventura') || it.categories?.includes('aventura')
+                );
+            }
+        }
+
         return itineraries;
-    }, [allItineraries, context.filters]);
+    }, [allItineraries, context.filters, context.travelIntent, context.selectedCategory]);
 
     const getPackagesOnly = useCallback((): Package[] => {
         return filteredPackages;
