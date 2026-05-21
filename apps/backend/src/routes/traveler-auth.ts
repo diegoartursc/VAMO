@@ -58,18 +58,17 @@ router.post('/register', async (req: Request, res: Response) => {
                 },
             });
 
-            // Se profileName veio no payload → também cria Creator
-            let creator: { id: string } | null = null;
-            if (validatedData.profileName) {
-                creator = await (tx.creator as any).create({
-                    data: {
-                        travelerId: traveler.id,
-                        bio: validatedData.profileName,
-                        verificationLevel: 'BASIC',
-                    },
-                    select: { id: true },
-                });
-            }
+            // Sempre cria Creator — conta unificada, qualquer usuário pode criar roteiros
+            const creator = await (tx.creator as any).create({
+                data: {
+                    travelerId: traveler.id,
+                    bio: validatedData.profileName || '',
+                    verificationLevel: 'BASIC',
+                    destinations: [],
+                    languages: [],
+                },
+                select: { id: true },
+            });
             return { traveler, creator };
         });
 
@@ -85,7 +84,7 @@ router.post('/register', async (req: Request, res: Response) => {
             email: traveler.email,
         });
 
-        console.log('[traveler-auth.register]', { travelerId: traveler.id, creatorId: creator?.id, email: traveler.email });
+        console.log('[traveler-auth.register]', { travelerId: traveler.id, creatorId: creator.id, email: traveler.email });
 
         res.json({
             message: 'Traveler registered successfully',
@@ -95,7 +94,7 @@ router.post('/register', async (req: Request, res: Response) => {
                 email: traveler.email,
                 avatar: traveler.avatar,
             },
-            creator: creator ? { id: creator.id } : null,
+            creator: { id: creator.id },
             accessToken,
             refreshToken,
         });

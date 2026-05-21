@@ -12,6 +12,7 @@ import {
     ChevronDown, ChevronUp, TrendingUp, MapPin, Clock, ExternalLink, Receipt, Wifi,
 } from "lucide-react";
 import { getItineraryById, createItinerary, updateItinerary, uploadFile, uploadFiles } from "../../../../lib/api";
+import { refreshCreatorSession } from "../../../../lib/auth";
 import { useDollarRate } from "../../../../hooks/useDollarRate";
 import ItineraryPreview from "../../../../components/ItineraryPreview";
 
@@ -182,7 +183,6 @@ interface FlightLeg { airline: string; originCity: string; originAirport: string
 const EMPTY_FLIGHT_LEG: FlightLeg = { airline: "", originCity: "", originAirport: "", destinationAirport: "", departureDate: "", arrivalDate: "", stops: 0 };
 const CUISINE_OPTIONS = ["Ramen", "Sushi", "Tempura", "Izakaya", "Yakitori", "Italiana", "Francesa", "Brasileira", "Mexicana", "Indiana", "Tailandesa", "Fast Food", "Café", "Padaria", "Bistrô", "Fine Dining", "Street Food", "Vegetariana", "Frutos do Mar", "Outro"];
 
-const DEFAULT_CREATOR_ID = "creator-diego-001";
 const SPENDING_CATS = ["🏨 Hospedagem", "🍽️ Alimentação", "🚌 Transporte", "🎫 Atrações", "🎁 Extras"];
 const CURRENCIES = [
     { code: "AED", symbol: "د.إ", name: "Dirham dos Emirados", emoji: "🇦🇪" },
@@ -760,7 +760,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         const mainCountry = locations[0]?.country || "";
         const mainDestination = locations[0]?.cities[0] || "";
         return {
-            creatorId: DEFAULT_CREATOR_ID, title, subtitle, destination: mainDestination, country: mainCountry, locations, description,
+            title, subtitle, destination: mainDestination, country: mainCountry, locations, description,
             price: price.toString(), currency, duration: duration.toString(), featured,
             travelStyles, categories, productType, activeModules,
             promoPrice: promoPrice?.toString() || undefined,
@@ -856,6 +856,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             console.log("[Save] Submitting itinerary payload:", payload);
             if (isNew) {
                 const created = await createItinerary(payload);
+                // Atualiza sessão local caso o backend tenha auto-criado o Creator para este Traveler
+                await refreshCreatorSession();
                 setToast({ msg: "✅ Roteiro enviado para aprovação! A equipe VAMO irá analisar em até 48h.", type: "success" });
                 window.location.href = `/dashboard/roteiro/${created.id}`;
             } else {
@@ -874,9 +876,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             const raw = err?.message || "Erro desconhecido";
             // Tradução de mensagens comuns do backend para algo mais útil ao usuário
             const friendly =
-                raw.includes("token") ? "Não foi possível enviar (auth). Reinicie o backend para aplicar as últimas mudanças e tente novamente."
+                raw.toLowerCase().includes("faça login") ? "Sua sessão expirou. Faça login novamente e tente de novo."
+                : raw.includes("token") || raw.includes("auth") || raw.includes("401") ? "Sessão inválida. Faça login novamente para publicar."
                 : raw.toLowerCase().includes("missing required fields") ? `Faltam campos obrigatórios: ${raw.replace(/.*Missing required fields[:]?\s*/i, "")}`
-                : raw.toLowerCase().includes("creator") ? "Nenhuma conta de roteirista disponível no banco. Rode o seed do backend (npm run db:seed)."
                 : raw.toLowerCase().includes("failed to fetch") ? "Não foi possível conectar ao backend. Verifique se ele está rodando em http://localhost:3333."
                 : raw;
             setToast({ msg: friendly, type: "error" });

@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { Icon, IconName } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
 import { VerifiedBadge } from '../creator/VerifiedBadge';
 import { ITINERARY_INCLUSIONS } from '../../data/itineraryInclusions';
+import { useFavorites } from '../../hooks/useFavorites';
+import { useCart } from '../../hooks/useCart';
 
 export interface ItineraryCardProps {
     itinerary: any;
@@ -16,6 +19,26 @@ export interface ItineraryCardProps {
 export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress, width }) => {
     // Mostrar no máximo 3 chips para não poluir
     const chips = ITINERARY_INCLUSIONS.slice(0, 3);
+    const { isFavorite, toggleFavorite } = useFavorites();
+    const { isInCart, addToCart } = useCart();
+    const [cartAdded, setCartAdded] = useState(false);
+
+    const fav = isFavorite(itinerary.id);
+    const inCart = isInCart(itinerary.id);
+
+    const handleFav = async (e: any) => {
+        e.stopPropagation?.();
+        await toggleFavorite(itinerary.id);
+    };
+
+    const handleCart = async (e: any) => {
+        e.stopPropagation?.();
+        if (!inCart) {
+            await addToCart(itinerary.id);
+            setCartAdded(true);
+            setTimeout(() => setCartAdded(false), 2000);
+        }
+    };
 
     return (
         <TouchableOpacity
@@ -40,6 +63,20 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                         R$ {itinerary.price?.toFixed(2).replace('.', ',')}
                     </Text>
                 </View>
+
+                {/* Botão favoritar */}
+                <TouchableOpacity
+                    style={styles.favButton}
+                    onPress={handleFav}
+                    activeOpacity={0.8}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <Ionicons
+                        name={fav ? 'heart' : 'heart-outline'}
+                        size={20}
+                        color={fav ? '#EF4444' : '#fff'}
+                    />
+                </TouchableOpacity>
 
                 {/* Badge de verificação */}
                 <View style={styles.verifiedBadge}>
@@ -110,22 +147,37 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     ))}
                 </View>
 
-                {/* Footer: destino + CTA */}
+                {/* Footer: destino + botões */}
                 <View style={styles.footer}>
                     <View style={styles.destinationRow}>
                         <Icon name="location" size={13} color={theme.colors.text.tertiary} />
                         <Text style={styles.destinationText} numberOfLines={1}>
-                            {itinerary.destination}, {itinerary.country}
+                            {itinerary.destination}{itinerary.country ? `, ${itinerary.country}` : ''}
                         </Text>
                     </View>
-                    <TouchableOpacity
-                        style={styles.ctaButton}
-                        onPress={onPress}
-                        activeOpacity={0.85}
-                    >
-                        <Text style={styles.ctaText}>Ver roteiro</Text>
-                        <Icon name="chevron-right" size={14} color="#FFF" strokeWidth={2.5} />
-                    </TouchableOpacity>
+                    <View style={styles.footerActions}>
+                        {/* Botão carrinho */}
+                        <TouchableOpacity
+                            style={[styles.cartButton, inCart && styles.cartButtonActive]}
+                            onPress={handleCart}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons
+                                name={inCart ? 'checkmark' : 'cart-outline'}
+                                size={15}
+                                color={inCart ? theme.colors.primary : theme.colors.text.secondary}
+                            />
+                        </TouchableOpacity>
+                        {/* Botão ver roteiro */}
+                        <TouchableOpacity
+                            style={styles.ctaButton}
+                            onPress={onPress}
+                            activeOpacity={0.85}
+                        >
+                            <Text style={styles.ctaText}>Ver roteiro</Text>
+                            <Icon name="chevron-right" size={14} color="#FFF" strokeWidth={2.5} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         </TouchableOpacity>
@@ -169,6 +221,17 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#FFF',
         letterSpacing: -0.3,
+    },
+    favButton: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     verifiedBadge: {
         position: 'absolute',
@@ -303,6 +366,25 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: theme.colors.text.tertiary,
         fontWeight: '500',
+    },
+    footerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    cartButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        borderWidth: 1.5,
+        borderColor: theme.colors.borderLight,
+        backgroundColor: theme.colors.surfaceLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cartButtonActive: {
+        borderColor: theme.colors.primary,
+        backgroundColor: theme.colors.primary + '12',
     },
     ctaButton: {
         backgroundColor: theme.colors.primary,

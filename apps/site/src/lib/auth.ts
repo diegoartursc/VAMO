@@ -13,9 +13,36 @@ const AGENCY_SESSION_KEY = 'vamo_agency_session';
 
 // ─── Token Management ───
 
+/** Decodifica o payload do JWT sem verificar assinatura (client-side). */
+function decodeJwtPayload(token: string): Record<string, any> | null {
+    try {
+        const base64 = token.split('.')[1];
+        if (!base64) return null;
+        const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
+}
+
+/** Retorna true se o JWT estiver expirado. */
+function isTokenExpired(token: string): boolean {
+    const payload = decodeJwtPayload(token);
+    if (!payload?.exp) return false;
+    // exp é em segundos; Date.now() em ms
+    return payload.exp * 1000 < Date.now();
+}
+
 export function getToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem(TOKEN_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return null;
+    // Token expirado → limpa sessão e retorna null
+    if (isTokenExpired(token)) {
+        clearAllSession();
+        return null;
+    }
+    return token;
 }
 
 export function getRefreshToken(): string | null {
@@ -41,12 +68,11 @@ export function getAuthHeaders(): Record<string, string> {
 }
 
 /**
- * Retorna true apenas se houver token + sessão real persistida.
- * NUNCA retorna true sem usuário real autenticado.
+ * Retorna true apenas se houver token válido (não expirado) + sessão real persistida.
  */
 export function isAuthenticated(): boolean {
     if (typeof window === 'undefined') return false;
-    const token = getToken();
+    const token = getToken(); // já checa expiração
     if (!token) return false;
     const traveler = getTravelerSession();
     const agency = getAgencySessionRaw();
@@ -126,6 +152,19 @@ async function resolveCreatorId(travelerId: string): Promise<string | null> {
         return data.id ?? null;
     } catch {
         return null;
+    }
+}
+
+/**
+ * Re-resolve o creatorId do usuário logado e atualiza a sessão local.
+ * Útil após auto-criação do Creator no backend (primeiro roteiro publicado).
+ */
+export async function refreshCreatorSession(): Promise<void> {
+    const t = getTravelerSession();
+    if (!t || t.creatorId) return; // já tem creatorId, nada a fazer
+    const creatorId = await resolveCreatorId(t.travelerId);
+    if (creatorId) {
+        setTravelerSession({ ...t, creatorId, role: 'CREATOR' });
     }
 }
 

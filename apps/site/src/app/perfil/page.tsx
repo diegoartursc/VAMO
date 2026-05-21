@@ -112,6 +112,12 @@ export default function PerfilPage() {
                         emoji="❤️"
                     />
                     <Card
+                        href="/perfil/carrinho"
+                        title="Carrinho"
+                        subtitle="Roteiros prontos pra comprar"
+                        emoji="🛒"
+                    />
+                    <Card
                         href="/perfil/compras"
                         title="Minhas compras"
                         subtitle="Roteiros e pacotes adquiridos"

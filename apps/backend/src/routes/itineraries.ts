@@ -6,6 +6,28 @@ import { verifyToken } from '../lib/auth';
 
 const router = Router();
 
+// ─── helpers ───
+// blob:// URLs são Object URLs do navegador — efêmeras e inválidas em qualquer outro browser.
+// Filtramos defensivamente em entrada (POST/PUT) e saída (GET).
+function stripBlobs(arr: any): string[] {
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((u: any) => typeof u === 'string' && u && !u.startsWith('blob:'));
+}
+
+// Compõe a lista de imagens disponíveis para o card a partir de TODAS as fontes,
+// priorizando imagens uploadadas formalmente (ItineraryImage), depois highlightPhotos e mediaUrls.
+function composeCardImages(it: any): string[] {
+    const fromImages = (it.images || []).map((img: any) => img.url).filter(Boolean);
+    const fromHighlight = stripBlobs(it.highlightPhotos || []);
+    const fromMedia = stripBlobs(it.mediaUrls || []);
+    // dedupe preservando ordem
+    const seen = new Set<string>();
+    return [...fromImages, ...fromHighlight, ...fromMedia].filter(u => {
+        if (seen.has(u)) return false;
+        seen.add(u); return true;
+    });
+}
+
 // GET /api/itineraries - List all itineraries
 router.get('/', async (req: Request, res: Response) => {
     try {
@@ -38,7 +60,9 @@ router.get('/', async (req: Request, res: Response) => {
                 rating: it.creator.averageRating, salesCount: it.creator.totalSales,
             },
             description: it.description, price: it.price, currency: it.currency,
-            images: it.images.map(img => img.url), rating: it.rating,
+            // Compõe imagens de TODAS as fontes (images, highlightPhotos, mediaUrls) filtrando blob: URLs
+            images: composeCardImages(it),
+            rating: it.rating,
             reviewCount: it.reviewCount, inclusions: it.inclusions,
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
@@ -73,7 +97,8 @@ router.get('/featured', async (req: Request, res: Response) => {
                 rating: it.creator.averageRating, salesCount: it.creator.totalSales,
             },
             description: it.description, price: it.price, currency: it.currency,
-            images: it.images.map(img => img.url), rating: it.rating,
+            images: composeCardImages(it),
+            rating: it.rating,
             reviewCount: it.reviewCount, inclusions: it.inclusions,
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
@@ -211,7 +236,8 @@ router.get('/:id', async (req: Request, res: Response) => {
                 rating: i.creator.averageRating, salesCount: i.creator.totalSales,
             },
             description: i.description, price: i.price, currency: i.currency,
-            images: (i.images || []).map((img: any) => img.url), rating: i.rating,
+            images: composeCardImages(i),
+            rating: i.rating,
             reviewCount: i.reviewCount, inclusions: i.inclusions,
             duration: i.duration, featured: i.featured,
             highlights: i.highlights, estimatedSpending: i.estimatedSpending,
@@ -234,8 +260,8 @@ router.get('/:id', async (req: Request, res: Response) => {
             attractions:  i.attractions  || [],
             restaurants:  i.restaurants  || [],
             generalTips:  i.generalTips  || [],
-            mediaUrls:    i.mediaUrls    || [],
-            highlightPhotos: i.highlightPhotos || [],
+            mediaUrls:    stripBlobs(i.mediaUrls),
+            highlightPhotos: stripBlobs(i.highlightPhotos),
             spendingProfile: i.spendingProfile || null,
             receiveList:  i.receiveList  || null,
             // ─── Relações (com alias compat pro mobile pós-compra) ───
@@ -389,7 +415,8 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
         // Resolve creator em ordem:
         // 1. creatorId enviado explicitamente no body
         // 2. travelerId do token JWT → busca creator vinculado
-        // SEM fallback para "primeiro creator" (causa o bug do Diego)
+        // 3. Se autenticado mas sem Creator, auto-cria (conta unificada: qualquer usuário logado pode criar roteiro)
+        // 4. Sem autenticação → 401 real
         let resolvedCreatorId: string | null = null;
         if (creatorId) {
             const existing = await prisma.creator.findUnique({ where: { id: creatorId } });
@@ -400,11 +427,33 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 where: { travelerId: req.traveler.travelerId },
                 select: { id: true },
             });
-            resolvedCreatorId = myCreator?.id || null;
-            console.log('[POST /itineraries] creator resolved from token:', { travelerId: req.traveler.travelerId, creatorId: resolvedCreatorId });
+            if (myCreator) {
+                resolvedCreatorId = myCreator.id;
+                console.log('[POST /itineraries] creator found:', { travelerId: req.traveler.travelerId, creatorId: resolvedCreatorId });
+            } else {
+                // Usuário está logado mas não tem registro Creator → auto-cria
+                const traveler = await prisma.traveler.findUnique({
+                    where: { id: req.traveler.travelerId },
+                    select: { id: true, name: true },
+                });
+                if (traveler) {
+                    const newCreator = await (prisma.creator as any).create({
+                        data: {
+                            travelerId: traveler.id,
+                            bio: '',
+                            destinations: [],
+                            languages: [],
+                        },
+                        select: { id: true },
+                    });
+                    resolvedCreatorId = newCreator.id;
+                    console.log('[POST /itineraries] auto-criou Creator para Traveler:', { travelerId: traveler.id, creatorId: newCreator.id });
+                }
+            }
         }
         if (!resolvedCreatorId) {
-            res.status(401).json({ error: 'Faça login como criador para publicar roteiros.' });
+            // Usuário realmente não está autenticado
+            res.status(401).json({ error: 'Faça login para publicar roteiros.' });
             return;
         }
 
@@ -446,14 +495,14 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 attractions: attractions || undefined,
                 restaurants: restaurants || undefined,
                 generalTips: generalTips || [],
-                mediaUrls: mediaUrls || [],
-                highlightPhotos: highlightPhotos || [],
+                mediaUrls: stripBlobs(mediaUrls),
+                highlightPhotos: stripBlobs(highlightPhotos),
                 tripStartDate: tripStartDate ? new Date(tripStartDate) : undefined,
                 tripEndDate: tripEndDate ? new Date(tripEndDate) : undefined,
                 spendingProfile: spendingProfile || undefined,
                 receiveList: receiveList || undefined,
                 images: images?.length ? {
-                    create: images.map((url: string, i: number) => ({ url, order: i })),
+                    create: stripBlobs(images).map((url: string, i: number) => ({ url, order: i })),
                 } : undefined,
                 days: days?.length ? {
                     create: days.map((day: any) => ({
@@ -596,7 +645,20 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (inclusions !== undefined) updateData.inclusions = inclusions;
         if (estimatedSpending !== undefined) updateData.estimatedSpending = estimatedSpending;
         if (featured !== undefined) updateData.featured = featured;
-        if (status !== undefined) updateData.status = status.toUpperCase();
+
+        // ─── REGRA DE NEGÓCIO: edição de roteiro pelo criador re-envia pra análise admin ───
+        // Se vier `status` explícito no body (admin aprovando/rejeitando), respeitamos.
+        // Caso contrário: qualquer edição força status = PENDING_REVIEW.
+        if (status !== undefined) {
+            updateData.status = String(status).toUpperCase();
+        } else {
+            // só re-envia pra revisão se já não estava em PENDING (evita ruído)
+            if (existing.status !== 'PENDING_REVIEW') {
+                updateData.status = 'PENDING_REVIEW';
+                updateData.approvedAt = null;
+                console.log(`[PUT /itineraries/${id}] edição detectada — status -> PENDING_REVIEW`);
+            }
+        }
         // New fields
         if (subtitle !== undefined) updateData.subtitle = subtitle;
         if (travelStyles !== undefined) updateData.travelStyles = travelStyles;
@@ -618,8 +680,8 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (attractions !== undefined)     updateData.attractions = attractions;
         if (restaurants !== undefined)     updateData.restaurants = restaurants;
         if (generalTips !== undefined)     updateData.generalTips = generalTips;
-        if (mediaUrls !== undefined)       updateData.mediaUrls = mediaUrls;
-        if (highlightPhotos !== undefined) updateData.highlightPhotos = highlightPhotos;
+        if (mediaUrls !== undefined)       updateData.mediaUrls = stripBlobs(mediaUrls);
+        if (highlightPhotos !== undefined) updateData.highlightPhotos = stripBlobs(highlightPhotos);
         if (tripStartDate !== undefined)   updateData.tripStartDate = tripStartDate ? new Date(tripStartDate) : null;
         if (tripEndDate !== undefined)     updateData.tripEndDate = tripEndDate ? new Date(tripEndDate) : null;
         if (spendingProfile !== undefined) updateData.spendingProfile = spendingProfile;
@@ -631,12 +693,13 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
 
         // Use a transaction for atomic updates
         const result = await prisma.$transaction(async (tx) => {
-            // Update images if provided
+            // Update images if provided (filtrando blob: URLs)
             if (images !== undefined) {
+                const cleanImages = stripBlobs(images);
                 await tx.itineraryImage.deleteMany({ where: { itineraryId: id } });
-                if (images.length > 0) {
+                if (cleanImages.length > 0) {
                     await tx.itineraryImage.createMany({
-                        data: images.map((url: string, i: number) => ({
+                        data: cleanImages.map((url: string, i: number) => ({
                             itineraryId: id, url, order: i,
                         })),
                     });

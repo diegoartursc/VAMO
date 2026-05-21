@@ -172,6 +172,66 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
     res.json({ packages, itineraries });
 });
 
+// GET /api/admin/creators/pending — roteiristas com verificação BASIC (pendentes de aprovação)
+router.get('/creators/pending', verifyAdmin, async (_req: Request, res: Response) => {
+    try {
+        const creators = await (prisma.creator as any).findMany({
+            where: { verificationLevel: 'BASIC' },
+            orderBy: { createdAt: 'asc' },
+            select: {
+                id: true,
+                bio: true,
+                verificationLevel: true,
+                createdAt: true,
+                traveler: { select: { id: true, name: true, email: true, avatar: true } },
+            },
+        });
+        res.json(creators);
+    } catch (err: any) {
+        console.error('[admin/creators/pending]', err);
+        res.json([]);
+    }
+});
+
+// POST /api/admin/creators/:id/approve — promove creator de BASIC para TRUSTED
+router.post('/creators/:id/approve', verifyAdmin, async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const updated = await (prisma.creator as any).update({
+            where: { id },
+            data: { verificationLevel: 'TRUSTED' },
+            select: { id: true, verificationLevel: true },
+        });
+        res.json(updated);
+    } catch (err: any) {
+        console.error('[admin/creators/approve]', err);
+        res.status(404).json({ error: 'Creator não encontrado' });
+    }
+});
+
+// GET /api/admin/itineraries/:id  — detalhe completo para revisão admin
+router.get('/itineraries/:id', verifyAdmin, async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const it = await prisma.itinerary.findUnique({
+        where: { id },
+        include: {
+            creator: {
+                include: {
+                    traveler: { select: { id: true, name: true, email: true, avatar: true, createdAt: true } },
+                    balance: { select: { availableBalance: true, pendingBalance: true } },
+                },
+            },
+            images: { orderBy: { order: 'asc' } },
+            days: { orderBy: { dayNumber: 'asc' }, include: { activities: true } },
+            accommodations: true,
+            transports: true,
+            checklists: true,
+        },
+    });
+    if (!it) return res.status(404).json({ error: 'Roteiro não encontrado' });
+    res.json(it);
+});
+
 // POST /api/admin/packages/:id/approve
 router.post('/packages/:id/approve', verifyAdmin, async (req: Request, res: Response) => {
     const id = req.params.id as string;

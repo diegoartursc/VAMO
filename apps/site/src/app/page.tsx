@@ -1,6 +1,7 @@
 import Link from "next/link";
 import HeroSection from "@/components/HeroSection";
 import GlobalHeader from "@/components/GlobalHeader";
+import MarketplaceShowcase from "@/components/MarketplaceShowcase";
 
 // ─── SVG Icons (inline, Lucide-style) ───────────────────
 const IconCheck = () => (
@@ -56,12 +57,6 @@ const IconCompass = () => (
     <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
   </svg>
 );
-const IconUsers = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-  </svg>
-);
 const IconBarChart = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
@@ -90,9 +85,11 @@ export default function Home() {
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
         <GlobalHeader variant="transparent" />
       </div>
+
+      {/* HERO — busca + entrada do marketplace */}
       <HeroSection />
 
-      {/* ═══ TRUST BAR ═══ */}
+      {/* TRUST BAR — credibilidade rápida */}
       <div className="trust-badge">
         <div className="trust-badge-item">
           <IconVerified />
@@ -110,7 +107,40 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ═══ COMO FUNCIONA ═══ */}
+      {/* ═══ MARKETPLACE — ROTEIROS EM DESTAQUE + DESTINOS ═══ */}
+      <MarketplaceShowcase />
+
+      {/* ═══ CTA CRIADOR — virou marketplace, agora apresenta o caminho criador ═══ */}
+      <section className="section" style={{ paddingBottom: 60 }}>
+        <div className="creators-cta">
+          <h2>Transforme suas viagens em renda</h2>
+          <p>
+            Crie roteiros detalhados, compartilhe sua experiência e ganhe
+            comissão a cada venda. Sem investimento inicial.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/dashboard/roteiro/novo" className="btn-white">
+              Criar meu primeiro roteiro →
+            </Link>
+            <Link href="/criadores" style={{
+              display: "inline-flex", alignItems: "center", gap: 8, padding: "16px 32px",
+              background: "rgba(255,255,255,0.18)", color: "#fff", fontWeight: 600,
+              borderRadius: 9999, border: "1px solid rgba(255,255,255,0.3)",
+              textDecoration: "none",
+            }}>
+              Saber mais
+            </Link>
+          </div>
+          <div className="creators-benefits">
+            <div className="creator-benefit"><IconCheck /> Cadastro gratuito</div>
+            <div className="creator-benefit"><IconDollar /> Até 85% de comissão</div>
+            <div className="creator-benefit"><IconTrendingUp /> Dashboard completo</div>
+            <div className="creator-benefit"><IconGlobe /> Alcance global</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ COMO FUNCIONA — institucional, agora reposicionado ═══ */}
       <section className="section" id="como-funciona">
         <div className="section-header">
           <div className="section-tag">Processo</div>
@@ -147,7 +177,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══ PARA VIAJANTES ═══ */}
+      {/* ═══ POR QUE VAMO — institucional preservado ═══ */}
       <section className="features-section" id="viajantes">
         <div className="section-header">
           <div className="section-tag">Viajantes</div>
@@ -186,26 +216,6 @@ export default function Home() {
             <div className="feature-icon pink"><IconMessageCircle /></div>
             <h3>Suporte 24h</h3>
             <p>Nossa equipe está sempre disponível para ajudar antes, durante e depois da viagem.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ PARA CRIADORES ═══ */}
-      <section className="section" style={{ paddingBottom: 60 }}>
-        <div className="creators-cta">
-          <h2>Transforme suas viagens em renda</h2>
-          <p>
-            Crie roteiros detalhados, compartilhe sua experiência e ganhe
-            comissão a cada venda. Sem investimento inicial.
-          </p>
-          <Link href="/cadastro" className="btn-white">
-            Comece a Criar Agora →
-          </Link>
-          <div className="creators-benefits">
-            <div className="creator-benefit"><IconCheck /> Cadastro gratuito</div>
-            <div className="creator-benefit"><IconDollar /> Até 85% de comissão</div>
-            <div className="creator-benefit"><IconTrendingUp /> Dashboard completo</div>
-            <div className="creator-benefit"><IconGlobe /> Alcance global</div>
           </div>
         </div>
       </section>
@@ -258,6 +268,58 @@ export default function Home() {
                 <div className="testimonial-trip">Tóquio, 2026</div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ BAIXAR APP — agora como complemento, não como foco ═══ */}
+      <section className="section" id="app" style={{ paddingTop: 30 }}>
+        <div style={{
+          background: "linear-gradient(135deg, #0f766e, #1e3a8a)",
+          borderRadius: 24, padding: "48px 32px",
+          color: "#fff", textAlign: "center",
+          maxWidth: 1100, margin: "0 auto",
+        }}>
+          <div className="section-tag" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)" }}>
+            App VAMO
+          </div>
+          <h2 style={{ fontSize: 32, fontWeight: 700, margin: "12px 0 8px" }}>
+            Leve seus roteiros pra qualquer lugar
+          </h2>
+          <p style={{ fontSize: 16, opacity: 0.92, maxWidth: 560, margin: "0 auto 24px" }}>
+            Mesmos roteiros, mesma conta — sincronizados no app mobile.
+            Use offline durante a viagem.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="https://play.google.com/store/apps/details?id=com.vamo.app" target="_blank" rel="noopener noreferrer" style={{
+              display: "inline-flex", alignItems: "center", gap: 10, padding: "10px 20px 10px 14px",
+              background: "#000", color: "#fff", borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.3)", textDecoration: "none", minWidth: 160,
+            }}>
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+                <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92z" fill="#4285F4"/>
+                <path d="M17.556 8.236L5.148.856a1.003 1.003 0 00-1.04-.02l9.683 9.683 3.765-2.283z" fill="#EA4335"/>
+                <path d="M17.556 15.764l-3.765-2.283-9.683 9.683c.32.178.716.19 1.04-.02l12.408-7.38z" fill="#34A853"/>
+                <path d="M21.003 12c0-.402-.2-.77-.527-.99l-2.92-1.774-3.765 2.283v.962l3.765 2.283 2.92-1.774c.327-.22.527-.588.527-.99z" fill="#FBBC05"/>
+              </svg>
+              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+                <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>Disponível no</span>
+                <span style={{ fontSize: 16, fontWeight: 600 }}>Google Play</span>
+              </div>
+            </a>
+            <a href="https://apps.apple.com/app/vamo/id6476234567" target="_blank" rel="noopener noreferrer" style={{
+              display: "inline-flex", alignItems: "center", gap: 10, padding: "10px 20px 10px 14px",
+              background: "#000", color: "#fff", borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.3)", textDecoration: "none", minWidth: 160,
+            }}>
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+                <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>Baixar na</span>
+                <span style={{ fontSize: 16, fontWeight: 600 }}>App Store</span>
+              </div>
+            </a>
           </div>
         </div>
       </section>
@@ -322,10 +384,10 @@ export default function Home() {
           </div>
           <div className="footer-column">
             <h4>Produto</h4>
+            <Link href="/explore">Explorar roteiros</Link>
             <a href="#como-funciona">Como funciona</a>
-            <a href="#viajantes">Para viajantes</a>
             <Link href="/criadores">Para criadores</Link>
-            <Link href="/cadastro">Preços</Link>
+            <Link href="/dashboard/roteiro/novo">Criar roteiro</Link>
           </div>
           <div className="footer-column">
             <h4>Suporte</h4>

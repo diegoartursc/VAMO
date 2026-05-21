@@ -1,18 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import GlobalHeader from "@/components/GlobalHeader";
 
 export default function CriadoresPage() {
     return (
         <>
-            <header className="header">
-                <nav className="nav">
-                    <Link href="/" className="logo">VAM<span>O</span></Link>
-                    <div className="nav-links">
-                        <Link href="/" className="nav-link">Início</Link>
-                        <Link href="/criadores" className="nav-link" style={{ color: 'var(--primary)' }}>Para Criadores</Link>
-                        <Link href="/login" className="nav-cta">Entrar →</Link>
-                    </div>
-                </nav>
-            </header>
+            <GlobalHeader variant="solid" />
 
             {/* Hero */}
             <section className="hero">

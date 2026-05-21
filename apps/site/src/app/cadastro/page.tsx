@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { register } from "../../lib/auth";
 
 export default function CadastroPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const next = searchParams.get("next");
     const [form, setForm] = useState({
         agencyName: "",
         cpf: "",
@@ -47,7 +49,7 @@ export default function CadastroPage() {
                 email: form.email,
                 password: form.password,
             });
-            router.push("/perfil");
+            router.push(next && next.startsWith("/") ? next : "/perfil");
         } catch (err: any) {
             setError(err.message || "Erro ao cadastrar");
         } finally {
@@ -157,7 +159,7 @@ export default function CadastroPage() {
                     </div>
 
                     <p className="auth-footer">
-                        Já tem conta? <Link href="/login">Faça login</Link>
+                        Já tem conta? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Faça login</Link>
                     </p>
                 </div>
             </div>

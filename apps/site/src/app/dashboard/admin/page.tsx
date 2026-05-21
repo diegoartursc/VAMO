@@ -424,6 +424,30 @@ export default function AdminDashboardPage() {
 
                             {/* Pending items quick list */}
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                                {/* Pending itineraries */}
+                                <div style={{ background: "#fff", borderRadius: "18px", padding: "20px", border: "1px solid rgba(226,232,240,0.7)" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+                                        {Icon.map({ size: 16, color: "#6366F1" })}
+                                        <span style={{ fontSize: "13px", fontWeight: "700", color: "#1E293B" }}>Roteiros pendentes</span>
+                                        <span style={{ marginLeft: "auto", fontSize: "11px", fontWeight: "700", color: "#6366F1", background: "rgba(99,102,241,0.1)", padding: "2px 8px", borderRadius: "8px" }}>{itineraries.length}</span>
+                                    </div>
+                                    {itineraries.slice(0, 3).map(it => (
+                                        <div key={it.id} onClick={() => router.push(`/dashboard/admin/roteiros/${it.id}`)} style={{
+                                            padding: "8px 0", borderBottom: "1px solid #F1F5F9", fontSize: "13px", color: "#334155",
+                                            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
+                                            transition: "color 0.12s",
+                                        }}
+                                            onMouseEnter={e => (e.currentTarget.style.color = "#1FA89F")}
+                                            onMouseLeave={e => (e.currentTarget.style.color = "#334155")}
+                                        >
+                                            <span>{it.title} <span style={{ color: "#94A3B8" }}>· {it.creator?.traveler?.name}</span></span>
+                                            <span style={{ fontSize: "11px", color: "#28C9BF", fontWeight: "600" }}>→</span>
+                                        </div>
+                                    ))}
+                                    {itineraries.length === 0 && <div style={{ fontSize: "13px", color: "#94A3B8" }}>Nenhum roteiro pendente</div>}
+                                    {itineraries.length > 3 && <button onClick={() => setTab("itineraries")} style={{ marginTop: "8px", fontSize: "12px", color: "#28C9BF", fontWeight: "600", background: "none", border: "none", cursor: "pointer" }}>Ver todos →</button>}
+                                </div>
+
                                 {/* Pending packages */}
                                 <div style={{ background: "#fff", borderRadius: "18px", padding: "20px", border: "1px solid rgba(226,232,240,0.7)" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
@@ -438,22 +462,6 @@ export default function AdminDashboardPage() {
                                     ))}
                                     {packages.length === 0 && <div style={{ fontSize: "13px", color: "#94A3B8" }}>Nenhum pacote pendente</div>}
                                     {packages.length > 3 && <button onClick={() => setTab("packages")} style={{ marginTop: "8px", fontSize: "12px", color: "#28C9BF", fontWeight: "600", background: "none", border: "none", cursor: "pointer" }}>Ver todos →</button>}
-                                </div>
-
-                                {/* Pending creators */}
-                                <div style={{ background: "#fff", borderRadius: "18px", padding: "20px", border: "1px solid rgba(226,232,240,0.7)" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-                                        {Icon.compass({ size: 16, color: "#6366F1" })}
-                                        <span style={{ fontSize: "13px", fontWeight: "700", color: "#1E293B" }}>Roteiristas pendentes</span>
-                                        <span style={{ marginLeft: "auto", fontSize: "11px", fontWeight: "700", color: "#6366F1", background: "rgba(99,102,241,0.1)", padding: "2px 8px", borderRadius: "8px" }}>{creators.length}</span>
-                                    </div>
-                                    {creators.slice(0, 3).map(c => (
-                                        <div key={c.id} style={{ padding: "8px 0", borderBottom: "1px solid #F1F5F9", fontSize: "13px", color: "#334155" }}>
-                                            {c.traveler.name} <span style={{ color: "#94A3B8" }}>· {c.traveler.email}</span>
-                                        </div>
-                                    ))}
-                                    {creators.length === 0 && <div style={{ fontSize: "13px", color: "#94A3B8" }}>Nenhum roteirista pendente</div>}
-                                    {creators.length > 3 && <button onClick={() => setTab("creators")} style={{ marginTop: "8px", fontSize: "12px", color: "#28C9BF", fontWeight: "600", background: "none", border: "none", cursor: "pointer" }}>Ver todos →</button>}
                                 </div>
                             </div>
 
@@ -588,59 +596,101 @@ function ItemList({ items, type, onApprove, onReject, emptyMsg }: {
     onReject: (type: "packages" | "itineraries", id: string, title: string) => void;
     emptyMsg: string;
 }) {
+    const router = useRouter();
+    const [hoveredId, setHoveredId] = React.useState<string | null>(null);
+
     if (items.length === 0) return <EmptyState msg={emptyMsg} />;
+
+    const handleCardClick = (item: any) => {
+        if (type === "itineraries") {
+            router.push(`/dashboard/admin/roteiros/${item.id}`);
+        }
+    };
+
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {items.map(item => (
-                <div key={item.id} style={{
-                    background: "#fff", borderRadius: "20px", padding: "20px 24px",
-                    border: "1px solid rgba(226,232,240,0.7)", boxShadow: "0 2px 8px rgba(26,50,99,0.04)",
-                    display: "flex", alignItems: "center", gap: "16px",
-                }}>
-                    <div style={{
-                        width: "64px", height: "64px", borderRadius: "14px",
-                        background: "linear-gradient(135deg, rgba(40,201,191,0.12), rgba(40,201,191,0.06))",
-                        flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
-                    }}>
-                        {item.images?.[0]?.url
-                            ? <img src={item.images[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            : type === "packages" ? Icon.package({ size: 24, color: "#28C9BF" }) : Icon.map({ size: 24, color: "#28C9BF" })}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: "700", fontSize: "15px", color: "#1E293B", marginBottom: "4px" }}>{item.title}</div>
-                        <div style={{ fontSize: "13px", color: "#64748B" }}>
-                            {item.destination}, {item.country} · <span style={{ color: "#94A3B8" }}>{type === "packages" ? item.agency?.name : item.creator?.traveler?.name}</span>
+            {items.map(item => {
+                const isClickable = type === "itineraries";
+                const isHovered = hoveredId === item.id;
+                return (
+                    <div
+                        key={item.id}
+                        onClick={() => handleCardClick(item)}
+                        onMouseEnter={() => isClickable && setHoveredId(item.id)}
+                        onMouseLeave={() => setHoveredId(null)}
+                        style={{
+                            background: "#fff", borderRadius: "20px", padding: "20px 24px",
+                            border: isHovered ? "1px solid rgba(40,201,191,0.4)" : "1px solid rgba(226,232,240,0.7)",
+                            boxShadow: isHovered ? "0 4px 20px rgba(40,201,191,0.12)" : "0 2px 8px rgba(26,50,99,0.04)",
+                            display: "flex", alignItems: "center", gap: "16px",
+                            cursor: isClickable ? "pointer" : "default",
+                            transition: "border-color 0.15s, box-shadow 0.15s",
+                        }}
+                    >
+                        {/* Thumbnail */}
+                        <div style={{
+                            width: "64px", height: "64px", borderRadius: "14px",
+                            background: "linear-gradient(135deg, rgba(40,201,191,0.12), rgba(40,201,191,0.06))",
+                            flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+                        }}>
+                            {item.images?.[0]?.url
+                                ? <img src={item.images[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                : type === "packages" ? Icon.package({ size: 24, color: "#28C9BF" }) : Icon.map({ size: 24, color: "#28C9BF" })}
                         </div>
-                        <div style={{ display: "flex", gap: "10px", marginTop: "6px", alignItems: "center" }}>
-                            {item.qualityScore !== undefined && (
-                                <span style={{ fontSize: "11px", fontWeight: "700", color: item.qualityScore >= 70 ? "#16A34A" : item.qualityScore >= 40 ? "#D97706" : "#DC2626" }}>Score: {item.qualityScore}%</span>
-                            )}
-                            <span style={{ fontSize: "11px", color: "#94A3B8" }}>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</span>
+
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                                <div style={{ fontWeight: "700", fontSize: "15px", color: "#1E293B" }}>{item.title}</div>
+                                {isClickable && (
+                                    <span style={{
+                                        fontSize: "10px", fontWeight: "700", color: "#D97706",
+                                        background: "rgba(217,119,6,0.08)", padding: "2px 7px",
+                                        borderRadius: "6px", flexShrink: 0,
+                                    }}>Em análise</span>
+                                )}
+                            </div>
+                            <div style={{ fontSize: "13px", color: "#64748B" }}>
+                                {item.destination}{item.country ? `, ${item.country}` : ""} · <span style={{ color: "#94A3B8" }}>{type === "packages" ? item.agency?.name : item.creator?.traveler?.name}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: "10px", marginTop: "6px", alignItems: "center" }}>
+                                {item.qualityScore !== undefined && (
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: item.qualityScore >= 70 ? "#16A34A" : item.qualityScore >= 40 ? "#D97706" : "#DC2626" }}>Score: {item.qualityScore}%</span>
+                                )}
+                                <span style={{ fontSize: "11px", color: "#94A3B8" }}>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</span>
+                                {isClickable && (
+                                    <span style={{ fontSize: "11px", color: "#28C9BF", fontWeight: "600" }}>Clique para revisar →</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Price */}
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ fontSize: "14px", fontWeight: "700", color: "#1FA89F" }}>
+                                {type === "packages" ? item.priceMin ? `R$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `R$ ${item.price.toLocaleString("pt-BR")}` : "—"}
+                            </div>
+                        </div>
+
+                        {/* Actions — stopPropagation to prevent card click */}
+                        <div style={{ display: "flex", gap: "8px", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                            <button onClick={() => onApprove(type, item.id, item.title)} style={{
+                                padding: "9px 16px", borderRadius: "10px", border: "none",
+                                background: "linear-gradient(135deg, #28C9BF, #1FA89F)",
+                                color: "#fff", fontWeight: "700", fontSize: "13px", cursor: "pointer",
+                                boxShadow: "0 2px 8px rgba(40,201,191,0.25)",
+                                display: "flex", alignItems: "center", gap: "6px",
+                            }}>{Icon.check({ size: 14, color: "#fff" })} Aprovar</button>
+                            <button onClick={() => onReject(type, item.id, item.title)} style={{
+                                padding: "9px 16px", borderRadius: "10px",
+                                border: "1.5px solid rgba(239,68,68,0.2)",
+                                background: "rgba(239,68,68,0.06)",
+                                color: "#DC2626", fontWeight: "700", fontSize: "13px", cursor: "pointer",
+                                display: "flex", alignItems: "center", gap: "6px",
+                            }}>{Icon.x({ size: 14, color: "#DC2626" })} Rejeitar</button>
                         </div>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontSize: "14px", fontWeight: "700", color: "#1FA89F" }}>
-                            {type === "packages" ? item.priceMin ? `R$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `R$ ${item.price.toLocaleString("pt-BR")}` : "—"}
-                        </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-                        <button onClick={() => onApprove(type, item.id, item.title)} style={{
-                            padding: "9px 16px", borderRadius: "10px", border: "none",
-                            background: "linear-gradient(135deg, #28C9BF, #1FA89F)",
-                            color: "#fff", fontWeight: "700", fontSize: "13px", cursor: "pointer",
-                            boxShadow: "0 2px 8px rgba(40,201,191,0.25)",
-                            display: "flex", alignItems: "center", gap: "6px",
-                        }}>{Icon.check({ size: 14, color: "#fff" })} Aprovar</button>
-                        <button onClick={() => onReject(type, item.id, item.title)} style={{
-                            padding: "9px 16px", borderRadius: "10px",
-                            border: "1.5px solid rgba(239,68,68,0.2)",
-                            background: "rgba(239,68,68,0.06)",
-                            color: "#DC2626", fontWeight: "700", fontSize: "13px", cursor: "pointer",
-                            display: "flex", alignItems: "center", gap: "6px",
-                        }}>{Icon.x({ size: 14, color: "#DC2626" })} Rejeitar</button>
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }

@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { login } from "../../lib/auth";
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const next = searchParams.get("next");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -20,7 +21,8 @@ export default function LoginPage() {
 
         try {
             await login(email, password);
-            router.push("/perfil");
+            // Redireciona para ?next= se existir (ex: vindo de favoritar/carrinho sem login)
+            router.push(next && next.startsWith("/") ? next : "/perfil");
         } catch (err: any) {
             setError(err.message || "Erro ao fazer login");
         } finally {
@@ -126,7 +128,7 @@ export default function LoginPage() {
                     </div>
 
                     <p className="auth-footer">
-                        Não tem conta? <Link href="/cadastro">Cadastre-se grátis</Link>
+                        Não tem conta? <Link href={next ? `/cadastro?next=${encodeURIComponent(next)}` : "/cadastro"}>Cadastre-se grátis</Link>
                     </p>
                 </div>
             </div>

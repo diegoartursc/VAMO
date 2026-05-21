@@ -3,7 +3,7 @@
  * Automatically attaches JWT token from auth lib
  */
 
-import { getAuthHeaders } from './auth';
+import { getAuthHeaders, logout } from './auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333/api';
 
@@ -17,6 +17,11 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
         ...options,
     });
     if (!res.ok) {
+        // 401 = sessão inválida ou expirada → força logout para o usuário refazer login
+        if (res.status === 401 && typeof window !== 'undefined') {
+            logout(); // limpa localStorage e redireciona para /login
+            throw new Error('Sua sessão expirou. Faça login novamente.');
+        }
         const error = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(error.error || `API Error: ${res.status}`);
     }

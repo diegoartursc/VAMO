@@ -29,6 +29,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import FAQSection from '../../../src/components/FAQSection';
 import { getItineraryFAQ } from '../../../src/data/mockFAQ';
 import { PurchaseSuccessModal } from '../../../src/components/modals/PurchaseSuccessModal';
+import { useFavorites } from '../../../src/hooks/useFavorites';
+import { useCart } from '../../../src/hooks/useCart';
 
 const { width, height } = Dimensions.get('window');
 
@@ -39,7 +41,10 @@ export default function ItineraryDetailScreen() {
     const [showBuyOptions, setShowBuyOptions] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
+    const [cartToast, setCartToast] = useState(false);
     const reviews = getReviewsByPackageId(`itinerary-${id}`);
+    const { isFavorite, toggleFavorite } = useFavorites();
+    const { isInCart, addToCart } = useCart();
 
     useEffect(() => {
         getItineraryById(id).then(setItinerary).catch(console.error);
@@ -81,6 +86,22 @@ export default function ItineraryDetailScreen() {
         });
     };
 
+    const handleToggleFavorite = async () => {
+        haptics.light();
+        await toggleFavorite(id);
+    };
+
+    const handleAddToCart = async () => {
+        haptics.medium();
+        if (!isInCart(id)) {
+            await addToCart(id);
+            setCartToast(true);
+            setTimeout(() => setCartToast(false), 2500);
+        } else {
+            router.push('/(tabs)/cart' as any);
+        }
+    };
+
 
     return (
         <View style={styles.container}>
@@ -102,22 +123,34 @@ export default function ItineraryDetailScreen() {
                         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                             <Ionicons name="arrow-back" size={24} color="#fff" />
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.shareButton}
-                            onPress={async () => {
-                                haptics.light();
-                                try {
-                                    await Share.share({
-                                        title: itinerary.title,
-                                        message: `🗺️ Confira este roteiro no VAMO!\n\n${itinerary.title}\n📍 ${itinerary.destination}, ${itinerary.country}\n💰 R$ ${itinerary.price.toFixed(2)}`,
-                                    });
-                                } catch (error) {
-                                    // User cancelled
-                                }
-                            }}
-                        >
-                            <Ionicons name="share-outline" size={24} color="#fff" />
-                        </TouchableOpacity>
+                        <View style={styles.navActions}>
+                            <TouchableOpacity
+                                style={styles.navIconButton}
+                                onPress={handleToggleFavorite}
+                            >
+                                <Ionicons
+                                    name={isFavorite(id) ? 'heart' : 'heart-outline'}
+                                    size={22}
+                                    color={isFavorite(id) ? '#EF4444' : '#fff'}
+                                />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.navIconButton}
+                                onPress={async () => {
+                                    haptics.light();
+                                    try {
+                                        await Share.share({
+                                            title: itinerary.title,
+                                            message: `🗺️ Confira este roteiro no VAMO!\n\n${itinerary.title}\n📍 ${itinerary.destination}, ${itinerary.country}\n💰 R$ ${itinerary.price.toFixed(2)}`,
+                                        });
+                                    } catch (error) {
+                                        // User cancelled
+                                    }
+                                }}
+                            >
+                                <Ionicons name="share-outline" size={22} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
                     </BlurView>
                 </View>
 
@@ -204,11 +237,6 @@ export default function ItineraryDetailScreen() {
                             <Icon name="calendar" size={16} color={theme.colors.primary} />
                             <Text style={styles.statText}>{itinerary.duration} dias</Text>
                         </View>
-                        <View style={styles.statDivider} />
-                        <View style={styles.statItem}>
-                            <Icon name="verified" size={16} color={theme.colors.primary} />
-                            <Text style={styles.statText}>Digital</Text>
-                        </View>
                     </View>
 
                     {/* Price & CTA */}
@@ -226,14 +254,37 @@ export default function ItineraryDetailScreen() {
                             </View>
                             <Text style={[styles.priceNote, { color: 'rgba(255,255,255,0.5)' }]}>• Acesso imediato após compra</Text>
                         </View>
-                        <TouchableOpacity
-                            style={styles.buyButton}
-                            onPress={handleBuyNow}
-                        >
-                            <Text style={styles.buyButtonText}>Comprar Agora</Text>
-                            <Icon name="chevron-right" size={18} color="#fff" strokeWidth={2.5} />
-                        </TouchableOpacity>
+                        <View style={styles.priceCtas}>
+                            {/* Botão Carrinho */}
+                            <TouchableOpacity
+                                style={[styles.cartCta, isInCart(id) && styles.cartCtaActive]}
+                                onPress={handleAddToCart}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons
+                                    name={isInCart(id) ? 'checkmark-circle' : 'cart-outline'}
+                                    size={20}
+                                    color={isInCart(id) ? '#28C9BF' : 'rgba(255,255,255,0.85)'}
+                                />
+                            </TouchableOpacity>
+                            {/* Botão Comprar */}
+                            <TouchableOpacity
+                                style={styles.buyButton}
+                                onPress={handleBuyNow}
+                            >
+                                <Text style={styles.buyButtonText}>Comprar Agora</Text>
+                                <Icon name="chevron-right" size={18} color="#fff" strokeWidth={2.5} />
+                            </TouchableOpacity>
+                        </View>
                     </LinearGradient>
+
+                    {/* Toast carrinho adicionado */}
+                    {cartToast && (
+                        <View style={styles.cartToast}>
+                            <Ionicons name="cart-outline" size={16} color="#fff" />
+                            <Text style={styles.cartToastText}>Adicionado ao carrinho!</Text>
+                        </View>
+                    )}
 
                     {/* Aviso: Produto Digital */}
                     <View style={styles.productNotice}>
@@ -591,6 +642,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    navActions: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    navIconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     shareButton: {
         width: 40,
         height: 40,
@@ -734,19 +797,54 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: theme.colors.text.tertiary,
     },
+    priceCtas: {
+        flexDirection: 'column',
+        gap: 10,
+        alignItems: 'flex-end',
+    },
+    cartCta: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.3)',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cartCtaActive: {
+        borderColor: '#28C9BF',
+        backgroundColor: 'rgba(40,201,191,0.15)',
+    },
     buyButton: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
         backgroundColor: theme.colors.primary,
-        paddingHorizontal: 24,
-        paddingVertical: 14,
+        paddingHorizontal: 20,
+        paddingVertical: 13,
         borderRadius: 28,
         ...theme.shadows.button,
     },
     buyButtonText: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '700',
+        color: '#fff',
+    },
+    cartToast: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#1A3263',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        marginBottom: 12,
+        alignSelf: 'center',
+    },
+    cartToastText: {
+        fontSize: 13,
+        fontWeight: '600',
         color: '#fff',
     },
     description: {

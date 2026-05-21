@@ -142,6 +142,20 @@ export default function GlobalHeader({ variant = "solid" }: Props) {
                 >
                     Criadores
                 </Link>
+                <Link
+                    href="/dashboard/roteiro/novo"
+                    style={{
+                        padding: "10px 16px",
+                        borderRadius: 999,
+                        textDecoration: "none",
+                        color: "inherit",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        opacity: 0.9,
+                    }}
+                >
+                    Criar roteiro
+                </Link>
             </nav>
 
             {/* Right side */}
@@ -240,6 +254,7 @@ export default function GlobalHeader({ variant = "solid" }: Props) {
                                 <Divider />
                                 <MenuItem href="/perfil" onClick={() => setMenuOpen(false)}>Perfil</MenuItem>
                                 <MenuItem href="/perfil/favoritos" onClick={() => setMenuOpen(false)}>Favoritos</MenuItem>
+                                <MenuItem href="/perfil/carrinho" onClick={() => setMenuOpen(false)}>Meu carrinho</MenuItem>
                                 <MenuItem href="/perfil/compras" onClick={() => setMenuOpen(false)}>Minhas compras</MenuItem>
                                 <Divider />
                                 {isCreator ? (

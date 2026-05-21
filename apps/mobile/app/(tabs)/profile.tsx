@@ -264,29 +264,57 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* ══════════ CRIAR ROTEIROS ══════════ */}
+                {/* ══════════ ÁREA DO CRIADOR — caminhos in-app ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Criar Roteiros</Text>
+                    <Text style={styles.sectionTitle}>Área do Criador</Text>
                     <View style={styles.sectionCard}>
-                        <TouchableOpacity
-                            style={styles.storeItem}
+                        <SettingItem
+                            icon="edit"
+                            title="Criar novo roteiro"
+                            onPress={() => {
+                                haptics.light();
+                                Alert.alert(
+                                    'Criar roteiro',
+                                    'A criação de roteiros está disponível no painel web (vamo.app/dashboard). Em breve também aqui no app.',
+                                    [
+                                        { text: 'Cancelar', style: 'cancel' },
+                                        { text: 'Abrir painel web', onPress: () => Linking.openURL('https://vamo.app/dashboard/roteiro/novo') },
+                                    ],
+                                );
+                            }}
+                        />
+                        <SettingItem
+                            icon="book-open"
+                            title="Meus roteiros criados"
+                            onPress={() => {
+                                haptics.light();
+                                router.push('/created-itineraries');
+                            }}
+                        />
+                        <SettingItem
+                            icon="briefcase"
+                            title="Dashboard do criador"
+                            onPress={() => {
+                                haptics.light();
+                                Alert.alert(
+                                    'Dashboard',
+                                    'O dashboard completo está disponível no painel web. Em breve no app.',
+                                    [
+                                        { text: 'Cancelar', style: 'cancel' },
+                                        { text: 'Abrir painel web', onPress: () => Linking.openURL('https://vamo.app/dashboard') },
+                                    ],
+                                );
+                            }}
+                        />
+                        <SettingItem
+                            icon="globe"
+                            title="Portal do Criador"
                             onPress={() => {
                                 haptics.light();
                                 Linking.openURL('https://vamo.app/criadores');
                             }}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.storeLeft}>
-                                <View style={styles.storeIconCircle}>
-                                    <Icon name="globe" size={22} color={theme.colors.primary} />
-                                </View>
-                                <View>
-                                    <Text style={styles.storeTitle}>Portal do Criador</Text>
-                                    <Text style={styles.storeSubtitle}>Transforme suas viagens em roteiros e ganhe comissão</Text>
-                                </View>
-                            </View>
-                            <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
-                        </TouchableOpacity>
+                            isLast
+                        />
                     </View>
                 </View>
 
