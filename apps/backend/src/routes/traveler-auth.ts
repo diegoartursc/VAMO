@@ -115,9 +115,10 @@ router.post('/login', async (req: Request, res: Response) => {
     try {
         const validatedData = travelerLoginSchema.parse(req.body);
 
-        // Find traveler by email
+        // Find traveler + creator by email
         const traveler = await prisma.traveler.findUnique({
             where: { email: validatedData.email },
+            include: { creator: { select: { id: true, verificationLevel: true } } },
         });
 
         if (!traveler || !traveler.passwordHash) {
@@ -140,6 +141,9 @@ router.post('/login', async (req: Request, res: Response) => {
             email: traveler.email,
         });
 
+        const creator = (traveler as any).creator;
+        console.log('[traveler-auth.login]', { travelerId: traveler.id, creatorId: creator?.id, email: traveler.email });
+
         res.json({
             message: 'Login successful',
             traveler: {
@@ -148,6 +152,7 @@ router.post('/login', async (req: Request, res: Response) => {
                 email: traveler.email,
                 avatar: traveler.avatar,
             },
+            creator: creator ? { id: creator.id, verificationLevel: creator.verificationLevel } : null,
             accessToken,
             refreshToken,
         });
@@ -160,6 +165,37 @@ router.post('/login', async (req: Request, res: Response) => {
         }
         console.error('Traveler login error:', error);
         res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// ─── GET /api/auth/traveler/me ───
+router.get('/me', async (req: Request, res: Response) => {
+    try {
+        const auth = req.headers.authorization;
+        if (!auth?.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Token obrigatório' });
+        }
+        const token = auth.split(' ')[1];
+        const decoded = verifyToken(token);
+        if (!decoded || typeof decoded === 'string') {
+            return res.status(401).json({ error: 'Token inválido' });
+        }
+        const travelerId = (decoded as any).travelerId;
+        const traveler = await prisma.traveler.findUnique({
+            where: { id: travelerId },
+            include: { creator: { select: { id: true, verificationLevel: true } } },
+        });
+        if (!traveler) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+        const creator = (traveler as any).creator;
+        res.json({
+            traveler: { id: traveler.id, name: traveler.name, email: traveler.email, avatar: traveler.avatar },
+            creator: creator ? { id: creator.id, verificationLevel: creator.verificationLevel } : null,
+        });
+    } catch (error) {
+        console.error('Traveler /me error:', error);
+        res.status(401).json({ error: 'Token inválido' });
     }
 });
 
