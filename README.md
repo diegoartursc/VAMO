@@ -56,19 +56,16 @@ npx expo start
 
 ## 📚 Documentação
 
-### Documentos Principais
+Veja [`docs/README.md`](./docs/README.md) para o **índice navegável** completo.
 
-- 📖 **[Descritivo Completo](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/DESCRITIVO_COMPLETO.md)** - Visão do produto e princípios
-- 📊 **[Resumo Executivo](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/RESUMO_EXECUTIVO.md)** - Para investidores e mercado
-- 🔧 **[Estratégia de Integração](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/ESTRATEGIA_INTEGRACAO_AGENCIAS.md)** - Guia técnico
-- 🏆 **[Modelo de Referência (Paris)](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/product/MODELO_REFERENCIA.md)** - Padrão de dados e fluxo do projeto
-
-### Documentação Técnica
-
-- 🔧 [Estratégia de Integração](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/ESTRATEGIA_INTEGRACAO_AGENCIAS.md)
-- 📊 [Status do Projeto](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/STATUS_PROJETO.md)
-- 📝 [Changelog de Hoje (28/03/2026)](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/changelog/2026-03-28_bug_fixes.md)
-- 📝 [Histórico do Changelog](file:///Users/diegoartur/Documents/Diego%20Artur/codigos/VAMO/docs/changelog/)
+Atalhos:
+- 📖 [Produto](./docs/PRODUTO.md) — visão, princípios e funcionalidades
+- 📊 [Status do projeto](./docs/STATUS.md)
+- 🏗️ [Arquitetura backend](./docs/architecture/backend.md)
+- 🎨 [Design system](./docs/design/design-system.md)
+- 📝 [Changelog](./docs/changelog/)
+- 💬 [Logs de prompts](./docs/prompts/)
+- 🗄️ [Archive (referência histórica)](./docs/archive/)
 
 ---
 
@@ -177,7 +174,7 @@ Este é um projeto proprietário. Para informações sobre colaborações ou par
 
 ## 🔗 Links Úteis
 
-- [Descritivo Completo](./docs/DESCRITIVO_COMPLETO.md)
-- [Estratégia de Integração](./docs/ESTRATEGIA_INTEGRACAO_AGENCIAS.md)
-- [Modelo de Referência (Paris)](./docs/product/MODELO_REFERENCIA.md)
-- [Design System](./docs/design/design_system.md)
+- [Produto](./docs/PRODUTO.md)
+- [Status do projeto](./docs/STATUS.md)
+- [Design System](./docs/design/design-system.md)
+- [Índice da documentação](./docs/README.md)
