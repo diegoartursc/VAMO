@@ -18,6 +18,9 @@ export default function RootLayout() {
                                 <Stack.Screen name="(tabs)" />
                                 <Stack.Screen name="login" />
                                 <Stack.Screen name="register" />
+                                <Stack.Screen name="become-creator" />
+                                <Stack.Screen name="new-itinerary" />
+                                <Stack.Screen name="await-review" />
                                 <Stack.Screen name="my-reviews" />
                                 <Stack.Screen name="my-questions" />
                             </Stack>

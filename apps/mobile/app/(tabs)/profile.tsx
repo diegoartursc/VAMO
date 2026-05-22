@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { useAuth } from '../../src/contexts/AuthContext';
 
@@ -278,59 +279,75 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* ══════════ ÁREA DO CRIADOR — caminhos in-app ══════════ */}
-                <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Área do Criador</Text>
-                    <View style={styles.sectionCard}>
-                        <SettingItem
-                            icon="edit"
-                            title="Criar novo roteiro"
-                            onPress={() => {
-                                haptics.light();
-                                Alert.alert(
-                                    'Criar roteiro',
-                                    'A criação de roteiros está disponível no painel web (vamo.app/dashboard). Em breve também aqui no app.',
-                                    [
-                                        { text: 'Cancelar', style: 'cancel' },
-                                        { text: 'Abrir painel web', onPress: () => Linking.openURL('https://vamo.app/dashboard/roteiro/novo') },
-                                    ],
-                                );
-                            }}
-                        />
-                        <SettingItem
-                            icon="book-open"
-                            title="Meus roteiros criados"
-                            onPress={() => {
-                                haptics.light();
-                                router.push('/created-itineraries');
-                            }}
-                        />
-                        <SettingItem
-                            icon="briefcase"
-                            title="Dashboard do criador"
-                            onPress={() => {
-                                haptics.light();
-                                Alert.alert(
-                                    'Dashboard',
-                                    'O dashboard completo está disponível no painel web. Em breve no app.',
-                                    [
-                                        { text: 'Cancelar', style: 'cancel' },
-                                        { text: 'Abrir painel web', onPress: () => Linking.openURL('https://vamo.app/dashboard') },
-                                    ],
-                                );
-                            }}
-                        />
-                        <SettingItem
-                            icon="globe"
-                            title="Portal do Criador"
-                            onPress={() => {
-                                haptics.light();
-                                Linking.openURL('https://vamo.app/criadores');
-                            }}
-                            isLast
-                        />
+                {/* ══════════ ÁREA DO CRIADOR ══════════ */}
+                {!user?.creatorId ? (
+                    /* ── Não é criador ainda: banner de convite ── */
+                    <View style={styles.sectionSpaced}>
+                        <LinearGradient
+                            colors={['#1A3263', '#28C9BF']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.creatorBanner}
+                        >
+                            <View style={styles.creatorBannerLeft}>
+                                <Text style={styles.creatorBannerEmoji}>🚀</Text>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.creatorBannerTitle}>Torne-se um Roteirista</Text>
+                                    <Text style={styles.creatorBannerSub}>
+                                        Crie roteiros, compartilhe experiências e ganhe dinheiro viajando.
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.creatorBannerCta}
+                                onPress={() => { haptics.medium(); router.push('/become-creator'); }}
+                                activeOpacity={0.85}
+                            >
+                                <Text style={styles.creatorBannerCtaText}>Saiba mais</Text>
+                                <Ionicons name="arrow-forward" size={14} color={theme.colors.primary} />
+                            </TouchableOpacity>
+                        </LinearGradient>
                     </View>
-                </View>
+                ) : (
+                    /* ── É criador: menu completo ── */
+                    <View style={styles.sectionSpaced}>
+                        <View style={styles.sectionTitleRow}>
+                            <Icon name="edit" size={16} color={theme.colors.primary} />
+                            <Text style={styles.sectionTitle}>Área do Criador</Text>
+                            <View style={styles.creatorBadge}>
+                                <Text style={styles.creatorBadgeText}>✓ Roteirista</Text>
+                            </View>
+                        </View>
+                        <View style={styles.sectionCard}>
+                            <SettingItem
+                                icon="edit"
+                                title="Criar novo roteiro"
+                                onPress={() => { haptics.light(); router.push('/new-itinerary'); }}
+                            />
+                            <SettingItem
+                                icon="book-open"
+                                title="Meus roteiros criados"
+                                onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
+                            />
+                            <SettingItem
+                                icon="briefcase"
+                                title="Dashboard do criador"
+                                onPress={() => {
+                                    haptics.light();
+                                    Alert.alert(
+                                        'Dashboard',
+                                        'O dashboard completo está disponível no painel web. Em breve no app.',
+                                        [
+                                            { text: 'Cancelar', style: 'cancel' },
+                                            { text: 'Abrir painel web', onPress: () => Linking.openURL('https://vamo.app/dashboard') },
+                                        ],
+                                    );
+                                }}
+                                isLast
+                            />
+                        </View>
+                    </View>
+                )}
 
                 {/* ══════════ 5. PREFERÊNCIAS ══════════ */}
                 <View style={styles.sectionSpaced}>
@@ -875,5 +892,41 @@ const styles = StyleSheet.create({
     versionText: {
         textAlign: 'center', fontSize: 12,
         color: theme.colors.text.tertiary, marginTop: 12,
+    },
+
+    // ── Creator banner (não-criador) ──
+    creatorBanner: {
+        borderRadius: 18,
+        padding: 18,
+        gap: 12,
+        ...theme.shadows.medium,
+    },
+    creatorBannerLeft: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    },
+    creatorBannerEmoji: { fontSize: 32, lineHeight: 38 },
+    creatorBannerTitle: {
+        fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 4,
+    },
+    creatorBannerSub: {
+        fontSize: 13, color: 'rgba(255,255,255,0.82)', lineHeight: 18,
+    },
+    creatorBannerCta: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        gap: 6, backgroundColor: '#fff',
+        borderRadius: 10, paddingVertical: 10,
+    },
+    creatorBannerCtaText: {
+        fontSize: 14, fontWeight: '700', color: theme.colors.primary,
+    },
+
+    // ── Creator badge (já é criador) ──
+    creatorBadge: {
+        backgroundColor: theme.colors.primary + '18',
+        borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3,
+        marginLeft: 'auto',
+    },
+    creatorBadgeText: {
+        fontSize: 11, fontWeight: '700', color: theme.colors.primary,
     },
 });
