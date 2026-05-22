@@ -97,6 +97,9 @@ export default function NewItineraryScreen() {
     const [submitting, setSubmitting] = useState(false);
 
     const score = useMemo(() => calcQuality(form), [form]);
+    const submissionIssues = useMemo(() => validateForSubmission(form), [form]);
+    const hasIssues = submissionIssues.length > 0;
+    const scrollRef = useRef<ScrollView>(null);
 
     // ── Hidratar draft local ────────────────────────────────────
     useEffect(() => {
@@ -172,10 +175,18 @@ export default function NewItineraryScreen() {
         }
         const issues = validateForSubmission(form);
         if (issues.length) {
-            Alert.alert(
-                'Faltam algumas coisas',
-                issues.map(i => `• ${i.message}`).join('\n'),
-            );
+            // No step 9 (Revisão), o card de pendências já está visível —
+            // só rola para o topo e dá um haptic de erro. Em outros steps
+            // (fallback), mostra Alert listando os problemas.
+            if (step === TOTAL_STEPS) {
+                haptics.error?.();
+                scrollRef.current?.scrollTo({ y: 0, animated: true });
+            } else {
+                Alert.alert(
+                    'Faltam algumas coisas',
+                    issues.map(i => `• ${i.message}`).join('\n'),
+                );
+            }
             return;
         }
         setSubmitting(true);
@@ -296,6 +307,7 @@ export default function NewItineraryScreen() {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 <ScrollView
+                    ref={scrollRef}
                     style={s.scroll}
                     contentContainerStyle={s.scrollContent}
                     keyboardShouldPersistTaps="handled"
@@ -314,8 +326,13 @@ export default function NewItineraryScreen() {
 
             {/* Footer CTA */}
             <View style={s.footer}>
+                {/* No último passo, se há pendências, o botão fica em estado warning */}
                 <TouchableOpacity
-                    style={[s.ctaBtn, submitting && { opacity: 0.6 }]}
+                    style={[
+                        s.ctaBtn,
+                        step === TOTAL_STEPS && hasIssues && s.ctaBtnWarning,
+                        submitting && { opacity: 0.6 },
+                    ]}
                     onPress={goNext}
                     disabled={submitting}
                     activeOpacity={0.85}
@@ -324,17 +341,39 @@ export default function NewItineraryScreen() {
                         ? <ActivityIndicator color="#fff" />
                         : (
                             <>
-                                <Text style={s.ctaText}>
-                                    {step === TOTAL_STEPS ? 'Enviar para análise' : 'Próximo'}
-                                </Text>
                                 <Ionicons
-                                    name={step === TOTAL_STEPS ? 'checkmark' : 'arrow-forward'}
-                                    size={18} color="#fff"
+                                    name={
+                                        step === TOTAL_STEPS
+                                            ? (hasIssues ? 'alert-circle' : 'checkmark-circle')
+                                            : 'arrow-forward'
+                                    }
+                                    size={18}
+                                    color="#fff"
+                                    style={{ marginRight: 8 }}
                                 />
+                                <Text style={s.ctaText}>
+                                    {step === TOTAL_STEPS
+                                        ? (hasIssues
+                                            ? `Corrigir ${submissionIssues.length} pendência${submissionIssues.length > 1 ? 's' : ''}`
+                                            : 'Enviar para análise')
+                                        : 'Próximo'}
+                                </Text>
                             </>
                         )
                     }
                 </TouchableOpacity>
+
+                {/* Texto auxiliar abaixo do botão quando há pendências */}
+                {step === TOTAL_STEPS && hasIssues && (
+                    <View style={s.ctaHelperRow}>
+                        <Ionicons name="warning-outline" size={14} color={theme.colors.warning || '#F59E0B'} />
+                        <Text style={s.ctaHelperText}>
+                            {submissionIssues.length === 1
+                                ? 'Há 1 campo obrigatório pendente. Revise os módulos marcados acima.'
+                                : `Há ${submissionIssues.length} campos obrigatórios pendentes. Revise os módulos marcados acima.`}
+                        </Text>
+                    </View>
+                )}
             </View>
         </View>
     );
@@ -1612,7 +1651,17 @@ const s = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
         backgroundColor: theme.colors.primary, borderRadius: 14, height: 52,
     },
+    ctaBtnWarning: {
+        backgroundColor: '#F59E0B', // amber/warning para sinalizar pendências
+    },
     ctaText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    ctaHelperRow: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        marginTop: 8, paddingHorizontal: 4,
+    },
+    ctaHelperText: {
+        flex: 1, fontSize: 12, color: '#92400E', lineHeight: 16, fontWeight: '500',
+    },
 
     modalBg:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
     modalCard: { width: '100%', maxWidth: 380, padding: 22, borderRadius: 18, backgroundColor: '#fff' },
