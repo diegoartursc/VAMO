@@ -1,56 +1,61 @@
-# Expo
-.expo/
-web-build/
-
-# Dependencies
+# ─── Dependencies ───
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# React Native
-.react-native/
-
-# macOS
-.DS_Store
-
-# Environment variables
+# ─── Environment ───
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
 
-# IDE
+# ─── Build outputs ───
+.next/
+apps/*/.next/
+dist/
+apps/*/dist/
+build/
+apps/*/build/
+out/
+coverage/
+*.tsbuildinfo
+
+# ─── Expo / React Native ───
+.expo/
+web-build/
+.react-native/
+
+# ─── Vercel ───
+.vercel/
+
+# ─── Logs ───
+logs/
+*.log
+
+# ─── Backups & archives ───
+backups/
+*.tar.gz
+*_pid.txt
+
+# ─── Temp files ───
+*.tmp
+*.temp
+curl_output.txt
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+
+# ─── IDE ───
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Logs
-logs/
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-backups/
-*_pid.txt
-site_pid.txt
-backend_pid.txt
-app_pid.txt
-curl_output.txt
-
-.next/
-apps/*/.next/
-site/.next/
-dist/
-.vercel
-.expo/
-web-build/
-*.tar.gz
-*.log
-.DS_Store
-node_modules/
-.env*.local
-
-
+# ─── Claude / agentes ───
+.claude/worktrees/
+.agent/
