@@ -1,8 +1,18 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@vamo/shared": ["../../packages/shared"],
+      "@vamo/shared/*": ["../../packages/shared/*"]
+    }
   },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../../packages/shared/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]
