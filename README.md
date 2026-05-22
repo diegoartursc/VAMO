@@ -111,17 +111,22 @@ npx expo start
 
 ```
 VAMO/
-├── app/                    # Expo Router (navegação)
-│   ├── (tabs)/            # Tab navigation
-│   └── package/           # Detalhes do pacote
-├── src/
-│   ├── components/        # Componentes reutilizáveis
-│   ├── data/             # Dados mockados (MVP)
-│   ├── types/            # TypeScript interfaces
-│   └── theme/            # Design system
-├── docs/                  # Documentação
-└── assets/               # Imagens e recursos
+├── apps/
+│   ├── mobile/            # App React Native + Expo (foco do MVP)
+│   │   ├── app/           # Expo Router (rotas)
+│   │   └── src/           # componentes, serviços, theme
+│   └── backend/           # API Node.js + Express + Prisma
+│       ├── src/routes/    # endpoints REST
+│       └── prisma/        # schema do banco
+├── packages/
+│   └── shared/            # tipos, score, validação e payload de roteiro
+│                          # (single source of truth — consumido pelo app)
+├── docs/                  # documentação do produto
+└── design-system/         # referência visual
 ```
+
+> 🎯 O foco atual é exclusivamente no **app mobile**. O site web foi removido
+> do repositório (será reconstruído futuramente quando o app estiver maduro).
 
 ---
 

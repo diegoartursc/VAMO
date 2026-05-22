@@ -7,11 +7,12 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "npm run dev --workspace=apps/mobile",
     "dev:mobile": "npm run dev --workspace=apps/mobile",
-    "dev:site": "npm run dev --workspace=apps/site",
     "dev:backend": "npm run dev --workspace=apps/backend",
-    "build:mobile": "npm run build:web --workspace=apps/mobile",
-    "build:site": "npm run build --workspace=apps/site"
+    "ios": "npm run ios --workspace=apps/mobile",
+    "android": "npm run android --workspace=apps/mobile",
+    "build:mobile": "npm run build:web --workspace=apps/mobile"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
