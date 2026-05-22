@@ -31,16 +31,18 @@ function pickCover(images?: string[]): string {
 }
 
 export default function CarrinhoPage() {
-    const { ids, remove, clear } = useCart();
+    const { ids, remove, clear, loaded } = useCart();
     const [items, setItems] = useState<CartItem[] | null>(null);
     const router = useRouter();
 
     useEffect(() => {
+        if (!loaded) return; // aguarda hidratação do localStorage
         if (ids.length === 0) { setItems([]); return; }
+        setItems(null); // mostra skeleton enquanto busca
         Promise.all(ids.map((id) =>
             fetch(`${API_BASE_URL}/itineraries/${id}`).then((r) => r.ok ? r.json() : null).catch(() => null)
         )).then((rs) => setItems(rs.filter(Boolean) as CartItem[]));
-    }, [ids]);
+    }, [ids, loaded]);
 
     const total = (items || []).reduce((acc, it) => acc + (it.price || 0), 0);
 
