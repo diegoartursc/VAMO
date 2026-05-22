@@ -6,9 +6,9 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, TextInput,
+    View, Text, StyleSheet, TouchableOpacity,
     ScrollView, Platform, StatusBar, ActivityIndicator,
-    KeyboardAvoidingView, Alert, Dimensions, Modal,
+    KeyboardAvoidingView, Alert, Animated, Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,6 @@ import { useAuth } from '../src/contexts/AuthContext';
 import EditableList from '../src/components/dashboard/EditableList';
 import FormInput from '../src/components/dashboard/FormInput';
 
-const { width: SCREEN_W } = Dimensions.get('window');
 const DRAFT_KEY = '@vamo_draft_itinerary';
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
@@ -49,31 +48,41 @@ const INITIAL_DRAFT: DraftItinerary = {
     currentStep: 0,
 };
 
-// ─── Progress bar ──────────────────────────────────────────────
+// ─── Progress bar animada ──────────────────────────────────────
 function ProgressBar({ step, total }: { step: number; total: number }) {
+    const anim = useRef(new Animated.Value((step - 1) / total)).current;
+
+    useEffect(() => {
+        Animated.spring(anim, {
+            toValue: step / total,
+            useNativeDriver: false,
+            tension: 60,
+            friction: 10,
+        }).start();
+    }, [step]);
+
+    const widthPct = anim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0%', '100%'],
+        extrapolate: 'clamp',
+    });
+
     return (
         <View style={pb.container}>
-            {Array.from({ length: total }).map((_, i) => (
-                <View
-                    key={i}
-                    style={[
-                        pb.segment,
-                        i < step && pb.segmentDone,
-                        i === step - 1 && pb.segmentCurrent,
-                    ]}
-                />
-            ))}
+            <View style={pb.track}>
+                <Animated.View style={[pb.fill, { width: widthPct }]} />
+            </View>
         </View>
     );
 }
 const pb = StyleSheet.create({
-    container: { flexDirection: 'row', gap: 4, paddingHorizontal: 20, marginBottom: 4 },
-    segment: {
-        flex: 1, height: 4, borderRadius: 2,
+    container: { paddingHorizontal: 20, marginBottom: 4 },
+    track: {
+        height: 4, borderRadius: 2,
         backgroundColor: theme.colors.borderLight,
+        overflow: 'hidden',
     },
-    segmentDone: { backgroundColor: theme.colors.primary },
-    segmentCurrent: { backgroundColor: theme.colors.primary },
+    fill: { height: '100%', borderRadius: 2, backgroundColor: theme.colors.primary },
 });
 
 // ─── Main screen ───────────────────────────────────────────────

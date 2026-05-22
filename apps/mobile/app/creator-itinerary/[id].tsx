@@ -4,10 +4,10 @@
  * Acessado via /creator-itinerary/[id] a partir de created-itineraries.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    Platform, StatusBar, ActivityIndicator, Alert, Linking,
+    View, Text, StyleSheet, TouchableOpacity,
+    Platform, StatusBar, ActivityIndicator, Alert, Linking, Animated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -82,6 +82,7 @@ export default function CreatorItineraryScreen() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const fetchItinerary = useCallback(async () => {
         if (!id) return;
@@ -105,9 +106,21 @@ export default function CreatorItineraryScreen() {
 
     useEffect(() => { fetchItinerary(); }, [fetchItinerary]);
 
+    // Fade-in após carregar
+    useEffect(() => {
+        if (!loading && itinerary) {
+            Animated.timing(fadeAnim, {
+                toValue: 1, duration: 300, useNativeDriver: true,
+            }).start();
+        }
+    }, [loading, itinerary]);
+
     // ── Reenviar para análise (após rejeição) ───────────────────
     const resubmit = async () => {
-        if (!itinerary) return;
+        if (!itinerary || !accessToken) {
+            Alert.alert('Sessão expirada', 'Faça login novamente para continuar.');
+            return;
+        }
         haptics.medium();
         Alert.alert(
             'Reenviar para análise',
@@ -143,7 +156,10 @@ export default function CreatorItineraryScreen() {
 
     // ── Pausar / despausar roteiro ──────────────────────────────
     const togglePause = async () => {
-        if (!itinerary) return;
+        if (!itinerary || !accessToken) {
+            Alert.alert('Sessão expirada', 'Faça login novamente para continuar.');
+            return;
+        }
         const isActive = itinerary.status === 'active';
         const newStatus = isActive ? 'PAUSED' : 'ACTIVE';
         const label = isActive ? 'Pausar roteiro' : 'Publicar roteiro';
@@ -224,8 +240,8 @@ export default function CreatorItineraryScreen() {
                 </View>
             </LinearGradient>
 
-            <ScrollView
-                style={{ flex: 1 }}
+            <Animated.ScrollView
+                style={{ flex: 1, opacity: fadeAnim }}
                 contentContainerStyle={s.scroll}
                 showsVerticalScrollIndicator={false}
             >
@@ -368,7 +384,7 @@ export default function CreatorItineraryScreen() {
                 </View>
 
                 <View style={{ height: 40 }} />
-            </ScrollView>
+            </Animated.ScrollView>
         </View>
     );
 }
