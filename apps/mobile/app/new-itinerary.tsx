@@ -471,54 +471,119 @@ function StepIdentity({ form, update }: StepProps) {
 
 function StepProof({ form, update, token }: StepProps & { token: string | null | undefined }) {
     const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [meta, setMeta] = useState<{ name: string; size?: number } | null>(null);
 
     async function pickProof() {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-            Alert.alert('Permissão necessária', 'Precisamos de acesso à sua galeria para anexar o comprovante.');
-            return;
-        }
-        const res = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.85,
-            allowsEditing: false,
-        });
-        if (res.canceled || !res.assets?.[0]) return;
-        const asset = res.assets[0];
-        setUploading(true);
+        setError(null);
         try {
-            const url = await uploadOne(asset.uri, token);
-            if (url) update('travelProofUrl', url);
+            if (Platform.OS !== 'web') {
+                const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (!perm.granted) {
+                    setError('Precisamos de acesso à sua galeria para anexar o comprovante.');
+                    return;
+                }
+            }
+            const res = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.85,
+                allowsEditing: false,
+            });
+            if (res.canceled || !res.assets?.[0]) return;
+            const asset = res.assets[0];
+            const name = (asset as any).fileName || asset.uri.split('/').pop()?.split('?')[0] || `comprovante-${Date.now()}.jpg`;
+            const size = (asset as any).fileSize as number | undefined;
+            const mime = (asset as any).mimeType as string | undefined;
+
+            // Validação de tamanho (limite 25MB do backend)
+            if (size && size > 25 * 1024 * 1024) {
+                setError(`Arquivo muito grande (${(size / (1024 * 1024)).toFixed(1)} MB). Máximo: 25 MB.`);
+                return;
+            }
+            console.log('[proof] arquivo selecionado', { name, size, mime, uri: asset.uri.slice(0, 80) });
+            setMeta({ name, size });
+            setUploading(true);
+            const url = await uploadOne(asset.uri, token, name, mime);
+            update('travelProofUrl', url);
         } catch (e: any) {
-            Alert.alert('Falha no upload', e?.message || 'Tente novamente.');
+            const msg = e?.message || 'Não foi possível enviar o comprovante. Tente novamente.';
+            console.warn('[proof] erro:', msg);
+            setError(msg);
+            setMeta(null);
         } finally {
             setUploading(false);
         }
     }
 
+    function removeProof() {
+        update('travelProofUrl', '');
+        setMeta(null);
+        setError(null);
+    }
+
+    const hasProof = !!form.travelProofUrl;
+    // Detecta se é PDF a partir da URL salva
+    const isPdf = hasProof && /\.pdf(\?|$)/i.test(form.travelProofUrl);
+
     return (
         <View>
-            <SectionHeader title="Comprovante de viagem" subtitle="Anexe um documento que prove que você esteve no destino (passagens, carimbo de passaporte, etc.). Obrigatório para envio à análise." />
-            {form.travelProofUrl ? (
+            <SectionHeader
+                title="Comprovante de viagem"
+                subtitle="Anexe um documento que prove que você esteve no destino (passagens, carimbo de passaporte, etc.). Obrigatório para envio à análise."
+            />
+
+            {hasProof ? (
                 <View style={s.proofCard}>
-                    <Image source={{ uri: form.travelProofUrl }} style={s.proofImg} />
-                    <Text style={s.proofText} numberOfLines={1}>Comprovante enviado ✓</Text>
-                    <TouchableOpacity onPress={() => update('travelProofUrl', '')}>
-                        <Text style={{ color: theme.colors.error, fontWeight: '600' }}>Remover</Text>
+                    {isPdf ? (
+                        <View style={[s.proofImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#fef3c7' }]}>
+                            <Ionicons name="document-text" size={28} color="#92400e" />
+                        </View>
+                    ) : (
+                        <Image source={{ uri: form.travelProofUrl }} style={s.proofImg} resizeMode="cover" />
+                    )}
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={s.proofText} numberOfLines={1}>
+                            <Ionicons name="checkmark-circle" size={14} color={theme.colors.success} />
+                            {' '}Comprovante enviado
+                        </Text>
+                        {meta?.name && (
+                            <Text style={{ fontSize: 11, color: theme.colors.text.tertiary }} numberOfLines={1}>
+                                {meta.name}{meta.size ? ` · ${(meta.size / 1024).toFixed(0)} KB` : ''}
+                            </Text>
+                        )}
+                    </View>
+                    <TouchableOpacity onPress={pickProof} disabled={uploading} style={{ marginRight: 12 }}>
+                        <Text style={{ color: theme.colors.primary, fontWeight: '600', fontSize: 13 }}>Substituir</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={removeProof} disabled={uploading}>
+                        <Text style={{ color: theme.colors.error, fontWeight: '600', fontSize: 13 }}>Remover</Text>
                     </TouchableOpacity>
                 </View>
             ) : (
-                <TouchableOpacity style={s.uploadBox} onPress={pickProof} disabled={uploading}>
-                    {uploading
-                        ? <ActivityIndicator color={theme.colors.primary} />
-                        : (
-                            <>
-                                <Ionicons name="cloud-upload-outline" size={36} color={theme.colors.primary} />
-                                <Text style={s.uploadText}>Anexar comprovante</Text>
-                                <Text style={s.uploadHint}>JPG/PNG · até 10MB</Text>
-                            </>
-                        )}
+                <TouchableOpacity style={s.uploadBox} onPress={pickProof} disabled={uploading} activeOpacity={0.7}>
+                    {uploading ? (
+                        <>
+                            <ActivityIndicator color={theme.colors.primary} />
+                            <Text style={s.uploadText}>Enviando…</Text>
+                            {meta?.name && (
+                                <Text style={s.uploadHint} numberOfLines={1}>{meta.name}</Text>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <Ionicons name="cloud-upload-outline" size={36} color={theme.colors.primary} />
+                            <Text style={s.uploadText}>Anexar comprovante</Text>
+                            <Text style={s.uploadHint}>JPG, PNG, WEBP · até 25 MB</Text>
+                        </>
+                    )}
                 </TouchableOpacity>
+            )}
+
+            {error && (
+                <View style={s.proofError}>
+                    <Ionicons name="alert-circle" size={16} color={theme.colors.error} />
+                    <Text style={s.proofErrorText}>{error}</Text>
+                </View>
             )}
         </View>
     );
@@ -993,9 +1058,11 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
     const [uploadingGallery, setUploadingGallery] = useState(false);
 
     async function pickAndUpload(slot: 'cover' | 'gallery') {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-            Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.'); return;
+        if (Platform.OS !== 'web') {
+            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!perm.granted) {
+                Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.'); return;
+            }
         }
         const res = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -1005,10 +1072,29 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
         const setter = slot === 'cover' ? setUploadingCover : setUploadingGallery;
         setter(true);
         try {
-            const urls = await Promise.all(res.assets.map(a => uploadOne(a.uri, token)));
-            const fresh = urls.filter(Boolean) as string[];
+            // Upload em paralelo, mas com tolerância a falhas individuais
+            const settled = await Promise.allSettled(
+                res.assets.map(a => uploadOne(
+                    a.uri,
+                    token,
+                    (a as any).fileName,
+                    (a as any).mimeType,
+                ))
+            );
+            const fresh: string[] = [];
+            const failures: string[] = [];
+            settled.forEach((r, i) => {
+                if (r.status === 'fulfilled') fresh.push(r.value);
+                else failures.push(`Foto ${i + 1}: ${r.reason?.message || 'erro desconhecido'}`);
+            });
             if (slot === 'cover') update('highlightPhotos', [...form.highlightPhotos, ...fresh].slice(0, 3));
             else update('images', [...form.images, ...fresh].slice(0, 12));
+            if (failures.length > 0) {
+                Alert.alert(
+                    `${failures.length} foto(s) não enviada(s)`,
+                    failures.join('\n'),
+                );
+            }
         } catch (e: any) {
             Alert.alert('Falha no upload', e?.message || 'Tente novamente.');
         } finally {
@@ -1197,26 +1283,77 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
 }
 
 // ── Upload ─────────────────────────────────────────────────────────
-async function uploadOne(uri: string, token: string | null | undefined): Promise<string | null> {
-    try {
-        const filename = uri.split('/').pop() || `upload-${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
-        const formData = new FormData();
+/**
+ * Upload cross-platform de um arquivo (imagem ou PDF) para POST /api/uploads.
+ *
+ * - Native (iOS/Android): usa o shape RN `{ uri, name, type }` no FormData.
+ * - Web (Expo Web): converte a URI (blob:, data: ou http:) num Blob real
+ *   antes de anexar — caso contrário o backend recebe campo vazio.
+ *
+ * Lança Error com mensagem descritiva ao falhar (em vez de retornar null
+ * silenciosamente) — permite mostrar o erro real ao usuário.
+ */
+async function uploadOne(
+    uri: string,
+    token: string | null | undefined,
+    filenameHint?: string,
+    mimeHint?: string,
+): Promise<string> {
+    const startedAt = Date.now();
+    const filename = filenameHint || uri.split('/').pop()?.split('?')[0] || `upload-${Date.now()}.jpg`;
+    const ext = (filename.match(/\.(\w+)$/)?.[1] || 'jpg').toLowerCase();
+    const inferredMime = mimeHint
+        || (ext === 'pdf' ? 'application/pdf'
+            : ext === 'png' ? 'image/png'
+            : ext === 'webp' ? 'image/webp'
+            : ext === 'gif' ? 'image/gif'
+            : 'image/jpeg');
+
+    console.log('[upload] iniciando', { filename, mime: inferredMime, platform: Platform.OS });
+
+    const formData = new FormData();
+    if (Platform.OS === 'web') {
+        // Web: precisa de Blob/File real, não objeto {uri, ...}
+        const blobRes = await fetch(uri);
+        if (!blobRes.ok) {
+            throw new Error(`Não foi possível ler o arquivo selecionado (HTTP ${blobRes.status}).`);
+        }
+        const blob = await blobRes.blob();
+        console.log('[upload] blob criado', { size: blob.size, type: blob.type });
+        formData.append('file', blob, filename);
+    } else {
+        // Native: shape específico do RN
         // @ts-ignore RN-specific form data shape
-        formData.append('file', { uri, name: filename, type });
-        const res = await fetch(`${API_BASE}/uploads`, {
-            method: 'POST',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            body: formData,
-        });
-        if (!res.ok) throw new Error('Upload falhou');
-        const data = await res.json();
-        return data.url || data.urls?.[0] || null;
-    } catch (e) {
-        console.warn('[upload] erro:', e);
-        return null;
+        formData.append('file', { uri, name: filename, type: inferredMime });
     }
+
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    // No web NÃO setar Content-Type — o browser adiciona o boundary multipart sozinho.
+
+    const res = await fetch(`${API_BASE}/uploads`, {
+        method: 'POST',
+        headers,
+        body: formData,
+    });
+
+    const elapsed = Date.now() - startedAt;
+    if (!res.ok) {
+        let detail = '';
+        try { detail = await res.text(); } catch {}
+        console.warn('[upload] falhou', { status: res.status, detail, elapsed });
+        if (res.status === 413) throw new Error('Arquivo muito grande (máx 25 MB).');
+        if (res.status === 415) throw new Error('Formato de arquivo não suportado.');
+        throw new Error(`Upload falhou (HTTP ${res.status}). Verifique sua conexão.`);
+    }
+    const data = await res.json();
+    const url = data.url || data.urls?.[0];
+    if (!url) {
+        console.warn('[upload] resposta sem URL:', data);
+        throw new Error('Servidor não retornou a URL do arquivo.');
+    }
+    console.log('[upload] sucesso', { url, elapsed });
+    return url;
 }
 
 // ── Hidratação a partir da API (modo edição) ───────────────────────
@@ -1389,7 +1526,13 @@ const s = StyleSheet.create({
         borderRadius: 12, borderWidth: 1, borderColor: theme.colors.borderLight, backgroundColor: '#fff',
     },
     proofImg:  { width: 56, height: 56, borderRadius: 8, backgroundColor: '#eee' },
-    proofText: { flex: 1, fontSize: 13, color: theme.colors.text.primary, fontWeight: '600' },
+    proofText: { fontSize: 13, color: theme.colors.text.primary, fontWeight: '600' },
+    proofError: {
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+        marginTop: 10, padding: 10, borderRadius: 10,
+        backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca',
+    },
+    proofErrorText: { flex: 1, fontSize: 12, color: theme.colors.error, lineHeight: 16 },
 
     switchRow: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
