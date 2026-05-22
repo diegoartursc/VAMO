@@ -53,7 +53,6 @@ import {
     SPENDING_CATS,
     ATTRACTION_TYPES,
     CURRENCIES,
-    MAX_STYLES,
     MAX_CATEGORIES,
     MIN_TIPS,
     MIN_CHECKLIST,
@@ -436,7 +435,8 @@ function StepIdentity({ form, update }: StepProps) {
                     );
                 })}
             </View>
-            <Text style={s.label}>Estilo de viagem (máx {MAX_STYLES})</Text>
+            <Text style={s.label}>Experiência de gasto</Text>
+            <Text style={s.helper}>Escolha apenas uma opção que represente o estilo do seu roteiro.</Text>
             <View style={s.chipRow}>
                 {STYLE_OPTIONS.map(st => {
                     const active = form.travelStyles.includes(st.key);
@@ -444,7 +444,11 @@ function StepIdentity({ form, update }: StepProps) {
                         <TouchableOpacity
                             key={st.key}
                             style={[s.chip, active && s.chipActive]}
-                            onPress={() => update('travelStyles', toggleArray(form.travelStyles, st.key, MAX_STYLES))}
+                            onPress={() => {
+                                // Seleção única (radio): clicar em uma já ativa desmarca; senão substitui as outras.
+                                if (active) update('travelStyles', []);
+                                else update('travelStyles', [st.key]);
+                            }}
                         >
                             <Text style={[s.chipText, active && s.chipTextActive]}>{st.label}</Text>
                         </TouchableOpacity>
@@ -1228,7 +1232,11 @@ function deserializeFromApi(data: any): ItineraryFormState {
         locations: data.locations || [{ country: data.country || '', cities: [data.destination || ''] }],
         description: data.description || '',
         duration: data.duration || 3,
-        travelStyles: data.travelStyles || [],
+        // Normaliza para seleção única: se vier array com múltiplos valores
+        // (de roteiros antigos), mantém só o primeiro.
+        travelStyles: Array.isArray(data.travelStyles) && data.travelStyles.length > 0
+            ? [data.travelStyles[0]]
+            : [],
         categories: data.categories || [],
         travelProofUrl: data.travelProofUrl || '',
         price: data.price || 0,
@@ -1298,6 +1306,7 @@ const s = StyleSheet.create({
     stepHint:  { fontSize: 14, color: theme.colors.text.secondary, marginBottom: 12, lineHeight: 20 },
 
     label: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary, marginTop: 14, marginBottom: 6 },
+    helper: { fontSize: 12, color: theme.colors.text.tertiary, marginBottom: 10, lineHeight: 16 },
 
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: {
