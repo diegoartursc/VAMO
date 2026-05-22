@@ -4,10 +4,10 @@
  * Ao concluir, navega para /new-itinerary.
  */
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, FlatList,
-    Dimensions, Platform, StatusBar, Animated,
+    View, Text, StyleSheet, TouchableOpacity,
+    Dimensions, Platform, StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -182,7 +182,7 @@ function SlideContent({ slide, isLast, onNext, onSkip }: {
 }
 
 const slide_s = StyleSheet.create({
-    container: { width: SCREEN_W, flex: 1 },
+    container: { flex: 1, width: '100%' },
     inner: {
         flex: 1,
         paddingTop: Platform.OS === 'ios' ? 80 : 60,
@@ -229,13 +229,12 @@ const slide_s = StyleSheet.create({
 // ─── Main screen ───────────────────────────────────────────────
 export default function BecomeCreatorScreen() {
     const router = useRouter();
-    const flatRef = useRef<FlatList>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const goToNext = useCallback(() => {
         haptics.light();
         if (currentIndex < SLIDES.length - 1) {
-            flatRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+            setCurrentIndex(i => i + 1);
         } else {
             // Último slide → ir para criação
             router.replace('/new-itinerary');
@@ -247,11 +246,8 @@ export default function BecomeCreatorScreen() {
         router.replace('/new-itinerary');
     }, [router]);
 
-    const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-        if (viewableItems.length > 0) {
-            setCurrentIndex(viewableItems[0].index ?? 0);
-        }
-    }).current;
+    const currentSlide = SLIDES[currentIndex];
+    const isLast = currentIndex === SLIDES.length - 1;
 
     return (
         <View style={styles.root}>
@@ -265,27 +261,15 @@ export default function BecomeCreatorScreen() {
                 <Ionicons name="close" size={22} color="#fff" />
             </TouchableOpacity>
 
-            {/* Slides */}
-            <FlatList
-                ref={flatRef}
-                data={SLIDES}
-                keyExtractor={item => item.key}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                bounces={false}
-                onViewableItemsChanged={onViewableItemsChanged}
-                viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
-                renderItem={({ item, index }) => (
-                    <SlideContent
-                        slide={item}
-                        isLast={index === SLIDES.length - 1}
-                        onNext={goToNext}
-                        onSkip={handleSkip}
-                    />
-                )}
-                style={{ flex: 1 }}
-            />
+            {/* Slide ativo */}
+            <View style={{ flex: 1 }}>
+                <SlideContent
+                    slide={currentSlide}
+                    isLast={isLast}
+                    onNext={goToNext}
+                    onSkip={handleSkip}
+                />
+            </View>
 
             {/* Dots */}
             <View style={styles.footer}>
