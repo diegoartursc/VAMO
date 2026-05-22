@@ -1,0 +1,9 @@
+{
+  "name": "@vamo/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "license": "UNLICENSED",
+  "description": "Lógica compartilhada entre site, mobile e backend (single source of truth)."
+}

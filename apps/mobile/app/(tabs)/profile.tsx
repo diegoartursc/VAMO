@@ -7,7 +7,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { Icon, IconName } from '../../src/components/common/Icons';
+import { useAuth } from '../../src/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -28,27 +30,17 @@ const INTEREST_OPTIONS = [
     { id: 'religiao', icon: 'landmark' as IconName, label: 'Religião' },
 ];
 
-// Mock user data — will be replaced by auth context
-const USER = {
-    name: 'Usuário',
-    email: 'usuario@email.com',
-    avatar: 'circle-user',
-    since: '2026',
-    stats: { itineraries: 2, saved: 7 },
-    destinations: 3,
-    createdItineraries: 2,
-};
-
-// Milestones for "Sua Jornada" - apenas roteiros
-const MILESTONES = [
-    { id: 'first_itinerary', label: 'Primeiro roteiro criado', done: USER.stats.itineraries > 0 },
-    { id: 'five_destinations', label: '5 destinos visitados', done: USER.destinations >= 5 },
+// Milestones estáticos — futuramente via API
+const MILESTONES_BASE = [
     { id: 'first_review', label: 'Primeira avaliação', done: true },
-    { id: 'ten_saved', label: '10 roteiros salvos', done: USER.stats.saved >= 10 },
+    { id: 'first_itinerary', label: 'Primeiro roteiro criado', done: false },
+    { id: 'five_destinations', label: '5 destinos visitados', done: false },
+    { id: 'ten_saved', label: '10 roteiros salvos', done: false },
 ];
 
 export default function ProfileScreen() {
     const router = useRouter();
+    const { user, isAuthenticated, isLoading, logout } = useAuth();
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const [currency, setCurrency] = useState('(R$) Real');
@@ -77,6 +69,11 @@ export default function ProfileScreen() {
         }).start();
     }, []);
 
+    // Debug: logar usuário atual
+    useEffect(() => {
+        console.log('[profile] isAuthenticated:', isAuthenticated, '| userId:', user?.travelerId, '| email:', user?.email);
+    }, [isAuthenticated, user]);
+
     const handleRateApp = () => {
         haptics.success();
         const storeUrl = Platform.OS === 'ios'
@@ -91,25 +88,19 @@ export default function ProfileScreen() {
             { text: 'Cancelar', style: 'cancel' },
             {
                 text: 'Sair', style: 'destructive',
-                onPress: () => { haptics.success(); Alert.alert('Pronto', 'Você saiu da sua conta.'); },
+                onPress: async () => {
+                    haptics.success();
+                    await logout();
+                    console.log('[profile] logout realizado');
+                    router.replace('/login');
+                },
             },
         ]);
     };
 
     const handleStatPress = (type: 'itineraries' | 'saved') => {
         haptics.light();
-        if (USER.stats[type] === 0) {
-            const messages: Record<string, string> = {
-                itineraries: 'Você ainda não criou nenhum roteiro.',
-                saved: 'Você ainda não salvou nenhum roteiro.',
-            };
-            Alert.alert('Nada aqui ainda', messages[type], [
-                { text: 'Explorar', onPress: () => router.push('/(tabs)/itineraries') },
-                { text: 'OK' },
-            ]);
-        } else {
-            router.push('/(tabs)/my-trips');
-        }
+        router.push('/(tabs)/my-trips');
     };
 
     const toggleInterest = (id: string) => {
@@ -118,7 +109,31 @@ export default function ProfileScreen() {
         );
     };
 
-    const completedMilestones = MILESTONES.filter(m => m.done).length;
+    const completedMilestones = MILESTONES_BASE.filter(m => m.done).length;
+
+    // Não logado: mostrar tela de login prompt
+    if (!isLoading && !isAuthenticated) {
+        return (
+            <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
+                <Icon name="circle-user" size={64} color={theme.colors.primary} />
+                <Text style={{ fontSize: 22, fontWeight: '800', color: theme.colors.text.primary, marginTop: 20, marginBottom: 8, textAlign: 'center' }}>
+                    Bem-vindo ao VAMO
+                </Text>
+                <Text style={{ fontSize: 15, color: theme.colors.text.secondary, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+                    Faça login para acessar seu perfil, favoritos, carrinho e roteiros.
+                </Text>
+                <TouchableOpacity
+                    style={{ backgroundColor: theme.colors.primary, borderRadius: 14, paddingHorizontal: 32, paddingVertical: 14, marginBottom: 12 }}
+                    onPress={() => router.push('/login')}
+                >
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Entrar na conta</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/register')}>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>Criar conta grátis →</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -133,7 +148,7 @@ export default function ProfileScreen() {
                 >
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatarCircle}>
-                            <Icon name={USER.avatar as IconName} size={40} color="#FFFFFF" />
+                            <Icon name="circle-user" size={40} color="#FFFFFF" />
                         </View>
                         <TouchableOpacity style={styles.editAvatarButton} onPress={() => {
                             haptics.light();
@@ -142,25 +157,25 @@ export default function ProfileScreen() {
                             <Icon name="edit" size={12} color="#FFF" />
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.userName}>{USER.name}</Text>
-                    <Text style={styles.userEmail}>{USER.email}</Text>
+                    <Text style={styles.userName}>{user?.name || 'Usuário'}</Text>
+                    <Text style={styles.userEmail}>{user?.email || ''}</Text>
                     <View style={styles.sinceBadge}>
                         <Icon name="calendar" size={12} color="rgba(255,255,255,0.8)" />
-                        <Text style={styles.sinceText}>Viajante desde {USER.since}</Text>
+                        <Text style={styles.sinceText}>Conta VAMO</Text>
                     </View>
 
                 </LinearGradient>
 
                 {/* ══════════ 2. QUICK STATS ══════════ */}
                 <View style={styles.statsRow}>
-                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=itineraries')}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips')}>
                         <Icon name="book-open" size={22} color={theme.colors.primary} />
-                        <Text style={styles.statValue}>{USER.stats.itineraries}</Text>
+                        <Text style={styles.statValue}>—</Text>
                         <Text style={styles.statLabel}>Meus Roteiros</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips?tab=saved')}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/saved')}>
                         <Icon name="heart" size={22} color={theme.colors.primary} />
-                        <Text style={styles.statValue}>{USER.stats.saved}</Text>
+                        <Text style={styles.statValue}>—</Text>
                         <Text style={styles.statLabel}>Salvos</Text>
                     </TouchableOpacity>
                 </View>
@@ -170,19 +185,19 @@ export default function ProfileScreen() {
                     <View style={styles.sectionTitleRow}>
                         <Icon name="globe" size={16} color={theme.colors.primary} />
                         <Text style={styles.sectionTitle}>Sua Jornada no VAMO</Text>
-                        <Text style={styles.journeyProgress}>{completedMilestones}/{MILESTONES.length}</Text>
+                        <Text style={styles.journeyProgress}>{completedMilestones}/{MILESTONES_BASE.length}</Text>
                     </View>
                     <View style={styles.sectionCard}>
                         {/* Progress bar */}
                         <View style={styles.progressBarContainer}>
-                            <View style={[styles.progressBarFill, { width: `${(completedMilestones / MILESTONES.length) * 100}%` }]} />
+                            <View style={[styles.progressBarFill, { width: `${(completedMilestones / MILESTONES_BASE.length) * 100}%` }]} />
                         </View>
-                        {MILESTONES.map((milestone, idx) => (
+                        {MILESTONES_BASE.map((milestone, idx) => (
                             <View
                                 key={milestone.id}
                                 style={[
                                     styles.milestoneRow,
-                                    idx === MILESTONES.length - 1 && styles.milestoneRowLast,
+                                    idx === MILESTONES_BASE.length - 1 && styles.milestoneRowLast,
                                 ]}
                             >
                                 {milestone.done ? (
@@ -248,7 +263,7 @@ export default function ProfileScreen() {
                     <View style={styles.sectionCard}>
                         <SettingItem icon="circle-user" title="Dados pessoais" onPress={() => {
                             haptics.light();
-                            Alert.alert('Dados Pessoais', `Nome: ${USER.name}\nEmail: ${USER.email}\n\nA edição de dados pessoais estará disponível em breve.`, [{ text: 'OK' }]);
+                            Alert.alert('Dados Pessoais', `Nome: ${user?.name || '—'}\nEmail: ${user?.email || '—'}\n\nA edição de dados pessoais estará disponível em breve.`, [{ text: 'OK' }]);
                         }} />
                         <SettingItem icon="bell" title="Notificações" onPress={() => {
                             haptics.light(); Linking.openSettings();
@@ -264,31 +279,75 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* ══════════ CRIAR ROTEIROS ══════════ */}
-                <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Criar Roteiros</Text>
-                    <View style={styles.sectionCard}>
-                        <TouchableOpacity
-                            style={styles.storeItem}
-                            onPress={() => {
-                                haptics.light();
-                                Linking.openURL('https://vamo.app/criadores');
-                            }}
-                            activeOpacity={0.7}
+                {/* ══════════ ÁREA DO CRIADOR ══════════ */}
+                {!user?.creatorId ? (
+                    /* ── Não é criador ainda: banner de convite ── */
+                    <View style={styles.sectionSpaced}>
+                        <LinearGradient
+                            colors={['#1A3263', '#28C9BF']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.creatorBanner}
                         >
-                            <View style={styles.storeLeft}>
-                                <View style={styles.storeIconCircle}>
-                                    <Icon name="globe" size={22} color={theme.colors.primary} />
-                                </View>
-                                <View>
-                                    <Text style={styles.storeTitle}>Portal do Criador</Text>
-                                    <Text style={styles.storeSubtitle}>Transforme suas viagens em roteiros e ganhe comissão</Text>
+                            <View style={styles.creatorBannerLeft}>
+                                <Text style={styles.creatorBannerEmoji}>🚀</Text>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.creatorBannerTitle}>Torne-se um Roteirista</Text>
+                                    <Text style={styles.creatorBannerSub}>
+                                        Crie roteiros, compartilhe experiências e ganhe dinheiro viajando.
+                                    </Text>
                                 </View>
                             </View>
-                            <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
-                        </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.creatorBannerCta}
+                                onPress={() => { haptics.medium(); router.push('/become-creator'); }}
+                                activeOpacity={0.85}
+                            >
+                                <Text style={styles.creatorBannerCtaText}>Saiba mais</Text>
+                                <Ionicons name="arrow-forward" size={14} color={theme.colors.primary} />
+                            </TouchableOpacity>
+                        </LinearGradient>
                     </View>
-                </View>
+                ) : (
+                    /* ── É criador: menu completo ── */
+                    <View style={styles.sectionSpaced}>
+                        <View style={styles.sectionTitleRow}>
+                            <Icon name="edit" size={16} color={theme.colors.primary} />
+                            <Text style={styles.sectionTitle}>Área do Criador</Text>
+                            <View style={styles.creatorBadge}>
+                                <Text style={styles.creatorBadgeText}>✓ Roteirista</Text>
+                            </View>
+                        </View>
+                        <View style={styles.sectionCard}>
+                            <SettingItem
+                                icon="edit"
+                                title="Criar novo roteiro"
+                                onPress={() => { haptics.light(); router.push('/new-itinerary'); }}
+                            />
+                            <SettingItem
+                                icon="book-open"
+                                title="Meus roteiros criados"
+                                onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
+                            />
+                            <SettingItem
+                                icon="briefcase"
+                                title="Dashboard do criador"
+                                onPress={() => {
+                                    haptics.light();
+                                    Alert.alert(
+                                        'Dashboard',
+                                        'O dashboard completo está disponível no painel web. Em breve no app.',
+                                        [
+                                            { text: 'Cancelar', style: 'cancel' },
+                                            { text: 'Abrir painel web', onPress: () => Linking.openURL('https://vamo.app/dashboard') },
+                                        ],
+                                    );
+                                }}
+                                isLast
+                            />
+                        </View>
+                    </View>
+                )}
 
                 {/* ══════════ 5. PREFERÊNCIAS ══════════ */}
                 <View style={styles.sectionSpaced}>
@@ -833,5 +892,41 @@ const styles = StyleSheet.create({
     versionText: {
         textAlign: 'center', fontSize: 12,
         color: theme.colors.text.tertiary, marginTop: 12,
+    },
+
+    // ── Creator banner (não-criador) ──
+    creatorBanner: {
+        borderRadius: 18,
+        padding: 18,
+        gap: 12,
+        ...theme.shadows.medium,
+    },
+    creatorBannerLeft: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    },
+    creatorBannerEmoji: { fontSize: 32, lineHeight: 38 },
+    creatorBannerTitle: {
+        fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 4,
+    },
+    creatorBannerSub: {
+        fontSize: 13, color: 'rgba(255,255,255,0.82)', lineHeight: 18,
+    },
+    creatorBannerCta: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        gap: 6, backgroundColor: '#fff',
+        borderRadius: 10, paddingVertical: 10,
+    },
+    creatorBannerCtaText: {
+        fontSize: 14, fontWeight: '700', color: theme.colors.primary,
+    },
+
+    // ── Creator badge (já é criador) ──
+    creatorBadge: {
+        backgroundColor: theme.colors.primary + '18',
+        borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3,
+        marginLeft: 'auto',
+    },
+    creatorBadgeText: {
+        fontSize: 11, fontWeight: '700', color: theme.colors.primary,
     },
 });
