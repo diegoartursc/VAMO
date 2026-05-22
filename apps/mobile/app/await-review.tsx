@@ -71,21 +71,25 @@ export default function AwaitReviewScreen() {
             <Animated.View style={[s.tracker, { opacity: fadeAnim }]}>
                 <Text style={s.trackerTitle}>Acompanhe o status</Text>
                 {STEPS.map((step, i) => (
-                    <View key={i} style={s.trackerRow}>
-                        <View style={[
-                            s.trackerIcon,
-                            step.done && s.trackerIconDone,
-                            step.active && s.trackerIconActive,
-                        ]}>
-                            <Ionicons
-                                name={step.icon}
-                                size={16}
-                                color={step.done ? '#fff' : step.active ? theme.colors.primary : theme.colors.text.tertiary}
-                            />
+                    <View key={i} style={s.trackerItem}>
+                        {/* Coluna esquerda: ícone + linha conectora */}
+                        <View style={s.trackerLeft}>
+                            <View style={[
+                                s.trackerIcon,
+                                step.done && s.trackerIconDone,
+                                step.active && s.trackerIconActive,
+                            ]}>
+                                <Ionicons
+                                    name={step.icon}
+                                    size={16}
+                                    color={step.done ? '#fff' : step.active ? theme.colors.primary : theme.colors.text.tertiary}
+                                />
+                            </View>
+                            {i < STEPS.length - 1 && (
+                                <View style={[s.trackerLine, step.done && s.trackerLineDone]} />
+                            )}
                         </View>
-                        {i < STEPS.length - 1 && (
-                            <View style={[s.trackerLine, step.done && s.trackerLineDone]} />
-                        )}
+                        {/* Coluna direita: label alinhado ao centro do ícone */}
                         <Text style={[
                             s.trackerLabel,
                             step.active && s.trackerLabelActive,
@@ -156,13 +160,16 @@ const s = StyleSheet.create({
     tracker: {
         marginHorizontal: 24, marginTop: 28,
         backgroundColor: theme.colors.surfaceLight,
-        borderRadius: 16, padding: 20, gap: 0,
+        borderRadius: 16, padding: 20,
     },
     trackerTitle: {
         fontSize: 14, fontWeight: '700', color: theme.colors.text.primary,
         marginBottom: 16,
     },
-    trackerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 0 },
+    // Cada "item" é um row: coluna-esquerda (ícone+linha) + label
+    trackerItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+    // Coluna esquerda contém o círculo e a linha abaixo (flex column)
+    trackerLeft: { alignItems: 'center', width: 32 },
     trackerIcon: {
         width: 32, height: 32, borderRadius: 16,
         backgroundColor: theme.colors.border,
@@ -173,12 +180,17 @@ const s = StyleSheet.create({
         backgroundColor: theme.colors.primary + '20',
         borderWidth: 2, borderColor: theme.colors.primary,
     },
+    // Linha conectora: fica abaixo do ícone, dentro da mesma coluna
     trackerLine: {
-        position: 'absolute', left: 15, top: 32,
-        width: 2, height: 20, backgroundColor: theme.colors.borderLight,
+        width: 2, height: 24,
+        backgroundColor: theme.colors.borderLight,
+        marginTop: 3,
     },
     trackerLineDone: { backgroundColor: theme.colors.success },
-    trackerLabel: { fontSize: 14, color: theme.colors.text.primary, fontWeight: '500', flex: 1 },
+    trackerLabel: {
+        fontSize: 14, color: theme.colors.text.primary, fontWeight: '500',
+        flex: 1, marginTop: 6, // alinha verticalmente com o centro do ícone
+    },
     trackerLabelActive: { color: theme.colors.primary, fontWeight: '700' },
     trackerLabelInactive: { color: theme.colors.text.tertiary },
 

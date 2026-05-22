@@ -22,6 +22,7 @@ export default function RootLayout() {
                                 <Stack.Screen name="new-itinerary" />
                                 <Stack.Screen name="await-review" />
                                 <Stack.Screen name="creator-itinerary/[id]" />
+                                <Stack.Screen name="created-itineraries" />
                                 <Stack.Screen name="my-reviews" />
                                 <Stack.Screen name="my-questions" />
                             </Stack>

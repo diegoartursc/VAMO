@@ -163,8 +163,9 @@ export default function NewItineraryScreen() {
     };
 
     // ── Criar rascunho na API (passo 1 → 2) ────────────────────
-    const createDraftOnApi = async () => {
-        if (!accessToken) return;
+    // Retorna o id criado (ou undefined em caso de falha).
+    const createDraftOnApi = async (): Promise<string | undefined> => {
+        if (!accessToken) return undefined;
         try {
             const res = await fetch(`${API_BASE}/itineraries`, {
                 method: 'POST',
@@ -187,11 +188,14 @@ export default function NewItineraryScreen() {
                 const data = await res.json();
                 const newDraft = { ...draft, id: data.id };
                 setDraft(newDraft);
-                saveDraftLocally(newDraft, step + 1);
+                // Salva com o id correto no AsyncStorage
+                saveDraftLocally(newDraft, 2);
+                return data.id as string;
             }
         } catch (err) {
             console.warn('[new-itinerary] erro ao criar rascunho na API:', err);
         }
+        return undefined;
     };
 
     // ── Atualizar rascunho na API ───────────────────────────────
@@ -223,26 +227,29 @@ export default function NewItineraryScreen() {
         if (!validateStep(step)) return;
         setSaving(true);
         try {
-            // Se ainda não tem ID, cria primeiro
-            if (!draft.id) await createDraftOnApi();
-            if (draft.id) {
-                const res = await fetch(`${API_BASE}/itineraries/${draft.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                    body: JSON.stringify({
-                        title: draft.title,
-                        destination: draft.destination,
-                        country: draft.country,
-                        description: draft.description,
-                        duration: Number(draft.duration) || 1,
-                        price: Number(draft.price) || 0,
-                        highlights: draft.highlights,
-                        inclusions: draft.inclusions,
-                        status: 'PENDING_REVIEW',
-                    }),
-                });
-                if (!res.ok) throw new Error('Falha ao enviar');
+            // Se ainda não tem ID, cria agora e obtém o id diretamente do retorno
+            let itineraryId = draft.id;
+            if (!itineraryId) {
+                itineraryId = await createDraftOnApi();
             }
+            if (!itineraryId) throw new Error('Não foi possível criar o roteiro.');
+
+            const res = await fetch(`${API_BASE}/itineraries/${itineraryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                body: JSON.stringify({
+                    title: draft.title,
+                    destination: draft.destination,
+                    country: draft.country,
+                    description: draft.description,
+                    duration: Number(draft.duration) || 1,
+                    price: Number(draft.price) || 0,
+                    highlights: draft.highlights,
+                    inclusions: draft.inclusions,
+                    status: 'PENDING_REVIEW',
+                }),
+            });
+            if (!res.ok) throw new Error('Falha ao enviar para análise.');
             haptics.success();
             await AsyncStorage.removeItem(DRAFT_KEY);
             router.replace('/await-review');
@@ -258,18 +265,24 @@ export default function NewItineraryScreen() {
         if (!validateStep(step)) return;
         haptics.light();
 
-        // No passo 1 (destino preenchido), criar rascunho na API
+        // No passo 1 (destino preenchido), criar rascunho na API.
+        // createDraftOnApi já salva no AsyncStorage com o id correto.
+        // Retornamos cedo para não sobrescrever esse save com o draft estale.
         if (step === 1 && !draft.id && accessToken) {
             setSaving(true);
             await createDraftOnApi();
             setSaving(false);
-        } else if (draft.id && step >= 2) {
-            updateDraftOnApi();
+            setStep(2);
+            return;
         }
 
         if (step === TOTAL_STEPS) {
             submitForReview();
             return;
+        }
+
+        if (draft.id && step >= 2) {
+            updateDraftOnApi();
         }
 
         const nextStep = step + 1;

@@ -394,14 +394,13 @@ export default function CreatedItinerariesScreen() {
         fetchData(true);
     }, [fetchData]);
 
-    // Animação suave ao trocar filtro
-    const handleFilterChange = (key: FilterTab) => {
-        Animated.sequence([
-            Animated.timing(fadeAnim, { toValue: 0, duration: 80, useNativeDriver: true }),
-            Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
-        ]).start();
-        setActiveFilter(key);
-    };
+    // Animação suave ao trocar filtro: espera o fade-out completar antes de mudar a lista
+    const handleFilterChange = useCallback((key: FilterTab) => {
+        Animated.timing(fadeAnim, { toValue: 0, duration: 80, useNativeDriver: true }).start(() => {
+            setActiveFilter(key);
+            Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+        });
+    }, [fadeAnim]);
 
     // ── Loading ─────────────────────────────────────────────────
     if (loading) {

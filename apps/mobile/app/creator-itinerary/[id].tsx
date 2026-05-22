@@ -280,6 +280,17 @@ export default function CreatorItineraryScreen() {
                     </View>
                 )}
 
+                {/* ── Aprovado (aguardando ativação) ── */}
+                {itinerary.status === 'approved' && (
+                    <View style={s.approvedCard}>
+                        <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.approvedTitle}>Roteiro aprovado! 🎉</Text>
+                            <Text style={s.approvedText}>Seu roteiro foi aprovado pela equipe VAMO e em breve estará publicado no marketplace.</Text>
+                        </View>
+                    </View>
+                )}
+
                 {/* ── Rascunho ── */}
                 {itinerary.status === 'draft' && (
                     <View style={s.draftCard}>
@@ -436,6 +447,15 @@ const s = StyleSheet.create({
     },
     pendingTitle: { fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 4 },
     pendingText: { fontSize: 13, color: '#92400E', lineHeight: 18 },
+
+    // Approved card
+    approvedCard: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+        backgroundColor: '#D1FAE5', borderRadius: 14, padding: 16,
+        borderWidth: 1, borderColor: '#6EE7B7',
+    },
+    approvedTitle: { fontSize: 14, fontWeight: '700', color: '#065F46', marginBottom: 4 },
+    approvedText: { fontSize: 13, color: '#047857', lineHeight: 18 },
 
     // Draft card
     draftCard: {
