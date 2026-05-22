@@ -10,6 +10,7 @@ O site web foi removido em maio/2026 — será reconstruído quando o app estive
 
 | Documento | O que tem |
 |---|---|
+| [CONVERSION_FUNNEL_AUDIT_2026-05.md](./CONVERSION_FUNNEL_AUDIT_2026-05.md) | **🎯 NOVO** — Auditoria completa do fluxo de compra de roteiros: 6 bugs críticos corrigidos, 16 gaps identificados, matriz de priorização, detalhamento técnico para cada gap, padrões identificados e recomendações para AI |
 | [PRODUTO.md](./PRODUTO.md) | Visão completa do produto, princípios e funcionalidades |
 | [STATUS.md](./STATUS.md) | Estado atual do desenvolvimento — atualizado periodicamente |
 | [architecture/backend.md](./architecture/backend.md) | Arquitetura do backend Node.js + Express + Prisma |
@@ -19,16 +20,19 @@ O site web foi removido em maio/2026 — será reconstruído quando o app estive
 | [design/master.md](./design/master.md) | Regras-mestre do design system (overrides) |
 
 > Para instruções de uso do Claude Code neste projeto, ver [`/CLAUDE.md`](../CLAUDE.md) na raiz.
+>
+> **📌 Para IA ("Codex"):** Leia primeiro `CONVERSION_FUNNEL_AUDIT_2026-05.md` para entender o estado atual do fluxo de conversão, bugs já corrigidos, gaps abertos e recomendações técnicas.
 
 ---
 
 ## 📜 Changelog (em ordem cronológica)
 
-| Data | Arquivo |
-|---|---|
-| 30/01/2026 | [2026-01-30_bug_fixes.md](./changelog/2026-01-30_bug_fixes.md) |
-| 28/03/2026 | [2026-03-28_bug_fixes.md](./changelog/2026-03-28_bug_fixes.md) |
-| 11/04/2026 | [2026-04-11_bug_fixes.md](./changelog/2026-04-11_bug_fixes.md) |
+| Data | Arquivo | Tipo |
+|---|---|---|
+| 30/01/2026 | [2026-01-30_bug_fixes.md](./changelog/2026-01-30_bug_fixes.md) | Bug fixes |
+| 28/03/2026 | [2026-03-28_bug_fixes.md](./changelog/2026-03-28_bug_fixes.md) | Bug fixes |
+| 11/04/2026 | [2026-04-11_bug_fixes.md](./changelog/2026-04-11_bug_fixes.md) | Bug fixes |
+| **22/05/2026** | **[CONVERSION_FUNNEL_AUDIT_2026-05.md](./CONVERSION_FUNNEL_AUDIT_2026-05.md)** | **Comprehensive audit + 6 critical fixes + 16 gaps** |
 
 Novos relatórios de fix devem entrar aqui com formato `AAAA-MM-DD_<contexto>.md`.
 
