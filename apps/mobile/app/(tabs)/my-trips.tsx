@@ -18,9 +18,9 @@ import {
 } from '../../src/data/mockMyTrips';
 import { getMyTrips } from '../../src/services/api';
 import { Icon } from '../../src/components/common/Icons';
+import { useAuth } from '../../src/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
-const TRAVELER_ID = 'trav-diego';
 
 // ─── Skeleton Loader ────────────────────────────────────
 
@@ -222,6 +222,7 @@ function EmptyState() {
 // ─── Main Screen ─────────────────────────────────────────
 
 export default function MyTripsScreen() {
+    const { accessToken } = useAuth();
     const [loading, setLoading] = useState(true);
     const [itineraries, setItineraries] = useState<PurchasedItineraryItem[]>([]);
     const headerAnim = useRef(new Animated.Value(0)).current;
@@ -230,7 +231,7 @@ export default function MyTripsScreen() {
         Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
 
         let mounted = true;
-        getMyTrips(TRAVELER_ID)
+        getMyTrips(accessToken)
             .then((result) => {
                 if (mounted) {
                     setItineraries(result.purchasedItineraries);
@@ -239,7 +240,7 @@ export default function MyTripsScreen() {
             })
             .catch(() => { if (mounted) setLoading(false); });
         return () => { mounted = false; };
-    }, []);
+    }, [accessToken]);
 
     return (
         <View style={styles.container}>

@@ -29,6 +29,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import FAQSection from '../../../src/components/FAQSection';
 import { getItineraryFAQ } from '../../../src/data/mockFAQ';
 import { PurchaseSuccessModal } from '../../../src/components/modals/PurchaseSuccessModal';
+import { useFavorites } from '../../../src/hooks/useFavorites';
+import { useCart } from '../../../src/hooks/useCart';
+import { useAuth } from '../../../src/contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,6 +43,9 @@ export default function ItineraryDetailScreen() {
     const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
     const reviews = getReviewsByPackageId(`itinerary-${id}`);
+    const { isFavorite, toggleFavorite } = useFavorites();
+    const { isInCart, addToCart } = useCart();
+    const { accessToken } = useAuth();
 
     useEffect(() => {
         getItineraryById(id).then(setItinerary).catch(console.error);
@@ -71,7 +77,12 @@ export default function ItineraryDetailScreen() {
         router.push('/(tabs)/my-trips' as any);
     };
     const handleBuyNow = () => {
-        // Navigate to checkout flow
+        // Login gate: usuário deslogado não pode comprar. Redireciona para
+        // login com `next` apontando de volta pra esta tela de detalhe.
+        if (!accessToken) {
+            router.push({ pathname: '/login' as any, params: { next: `/itinerary/${id}` } });
+            return;
+        }
         router.push({
             pathname: `/checkout/itinerary-contact` as any,
             params: {

@@ -3,8 +3,10 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { theme } from '../../src/theme/theme';
 import { SearchProvider } from '../../src/contexts/SearchContext';
 import { Icon, IconName } from '../../src/components/common/Icons';
+import { useCart } from '../../src/hooks/useCart';
 
 export default function TabsLayout() {
+    const { cartCount } = useCart();
     return (
         <SearchProvider>
             <Tabs
@@ -47,6 +49,16 @@ export default function TabsLayout() {
                         href: '/cart',
                         title: 'Carrinho',
                         tabBarIcon: ({ focused, color }) => <TabIcon name="shopping-cart" focused={focused} color={color} />,
+                        tabBarBadge: cartCount > 0 ? cartCount : undefined,
+                        tabBarBadgeStyle: {
+                            backgroundColor: theme.colors.primary,
+                            color: '#fff',
+                            fontSize: 10,
+                            fontWeight: '700',
+                            minWidth: 16,
+                            height: 16,
+                            lineHeight: 16,
+                        },
                     }}
                 />
                 <Tabs.Screen

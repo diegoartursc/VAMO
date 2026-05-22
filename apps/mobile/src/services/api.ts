@@ -83,16 +83,19 @@ export async function getFeaturedItineraries(): Promise<any[]> {
 }
 
 /**
- * Records a purchase. Backend resolves the traveler from the JWT (if present)
- * or falls back to the first traveler in the DB (development mode).
+ * Records a purchase. Sends the JWT so the backend attributes the sale to
+ * the authenticated traveler (and not the dev-fallback first traveler).
  */
 export async function purchaseItinerary(
     itineraryId: string,
     paymentMethod: string,
+    accessToken?: string | null,
 ): Promise<{ id: string; itineraryId: string; alreadyPurchased: boolean }> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
     const res = await fetch(`${API_BASE_URL}/itineraries/${itineraryId}/purchase`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ paymentMethod }),
     });
     const data = await res.json();
@@ -177,14 +180,22 @@ export async function getReviews(params: {
 }
 
 // ─── My Trips ───
-export async function getMyTrips(travelerId: string): Promise<{
+/**
+ * Lista compras do usuário autenticado. O backend resolve o traveler a partir
+ * do JWT enviado no header (sem JWT, cai no dev-fallback do primeiro traveler).
+ */
+export async function getMyTrips(accessToken?: string | null): Promise<{
     upcomingPackages: any[];
     pastPackages: any[];
     purchasedItineraries: any[];
     savedItems: any[];
 }> {
     try {
-        return await fetchApi(`/my-trips`);
+        const headers: Record<string, string> = {};
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE_URL}/my-trips`, { headers });
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        return await res.json();
     } catch {
         return { upcomingPackages: [], pastPackages: [], purchasedItineraries: [], savedItems: [] };
     }

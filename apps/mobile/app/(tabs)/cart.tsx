@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,20 +11,61 @@ import {
     StatusBar,
     Dimensions,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { useCart } from '../../src/hooks/useCart';
-import { mockItineraries, Itinerary } from '../../src/data/mockItineraries';
 import { haptics } from '../../src/services/haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight ?? 24);
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
-// ─── Demo items shown when cart is empty (showcases the UI) ─────
-const DEMO_IDS = ['1', '2', '4'];
+// ─── Tipo mínimo usado pelo card do carrinho ─────────────────────
+interface CartItemData {
+    id: string;
+    title: string;
+    destination: string;
+    country: string;
+    price: number;
+    duration: number;
+    images: string[];          // URLs já normalizadas
+    creator: { name: string; avatar: string };
+}
+
+const PLACEHOLDER_IMG =
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop';
+
+/** Busca um roteiro real da API e normaliza pro shape do card. */
+async function fetchItinerary(id: string): Promise<CartItemData | null> {
+    try {
+        const res = await fetch(`${API_BASE}/itineraries/${id}`);
+        if (!res.ok) return null;
+        const d = await res.json();
+        // Imagens podem vir como [{ url }] ou como string[]
+        const imgs: string[] = Array.isArray(d.images)
+            ? d.images.map((x: any) => (typeof x === 'string' ? x : x?.url)).filter(Boolean)
+            : [];
+        return {
+            id: d.id,
+            title: d.title || 'Roteiro',
+            destination: d.destination || '',
+            country: d.country || '',
+            price: Number(d.price) || 0,
+            duration: Number(d.duration) || 0,
+            images: imgs.length ? imgs : [PLACEHOLDER_IMG],
+            creator: {
+                name: d.creator?.traveler?.name || d.creator?.name || 'Criador VAMO',
+                avatar: d.creator?.traveler?.avatar || '👤',
+            },
+        };
+    } catch {
+        return null;
+    }
+}
 
 // ─── Helpers ────────────────────────────────────────────────────
 const formatPrice = (price: number) =>
@@ -49,13 +90,24 @@ export default function CartScreen() {
         ]).start();
     }, []);
 
-    const resolvedIds = cartItems.length > 0 ? cartItems : DEMO_IDS;
-    const items = mockItineraries.filter(it => resolvedIds.includes(it.id));
-    const isEmpty = items.length === 0;
+    // Carrega dados reais dos roteiros do carrinho via API
+    const [items, setItems]   = useState<CartItemData[]>([]);
+    const [loading, setLoading] = useState(true);
 
+    const loadItems = useCallback(async () => {
+        if (cartItems.length === 0) { setItems([]); setLoading(false); return; }
+        setLoading(true);
+        const results = await Promise.all(cartItems.map(fetchItinerary));
+        setItems(results.filter((r): r is CartItemData => r !== null));
+        setLoading(false);
+    }, [cartItems]);
+
+    useEffect(() => { loadItems(); }, [loadItems]);
+
+    const isEmpty = !loading && items.length === 0;
     const subtotal = items.reduce((sum, it) => sum + it.price, 0);
 
-    const handleRemove = (item: Itinerary) => {
+    const handleRemove = (item: CartItemData) => {
         haptics.medium();
         Alert.alert(
             'Remover do carrinho?',
@@ -83,9 +135,32 @@ export default function CartScreen() {
         );
     };
 
+    /**
+     * Checkout do carrinho. MVP: o backend só aceita compra de UM roteiro
+     * por requisição (POST /itineraries/:id/purchase). Por isso, mandamos
+     * o primeiro item para o fluxo de checkout existente.
+     * Se houver múltiplos itens, avisamos o usuário antes.
+     * TODO (futuro): implementar checkout multi-item no backend (orders +
+     * order_items) e navegar para um summary screen aqui.
+     */
     const handleCheckout = () => {
+        if (items.length === 0) return;
         haptics.bookingConfirmed();
-        // TODO: navigate to checkout flow
+        const proceed = (it: CartItemData) => {
+            router.push({
+                pathname: '/checkout/itinerary-contact' as any,
+                params: { itineraryId: it.id, price: it.price.toString() },
+            });
+        };
+        if (items.length === 1) { proceed(items[0]); return; }
+        Alert.alert(
+            'Compra individual',
+            `Você tem ${items.length} roteiros no carrinho. Por ora, compras são feitas um a um. Deseja começar pelo primeiro ("${items[0].title}")?`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Comprar primeiro', onPress: () => proceed(items[0]) },
+            ],
+        );
     };
 
     return (
@@ -140,7 +215,11 @@ export default function CartScreen() {
             </LinearGradient>
 
             {/* ══════════ BODY ══════════ */}
-            {isEmpty ? (
+            {loading ? (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator color={theme.colors.primary} />
+                </View>
+            ) : isEmpty ? (
                 <EmptyState onExplore={() => router.push('/(tabs)/index' as any)} />
             ) : (
                 <ScrollView
@@ -186,7 +265,7 @@ function CartItemCard({
     onPress,
     onRemove,
 }: {
-    item: Itinerary;
+    item: CartItemData;
     index: number;
     onPress: () => void;
     onRemove: () => void;
@@ -287,7 +366,7 @@ function CartItemCard({
 // ════════════════════════════════════════════════════════════════
 //  ORDER SUMMARY
 // ════════════════════════════════════════════════════════════════
-function OrderSummary({ items, subtotal }: { items: Itinerary[]; subtotal: number }) {
+function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: number }) {
     return (
         <View style={styles.summaryCard}>
             {/* Header */}

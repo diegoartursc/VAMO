@@ -14,9 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { getItineraryById, purchaseItinerary } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
 import { useState as useStateModal } from 'react';
+import { useAuth } from '../../src/contexts/AuthContext';
 
 export default function ItineraryPaymentScreen() {
     const router = useRouter();
+    const { accessToken } = useAuth();
     const {
         itineraryId,
         price,
@@ -42,20 +44,26 @@ export default function ItineraryPaymentScreen() {
         if (processing) return;
         setProcessing(true);
         try {
-            // Record the purchase in the database so it shows up in "Meus Roteiros"
-            await purchaseItinerary(itineraryId as string, paymentMethod);
+            // Record the purchase. Sends JWT so the sale is attributed to the
+            // authenticated traveler (não cai no dev-fallback do backend).
+            const result = await purchaseItinerary(itineraryId as string, paymentMethod, accessToken);
 
+            const isReturning = result.alreadyPurchased;
             Alert.alert(
-                'Pagamento confirmado!',
-                'Seu roteiro já está disponível em Meus Roteiros.',
-                [{
-                    text: 'Ver roteiro', onPress: () => {
-                        router.replace({
+                isReturning ? 'Roteiro já adquirido' : 'Pagamento confirmado!',
+                isReturning
+                    ? 'Você já comprou este roteiro. Ele continua disponível em Meus Roteiros.'
+                    : 'Seu roteiro já está disponível em Meus Roteiros.',
+                [
+                    { text: 'Ver meus roteiros', onPress: () => router.replace('/(tabs)/my-trips' as any) },
+                    {
+                        text: 'Abrir roteiro',
+                        onPress: () => router.replace({
                             pathname: `/itinerary/${itineraryId}` as any,
                             params: { showSuccess: 'true' },
-                        });
-                    }
-                }]
+                        }),
+                    },
+                ],
             );
         } catch (err: any) {
             Alert.alert(
