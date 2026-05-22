@@ -265,8 +265,8 @@ export default function CreatedItinerariesScreen() {
 
     const handleItineraryPress = (item: CreatorItinerary) => {
         haptics.light();
-        // Navega para detalhes do roteiro (visão do viajante)
-        router.push(`/itinerary/${item.id}`);
+        // Navega para visão exclusiva do criador (status, notas, métricas)
+        router.push(`/creator-itinerary/${item.id}`);
     };
 
     // ── Loading ─────────────────────────────────────────────────

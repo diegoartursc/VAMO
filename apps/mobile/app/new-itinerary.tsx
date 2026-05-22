@@ -8,7 +8,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, TextInput,
     ScrollView, Platform, StatusBar, ActivityIndicator,
-    KeyboardAvoidingView, Alert, Dimensions,
+    KeyboardAvoidingView, Alert, Dimensions, Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -84,20 +84,42 @@ export default function NewItineraryScreen() {
     const [draft, setDraft] = useState<DraftItinerary>(INITIAL_DRAFT);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Partial<Record<keyof DraftItinerary, string>>>({});
+    const [showResumeDraft, setShowResumeDraft] = useState(false);
+    const [pendingDraft, setPendingDraft] = useState<DraftItinerary | null>(null);
 
     const TOTAL_STEPS = 7;
 
-    // Hidratar rascunho salvo
+    // Hidratar rascunho salvo — mostra modal em vez de carregar direto
     useEffect(() => {
         AsyncStorage.getItem(DRAFT_KEY).then(raw => {
             if (raw) {
                 try {
                     const saved: DraftItinerary = JSON.parse(raw);
-                    setDraft(saved);
-                    setStep(saved.currentStep || 1);
+                    // Só mostra o modal se tiver algo preenchido de verdade
+                    if (saved.destination || saved.title) {
+                        setPendingDraft(saved);
+                        setShowResumeDraft(true);
+                    }
                 } catch { /* ignora */ }
             }
         });
+    }, []);
+
+    const resumeDraft = useCallback(() => {
+        if (pendingDraft) {
+            setDraft(pendingDraft);
+            setStep(pendingDraft.currentStep || 1);
+        }
+        setShowResumeDraft(false);
+        setPendingDraft(null);
+    }, [pendingDraft]);
+
+    const discardDraft = useCallback(() => {
+        AsyncStorage.removeItem(DRAFT_KEY);
+        setShowResumeDraft(false);
+        setPendingDraft(null);
+        setDraft(INITIAL_DRAFT);
+        setStep(1);
     }, []);
 
     // Salvar rascunho localmente a cada mudança
@@ -227,12 +249,12 @@ export default function NewItineraryScreen() {
         if (!validateStep(step)) return;
         haptics.light();
 
-        // No passo 4 (pós duração/preço), criar na API se ainda não existe
-        if (step === 4 && !draft.id && accessToken) {
+        // No passo 1 (destino preenchido), criar rascunho na API
+        if (step === 1 && !draft.id && accessToken) {
             setSaving(true);
             await createDraftOnApi();
             setSaving(false);
-        } else if (draft.id && step >= 4) {
+        } else if (draft.id && step >= 2) {
             updateDraftOnApi();
         }
 
@@ -483,6 +505,34 @@ export default function NewItineraryScreen() {
         >
             <StatusBar barStyle="dark-content" />
 
+            {/* ── Modal: retomar rascunho ── */}
+            <Modal
+                visible={showResumeDraft}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowResumeDraft(false)}
+            >
+                <View style={s.modalOverlay}>
+                    <View style={s.modalCard}>
+                        <Text style={s.modalEmoji}>📋</Text>
+                        <Text style={s.modalTitle}>Rascunho encontrado</Text>
+                        <Text style={s.modalSubtitle}>
+                            Você tem um roteiro não finalizado.{'\n'}
+                            {pendingDraft?.destination
+                                ? `"${pendingDraft.destination}${pendingDraft.country ? `, ${pendingDraft.country}` : ''}" — passo ${pendingDraft.currentStep || 1} de ${TOTAL_STEPS}`
+                                : 'Deseja continuar de onde parou?'}
+                        </Text>
+                        <TouchableOpacity style={s.modalPrimary} onPress={resumeDraft}>
+                            <Ionicons name="play" size={16} color="#fff" />
+                            <Text style={s.modalPrimaryText}>Continuar rascunho</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={s.modalSecondary} onPress={discardDraft}>
+                            <Text style={s.modalSecondaryText}>Descartar e começar do zero</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Header */}
             <View style={s.header}>
                 <TouchableOpacity style={s.backBtn} onPress={goBack}>
@@ -497,7 +547,7 @@ export default function NewItineraryScreen() {
                     onPress={() => {
                         haptics.light();
                         saveDraftLocally(draft, step);
-                        Alert.alert('✓ Rascunho salvo', 'Você pode retomar mais tarde.');
+                        Alert.alert('✓ Rascunho salvo', 'Você pode retomar mais tarde pelo app.');
                     }}
                 >
                     <Text style={s.saveBtnText}>Salvar</Text>
@@ -637,4 +687,31 @@ const s = StyleSheet.create({
     },
     nextBtnDisabled: { opacity: 0.7 },
     nextBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+    // Modal de rascunho
+    modalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalCard: {
+        backgroundColor: theme.colors.background,
+        borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        padding: 28, paddingBottom: Platform.OS === 'ios' ? 44 : 28,
+        alignItems: 'center', gap: 12,
+    },
+    modalEmoji: { fontSize: 40, marginBottom: 4 },
+    modalTitle: { fontSize: 20, fontWeight: '800', color: theme.colors.text.primary },
+    modalSubtitle: {
+        fontSize: 14, color: theme.colors.text.secondary,
+        textAlign: 'center', lineHeight: 20,
+    },
+    modalPrimary: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        gap: 8, backgroundColor: theme.colors.primary,
+        borderRadius: 14, height: 52, alignSelf: 'stretch',
+        marginTop: 8, ...theme.shadows.button,
+    },
+    modalPrimaryText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+    modalSecondary: { paddingVertical: 12 },
+    modalSecondaryText: { fontSize: 14, color: theme.colors.error, fontWeight: '500' },
 });
