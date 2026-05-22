@@ -49,14 +49,16 @@ const DEFAULT_DEV_ORIGINS = [
 
 const corsOrigins = ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS : DEFAULT_DEV_ORIGINS;
 
+// Development: allow all origins; Production: restrict via ALLOWED_ORIGINS
+const isDev = process.env.NODE_ENV !== 'production';
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, Postman)
+    origin: isDev ? '*' : (origin, callback) => {
+        // Production: enforce whitelist
         if (!origin) return callback(null, true);
         if (corsOrigins.includes(origin)) return callback(null, true);
         callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
-    credentials: true,
+    credentials: !isDev, // credentials only in production (safer)
 }));
 app.use(express.json());
 app.use('/api', limiter);
