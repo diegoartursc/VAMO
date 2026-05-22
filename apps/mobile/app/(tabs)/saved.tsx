@@ -1,4 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+/**
+ * VAMO Mobile — Aba "Favoritos"
+ * Busca os roteiros favoritados na API real pelo ID salvo em AsyncStorage.
+ */
+
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,6 +16,8 @@ import {
     StatusBar,
     Dimensions,
     Alert,
+    ActivityIndicator,
+    RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,17 +25,46 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { Icon } from '../../src/components/common/Icons';
 import { useFavorites } from '../../src/hooks/useFavorites';
-import { mockItineraries, Itinerary } from '../../src/data/mockItineraries';
 import { haptics } from '../../src/services/haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
-// ─── Seed IDs shown when no real favorites exist (demo) ────
-const DEMO_IDS = ['1', '2', '3', '4'];
+// ─── Tipo mínimo que usamos para exibir o card ─────────────
+interface FavItem {
+    id: string;
+    title: string;
+    destination: string;
+    country: string;
+    price: number;
+    currency?: string;
+    duration: number;
+    rating: number;
+    reviewCount: number;
+    images: string[];
+    creator?: { name: string };
+}
 
+// ─── Busca um roteiro pelo id ───────────────────────────────
+async function fetchItinerary(id: string): Promise<FavItem | null> {
+    try {
+        const res = await fetch(`${API_BASE}/itineraries/${id}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data as FavItem;
+    } catch {
+        return null;
+    }
+}
+
+// ─── Main screen ───────────────────────────────────────────
 export default function SavedScreen() {
     const router = useRouter();
-    const { favorites, removeFavorite } = useFavorites();
+    const { favorites, removeFavorite, isLoading: favsLoading } = useFavorites();
+
+    const [items, setItems] = useState<FavItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Header entrance animation
     const headerAnim = useRef(new Animated.Value(0)).current;
@@ -36,13 +72,33 @@ export default function SavedScreen() {
         Animated.timing(headerAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     }, []);
 
-    // Resolve saved itineraries: real favorites OR demo items
-    const resolvedIds = favorites.length > 0 ? favorites : DEMO_IDS;
-    const allItems = mockItineraries.filter(it => resolvedIds.includes(it.id));
+    // Carrega dados reais dos roteiros favoritados
+    const loadItems = useCallback(async (isRefresh = false) => {
+        if (!isRefresh) setLoading(true);
+        if (favorites.length === 0) {
+            setItems([]);
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
+        // Busca em paralelo todos os IDs
+        const results = await Promise.all(favorites.map(fetchItinerary));
+        setItems(results.filter((r): r is FavItem => r !== null));
+        setLoading(false);
+        setRefreshing(false);
+    }, [favorites]);
 
-    const isEmpty = allItems.length === 0;
+    // Re-busca sempre que favorites mudar (add/remove) ou na montagem
+    useEffect(() => {
+        if (!favsLoading) loadItems();
+    }, [favorites, favsLoading]);
 
-    const handleRemove = (item: Itinerary) => {
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadItems(true);
+    }, [loadItems]);
+
+    const handleRemove = (item: FavItem) => {
         haptics.medium();
         Alert.alert(
             'Remover dos favoritos?',
@@ -52,14 +108,13 @@ export default function SavedScreen() {
                 {
                     text: 'Remover',
                     style: 'destructive',
-                    onPress: () => {
-                        haptics.light();
-                        removeFavorite(item.id);
-                    },
+                    onPress: () => { haptics.light(); removeFavorite(item.id); },
                 },
             ]
         );
     };
+
+    const isEmpty = !loading && items.length === 0;
 
     return (
         <View style={styles.container}>
@@ -92,22 +147,33 @@ export default function SavedScreen() {
                     <View style={styles.headerCountBadge}>
                         <Ionicons name="bookmark" size={13} color="rgba(255,255,255,0.85)" />
                         <Text style={styles.headerCountText}>
-                            {allItems.length} roteiro{allItems.length !== 1 ? 's' : ''} salvos
+                            {loading ? '...' : `${items.length} roteiro${items.length !== 1 ? 's' : ''} salvos`}
                         </Text>
                     </View>
                 </Animated.View>
-
             </LinearGradient>
 
             {/* ══════════ CONTENT ══════════ */}
-            {isEmpty ? (
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <Text style={styles.loadingText}>Carregando favoritos...</Text>
+                </View>
+            ) : isEmpty ? (
                 <EmptyState onExplore={() => router.push('/(tabs)/index' as any)} />
             ) : (
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={theme.colors.primary}
+                        />
+                    }
                 >
-                    {allItems.map((item, index) => (
+                    {items.map((item, index) => (
                         <SavedCard
                             key={item.id}
                             item={item}
@@ -124,14 +190,13 @@ export default function SavedScreen() {
 }
 
 // ─── SavedCard ──────────────────────────────────────────────
-
 function SavedCard({
     item,
     index,
     onPress,
     onRemove,
 }: {
-    item: Itinerary;
+    item: FavItem;
     index: number;
     onPress: () => void;
     onRemove: () => void;
@@ -148,12 +213,15 @@ function SavedCard({
         }).start();
     }, []);
 
-    const handlePressIn = () => {
+    const handlePressIn = () =>
         Animated.spring(pressScale, { toValue: 0.97, useNativeDriver: true, speed: 20 }).start();
-    };
-    const handlePressOut = () => {
+    const handlePressOut = () =>
         Animated.spring(pressScale, { toValue: 1, useNativeDriver: true, speed: 20 }).start();
-    };
+
+    const imageUri = item.images?.[0] ?? null;
+    const priceFormatted = item.price % 1 === 0
+        ? String(item.price)
+        : item.price.toFixed(2).replace('.', ',');
 
     return (
         <Animated.View style={[
@@ -174,25 +242,28 @@ function SavedCard({
             >
                 <View style={styles.card}>
                     {/* Hero image */}
-                    <Image
-                        source={{ uri: item.images[0] }}
-                        style={styles.cardImage}
-                        resizeMode="cover"
-                    />
+                    {imageUri ? (
+                        <Image
+                            source={{ uri: imageUri }}
+                            style={styles.cardImage}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+                            <Ionicons name="map-outline" size={40} color="rgba(255,255,255,0.4)" />
+                        </View>
+                    )}
 
-                    {/* Dark gradient overlay — bottom half */}
+                    {/* Dark gradient overlay */}
                     <LinearGradient
                         colors={['transparent', 'rgba(20,30,55,0.72)', 'rgba(20,30,55,0.95)']}
                         style={styles.cardGradient}
                         locations={[0.25, 0.65, 1]}
                     />
 
-                    {/* ── Top badges ── */}
                     {/* Price — top left */}
                     <View style={styles.priceBadge}>
-                        <Text style={styles.priceBadgeText}>
-                            R$ {item.price % 1 === 0 ? item.price : item.price.toFixed(2).replace('.', ',')}
-                        </Text>
+                        <Text style={styles.priceBadgeText}>R$ {priceFormatted}</Text>
                     </View>
 
                     {/* Heart remove — top right */}
@@ -200,37 +271,38 @@ function SavedCard({
                         <Ionicons name="heart" size={18} color="#FF5A6E" />
                     </TouchableOpacity>
 
-                    {/* ── Bottom overlay ── */}
+                    {/* Bottom overlay */}
                     <View style={styles.cardBottom}>
-                        {/* Duration chip */}
                         <View style={styles.durationChip}>
                             <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.9)" />
                             <Text style={styles.durationText}>{item.duration} dias</Text>
                         </View>
 
-                        {/* Title */}
                         <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
 
-                        {/* Destination */}
                         <View style={styles.destRow}>
                             <Icon name="location" size={12} color="rgba(255,255,255,0.75)" />
                             <Text style={styles.destText}>{item.destination}, {item.country}</Text>
                         </View>
 
-                        {/* Meta row */}
                         <View style={styles.metaRow}>
-                            {/* Creator pill */}
-                            <View style={styles.creatorPill}>
-                                <Text style={styles.creatorAvatar}>{item.creator.avatar}</Text>
-                                <Text style={styles.creatorName} numberOfLines={1}>{item.creator.name}</Text>
-                            </View>
+                            {item.creator?.name ? (
+                                <View style={styles.creatorPill}>
+                                    <Text style={styles.creatorName} numberOfLines={1}>
+                                        {item.creator.name}
+                                    </Text>
+                                </View>
+                            ) : null}
 
-                            {/* Rating */}
-                            <View style={styles.ratingPill}>
-                                <Ionicons name="star" size={12} color="#FFC107" />
-                                <Text style={styles.ratingText}>{item.rating}</Text>
-                                <Text style={styles.ratingCount}>({item.reviewCount})</Text>
-                            </View>
+                            {item.rating > 0 && (
+                                <View style={styles.ratingPill}>
+                                    <Ionicons name="star" size={12} color="#FFC107" />
+                                    <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+                                    {item.reviewCount > 0 && (
+                                        <Text style={styles.ratingCount}>({item.reviewCount})</Text>
+                                    )}
+                                </View>
+                            )}
                         </View>
                     </View>
                 </View>
@@ -240,14 +312,12 @@ function SavedCard({
 }
 
 // ─── EmptyState ─────────────────────────────────────────────
-
 function EmptyState({ onExplore }: { onExplore: () => void }) {
     const anim = useRef(new Animated.Value(0)).current;
     const heartPulse = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         Animated.timing(anim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
-
         Animated.loop(
             Animated.sequence([
                 Animated.timing(heartPulse, { toValue: 1.12, duration: 900, useNativeDriver: true }),
@@ -264,7 +334,6 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
                 transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [32, 0] }) }],
             },
         ]}>
-            {/* Icon */}
             <Animated.View style={{ transform: [{ scale: heartPulse }] }}>
                 <LinearGradient
                     colors={theme.colors.gradients.action as unknown as [string, string]}
@@ -277,11 +346,10 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
             <Text style={styles.emptyTitle}>Nenhum favorito ainda</Text>
             <Text style={styles.emptySubtitle}>
                 Salve roteiros que te interessam tocando no{' '}
-                <Ionicons name="heart-outline" size={13} color={theme.colors.primary} />
-                {' '}e eles aparecerão aqui.
+                <Ionicons name="heart-outline" size={13} color={theme.colors.primary} />{' '}
+                e eles aparecerão aqui.
             </Text>
 
-            {/* Trust badges */}
             <View style={styles.emptyBadgesRow}>
                 {['Acesso rápido', 'Offline em breve', 'Compartilhar'].map((b, i) => (
                     <View key={i} style={styles.emptyBadge}>
@@ -290,7 +358,6 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
                 ))}
             </View>
 
-            {/* CTA */}
             <TouchableOpacity onPress={onExplore} activeOpacity={0.85}>
                 <LinearGradient
                     colors={theme.colors.gradients.aurora as unknown as [string, string, string]}
@@ -311,6 +378,14 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.surfaceLight,
+    },
+
+    // ── Loading ──
+    loadingContainer: {
+        flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16,
+    },
+    loadingText: {
+        fontSize: 14, color: theme.colors.text.secondary,
     },
 
     // ── Header ──
@@ -390,6 +465,11 @@ const styles = StyleSheet.create({
     cardImage: {
         width: '100%',
         height: 220,
+    },
+    cardImagePlaceholder: {
+        backgroundColor: theme.colors.secondary,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     cardGradient: {
         ...StyleSheet.absoluteFillObject,
@@ -489,7 +569,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         maxWidth: SCREEN_WIDTH * 0.45,
     },
-    creatorAvatar: { fontSize: 14 },
     creatorName: {
         fontSize: 12,
         fontWeight: '600',
