@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert,
+    KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -63,7 +63,11 @@ export default function LoginScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.header}
                 >
-                    <Text style={styles.logo}>VAMO</Text>
+                    <Image
+                        source={require('../assets/images/logo_transparent.png')}
+                        style={styles.logoImage}
+                        resizeMode="contain"
+                    />
                     <Text style={styles.tagline}>Roteiros criados por quem já esteve lá</Text>
                 </LinearGradient>
 
@@ -187,11 +191,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 28,
         alignItems: 'center',
     },
-    logo: {
-        fontSize: 40,
-        fontWeight: '900',
-        color: '#fff',
-        letterSpacing: 4,
+    logoImage: {
+        width: 180,
+        height: 72,
         marginBottom: 8,
     },
     tagline: {
