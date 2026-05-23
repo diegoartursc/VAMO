@@ -20,6 +20,71 @@ import { getMyTrips } from '../../src/services/api';
 import { Icon } from '../../src/components/common/Icons';
 import { useAuth } from '../../src/contexts/AuthContext';
 
+// ─── Login Prompt ─────────────────────────────────────────
+function LoginPrompt() {
+    const router = useRouter();
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(24)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+            Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 55, friction: 10 }),
+        ]).start();
+    }, []);
+
+    return (
+        <Animated.View style={[styles.emptyState, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <LinearGradient
+                colors={[theme.colors.primary + '18', theme.colors.primary + '08']}
+                style={styles.emptyIconCircle}
+            >
+                <Icon name="book-open" size={40} color={theme.colors.primary} />
+            </LinearGradient>
+
+            <Text style={styles.emptyTitle}>Seus roteiros te esperam</Text>
+            <Text style={styles.emptySubtitle}>
+                Faça login para ver todos os roteiros que você adquiriu e acessar o conteúdo completo.
+            </Text>
+
+            <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => router.push('/login')}
+                activeOpacity={0.85}
+            >
+                <LinearGradient
+                    colors={theme.colors.gradients.action as unknown as [string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.emptyButtonGradient}
+                >
+                    <Icon name="circle-user" size={16} color="#fff" />
+                    <Text style={styles.emptyButtonText}>Entrar na conta</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/register')} style={{ marginBottom: 32 }}>
+                <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600', textAlign: 'center' }}>
+                    Criar conta grátis →
+                </Text>
+            </TouchableOpacity>
+
+            <View style={styles.emptyHints}>
+                {[
+                    { icon: 'verified', label: 'Roteiros verificados' },
+                    { icon: 'shield-check', label: 'Compra segura' },
+                    { icon: 'star', label: 'Avaliações reais' },
+                ].map((hint) => (
+                    <View key={hint.label} style={styles.emptyHint}>
+                        <Icon name={hint.icon as any} size={14} color={theme.colors.primary} />
+                        <Text style={styles.emptyHintText}>{hint.label}</Text>
+                    </View>
+                ))}
+            </View>
+        </Animated.View>
+    );
+}
+
 const { width } = Dimensions.get('window');
 
 // ─── Skeleton Loader ────────────────────────────────────
@@ -222,15 +287,22 @@ function EmptyState() {
 // ─── Main Screen ─────────────────────────────────────────
 
 export default function MyTripsScreen() {
-    const { accessToken } = useAuth();
+    const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [itineraries, setItineraries] = useState<PurchasedItineraryItem[]>([]);
     const headerAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    }, []);
+
+    useEffect(() => {
+        // Only fetch when we know auth status and user is authenticated
+        if (authLoading) return;
+        if (!isAuthenticated) { setLoading(false); return; }
 
         let mounted = true;
+        setLoading(true);
         getMyTrips(accessToken)
             .then((result) => {
                 if (mounted) {
@@ -240,7 +312,7 @@ export default function MyTripsScreen() {
             })
             .catch(() => { if (mounted) setLoading(false); });
         return () => { mounted = false; };
-    }, [accessToken]);
+    }, [accessToken, isAuthenticated, authLoading]);
 
     return (
         <View style={styles.container}>
@@ -270,12 +342,14 @@ export default function MyTripsScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {loading ? (
+                {(authLoading || loading) ? (
                     <>
                         <SkeletonCard />
                         <SkeletonCard />
                         <SkeletonCard />
                     </>
+                ) : !isAuthenticated ? (
+                    <LoginPrompt />
                 ) : itineraries.length === 0 ? (
                     <EmptyState />
                 ) : (

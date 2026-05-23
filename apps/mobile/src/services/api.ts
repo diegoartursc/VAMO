@@ -179,6 +179,31 @@ export async function getReviews(params: {
     }
 }
 
+// ─── Purchased Itinerary Detail ───
+/**
+ * Busca o detalhe completo de um roteiro pelo id.
+ * Usado na tela pós-compra — retorna todos os módulos (dias, checklist, etc).
+ */
+export async function getPurchasedItineraryDetail(
+    id: string,
+    accessToken?: string | null,
+): Promise<any | null> {
+    try {
+        const headers: Record<string, string> = {};
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE_URL}/itineraries/${id}`, { headers });
+        if (!res.ok) return null;
+        const data = await res.json();
+        // Normalizar checklist: a API retorna { item } mas a tela espera { text }
+        if (Array.isArray(data.checklist)) {
+            data.checklist = data.checklist.map((c: any) => ({ ...c, text: c.item ?? c.text ?? '' }));
+        }
+        return data;
+    } catch {
+        return null;
+    }
+}
+
 // ─── My Trips ───
 /**
  * Lista compras do usuário autenticado. O backend resolve o traveler a partir

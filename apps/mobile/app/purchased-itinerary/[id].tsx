@@ -13,18 +13,24 @@ import {
     Dimensions,
     StatusBar,
     Platform,
+    ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
-import {
-    getPurchasedItineraryById,
-    AttractionInfo,
-} from '../../src/data/mockPurchasedItineraries';
 import { haptics } from '../../src/services/haptics';
 import { hasUserReviewed, getUserReviewForPackage } from '../../src/data/mockReviews';
 import { Icon } from '../../src/components/common/Icons';
+import { getPurchasedItineraryDetail } from '../../src/services/api';
+import { useAuth } from '../../src/contexts/AuthContext';
+
+// AttractionInfo type (inline — no longer from mock)
+type AttractionInfo = {
+    name: string; type?: string; location?: string; description?: string;
+    hours?: string; duration?: string; tips?: string; externalLink?: string;
+    mapLink?: string; ticketPrice?: string;
+};
 
 const { width } = Dimensions.get('window');
 const HERO_HEIGHT = 340;
@@ -32,26 +38,51 @@ const HERO_HEIGHT = 340;
 export default function PurchasedItineraryScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const itinerary = getPurchasedItineraryById(id);
+    const { accessToken } = useAuth();
 
     // ─── Animations ────────────────────────────────────────
     const headerAnim = useRef(new Animated.Value(0)).current;
 
-    useEffect(() => {
-        Animated.timing(headerAnim, {
-            toValue: 1,
-            duration: 700,
-            useNativeDriver: true,
-        }).start();
-    }, []);
-
     // ─── State ─────────────────────────────────────────────
+    const [itinerary, setItinerary] = useState<any | null>(null);
+    const [loadError, setLoadError] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [travelers, setTravelers] = useState(1);
-    const [customDays, setCustomDays] = useState(itinerary?.duration || 7);
+    const [customDays, setCustomDays] = useState(7);
     const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
     const [completedChecklist, setCompletedChecklist] = useState<Set<string>>(new Set());
 
-    if (!itinerary) {
+    useEffect(() => {
+        if (!id) { setLoadError(true); setIsLoading(false); return; }
+        let mounted = true;
+        getPurchasedItineraryDetail(id, accessToken)
+            .then((data) => {
+                if (!mounted) return;
+                if (data) {
+                    setItinerary(data);
+                    setCustomDays(data.duration || 7);
+                    Animated.timing(headerAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start();
+                } else {
+                    setLoadError(true);
+                }
+            })
+            .catch(() => { if (mounted) setLoadError(true); })
+            .finally(() => { if (mounted) setIsLoading(false); });
+        return () => { mounted = false; };
+    }, [id, accessToken]);
+
+    if (isLoading) {
+        return (
+            <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={{ marginTop: 16, color: theme.colors.text.secondary, fontSize: 14 }}>
+                    Carregando roteiro…
+                </Text>
+            </View>
+        );
+    }
+
+    if (loadError || !itinerary) {
         return (
             <View style={styles.container}>
                 <View style={styles.errorContainer}>
@@ -207,12 +238,17 @@ export default function PurchasedItineraryScreen() {
                     <View style={styles.block}>
                         <SectionTitle icon="compass-outline" label="Sobre a Experiência" />
                         <View style={styles.card}>
-                            <InfoRow
-                                icon="calendar-outline"
-                                label="Período da viagem"
-                                value={`${new Date(itinerary.tripStartDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })} — ${new Date(itinerary.tripEndDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`}
-                            />
-                            <View style={styles.cardDivider} />
+                            {itinerary.tripStartDate && itinerary.tripEndDate && (
+                                <>
+                                    <InfoRow
+                                        icon="calendar-outline"
+                                        label="Período da viagem"
+                                        value={`${new Date(itinerary.tripStartDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })} — ${new Date(itinerary.tripEndDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                                    />
+                                    <View style={styles.cardDivider} />
+                                </>
+                            )}
+
                             <InfoRow icon="time-outline" label="Duração" value={`${itinerary.duration} dias`} />
                             <View style={styles.cardDivider} />
                             <InfoRow icon="location-outline" label="Destino" value={`${itinerary.destination}, ${itinerary.country}`} />
@@ -691,15 +727,22 @@ export default function PurchasedItineraryScreen() {
                             </View>
                         </View>
 
-                        {['documents', 'packing', 'pre-trip'].map(category => {
-                            const items = itinerary.checklist.filter(c => c.category === category);
+                        {Array.from(new Set((itinerary.checklist || []).map((c: any) => c.category))).map((category: any) => {
+                            const items = itinerary.checklist.filter((c: any) => c.category === category);
                             if (items.length === 0) return null;
                             const categoryConfig: Record<string, { label: string; emoji: string }> = {
+                                // English keys (legacy mock)
                                 documents: { label: 'Documentos', emoji: '📄' },
                                 packing:   { label: 'Mala',       emoji: '🧳' },
                                 'pre-trip':{ label: 'Pré-viagem', emoji: '✅' },
+                                // Portuguese keys (from DB)
+                                documentos:      { label: 'Documentos',   emoji: '📄' },
+                                mala:            { label: 'Mala',         emoji: '🧳' },
+                                'pre-viagem':    { label: 'Pré-viagem',   emoji: '✅' },
+                                'apps úteis':    { label: 'Apps Úteis',   emoji: '📱' },
+                                custom:          { label: 'Outros',       emoji: '📌' },
                             };
-                            const { label, emoji } = categoryConfig[category] ?? { label: category, emoji: '•' };
+                            const { label, emoji } = categoryConfig[category] ?? { label: String(category), emoji: '•' };
                             return (
                                 <View key={category} style={styles.checkCategory}>
                                     <View style={styles.checkCategoryHeader}>
