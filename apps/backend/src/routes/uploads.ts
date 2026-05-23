@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -29,7 +30,11 @@ const upload = multer({
 });
 
 // POST /api/uploads — upload de um único arquivo, retorna URL absoluta
-router.post('/', upload.single('file'), (req, res) => {
+router.post('/', optionalAuthMiddleware, upload.single('file'), (req: AuthRequest, res) => {
+    if (!req.traveler) {
+        res.status(401).json({ error: 'Autenticação necessária para fazer upload' });
+        return;
+    }
     if (!req.file) {
         res.status(400).json({ error: 'Arquivo ausente (campo "file")' });
         return;
@@ -46,7 +51,11 @@ router.post('/', upload.single('file'), (req, res) => {
 });
 
 // POST /api/uploads/multiple — upload de múltiplos arquivos
-router.post('/multiple', upload.array('files', 20), (req, res) => {
+router.post('/multiple', optionalAuthMiddleware, upload.array('files', 20), (req: AuthRequest, res) => {
+    if (!req.traveler) {
+        res.status(401).json({ error: 'Autenticação necessária para fazer upload' });
+        return;
+    }
     const files = (req.files as Express.Multer.File[] | undefined) || [];
     if (files.length === 0) {
         res.status(400).json({ error: 'Nenhum arquivo enviado (campo "files")' });

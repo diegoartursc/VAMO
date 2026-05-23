@@ -27,7 +27,11 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 export async function uploadFile(file: File): Promise<string> {
     const fd = new FormData();
     fd.append('file', file);
-    const res = await fetch(`${API_BASE_URL}/uploads`, { method: 'POST', body: fd });
+    const res = await fetch(`${API_BASE_URL}/uploads`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: fd,
+    });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Falha no upload' }));
         throw new Error(err.error || `Upload error: ${res.status}`);
@@ -39,7 +43,11 @@ export async function uploadFile(file: File): Promise<string> {
 export async function uploadFiles(files: File[]): Promise<string[]> {
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
-    const res = await fetch(`${API_BASE_URL}/uploads/multiple`, { method: 'POST', body: fd });
+    const res = await fetch(`${API_BASE_URL}/uploads/multiple`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: fd,
+    });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Falha no upload' }));
         throw new Error(err.error || `Upload error: ${res.status}`);
