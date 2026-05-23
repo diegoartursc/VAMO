@@ -115,7 +115,7 @@ export default function GlobalHeader({ variant = "solid" }: Props) {
                 }}
             >
                 <Link
-                    href="/explore"
+                    href="/criadores"
                     style={{
                         padding: "10px 16px",
                         borderRadius: 999,

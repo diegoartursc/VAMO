@@ -308,11 +308,15 @@ export default function NewItineraryScreen() {
             const payload = { ...buildPayload(form), status: 'DRAFT' };
             const url    = isEdit ? `${API_BASE}/itineraries/${editId}` : `${API_BASE}/itineraries`;
             const method = isEdit ? 'PUT' : 'POST';
-            await fetch(url, {
+            const draftRes = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
                 body: JSON.stringify(payload),
             });
+            if (!draftRes.ok) {
+                const errBody = await draftRes.json().catch(() => ({}));
+                throw new Error(errBody?.error || `Erro ${draftRes.status} ao salvar rascunho`);
+            }
             await AsyncStorage.removeItem(DRAFT_KEY);
             router.replace('/created-itineraries');
         } catch (e: any) {

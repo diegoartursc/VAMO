@@ -179,12 +179,12 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
 });
 
 // GET /api/itineraries/:id
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
         const it = await prisma.itinerary.findUnique({
             where: { id: req.params.id as string },
             include: {
-                creator: { include: { traveler: { select: { name: true, avatar: true } } } },
+                creator: { include: { traveler: { select: { name: true, avatar: true, id: true } } } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
                 days: { orderBy: { dayNumber: 'asc' }, include: { activities: { orderBy: { order: 'asc' } } } },
                 files: true,
@@ -196,6 +196,15 @@ router.get('/:id', async (req: Request, res: Response) => {
         });
 
         if (!it) { res.status(404).json({ error: 'Itinerary not found' }); return; }
+
+        // Block access to non-public itineraries for non-owners
+        const PUBLIC_STATUSES = ['APPROVED', 'ACTIVE'];
+        const isPublic = PUBLIC_STATUSES.includes(it.status as string);
+        const isOwner  = req.traveler?.travelerId === (it as any).creator?.traveler?.id;
+        if (!isPublic && !isOwner) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
 
         const i = it as any;
 
@@ -614,6 +623,18 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
             return;
         }
 
+        // Ownership check: if request is authenticated, only the owner can edit
+        if (req.traveler) {
+            const creator = await prisma.creator.findUnique({
+                where: { id: existing.creatorId },
+                select: { travelerId: true },
+            });
+            if (!creator || creator.travelerId !== req.traveler.travelerId) {
+                res.status(403).json({ error: 'Sem permissão para editar este roteiro' });
+                return;
+            }
+        }
+
         // Validate styles max 3
         if (travelStyles && travelStyles.length > 3) {
             res.status(400).json({ error: 'Máximo 3 estilos de viagem' });
@@ -823,6 +844,18 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
             return;
         }
 
+        // Ownership check: if request is authenticated, only the owner can delete
+        if (req.traveler) {
+            const creator = await prisma.creator.findUnique({
+                where: { id: existing.creatorId },
+                select: { travelerId: true },
+            });
+            if (!creator || creator.travelerId !== req.traveler.travelerId) {
+                res.status(403).json({ error: 'Sem permissão para excluir este roteiro' });
+                return;
+            }
+        }
+
         if (hard === 'true') {
             // Hard delete — remove completely
             await prisma.itinerary.delete({ where: { id } });
@@ -842,7 +875,7 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
 });
 
 // ─── PURCHASE ───
-// POST /api/itineraries/:id/purchase (traveler-auth optional → falls back to demo traveler)
+// POST /api/itineraries/:id/purchase (traveler-auth required)
 // Records an ItinerarySale so the itinerary appears in the traveler's "Meus Roteiros".
 router.post('/:id/purchase', async (req: Request, res: Response) => {
     try {
@@ -859,11 +892,7 @@ router.post('/:id/purchase', async (req: Request, res: Response) => {
             } catch { /* ignore — fall through */ }
         }
         if (!travelerId) {
-            const firstTraveler = await prisma.traveler.findFirst({ orderBy: { createdAt: 'asc' } });
-            travelerId = firstTraveler?.id || null;
-        }
-        if (!travelerId) {
-            res.status(400).json({ error: 'No traveler available to record purchase' });
+            res.status(401).json({ error: 'Autenticação necessária para realizar a compra' });
             return;
         }
 
