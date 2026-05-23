@@ -581,7 +581,7 @@ export default function PurchasedItineraryScreen() {
                                                 style={styles.outlineBtn}
                                                 onPress={() => { haptics.light(); Linking.openURL(att.externalLink!); }}
                                             >
-                                                <Icon name="external-link" size={14} color={theme.colors.primary} />
+                                                <Icon name="globe" size={14} color={theme.colors.primary} />
                                                 <Text style={styles.outlineBtnText}>Site oficial</Text>
                                             </TouchableOpacity>
                                         ) : null}
@@ -670,7 +670,7 @@ export default function PurchasedItineraryScreen() {
                                             style={styles.outlineBtn}
                                             onPress={() => { haptics.light(); Linking.openURL(rest.externalLink!); }}
                                         >
-                                            <Icon name="external-link" size={14} color={theme.colors.primary} />
+                                            <Icon name="globe" size={14} color={theme.colors.primary} />
                                             <Text style={styles.outlineBtnText}>Ver reservas</Text>
                                         </TouchableOpacity>
                                     ) : null}
