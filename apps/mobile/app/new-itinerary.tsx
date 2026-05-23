@@ -214,6 +214,20 @@ export default function NewItineraryScreen() {
         }
     }
 
+    // ── Abrir prévia visual do roteiro ──────────────────────────
+    async function openPreview() {
+        try {
+            haptics.light();
+            // Salva o estado atual do form numa chave dedicada (PREVIEW_KEY).
+            // A tela /itinerary-preview lê dali. Isso evita passar o form
+            // gigante por router params.
+            await AsyncStorage.setItem('@vamo_preview_itinerary', JSON.stringify(form));
+            router.push('/itinerary-preview');
+        } catch (e: any) {
+            Alert.alert('Erro', e?.message || 'Não foi possível abrir a prévia.');
+        }
+    }
+
     // ── Salvar rascunho (sai sem enviar) ────────────────────────
     async function saveDraft() {
         if (!accessToken) { Alert.alert('Sessão expirada', 'Faça login para salvar.'); return; }
@@ -320,7 +334,7 @@ export default function NewItineraryScreen() {
                     {step === 6 && <StepContent form={form} update={updateForm} />}
                     {step === 7 && <StepExtras form={form} update={updateForm} />}
                     {step === 8 && <StepMedia form={form} update={updateForm} token={accessToken} />}
-                    {step === 9 && <StepReview form={form} />}
+                    {step === 9 && <StepReview form={form} onPreview={openPreview} />}
                 </ScrollView>
             </KeyboardAvoidingView>
 
@@ -1191,7 +1205,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
 // STEP 9 — REVISÃO
 // ═══════════════════════════════════════════════════════════════════
 
-function StepReview({ form }: { form: ItineraryFormState }) {
+function StepReview({ form, onPreview }: { form: ItineraryFormState; onPreview: () => void }) {
     const blocks = useMemo(() => calcQualityBlocks(form), [form]);
     const totalScore = useMemo(() => calcQuality(form), [form]);
     const issues = useMemo(() => validateForSubmission(form), [form]);
@@ -1221,6 +1235,24 @@ function StepReview({ form }: { form: ItineraryFormState }) {
                     <Text style={s.okText}>Pronto para enviar para análise!</Text>
                 </View>
             )}
+
+            {/* ── Prévia do roteiro ── */}
+            <View style={s.previewBlock}>
+                <View style={{ flex: 1 }}>
+                    <Text style={s.previewTitle}>Prévia do roteiro</Text>
+                    <Text style={s.previewSubtitle}>
+                        Visualize como o roteiro vai aparecer para o viajante antes de enviar.
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    style={s.previewCta}
+                    onPress={onPreview}
+                    activeOpacity={0.85}
+                >
+                    <Ionicons name="eye-outline" size={16} color="#fff" />
+                    <Text style={s.previewCtaText}>Ver prévia</Text>
+                </TouchableOpacity>
+            </View>
 
             <Text style={s.repeaterTitle}>Detalhamento por bloco</Text>
             {blocks.map(b => (
@@ -1630,6 +1662,21 @@ const s = StyleSheet.create({
         borderWidth: 1, borderColor: '#6EE7B7', marginBottom: 14,
     },
     okText: { fontSize: 14, fontWeight: '700', color: '#065F46' },
+
+    previewBlock: {
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        padding: 14, marginBottom: 14, borderRadius: 14,
+        backgroundColor: '#F0FDFA',
+        borderWidth: 1, borderColor: '#5EEAD4',
+    },
+    previewTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary },
+    previewSubtitle: { fontSize: 12, color: theme.colors.text.secondary, marginTop: 2, lineHeight: 16 },
+    previewCta: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+    },
+    previewCtaText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
     blockCard: {
         padding: 12, marginBottom: 10, borderRadius: 10,
