@@ -32,6 +32,7 @@ import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
 import FormInput from '../src/components/dashboard/FormInput';
 import EditableList from '../src/components/dashboard/EditableList';
+import { CurrencyPicker } from '../src/components/common/CurrencyPicker';
 import {
     createEmptyForm,
     ItineraryFormState,
@@ -52,7 +53,6 @@ import {
     CHECKLIST_CATS,
     SPENDING_CATS,
     ATTRACTION_TYPES,
-    CURRENCIES,
     MAX_CATEGORIES,
     MIN_TIPS,
     MIN_CHECKLIST,
@@ -658,23 +658,11 @@ function StepCommerce({ form, update }: StepProps) {
                 value={form.price ? String(form.price) : ''}
                 onChangeText={v => update('price', parseFloat(v.replace(',', '.')) || 0)}
             />
-            <Text style={s.label}>Moeda</Text>
-            <View style={s.chipRow}>
-                {CURRENCIES.map(c => {
-                    const active = form.currency === c.code;
-                    return (
-                        <TouchableOpacity
-                            key={c.code}
-                            style={[s.chip, active && s.chipActive]}
-                            onPress={() => update('currency', c.code)}
-                        >
-                            <Text style={[s.chipText, active && s.chipTextActive]}>
-                                {c.symbol} {c.code}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
+            <CurrencyPicker
+                label="Moeda"
+                value={form.currency}
+                onChange={(code) => update('currency', code as any)}
+            />
             <FormInput
                 label="Preço promocional (opcional)"
                 keyboardType="decimal-pad"
@@ -1078,9 +1066,20 @@ function StepExtras({ form, update }: StepProps) {
                                 </TouchableOpacity>
                             </View>
                             <FormInput label="Categoria" placeholder="🏨 Hospedagem"  value={e.label}      onChangeText={v => { const n = [...form.spendingEntries]; n[i] = { ...n[i], label: v }; update('spendingEntries', n); }} />
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
                                 <View style={{ flex: 2 }}><FormInput label="Valor"  keyboardType="decimal-pad" value={e.priceValue} onChangeText={v => { const n = [...form.spendingEntries]; n[i] = { ...n[i], priceValue: v }; update('spendingEntries', n); }} /></View>
-                                <View style={{ flex: 1 }}><FormInput label="Moeda"  value={e.priceCurrency}    onChangeText={v => { const n = [...form.spendingEntries]; n[i] = { ...n[i], priceCurrency: v }; update('spendingEntries', n); }} /></View>
+                                <View style={{ flex: 1 }}>
+                                    <CurrencyPicker
+                                        label="Moeda"
+                                        compact
+                                        value={e.priceCurrency || 'BRL'}
+                                        onChange={(code) => {
+                                            const n = [...form.spendingEntries];
+                                            n[i] = { ...n[i], priceCurrency: code };
+                                            update('spendingEntries', n);
+                                        }}
+                                    />
+                                </View>
                             </View>
                         </View>
                     ))}
