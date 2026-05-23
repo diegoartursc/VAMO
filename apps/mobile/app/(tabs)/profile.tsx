@@ -5,11 +5,26 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { useAuth } from '../../src/contexts/AuthContext';
+
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
+const VIEW_MODE_KEY = '@vamo_profile_view_mode';
+type ViewMode = 'traveler' | 'creator';
+
+// ─── Creator dashboard stats (resumo) ─────────────────────────
+interface CreatorStatsSummary {
+    totalItineraries: number;
+    activeItineraries: number;
+    pendingReview: number;
+    totalSales: number;
+    totalRevenue: number;
+    averageRating: number;
+}
 
 const { width } = Dimensions.get('window');
 
@@ -40,8 +55,61 @@ const MILESTONES_BASE = [
 
 export default function ProfileScreen() {
     const router = useRouter();
-    const { user, isAuthenticated, isLoading, logout } = useAuth();
+    const { user, accessToken, isAuthenticated, isLoading, logout } = useAuth();
     const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    // ─── Modo de visualização (Viajante/Roteirista) ──────────────
+    const [viewMode, setViewMode] = useState<ViewMode>('traveler');
+    const [creatorStats, setCreatorStats] = useState<CreatorStatsSummary | null>(null);
+    const isCreator = !!user?.creatorId;
+
+    // Hidratar modo salvo
+    useEffect(() => {
+        AsyncStorage.getItem(VIEW_MODE_KEY).then((saved) => {
+            if (saved === 'creator' || saved === 'traveler') setViewMode(saved);
+        }).catch(() => { /* ignore */ });
+    }, []);
+
+    // Se o usuário não é criador, força modo viajante (e zera persistência)
+    useEffect(() => {
+        if (!isCreator && viewMode !== 'traveler') {
+            setViewMode('traveler');
+            AsyncStorage.setItem(VIEW_MODE_KEY, 'traveler').catch(() => {});
+        }
+    }, [isCreator, viewMode]);
+
+    // Buscar stats do criador quando entrar em modo creator
+    useEffect(() => {
+        if (viewMode !== 'creator' || !isCreator || !accessToken) {
+            setCreatorStats(null);
+            return;
+        }
+        let mounted = true;
+        fetch(`${API_BASE}/itineraries/dashboard/stats`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        })
+            .then((r) => r.ok ? r.json() : null)
+            .then((data) => {
+                if (!mounted || !data) return;
+                const pendingReview = (data.itineraries || []).filter((it: any) => it.status === 'pending_review').length;
+                setCreatorStats({
+                    totalItineraries: data.totalItineraries ?? 0,
+                    activeItineraries: data.activeItineraries ?? 0,
+                    pendingReview,
+                    totalSales: data.totalSales ?? 0,
+                    totalRevenue: data.totalRevenue ?? 0,
+                    averageRating: data.averageRating ?? 0,
+                });
+            })
+            .catch(() => { /* offline / 401 — ignora */ });
+        return () => { mounted = false; };
+    }, [viewMode, isCreator, accessToken]);
+
+    const switchMode = async (mode: ViewMode) => {
+        haptics.selection();
+        setViewMode(mode);
+        try { await AsyncStorage.setItem(VIEW_MODE_KEY, mode); } catch { /* ignore */ }
+    };
 
     const [currency, setCurrency] = useState('(R$) Real');
     const [language, setLanguage] = useState('português');
@@ -166,19 +234,125 @@ export default function ProfileScreen() {
 
                 </LinearGradient>
 
-                {/* ══════════ 2. QUICK STATS ══════════ */}
-                <View style={styles.statsRow}>
-                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips')}>
-                        <Icon name="book-open" size={22} color={theme.colors.primary} />
-                        <Text style={styles.statValue}>—</Text>
-                        <Text style={styles.statLabel}>Meus Roteiros</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/saved')}>
-                        <Icon name="heart" size={22} color={theme.colors.primary} />
-                        <Text style={styles.statValue}>—</Text>
-                        <Text style={styles.statLabel}>Salvos</Text>
-                    </TouchableOpacity>
-                </View>
+                {/* ══════════ MODE SWITCHER (Viajante/Roteirista) ══════════ */}
+                {isCreator && (
+                    <View style={modeStyles.wrap}>
+                        <Text style={modeStyles.label}>Você está usando o VAMO como:</Text>
+                        <View style={modeStyles.segmented}>
+                            <TouchableOpacity
+                                style={[modeStyles.seg, viewMode === 'traveler' && modeStyles.segActive]}
+                                onPress={() => switchMode('traveler')}
+                                activeOpacity={0.85}
+                            >
+                                <Icon name="book-open" size={14} color={viewMode === 'traveler' ? '#fff' : theme.colors.text.secondary} />
+                                <Text style={[modeStyles.segText, viewMode === 'traveler' && modeStyles.segTextActive]}>
+                                    Viajante
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[modeStyles.seg, viewMode === 'creator' && modeStyles.segActive]}
+                                onPress={() => switchMode('creator')}
+                                activeOpacity={0.85}
+                            >
+                                <Icon name="edit" size={14} color={viewMode === 'creator' ? '#fff' : theme.colors.text.secondary} />
+                                <Text style={[modeStyles.segText, viewMode === 'creator' && modeStyles.segTextActive]}>
+                                    Roteirista
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+
+                {/* ══════════ 2. QUICK STATS (Viajante) / DASHBOARD (Roteirista) ══════════ */}
+                {viewMode === 'creator' && isCreator ? (
+                    /* Dashboard resumo do criador */
+                    <View style={dashStyles.wrap}>
+                        <View style={dashStyles.headerRow}>
+                            <View>
+                                <Text style={dashStyles.headerTitle}>Dashboard do Roteirista</Text>
+                                <Text style={dashStyles.headerSub}>
+                                    {creatorStats
+                                        ? `${creatorStats.totalItineraries} roteiro${creatorStats.totalItineraries === 1 ? '' : 's'} criado${creatorStats.totalItineraries === 1 ? '' : 's'}`
+                                        : 'Carregando…'}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={dashStyles.newButton}
+                                onPress={() => { haptics.medium(); router.push('/new-itinerary'); }}
+                                activeOpacity={0.85}
+                            >
+                                <Icon name="edit" size={14} color="#fff" />
+                                <Text style={dashStyles.newButtonText}>Criar roteiro</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Stat cards */}
+                        <View style={dashStyles.statsGrid}>
+                            <View style={dashStyles.statCard}>
+                                <Text style={dashStyles.statValue}>{creatorStats?.totalItineraries ?? '—'}</Text>
+                                <Text style={dashStyles.statLabel}>Criados</Text>
+                            </View>
+                            <View style={dashStyles.statCard}>
+                                <Text style={dashStyles.statValue}>{creatorStats?.activeItineraries ?? '—'}</Text>
+                                <Text style={dashStyles.statLabel}>Publicados</Text>
+                            </View>
+                            <View style={dashStyles.statCard}>
+                                <Text style={[dashStyles.statValue, (creatorStats?.pendingReview ?? 0) > 0 && { color: '#D97706' }]}>
+                                    {creatorStats?.pendingReview ?? '—'}
+                                </Text>
+                                <Text style={dashStyles.statLabel}>Em análise</Text>
+                            </View>
+                        </View>
+
+                        <View style={dashStyles.statsGrid}>
+                            <View style={dashStyles.statCard}>
+                                <Text style={dashStyles.statValue}>{creatorStats?.totalSales ?? '—'}</Text>
+                                <Text style={dashStyles.statLabel}>Vendas</Text>
+                            </View>
+                            <View style={[dashStyles.statCard, { flex: 2 }]}>
+                                <Text style={dashStyles.statValue}>
+                                    {creatorStats ? `R$ ${creatorStats.totalRevenue.toFixed(0)}` : '—'}
+                                </Text>
+                                <Text style={dashStyles.statLabel}>Receita acumulada</Text>
+                            </View>
+                        </View>
+
+                        {/* CTA principal: ver lista completa */}
+                        <TouchableOpacity
+                            style={dashStyles.fullDashboardBtn}
+                            onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
+                            activeOpacity={0.85}
+                        >
+                            <Icon name="briefcase" size={16} color={theme.colors.primary} />
+                            <Text style={dashStyles.fullDashboardText}>Ver todos os meus roteiros</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+                        </TouchableOpacity>
+
+                        {/* Aviso receita */}
+                        {(!creatorStats || creatorStats.totalSales === 0) && (
+                            <View style={dashStyles.emptySalesCard}>
+                                <Icon name="info" size={14} color={theme.colors.text.tertiary} />
+                                <Text style={dashStyles.emptySalesText}>
+                                    Quando seus roteiros forem comprados, suas vendas e receita aparecerão aqui.
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                ) : (
+                    /* Quick stats do viajante (modo padrão) */
+                    <View style={styles.statsRow}>
+                        <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips')}>
+                            <Icon name="book-open" size={22} color={theme.colors.primary} />
+                            <Text style={styles.statValue}>—</Text>
+                            <Text style={styles.statLabel}>Meus Roteiros</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/saved')}>
+                            <Icon name="heart" size={22} color={theme.colors.primary} />
+                            <Text style={styles.statValue}>—</Text>
+                            <Text style={styles.statLabel}>Salvos</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 {/* ══════════ 3. SUA JORNADA NO VAMO ══════════ */}
                 <View style={styles.sectionSpaced}>
@@ -332,17 +506,7 @@ export default function ProfileScreen() {
                             <SettingItem
                                 icon="briefcase"
                                 title="Dashboard do criador"
-                                onPress={() => {
-                                    haptics.light();
-                                    Alert.alert(
-                                        'Dashboard',
-                                        'O dashboard completo está disponível no painel web. Em breve no app.',
-                                        [
-                                            { text: 'Cancelar', style: 'cancel' },
-                                            { text: 'Abrir painel web', onPress: () => Linking.openURL('https://vamo.app/dashboard') },
-                                        ],
-                                    );
-                                }}
+                                onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
                                 isLast
                             />
                         </View>
@@ -928,5 +1092,77 @@ const styles = StyleSheet.create({
     },
     creatorBadgeText: {
         fontSize: 11, fontWeight: '700', color: theme.colors.primary,
+    },
+});
+
+// ─── Mode switcher styles ─────────────────────────────────────
+const modeStyles = StyleSheet.create({
+    wrap: { marginHorizontal: 20, marginTop: 18, marginBottom: 4 },
+    label: {
+        fontSize: 12, fontWeight: '600', color: theme.colors.text.tertiary,
+        textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8,
+    },
+    segmented: {
+        flexDirection: 'row', backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 100, padding: 4, gap: 4,
+    },
+    seg: {
+        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        gap: 6, paddingVertical: 10, borderRadius: 100,
+    },
+    segActive: {
+        backgroundColor: theme.colors.primary,
+        ...theme.shadows.button,
+    },
+    segText: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary },
+    segTextActive: { color: '#fff', fontWeight: '700' },
+});
+
+// ─── Creator dashboard inline styles ──────────────────────────
+const dashStyles = StyleSheet.create({
+    wrap: { marginHorizontal: 20, marginTop: 18 },
+    headerRow: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    headerTitle: {
+        fontSize: 17, fontWeight: '800', color: theme.colors.text.primary,
+        letterSpacing: -0.3,
+    },
+    headerSub: { fontSize: 12, color: theme.colors.text.tertiary, marginTop: 2 },
+    newButton: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 14, paddingVertical: 9, borderRadius: 100,
+        ...theme.shadows.button,
+    },
+    newButtonText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    statsGrid: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+    statCard: {
+        flex: 1, backgroundColor: theme.colors.surface,
+        borderRadius: 14, padding: 14, alignItems: 'flex-start',
+        borderWidth: 1, borderColor: theme.colors.borderLight,
+    },
+    statValue: {
+        fontSize: 22, fontWeight: '800', color: theme.colors.text.primary,
+        letterSpacing: -0.5,
+    },
+    statLabel: { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 4 },
+    fullDashboardBtn: {
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+        marginTop: 12, padding: 14,
+        backgroundColor: theme.colors.primary + '12',
+        borderRadius: 14, borderWidth: 1, borderColor: theme.colors.primary + '28',
+    },
+    fullDashboardText: {
+        flex: 1, fontSize: 14, fontWeight: '700', color: theme.colors.primary,
+    },
+    emptySalesCard: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+        marginTop: 10, padding: 12,
+        backgroundColor: theme.colors.surfaceLight, borderRadius: 12,
+    },
+    emptySalesText: {
+        flex: 1, fontSize: 12, color: theme.colors.text.secondary, lineHeight: 17,
     },
 });

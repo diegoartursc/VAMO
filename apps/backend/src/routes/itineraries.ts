@@ -414,6 +414,27 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
             });
             resolvedCreatorId = myCreator?.id || null;
             console.log('[POST /itineraries] creator resolved from token:', { travelerId: req.traveler.travelerId, creatorId: resolvedCreatorId });
+
+            // Auto-promote: se o traveler logado ainda não tem Creator, criar agora.
+            // Política de produto: criar o primeiro roteiro já torna o usuário um roteirista.
+            if (!resolvedCreatorId) {
+                const traveler = await prisma.traveler.findUnique({
+                    where: { id: req.traveler.travelerId },
+                    select: { id: true, name: true, bio: true },
+                });
+                if (traveler) {
+                    const newCreator = await (prisma.creator as any).create({
+                        data: {
+                            travelerId: traveler.id,
+                            bio: traveler.bio || `Roteirista no VAMO — ${traveler.name}`,
+                            verificationLevel: 'BASIC',
+                        },
+                        select: { id: true },
+                    });
+                    resolvedCreatorId = newCreator.id;
+                    console.log('[POST /itineraries] auto-created creator for traveler:', { travelerId: traveler.id, creatorId: resolvedCreatorId });
+                }
+            }
         }
         if (!resolvedCreatorId) {
             res.status(401).json({ error: 'Faça login como criador para publicar roteiros.' });
