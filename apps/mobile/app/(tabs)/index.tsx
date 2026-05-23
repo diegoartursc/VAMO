@@ -32,9 +32,6 @@ import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
 
 
-// Data
-import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
-
 const { width } = Dimensions.get('window');
 
 

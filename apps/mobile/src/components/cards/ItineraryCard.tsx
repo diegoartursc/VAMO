@@ -3,12 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
-import { Icon, IconName } from '../common/Icons';
+import { Icon } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
 import { VerifiedBadge } from '../creator/VerifiedBadge';
-import { ITINERARY_INCLUSIONS } from '../../data/itineraryInclusions';
+import { getModuleBadges, getCategoryChips } from '../../utils/itineraryCardBadges';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useCart } from '../../hooks/useCart';
+
+const MAX_CATEGORY_CHIPS = 3;
+const MAX_MODULE_CHIPS = 3;
 
 export interface ItineraryCardProps {
     itinerary: any;
@@ -17,8 +20,14 @@ export interface ItineraryCardProps {
 }
 
 export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress, width }) => {
-    // Mostrar no máximo 3 chips para não poluir
-    const chips = ITINERARY_INCLUSIONS.slice(0, 3);
+    const allCategoryChips = getCategoryChips(itinerary);
+    const allModuleBadges = getModuleBadges(itinerary);
+
+    const categoryChips = allCategoryChips.slice(0, MAX_CATEGORY_CHIPS);
+    const extraCategories = allCategoryChips.length - categoryChips.length;
+
+    const moduleChips = allModuleBadges.slice(0, MAX_MODULE_CHIPS);
+    const extraModules = allModuleBadges.length - moduleChips.length;
     const { isFavorite, toggleFavorite } = useFavorites();
     const { isInCart, addToCart } = useCart();
     const [cartAdded, setCartAdded] = useState(false);
@@ -137,15 +146,40 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     {itinerary.description}
                 </Text>
 
-                {/* Chips de inclusões */}
-                <View style={styles.chipsRow}>
-                    {chips.map((item) => (
-                        <View key={item.id} style={styles.chip}>
-                            <Icon name={item.icon as IconName} size={13} color={theme.colors.primary} />
-                            <Text style={styles.chipText}>{item.title}</Text>
-                        </View>
-                    ))}
-                </View>
+                {/* Categorias temáticas */}
+                {categoryChips.length > 0 && (
+                    <View style={styles.chipsRow}>
+                        {categoryChips.map((cat) => (
+                            <View key={cat.key} style={styles.categoryChip}>
+                                <Text style={styles.categoryChipText}>
+                                    {cat.emoji} {cat.label}
+                                </Text>
+                            </View>
+                        ))}
+                        {extraCategories > 0 && (
+                            <View style={styles.overflowChip}>
+                                <Text style={styles.overflowChipText}>+{extraCategories}</Text>
+                            </View>
+                        )}
+                    </View>
+                )}
+
+                {/* Módulos incluídos */}
+                {moduleChips.length > 0 && (
+                    <View style={[styles.chipsRow, categoryChips.length > 0 && styles.chipsRowTop]}>
+                        {moduleChips.map((mod) => (
+                            <View key={mod.key} style={styles.chip}>
+                                <Icon name={mod.icon} size={13} color={theme.colors.primary} />
+                                <Text style={styles.chipText}>{mod.label}</Text>
+                            </View>
+                        ))}
+                        {extraModules > 0 && (
+                            <View style={[styles.chip, styles.overflowModuleChip]}>
+                                <Text style={styles.chipText}>+{extraModules}</Text>
+                            </View>
+                        )}
+                    </View>
+                )}
 
                 {/* Footer: destino + botões */}
                 <View style={styles.footer}>
@@ -330,6 +364,10 @@ const styles = StyleSheet.create({
         marginBottom: 14,
         flexWrap: 'wrap',
     },
+    chipsRowTop: {
+        marginTop: -6,
+    },
+    // Module chips (teal)
     chip: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -345,6 +383,37 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
         color: theme.colors.primary,
+    },
+    // Category chips (navy)
+    categoryChip: {
+        backgroundColor: '#1A3263' + '0D',
+        paddingHorizontal: 9,
+        paddingVertical: 5,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#1A3263' + '20',
+    },
+    categoryChipText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#1A3263',
+    },
+    // Overflow "+X" chip
+    overflowChip: {
+        backgroundColor: '#1A3263' + '0D',
+        paddingHorizontal: 9,
+        paddingVertical: 5,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#1A3263' + '20',
+    },
+    overflowChipText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#1A3263',
+    },
+    overflowModuleChip: {
+        opacity: 0.7,
     },
 
     // Footer

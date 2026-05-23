@@ -3,7 +3,10 @@
  * Espelham o schema Prisma em apps/backend/prisma/schema.prisma.
  */
 
-export type Currency = "BRL" | "USD" | "EUR" | "GBP";
+// Currency é tipado como string em vez de union literal para suportar
+// a lista completa de moedas (igual à dashboard admin/site). Validação
+// real é feita por CURRENCIES em constants.ts.
+export type Currency = string;
 export type ProductType = "DIGITAL" | "PHYSICAL" | "HIBRIDO";
 export type ItineraryStatus =
     | "DRAFT"
@@ -20,6 +23,7 @@ export type ModuleKey =
     | "dicas"
     | "restaurantes"
     | "checklist"
+    | "gastos_extras"
     | "gasto";
 
 export interface Activity {
@@ -43,6 +47,22 @@ export interface Day {
     activities: Activity[];
 }
 
+/**
+ * ModuleSpending — gasto opcional informado dentro de um item de módulo
+ * (hospedagem, atração, restaurante, transporte, voo). Apenas valor e
+ * moeda — não há upload de comprovante por gasto. O único comprovante
+ * obrigatório no fluxo é o comprovante geral de viagem (travelProofUrl).
+ */
+export interface ModuleSpending {
+    value: string;        // valor por pessoa (string para preservar zeros)
+    currency: string;     // código (BRL, USD, EUR, ...)
+}
+
+export const EMPTY_MODULE_SPENDING: ModuleSpending = {
+    value: "",
+    currency: "BRL",
+};
+
 export interface Accommodation {
     name: string;
     address: string;
@@ -54,6 +74,7 @@ export interface Accommodation {
     tips: string;
     startDate: string;
     endDate: string;
+    spending?: ModuleSpending;
 }
 
 export interface Transport {
@@ -62,6 +83,7 @@ export interface Transport {
     notes: string;
     startDate: string;
     endDate: string;
+    spending?: ModuleSpending;
 }
 
 export interface ChecklistItem {
@@ -88,6 +110,7 @@ export interface RestaurantItem {
     tips: string;
     startDate: string;
     endDate: string;
+    spending?: ModuleSpending;
 }
 
 export interface AttractionItem {
@@ -103,6 +126,21 @@ export interface AttractionItem {
     startDate: string;
     endDate: string;
     price?: string;
+    spending?: ModuleSpending;
+}
+
+/**
+ * ExtraSpendingItem — entrada do módulo "Gastos Extras" (chip, seguro,
+ * taxas, gorjetas, lavanderia, etc.). Apenas valor e moeda — não há
+ * upload de comprovante por item.
+ */
+export interface ExtraSpendingItem {
+    id: string;
+    category: string;         // chave da categoria (ver EXTRA_SPENDING_CATEGORIES)
+    title: string;            // ex: "Chip de internet 10GB"
+    description: string;      // observação opcional
+    value: string;            // valor por pessoa, opcional
+    currency: string;         // código da moeda
 }
 
 export interface SpendingEntry {
@@ -178,6 +216,8 @@ export interface ItineraryFormState {
     flightOutbound: FlightLeg;
     flightReturn: FlightLeg;
     flightTips: string[];
+    flightSpending?: ModuleSpending;       // gasto único da passagem (ida + volta)
+    extraSpendingItems: ExtraSpendingItem[]; // módulo "Gastos Extras"
     // Mídia
     images: string[];               // galeria
     mediaUrls: string[];            // fotos/vídeos extras
@@ -233,6 +273,7 @@ export function createEmptyForm(): ItineraryFormState {
         flightOutbound: { ...EMPTY_FLIGHT_LEG },
         flightReturn: { ...EMPTY_FLIGHT_LEG },
         flightTips: [],
+        extraSpendingItems: [],
         images: [],
         mediaUrls: [],
         highlightPhotos: [],

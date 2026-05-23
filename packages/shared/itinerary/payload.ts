@@ -37,10 +37,11 @@ export interface ItineraryPayload {
     accommodations: any[];
     transports: any[];
     checklists: any[];
-    flightInfo?: { outbound: any; return: any; tips: string[] };
+    flightInfo?: { outbound: any; return: any; tips: string[]; spending?: any };
     restaurants: any[];
     generalTips: string[];
     attractions: any[];
+    extraSpendingItems: any[];
     mediaUrls: string[];
     highlightPhotos: string[];
 }
@@ -87,12 +88,14 @@ export function buildPayload(form: ItineraryFormState): ItineraryPayload {
             outbound: form.flightOutbound,
             return:   form.flightReturn,
             tips:     form.flightTips.filter(t => t.trim()),
+            spending: form.flightSpending,
         } : undefined,
         restaurants: form.restaurants
             .filter(r => r.name.trim())
             .map(r => ({ ...r, hours: [r.hoursStart].filter(Boolean).join(" – ") || r.hours })),
         generalTips: form.generalTips.filter(t => t.trim()),
         attractions: form.attractions.filter(a => a.name.trim()),
+        extraSpendingItems: form.extraSpendingItems.filter(e => e.title?.trim()),
         mediaUrls: form.mediaUrls.filter(Boolean),
         highlightPhotos: form.highlightPhotos.filter(Boolean),
     };

@@ -9,7 +9,7 @@
  *   3. Fotos de capa                  8
  *   4. Roteiro dia a dia             20
  *   5. Módulos de conteúdo           15
- *   6. Estimativa de gastos por pess. 5
+ *   6. Transparência financeira       5  (gastos comprovados — opcional)
  *   7. Confiança & Qualidade         12
  *                                  ─────
  *   Total                          90 → cap em 100
@@ -28,6 +28,10 @@ export interface ScoreBlock {
     criteria: ScoreCriterion[];
 }
 
+interface SpendingShape {
+    value?: string;
+}
+
 /** Dados aceitos pelo score — qualquer objeto que se pareça com o estado do form. */
 export interface ScoreInput {
     title?: string;
@@ -42,10 +46,12 @@ export interface ScoreInput {
     images?: string[];
     duration?: number;
     days?: { description?: string; activities?: { time?: string }[] }[];
-    accommodations?: { name?: string }[];
-    attractions?: { name?: string }[];
-    restaurants?: { name?: string }[];
-    transports?: { description?: string }[];
+    accommodations?: { name?: string; spending?: SpendingShape }[];
+    attractions?: { name?: string; spending?: SpendingShape }[];
+    restaurants?: { name?: string; spending?: SpendingShape }[];
+    transports?: { description?: string; spending?: SpendingShape }[];
+    flightSpending?: SpendingShape;
+    extraSpendingItems?: { title?: string; value?: string }[];
     generalTips?: string[];
     checklistItems?: { item?: string }[];
     spendingEntries?: { priceValue?: string }[];
@@ -117,10 +123,26 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
         { text: "Checklist de viagem adicionado",      done: (data.checklistItems?.length ?? 0) >= 1,                                pts: 1 },
     ];
 
-    // ─── Bloco 6: Estimativa de gastos por pessoa (5 pts) ───
-    const hasSpending = data.hasSpending || (data.spendingEntries ?? []).some(e => parseFloat(e.priceValue ?? "") > 0);
+    // ─── Bloco 6: Transparência financeira (5 pts) ───
+    // Gastos por módulo são 100% opcionais. Informar valores ajuda o
+    // viajante a se planejar, mas nunca é obrigatório. Não há comprovante
+    // de gasto no fluxo — apenas o comprovante geral de viagem.
+    const hasValue = (v?: string | null) =>
+        !!v && parseFloat(String(v).replace(",", ".")) > 0;
+
+    const valueCount =
+        (hasValue(data.flightSpending?.value) ? 1 : 0)
+        + (data.accommodations ?? []).filter(a => hasValue(a.spending?.value)).length
+        + (data.attractions    ?? []).filter(a => hasValue(a.spending?.value)).length
+        + (data.transports     ?? []).filter(t => hasValue(t.spending?.value)).length
+        + (data.restaurants    ?? []).filter(r => hasValue(r.spending?.value)).length
+        + (data.extraSpendingItems ?? []).filter(e => hasValue(e.value)).length
+        + (data.spendingEntries    ?? []).filter(e => parseFloat(e.priceValue ?? "") > 0).length
+        + (data.hasSpending && !data.spendingEntries?.length ? 1 : 0);
+
     const b6: ScoreCriterion[] = [
-        { text: "Estimativa de gastos preenchida", done: !!hasSpending, pts: 5 },
+        { text: "Pelo menos 1 gasto informado (opcional)", done: valueCount >= 1, pts: 2 },
+        { text: "3+ gastos informados (transparência)",    done: valueCount >= 3, pts: 3 },
     ];
 
     // ─── Bloco 7: Confiança & Qualidade (12 pts) ───
@@ -137,7 +159,7 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
         { label: "Fotos de capa",                   earned: sum(b3), max: 8,  criteria: b3 },
         { label: "Roteiro dia a dia",               earned: sum(b4), max: 20, criteria: b4 },
         { label: "Módulos de conteúdo",             earned: sum(b5), max: 15, criteria: b5 },
-        { label: "Estimativa de gastos por pessoa", earned: sum(b6), max: 5,  criteria: b6 },
+        { label: "Transparência financeira",        earned: sum(b6), max: 5,  criteria: b6 },
         { label: "Confiança & Qualidade",           earned: sum(b7), max: 12, criteria: b7 },
     ];
 }

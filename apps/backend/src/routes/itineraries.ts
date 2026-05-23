@@ -55,6 +55,10 @@ router.get('/', async (req: Request, res: Response) => {
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
             qualityScore: it.qualityScore,
+            // Campos para badges do card (vitrines): categorias temáticas e módulos ativos
+            categories: it.categories || [],
+            travelStyles: it.travelStyles || [],
+            activeModules: it.activeModules || [],
         }));
 
         res.json(result);
@@ -90,6 +94,10 @@ router.get('/featured', async (req: Request, res: Response) => {
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
             qualityScore: it.qualityScore,
+            // Campos para badges do card (vitrines): categorias temáticas e módulos ativos
+            categories: it.categories || [],
+            travelStyles: it.travelStyles || [],
+            activeModules: it.activeModules || [],
         }));
 
         res.json(result);

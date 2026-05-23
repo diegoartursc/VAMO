@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAMO - Fluxogramas Detalhados</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1F4788;
+            margin: 40px 0 20px 0;
+            border-bottom: 3px solid #FF385C;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2E5CB8;
+            margin: 30px 0 15px 0;
+        }
+        h3 {
+            color: #555;
+            margin: 20px 0 10px 0;
+        }
+        p {
+            margin: 15px 0;
+            color: #666;
+        }
+        .flowchart-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #F9F9F9;
+            border-left: 4px solid #2E5CB8;
+            border-radius: 4px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        .legend {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f0f7ff;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .legend-item {
+            margin: 5px 0;
+        }
+        .note {
+            margin: 15px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+        }
+        .note strong {
+            color: #856404;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background: #1F4788;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        tr:hover {
+            background: #f0f7ff;
+        }
+        .print-only {
+            display: none;
+        }
+        @media print {
+            .print-only {
+                display: block;
+            }
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+        }
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ VAMO - Mapeamento Completo de Fluxos</h1>
+        <p><strong>Data:</strong> Maio 2026 | <strong>Status:</strong> MVP - Roteiros de Criadores</p>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>1. Fluxo Geral da Plataforma VAMO</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["👤 Usuário Acessa VAMO<br/>(Web ou App)"]
+    B{"Está<br/>logado?"}
+    C["🔐 Fazer Login/<br/>Cadastro"]
+    D{"Qual é o<br/>seu role?"}
+    E["🧳 Viajante<br/>Explorar roteiros"]
+    F["✍️ Roteirista<br/>Criar roteiros"]
+    G["👨‍⚖️ Admin<br/>Revisar roteiros"]
+    H["❤️ Favoritar"]
+    I["🛒 Adicionar ao carrinho"]
+    J["💳 Comprar"]
+    K["📝 Enviar para análise"]
+    L["✅ Aprovar/Rejeitar"]
+    M["📊 Ver dashboard"]
+    N["📚 Acessar roteiros comprados"]
+    
+    A --> B
+    B -->|Não| C
+    B -->|Sim| D
+    C --> D
+    D -->|Viajante| E
+    D -->|Criador| F
+    D -->|Admin| G
+    E --> H
+    E --> I
+    E --> J
+    H --> N
+    I --> J
+    J --> N
+    N --> M
+    F --> K
+    K --> L
+    G --> L
+    L -->|Aprovado| E
+    L -->|Rejeitado| F
+            </div>
+            <div class="legend">
+                <strong>Legenda:</strong>
+                <div class="legend-item">🧳 Viajante: Explora e compra roteiros</div>
+                <div class="legend-item">✍️ Criador: Cria e envia roteiros para análise</div>
+                <div class="legend-item">👨‍⚖️ Admin: Aprova/rejeita roteiros</div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>2. Fluxo do Usuário Não Logado</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["🏠 Acessa Home<br/>(Site ou App)"]
+    B["🔍 Explora roteiros"]
+    C["🎯 Pesquisa destino"]
+    D["📸 Visualiza cards"]
+    E["📖 Abre detalhes"]
+    F{"Quer<br/>Favoritar?"}
+    G{"Quer<br/>Comprar?"}
+    H{"Quer<br/>Criar?"}
+    I["🔐 Sistema solicita<br/>Login/Cadastro"]
+    J["✅ Faz login"]
+    K["✅ Se quer comprar<br/>→ Vai para fluxo<br/>de viajante"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F -->|Sim| I
+    F -->|Não| G
+    G -->|Sim| I
+    G -->|Não| H
+    H -->|Sim| I
+    H -->|Não| E
+    I --> J
+    J --> K
+            </div>
+            <div class="note">
+                <strong>⚠️ Nota:</strong> Usuário não logado pode explorar roteiros, mas <strong>qualquer ação</strong> 
+                (favoritar, comprar, criar) requer login/cadastro.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>3. Fluxo do Viajante / Comprador</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["✅ Login/Cadastro como Traveler"]
+    B["🏠 Home personalizada"]
+    C["🔍 Busca e Filtros"]
+    D["📖 Detalhe do Roteiro"]
+    E{"Quais ações?"}
+    F["❤️ Favoritar<br/>SavedItem"]
+    G["🛒 Carrinho<br/>AsyncStorage mobile"]
+    H["💳 Checkout<br/>Dados de contato"]
+    I["💰 Confirmação<br/>POST /purchase"]
+    J["📚 Meus Roteiros<br/>my-trips"]
+    K["📖 Acesso ao conteúdo<br/>pós-compra"]
+    L["⭐ Escrever review"]
+    M["👤 Perfil<br/>Dados pessoais"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E -->|Favoritar| F
+    E -->|Comprar| G
+    E -->|Detalhe| D
+    F --> J
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K --> L
+    B --> M
+            </div>
+            <div class="note">
+                <strong>⚠️ Estado no Mobile:</strong> Carrinho usa AsyncStorage (local). <br/>
+                <strong>⚠️ Estado no Site:</strong> Favoritos funcionam como "saves", não como carrinho. Site não tem checkout.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>4. Fluxo do Roteirista / Criador</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["✅ Login como Traveler<br/>+ Ativar Creator"]
+    B["📊 Dashboard Criador<br/>/criador/ ou /dashboard/"]
+    C["➕ Clica 'Criar Roteiro'"]
+    D["📝 Preenche Módulos<br/>Obrigatórios"]
+    E["📸 Upload de Imagens"]
+    F["📊 Sistema calcula<br/>qualityScore"]
+    G["💾 Salva como DRAFT<br/>Roteiro privado"]
+    H{"Criador<br/>satisfeito?"}
+    I["🔄 Edita módulos"]
+    J["🚀 Clica 'Enviar<br/>para Análise'"]
+    K["⏳ Status → PENDING_REVIEW<br/>Roteiro na fila admin"]
+    L["👨‍⚖️ Admin aprova/rejeita"]
+    M["✅ Aprovado"]
+    N["❌ Rejeitado<br/>+ Motivo"]
+    O["📊 Dashboard reflete<br/>APPROVED"]
+    P["❌ Voltar para DRAFT<br/>Criador pode editar<br/>+ Reenviar"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H -->|Não, edita| I
+    I --> G
+    H -->|Sim| J
+    J --> K
+    K --> L
+    L -->|Aprovado| M
+    L -->|Rejeitado| N
+    M --> O
+    N --> P
+    P --> J
+            </div>
+            <div class="note">
+                <strong>✓ Fluxo completo implementado</strong> no backend. <br/>
+                <strong>✓ Estados:</strong> DRAFT → PENDING_REVIEW → APPROVED/REJECTED → ACTIVE/ARCHIVED
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>5. Fluxo do Administrador</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["✅ Login Admin<br/>/admin/"]
+    B["📊 Dashboard Admin<br/>GET /admin/stats"]
+    C["⏳ Visualiza roteiros<br/>PENDING_REVIEW"]
+    D["📖 Abre detalhes<br/>Revisa conteúdo"]
+    E{"Decisão?"}
+    F["✅ Aprova"]
+    G["❌ Rejeita<br/>+ Motivo"]
+    H["📝 Status → APPROVED<br/>approvedAt, approvedBy"]
+    I["📝 Status → REJECTED<br/>rejectionReason"]
+    J["🌐 Roteiro aparece<br/>no app/site público"]
+    K["👨‍💼 Criador recebe<br/>notificação"]
+    L["📊 Dashboard criador<br/>reflete novo status"]
+    M["🔄 Criador pode<br/>editar + reenviar"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E -->|Aprovado| F
+    E -->|Rejeitado| G
+    F --> H
+    G --> I
+    H --> J
+    J --> K
+    I --> K
+    K --> L
+    L --> M
+            </div>
+            <div class="note">
+                <strong>✓ Implementado:</strong> GET /admin/pending (PENDING_REVIEW), POST /admin/:id/approve, POST /admin/:id/reject
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>6. Fluxo de Autenticação</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["🏠 Acessa VAMO"]
+    B["🔐 Tela de Login"]
+    C{"Novo<br/>usuário?"}
+    D["📝 Cadastro"]
+    E["✉️ Email + Senha"]
+    F["🔒 Hash da senha<br/>bcryptjs"]
+    G["📊 Cria Traveler<br/>na DB"]
+    H["🎟️ Gera JWT<br/>accessToken + refreshToken"]
+    I["⏰ AccessToken<br/>24h"]
+    J["🔄 RefreshToken<br/>7 dias"]
+    K["✅ Login bem-sucedido"]
+    L["📱 Persiste token<br/>localStorage (web)<br/>ou AsyncStorage (app)"]
+    M["🔄 Token expirado?"]
+    N["♻️ POST /refresh<br/>usa refreshToken"]
+    O["🎟️ Novo accessToken"]
+    
+    A --> B
+    B --> C
+    C -->|Sim, novo| D
+    C -->|Não, login| E
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    H --> J
+    I --> K
+    K --> L
+    L --> M
+    M -->|Sim| N
+    N --> O
+    O --> K
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>7. Estados dos Roteiros (Lifecycle)</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["DRAFT<br/>(Criador edita)"]
+    B["PENDING_REVIEW<br/>(Admin revisa)"]
+    C{"Admin<br/>aprova?"}
+    D["APPROVED<br/>(Pode publicar)"]
+    E["REJECTED<br/>(Volta ao DRAFT)"]
+    F["ACTIVE<br/>(Público vê)"]
+    G["PAUSED<br/>(Não visível)"]
+    H["ARCHIVED<br/>(Histórico)"]
+    
+    A -->|Criador envia| B
+    B -->|Sim| D
+    B -->|Não| E
+    E -->|Criador edita| B
+    D -->|Criador publica| F
+    F -->|Criador pausa| G
+    F -->|Criador arquiva| H
+    G -->|Criador ativa| F
+    G -->|Criador arquiva| H
+    D -->|Criador arquiva| H
+            </div>
+            <table>
+                <tr>
+                    <th>Status</th>
+                    <th>Criador Vê</th>
+                    <th>Admin Vê</th>
+                    <th>Público Vê</th>
+                    <th>Pode Editar</th>
+                    <th>Próximo Status</th>
+                </tr>
+                <tr>
+                    <td><strong>DRAFT</strong></td>
+                    <td>Sim (privado)</td>
+                    <td>Não</td>
+                    <td>Não</td>
+                    <td>✓ Sim</td>
+                    <td>PENDING_REVIEW</td>
+                </tr>
+                <tr>
+                    <td><strong>PENDING_REVIEW</strong></td>
+                    <td>Sim (em análise)</td>
+                    <td>Sim (fila)</td>
+                    <td>Não</td>
+                    <td>✗ Não</td>
+                    <td>APPROVED/REJECTED</td>
+                </tr>
+                <tr>
+                    <td><strong>APPROVED</strong></td>
+                    <td>Sim</td>
+                    <td>Sim (histórico)</td>
+                    <td>Sim</td>
+                    <td>✓ Sim</td>
+                    <td>ACTIVE</td>
+                </tr>
+                <tr>
+                    <td><strong>REJECTED</strong></td>
+                    <td>Sim (com motivo)</td>
+                    <td>Sim</td>
+                    <td>Não</td>
+                    <td>✓ Sim</td>
+                    <td>PENDING_REVIEW</td>
+                </tr>
+                <tr>
+                    <td><strong>ACTIVE</strong></td>
+                    <td>Sim</td>
+                    <td>Sim</td>
+                    <td>✓ Sim (público)</td>
+                    <td>✓ Sim</td>
+                    <td>PAUSED/ARCHIVED</td>
+                </tr>
+                <tr>
+                    <td><strong>PAUSED</strong></td>
+                    <td>Sim</td>
+                    <td>Sim</td>
+                    <td>Não</td>
+                    <td>✓ Sim</td>
+                    <td>ACTIVE/ARCHIVED</td>
+                </tr>
+                <tr>
+                    <td><strong>ARCHIVED</strong></td>
+                    <td>Sim (histórico)</td>
+                    <td>Sim</td>
+                    <td>Não</td>
+                    <td>✗ Não</td>
+                    <td>—</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>8. Fluxo de Compra (Detalhado)</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["📖 Viajante vê roteiro<br/>ACTIVE/APPROVED"]
+    B["❤️ Clica 'Comprar'<br/>ou 'Adicionar ao Carrinho'"]
+    C{"Mobile<br/>ou Site?"}
+    D["🛒 Carrinho<br/>AsyncStorage"]
+    E["💬 Favoritos<br/>SavedItem"]
+    F["👁️ Revisa itens<br/>no carrinho"]
+    G["📞 Preenche contato<br/>email, telefone, CPF"]
+    H["💳 Seleciona pagamento<br/>(simulado)"]
+    I["⚠️ SEM integração real<br/>com Stripe/PagSeguro"]
+    J["✅ Confirma compra"]
+    K["📤 POST /itineraries/:id/purchase"]
+    L["💾 Cria ItinerarySale<br/>travelerId, itineraryId, price"]
+    M["📚 Roteiro aparece em<br/>'Meus Roteiros'"]
+    N["👥 Criador vê venda<br/>no dashboard"]
+    
+    A --> B
+    B --> C
+    C -->|Mobile| D
+    C -->|Site| E
+    D --> F
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K --> L
+    L --> M
+    L --> N
+            </div>
+            <div class="note">
+                <strong>⚠️ IMPORTANTE:</strong> Checkout é <strong>simulado</strong>. Não há integração real com Stripe ou PagSeguro.
+                Os testes usam POST /purchase direto.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>9. Fluxo de Favoritos</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["📖 Viajante vê roteiro"]
+    B["❤️ Clica 'Favoritar'"]
+    C{"Logado?"}
+    D["🔐 Redireciona<br/>a Login"]
+    E["✅ POST /itineraries/:id/save<br/>Cria SavedItem"]
+    F["💾 DB: SavedItem<br/>{ travelerId, itineraryId }"]
+    G["✅ Ícone muda<br/>para ❤️ preenchido"]
+    H["👁️ Acessa Favoritos<br/>GET /travelers/me/saved"]
+    I["📋 Lista de roteiros<br/>salvos"]
+    J{"Quer remover?"}
+    K["DELETE /itineraries/:id/save<br/>Remove SavedItem"]
+    L["✅ Volta a ❤️ vazio"]
+    
+    A --> B
+    B --> C
+    C -->|Não| D
+    C -->|Sim| E
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J -->|Sim| K
+    K --> L
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>10. Fluxo de Carrinho (Mobile)</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["🛒 Clica 'Adicionar ao Carrinho'"]
+    B["📱 AsyncStorage<br/>(local storage mobile)"]
+    C["💾 Persiste<br/>{ id, title, price, image }"]
+    D["📊 Atualiza UI<br/>Contador: +1"]
+    E["👁️ Acessa Carrinho<br/>Tab ou Menu"]
+    F["📋 Lista de itens<br/>com preços"]
+    G{"Quer remover?"}
+    H["🗑️ Clica 'Remover'"]
+    I["📊 Atualiza AsyncStorage"]
+    J["📊 UI reflete<br/>quantidade -1"]
+    K["💳 Clica 'Checkout'"]
+    L["📞 Tela de contato"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G -->|Sim| H
+    G -->|Não| K
+    H --> I
+    I --> J
+    J --> E
+    F --> K
+    K --> L
+            </div>
+            <div class="note">
+                <strong>⚠️ Apenas Mobile:</strong> Site não tem implementação de carrinho. 
+                Usa favoritos/SavedItem apenas.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>11. Fluxo de Criação de Roteiro (Detalhado)</h2>
+        <div class="flowchart-section">
+            <div class="mermaid">
+flowchart TD
+    A["📊 Acessa Dashboard Criador<br/>/criador/ ou /dashboard/"]
+    B["➕ Clica 'Criar Roteiro'"]
+    C["📋 Formulário abre<br/>Step 1: Identidade"]
+    D["✏️ Preenche campos obrigatórios<br/>título, destino, país, preço, duração"]
+    E["📸 Step 2: Upload de imagens<br/>POST /api/uploads"]
+    F["🖼️ URLs das imagens<br/>armazenadas"]
+    G["📝 Step 3: Descrição<br/>highlights, inclusions, estimatedSpending"]
+    H["📊 Sistema calcula<br/>qualityScore"]
+    I["💾 Salva como DRAFT<br/>POST /api/itineraries"]
+    J["👁️ Criador revisa<br/>pode editar em qualquer momento"]
+    K{"Pronto para<br/>enviar?"}
+    L["🚀 Clica 'Enviar para Análise'<br/>PUT /api/itineraries/:id<br/>status = PENDING_REVIEW"]
+    M["⏳ Roteiro na fila admin<br/>GET /admin/pending"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K -->|Não, edita| J
+    K -->|Sim| L
+    L --> M
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>12. Matriz de Permissões por Role</h2>
+        <table>
+            <tr>
+                <th>Ação</th>
+                <th>Visitante</th>
+                <th>Viajante</th>
+                <th>Criador</th>
+                <th>Admin</th>
+            </tr>
+            <tr>
+                <td>Explorar roteiros</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Favoritar</td>
+                <td>Requer login</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Adicionar ao carrinho</td>
+                <td>Requer login</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Comprar</td>
+                <td>Requer login</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Criar roteiro</td>
+                <td>Requer login</td>
+                <td>Requer ativar creator</td>
+                <td>✓</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Enviar para análise</td>
+                <td>—</td>
+                <td>—</td>
+                <td>✓ (roteiros próprios)</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Editar roteiro</td>
+                <td>—</td>
+                <td>—</td>
+                <td>✓ (DRAFT/APPROVED/REJECTED)</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Revisar roteiros</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Aprovar/Rejeitar</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Acessar /admin/</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Ver dashboard criador</td>
+                <td>—</td>
+                <td>—</td>
+                <td>✓</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Ver vendas/stats</td>
+                <td>—</td>
+                <td>—</td>
+                <td>✓ (roteiros próprios)</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Escrever review</td>
+                <td>Requer login</td>
+                <td>✓ (roteiros comprados)</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+        </table>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <h2>13. Inconsistências Críticas Encontradas</h2>
+        <div class="note" style="background: #f8d7da; border-left-color: #dc3545;">
+            <strong style="color: #721c24;">⚠️ CRÍTICAS (Afetam Fluxo):</strong>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><strong>Checkout sem pagamento real:</strong> POST /purchase simula venda. Sem integração Stripe/PagSeguro.</li>
+                <li><strong>Site vs App desalinhados:</strong> Site foca em áreas logadas. App tem exploração pública.</li>
+                <li><strong>Carrinho apenas no mobile:</strong> AsyncStorage local. Site não tem carrinho, apenas favoritos.</li>
+                <li><strong>Sem validação de duplicidade:</strong> /purchase é idempotente (alreadyPurchased=true), mas sem feedback ao usuário.</li>
+                <li><strong>Criação sem creatorId claro:</strong> Fallback para 'primeiro creator' em rotas (bug documentado).</li>
+                <li><strong>Sem notificações real-time:</strong> Tabela Notification existe, mas sem implementação.</li>
+            </ul>
+        </div>
+
+        <div class="note" style="background: #fff3cd; border-left-color: #ffc107;">
+            <strong style="color: #856404;">⚠️ MENORES (UX/Polish):</strong>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><strong>Estados vazios:</strong> O que mostrar quando favoritos/carrinho vazios?</li>
+                <li><strong>Sem paginação:</strong> GET /itineraries retorna todos (sem limit/offset).</li>
+                <li><strong>Reviews incompletos:</strong> POST /reviews funciona, mas UI limitada.</li>
+                <li><strong>Offline access não planejado:</strong> Campos existem, funcionalidade não.</li>
+                <li><strong>Filtros não documentados:</strong> GET /itineraries aceita ?destination, ?sort, mas UX não clara.</li>
+            </ul>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+        <footer>
+            <p><strong>VAMO - Auditoria de Produto e Arquitetura</strong></p>
+            <p>Prepared by: Product Manager Sênior + Arquiteto de Software + UX Researcher</p>
+            <p>© 2026 Diego Artur Schmid Conrad. All rights reserved.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+        mermaid.contentLoaded();
+    </script>
+</body>
+</html>

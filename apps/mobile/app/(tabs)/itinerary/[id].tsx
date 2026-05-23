@@ -22,7 +22,7 @@ import CollapsibleSection from '../../../src/components/common/CollapsibleSectio
 import PremiumReviewsSection from '../../../src/components/reviews/PremiumReviewsSection';
 import { shareService } from '../../../src/services/sharing';
 import { haptics } from '../../../src/services/haptics';
-import { ITINERARY_INCLUSIONS } from '../../../src/data/itineraryInclusions';
+import { getReceivedModules } from '../../../src/utils/itineraryCardBadges';
 import { Icon } from '../../../src/components/common/Icons';
 import { CoverCarousel } from '../../../src/components/common/CoverCarousel';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -462,28 +462,34 @@ export default function ItineraryDetailScreen() {
                         </CollapsibleSection>
                     )}
 
-                    {/* O que você vai receber */}
-                    <CollapsibleSection title="O que você vai receber" defaultExpanded>
-                        <Text style={styles.inclusionsIntro}>
-                            Ao comprar este roteiro, você terá acesso a todas as informações necessárias para sua viagem:
-                        </Text>
+                    {/* O que você vai receber — apenas módulos ativos E preenchidos no roteiro real */}
+                    {(() => {
+                        const receivedModules = getReceivedModules(itinerary);
+                        if (receivedModules.length === 0) return null;
+                        return (
+                            <CollapsibleSection title="O que você vai receber" defaultExpanded>
+                                <Text style={styles.inclusionsIntro}>
+                                    Ao comprar este roteiro, você terá acesso a:
+                                </Text>
 
-                        <View style={styles.inclusionsList}>
-                            {ITINERARY_INCLUSIONS.map((item) => (
-                                <View key={item.id} style={styles.inclusionItem}>
-                                    <View style={[styles.inclusionIcon, { backgroundColor: item.bgColor }]}>
-                                        <Icon name={item.icon as any} size={24} color={item.iconColor} />
-                                    </View>
-                                    <View style={styles.inclusionContent}>
-                                        <Text style={styles.inclusionTitle}>{item.title}</Text>
-                                        <Text style={styles.inclusionDesc}>
-                                            {item.description}
-                                        </Text>
-                                    </View>
+                                <View style={styles.inclusionsList}>
+                                    {receivedModules.map((item) => (
+                                        <View key={item.key} style={styles.inclusionItem}>
+                                            <View style={[styles.inclusionIcon, { backgroundColor: item.bgColor }]}>
+                                                <Icon name={item.icon} size={24} color={item.iconColor} />
+                                            </View>
+                                            <View style={styles.inclusionContent}>
+                                                <Text style={styles.inclusionTitle}>{item.title}</Text>
+                                                <Text style={styles.inclusionDesc}>
+                                                    {item.description}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    ))}
                                 </View>
-                            ))}
-                        </View>
-                    </CollapsibleSection>
+                            </CollapsibleSection>
+                        );
+                    })()}
 
                     {/* Como você vai receber */}
                     <CollapsibleSection title="Como você vai receber">
