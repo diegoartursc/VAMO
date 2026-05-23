@@ -91,6 +91,7 @@ export default function BookingConfirmedScreen() {
                     <Image
                         source={{ uri: packageData.images[0] }}
                         style={styles.heroImage}
+                        resizeMode="cover"
                     />
                     <LinearGradient
                         colors={['transparent', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}

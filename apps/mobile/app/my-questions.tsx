@@ -112,7 +112,7 @@ function QuestionCard({ question }: { question: UserQuestion }) {
                 onPress={() => router.push(`/itinerary/${question.itineraryId}` as any)}
                 activeOpacity={0.7}
             >
-                <Image source={{ uri: question.itineraryImage }} style={styles.cardImage} />
+                <Image source={{ uri: question.itineraryImage }} style={styles.cardImage} resizeMode="cover" />
                 <View style={styles.cardItineraryInfo}>
                     <Text style={styles.cardItineraryTitle} numberOfLines={1}>
                         {question.itineraryTitle}

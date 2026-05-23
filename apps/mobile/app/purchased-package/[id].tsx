@@ -107,7 +107,7 @@ export default function PurchasedPackageScreen() {
 
                 {/* ═══ BLOCO 1 — HEADER RESUMIDO ═══ */}
                 <View style={styles.headerBlock}>
-                    <Image source={{ uri: booking.image }} style={styles.headerImage} />
+                    <Image source={{ uri: booking.image }} style={styles.headerImage} resizeMode="cover" />
                     <LinearGradient
                         colors={['transparent', 'rgba(0,0,0,0.7)']}
                         style={styles.headerGradient}

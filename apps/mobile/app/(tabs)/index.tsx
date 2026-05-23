@@ -44,7 +44,8 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
         <View style={styles.heroContainer}>
             <Image
                 source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop' }}
-                style={StyleSheet.absoluteFillObject}
+                style={[StyleSheet.absoluteFillObject, Platform.OS === 'web' ? ({ objectFit: 'cover' as any }) : {}]}
+                resizeMode="cover"
             />
             <LinearGradient
                 colors={['rgba(26,50,99,0.6)', 'rgba(26,50,99,0.9)']}

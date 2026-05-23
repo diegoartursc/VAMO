@@ -164,7 +164,7 @@ export default function WriteReviewScreen() {
             >
                 {/* Itinerary Info Card */}
                 <View style={styles.itineraryCard}>
-                    <Image source={{ uri: itinerary.images[0] }} style={styles.itineraryImage} />
+                    <Image source={{ uri: itinerary.images[0] }} style={styles.itineraryImage} resizeMode="cover" />
                     <View style={styles.itineraryInfo}>
                         <Text style={styles.itineraryTitle} numberOfLines={2}>{itinerary.title}</Text>
                         <Text style={styles.itineraryDest}>
@@ -231,7 +231,7 @@ export default function WriteReviewScreen() {
                     <View style={styles.photoGrid}>
                         {photos.map((uri, index) => (
                             <View key={index} style={styles.photoWrapper}>
-                                <Image source={{ uri }} style={styles.photoPreview} />
+                                <Image source={{ uri }} style={styles.photoPreview} resizeMode="cover" />
                                 <TouchableOpacity
                                     style={styles.photoRemoveBtn}
                                     onPress={() => removePhoto(index)}
@@ -281,7 +281,7 @@ export default function WriteReviewScreen() {
                             {photos.length > 0 && (
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.previewPhotos}>
                                     {photos.map((uri, i) => (
-                                        <Image key={i} source={{ uri }} style={styles.previewPhoto} />
+                                        <Image key={i} source={{ uri }} style={styles.previewPhoto} resizeMode="cover" />
                                     ))}
                                 </ScrollView>
                             )}

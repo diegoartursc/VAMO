@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Image, Animated, StyleSheet, type ImageStyle } from 'react-native';
+import { View, Image, Animated, StyleSheet, Platform, type ImageStyle } from 'react-native';
 
 interface DestinationImageCarouselProps {
     images: string[];
@@ -27,7 +27,11 @@ export function DestinationImageCarousel({
         return (
             <Image
                 source={{ uri: validImages[0] || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800' }}
-                style={[StyleSheet.absoluteFillObject, style]}
+                style={[
+                    StyleSheet.absoluteFillObject,
+                    style,
+                    Platform.OS === 'web' ? ({ objectFit: 'cover' as any }) : {},
+                ]}
                 resizeMode="cover"
             />
         );
@@ -63,18 +67,21 @@ export function DestinationImageCarousel({
         return () => clearInterval(timer);
     }, [currentIndex, validImages.length]);
 
+    // Garante cover também no web (RN Web nem sempre respeita resizeMode em Animated.Image)
+    const webObjectFit = Platform.OS === 'web' ? ({ objectFit: 'cover' as any }) : {};
+
     return (
         <View style={StyleSheet.absoluteFillObject}>
             {/* Current image */}
             <Animated.Image
                 source={{ uri: validImages[currentIndex] }}
-                style={[StyleSheet.absoluteFillObject, style, { opacity: fadeAnim }]}
+                style={[StyleSheet.absoluteFillObject, style, webObjectFit, { opacity: fadeAnim }]}
                 resizeMode="cover"
             />
             {/* Next image (fading in underneath) */}
             <Animated.Image
                 source={{ uri: validImages[nextIndex] }}
-                style={[StyleSheet.absoluteFillObject, style, { opacity: nextFadeAnim }]}
+                style={[StyleSheet.absoluteFillObject, style, webObjectFit, { opacity: nextFadeAnim }]}
                 resizeMode="cover"
             />
         </View>

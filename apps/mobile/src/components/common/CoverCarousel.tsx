@@ -134,7 +134,7 @@ const CoverCarouselInner = ({
             <View style={[{ height, borderRadius, overflow: 'hidden' }]}>
                 <Image
                     source={{ uri: images[0] }}
-                    style={[styles.image, { height }]}
+                    style={[styles.image, { height }, webImageStyle]}
                     resizeMode="cover"
                 />
             </View>

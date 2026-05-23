@@ -1154,7 +1154,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
             <View style={s.imgGrid}>
                 {form.highlightPhotos.map((url, i) => (
                     <View key={i} style={s.imgThumbWrap}>
-                        <Image source={{ uri: url }} style={s.imgThumb} />
+                        <Image source={{ uri: url }} style={s.imgThumb} resizeMode="cover" />
                         <TouchableOpacity style={s.imgRemove} onPress={() => removeImg('cover', i)}>
                             <Ionicons name="close" size={14} color="#fff" />
                         </TouchableOpacity>
@@ -1171,7 +1171,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
             <View style={s.imgGrid}>
                 {form.images.map((url, i) => (
                     <View key={i} style={s.imgThumbWrap}>
-                        <Image source={{ uri: url }} style={s.imgThumb} />
+                        <Image source={{ uri: url }} style={s.imgThumb} resizeMode="cover" />
                         <TouchableOpacity style={s.imgRemove} onPress={() => removeImg('gallery', i)}>
                             <Ionicons name="close" size={14} color="#fff" />
                         </TouchableOpacity>
