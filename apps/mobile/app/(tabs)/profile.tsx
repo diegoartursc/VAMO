@@ -4,7 +4,7 @@ import {
     Modal, Linking, Platform, Alert, Dimensions, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
@@ -61,7 +61,15 @@ export default function ProfileScreen() {
     // ─── Modo de visualização (Viajante/Roteirista) ──────────────
     const [viewMode, setViewMode] = useState<ViewMode>('traveler');
     const [creatorStats, setCreatorStats] = useState<CreatorStatsSummary | null>(null);
-    const isCreator = !!user?.creatorId;
+    const [statsLoaded, setStatsLoaded] = useState(false);
+
+    // ─── Detecção de roteirista ───────────────────────────────────
+    // Fontes (em ordem de prioridade):
+    // 1. user.creatorId vindo do JWT/login (rápido, mas pode estar ausente em backends antigos)
+    // 2. roteiros criados pelo usuário consultados em /dashboard/stats (fonte de verdade,
+    //    resolvida a partir do travelerId do JWT no backend)
+    // A UI considera o usuário roteirista se QUALQUER uma das fontes confirmar.
+    const isCreator = !!user?.creatorId || (creatorStats?.totalItineraries ?? 0) > 0;
 
     // Hidratar modo salvo
     useEffect(() => {
@@ -72,38 +80,60 @@ export default function ProfileScreen() {
 
     // Se o usuário não é criador, força modo viajante (e zera persistência)
     useEffect(() => {
-        if (!isCreator && viewMode !== 'traveler') {
+        if (statsLoaded && !isCreator && viewMode !== 'traveler') {
             setViewMode('traveler');
             AsyncStorage.setItem(VIEW_MODE_KEY, 'traveler').catch(() => {});
         }
-    }, [isCreator, viewMode]);
+    }, [isCreator, viewMode, statsLoaded]);
 
-    // Buscar stats do criador quando entrar em modo creator
-    useEffect(() => {
-        if (viewMode !== 'creator' || !isCreator || !accessToken) {
+    // ─── Buscar stats do criador (sempre, para detectar roteirista) ───
+    // O backend resolve o creatorId a partir do travelerId do JWT,
+    // então funciona mesmo se o login não retornar `creator` (compat).
+    const fetchCreatorStats = React.useCallback(async () => {
+        if (!accessToken) {
             setCreatorStats(null);
+            setStatsLoaded(true);
             return;
         }
-        let mounted = true;
-        fetch(`${API_BASE}/itineraries/dashboard/stats`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        })
-            .then((r) => r.ok ? r.json() : null)
-            .then((data) => {
-                if (!mounted || !data) return;
-                const pendingReview = (data.itineraries || []).filter((it: any) => it.status === 'pending_review').length;
-                setCreatorStats({
-                    totalItineraries: data.totalItineraries ?? 0,
-                    activeItineraries: data.activeItineraries ?? 0,
-                    pendingReview,
-                    totalSales: data.totalSales ?? 0,
-                    totalRevenue: data.totalRevenue ?? 0,
-                    averageRating: data.averageRating ?? 0,
-                });
-            })
-            .catch(() => { /* offline / 401 — ignora */ });
-        return () => { mounted = false; };
-    }, [viewMode, isCreator, accessToken]);
+        try {
+            const res = await fetch(`${API_BASE}/itineraries/dashboard/stats`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!res.ok) { setCreatorStats(null); setStatsLoaded(true); return; }
+            const data = await res.json();
+            const pendingReview = (data.itineraries || []).filter((it: any) => it.status === 'pending_review').length;
+            setCreatorStats({
+                totalItineraries: data.totalItineraries ?? 0,
+                activeItineraries: data.activeItineraries ?? 0,
+                pendingReview,
+                totalSales: data.totalSales ?? 0,
+                totalRevenue: data.totalRevenue ?? 0,
+                averageRating: data.averageRating ?? 0,
+            });
+            setStatsLoaded(true);
+            console.log('[profile] creator stats:', {
+                travelerId: user?.travelerId,
+                totalItineraries: data.totalItineraries,
+            });
+        } catch {
+            setCreatorStats(null);
+            setStatsLoaded(true);
+        }
+    }, [accessToken, user?.travelerId]);
+
+    // Buscar quando accessToken/user mudar (login/logout/troca de conta)
+    useEffect(() => {
+        setStatsLoaded(false);
+        fetchCreatorStats();
+    }, [fetchCreatorStats]);
+
+    // Refazer a busca toda vez que a tela ganha foco
+    // (volta da criação de roteiro, troca de aba, etc.)
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchCreatorStats();
+        }, [fetchCreatorStats])
+    );
 
     const switchMode = async (mode: ViewMode) => {
         haptics.selection();
@@ -454,7 +484,7 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* ══════════ ÁREA DO CRIADOR ══════════ */}
-                {!user?.creatorId ? (
+                {!isCreator ? (
                     /* ── Não é criador ainda: banner de convite ── */
                     <View style={styles.sectionSpaced}>
                         <LinearGradient
