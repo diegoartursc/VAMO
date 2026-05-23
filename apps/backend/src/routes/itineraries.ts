@@ -20,6 +20,18 @@ router.get('/', async (req: Request, res: Response) => {
         if (sort === 'price_desc')  orderBy = [{ price: 'desc' }];
         if (sort === 'rating')      orderBy = [{ rating: 'desc' }, { qualityScore: 'desc' }];
         if (sort === 'score')       orderBy = [{ qualityScore: 'desc' }, { rating: 'desc' }];
+        // Marketplace-oriented sorts (Parte C)
+        if (sort === 'newest')      orderBy = [{ createdAt: 'desc' }];
+        if (sort === 'popular')     orderBy = [{ featured: 'desc' }, { qualityScore: 'desc' }, { rating: 'desc' }];
+        // "sales" usa o totalSales do criador (a Itinerary não tem salesCount próprio
+        // ainda — proxy seguro até existir uma tabela de transações própria).
+        if (sort === 'sales') {
+            orderBy = [
+                { creator: { totalSales: 'desc' } },
+                { qualityScore: 'desc' },
+                { rating: 'desc' },
+            ];
+        }
 
         const itineraries = await prisma.itinerary.findMany({
             where, orderBy,

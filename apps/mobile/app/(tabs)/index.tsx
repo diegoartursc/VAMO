@@ -77,31 +77,43 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
                         </View>
                     </TouchableOpacity>
 
-                    {/* Explore Shortcuts 2x2 Grid */}
+                    {/* Explore Shortcuts 2x2 Grid — marketplace style */}
                     <View style={styles.heroShortcutsGrid}>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
+                        <TouchableOpacity
+                            style={styles.heroShortcutCard}
+                            onPress={() => router.push('/(tabs)/itineraries?sort=popular')}
+                        >
                             <View style={styles.heroShortcutIconWrap}>
                                 <Icon name="star" size={18} color={theme.colors.primary} strokeWidth={2} />
                             </View>
                             <Text style={styles.heroShortcutText} numberOfLines={2}>Mais populares</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
+                        <TouchableOpacity
+                            style={styles.heroShortcutCard}
+                            onPress={() => router.push('/(tabs)/itineraries?sort=sales')}
+                        >
                             <View style={styles.heroShortcutIconWrap}>
-                                <Icon name="utensils" size={18} color={theme.colors.primary} strokeWidth={2} />
+                                <Icon name="package" size={18} color={theme.colors.primary} strokeWidth={2} />
                             </View>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Gastronômicos</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Mais vendidos</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
+                        <TouchableOpacity
+                            style={styles.heroShortcutCard}
+                            onPress={() => router.push('/(tabs)/itineraries?sort=rating')}
+                        >
                             <View style={styles.heroShortcutIconWrap}>
-                                <Icon name="backpack" size={18} color={theme.colors.primary} strokeWidth={2} />
+                                <Icon name="award" size={18} color={theme.colors.primary} strokeWidth={2} />
                             </View>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Mochilão</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Melhor avaliados</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.heroShortcutCard} onPress={() => router.push('/(tabs)/itineraries')}>
+                        <TouchableOpacity
+                            style={styles.heroShortcutCard}
+                            onPress={() => router.push('/(tabs)/itineraries?sort=newest')}
+                        >
                             <View style={styles.heroShortcutIconWrap}>
-                                <Icon name="users" size={18} color={theme.colors.primary} strokeWidth={2} />
+                                <Icon name="gem" size={18} color={theme.colors.primary} strokeWidth={2} />
                             </View>
-                            <Text style={styles.heroShortcutText} numberOfLines={2}>Com crianças</Text>
+                            <Text style={styles.heroShortcutText} numberOfLines={2}>Novidades</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

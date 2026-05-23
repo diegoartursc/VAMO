@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import { CreatorCard } from '../../src/components/creator/CreatorCard';
 import { PriceComparison } from '../../src/components/comparison/PriceComparison';
-import { getFeaturedCreators as apiFeaturedCreators } from '../../src/services/api';
+import { getFeaturedCreators as apiFeaturedCreators, getItineraries } from '../../src/services/api';
 import { VERIFICATION_CONFIGS } from '../../src/types/creator';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
@@ -17,16 +17,67 @@ import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
 
+// Filtros marketplace exibidos no topo da tela quando o usuário entra
+// vindo de um chip da home. Mantemos os mesmos 4 chips da home como
+// "estado ativo" — clicar em um troca a ordenação sem sair da tela.
+const SORT_FILTERS: { key: string; label: string; icon: IconName }[] = [
+    { key: 'popular',  label: 'Mais populares',    icon: 'star' },
+    { key: 'sales',    label: 'Mais vendidos',     icon: 'package' },
+    { key: 'rating',   label: 'Melhor avaliados',  icon: 'award' },
+    { key: 'newest',   label: 'Novidades',         icon: 'gem' },
+];
+
+const SORT_LABELS: Record<string, string> = {
+    popular: 'Mais populares',
+    sales:   'Mais vendidos',
+    rating:  'Melhor avaliados',
+    newest:  'Novidades',
+};
+
 export default function ItinerariesScreen() {
     const router = useRouter();
+    const { sort: sortParam } = useLocalSearchParams<{ sort?: string }>();
     const { filters, applyFilters, allItineraries } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [showComparison, setShowComparison] = useState(false);
     const [featuredCreators, setFeaturedCreators] = useState<any[]>([]);
 
+    // Estado local do chip ativo. Hidratado pelo query param "sort" da home.
+    const [activeSort, setActiveSort] = useState<string | null>(sortParam ?? null);
+    const [sortedItineraries, setSortedItineraries] = useState<any[] | null>(null);
+    const [loadingSort, setLoadingSort] = useState(false);
+
     useEffect(() => {
         apiFeaturedCreators().then(setFeaturedCreators).catch(console.error);
     }, []);
+
+    // Sincroniza com o query param vindo da home (caso o usuário troque
+    // de chip clicando em outro shortcut antes de voltar à home).
+    useEffect(() => {
+        if (sortParam && sortParam !== activeSort) setActiveSort(sortParam);
+    }, [sortParam]);
+
+    // Refaz o fetch toda vez que o filtro mudar.
+    useEffect(() => {
+        let cancelled = false;
+        if (!activeSort) { setSortedItineraries(null); return; }
+        setLoadingSort(true);
+        getItineraries({ sort: activeSort })
+            .then(list => { if (!cancelled) setSortedItineraries(list); })
+            .catch(() => { if (!cancelled) setSortedItineraries([]); })
+            .finally(() => { if (!cancelled) setLoadingSort(false); });
+        return () => { cancelled = true; };
+    }, [activeSort]);
+
+    const itinerariesToShow = useMemo(() => {
+        if (activeSort && sortedItineraries) return sortedItineraries;
+        // Fallback: comportamento original (só featured)
+        return allItineraries.filter(it => it.featured);
+    }, [activeSort, sortedItineraries, allItineraries]);
+
+    const sectionTitle = activeSort
+        ? SORT_LABELS[activeSort] || 'Roteiros'
+        : 'Roteiros mais escolhidos pela comunidade';
 
     return (
         <View style={styles.container}>
@@ -52,17 +103,70 @@ export default function ItinerariesScreen() {
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* 1️⃣ Featured Itineraries - PRIORITY */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Roteiros mais escolhidos pela comunidade</Text>
+                {/* 🎯 Chips de ordenação marketplace — mesmos 4 da home */}
+                <View style={styles.sortChipsRow}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+                    >
+                        {SORT_FILTERS.map((f) => {
+                            const active = activeSort === f.key;
+                            return (
+                                <TouchableOpacity
+                                    key={f.key}
+                                    style={[styles.sortChip, active && styles.sortChipActive]}
+                                    onPress={() => setActiveSort(active ? null : f.key)}
+                                    activeOpacity={0.85}
+                                >
+                                    <Icon
+                                        name={f.icon}
+                                        size={14}
+                                        color={active ? '#fff' : theme.colors.primary}
+                                        strokeWidth={2.2}
+                                    />
+                                    <Text style={[styles.sortChipText, active && styles.sortChipTextActive]}>
+                                        {f.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
 
-                    {allItineraries.filter(it => it.featured).map((itinerary) => (
-                        <ItineraryCard
-                            key={itinerary.id}
-                            itinerary={itinerary}
-                            onPress={() => router.push(`/itinerary/${itinerary.id}`)}
-                        />
-                    ))}
+                {/* 1️⃣ Lista (Featured por padrão, ou ordenada quando há filtro) */}
+                <View style={styles.section}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+                        {activeSort && (
+                            <TouchableOpacity onPress={() => setActiveSort(null)}>
+                                <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>
+                                    Limpar
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {loadingSort ? (
+                        <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                            <ActivityIndicator color={theme.colors.primary} />
+                        </View>
+                    ) : itinerariesToShow.length === 0 ? (
+                        <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                            <Icon name="search" size={32} color={theme.colors.text.tertiary} />
+                            <Text style={{ marginTop: 8, color: theme.colors.text.secondary, fontSize: 14 }}>
+                                Nenhum roteiro encontrado para esse filtro.
+                            </Text>
+                        </View>
+                    ) : (
+                        itinerariesToShow.map((itinerary) => (
+                            <ItineraryCard
+                                key={itinerary.id}
+                                itinerary={itinerary}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            />
+                        ))
+                    )}
                 </View>
 
                 {/* 2️⃣ Featured Creators */}
@@ -228,6 +332,25 @@ const styles = StyleSheet.create({
     section: {
         padding: theme.spacing.md,
     },
+    sortChipsRow: {
+        paddingVertical: 10,
+        backgroundColor: '#fff',
+    },
+    sortChip: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        paddingHorizontal: 14, paddingVertical: 8,
+        backgroundColor: theme.colors.surface,
+        borderRadius: 9999,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
+    },
+    sortChipActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    sortChipText: {
+        fontSize: 13, fontWeight: '600', color: theme.colors.text.primary,
+    },
+    sortChipTextActive: { color: '#fff' },
     sectionTitle: {
         fontSize: 20,
         fontWeight: '700',
