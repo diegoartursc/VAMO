@@ -1,14 +1,24 @@
-# Política de backups
+# Política de backups e arquivos locais
 
 ## TL;DR
 
-**Backup não vive dentro do projeto.** Vai pra `../VAMO-backups-archive/`, fora do
-diretório `VAMO/`.
+Três regras simples:
+
+1. **Backup pesado** (cópia do projeto, dump do banco, tarball) → `../VAMO-backups-archive/` (FORA do projeto)
+2. **Arquivos do dev** (logs, notas, scratch) → `.local/` (dentro do projeto, mas ignorado pelo Git)
+3. **Documentação útil pra outros devs / IA / GitHub** → `docs/` (versionado)
 
 ```
 [Códigos/
-├── VAMO/                       ← o projeto (limpo, ~6 GB)
-└── VAMO-backups-archive/       ← TODO backup mora aqui (~8 GB)
+├── VAMO/                       ← o projeto (limpo, ~3 GB)
+│   ├── apps/, packages/        ← código (versionado)
+│   ├── docs/                   ← docs visíveis no GitHub (versionado)
+│   ├── README.md, BACKUPS.md   ← docs raiz (versionado)
+│   └── .local/                 ← gaveta do dev (IGNORADO pelo Git)
+│       ├── logs/
+│       ├── notes/
+│       └── scratch/
+└── VAMO-backups-archive/       ← TODO backup pesado mora aqui (~12 GB)
     ├── VAMO-backup-*.tar.gz
     ├── public_backup_*/        ← criado pelo db:reset-test-data
     └── ...

@@ -73,3 +73,7 @@ Thumbs.db
 # ─── Claude / agentes ───
 .claude/worktrees/
 .agent/
+
+# ─── Gaveta do desenvolvedor (qualquer coisa local que não deve ir pro repo) ───
+# Veja .local/README.md. Tudo aqui é invisível pro Git.
+.local/
