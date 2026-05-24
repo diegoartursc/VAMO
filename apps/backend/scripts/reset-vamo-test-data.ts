@@ -90,11 +90,17 @@ async function main() {
     console.table(before);
 
     // ── Backup pasta uploads ──
-    header("Backup de uploads (apps/backend/public/)");
+    // POLÍTICA: backups NÃO ficam dentro do projeto VAMO. Vão pra
+    // `../../VAMO-backups-archive/` (irmã do diretório do projeto).
+    // Se a pasta archive não existir, ela é criada na hora.
+    header("Backup de uploads (vai PRA FORA do projeto)");
     const publicDir = path.resolve(__dirname, "..", "public");
     if (fs.existsSync(publicDir)) {
         const ts = new Date().toISOString().replace(/[:.]/g, "-");
-        const backupDir = path.resolve(__dirname, "..", `public_backup_${ts}`);
+        // __dirname = apps/backend/scripts/  →  ../../../../  =  pasta-pai-do-VAMO
+        const archiveRoot = path.resolve(__dirname, "..", "..", "..", "..", "VAMO-backups-archive");
+        fs.mkdirSync(archiveRoot, { recursive: true });
+        const backupDir = path.join(archiveRoot, `public_backup_${ts}`);
         fs.renameSync(publicDir, backupDir);
         // Recria a árvore completa que o backend espera (multer usa
         // `public/uploads/itineraries` como destino e só cria a pasta
