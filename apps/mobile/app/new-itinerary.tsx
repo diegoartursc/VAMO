@@ -31,6 +31,7 @@ import {
     Sun, BookOpen, Music, Backpack, Users, Heart, Mountain,
     CalendarDays, Plane, Building2, Ticket, Bus, Lightbulb, Utensils, ListChecks, CreditCard,
     Camera, Star, Clock, X,
+    Wifi, Shield, FileText, Shirt, Package, Coins, ShoppingBag, Luggage, Wrench, Pill, Car,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -40,6 +41,7 @@ import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
 import FormInput from '../src/components/dashboard/FormInput';
 import EditableList from '../src/components/dashboard/EditableList';
+import CostBlock, { costToLegacySpending } from '../src/components/dashboard/CostBlock';
 import { CurrencyPicker } from '../src/components/common/CurrencyPicker';
 import {
     createEmptyForm,
@@ -53,8 +55,6 @@ import {
     RestaurantItem,
     ChecklistItem,
     SpendingEntry,
-    ModuleSpending,
-    EMPTY_MODULE_SPENDING,
     ExtraSpendingItem,
     FlightLeg,
     EMPTY_FLIGHT_LEG,
@@ -118,6 +118,25 @@ const STEP_LABEL_MAP: Record<StepKey, string> = {
     gastos_extras: 'Gastos Extras',
     media:         'Fotos e Vídeos',
     review:        'Revisão',
+};
+
+// Mapeia o campo `section` de uma ValidationIssue para a chave de etapa
+// correspondente, para que "Corrigir pendência" leve o roteirista direto
+// para a etapa onde está o problema.
+const ISSUE_SECTION_TO_STEP: Record<string, StepKey> = {
+    identity:      'identity',
+    proof:         'proof',
+    commerce:      'commerce',
+    modules:       'modules',
+    itinerary:     'days',
+    voo:           'voo',
+    hospedagem:    'hospedagem',
+    passeios:      'passeios',
+    transporte:    'transporte',
+    dicas:         'dicas',
+    restaurantes:  'restaurantes',
+    checklist:     'checklist',
+    gastos_extras: 'gastos_extras',
 };
 
 function buildSteps(activeModules: ModuleKey[]): StepKey[] {
@@ -247,11 +266,21 @@ export default function NewItineraryScreen() {
         }
         const issues = validateForSubmission(form);
         if (issues.length) {
-            // Na etapa Revisão (última), o card de pendências já está visível —
-            // só rola para o topo e dá um haptic de erro. Em outras etapas
-            // (fallback), mostra Alert listando os problemas.
+            // Na etapa Revisão (última), o card de pendências já está visível.
+            // Navegamos direto para a etapa da primeira pendência para o
+            // roteirista corrigir sem precisar adivinhar onde está o problema.
             if (isLastStep) {
                 haptics.error?.();
+                const firstIssue = issues[0];
+                const targetKey = ISSUE_SECTION_TO_STEP[firstIssue.section];
+                if (targetKey) {
+                    const targetIndex = steps.indexOf(targetKey);
+                    if (targetIndex >= 0) {
+                        setStep(targetIndex + 1);
+                        scrollRef.current?.scrollTo({ y: 0, animated: true });
+                        return;
+                    }
+                }
                 scrollRef.current?.scrollTo({ y: 0, animated: true });
             } else {
                 Alert.alert(
@@ -308,11 +337,15 @@ export default function NewItineraryScreen() {
             const payload = { ...buildPayload(form), status: 'DRAFT' };
             const url    = isEdit ? `${API_BASE}/itineraries/${editId}` : `${API_BASE}/itineraries`;
             const method = isEdit ? 'PUT' : 'POST';
-            await fetch(url, {
+            const draftRes = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
                 body: JSON.stringify(payload),
             });
+            if (!draftRes.ok) {
+                const errBody = await draftRes.json().catch(() => ({}));
+                throw new Error(errBody?.error || `Erro ${draftRes.status} ao salvar rascunho`);
+            }
             await AsyncStorage.removeItem(DRAFT_KEY);
             router.replace('/created-itineraries');
         } catch (e: any) {
@@ -403,16 +436,25 @@ export default function NewItineraryScreen() {
                     {stepKey === 'commerce'     && <StepCommerce     form={form} update={updateForm} />}
                     {stepKey === 'modules'      && <StepModules      form={form} update={updateForm} />}
                     {stepKey === 'days'         && <StepDays         form={form} update={updateForm} />}
-                    {stepKey === 'voo'          && <StepFlight       form={form} update={updateForm} />}
-                    {stepKey === 'hospedagem'   && <StepAccommodations form={form} update={updateForm} />}
-                    {stepKey === 'passeios'     && <StepAttractions  form={form} update={updateForm} />}
-                    {stepKey === 'transporte'   && <StepTransport    form={form} update={updateForm} />}
+                    {stepKey === 'voo'          && <StepFlight       form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'hospedagem'   && <StepAccommodations form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'passeios'     && <StepAttractions  form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'transporte'   && <StepTransport    form={form} update={updateForm} token={accessToken} />}
                     {stepKey === 'dicas'        && <StepTips         form={form} update={updateForm} />}
-                    {stepKey === 'restaurantes' && <StepRestaurants  form={form} update={updateForm} />}
+                    {stepKey === 'restaurantes' && <StepRestaurants  form={form} update={updateForm} token={accessToken} />}
                     {stepKey === 'checklist'    && <StepChecklist    form={form} update={updateForm} />}
-                    {stepKey === 'gastos_extras' && <StepExtraSpending form={form} update={updateForm} />}
+                    {stepKey === 'gastos_extras' && <StepExtraSpending form={form} update={updateForm} token={accessToken} />}
                     {stepKey === 'media'        && <StepMedia        form={form} update={updateForm} token={accessToken} />}
-                    {stepKey === 'review'       && <StepReview       form={form} onPreview={openPreview} />}
+                    {stepKey === 'review'       && <StepReview       form={form} onPreview={openPreview} onFixIssue={(section) => {
+                        const targetKey = ISSUE_SECTION_TO_STEP[section];
+                        if (!targetKey) return;
+                        const targetIndex = steps.indexOf(targetKey);
+                        if (targetIndex >= 0) {
+                            haptics.light();
+                            setStep(targetIndex + 1);
+                            scrollRef.current?.scrollTo({ y: 0, animated: true });
+                        }
+                    }} />}
                 </ScrollView>
             </KeyboardAvoidingView>
 
@@ -940,6 +982,22 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
     familia:     Users,
     romantico:   Heart,
     aventura:    Mountain,
+};
+
+const EXTRA_SPENDING_ICON_MAP: Record<string, LucideIcon> = {
+    internet:       Wifi,
+    seguro:         Shield,
+    taxas:          Landmark,
+    visto:          FileText,
+    lavanderia:     Shirt,
+    guardavolume:   Package,
+    gorjetas:       Coins,
+    compras:        ShoppingBag,
+    bagagem:        Luggage,
+    aluguel:        Wrench,
+    farmacia:       Pill,
+    estacionamento: Car,
+    outros:         Sparkles,
 };
 
 const MODULE_ICON_MAP: Record<string, LucideIcon> = {
@@ -1724,7 +1782,7 @@ function emptyRestaurant(): RestaurantItem { return { name: '', cuisine: '', loc
 // STEP MODULES — Hospedagens
 // ═══════════════════════════════════════════════════════════════════
 
-function StepAccommodations({ form, update }: StepProps) {
+function StepAccommodations({ form, update, token }: StepProps) {
     return (
         <View>
             <ModuleStepHeader
@@ -1776,11 +1834,14 @@ function StepAccommodations({ form, update }: StepProps) {
                             onChangeText={v => set({ tips: v })}
                             style={{ minHeight: 50, textAlignVertical: 'top' }}
                         />
-                        <SpendingFieldset
-                            spending={item.spending}
-                            onChange={sp => set({ spending: sp })}
+                        <CostBlock
+                            cost={item.cost}
+                            legacySpending={item.spending}
+                            onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
                             defaultCurrency={form.currency || 'BRL'}
-                            helperShort="Valor por pessoa da estadia — opcional. Ajuda o viajante a se planejar."
+                            helperShort="Valor por pessoa da estadia. Comprovante (reserva, recibo) aumenta a confiança."
+                            encourageProof
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
                         />
                     </>
                 )}
@@ -1793,7 +1854,7 @@ function StepAccommodations({ form, update }: StepProps) {
 // STEP MODULES — Passeios & Atrações
 // ═══════════════════════════════════════════════════════════════════
 
-function StepAttractions({ form, update }: StepProps) {
+function StepAttractions({ form, update, token }: StepProps) {
     return (
         <View>
             <ModuleStepHeader
@@ -1848,38 +1909,21 @@ function StepAttractions({ form, update }: StepProps) {
                                 onChangeText={v => set({ description: v })}
                                 style={{ minHeight: 60, textAlignVertical: 'top' }}
                             />
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
-                                <View style={{ flex: 2 }}>
-                                    <FormInput label="Link externo" placeholder="Ex: www.toureiffel.paris" autoCapitalize="none" value={item.externalLink} onChangeText={v => set({ externalLink: v })} />
-                                </View>
-                                <View style={{ width: 110 }}>
-                                    <FormInput label="Preço" keyboardType="decimal-pad" placeholder="Ex: 35" value={item.price || ''} onChangeText={v => set({ price: v })} />
-                                </View>
-                            </View>
-                            <Text style={s.helper}>Preço opcional — usa a mesma moeda da Estimativa de gastos por pessoa.</Text>
-                            {/* Horário recomendado: estrutura Início → Fim (substitui texto livre).
-                                Salvo em item.hours como "HH:MM - HH:MM" para preservar payload do site. */}
+                            <FormInput label="Link externo" placeholder="Ex: www.toureiffel.paris" autoCapitalize="none" value={item.externalLink} onChangeText={v => set({ externalLink: v })} />
+                            {/* Horário recomendado: apenas o horário inicial.
+                                Mantemos o formato "HH:MM" em item.hours para preservar o payload. */}
                             {(() => {
-                                const range = (item.hours || '').split(/\s*[-–]\s*/);
-                                const start = parseHHMM(range[0] || '') ? range[0] : '';
-                                const end = parseHHMM(range[1] || '') ? range[1] : '';
-                                const writeRange = (a: string, b: string) => {
-                                    const out = [a, b].filter(Boolean).join(' - ');
-                                    set({ hours: out });
-                                };
+                                // Compat: payload antigo podia ter "HH:MM - HH:MM" (intervalo).
+                                // Lemos apenas a 1a parte como horário recomendado.
+                                const first = (item.hours || '').split(/\s*[-–]\s*/)[0]?.trim() || '';
+                                const start = parseHHMM(first) ? first : '';
                                 return (
                                     <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
                                         <TimePickerField
-                                            label="Início"
+                                            label="Horário recomendado"
                                             value={start}
-                                            onChange={v => writeRange(v, end)}
+                                            onChange={v => set({ hours: v })}
                                             placeholder="09:00"
-                                        />
-                                        <TimePickerField
-                                            label="Fim"
-                                            value={end}
-                                            onChange={v => writeRange(start, v)}
-                                            placeholder="18:00"
                                         />
                                     </View>
                                 );
@@ -1891,11 +1935,14 @@ function StepAttractions({ form, update }: StepProps) {
                                 onChangeText={v => set({ tips: v })}
                                 style={{ minHeight: 50, textAlignVertical: 'top' }}
                             />
-                            <SpendingFieldset
-                                spending={item.spending}
-                                onChange={sp => set({ spending: sp })}
+                            <CostBlock
+                                cost={item.cost}
+                                legacySpending={item.spending}
+                                onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
                                 defaultCurrency={form.currency || 'BRL'}
-                                helperShort="Valor por pessoa do ingresso/passeio — opcional."
+                                helperShort="Valor por pessoa do ingresso/passeio. Para passeios caros, comprovante aumenta a confiança."
+                                encourageProof
+                                uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
                             />
                         </>
                     );
@@ -1909,7 +1956,7 @@ function StepAttractions({ form, update }: StepProps) {
 // STEP MODULES — Transporte
 // ═══════════════════════════════════════════════════════════════════
 
-function StepTransport({ form, update }: StepProps) {
+function StepTransport({ form, update, token }: StepProps) {
     return (
         <View>
             <ModuleStepHeader
@@ -1949,11 +1996,14 @@ function StepTransport({ form, update }: StepProps) {
                             onChangeText={v => set({ notes: v })}
                             style={{ minHeight: 50, textAlignVertical: 'top' }}
                         />
-                        <SpendingFieldset
-                            spending={item.spending}
-                            onChange={sp => set({ spending: sp })}
+                        <CostBlock
+                            cost={item.cost}
+                            legacySpending={item.spending}
+                            onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
                             defaultCurrency={form.currency || 'BRL'}
-                            helperShort="Valor por pessoa do passe/transporte — opcional."
+                            helperShort="Valor por pessoa do passe/transporte — opcional. Use estimativa para transporte local."
+                            encourageProof
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
                         />
                     </>
                 )}
@@ -1966,7 +2016,7 @@ function StepTransport({ form, update }: StepProps) {
 // STEP MODULES — Restaurantes & Gastronomia
 // ═══════════════════════════════════════════════════════════════════
 
-function StepRestaurants({ form, update }: StepProps) {
+function StepRestaurants({ form, update, token }: StepProps) {
     return (
         <View>
             <ModuleStepHeader
@@ -2014,11 +2064,14 @@ function StepRestaurants({ form, update }: StepProps) {
                             onChangeText={v => set({ tips: v })}
                             style={{ minHeight: 50, textAlignVertical: 'top' }}
                         />
-                        <SpendingFieldset
-                            spending={item.spending}
-                            onChange={sp => set({ spending: sp })}
+                        <CostBlock
+                            cost={item.cost}
+                            legacySpending={item.spending}
+                            onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
                             defaultCurrency={form.currency || 'BRL'}
-                            helperShort="Valor por pessoa da refeição — opcional."
+                            helperShort="Valor por pessoa da refeição — opcional. Use estimativa quando o preço varia."
+                            encourageProof
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
                         />
                     </>
                 )}
@@ -2031,7 +2084,7 @@ function StepRestaurants({ form, update }: StepProps) {
 // STEP MODULES — Meu Voo
 // ═══════════════════════════════════════════════════════════════════
 
-function StepFlight({ form, update }: StepProps) {
+function StepFlight({ form, update, token }: StepProps) {
     const setLeg = (key: 'flightOutbound' | 'flightReturn', patch: Partial<FlightLeg>) =>
         update(key, { ...form[key], ...patch });
 
@@ -2081,12 +2134,19 @@ function StepFlight({ form, update }: StepProps) {
                 placeholder="Ex: Voo noturno é a melhor opção — dormi no avião e cheguei descansado de manhã"
             />
 
-            {/* Gasto da passagem aérea (opcional, comprovante obrigatório se preencher) */}
-            <SpendingFieldset
-                spending={form.flightSpending}
-                onChange={sp => update('flightSpending', sp)}
+            {/* Gasto da passagem aérea (opcional). Comprovante de reserva
+                aumenta a confiança do roteiro. */}
+            <CostBlock
+                cost={form.flightCost}
+                legacySpending={form.flightSpending}
+                onChange={c => {
+                    update('flightCost', c);
+                    update('flightSpending', costToLegacySpending(c));
+                }}
                 defaultCurrency={form.currency || 'BRL'}
-                helperShort="Valor da passagem por pessoa — opcional."
+                helperShort="Valor da passagem por pessoa — opcional. Reserva/recibo aumenta a confiança."
+                encourageProof
+                uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
             />
         </View>
     );
@@ -2198,60 +2258,9 @@ function StepChecklist({ form, update }: StepProps) {
 // STEP MODULES — Estimativa de Gastos por Pessoa
 // ═══════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════
-// SPENDING FIELDSET — usado inline dentro de cada item de módulo
-// ═══════════════════════════════════════════════════════════════════
-//
-// Regra: valor + moeda são opcionais. Não há upload de comprovante
-// dentro dos módulos — o único comprovante exigido em todo o fluxo é
-// o comprovante geral de viagem (step "Comprovante").
-
-function SpendingFieldset({
-    spending,
-    onChange,
-    defaultCurrency = 'BRL',
-    helperShort,
-}: {
-    spending?: ModuleSpending;
-    onChange: (sp: ModuleSpending | undefined) => void;
-    defaultCurrency?: string;
-    helperShort?: string;
-}) {
-    const sp = spending || { ...EMPTY_MODULE_SPENDING, currency: defaultCurrency };
-
-    const patch = (p: Partial<ModuleSpending>) => onChange({ ...sp, ...p });
-
-    return (
-        <View style={s.spFieldset}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <Ionicons name="wallet-outline" size={14} color={theme.colors.primary} />
-                <Text style={s.spFieldsetLabel}>Gasto por pessoa (opcional)</Text>
-            </View>
-            <Text style={s.helper}>
-                {helperShort || 'Informar valor é opcional — ajuda o viajante a se planejar.'}
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginTop: 4 }}>
-                <View style={{ flex: 2 }}>
-                    <FormInput
-                        label="Valor"
-                        keyboardType="decimal-pad"
-                        placeholder="Ex: 150"
-                        value={sp.value}
-                        onChangeText={val => patch({ value: val })}
-                    />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <CurrencyPicker
-                        label="Moeda"
-                        compact
-                        value={sp.currency || defaultCurrency}
-                        onChange={code => patch({ currency: code })}
-                    />
-                </View>
-            </View>
-        </View>
-    );
-}
+// SpendingFieldset (legacy) foi substituído por CostBlock em todos os
+// módulos. Mantemos apenas o tipo ModuleSpending importado para
+// retrocompatibilidade com payload/legacy data.
 
 // ═══════════════════════════════════════════════════════════════════
 // STEP MODULE — Gastos Extras
@@ -2268,7 +2277,7 @@ function emptyExtraSpending(): ExtraSpendingItem {
     };
 }
 
-function StepExtraSpending({ form, update }: StepProps) {
+function StepExtraSpending({ form, update, token }: StepProps) {
     const items = form.extraSpendingItems || [];
 
     const setItems = (next: ExtraSpendingItem[]) => update('extraSpendingItems', next);
@@ -2308,13 +2317,20 @@ function StepExtraSpending({ form, update }: StepProps) {
                     <View style={s.chipRow}>
                         {EXTRA_SPENDING_CATEGORIES.map(c => {
                             const active = e.category === c.key;
+                            const IconComp = EXTRA_SPENDING_ICON_MAP[c.key];
                             return (
                                 <TouchableOpacity
                                     key={c.key}
                                     style={[s.chip, active && s.chipActive]}
                                     onPress={() => updateItem(i, { category: c.key })}
                                 >
-                                    <Text style={{ fontSize: 13 }}>{c.emoji}</Text>
+                                    {IconComp && (
+                                        <IconComp
+                                            size={14}
+                                            strokeWidth={2}
+                                            color={active ? theme.colors.primary : theme.colors.text.secondary}
+                                        />
+                                    )}
                                     <Text style={[s.chipText, active && s.chipTextActive]}>{c.label}</Text>
                                 </TouchableOpacity>
                             );
@@ -2337,25 +2353,22 @@ function StepExtraSpending({ form, update }: StepProps) {
                         style={{ minHeight: 50, textAlignVertical: 'top' }}
                     />
 
-                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
-                        <View style={{ flex: 2 }}>
-                            <FormInput
-                                label="Valor por pessoa (opcional)"
-                                keyboardType="decimal-pad"
-                                placeholder="Ex: 80"
-                                value={e.value}
-                                onChangeText={v => updateItem(i, { value: v })}
-                            />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <CurrencyPicker
-                                label="Moeda"
-                                compact
-                                value={e.currency || 'BRL'}
-                                onChange={code => updateItem(i, { currency: code })}
-                            />
-                        </View>
-                    </View>
+                    <CostBlock
+                        cost={e.cost}
+                        legacySpending={e.value ? { value: e.value, currency: e.currency || 'BRL' } : undefined}
+                        onChange={c => {
+                            const legacy = costToLegacySpending(c);
+                            updateItem(i, {
+                                cost: c,
+                                value: legacy?.value ?? '',
+                                currency: legacy?.currency ?? e.currency ?? 'BRL',
+                            });
+                        }}
+                        defaultCurrency={form.currency || 'BRL'}
+                        helperShort="Gastos variáveis (chip, taxas, gorjetas) costumam ser estimativas."
+                        encourageProof
+                        uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                    />
                 </View>
             ))}
 
@@ -2476,7 +2489,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
 // STEP 9 — REVISÃO
 // ═══════════════════════════════════════════════════════════════════
 
-function StepReview({ form, onPreview }: { form: ItineraryFormState; onPreview: () => void }) {
+function StepReview({ form, onPreview, onFixIssue }: { form: ItineraryFormState; onPreview: () => void; onFixIssue: (section: string) => void }) {
     const blocks = useMemo(() => calcQualityBlocks(form), [form]);
     const totalScore = useMemo(() => calcQuality(form), [form]);
     const issues = useMemo(() => validateForSubmission(form), [form]);
@@ -2496,8 +2509,17 @@ function StepReview({ form, onPreview }: { form: ItineraryFormState; onPreview: 
             {issues.length > 0 ? (
                 <View style={s.issuesCard}>
                     <Text style={s.issuesTitle}>⚠️ Pendências para envio</Text>
+                    <Text style={s.issueHint}>Toque para ir até a etapa e corrigir.</Text>
                     {issues.map((i, idx) => (
-                        <Text key={idx} style={s.issueText}>• {i.message}</Text>
+                        <TouchableOpacity
+                            key={idx}
+                            style={s.issueRow}
+                            onPress={() => onFixIssue(i.section)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={s.issueText}>• {i.message}</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.colors.warning || '#F59E0B'} />
+                        </TouchableOpacity>
                     ))}
                 </View>
             ) : (
@@ -2551,6 +2573,9 @@ function StepReview({ form, onPreview }: { form: ItineraryFormState; onPreview: 
 interface StepProps {
     form: ItineraryFormState;
     update: <K extends keyof ItineraryFormState>(key: K, value: ItineraryFormState[K]) => void;
+    /** Token de auth para uploads (comprovantes de custo, fotos). Pode ser
+     *  null/undefined em rotas públicas — o backend de uploads aceita ambos. */
+    token?: string | null;
 }
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -2635,6 +2660,39 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
  * Lança Error com mensagem descritiva ao falhar (em vez de retornar null
  * silenciosamente) — permite mostrar o erro real ao usuário.
  */
+/**
+ * Renova o accessToken usando o refreshToken salvo no AsyncStorage.
+ * Retorna o novo accessToken ou null se o refresh falhar (refreshToken
+ * também expirado/inválido — usuário precisa fazer login de novo).
+ */
+async function tryRefreshSession(): Promise<string | null> {
+    try {
+        const raw = await AsyncStorage.getItem('@vamo_session');
+        if (!raw) return null;
+        const session = JSON.parse(raw);
+        const refreshToken = session?.refreshToken;
+        if (!refreshToken) return null;
+
+        const res = await fetch(`${API_BASE}/auth/traveler/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const newToken = data.accessToken;
+        if (!newToken) return null;
+
+        await AsyncStorage.setItem(
+            '@vamo_session',
+            JSON.stringify({ ...session, accessToken: newToken }),
+        );
+        return newToken;
+    } catch {
+        return null;
+    }
+}
+
 async function uploadOne(
     uri: string,
     token: string | null | undefined,
@@ -2653,42 +2711,60 @@ async function uploadOne(
 
     console.log('[upload] iniciando', { filename, mime: inferredMime, platform: Platform.OS });
 
-    const formData = new FormData();
-    if (Platform.OS === 'web') {
-        // Web: precisa de Blob/File real, não objeto {uri, ...}
-        const blobRes = await fetch(uri);
-        if (!blobRes.ok) {
-            throw new Error(`Não foi possível ler o arquivo selecionado (HTTP ${blobRes.status}).`);
+    // Constrói o FormData (factory para podermos reconstruir no retry —
+    // alguns FormData em RN não são reutilizáveis após uma falha).
+    const buildFormData = async (): Promise<FormData> => {
+        const fd = new FormData();
+        if (Platform.OS === 'web') {
+            const blobRes = await fetch(uri);
+            if (!blobRes.ok) {
+                throw new Error(`Não foi possível ler o arquivo selecionado (HTTP ${blobRes.status}).`);
+            }
+            const blob = await blobRes.blob();
+            console.log('[upload] blob criado', { size: blob.size, type: blob.type });
+            fd.append('file', blob, filename);
+        } else {
+            // @ts-ignore RN-specific form data shape
+            fd.append('file', { uri, name: filename, type: inferredMime });
         }
-        const blob = await blobRes.blob();
-        console.log('[upload] blob criado', { size: blob.size, type: blob.type });
-        formData.append('file', blob, filename);
-    } else {
-        // Native: shape específico do RN
-        // @ts-ignore RN-specific form data shape
-        formData.append('file', { uri, name: filename, type: inferredMime });
+        return fd;
+    };
+
+    // Tentativa principal. Em caso de 401, refresh + 1 retry.
+    let currentToken = token;
+    let res: Response;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const headers: Record<string, string> = {};
+        if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
+        const formData = await buildFormData();
+        res = await fetch(`${API_BASE}/uploads`, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+        if (res.status !== 401 || attempt === 1) break;
+        // 401 na primeira tentativa: tenta refresh
+        console.log('[upload] 401 — tentando refresh do token...');
+        const newToken = await tryRefreshSession();
+        if (!newToken) {
+            console.warn('[upload] refresh falhou — sessão expirada');
+            throw new Error('Sua sessão expirou. Faça login novamente.');
+        }
+        currentToken = newToken;
+        console.log('[upload] token renovado, retentando upload...');
     }
-
-    const headers: Record<string, string> = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    // No web NÃO setar Content-Type — o browser adiciona o boundary multipart sozinho.
-
-    const res = await fetch(`${API_BASE}/uploads`, {
-        method: 'POST',
-        headers,
-        body: formData,
-    });
 
     const elapsed = Date.now() - startedAt;
-    if (!res.ok) {
+    if (!res!.ok) {
         let detail = '';
-        try { detail = await res.text(); } catch {}
-        console.warn('[upload] falhou', { status: res.status, detail, elapsed });
-        if (res.status === 413) throw new Error('Arquivo muito grande (máx 25 MB).');
-        if (res.status === 415) throw new Error('Formato de arquivo não suportado.');
-        throw new Error(`Upload falhou (HTTP ${res.status}). Verifique sua conexão.`);
+        try { detail = await res!.text(); } catch {}
+        console.warn('[upload] falhou', { status: res!.status, detail, elapsed });
+        if (res!.status === 401) throw new Error('Sua sessão expirou. Faça login novamente.');
+        if (res!.status === 413) throw new Error('Arquivo muito grande (máx 25 MB).');
+        if (res!.status === 415) throw new Error('Formato de arquivo não suportado.');
+        throw new Error(`Upload falhou (HTTP ${res!.status}). Verifique sua conexão.`);
     }
-    const data = await res.json();
+    const data = await res!.json();
     const url = data.url || data.urls?.[0];
     if (!url) {
         console.warn('[upload] resposta sem URL:', data);
@@ -2755,6 +2831,9 @@ function deserializeFromApi(data: any): ItineraryFormState {
         flightOutbound: data.flightInfo?.outbound || { ...EMPTY_FLIGHT_LEG },
         flightReturn:   data.flightInfo?.return   || { ...EMPTY_FLIGHT_LEG },
         flightTips: data.flightInfo?.tips || [],
+        flightSpending: data.flightInfo?.spending || undefined,
+        flightCost: data.flightInfo?.cost || undefined,
+        extraSpendingItems: data.extraSpendingItems || [],
         images: (data.images || []).map((img: any) => typeof img === 'string' ? img : img.url).filter(Boolean),
         mediaUrls: data.mediaUrls || [],
         highlightPhotos: data.highlightPhotos || [],
@@ -3212,8 +3291,14 @@ const s = StyleSheet.create({
         padding: 14, borderRadius: 12, backgroundColor: '#FEF3C7',
         borderWidth: 1, borderColor: '#FCD34D', marginBottom: 14,
     },
-    issuesTitle: { fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 6 },
-    issueText:   { fontSize: 13, color: '#92400E', lineHeight: 20 },
+    issuesTitle: { fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 2 },
+    issueHint:   { fontSize: 11, color: '#92400E', opacity: 0.75, marginBottom: 6, fontStyle: 'italic' },
+    issueRow:    {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingVertical: 8, paddingHorizontal: 6, borderRadius: 8,
+        borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#FCD34D',
+    },
+    issueText:   { flex: 1, fontSize: 13, color: '#92400E', lineHeight: 20 },
 
     okCard: {
         flexDirection: 'row', alignItems: 'center', gap: 10,

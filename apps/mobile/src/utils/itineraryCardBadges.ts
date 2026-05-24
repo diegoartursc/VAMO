@@ -21,8 +21,32 @@ export interface ModuleBadge {
 export interface CategoryChip {
     key: string;
     label: string;
+    /** Emoji original do shared (mantido por compat). */
     emoji: string;
+    /** Ícone Lucide profissional para usar no card. */
+    icon: IconName;
 }
+
+/**
+ * Mapa de categoria → ícone Lucide. Substitui o uso de emoji nos chips
+ * do card por uma representação visual consistente com o resto do app.
+ */
+const CATEGORY_ICON: Record<string, IconName> = {
+    cultura:     'landmark',
+    gastronomia: 'utensils',
+    natureza:    'trees',
+    esportes:    'trophy',
+    cruzeiros:   'ship',
+    eurotrip:    'globe',
+    relax:       'gem',
+    praia:       'sun',
+    historico:   'landmark',
+    festivais:   'party-popper',
+    mochilao:    'backpack',
+    familia:     'users',
+    romantico:   'heart',
+    aventura:    'mountain',
+};
 
 export interface ReceivedModule {
     key: string;
@@ -223,6 +247,10 @@ export function getModuleBadges(itinerary: any): ModuleBadge[] {
 
 /**
  * Thematic category chips derived from itinerary.categories.
+ *
+ * Cada chip retorna tanto o emoji original (compat com legado) quanto
+ * o `icon` Lucide para uso no card. Fallback para 'compass' quando a
+ * categoria não está no mapa CATEGORY_ICON.
  */
 export function getCategoryChips(itinerary: any): CategoryChip[] {
     const categories: string[] = itinerary?.categories ?? [];
@@ -230,7 +258,12 @@ export function getCategoryChips(itinerary: any): CategoryChip[] {
     return categories
         .map(key => CATEGORY_OPTIONS.find(opt => opt.key === key))
         .filter((opt): opt is NonNullable<typeof opt> => !!opt)
-        .map(opt => ({ key: opt.key, label: opt.label, emoji: opt.emoji }));
+        .map(opt => ({
+            key: opt.key,
+            label: opt.label,
+            emoji: opt.emoji,
+            icon: (CATEGORY_ICON[opt.key] ?? 'compass') as IconName,
+        }));
 }
 
 /**

@@ -39,6 +39,13 @@ logs/
 backups/
 *.tar.gz
 *_pid.txt
+# Backup automático criado pelo script de reset (apps/backend/scripts/reset-vamo-test-data.ts)
+apps/backend/public_backup_*/
+
+# ─── Runtime uploads (não devem ser versionados) ───
+# Multer escreve aqui em dev. O .gitkeep mantém a pasta no repo.
+apps/backend/public/uploads/*
+!apps/backend/public/uploads/.gitkeep
 
 # ─── Temp files ───
 *.tmp

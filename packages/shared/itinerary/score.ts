@@ -9,11 +9,20 @@
  *   3. Fotos de capa                  8
  *   4. Roteiro dia a dia             20
  *   5. Módulos de conteúdo           15
- *   6. Transparência financeira       5  (gastos comprovados — opcional)
+ *   6. Transparência financeira       8  (gastos estimados/comprovados — opcional)
  *   7. Confiança & Qualidade         12
  *                                  ─────
- *   Total                          90 → cap em 100
+ *   Total                          93 → cap em 100
+ *
+ * Transparência financeira (bloco 6):
+ *  - Roteiros sem custos NÃO são penalizados (continuam podendo publicar).
+ *  - Itens com valor estimado contam +1 ponto cada (até saturação do bloco).
+ *  - Itens com valor comprovado (cost.verified + arquivo) valem +2 pontos.
+ *  - Observação contextual em qualquer item conta +1.
+ *  - O bloco satura em 8 pontos.
  */
+
+import type { ModuleCostInfo } from "./types";
 
 export interface ScoreCriterion {
     text: string;
@@ -32,6 +41,15 @@ interface SpendingShape {
     value?: string;
 }
 
+interface CostBearer {
+    cost?: ModuleCostInfo;
+    spending?: SpendingShape;
+    /** ExtraSpendingItem usa value/currency direto. */
+    value?: string;
+    /** AttractionItem usa price antigo. */
+    price?: string;
+}
+
 /** Dados aceitos pelo score — qualquer objeto que se pareça com o estado do form. */
 export interface ScoreInput {
     title?: string;
@@ -46,12 +64,13 @@ export interface ScoreInput {
     images?: string[];
     duration?: number;
     days?: { description?: string; activities?: { time?: string }[] }[];
-    accommodations?: { name?: string; spending?: SpendingShape }[];
-    attractions?: { name?: string; spending?: SpendingShape }[];
-    restaurants?: { name?: string; spending?: SpendingShape }[];
-    transports?: { description?: string; spending?: SpendingShape }[];
+    accommodations?: ({ name?: string } & CostBearer)[];
+    attractions?: ({ name?: string } & CostBearer)[];
+    restaurants?: ({ name?: string } & CostBearer)[];
+    transports?: ({ description?: string } & CostBearer)[];
     flightSpending?: SpendingShape;
-    extraSpendingItems?: { title?: string; value?: string }[];
+    flightCost?: ModuleCostInfo;
+    extraSpendingItems?: ({ title?: string } & CostBearer)[];
     generalTips?: string[];
     checklistItems?: { item?: string }[];
     spendingEntries?: { priceValue?: string }[];
@@ -123,27 +142,89 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
         { text: "Checklist de viagem adicionado",      done: (data.checklistItems?.length ?? 0) >= 1,                                pts: 1 },
     ];
 
-    // ─── Bloco 6: Transparência financeira (5 pts) ───
+    // ─── Bloco 6: Transparência financeira (8 pts) ───
     // Gastos por módulo são 100% opcionais. Informar valores ajuda o
-    // viajante a se planejar, mas nunca é obrigatório. Não há comprovante
-    // de gasto no fluxo — apenas o comprovante geral de viagem.
-    const hasValue = (v?: string | null) =>
+    // viajante a se planejar, mas nunca é obrigatório. Comprovantes valem
+    // mais que estimativas. Roteiros sem custos não são penalizados.
+    const parseNum = (v?: string | null) =>
         !!v && parseFloat(String(v).replace(",", ".")) > 0;
 
-    const valueCount =
-        (hasValue(data.flightSpending?.value) ? 1 : 0)
-        + (data.accommodations ?? []).filter(a => hasValue(a.spending?.value)).length
-        + (data.attractions    ?? []).filter(a => hasValue(a.spending?.value)).length
-        + (data.transports     ?? []).filter(t => hasValue(t.spending?.value)).length
-        + (data.restaurants    ?? []).filter(r => hasValue(r.spending?.value)).length
-        + (data.extraSpendingItems ?? []).filter(e => hasValue(e.value)).length
-        + (data.spendingEntries    ?? []).filter(e => parseFloat(e.priceValue ?? "") > 0).length
-        + (data.hasSpending && !data.spendingEntries?.length ? 1 : 0);
+    const inferType = (it?: CostBearer | null): "verified" | "estimated" | "not_informed" => {
+        if (!it) return "not_informed";
+        if (it.cost) return it.cost.disclosureType;
+        // Legado: se há valor, considera estimated
+        const legacyVal = it.spending?.value ?? it.value ?? it.price;
+        return parseNum(legacyVal) ? "estimated" : "not_informed";
+    };
 
-    const b6: ScoreCriterion[] = [
-        { text: "Pelo menos 1 gasto informado (opcional)", done: valueCount >= 1, pts: 2 },
-        { text: "3+ gastos informados (transparência)",    done: valueCount >= 3, pts: 3 },
+    const hasProof = (it?: CostBearer | null): boolean => {
+        if (!it?.cost) return false;
+        return (it.cost.proofFiles?.length ?? 0) > 0
+            && (it.cost.proofStatus === "uploaded"
+                || it.cost.proofStatus === "pending_review"
+                || it.cost.proofStatus === "approved");
+    };
+
+    const hasNotes = (it?: CostBearer | null): boolean => {
+        if (!it?.cost?.notes) return false;
+        return it.cost.notes.trim().length > 0;
+    };
+
+    const flightBearer: CostBearer | null =
+        data.flightCost ? { cost: data.flightCost } :
+        data.flightSpending ? { spending: data.flightSpending } : null;
+
+    const allBearers: CostBearer[] = [
+        ...((data.accommodations    ?? []) as CostBearer[]),
+        ...((data.attractions       ?? []) as CostBearer[]),
+        ...((data.transports        ?? []) as CostBearer[]),
+        ...((data.restaurants       ?? []) as CostBearer[]),
+        ...((data.extraSpendingItems ?? []) as CostBearer[]),
+        ...(flightBearer ? [flightBearer] : []),
     ];
+
+    let estimatedCount = 0;
+    let verifiedCount = 0;
+    let verifiedWithProofCount = 0;
+    let notesCount = 0;
+    for (const it of allBearers) {
+        const t = inferType(it);
+        if (t === "estimated") {
+            estimatedCount++;
+            if (hasNotes(it)) notesCount++;
+        }
+        if (t === "verified") {
+            // "verified" sem comprovante é estado inconsistente — não
+            // dá direito a bônus de score. A validação (validateForSubmission)
+            // gera pendência forçando o usuário a anexar comprovante ou
+            // rebaixar para "estimated".
+            if (hasProof(it)) {
+                verifiedCount++;
+                verifiedWithProofCount++;
+                if (hasNotes(it)) notesCount++;
+            }
+        }
+    }
+
+    // Legacy gasto entries
+    const legacyEntries = (data.spendingEntries ?? []).filter(e => parseNum(e.priceValue)).length
+        + (data.hasSpending && !data.spendingEntries?.length ? 1 : 0);
+    estimatedCount += legacyEntries;
+
+    const informedCount = estimatedCount + verifiedCount;
+
+    const b6Raw: ScoreCriterion[] = [
+        { text: "Pelo menos 1 custo informado",
+          done: informedCount >= 1, pts: 2 },
+        { text: "3+ custos informados (transparência)",
+          done: informedCount >= 3, pts: 2 },
+        { text: "Custo comprovado com arquivo anexado",
+          done: verifiedWithProofCount >= 1, pts: 2 },
+        { text: "Observação contextual em algum custo",
+          done: notesCount >= 1, pts: 2 },
+    ];
+    // Satura em 8 pontos (ver doc do bloco).
+    const b6 = b6Raw;
 
     // ─── Bloco 7: Confiança & Qualidade (12 pts) ───
     const b7: ScoreCriterion[] = [
@@ -159,7 +240,7 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
         { label: "Fotos de capa",                   earned: sum(b3), max: 8,  criteria: b3 },
         { label: "Roteiro dia a dia",               earned: sum(b4), max: 20, criteria: b4 },
         { label: "Módulos de conteúdo",             earned: sum(b5), max: 15, criteria: b5 },
-        { label: "Transparência financeira",        earned: sum(b6), max: 5,  criteria: b6 },
+        { label: "Transparência financeira",        earned: sum(b6), max: 8,  criteria: b6 },
         { label: "Confiança & Qualidade",           earned: sum(b7), max: 12, criteria: b7 },
     ];
 }

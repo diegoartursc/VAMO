@@ -17,13 +17,32 @@ const VIEW_MODE_KEY = '@vamo_profile_view_mode';
 type ViewMode = 'traveler' | 'creator';
 
 // ─── Creator dashboard stats (resumo) ─────────────────────────
+interface CreatorItinerarySummary {
+    id: string;
+    title: string;
+    destination?: string;
+    country?: string;
+    status: string;
+    sales: number;
+    revenue: number;
+    rating?: number | null;
+    duration?: number;
+    price?: number;
+    qualityScore?: number;
+    updatedAt?: string;
+}
 interface CreatorStatsSummary {
     totalItineraries: number;
     activeItineraries: number;
+    publishedItineraries: number;
     pendingReview: number;
+    draftItineraries: number;
+    rejectedItineraries: number;
     totalSales: number;
     totalRevenue: number;
     averageRating: number;
+    averageQualityScore: number | null;
+    itineraries: CreatorItinerarySummary[];
 }
 
 const { width } = Dimensions.get('window');
@@ -101,14 +120,33 @@ export default function ProfileScreen() {
             });
             if (!res.ok) { setCreatorStats(null); setStatsLoaded(true); return; }
             const data = await res.json();
-            const pendingReview = (data.itineraries || []).filter((it: any) => it.status === 'pending_review').length;
+            // Backwards-compat: campos novos vieram a partir do hotfix do
+            // dashboard. Faz fallback para os antigos quando ausentes.
+            const itineraries = (data.itineraries || []) as CreatorItinerarySummary[];
+            const pendingReview = data.pendingReview ?? itineraries.filter(it => it.status === 'pending_review').length;
+            const publishedItineraries = data.publishedItineraries ?? itineraries.filter(it => it.status === 'active' || it.status === 'approved').length;
+            const draftItineraries = data.draftItineraries ?? itineraries.filter(it => it.status === 'draft').length;
+            const rejectedItineraries = data.rejectedItineraries ?? itineraries.filter(it => it.status === 'rejected').length;
+            // Qualidade média conta apenas roteiros ativos/aprovados.
+            // Fallback (backend antigo): aplica o mesmo filtro localmente.
+            const activeForAvg = itineraries.filter(it => it.status === 'active' || it.status === 'approved');
+            const avgQuality: number | null = data.averageQualityScore !== undefined
+                ? data.averageQualityScore
+                : (activeForAvg.length > 0
+                    ? Math.round(activeForAvg.reduce((s, it) => s + (it.qualityScore ?? 0), 0) / activeForAvg.length)
+                    : null);
             setCreatorStats({
-                totalItineraries: data.totalItineraries ?? 0,
+                totalItineraries: data.totalItineraries ?? itineraries.length,
                 activeItineraries: data.activeItineraries ?? 0,
+                publishedItineraries,
                 pendingReview,
+                draftItineraries,
+                rejectedItineraries,
                 totalSales: data.totalSales ?? 0,
                 totalRevenue: data.totalRevenue ?? 0,
                 averageRating: data.averageRating ?? 0,
+                averageQualityScore: avgQuality,
+                itineraries,
             });
             setStatsLoaded(true);
             console.log('[profile] creator stats:', {
@@ -265,16 +303,23 @@ export default function ProfileScreen() {
                 </LinearGradient>
 
                 {/* ══════════ MODE SWITCHER (Viajante/Roteirista) ══════════ */}
+                {/*
+                 * Segmented control limpo. NÃO confundir com atalhos:
+                 * este bloco só alterna o modo; o conteúdo abaixo muda
+                 * conforme o modo selecionado.
+                 */}
                 {isCreator && (
                     <View style={modeStyles.wrap}>
-                        <Text style={modeStyles.label}>Você está usando o VAMO como:</Text>
+                        <Text style={modeStyles.label}>Você está usando o VAMO como</Text>
                         <View style={modeStyles.segmented}>
                             <TouchableOpacity
                                 style={[modeStyles.seg, viewMode === 'traveler' && modeStyles.segActive]}
                                 onPress={() => switchMode('traveler')}
                                 activeOpacity={0.85}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: viewMode === 'traveler' }}
                             >
-                                <Icon name="book-open" size={14} color={viewMode === 'traveler' ? '#fff' : theme.colors.text.secondary} />
+                                <Icon name="book-open" size={16} color={viewMode === 'traveler' ? '#fff' : theme.colors.text.secondary} />
                                 <Text style={[modeStyles.segText, viewMode === 'traveler' && modeStyles.segTextActive]}>
                                     Viajante
                                 </Text>
@@ -283,8 +328,10 @@ export default function ProfileScreen() {
                                 style={[modeStyles.seg, viewMode === 'creator' && modeStyles.segActive]}
                                 onPress={() => switchMode('creator')}
                                 activeOpacity={0.85}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: viewMode === 'creator' }}
                             >
-                                <Icon name="edit" size={14} color={viewMode === 'creator' ? '#fff' : theme.colors.text.secondary} />
+                                <Icon name="edit" size={16} color={viewMode === 'creator' ? '#fff' : theme.colors.text.secondary} />
                                 <Text style={[modeStyles.segText, viewMode === 'creator' && modeStyles.segTextActive]}>
                                     Roteirista
                                 </Text>
@@ -295,79 +342,15 @@ export default function ProfileScreen() {
 
                 {/* ══════════ 2. QUICK STATS (Viajante) / DASHBOARD (Roteirista) ══════════ */}
                 {viewMode === 'creator' && isCreator ? (
-                    /* Dashboard resumo do criador */
-                    <View style={dashStyles.wrap}>
-                        <View style={dashStyles.headerRow}>
-                            <View>
-                                <Text style={dashStyles.headerTitle}>Dashboard do Roteirista</Text>
-                                <Text style={dashStyles.headerSub}>
-                                    {creatorStats
-                                        ? `${creatorStats.totalItineraries} roteiro${creatorStats.totalItineraries === 1 ? '' : 's'} criado${creatorStats.totalItineraries === 1 ? '' : 's'}`
-                                        : 'Carregando…'}
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                style={dashStyles.newButton}
-                                onPress={() => { haptics.medium(); router.push('/new-itinerary'); }}
-                                activeOpacity={0.85}
-                            >
-                                <Icon name="edit" size={14} color="#fff" />
-                                <Text style={dashStyles.newButtonText}>Criar roteiro</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Stat cards */}
-                        <View style={dashStyles.statsGrid}>
-                            <View style={dashStyles.statCard}>
-                                <Text style={dashStyles.statValue}>{creatorStats?.totalItineraries ?? '—'}</Text>
-                                <Text style={dashStyles.statLabel}>Criados</Text>
-                            </View>
-                            <View style={dashStyles.statCard}>
-                                <Text style={dashStyles.statValue}>{creatorStats?.activeItineraries ?? '—'}</Text>
-                                <Text style={dashStyles.statLabel}>Publicados</Text>
-                            </View>
-                            <View style={dashStyles.statCard}>
-                                <Text style={[dashStyles.statValue, (creatorStats?.pendingReview ?? 0) > 0 && { color: '#D97706' }]}>
-                                    {creatorStats?.pendingReview ?? '—'}
-                                </Text>
-                                <Text style={dashStyles.statLabel}>Em análise</Text>
-                            </View>
-                        </View>
-
-                        <View style={dashStyles.statsGrid}>
-                            <View style={dashStyles.statCard}>
-                                <Text style={dashStyles.statValue}>{creatorStats?.totalSales ?? '—'}</Text>
-                                <Text style={dashStyles.statLabel}>Vendas</Text>
-                            </View>
-                            <View style={[dashStyles.statCard, { flex: 2 }]}>
-                                <Text style={dashStyles.statValue}>
-                                    {creatorStats ? `R$ ${creatorStats.totalRevenue.toFixed(0)}` : '—'}
-                                </Text>
-                                <Text style={dashStyles.statLabel}>Receita acumulada</Text>
-                            </View>
-                        </View>
-
-                        {/* CTA principal: ver lista completa */}
-                        <TouchableOpacity
-                            style={dashStyles.fullDashboardBtn}
-                            onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
-                            activeOpacity={0.85}
-                        >
-                            <Icon name="briefcase" size={16} color={theme.colors.primary} />
-                            <Text style={dashStyles.fullDashboardText}>Ver todos os meus roteiros</Text>
-                            <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
-                        </TouchableOpacity>
-
-                        {/* Aviso receita */}
-                        {(!creatorStats || creatorStats.totalSales === 0) && (
-                            <View style={dashStyles.emptySalesCard}>
-                                <Icon name="info" size={14} color={theme.colors.text.tertiary} />
-                                <Text style={dashStyles.emptySalesText}>
-                                    Quando seus roteiros forem comprados, suas vendas e receita aparecerão aqui.
-                                </Text>
-                            </View>
-                        )}
-                    </View>
+                    <CreatorDashboard
+                        stats={creatorStats}
+                        userName={user?.name?.split(' ')[0]}
+                        onCreate={() => { haptics.medium(); router.push('/new-itinerary'); }}
+                        onSeeAll={() => { haptics.light(); router.push('/created-itineraries'); }}
+                        onOpenItinerary={(id) => { haptics.light(); router.push(`/(tabs)/itinerary/${id}`); }}
+                        onSales={() => { haptics.light(); router.push('/created-itineraries'); }}
+                        onReviews={() => { haptics.light(); router.push('/my-reviews'); }}
+                    />
                 ) : (
                     /* Quick stats do viajante (modo padrão) */
                     <View style={styles.statsRow}>
@@ -929,14 +912,18 @@ const styles = StyleSheet.create({
         marginTop: 10, textAlign: 'center',
     },
 
-    // Stats
+    // Stats — sem margin negativo. O efeito "floating cards sobre o
+    // gradiente" foi removido porque colidia com o seletor Viajante/
+    // Roteirista, criando ilusão visual de que os stat cards estavam
+    // dentro do seletor. Agora os stats ficam claramente abaixo do
+    // seletor, com respiro adequado.
     statsRow: {
-        flexDirection: 'row', marginTop: -20, marginHorizontal: 20, gap: 10,
+        flexDirection: 'row', marginTop: 16, marginHorizontal: 20, gap: 10,
     },
     statCard: {
         flex: 1, backgroundColor: theme.colors.background,
         borderRadius: 16, paddingVertical: 16, alignItems: 'center',
-        ...theme.shadows.medium,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
     },
     statIcon: { fontSize: 24, marginBottom: 6 },
     statValue: { fontSize: 22, fontWeight: '800', color: theme.colors.text.primary },
@@ -1126,29 +1113,675 @@ const styles = StyleSheet.create({
 });
 
 // ─── Mode switcher styles ─────────────────────────────────────
+// Segmented control limpo: container único arredondado com 2 metades.
+// Altura ~52px, ícones 16px, sem cards internos. Separação clara dos
+// atalhos abaixo via marginBottom generoso.
 const modeStyles = StyleSheet.create({
-    wrap: { marginHorizontal: 20, marginTop: 18, marginBottom: 4 },
+    wrap: { marginHorizontal: 20, marginTop: 20, marginBottom: 12 },
     label: {
-        fontSize: 12, fontWeight: '600', color: theme.colors.text.tertiary,
-        textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8,
+        fontSize: 11, fontWeight: '700', color: theme.colors.text.tertiary,
+        textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10,
     },
     segmented: {
-        flexDirection: 'row', backgroundColor: theme.colors.surfaceLight,
-        borderRadius: 100, padding: 4, gap: 4,
+        flexDirection: 'row', backgroundColor: theme.colors.surfaceHighlight,
+        borderRadius: 999, padding: 4,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
     },
     seg: {
         flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        gap: 6, paddingVertical: 10, borderRadius: 100,
+        gap: 8, paddingVertical: 12, paddingHorizontal: 8,
+        borderRadius: 999,
+        minHeight: 44,
     },
     segActive: {
         backgroundColor: theme.colors.primary,
         ...theme.shadows.button,
     },
-    segText: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary },
+    segText: { fontSize: 14, fontWeight: '600', color: theme.colors.text.secondary },
     segTextActive: { color: '#fff', fontWeight: '700' },
 });
 
 // ─── Creator dashboard inline styles ──────────────────────────
+// ═════════════════════════════════════════════════════════════════════
+// CreatorDashboard — área Roteirista do perfil
+// ═════════════════════════════════════════════════════════════════════
+//
+// Adapta o dashboard web (apps/site/src/app/dashboard/page.tsx) para
+// mobile, mantendo as mesmas métricas/lógicas:
+//   - Hero gradiente com nome + 2 CTAs
+//   - 4 cards de métricas (Ativos, Vendas, Avaliação, Qualidade)
+//   - Card "Receita acumulada"
+//   - Seção "Seus Roteiros" com cards individuais + status + score
+//   - Ações Rápidas
+//
+// Recebe stats já carregadas (mesma fonte da web: /dashboard/stats).
+
+function CreatorDashboard({
+    stats,
+    userName,
+    onCreate,
+    onSeeAll,
+    onOpenItinerary,
+    onSales,
+    onReviews,
+}: {
+    stats: CreatorStatsSummary | null;
+    userName?: string;
+    onCreate: () => void;
+    onSeeAll: () => void;
+    onOpenItinerary: (id: string) => void;
+    onSales: () => void;
+    onReviews: () => void;
+}) {
+    const loading = !stats;
+    const itineraries = stats?.itineraries ?? [];
+    const visibleItineraries = itineraries.slice(0, 3);
+    const hasMore = itineraries.length > visibleItineraries.length;
+
+    return (
+        <View>
+            {/* ── Hero gradiente (espelha "Criador" da web) ── */}
+            <View style={cdStyles.heroWrap}>
+                <LinearGradient
+                    colors={['#1A3263', '#162A55']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={cdStyles.hero}
+                >
+                    <Text style={cdStyles.heroEyebrow}>BOA VIAGEM</Text>
+                    <Text style={cdStyles.heroTitle}>
+                        {userName ? `Olá, ${userName}` : 'Criador'}
+                    </Text>
+                    <Text style={cdStyles.heroSubtitle}>
+                        Gerencie seus roteiros, acompanhe vendas e expanda seu alcance.
+                    </Text>
+                    <View style={cdStyles.heroCtas}>
+                        <TouchableOpacity
+                            style={cdStyles.heroPrimary}
+                            onPress={onCreate}
+                            activeOpacity={0.85}
+                        >
+                            <Icon name="edit" size={15} color="#fff" />
+                            <Text style={cdStyles.heroPrimaryText}>Novo roteiro</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={cdStyles.heroSecondary}
+                            onPress={onSeeAll}
+                            activeOpacity={0.85}
+                        >
+                            <Text style={cdStyles.heroSecondaryText}>Ver roteiros</Text>
+                            <Ionicons name="arrow-forward" size={15} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+                </LinearGradient>
+            </View>
+
+            {/* ── 4 cards de métricas (grid 2x2) ── */}
+            <View style={cdStyles.metricsGrid}>
+                <MetricCard
+                    icon="briefcase"
+                    iconColor={theme.colors.primary}
+                    iconBg={theme.colors.primary + '14'}
+                    label="Roteiros ativos"
+                    value={loading ? '—' : String(stats!.publishedItineraries)}
+                    subtext={loading ? '' : `${stats!.totalItineraries} no total`}
+                />
+                <MetricCard
+                    icon="briefcase"
+                    iconColor="#6366F1"
+                    iconBg="#6366F114"
+                    label="Vendas totais"
+                    value={loading ? '—' : String(stats!.totalSales)}
+                    subtext={loading ? '' : `R$ ${Math.round(stats!.totalRevenue)} em receita`}
+                />
+                <MetricCard
+                    icon="star"
+                    iconColor="#F59E0B"
+                    iconBg="#F59E0B14"
+                    label="Avaliação média"
+                    value={loading || stats!.averageRating <= 0 ? '—' : stats!.averageRating.toFixed(1)}
+                    subtext="de 5.0"
+                />
+                <MetricCard
+                    icon="verified"
+                    iconColor={theme.colors.success}
+                    iconBg={theme.colors.success + '14'}
+                    label="Qualidade média"
+                    value={loading || stats!.averageQualityScore == null ? '—' : `${stats!.averageQualityScore}%`}
+                    subtext={loading || stats!.averageQualityScore == null ? 'Sem roteiros ativos' : 'Média dos roteiros ativos'}
+                />
+            </View>
+
+            {/* ── Receita acumulada (card em destaque) ── */}
+            <View style={cdStyles.revenueCard}>
+                <View style={cdStyles.revenueLeft}>
+                    <Text style={cdStyles.revenueLabel}>Receita acumulada</Text>
+                    <Text style={cdStyles.revenueValue}>
+                        {loading ? '—' : `R$ ${Math.round(stats!.totalRevenue).toLocaleString('pt-BR')}`}
+                    </Text>
+                    <Text style={cdStyles.revenueSub}>
+                        {loading
+                            ? ''
+                            : stats!.totalSales > 0
+                                ? `${stats!.totalSales} venda${stats!.totalSales === 1 ? '' : 's'} concluída${stats!.totalSales === 1 ? '' : 's'}`
+                                : 'Aguardando primeira venda'}
+                    </Text>
+                </View>
+                <View style={cdStyles.revenueIconWrap}>
+                    <Ionicons name="cash-outline" size={22} color={theme.colors.primary} />
+                </View>
+            </View>
+
+            {/* ── Dica Pro ── */}
+            <View style={cdStyles.proTipCard}>
+                <View style={cdStyles.proTipHeader}>
+                    <Ionicons name="flash" size={18} color={theme.colors.primary} />
+                    <Text style={cdStyles.proTipTitle}>DICA PRO</Text>
+                </View>
+                <Text style={cdStyles.proTipBody}>
+                    Roteiros com score acima de{' '}
+                    <Text style={cdStyles.proTipHighlight}>80%</Text>
+                    {' '}têm aprovação 3× mais rápida e mais destaque no app.
+                </Text>
+            </View>
+
+            {/* ── Seção "Seus Roteiros" ── */}
+            <View style={cdStyles.section}>
+                <View style={cdStyles.sectionHeader}>
+                    <Text style={cdStyles.sectionTitle}>Seus Roteiros</Text>
+                    {itineraries.length > 0 && (
+                        <TouchableOpacity onPress={onSeeAll}>
+                            <Text style={cdStyles.sectionLink}>Ver todos</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {itineraries.length === 0 ? (
+                    <View style={cdStyles.emptyCard}>
+                        <Ionicons name="map-outline" size={28} color={theme.colors.text.tertiary} />
+                        <Text style={cdStyles.emptyTitle}>Nenhum roteiro ainda</Text>
+                        <Text style={cdStyles.emptyText}>Crie seu primeiro itinerário.</Text>
+                        <TouchableOpacity
+                            style={cdStyles.emptyCta}
+                            onPress={onCreate}
+                            activeOpacity={0.85}
+                        >
+                            <Icon name="edit" size={14} color="#fff" />
+                            <Text style={cdStyles.emptyCtaText}>Criar roteiro</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <>
+                        {visibleItineraries.map((it) => (
+                            <TouchableOpacity
+                                key={it.id}
+                                style={cdStyles.itineraryCard}
+                                onPress={() => onOpenItinerary(it.id)}
+                                activeOpacity={0.88}
+                            >
+                                <View style={cdStyles.itineraryHeader}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={cdStyles.itineraryTitle} numberOfLines={1}>
+                                            {it.title}
+                                        </Text>
+                                        {it.destination ? (
+                                            <Text style={cdStyles.itineraryDest} numberOfLines={1}>
+                                                {it.destination}{it.country ? `, ${it.country}` : ''}
+                                            </Text>
+                                        ) : null}
+                                    </View>
+                                    <StatusBadge status={it.status} />
+                                </View>
+                                <View style={cdStyles.itineraryMeta}>
+                                    {typeof it.price === 'number' && it.price > 0 && (
+                                        <MetaPill icon="card" label={`R$ ${it.price.toFixed(0)}`} />
+                                    )}
+                                    {typeof it.qualityScore === 'number' && (
+                                        <MetaPill icon="star" label={`Score ${it.qualityScore}%`} />
+                                    )}
+                                    {it.sales > 0 && (
+                                        <MetaPill icon="briefcase" label={`${it.sales} venda${it.sales === 1 ? '' : 's'}`} />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                        {hasMore && (
+                            <TouchableOpacity
+                                style={cdStyles.seeAllInline}
+                                onPress={onSeeAll}
+                                activeOpacity={0.85}
+                            >
+                                <Text style={cdStyles.seeAllText}>
+                                    Ver todos os {itineraries.length} roteiros
+                                </Text>
+                                <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+                            </TouchableOpacity>
+                        )}
+                    </>
+                )}
+            </View>
+
+            {/* ── Ações Rápidas ── */}
+            <View style={cdStyles.section}>
+                <Text style={cdStyles.sectionTitle}>Ações Rápidas</Text>
+                <QuickAction
+                    icon="edit"
+                    iconBg={theme.colors.primary + '14'}
+                    iconColor={theme.colors.primary}
+                    title="Criar Roteiro"
+                    subtitle="Novo itinerário"
+                    onPress={onCreate}
+                />
+                <QuickAction
+                    icon="book-open"
+                    iconBg="#6366F114"
+                    iconColor="#6366F1"
+                    title="Meus Roteiros"
+                    subtitle="Gerenciar tudo"
+                    onPress={onSeeAll}
+                />
+                <QuickAction
+                    icon="briefcase"
+                    iconBg="#16A34A14"
+                    iconColor="#16A34A"
+                    title="Minhas Vendas"
+                    subtitle="Histórico financeiro"
+                    onPress={onSales}
+                />
+                <QuickAction
+                    icon="message-circle"
+                    iconBg="#F59E0B14"
+                    iconColor="#F59E0B"
+                    title="Comentários"
+                    subtitle="Avaliações dos viajantes"
+                    onPress={onReviews}
+                />
+            </View>
+        </View>
+    );
+}
+
+function MetricCard({ icon, iconColor, iconBg, label, value, subtext }: {
+    icon: IconName; iconColor: string; iconBg: string;
+    label: string; value: string; subtext?: string;
+}) {
+    return (
+        <View style={cdStyles.metricCard}>
+            <View style={[cdStyles.metricIconWrap, { backgroundColor: iconBg }]}>
+                <Icon name={icon} size={16} color={iconColor} />
+            </View>
+            <Text style={cdStyles.metricLabel}>{label}</Text>
+            <Text style={cdStyles.metricValue}>{value}</Text>
+            {subtext ? <Text style={cdStyles.metricSub}>{subtext}</Text> : null}
+        </View>
+    );
+}
+
+const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> = {
+    draft:          { label: 'Rascunho',  bg: '#94A3B81A', fg: '#475569' },
+    pending_review: { label: 'Em análise', bg: '#F59E0B1F', fg: '#A16207' },
+    approved:       { label: 'Aprovado',  bg: '#22C55E1F', fg: '#15803D' },
+    active:         { label: 'Publicado', bg: '#22C55E1F', fg: '#15803D' },
+    published:      { label: 'Publicado', bg: '#22C55E1F', fg: '#15803D' },
+    rejected:       { label: 'Rejeitado', bg: '#EF44441F', fg: '#B91C1C' },
+    archived:       { label: 'Arquivado', bg: '#94A3B81F', fg: '#475569' },
+};
+function StatusBadge({ status }: { status: string }) {
+    const key = (status || '').toLowerCase();
+    const cfg = STATUS_LABELS[key] ?? { label: status || 'Status', bg: '#94A3B81F', fg: '#475569' };
+    return (
+        <View style={[cdStyles.statusBadge, { backgroundColor: cfg.bg }]}>
+            <Text style={[cdStyles.statusText, { color: cfg.fg }]}>{cfg.label}</Text>
+        </View>
+    );
+}
+
+function MetaPill({ icon, label }: { icon: IconName; label: string }) {
+    return (
+        <View style={cdStyles.metaPill}>
+            <Icon name={icon} size={11} color={theme.colors.text.secondary} />
+            <Text style={cdStyles.metaPillText}>{label}</Text>
+        </View>
+    );
+}
+
+function QuickAction({
+    icon, iconBg, iconColor, title, subtitle, onPress,
+}: {
+    icon: IconName; iconBg: string; iconColor: string;
+    title: string; subtitle: string; onPress: () => void;
+}) {
+    return (
+        <TouchableOpacity
+            style={cdStyles.quickAction}
+            onPress={onPress}
+            activeOpacity={0.88}
+        >
+            <View style={[cdStyles.quickActionIcon, { backgroundColor: iconBg }]}>
+                <Icon name={icon} size={18} color={iconColor} />
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text style={cdStyles.quickActionTitle}>{title}</Text>
+                <Text style={cdStyles.quickActionSub}>{subtitle}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
+        </TouchableOpacity>
+    );
+}
+
+const cdStyles = StyleSheet.create({
+    // Hero
+    heroWrap: { marginHorizontal: 20, marginTop: 16 },
+    hero: {
+        borderRadius: 20,
+        padding: 20,
+        gap: 4,
+        ...theme.shadows.large,
+    },
+    heroEyebrow: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#28C9BF',
+        letterSpacing: 1,
+    },
+    heroTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: -0.5,
+        marginTop: 2,
+    },
+    heroSubtitle: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.75)',
+        lineHeight: 19,
+        marginTop: 6,
+    },
+    heroCtas: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 14,
+    },
+    heroPrimary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 11,
+        borderRadius: 999,
+        ...theme.shadows.button,
+    },
+    heroPrimaryText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    heroSecondary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 11,
+        borderRadius: 999,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.28)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    heroSecondaryText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+    // Metrics grid
+    metricsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        marginHorizontal: 20,
+        marginTop: 16,
+    },
+    metricCard: {
+        width: '48%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        padding: 14,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    metricIconWrap: {
+        width: 30, height: 30, borderRadius: 8,
+        alignItems: 'center', justifyContent: 'center',
+        marginBottom: 4,
+    },
+    metricLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: theme.colors.text.tertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+    },
+    metricValue: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        letterSpacing: -0.5,
+    },
+    metricSub: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+    },
+
+    // Revenue featured card
+    revenueCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginHorizontal: 20,
+        marginTop: 12,
+        padding: 16,
+        backgroundColor: theme.colors.primary + '0D',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '22',
+    },
+    revenueLeft: { flex: 1, gap: 2 },
+    revenueLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.colors.text.tertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    revenueValue: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        letterSpacing: -0.6,
+    },
+    revenueSub: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+    },
+    revenueIconWrap: {
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: theme.colors.primary + '1A',
+        alignItems: 'center', justifyContent: 'center',
+    },
+
+    // Sections
+    section: { marginHorizontal: 20, marginTop: 20 },
+    sectionHeader: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    sectionTitle: {
+        fontSize: 17, fontWeight: '800', color: theme.colors.text.primary,
+        letterSpacing: -0.3,
+    },
+    sectionLink: {
+        fontSize: 13, fontWeight: '700', color: theme.colors.primary,
+    },
+
+    // Itinerary card
+    itineraryCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        gap: 10,
+    },
+    itineraryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    itineraryTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    itineraryDest: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        marginTop: 2,
+    },
+    statusBadge: {
+        paddingHorizontal: 9,
+        paddingVertical: 3,
+        borderRadius: 999,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
+    itineraryMeta: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+    },
+    metaPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+    },
+    metaPillText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: theme.colors.text.secondary,
+    },
+    seeAllInline: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: theme.colors.primary + '0E',
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '22',
+    },
+    seeAllText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
+
+    // Empty state (sem roteiros)
+    emptyCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        padding: 24,
+        alignItems: 'center',
+        gap: 6,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    emptyTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginTop: 4,
+    },
+    emptyText: {
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+        textAlign: 'center',
+    },
+    emptyCta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 999,
+        backgroundColor: theme.colors.primary,
+    },
+    emptyCtaText: {
+        color: '#fff', fontSize: 13, fontWeight: '700',
+    },
+
+    // Quick actions
+    quickAction: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    quickActionIcon: {
+        width: 40, height: 40, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center',
+    },
+    quickActionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    quickActionSub: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        marginTop: 1,
+    },
+    proTipCard: {
+        marginHorizontal: 20,
+        marginVertical: 8,
+        padding: 20,
+        borderRadius: 20,
+        backgroundColor: 'rgba(40, 201, 191, 0.06)',
+        borderWidth: 1,
+        borderColor: 'rgba(40, 201, 191, 0.22)',
+    },
+    proTipHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 10,
+    },
+    proTipTitle: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: theme.colors.secondary,
+        letterSpacing: 1,
+    },
+    proTipBody: {
+        fontSize: 17,
+        lineHeight: 26,
+        color: '#5A6B8C',
+        fontWeight: '400',
+    },
+    proTipHighlight: {
+        color: theme.colors.secondary,
+        fontWeight: '800',
+    },
+});
+
 const dashStyles = StyleSheet.create({
     wrap: { marginHorizontal: 20, marginTop: 18 },
     headerRow: {

@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser, logout, type CurrentUser } from "../lib/auth";
+import VamoLogo from "./VamoLogo";
 
 type Variant = "transparent" | "solid";
 
@@ -93,15 +94,9 @@ export default function GlobalHeader({ variant = "solid" }: Props) {
                     letterSpacing: "-0.02em",
                 }}
             >
-                <img
-                    src={transparent ? "/images/logo_transparent.png" : "/images/logo_transparent.png"}
-                    alt="VAMO"
-                    style={{
-                        height: 28,
-                        width: "auto",
-                        objectFit: "contain",
-                        filter: transparent ? "none" : "brightness(0.2)",
-                    }}
+                <VamoLogo
+                    variant={transparent ? "white" : "dark"}
+                    style={{ height: 28, width: "auto" }}
                 />
             </Link>
 
@@ -115,7 +110,7 @@ export default function GlobalHeader({ variant = "solid" }: Props) {
                 }}
             >
                 <Link
-                    href="/explore"
+                    href="/criadores"
                     style={{
                         padding: "10px 16px",
                         borderRadius: 999,

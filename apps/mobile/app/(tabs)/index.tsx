@@ -22,6 +22,7 @@ import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAni
 
 // Components
 import { Icon } from '../../src/components/common/Icons';
+import VamoLogo from '../../src/components/common/VamoLogo';
 import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
@@ -52,7 +53,7 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
             <SafeAreaView style={styles.heroSafeArea}>
                 {/* Brand Logo & Actions */}
                 <View style={styles.heroTopRow}>
-                    <Image source={require('../../assets/images/logo_transparent.png')} style={styles.brandLogo} />
+                    <VamoLogo size={120} style={styles.brandLogo} />
                     <View style={{ flexDirection: 'row', gap: 12 }}>
                         <TouchableOpacity style={styles.iconButton} onPress={() => Alert.alert('🔔 Notificações', 'Você não possui notificações no momento.')}>
                             <Icon name="bell" size={24} color="#FFF" />

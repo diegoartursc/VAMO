@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { useAuth } from '../src/contexts/AuthContext';
 import { haptics } from '../src/services/haptics';
+import VamoLogo from '../src/components/common/VamoLogo';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -63,11 +64,7 @@ export default function LoginScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.header}
                 >
-                    <Image
-                        source={require('../assets/images/logo_transparent.png')}
-                        style={styles.logoImage}
-                        resizeMode="contain"
-                    />
+                    <VamoLogo size={160} />
                     <Text style={styles.tagline}>Roteiros criados por quem já esteve lá</Text>
                 </LinearGradient>
 

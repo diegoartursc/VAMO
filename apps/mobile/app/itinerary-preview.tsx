@@ -26,6 +26,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { CoverCarousel } from '../src/components/common/CoverCarousel';
+import MediaGallery from '../src/components/common/MediaGallery';
+import { getCoverImages } from '../src/utils/itineraryMedia';
 import CollapsibleSection from '../src/components/common/CollapsibleSection';
 import { Icon } from '../src/components/common/Icons';
 import { VerifiedBadge } from '../src/components/creator/VerifiedBadge';
@@ -35,10 +37,14 @@ import { getReceivedModules } from '../src/utils/itineraryCardBadges';
 import { getCurrencyRates } from '../src/services/api';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
+import BudgetSummaryCard from '../src/components/dashboard/BudgetSummaryCard';
+import PeopleSimulator from '../src/components/dashboard/PeopleSimulator';
 import type {
     ItineraryFormState, Day, Activity, Accommodation, Transport,
     RestaurantItem, AttractionItem, ChecklistItem,
+    CostReferencesGroup,
 } from '@vamo/shared/itinerary';
+import { getCostReferences, calculateBudgetSummary, formatMoney } from '@vamo/shared/itinerary';
 
 export const PREVIEW_KEY = '@vamo_preview_itinerary';
 
@@ -135,6 +141,7 @@ export default function ItineraryPreviewScreen() {
     const [form, setForm] = useState<ItineraryFormState | null>(null);
     const [loading, setLoading] = useState(true);
     const [rates, setRates] = useState<Record<string, number>>({});
+    const [peopleCount, setPeopleCount] = useState<number>(1);
 
     useEffect(() => {
         (async () => {
@@ -181,13 +188,10 @@ export default function ItineraryPreviewScreen() {
     }
 
     // ─── Derivados (mesma lógica da tela pública) ──────────────────
-    const heroImages = [
-        ...(form.highlightPhotos || []),
-        ...(form.images || []),
-    ].filter(Boolean);
-    const heroSafe = heroImages.length > 0
-        ? heroImages
-        : ['https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200'];
+    // Usa getCoverImages (utilitário central que cobre highlightPhotos +
+    // images + mediaUrls e dedup). CoverCarousel mostra fallback elegante
+    // quando o array volta vazio — sem precisar de URL placeholder.
+    const heroSafe = getCoverImages(form);
 
     const priceNumber = form.price > 0 ? form.price : 0;
     const promoNumber = form.promoPrice && form.promoPrice > 0 ? form.promoPrice : 0;
@@ -411,60 +415,95 @@ export default function ItineraryPreviewScreen() {
                         </Text>
                     </View>
 
-                    {/* Estimativa de Gastos */}
-                    {manualEntries.length > 0 && (
-                        <CollapsibleSection title="Estimativa de Gastos por Pessoa">
-                            {totalFormatted && (
-                                <LinearGradient
-                                    colors={['#1A3263', '#1E4D8C']}
-                                    style={styles.spendingTotalCard}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                >
-                                    <View>
-                                        <Text style={styles.spendingTotalLabel}>
-                                            Estimativa total por pessoa · {form.duration || 0} dias
-                                        </Text>
-                                        <Text style={styles.spendingTotalRange}>{totalFormatted}</Text>
-                                        {form.flightOutbound?.originCity ? (
-                                            <View style={styles.flightDepartureRow}>
-                                                <Icon name="plane" size={12} color="rgba(255,255,255,0.7)" />
-                                                <Text style={styles.flightDepartureText}>
-                                                    Voo saindo de {form.flightOutbound.originCity}
-                                                </Text>
-                                            </View>
-                                        ) : null}
-                                    </View>
-                                    <Text style={styles.spendingTotalNote}>*valores aproximados</Text>
-                                </LinearGradient>
-                            )}
-                            <View style={styles.spendingBreakdown}>
-                                {manualEntries.map((e, index) => (
-                                    <View key={index} style={styles.breakdownItem}>
-                                        <View style={styles.breakdownIconWrap}>
-                                            <Icon name={(MODULE_ICONS[e.moduleKey] || 'star') as any} size={18} color={theme.colors.primary} />
-                                        </View>
-                                        <View style={styles.breakdownContent}>
-                                            <Text style={styles.breakdownCategory}>
-                                                {MODULE_LABELS[e.moduleKey] || e.label || e.moduleKey}
+                    {/* Referência de custos (transparência graduada — prévia) */}
+                    {(() => {
+                        const summary = calculateBudgetSummary(form);
+                        return (
+                            <>
+                                <BudgetSummaryCard
+                                    form={form}
+                                    summary={summary}
+                                    variant="preview"
+                                    hideWhenEmpty
+                                />
+                                <PeopleSimulator
+                                    totalPerPerson={summary.totalInformed}
+                                    currency={summary.currency}
+                                    value={peopleCount}
+                                    onChange={setPeopleCount}
+                                />
+                            </>
+                        );
+                    })()}
+
+                    {/* Referência de Gastos por Pessoa — agregação por módulo (espelha Detalhes) */}
+                    {(() => {
+                        const costGroups = getCostReferences(form);
+                        if (costGroups.length === 0) return null;
+                        const PREVIEW_MODULE_ICONS: Record<CostReferencesGroup['moduleKey'], any> = {
+                            voo: 'plane',
+                            hospedagem: 'hotel',
+                            passeios: 'compass',
+                            transporte: 'car',
+                            restaurantes: 'utensils',
+                            gastos_extras: 'star',
+                        };
+                        return (
+                            <CollapsibleSection title="Referência de Gastos por Pessoa">
+                                {costGroups.map(group => (
+                                    <View key={group.moduleKey} style={{ marginBottom: 12 }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                            <Icon name={PREVIEW_MODULE_ICONS[group.moduleKey]} size={14} color={theme.colors.primary} />
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text.primary }}>
+                                                {group.moduleLabel}
                                             </Text>
                                         </View>
-                                        <View style={styles.breakdownAmountBadge}>
-                                            <Text style={styles.breakdownAmount}>
-                                                {toBRL(e.priceValue, e.priceCurrency)}
-                                            </Text>
-                                        </View>
+                                        {group.items.map((item, idx) => {
+                                            const isVerified = item.disclosureType === 'verified';
+                                            const proofOk = item.hasProof && (item.proofStatus === 'uploaded' || item.proofStatus === 'pending_review' || item.proofStatus === 'approved');
+                                            const showVerifiedBadge = isVerified && proofOk;
+                                            const isShared = item.sharedByPeople > 1;
+                                            return (
+                                                <View key={idx} style={styles.breakdownItem}>
+                                                    <View style={styles.breakdownContent}>
+                                                        <Text style={styles.breakdownCategory}>{item.title}</Text>
+                                                        <Text style={styles.breakdownDescription}>
+                                                            <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
+                                                            {' por pessoa'}
+                                                            {item.currency !== 'BRL' && (
+                                                                <Text> ≈ {toBRL(item.amountPerPerson, item.currency)}</Text>
+                                                            )}
+                                                        </Text>
+                                                        <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>
+                                                            {isShared
+                                                                ? `Base: ${formatMoney(item.amountTotal, item.currency)} total ÷ ${item.sharedByPeople} pessoas`
+                                                                : 'Gasto individual'}
+                                                        </Text>
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                                                            <Ionicons
+                                                                name={showVerifiedBadge ? 'shield-checkmark' : 'pricetag-outline'}
+                                                                size={11}
+                                                                color={showVerifiedBadge ? theme.colors.verified : theme.colors.info}
+                                                            />
+                                                            <Text style={{ fontSize: 11, color: showVerifiedBadge ? theme.colors.verified : theme.colors.info, fontWeight: '600' }}>
+                                                                {showVerifiedBadge ? 'Valor comprovado' : 'Valor estimado'}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                </View>
+                                            );
+                                        })}
                                     </View>
                                 ))}
-                            </View>
-                            <View style={styles.spendingDisclaimer}>
-                                <Icon name="info" size={15} color={theme.colors.text.tertiary} />
-                                <Text style={styles.disclaimerText}>
-                                    Valores estimados em R$ conforme cotação atual. Podem variar por época do ano e estilo de viagem.
-                                </Text>
-                            </View>
-                        </CollapsibleSection>
-                    )}
+                                <View style={styles.spendingDisclaimer}>
+                                    <Icon name="info" size={15} color={theme.colors.text.tertiary} />
+                                    <Text style={styles.disclaimerText}>
+                                        Valores informados pelo criador como referência. Podem variar por época, câmbio e disponibilidade.
+                                    </Text>
+                                </View>
+                            </CollapsibleSection>
+                        );
+                    })()}
 
                     {/* Sobre o Roteiro */}
                     {form.description?.trim() ? (
@@ -472,6 +511,9 @@ export default function ItineraryPreviewScreen() {
                             <Text style={styles.description}>{form.description}</Text>
                         </CollapsibleSection>
                     ) : null}
+
+                    {/* Fotos e Vídeos da Viagem (prévia espelha a vitrine) */}
+                    <MediaGallery itinerary={form} />
 
                     {/* Destaques */}
                     {form.highlights && form.highlights.filter(Boolean).length > 0 && (
@@ -988,6 +1030,7 @@ const styles = StyleSheet.create({
     },
     breakdownContent: { flex: 1 },
     breakdownCategory: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 2 },
+    breakdownDescription: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 18 },
     breakdownAmountBadge: {
         backgroundColor: theme.colors.primary + '15',
         paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,

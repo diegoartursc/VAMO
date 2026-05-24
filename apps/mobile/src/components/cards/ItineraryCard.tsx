@@ -7,8 +7,10 @@ import { Icon } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
 import { VerifiedBadge } from '../creator/VerifiedBadge';
 import { getModuleBadges, getCategoryChips } from '../../utils/itineraryCardBadges';
+import { getCoverImages } from '../../utils/itineraryMedia';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useCart } from '../../hooks/useCart';
+import { calculateBudgetSummary } from '@vamo/shared/itinerary';
 
 const MAX_CATEGORY_CHIPS = 3;
 const MAX_MODULE_CHIPS = 3;
@@ -35,6 +37,23 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     const fav = isFavorite(itinerary.id);
     const inCart = isInCart(itinerary.id);
 
+    // Badge de confiança do orçamento (só aparece se há sinal positivo —
+    // evita poluir cards de roteiros antigos sem dados de custo).
+    const budget = calculateBudgetSummary({
+        accommodations: itinerary.accommodations,
+        attractions: itinerary.attractions,
+        transports: itinerary.transports,
+        restaurants: itinerary.restaurants,
+        extraSpendingItems: itinerary.extraSpendingItems,
+        flightCost: itinerary.flightInfo?.cost,
+        flightSpending: itinerary.flightInfo?.spending,
+    });
+    const budgetBadge =
+        budget.confidenceLevel === 'verified' ? { label: 'Custos analisados pela VAMO', tone: 'success' as const }
+      : budget.confidenceLevel === 'high'     ? { label: 'Custos parcialmente comprovados', tone: 'success' as const }
+      : budget.confidenceLevel === 'medium'   ? { label: 'Com custos estimados', tone: 'info' as const }
+      : null;
+
     const handleFav = async (e: any) => {
         e.stopPropagation?.();
         await toggleFavorite(itinerary.id);
@@ -57,7 +76,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
         >
             {/* ── Imagem com overlay ── */}
             <View style={styles.imageWrapper}>
-                <CoverCarousel images={itinerary.images} height={200} />
+                <CoverCarousel images={getCoverImages(itinerary)} height={200} />
 
                 {/* Gradiente inferior na imagem para leitura */}
                 <LinearGradient
@@ -146,14 +165,13 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     {itinerary.description}
                 </Text>
 
-                {/* Categorias temáticas */}
+                {/* Categorias temáticas — chips navy com ícone Lucide profissional */}
                 {categoryChips.length > 0 && (
                     <View style={styles.chipsRow}>
                         {categoryChips.map((cat) => (
                             <View key={cat.key} style={styles.categoryChip}>
-                                <Text style={styles.categoryChipText}>
-                                    {cat.emoji} {cat.label}
-                                </Text>
+                                <Icon name={cat.icon} size={12} color={theme.colors.text.primary} />
+                                <Text style={styles.categoryChipText}>{cat.label}</Text>
                             </View>
                         ))}
                         {extraCategories > 0 && (
@@ -164,12 +182,12 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     </View>
                 )}
 
-                {/* Módulos incluídos */}
+                {/* Módulos incluídos — chips teal */}
                 {moduleChips.length > 0 && (
                     <View style={[styles.chipsRow, categoryChips.length > 0 && styles.chipsRowTop]}>
                         {moduleChips.map((mod) => (
                             <View key={mod.key} style={styles.chip}>
-                                <Icon name={mod.icon} size={13} color={theme.colors.primary} />
+                                <Icon name={mod.icon} size={12} color={theme.colors.primary} />
                                 <Text style={styles.chipText}>{mod.label}</Text>
                             </View>
                         ))}
@@ -181,35 +199,54 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     </View>
                 )}
 
-                {/* Footer: destino + botões */}
+                {/* Badge de confiança do orçamento (discreto, só se há sinal positivo) */}
+                {budgetBadge && (
+                    <View style={styles.budgetBadgeRow}>
+                        <Ionicons
+                            name={budgetBadge.tone === 'success' ? 'shield-checkmark-outline' : 'wallet-outline'}
+                            size={11}
+                            color={budgetBadge.tone === 'success' ? theme.colors.verified : theme.colors.info}
+                        />
+                        <Text style={[
+                            styles.budgetBadgeText,
+                            { color: budgetBadge.tone === 'success' ? theme.colors.verified : theme.colors.info },
+                        ]}>
+                            {budgetBadge.label}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Footer: localização (linha 1, full width) + ações (linha 2) */}
                 <View style={styles.footer}>
                     <View style={styles.destinationRow}>
-                        <Icon name="location" size={13} color={theme.colors.text.tertiary} />
+                        <Icon name="location" size={14} color={theme.colors.text.tertiary} />
                         <Text style={styles.destinationText} numberOfLines={1}>
                             {itinerary.destination}{itinerary.country ? `, ${itinerary.country}` : ''}
                         </Text>
                     </View>
                     <View style={styles.footerActions}>
-                        {/* Botão carrinho */}
+                        {/* Botão carrinho (secundário, ~44x44) */}
                         <TouchableOpacity
                             style={[styles.cartButton, inCart && styles.cartButtonActive]}
                             onPress={handleCart}
                             activeOpacity={0.8}
+                            accessibilityLabel={inCart ? 'No carrinho' : 'Adicionar ao carrinho'}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                         >
-                            <Ionicons
-                                name={inCart ? 'checkmark' : 'cart-outline'}
-                                size={15}
+                            <Icon
+                                name={inCart ? 'verified' : 'shopping-cart'}
+                                size={18}
                                 color={inCart ? theme.colors.primary : theme.colors.text.secondary}
                             />
                         </TouchableOpacity>
-                        {/* Botão ver roteiro */}
+                        {/* CTA "Ver roteiro" (primário, ocupa o restante) */}
                         <TouchableOpacity
                             style={styles.ctaButton}
                             onPress={onPress}
                             activeOpacity={0.85}
                         >
                             <Text style={styles.ctaText}>Ver roteiro</Text>
-                            <Icon name="chevron-right" size={14} color="#FFF" strokeWidth={2.5} />
+                            <Icon name="chevron-right" size={15} color="#FFF" strokeWidth={2.5} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -255,6 +292,16 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#FFF',
         letterSpacing: -0.3,
+    },
+    budgetBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 6,
+    },
+    budgetBadgeText: {
+        fontSize: 11,
+        fontWeight: '600',
     },
     favButton: {
         position: 'absolute',
@@ -357,81 +404,86 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
 
-    // Chips
+    // Chips — pill arredondado, compacto, com ícone Lucide 12px alinhado.
     chipsRow: {
         flexDirection: 'row',
         gap: 6,
-        marginBottom: 14,
+        marginBottom: 10,
         flexWrap: 'wrap',
     },
     chipsRowTop: {
-        marginTop: -6,
+        marginTop: -2,
     },
-    // Module chips (teal)
+    // Module chips (teal claro)
     chip: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 5,
         backgroundColor: theme.colors.primary + '10',
-        paddingHorizontal: 9,
-        paddingVertical: 5,
-        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
         borderWidth: 1,
-        borderColor: theme.colors.primary + '20',
+        borderColor: theme.colors.primary + '22',
     },
     chipText: {
         fontSize: 11,
         fontWeight: '600',
         color: theme.colors.primary,
+        lineHeight: 14,
     },
-    // Category chips (navy)
+    // Category chips (navy claro)
     categoryChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
         backgroundColor: '#1A3263' + '0D',
-        paddingHorizontal: 9,
-        paddingVertical: 5,
-        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
         borderWidth: 1,
-        borderColor: '#1A3263' + '20',
+        borderColor: '#1A3263' + '1F',
     },
     categoryChipText: {
         fontSize: 11,
         fontWeight: '600',
         color: '#1A3263',
+        lineHeight: 14,
     },
     // Overflow "+X" chip
     overflowChip: {
         backgroundColor: '#1A3263' + '0D',
-        paddingHorizontal: 9,
-        paddingVertical: 5,
-        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
         borderWidth: 1,
-        borderColor: '#1A3263' + '20',
+        borderColor: '#1A3263' + '1F',
     },
     overflowChipText: {
         fontSize: 11,
-        fontWeight: '600',
+        fontWeight: '700',
         color: '#1A3263',
+        lineHeight: 14,
     },
     overflowModuleChip: {
         opacity: 0.7,
     },
 
-    // Footer
+    // Footer em 2 linhas: localização (linha 1, full width) + ações (linha 2)
     footer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         paddingTop: 12,
         borderTopWidth: 1,
         borderTopColor: theme.colors.borderLight,
+        gap: 10,
     },
     destinationRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        flex: 1,
+        gap: 5,
+        // Sem flex:1 nem botões na mesma linha — localização tem o espaço todo.
     },
     destinationText: {
+        flex: 1,
         fontSize: 12,
         color: theme.colors.text.tertiary,
         fontWeight: '500',
@@ -439,35 +491,41 @@ const styles = StyleSheet.create({
     footerActions: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 10,
     },
+    // Cart secundário: 44x44, borda teal, fundo branco (Opção A do spec)
     cartButton: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         borderWidth: 1.5,
-        borderColor: theme.colors.borderLight,
-        backgroundColor: theme.colors.surfaceLight,
+        borderColor: theme.colors.primary + '40',
+        backgroundColor: theme.colors.background,
         alignItems: 'center',
         justifyContent: 'center',
     },
     cartButtonActive: {
         borderColor: theme.colors.primary,
-        backgroundColor: theme.colors.primary + '12',
+        backgroundColor: theme.colors.primary + '14',
     },
+    // CTA primário ocupa o restante da linha
     ctaButton: {
+        flex: 1,
         backgroundColor: theme.colors.primary,
         paddingHorizontal: 16,
-        paddingVertical: 9,
+        paddingVertical: 12,
         borderRadius: theme.borderRadius.full,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 5,
+        minHeight: 44,
         ...theme.shadows.button,
     },
     ctaText: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '700',
         color: '#FFF',
+        letterSpacing: -0.1,
     },
 });

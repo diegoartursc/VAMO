@@ -37,7 +37,7 @@ export interface ItineraryPayload {
     accommodations: any[];
     transports: any[];
     checklists: any[];
-    flightInfo?: { outbound: any; return: any; tips: string[]; spending?: any };
+    flightInfo?: { outbound: any; return: any; tips: string[]; spending?: any; cost?: any };
     restaurants: any[];
     generalTips: string[];
     attractions: any[];
@@ -89,6 +89,7 @@ export function buildPayload(form: ItineraryFormState): ItineraryPayload {
             return:   form.flightReturn,
             tips:     form.flightTips.filter(t => t.trim()),
             spending: form.flightSpending,
+            cost:     form.flightCost,
         } : undefined,
         restaurants: form.restaurants
             .filter(r => r.name.trim())

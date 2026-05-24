@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "../../lib/auth";
+import VamoLogo from "../../components/VamoLogo";
 
 export default function CadastroPage() {
     const router = useRouter();
@@ -60,7 +61,7 @@ export default function CadastroPage() {
             {/* Left Side — Gradient Brand */}
             <div className="auth-side">
                 <div className="auth-side-content">
-                    <div className="auth-side-logo">VAMO</div>
+                    <VamoLogo size={180} className="auth-side-logo-img" />
                     <h2>Torne-se um Criador</h2>
                     <p>
                         Crie sua conta gratuita e comece a publicar roteiros de

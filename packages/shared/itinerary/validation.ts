@@ -7,6 +7,7 @@
 
 import type {
     ItineraryFormState,
+    ModuleCostInfo,
     ModuleKey,
     ModuleSpending,
 } from "./types";
@@ -16,6 +17,19 @@ import {
     MIN_CHECKLIST,
     MIN_CATEGORIES,
 } from "./constants";
+
+/**
+ * Checa se um `ModuleCostInfo` está em estado inconsistente: marcado como
+ * `verified` mas sem nenhum comprovante anexado. Esse estado nunca pode
+ * passar pra análise — o usuário precisa anexar comprovante OU trocar
+ * para "estimated"/"not_informed".
+ */
+function isVerifiedWithoutProof(cost?: ModuleCostInfo | null): boolean {
+    if (!cost) return false;
+    if (cost.disclosureType !== "verified") return false;
+    const proofs = cost.proofFiles ?? [];
+    return proofs.length === 0;
+}
 
 export interface ValidationIssue {
     /** Identificador da seção/módulo. */
@@ -109,7 +123,7 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
         issues.push({ section: "identity", message: `Selecione pelo menos ${MIN_CATEGORIES} categoria` });
     }
     if (!form.travelProofUrl?.trim()) {
-        issues.push({ section: "identity", message: "Anexe o Comprovante de Viagem" });
+        issues.push({ section: "proof", message: "Anexe o Comprovante de Viagem" });
     }
     if (form.price <= 0) {
         issues.push({ section: "commerce", message: "Defina um preço de venda válido" });
@@ -130,6 +144,37 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
             issues.push({
                 section: m,
                 message: moduleIncompleteMessage(m),
+            });
+        }
+    }
+
+    // ── Consistência de "Valor comprovado" sem comprovante ──
+    // Quando o usuário escolhe explicitamente "Valor comprovado" mas não
+    // anexa arquivo, o item fica em estado inconsistente: não dá pra dar
+    // o selo de comprovado sem comprovante. Geramos pendência por módulo
+    // afetado para que o usuário corrija (anexar OU rebaixar para
+    // estimado/não informar). Só checamos módulos ativos.
+    const activeSet = new Set<ModuleKey>(form.activeModules);
+
+    type CostCheck = { module: ModuleKey; section: string; label: string; costs: Array<ModuleCostInfo | undefined | null> };
+    const costChecks: CostCheck[] = [
+        { module: "voo",           section: "voo",           label: "Meu Voo",                  costs: [form.flightCost] },
+        { module: "hospedagem",    section: "hospedagem",    label: "Hospedagens",              costs: form.accommodations.map(a => a.cost) },
+        { module: "passeios",      section: "passeios",      label: "Passeios & Atrações",      costs: form.attractions.map(a => a.cost) },
+        { module: "transporte",    section: "transporte",    label: "Transporte",               costs: form.transports.map(t => t.cost) },
+        { module: "restaurantes",  section: "restaurantes",  label: "Restaurantes & Gastronomia", costs: form.restaurants.map(r => r.cost) },
+        { module: "gastos_extras", section: "gastos_extras", label: "Gastos Extras",            costs: form.extraSpendingItems.map(e => e.cost) },
+    ];
+
+    for (const check of costChecks) {
+        if (!activeSet.has(check.module)) continue;
+        const broken = check.costs.filter(isVerifiedWithoutProof).length;
+        if (broken > 0) {
+            issues.push({
+                section: check.section,
+                message: broken === 1
+                    ? `${check.label}: valor marcado como comprovado, mas sem comprovante anexado.`
+                    : `${check.label}: ${broken} valores comprovados sem comprovante anexado.`,
             });
         }
     }

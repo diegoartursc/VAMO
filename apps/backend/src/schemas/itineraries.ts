@@ -5,6 +5,36 @@ import { z } from 'zod';
  * Used in POST /api/itineraries and PUT /api/itineraries/:id
  */
 
+/** Transparência graduada de custos por item (spending legacy + cost novo). */
+export const CostDisclosureTypeSchema = z.enum(['not_informed', 'estimated', 'verified']);
+export const CostProofStatusSchema = z.enum(['none', 'uploaded', 'pending_review', 'approved', 'rejected']);
+
+export const CostProofFileSchema = z.object({
+    url: z.string().min(1),
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    size: z.number().int().nonnegative().optional(),
+    uploadedAt: z.string().optional(),
+}).passthrough();
+
+export const ModuleCostInfoSchema = z.object({
+    amount: z.union([z.string(), z.number(), z.null()]).optional(),
+    currency: z.string().optional(),
+    disclosureType: CostDisclosureTypeSchema,
+    /** Pessoas que dividiram esse gasto (1 = individual). Default 1
+     *  no consumidor — não obrigatório no payload. */
+    sharedByPeople: z.number().int().positive().max(99).optional(),
+    notes: z.string().optional(),
+    proofFiles: z.array(CostProofFileSchema).optional(),
+    proofStatus: CostProofStatusSchema.optional(),
+    updatedAt: z.string().optional(),
+}).passthrough();
+
+export const ModuleSpendingSchema = z.object({
+    value: z.string(),
+    currency: z.string(),
+}).passthrough();
+
 export const CreateItinerarySchema = z.object({
     creatorId: z.string().min(1, 'creatorId is required'),
     title: z.string().min(3, 'Title must be at least 3 characters').max(200),

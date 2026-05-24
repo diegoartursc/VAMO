@@ -118,7 +118,7 @@ export default function PerfilPage() {
                         emoji="🧳"
                     />
                     <Card
-                        href="/explore"
+                        href="/criadores"
                         title="Explorar"
                         subtitle="Descubra novos roteiros"
                         emoji="🗺️"

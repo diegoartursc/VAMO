@@ -48,10 +48,9 @@ export interface Day {
 }
 
 /**
- * ModuleSpending — gasto opcional informado dentro de um item de módulo
- * (hospedagem, atração, restaurante, transporte, voo). Apenas valor e
- * moeda — não há upload de comprovante por gasto. O único comprovante
- * obrigatório no fluxo é o comprovante geral de viagem (travelProofUrl).
+ * ModuleSpending — formato LEGADO de gasto opcional por item.
+ * Mantido para compatibilidade com roteiros antigos. Novos itens devem
+ * usar `cost: ModuleCostInfo` (transparência graduada).
  */
 export interface ModuleSpending {
     value: string;        // valor por pessoa (string para preservar zeros)
@@ -61,6 +60,90 @@ export interface ModuleSpending {
 export const EMPTY_MODULE_SPENDING: ModuleSpending = {
     value: "",
     currency: "BRL",
+};
+
+/**
+ * Transparência graduada de custos.
+ *
+ *  not_informed — o criador não quer/lembra informar valor.
+ *  estimated    — valor aproximado, sem necessidade de comprovante.
+ *  verified     — valor com comprovante anexado pelo criador.
+ *                  Só vira "Verificado pela VAMO" após aprovação admin
+ *                  (ver CostProofStatus.approved).
+ */
+export type CostDisclosureType = "not_informed" | "estimated" | "verified";
+
+/**
+ * Estado do comprovante anexado a um item.
+ *
+ *  none           — sem arquivo.
+ *  uploaded       — arquivo anexado pelo criador, ainda não revisado.
+ *  pending_review — em fila de moderação.
+ *  approved       — admin aprovou. Pode exibir "Verificado pela VAMO".
+ *  rejected       — admin rejeitou.
+ */
+export type CostProofStatus =
+    | "none"
+    | "uploaded"
+    | "pending_review"
+    | "approved"
+    | "rejected";
+
+/**
+ * Arquivo de comprovante anexado a um item de custo. NÃO é exibido
+ * publicamente para o comprador por padrão — serve para validação/selo.
+ */
+export interface CostProofFile {
+    url: string;
+    name?: string;
+    mimeType?: string;
+    size?: number;
+    uploadedAt?: string;
+}
+
+/**
+ * Bloco de custo de um item/módulo do roteiro.
+ *
+ * Todos os campos são opcionais EXCETO `disclosureType`, que define
+ * a semântica visual e de validação:
+ *
+ *  - disclosureType=not_informed → amount/proofFiles devem estar vazios.
+ *  - disclosureType=estimated    → amount recomendado, proofFiles opcional.
+ *  - disclosureType=verified     → amount obrigatório, proofFiles obrigatório
+ *                                  para exibir selo público.
+ */
+export interface ModuleCostInfo {
+    /** Valor TOTAL pago no item (na moeda informada). Para gastos
+     *  individuais (sharedByPeople=1), esse valor é também o valor
+     *  por pessoa. Para gastos compartilhados (sharedByPeople>1), o
+     *  valor por pessoa é calculado como amount/sharedByPeople. */
+    amount?: string | null;
+    /** Código de moeda (BRL, USD, EUR, ...). Default: "BRL". */
+    currency?: string;
+    /** Como o criador classifica esta informação de custo. */
+    disclosureType: CostDisclosureType;
+    /** Quantidade de pessoas que dividiram esse gasto. Default = 1
+     *  (gasto individual). Valores > 1 indicam custo compartilhado e
+     *  são usados para calcular a referência por pessoa. */
+    sharedByPeople?: number;
+    /** Observação opcional do criador (ex: "por pessoa", "alta temporada"). */
+    notes?: string;
+    /** Arquivos de comprovante (recibo, reserva, print). Privado por padrão. */
+    proofFiles?: CostProofFile[];
+    /** Status do comprovante (workflow de moderação). */
+    proofStatus?: CostProofStatus;
+    /** ISO timestamp da última atualização. */
+    updatedAt?: string;
+}
+
+export const EMPTY_MODULE_COST_INFO: ModuleCostInfo = {
+    amount: "",
+    currency: "BRL",
+    disclosureType: "not_informed",
+    sharedByPeople: 1,
+    notes: "",
+    proofFiles: [],
+    proofStatus: "none",
 };
 
 export interface Accommodation {
@@ -74,7 +157,9 @@ export interface Accommodation {
     tips: string;
     startDate: string;
     endDate: string;
+    /** @deprecated Use `cost` (ModuleCostInfo) — mantido por compatibilidade. */
     spending?: ModuleSpending;
+    cost?: ModuleCostInfo;
 }
 
 export interface Transport {
@@ -83,7 +168,9 @@ export interface Transport {
     notes: string;
     startDate: string;
     endDate: string;
+    /** @deprecated Use `cost` (ModuleCostInfo) — mantido por compatibilidade. */
     spending?: ModuleSpending;
+    cost?: ModuleCostInfo;
 }
 
 export interface ChecklistItem {
@@ -110,7 +197,9 @@ export interface RestaurantItem {
     tips: string;
     startDate: string;
     endDate: string;
+    /** @deprecated Use `cost` (ModuleCostInfo) — mantido por compatibilidade. */
     spending?: ModuleSpending;
+    cost?: ModuleCostInfo;
 }
 
 export interface AttractionItem {
@@ -126,21 +215,29 @@ export interface AttractionItem {
     startDate: string;
     endDate: string;
     price?: string;
+    /** @deprecated Use `cost` (ModuleCostInfo) — mantido por compatibilidade. */
     spending?: ModuleSpending;
+    cost?: ModuleCostInfo;
 }
 
 /**
  * ExtraSpendingItem — entrada do módulo "Gastos Extras" (chip, seguro,
- * taxas, gorjetas, lavanderia, etc.). Apenas valor e moeda — não há
- * upload de comprovante por item.
+ * taxas, gorjetas, lavanderia, etc.).
+ *
+ * `value`/`currency` são o formato legado. Novos itens podem usar `cost`
+ * (ModuleCostInfo) para suportar transparência graduada (estimado vs
+ * comprovado).
  */
 export interface ExtraSpendingItem {
     id: string;
     category: string;         // chave da categoria (ver EXTRA_SPENDING_CATEGORIES)
     title: string;            // ex: "Chip de internet 10GB"
     description: string;      // observação opcional
+    /** @deprecated Use `cost.amount`. Mantido para compatibilidade. */
     value: string;            // valor por pessoa, opcional
+    /** @deprecated Use `cost.currency`. Mantido para compatibilidade. */
     currency: string;         // código da moeda
+    cost?: ModuleCostInfo;
 }
 
 export interface SpendingEntry {
@@ -216,7 +313,9 @@ export interface ItineraryFormState {
     flightOutbound: FlightLeg;
     flightReturn: FlightLeg;
     flightTips: string[];
-    flightSpending?: ModuleSpending;       // gasto único da passagem (ida + volta)
+    /** @deprecated Use `flightCost` (ModuleCostInfo). Mantido para compatibilidade. */
+    flightSpending?: ModuleSpending;       // gasto único da passagem (ida + volta) — legado
+    flightCost?: ModuleCostInfo;            // bloco de custo com transparência graduada
     extraSpendingItems: ExtraSpendingItem[]; // módulo "Gastos Extras"
     // Mídia
     images: string[];               // galeria
