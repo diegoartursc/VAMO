@@ -13,7 +13,6 @@ import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { CoverCarousel } from '../../src/components/common/CoverCarousel';
-import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
 

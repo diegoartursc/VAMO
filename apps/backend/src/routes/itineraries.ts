@@ -55,6 +55,17 @@ router.get('/', async (req: Request, res: Response) => {
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
             qualityScore: it.qualityScore,
+            // Campos para badges do card (vitrines): categorias temáticas e módulos ativos
+            categories: it.categories || [],
+            travelStyles: it.travelStyles || [],
+            activeModules: it.activeModules || [],
+            // Campos para badge de orçamento do card (BudgetSummaryCard).
+            // Apenas JSON cols (zero query extra). Accommodations/Transports
+            // ficam ausentes na listagem por serem relações.
+            attractions: it.attractions || [],
+            restaurants: it.restaurants || [],
+            extraSpendingItems: (it as any).extraSpendingItems || [],
+            flightInfo: it.flightInfo || null,
         }));
 
         res.json(result);
@@ -90,6 +101,17 @@ router.get('/featured', async (req: Request, res: Response) => {
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
             qualityScore: it.qualityScore,
+            // Campos para badges do card (vitrines): categorias temáticas e módulos ativos
+            categories: it.categories || [],
+            travelStyles: it.travelStyles || [],
+            activeModules: it.activeModules || [],
+            // Campos para badge de orçamento do card (BudgetSummaryCard).
+            // Apenas JSON cols (zero query extra). Accommodations/Transports
+            // ficam ausentes na listagem por serem relações.
+            attractions: it.attractions || [],
+            restaurants: it.restaurants || [],
+            extraSpendingItems: (it as any).extraSpendingItems || [],
+            flightInfo: it.flightInfo || null,
         }));
 
         res.json(result);
@@ -141,13 +163,31 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
         const averageRating = allReviews.length > 0
             ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
             : 0;
+        // Contagens por status (UPPERCASE no DB)
+        const activeOrApproved = itineraries.filter(it => it.status === 'ACTIVE' || it.status === 'APPROVED');
+        const publishedItineraries = activeOrApproved.length;
+        // Qualidade média APENAS de roteiros ativos/aprovados. Roteiros
+        // em DRAFT/PENDING_REVIEW/REJECTED não entram — score deles é
+        // referencial pra criação, não métrica pública do criador.
+        // null = "sem roteiros ativos" (UI deve mostrar — em vez de 0%).
+        const averageQualityScore = activeOrApproved.length > 0
+            ? Math.round(activeOrApproved.reduce((sum, it) => sum + (it.qualityScore || 0), 0) / activeOrApproved.length)
+            : null;
+        const pendingReview = itineraries.filter(it => it.status === 'PENDING_REVIEW').length;
+        const draftItineraries = itineraries.filter(it => it.status === 'DRAFT').length;
+        const rejectedItineraries = itineraries.filter(it => it.status === 'REJECTED').length;
 
         res.json({
             totalRevenue,
             totalSales,
             averageRating: Math.round(averageRating * 10) / 10,
+            averageQualityScore,
             totalReviews: allReviews.length,
             activeItineraries: itineraries.filter(it => it.status === 'ACTIVE').length,
+            publishedItineraries,
+            pendingReview,
+            draftItineraries,
+            rejectedItineraries,
             totalItineraries: itineraries.length,
             itineraries: itineraries.map(it => ({
                 id: it.id,
@@ -161,6 +201,7 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
                 reviewCount: it.reviewCount,
                 duration: it.duration,
                 price: it.price,
+                qualityScore: it.qualityScore,
                 updatedAt: it.updatedAt.toISOString(),
             })),
         });
@@ -171,12 +212,12 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
 });
 
 // GET /api/itineraries/:id
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
         const it = await prisma.itinerary.findUnique({
             where: { id: req.params.id as string },
             include: {
-                creator: { include: { traveler: { select: { name: true, avatar: true } } } },
+                creator: { include: { traveler: { select: { name: true, avatar: true, id: true } } } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
                 days: { orderBy: { dayNumber: 'asc' }, include: { activities: { orderBy: { order: 'asc' } } } },
                 files: true,
@@ -189,6 +230,15 @@ router.get('/:id', async (req: Request, res: Response) => {
 
         if (!it) { res.status(404).json({ error: 'Itinerary not found' }); return; }
 
+        // Block access to non-public itineraries for non-owners
+        const PUBLIC_STATUSES = ['APPROVED', 'ACTIVE'];
+        const isPublic = PUBLIC_STATUSES.includes(it.status as string);
+        const isOwner  = req.traveler?.travelerId === (it as any).creator?.traveler?.id;
+        if (!isPublic && !isOwner) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+
         const i = it as any;
 
         // Map accommodations (format also as accommodationOptions for post-purchase screen)
@@ -198,6 +248,9 @@ router.get('/:id', async (req: Request, res: Response) => {
             externalLink: a.externalLink, address: a.address, mapLink: a.mapLink,
             tips: a.tips, nights: a.nights, startDate: a.startDate, endDate: a.endDate,
             totalPrice: a.totalPrice, priceCurrency: a.priceCurrency, order: a.order,
+            // Transparência graduada de custos (round-trip)
+            spending: a.spending ?? undefined,
+            cost: a.cost ?? undefined,
         }));
 
         // Map transports (also as transport.items for post-purchase screen)
@@ -206,6 +259,9 @@ router.get('/:id', async (req: Request, res: Response) => {
             estimatedPrice: t.estimatedPrice, notes: t.notes,
             startDate: t.startDate, endDate: t.endDate,
             priceValue: t.priceValue, priceCurrency: t.priceCurrency, order: t.order,
+            // Transparência graduada de custos (round-trip)
+            spending: t.spending ?? undefined,
+            cost: t.cost ?? undefined,
         }));
 
         // Map checklists (flatten to a single "checklist" array for post-purchase screen)
@@ -250,6 +306,8 @@ router.get('/:id', async (req: Request, res: Response) => {
             highlightPhotos: i.highlightPhotos || [],
             spendingProfile: i.spendingProfile || null,
             receiveList:  i.receiveList  || null,
+            // ─── Transparência graduada de custos ───
+            extraSpendingItems: i.extraSpendingItems || [],
             // ─── Relações (com alias compat pro mobile pós-compra) ───
             accommodations: accommodationList,
             accommodationOptions: accommodationList,  // alias para mobile pós-compra
@@ -373,6 +431,8 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
             mediaUrls, highlightPhotos,
             tripStartDate, tripEndDate,
             spendingProfile, receiveList,
+            // ─── Transparência graduada de custos ───
+            extraSpendingItems,
         } = req.body;
 
         // Validate required fields (description is optional — backend stores empty string if absent)
@@ -485,6 +545,8 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 tripEndDate: tripEndDate ? new Date(tripEndDate) : undefined,
                 spendingProfile: spendingProfile || undefined,
                 receiveList: receiveList || undefined,
+                // ─── Transparência graduada de custos: módulo "Gastos Extras" ───
+                extraSpendingItems: extraSpendingItems ?? undefined,
                 images: images?.length ? {
                     create: images.map((url: string, i: number) => ({ url, order: i })),
                 } : undefined,
@@ -528,6 +590,9 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                         endDate: a.endDate || undefined,
                         totalPrice: a.totalPrice || undefined,
                         priceCurrency: a.priceCurrency || undefined,
+                        // Transparência graduada de custos
+                        spending: a.spending ?? undefined,
+                        cost: a.cost ?? undefined,
                         order: i,
                     })),
                 } : undefined,
@@ -539,6 +604,9 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                         endDate: t.endDate || undefined,
                         priceValue: t.priceValue || undefined,
                         priceCurrency: t.priceCurrency || undefined,
+                        // Transparência graduada de custos
+                        spending: t.spending ?? undefined,
+                        cost: t.cost ?? undefined,
                         order: i,
                     })),
                 } : undefined,
@@ -597,6 +665,8 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
             mediaUrls, highlightPhotos,
             tripStartDate, tripEndDate,
             spendingProfile, receiveList,
+            // ─── Transparência graduada de custos ───
+            extraSpendingItems,
         } = req.body;
 
         // Check itinerary exists
@@ -604,6 +674,18 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (!existing) {
             res.status(404).json({ error: 'Itinerary not found' });
             return;
+        }
+
+        // Ownership check: if request is authenticated, only the owner can edit
+        if (req.traveler) {
+            const creator = await prisma.creator.findUnique({
+                where: { id: existing.creatorId },
+                select: { travelerId: true },
+            });
+            if (!creator || creator.travelerId !== req.traveler.travelerId) {
+                res.status(403).json({ error: 'Sem permissão para editar este roteiro' });
+                return;
+            }
         }
 
         // Validate styles max 3
@@ -657,6 +739,8 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (tripEndDate !== undefined)     updateData.tripEndDate = tripEndDate ? new Date(tripEndDate) : null;
         if (spendingProfile !== undefined) updateData.spendingProfile = spendingProfile;
         if (receiveList !== undefined)     updateData.receiveList = receiveList;
+        // Transparência graduada de custos: módulo "Gastos Extras"
+        if (extraSpendingItems !== undefined) updateData.extraSpendingItems = extraSpendingItems;
 
         // Recalculate quality score
         const merged = { ...existing, ...updateData, days, accommodations, transports, checklists };
@@ -735,6 +819,9 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
                                 endDate: a.endDate || undefined,
                                 totalPrice: a.totalPrice || undefined,
                                 priceCurrency: a.priceCurrency || undefined,
+                                // Transparência graduada de custos
+                                spending: a.spending ?? undefined,
+                                cost: a.cost ?? undefined,
                                 order: i,
                             },
                         });
@@ -757,6 +844,9 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
                                 endDate: t.endDate || undefined,
                                 priceValue: t.priceValue || undefined,
                                 priceCurrency: t.priceCurrency || undefined,
+                                // Transparência graduada de custos
+                                spending: t.spending ?? undefined,
+                                cost: t.cost ?? undefined,
                                 order: i,
                             },
                         });
@@ -815,6 +905,18 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
             return;
         }
 
+        // Ownership check: if request is authenticated, only the owner can delete
+        if (req.traveler) {
+            const creator = await prisma.creator.findUnique({
+                where: { id: existing.creatorId },
+                select: { travelerId: true },
+            });
+            if (!creator || creator.travelerId !== req.traveler.travelerId) {
+                res.status(403).json({ error: 'Sem permissão para excluir este roteiro' });
+                return;
+            }
+        }
+
         if (hard === 'true') {
             // Hard delete — remove completely
             await prisma.itinerary.delete({ where: { id } });
@@ -834,7 +936,7 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
 });
 
 // ─── PURCHASE ───
-// POST /api/itineraries/:id/purchase (traveler-auth optional → falls back to demo traveler)
+// POST /api/itineraries/:id/purchase (traveler-auth required)
 // Records an ItinerarySale so the itinerary appears in the traveler's "Meus Roteiros".
 router.post('/:id/purchase', async (req: Request, res: Response) => {
     try {
@@ -851,11 +953,7 @@ router.post('/:id/purchase', async (req: Request, res: Response) => {
             } catch { /* ignore — fall through */ }
         }
         if (!travelerId) {
-            const firstTraveler = await prisma.traveler.findFirst({ orderBy: { createdAt: 'asc' } });
-            travelerId = firstTraveler?.id || null;
-        }
-        if (!travelerId) {
-            res.status(400).json({ error: 'No traveler available to record purchase' });
+            res.status(401).json({ error: 'Autenticação necessária para realizar a compra' });
             return;
         }
 

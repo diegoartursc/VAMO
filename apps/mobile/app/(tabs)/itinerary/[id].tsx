@@ -22,9 +22,11 @@ import CollapsibleSection from '../../../src/components/common/CollapsibleSectio
 import PremiumReviewsSection from '../../../src/components/reviews/PremiumReviewsSection';
 import { shareService } from '../../../src/services/sharing';
 import { haptics } from '../../../src/services/haptics';
-import { ITINERARY_INCLUSIONS } from '../../../src/data/itineraryInclusions';
+import { getReceivedModules } from '../../../src/utils/itineraryCardBadges';
 import { Icon } from '../../../src/components/common/Icons';
 import { CoverCarousel } from '../../../src/components/common/CoverCarousel';
+import MediaGallery from '../../../src/components/common/MediaGallery';
+import { getCoverImages } from '../../../src/utils/itineraryMedia';
 import { LinearGradient } from 'expo-linear-gradient';
 import FAQSection from '../../../src/components/FAQSection';
 import { getItineraryFAQ } from '../../../src/data/mockFAQ';
@@ -32,6 +34,9 @@ import { PurchaseSuccessModal } from '../../../src/components/modals/PurchaseSuc
 import { useFavorites } from '../../../src/hooks/useFavorites';
 import { useCart } from '../../../src/hooks/useCart';
 import { useAuth } from '../../../src/contexts/AuthContext';
+import BudgetSummaryCard from '../../../src/components/dashboard/BudgetSummaryCard';
+import PeopleSimulator from '../../../src/components/dashboard/PeopleSimulator';
+import { getCostReferences, calculateBudgetSummary, formatMoney, type CostReferencesGroup } from '@vamo/shared/itinerary';
 
 const { width, height } = Dimensions.get('window');
 
@@ -42,6 +47,7 @@ export default function ItineraryDetailScreen() {
     const [showBuyOptions, setShowBuyOptions] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
+    const [peopleCount, setPeopleCount] = useState<number>(1);
     const [cartToast, setCartToast] = useState(false);
     const reviews = getReviewsByPackageId(`itinerary-${id}`);
     const { isFavorite, toggleFavorite } = useFavorites();
@@ -117,7 +123,7 @@ export default function ItineraryDetailScreen() {
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* Hero Image */}
                 <View style={styles.heroContainer}>
-                    <CoverCarousel images={itinerary.images} height={420} />
+                    <CoverCarousel images={getCoverImages(itinerary)} height={420} />
                     {/* Bottom gradient for smooth transition to content sheet */}
                     <LinearGradient
                         colors={['transparent', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.6)']}
@@ -246,41 +252,58 @@ export default function ItineraryDetailScreen() {
                         </View>
                     </View>
 
-                    {/* Price & CTA */}
+                    {/* Price & CTA — card de compra com 2 linhas claras
+                        Linha 1: preço + parcelamento
+                        Linha 2: [Adicionar ao carrinho] [Comprar agora] */}
                     <LinearGradient
                         colors={['#1A3263', '#162A55']}
                         style={styles.priceSection}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     >
-                        <View>
-                            <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.65)' }]}>Roteiro completo</Text>
+                        <View style={styles.priceInfo}>
+                            <Text style={styles.priceLabelText}>Roteiro completo</Text>
                             <View style={styles.priceRow}>
-                                <Text style={[styles.priceSymbol, { color: '#28C9BF' }]}>R$</Text>
-                                <Text style={[styles.priceValue, { color: '#FFFFFF' }]}>{itinerary.price.toFixed(2).replace('.', ',')}</Text>
+                                <Text style={styles.priceSymbolText}>R$</Text>
+                                <Text style={styles.priceValueText}>
+                                    {itinerary.price.toFixed(2).replace('.', ',')}
+                                </Text>
                             </View>
-                            <Text style={[styles.priceNote, { color: 'rgba(255,255,255,0.5)' }]}>• Acesso imediato após compra</Text>
+                            <Text style={styles.priceInstallment}>
+                                Em até 12x de R$ {(itinerary.price / 12).toFixed(2).replace('.', ',')} sem juros
+                            </Text>
+                            <View style={styles.priceMeta}>
+                                <Ionicons name="flash" size={12} color="#28C9BF" />
+                                <Text style={styles.priceMetaText}>Acesso imediato após a compra</Text>
+                            </View>
                         </View>
-                        <View style={styles.priceCtas}>
-                            {/* Botão Carrinho */}
+
+                        <View style={styles.purchaseActions}>
+                            {/* Adicionar ao carrinho / No carrinho */}
                             <TouchableOpacity
-                                style={[styles.cartCta, isInCart(id) && styles.cartCtaActive]}
+                                style={[styles.cartCtaWide, isInCart(id) && styles.cartCtaWideActive]}
                                 onPress={handleAddToCart}
-                                activeOpacity={0.8}
+                                activeOpacity={0.85}
+                                accessibilityLabel={isInCart(id) ? 'No carrinho' : 'Adicionar ao carrinho'}
                             >
-                                <Ionicons
-                                    name={isInCart(id) ? 'checkmark-circle' : 'cart-outline'}
-                                    size={20}
-                                    color={isInCart(id) ? '#28C9BF' : 'rgba(255,255,255,0.85)'}
+                                <Icon
+                                    name={isInCart(id) ? 'verified' : 'shopping-cart'}
+                                    size={18}
+                                    color={isInCart(id) ? '#28C9BF' : '#FFFFFF'}
                                 />
+                                <Text style={[styles.cartCtaWideText, isInCart(id) && styles.cartCtaWideTextActive]}>
+                                    {isInCart(id) ? 'No carrinho' : 'Adicionar'}
+                                </Text>
                             </TouchableOpacity>
-                            {/* Botão Comprar */}
+
+                            {/* Comprar Agora — CTA primário */}
                             <TouchableOpacity
                                 style={styles.buyButton}
                                 onPress={handleBuyNow}
+                                activeOpacity={0.85}
                             >
-                                <Text style={styles.buyButtonText}>Comprar Agora</Text>
-                                <Icon name="chevron-right" size={18} color="#fff" strokeWidth={2.5} />
+                                <Text style={styles.buyButtonText}>Comprar agora</Text>
+                                <Icon name="chevron-right" size={16} color="#fff" strokeWidth={2.5} />
                             </TouchableOpacity>
                         </View>
                     </LinearGradient>
@@ -308,143 +331,138 @@ export default function ItineraryDetailScreen() {
                         padding: 14, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.colors.primary,
                     }}>
                         <Ionicons name="cloud-offline-outline" size={20} color={theme.colors.primary} />
-                        <Text style={{ flex: 1, fontSize: 13, color: theme.colors.text, lineHeight: 18 }}>
+                        <Text style={{ flex: 1, fontSize: 13, color: theme.colors.text.primary, lineHeight: 18 }}>
                             <Text style={{ fontWeight: '700', color: theme.colors.primary }}>100% Offline</Text>
                             {' — '}Após a compra, o roteiro fica disponível para consulta mesmo sem conexão com a internet.
                         </Text>
                     </View>
 
-                    {/* Estimativa de Gasto */}
-                    {itinerary.estimatedSpending && (
-                        <CollapsibleSection title="Estimativa de Gastos por Pessoa" defaultExpanded={false}>
-                            {(() => {
-                                const sp = itinerary.estimatedSpending;
-                                // Novo formato: manualEntries com moeda original → converte para BRL dinamicamente
-                                const manualEntries: any[] = (sp.manualEntries || []).filter(
-                                    (e: any) => parseFloat(e.priceValue) > 0
-                                );
-                                const hasManual = manualEntries.length > 0;
+                    {/* Referência de custos da viagem (transparência graduada) */}
+                    {(() => {
+                        const costForm = {
+                            accommodations: itinerary.accommodations,
+                            attractions: itinerary.attractions,
+                            transports: itinerary.transports,
+                            restaurants: itinerary.restaurants,
+                            extraSpendingItems: itinerary.extraSpendingItems,
+                            flightCost: itinerary.flightInfo?.cost,
+                            flightSpending: itinerary.flightInfo?.spending,
+                        };
+                        const summary = calculateBudgetSummary(costForm as any);
+                        return (
+                            <>
+                                <BudgetSummaryCard
+                                    form={costForm as any}
+                                    summary={summary}
+                                    variant="public"
+                                    hideWhenEmpty
+                                />
+                                <PeopleSimulator
+                                    totalPerPerson={summary.totalInformed}
+                                    currency={summary.currency}
+                                    value={peopleCount}
+                                    onChange={setPeopleCount}
+                                />
+                            </>
+                        );
+                    })()}
 
-                                // Labels e ícones por moduleKey
-                                const MODULE_LABELS: Record<string, string> = {
-                                    voo: 'Passagem Aérea', hospedagem: 'Hospedagem',
-                                    passeios: 'Passeios & Atrações', transporte: 'Transporte Local',
-                                    restaurantes: 'Alimentação', extras: 'Outros Gastos',
-                                };
-                                const MODULE_ICONS: Record<string, string> = {
-                                    voo: 'plane', hospedagem: 'hotel', passeios: 'compass',
-                                    transporte: 'car', restaurantes: 'utensils', extras: 'star',
-                                };
+                    {/* Referência de Gastos por Pessoa — agregação por módulo */}
+                    {(() => {
+                        const costGroups = getCostReferences({
+                            accommodations: itinerary.accommodations,
+                            attractions: itinerary.attractions,
+                            transports: itinerary.transports,
+                            restaurants: itinerary.restaurants,
+                            extraSpendingItems: itinerary.extraSpendingItems,
+                            flightCost: itinerary.flightInfo?.cost,
+                            flightSpending: itinerary.flightInfo?.spending,
+                        } as any);
+                        if (costGroups.length === 0) return null;
 
-                                // Total BRL calculado na hora (usando taxas do admin)
-                                const totalBRL = hasManual
-                                    ? manualEntries.reduce((sum: number, e: any) => {
-                                          const n = parseFloat(e.priceValue) || 0;
-                                          const rate = e.priceCurrency === 'BRL' ? 1 : (currencyRates[e.priceCurrency] ?? 1);
-                                          return sum + n * rate;
-                                      }, 0)
-                                    : (sp.max || sp.min || 0);
+                        const MODULE_ICONS: Record<CostReferencesGroup['moduleKey'], any> = {
+                            voo: 'plane',
+                            hospedagem: 'hotel',
+                            passeios: 'compass',
+                            transporte: 'car',
+                            restaurantes: 'utensils',
+                            gastos_extras: 'star',
+                        };
 
-                                const totalFormatted = totalBRL > 0
-                                    ? totalBRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-                                    : null;
-
-                                return (
-                                    <>
-                                        {/* Total Card */}
-                                        {totalFormatted && (
-                                            <LinearGradient
-                                                colors={['#1A3263', '#1E4D8C']}
-                                                style={styles.spendingTotalCard}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 1 }}
-                                            >
-                                                <View>
-                                                    <Text style={styles.spendingTotalLabel}>Estimativa total por pessoa · {itinerary.duration} dias</Text>
-                                                    <Text style={styles.spendingTotalRange}>{totalFormatted}</Text>
-                                                    {sp.flightDeparture && (
-                                                        <View style={styles.flightDepartureRow}>
-                                                            <Icon name="plane" size={12} color="rgba(255,255,255,0.7)" />
-                                                            <Text style={styles.flightDepartureText}>
-                                                                Voo saindo de {sp.flightDeparture}
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                                <Text style={styles.spendingTotalNote}>*valores aproximados</Text>
-                                            </LinearGradient>
-                                        )}
-
-                                        {/* Itens por categoria — novo formato (manualEntries) */}
-                                        {hasManual && (
-                                            <View style={styles.spendingBreakdown}>
-                                                {manualEntries.map((e: any, index: number) => (
-                                                    <View key={index} style={styles.breakdownItem}>
-                                                        <View style={styles.breakdownIconWrap}>
-                                                            <Icon name={MODULE_ICONS[e.moduleKey] || 'star'} size={18} color={theme.colors.primary} />
-                                                        </View>
-                                                        <View style={styles.breakdownContent}>
-                                                            <Text style={styles.breakdownCategory}>
-                                                                {MODULE_LABELS[e.moduleKey] || e.label || e.moduleKey}
-                                                            </Text>
-                                                        </View>
-                                                        <View style={styles.breakdownAmountBadge}>
-                                                            <Text style={styles.breakdownAmount}>
-                                                                {toBRL(e.priceValue, e.priceCurrency)}
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                ))}
-                                            </View>
-                                        )}
-
-                                        {/* Fallback: formato antigo (breakdown) */}
-                                        {!hasManual && sp.breakdown && (
-                                            <View style={styles.spendingBreakdown}>
-                                                {sp.breakdown.map((item: any, index: number) => {
-                                                    const cleanCategory = item.category.replace(/^[\p{Emoji}\s]+/u, '').trim();
-                                                    const catLower = cleanCategory.toLowerCase();
-                                                    const iconName: any =
-                                                        catLower.includes('hosped') || catLower.includes('hotel') ? 'hotel' :
-                                                        catLower.includes('aliment') || catLower.includes('comida') ? 'utensils' :
-                                                        catLower.includes('transport') ? 'car' :
-                                                        catLower.includes('voo') || catLower.includes('passagem') ? 'plane' :
-                                                        catLower.includes('atra') || catLower.includes('tour') ? 'compass' : 'star';
-                                                    return (
-                                                        <View key={index} style={styles.breakdownItem}>
-                                                            <View style={styles.breakdownIconWrap}>
-                                                                <Icon name={iconName} size={18} color={theme.colors.primary} />
-                                                            </View>
-                                                            <View style={styles.breakdownContent}>
-                                                                <Text style={styles.breakdownCategory}>{cleanCategory}</Text>
-                                                                <Text style={styles.breakdownDescription}>{item.description}</Text>
-                                                            </View>
-                                                            <View style={styles.breakdownAmountBadge}>
-                                                                <Text style={styles.breakdownAmount}>{item.amount}</Text>
-                                                            </View>
-                                                        </View>
-                                                    );
-                                                })}
-                                            </View>
-                                        )}
-
-                                        {/* Disclaimer */}
-                                        <View style={styles.spendingDisclaimer}>
-                                            <Icon name="info" size={15} color={theme.colors.text.tertiary} />
-                                            <Text style={styles.disclaimerText}>
-                                                Valores estimados em R$ conforme cotação atual. Podem variar por época do ano e estilo de viagem.
+                        return (
+                            <CollapsibleSection title="Referência de Gastos por Pessoa" defaultExpanded={false}>
+                                {costGroups.map(group => (
+                                    <View key={group.moduleKey} style={{ marginBottom: 12 }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                            <Icon name={MODULE_ICONS[group.moduleKey]} size={14} color={theme.colors.primary} />
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text.primary }}>
+                                                {group.moduleLabel}
                                             </Text>
                                         </View>
-                                    </>
-                                );
-                            })()}
-                        </CollapsibleSection>
-                    )}
+                                        {group.items.map((item, idx) => {
+                                            const isVerified = item.disclosureType === 'verified';
+                                            const proofOk = item.hasProof && (item.proofStatus === 'uploaded' || item.proofStatus === 'pending_review' || item.proofStatus === 'approved');
+                                            const showVerifiedBadge = isVerified && proofOk;
+                                            const isShared = item.sharedByPeople > 1;
+                                            return (
+                                                <View key={idx} style={styles.breakdownItem}>
+                                                    <View style={styles.breakdownContent}>
+                                                        <Text style={styles.breakdownCategory}>{item.title}</Text>
+                                                        <Text style={styles.breakdownDescription}>
+                                                            <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
+                                                            {' por pessoa'}
+                                                            {item.currency !== 'BRL' && (
+                                                                <Text> ≈ {toBRL(item.amountPerPerson, item.currency)}</Text>
+                                                            )}
+                                                        </Text>
+                                                        {isShared && (
+                                                            <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>
+                                                                Base: {formatMoney(item.amountTotal, item.currency)} total ÷ {item.sharedByPeople} pessoas
+                                                            </Text>
+                                                        )}
+                                                        {!isShared && (
+                                                            <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>
+                                                                Gasto individual
+                                                            </Text>
+                                                        )}
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                                                            <Ionicons
+                                                                name={showVerifiedBadge ? 'shield-checkmark' : 'pricetag-outline'}
+                                                                size={11}
+                                                                color={showVerifiedBadge ? theme.colors.verified : theme.colors.info}
+                                                            />
+                                                            <Text style={{ fontSize: 11, color: showVerifiedBadge ? theme.colors.verified : theme.colors.info, fontWeight: '600' }}>
+                                                                {showVerifiedBadge ? 'Valor comprovado' : 'Valor estimado'}
+                                                            </Text>
+                                                            {showVerifiedBadge && item.proofStatus === 'approved' && (
+                                                                <Text style={{ fontSize: 11, color: theme.colors.verified, fontWeight: '600' }}>
+                                                                    {' · '}Comprovante aprovado pela VAMO
+                                                                </Text>
+                                                            )}
+                                                        </View>
+                                                    </View>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                ))}
+                                <View style={styles.spendingDisclaimer}>
+                                    <Icon name="info" size={15} color={theme.colors.text.tertiary} />
+                                    <Text style={styles.disclaimerText}>
+                                        Valores informados pelo criador como referência. Podem variar por época, câmbio e disponibilidade.
+                                    </Text>
+                                </View>
+                            </CollapsibleSection>
+                        );
+                    })()}
 
                     {/* Sobre o Roteiro */}
                     <CollapsibleSection title="Sobre o Roteiro" defaultExpanded>
                         <Text style={styles.description}>{itinerary.description}</Text>
                     </CollapsibleSection>
+
+                    {/* Fotos e Vídeos da Viagem (highlightPhotos + images + mediaUrls) */}
+                    <MediaGallery itinerary={itinerary} />
 
                     {/* Destaques */}
                     {itinerary.highlights && itinerary.highlights.length > 0 && (
@@ -462,28 +480,34 @@ export default function ItineraryDetailScreen() {
                         </CollapsibleSection>
                     )}
 
-                    {/* O que você vai receber */}
-                    <CollapsibleSection title="O que você vai receber" defaultExpanded>
-                        <Text style={styles.inclusionsIntro}>
-                            Ao comprar este roteiro, você terá acesso a todas as informações necessárias para sua viagem:
-                        </Text>
+                    {/* O que você vai receber — apenas módulos ativos E preenchidos no roteiro real */}
+                    {(() => {
+                        const receivedModules = getReceivedModules(itinerary);
+                        if (receivedModules.length === 0) return null;
+                        return (
+                            <CollapsibleSection title="O que você vai receber" defaultExpanded>
+                                <Text style={styles.inclusionsIntro}>
+                                    Ao comprar este roteiro, você terá acesso a:
+                                </Text>
 
-                        <View style={styles.inclusionsList}>
-                            {ITINERARY_INCLUSIONS.map((item) => (
-                                <View key={item.id} style={styles.inclusionItem}>
-                                    <View style={[styles.inclusionIcon, { backgroundColor: item.bgColor }]}>
-                                        <Icon name={item.icon as any} size={24} color={item.iconColor} />
-                                    </View>
-                                    <View style={styles.inclusionContent}>
-                                        <Text style={styles.inclusionTitle}>{item.title}</Text>
-                                        <Text style={styles.inclusionDesc}>
-                                            {item.description}
-                                        </Text>
-                                    </View>
+                                <View style={styles.inclusionsList}>
+                                    {receivedModules.map((item) => (
+                                        <View key={item.key} style={styles.inclusionItem}>
+                                            <View style={[styles.inclusionIcon, { backgroundColor: item.bgColor }]}>
+                                                <Icon name={item.icon} size={24} color={item.iconColor} />
+                                            </View>
+                                            <View style={styles.inclusionContent}>
+                                                <Text style={styles.inclusionTitle}>{item.title}</Text>
+                                                <Text style={styles.inclusionDesc}>
+                                                    {item.description}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    ))}
                                 </View>
-                            ))}
-                        </View>
-                    </CollapsibleSection>
+                            </CollapsibleSection>
+                        );
+                    })()}
 
                     {/* Como você vai receber */}
                     <CollapsibleSection title="Como você vai receber">
@@ -770,73 +794,109 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
     priceSection: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flexDirection: 'column',
         backgroundColor: theme.colors.surface,
-        padding: 20,
-        borderRadius: 16,
+        padding: 18,
+        borderRadius: 18,
         marginBottom: 24,
-        ...theme.shadows.small,
+        gap: 14,
+        ...theme.shadows.medium,
     },
-    priceLabel: {
+    priceInfo: {
+        gap: 4,
+    },
+    priceLabelText: {
         fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginBottom: 4,
+        fontWeight: '600',
+        color: 'rgba(255,255,255,0.65)',
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
     },
     priceRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        marginBottom: 4,
+        gap: 4,
+        marginTop: 2,
     },
-    priceSymbol: {
+    priceSymbolText: {
         fontSize: 16,
         fontWeight: '600',
-        color: theme.colors.success,
-        marginRight: 4,
+        color: '#28C9BF',
     },
-    priceValue: {
+    priceValueText: {
         fontSize: 32,
-        fontWeight: '700',
-        color: theme.colors.success,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: -0.8,
     },
-    priceNote: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary,
+    priceInstallment: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.78)',
+        fontWeight: '500',
+        marginTop: 2,
     },
-    priceCtas: {
-        flexDirection: 'column',
-        gap: 10,
-        alignItems: 'flex-end',
-    },
-    cartCta: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 1.5,
-        borderColor: 'rgba(255,255,255,0.3)',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cartCtaActive: {
-        borderColor: '#28C9BF',
-        backgroundColor: 'rgba(40,201,191,0.15)',
-    },
-    buyButton: {
+    priceMeta: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 4,
+        marginTop: 6,
+    },
+    priceMetaText: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.6)',
+    },
+    purchaseActions: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 4,
+    },
+    // Botão "Adicionar" — secundário, outline branca
+    cartCtaWide: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         gap: 8,
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingVertical: 13,
-        borderRadius: 28,
+        borderRadius: 999,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.28)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        minHeight: 48,
+        minWidth: 130,
+    },
+    cartCtaWideActive: {
+        borderColor: '#28C9BF',
+        backgroundColor: 'rgba(40,201,191,0.18)',
+    },
+    cartCtaWideText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        letterSpacing: -0.1,
+    },
+    cartCtaWideTextActive: {
+        color: '#28C9BF',
+    },
+    // Botão "Comprar agora" — primário teal, ocupa o resto da linha
+    buyButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 18,
+        paddingVertical: 13,
+        borderRadius: 999,
+        minHeight: 48,
         ...theme.shadows.button,
     },
     buyButtonText: {
-        fontSize: 14,
-        fontWeight: '700',
+        fontSize: 15,
+        fontWeight: '800',
         color: '#fff',
+        letterSpacing: -0.2,
     },
     cartToast: {
         flexDirection: 'row',

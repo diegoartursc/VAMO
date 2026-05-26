@@ -4,11 +4,13 @@ import {
     Image,
     FlatList,
     StyleSheet,
+    Text,
     useWindowDimensions,
     ViewToken,
-    ActivityIndicator,
     Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { prefetchImages } from '../../utils/imageCache';
 
@@ -17,6 +19,8 @@ interface CoverCarouselProps {
     height?: number;
     borderRadius?: number;
     width?: number;
+    /** Distância dos dots ao fundo. Útil pra empurrá-los acima de badges sobrepostos (ex.: preço/duração no card). */
+    dotsBottom?: number;
 }
 
 /**
@@ -29,30 +33,48 @@ const CoverCarouselInner = ({
     height = 200,
     borderRadius = 0,
     width,
+    dotsBottom = 10,
 }: CoverCarouselProps) => {
     const { width: windowWidth } = useWindowDimensions();
     const [activeIndex, setActiveIndex] = useState(0);
+    const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
     const flatListRef = useRef<FlatList>(null);
     const containerWidth = width || windowWidth;
     const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const currentIndexRef = useRef(0);
     const isTouchingRef = useRef(false);
 
+    // Filtra URLs vazias e que já falharam — assim quebradas somem em vez
+    // de mostrar área cinza eterna.
+    const validImages = (images || []).filter(
+        (u): u is string => typeof u === 'string' && u.length > 0 && !failedUrls.has(u),
+    );
+
+    const handleImageError = useCallback((url: string) => {
+        setFailedUrls(prev => {
+            if (prev.has(url)) return prev;
+            const next = new Set(prev);
+            next.add(url);
+            return next;
+        });
+    }, []);
+
     // Prefetch all images on mount
     useEffect(() => {
-        if (images?.length > 0) {
-            prefetchImages(images);
+        if (validImages.length > 0) {
+            prefetchImages(validImages);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [images]);
 
     // Auto-play: advance every 3 seconds with smooth scroll
     useEffect(() => {
-        if (!images || images.length <= 1) return;
+        if (validImages.length <= 1) return;
 
         autoPlayRef.current = setInterval(() => {
             if (isTouchingRef.current) return;
 
-            const nextIndex = (currentIndexRef.current + 1) % images.length;
+            const nextIndex = (currentIndexRef.current + 1) % validImages.length;
             currentIndexRef.current = nextIndex;
             setActiveIndex(nextIndex);
 
@@ -65,7 +87,7 @@ const CoverCarouselInner = ({
         return () => {
             if (autoPlayRef.current) clearInterval(autoPlayRef.current);
         };
-    }, [images, containerWidth]);
+    }, [validImages.length, containerWidth]);
 
     const onViewableItemsChanged = useRef(
         ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -100,10 +122,11 @@ const CoverCarouselInner = ({
                     style={[styles.image, { height }, webImageStyle]}
                     resizeMode="cover"
                     defaultSource={undefined}
+                    onError={() => handleImageError(item)}
                 />
             </View>
         ),
-        [containerWidth, height]
+        [containerWidth, height, handleImageError, webImageStyle]
     );
 
     const keyExtractor = useCallback(
@@ -120,22 +143,32 @@ const CoverCarouselInner = ({
         [containerWidth]
     );
 
-    if (!images || images.length === 0) {
+    // Fallback elegante quando NÃO há imagens (ou todas falharam). Antes
+    // exibia ActivityIndicator eterno; agora mostra gradiente VAMO com
+    // ícone — visualmente claro e sem spinner infinito.
+    if (validImages.length === 0) {
         return (
-            <View style={[styles.placeholder, { height, borderRadius }]}>
-                <ActivityIndicator color={theme.colors.primary} />
-            </View>
+            <LinearGradient
+                colors={['#1A3263', '#28C9BF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.placeholder, { height, borderRadius }]}
+            >
+                <Ionicons name="images-outline" size={36} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.placeholderText}>Imagem indisponível</Text>
+            </LinearGradient>
         );
     }
 
     // Single image — no carousel needed
-    if (images.length === 1) {
+    if (validImages.length === 1) {
         return (
             <View style={[{ height, borderRadius, overflow: 'hidden' }]}>
                 <Image
-                    source={{ uri: images[0] }}
+                    source={{ uri: validImages[0] }}
                     style={[styles.image, { height }, webImageStyle]}
                     resizeMode="cover"
+                    onError={() => handleImageError(validImages[0])}
                 />
             </View>
         );
@@ -145,7 +178,7 @@ const CoverCarouselInner = ({
         <View style={[styles.container, { height, borderRadius, overflow: 'hidden' }]}>
             <FlatList
                 ref={flatListRef}
-                data={images}
+                data={validImages}
                 renderItem={renderItem}
                 keyExtractor={keyExtractor}
                 horizontal
@@ -174,15 +207,15 @@ const CoverCarouselInner = ({
                         style={styles.cameraIcon}
                     />
                     <View style={styles.counterTextContainer}>
-                        <CounterText current={activeIndex + 1} total={images.length} />
+                        <CounterText current={activeIndex + 1} total={validImages.length} />
                     </View>
                 </View>
             </View>
 
             {/* Pagination Dots */}
-            {images.length <= 6 && (
-                <View style={styles.dotsContainer}>
-                    {images.map((_, idx) => (
+            {validImages.length <= 6 && (
+                <View style={[styles.dotsContainer, { bottom: dotsBottom }]}>
+                    {validImages.map((_, idx) => (
                         <View
                             key={idx}
                             style={[
@@ -217,9 +250,15 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     placeholder: {
-        backgroundColor: theme.colors.surface,
         justifyContent: 'center',
         alignItems: 'center',
+        gap: 8,
+    },
+    placeholderText: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.85)',
+        fontWeight: '600',
+        letterSpacing: 0.3,
     },
     counterBadge: {
         position: 'absolute',
@@ -250,21 +289,20 @@ const styles = StyleSheet.create({
     },
     dotsContainer: {
         position: 'absolute',
-        bottom: 10,
         left: 0,
         right: 0,
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 5,
+        gap: 6,
     },
     dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
     },
     dotActive: {
         backgroundColor: '#FFFFFF',
-        width: 18,
+        width: 22,
         borderRadius: 4,
     },
     dotInactive: {

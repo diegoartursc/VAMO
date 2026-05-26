@@ -25,13 +25,23 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import {
+    Wallet, BarChart3, Crown,
+    Landmark, ChefHat, Leaf, Dumbbell, Ship, Globe, Sparkles,
+    Sun, BookOpen, Music, Backpack, Users, Heart, Mountain,
+    CalendarDays, Plane, Building2, Ticket, Bus, Lightbulb, Utensils, ListChecks, CreditCard,
+    Camera, Star, Clock, X,
+    Wifi, Shield, FileText, Shirt, Package, Coins, ShoppingBag, Luggage, Wrench, Pill, Car,
+} from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
 import FormInput from '../src/components/dashboard/FormInput';
 import EditableList from '../src/components/dashboard/EditableList';
+import CostBlock, { costToLegacySpending } from '../src/components/dashboard/CostBlock';
 import { CurrencyPicker } from '../src/components/common/CurrencyPicker';
 import {
     createEmptyForm,
@@ -45,6 +55,7 @@ import {
     RestaurantItem,
     ChecklistItem,
     SpendingEntry,
+    ExtraSpendingItem,
     FlightLeg,
     EMPTY_FLIGHT_LEG,
     STYLE_OPTIONS,
@@ -52,7 +63,9 @@ import {
     MODULE_OPTIONS,
     CHECKLIST_CATS,
     SPENDING_CATS,
+    EXTRA_SPENDING_CATEGORIES,
     ATTRACTION_TYPES,
+    CUISINE_OPTIONS,
     MAX_CATEGORIES,
     MIN_TIPS,
     MIN_CHECKLIST,
@@ -64,19 +77,76 @@ import {
 
 const DRAFT_KEY = '@vamo_draft_itinerary_v2';
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
-const TOTAL_STEPS = 9;
 
-const STEP_LABELS = [
-    'Identidade',
-    'Comprovante',
-    'Comercial',
-    'Módulos',
-    'Roteiro dia a dia',
-    'Conteúdo',
-    'Dicas, checklist, gastos',
-    'Mídia',
-    'Revisão',
-];
+// ── Sistema dinâmico de etapas ──────────────────────────────────────
+// As etapas base (identidade, comprovante, comercial, módulos) e finais
+// (mídia, revisão) são fixas. Entre elas, cada módulo ativado em
+// activeModules vira uma etapa própria — na mesma ordem de MODULE_OPTIONS.
+
+type StepKey =
+    | 'identity' | 'proof' | 'commerce' | 'modules'
+    | 'days' | 'voo' | 'hospedagem' | 'passeios' | 'transporte'
+    | 'dicas' | 'restaurantes' | 'checklist' | 'gastos_extras'
+    | 'media' | 'review';
+
+const MODULE_TO_STEP: Partial<Record<ModuleKey, StepKey>> = {
+    itinerario:    'days',
+    voo:           'voo',
+    hospedagem:    'hospedagem',
+    passeios:      'passeios',
+    transporte:    'transporte',
+    dicas:         'dicas',
+    restaurantes:  'restaurantes',
+    checklist:     'checklist',
+    gastos_extras: 'gastos_extras',
+    // 'gasto' (legacy) intencionalmente omitido — não vira mais step.
+};
+
+const STEP_LABEL_MAP: Record<StepKey, string> = {
+    identity:      'Identidade',
+    proof:         'Comprovante',
+    commerce:      'Comercial',
+    modules:       'Módulos',
+    days:          'Itinerário por dia',
+    voo:           'Meu Voo',
+    hospedagem:    'Hospedagens',
+    passeios:      'Passeios & Atrações',
+    transporte:    'Transporte',
+    dicas:         'Dicas Exclusivas',
+    restaurantes:  'Restaurantes',
+    checklist:     'Checklist',
+    gastos_extras: 'Gastos Extras',
+    media:         'Fotos e Vídeos',
+    review:        'Revisão',
+};
+
+// Mapeia o campo `section` de uma ValidationIssue para a chave de etapa
+// correspondente, para que "Corrigir pendência" leve o roteirista direto
+// para a etapa onde está o problema.
+const ISSUE_SECTION_TO_STEP: Record<string, StepKey> = {
+    identity:      'identity',
+    proof:         'proof',
+    commerce:      'commerce',
+    modules:       'modules',
+    itinerary:     'days',
+    voo:           'voo',
+    hospedagem:    'hospedagem',
+    passeios:      'passeios',
+    transporte:    'transporte',
+    dicas:         'dicas',
+    restaurantes:  'restaurantes',
+    checklist:     'checklist',
+    gastos_extras: 'gastos_extras',
+};
+
+function buildSteps(activeModules: ModuleKey[]): StepKey[] {
+    const base: StepKey[] = ['identity', 'proof', 'commerce', 'modules'];
+    const dynamic: StepKey[] = MODULE_OPTIONS
+        .filter(m => activeModules.includes(m.key))
+        .map(m => MODULE_TO_STEP[m.key])
+        .filter((k): k is StepKey => !!k);
+    return [...base, ...dynamic, 'media', 'review'];
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -95,6 +165,17 @@ export default function NewItineraryScreen() {
     const [showResume, setShowResume] = useState(false);
     const [pendingDraft, setPendingDraft] = useState<{ form: ItineraryFormState; step: number } | null>(null);
     const [submitting, setSubmitting] = useState(false);
+
+    // Etapas dinâmicas baseadas nos módulos ativos
+    const steps = useMemo(() => buildSteps(form.activeModules), [form.activeModules]);
+    const totalSteps = steps.length;
+    const stepKey: StepKey = steps[Math.min(step, totalSteps) - 1] ?? 'review';
+    const isLastStep = step >= totalSteps;
+
+    // Se módulos foram desativados e a etapa atual passou a não existir, ajusta.
+    useEffect(() => {
+        if (step > totalSteps) setStep(totalSteps);
+    }, [totalSteps, step]);
 
     const score = useMemo(() => calcQuality(form), [form]);
     const submissionIssues = useMemo(() => validateForSubmission(form), [form]);
@@ -153,11 +234,21 @@ export default function NewItineraryScreen() {
     // ── Navegação ───────────────────────────────────────────────
     const goNext = useCallback(() => {
         haptics.light();
-        if (step === TOTAL_STEPS) { submit(); return; }
-        const ns = Math.min(step + 1, TOTAL_STEPS);
+        if (isLastStep) { submit(); return; }
+        // Bloqueia avanço da etapa Comprovante sem arquivo anexado
+        if (stepKey === 'proof' && !form.travelProofUrl) {
+            haptics.error?.();
+            Alert.alert(
+                'Comprovante obrigatório',
+                'Envie um arquivo que comprove que você esteve no destino (bilhete aéreo, recibo de hotel, passaporte carimbado, etc.) para continuar.',
+                [{ text: 'Entendi', style: 'default' }],
+            );
+            return;
+        }
+        const ns = Math.min(step + 1, totalSteps);
         setStep(ns);
         saveDraftLocal(form, ns);
-    }, [step, form, saveDraftLocal]);
+    }, [step, stepKey, isLastStep, totalSteps, form, saveDraftLocal]);
 
     const goBack = useCallback(() => {
         haptics.light();
@@ -175,11 +266,21 @@ export default function NewItineraryScreen() {
         }
         const issues = validateForSubmission(form);
         if (issues.length) {
-            // No step 9 (Revisão), o card de pendências já está visível —
-            // só rola para o topo e dá um haptic de erro. Em outros steps
-            // (fallback), mostra Alert listando os problemas.
-            if (step === TOTAL_STEPS) {
+            // Na etapa Revisão (última), o card de pendências já está visível.
+            // Navegamos direto para a etapa da primeira pendência para o
+            // roteirista corrigir sem precisar adivinhar onde está o problema.
+            if (isLastStep) {
                 haptics.error?.();
+                const firstIssue = issues[0];
+                const targetKey = ISSUE_SECTION_TO_STEP[firstIssue.section];
+                if (targetKey) {
+                    const targetIndex = steps.indexOf(targetKey);
+                    if (targetIndex >= 0) {
+                        setStep(targetIndex + 1);
+                        scrollRef.current?.scrollTo({ y: 0, animated: true });
+                        return;
+                    }
+                }
                 scrollRef.current?.scrollTo({ y: 0, animated: true });
             } else {
                 Alert.alert(
@@ -236,11 +337,15 @@ export default function NewItineraryScreen() {
             const payload = { ...buildPayload(form), status: 'DRAFT' };
             const url    = isEdit ? `${API_BASE}/itineraries/${editId}` : `${API_BASE}/itineraries`;
             const method = isEdit ? 'PUT' : 'POST';
-            await fetch(url, {
+            const draftRes = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
                 body: JSON.stringify(payload),
             });
+            if (!draftRes.ok) {
+                const errBody = await draftRes.json().catch(() => ({}));
+                throw new Error(errBody?.error || `Erro ${draftRes.status} ao salvar rascunho`);
+            }
             await AsyncStorage.removeItem(DRAFT_KEY);
             router.replace('/created-itineraries');
         } catch (e: any) {
@@ -303,8 +408,8 @@ export default function NewItineraryScreen() {
                     <Ionicons name={step === 1 ? 'close' : 'chevron-back'} size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <View style={{ flex: 1, alignItems: 'center' }}>
-                    <Text style={s.headerLabel}>{STEP_LABELS[step - 1]}</Text>
-                    <Text style={s.headerStep}>Passo {step} de {TOTAL_STEPS} · Score {score}</Text>
+                    <Text style={s.headerLabel}>{STEP_LABEL_MAP[stepKey]}</Text>
+                    <Text style={s.headerStep}>Passo {step} de {totalSteps} · Score {score}</Text>
                 </View>
                 <TouchableOpacity onPress={saveDraft} style={s.headerBtn} disabled={saving}>
                     {saving
@@ -313,7 +418,7 @@ export default function NewItineraryScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ProgressBar step={step} total={TOTAL_STEPS} />
+            <ProgressBar step={step} total={totalSteps} />
 
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
@@ -326,25 +431,40 @@ export default function NewItineraryScreen() {
                     contentContainerStyle={s.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {step === 1 && <StepIdentity form={form} update={updateForm} />}
-                    {step === 2 && <StepProof form={form} update={updateForm} token={accessToken} />}
-                    {step === 3 && <StepCommerce form={form} update={updateForm} />}
-                    {step === 4 && <StepModules form={form} update={updateForm} />}
-                    {step === 5 && <StepDays form={form} update={updateForm} />}
-                    {step === 6 && <StepContent form={form} update={updateForm} />}
-                    {step === 7 && <StepExtras form={form} update={updateForm} />}
-                    {step === 8 && <StepMedia form={form} update={updateForm} token={accessToken} />}
-                    {step === 9 && <StepReview form={form} onPreview={openPreview} />}
+                    {stepKey === 'identity'     && <StepIdentity     form={form} update={updateForm} />}
+                    {stepKey === 'proof'        && <StepProof        form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'commerce'     && <StepCommerce     form={form} update={updateForm} />}
+                    {stepKey === 'modules'      && <StepModules      form={form} update={updateForm} />}
+                    {stepKey === 'days'         && <StepDays         form={form} update={updateForm} />}
+                    {stepKey === 'voo'          && <StepFlight       form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'hospedagem'   && <StepAccommodations form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'passeios'     && <StepAttractions  form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'transporte'   && <StepTransport    form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'dicas'        && <StepTips         form={form} update={updateForm} />}
+                    {stepKey === 'restaurantes' && <StepRestaurants  form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'checklist'    && <StepChecklist    form={form} update={updateForm} />}
+                    {stepKey === 'gastos_extras' && <StepExtraSpending form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'media'        && <StepMedia        form={form} update={updateForm} token={accessToken} />}
+                    {stepKey === 'review'       && <StepReview       form={form} onPreview={openPreview} onFixIssue={(section) => {
+                        const targetKey = ISSUE_SECTION_TO_STEP[section];
+                        if (!targetKey) return;
+                        const targetIndex = steps.indexOf(targetKey);
+                        if (targetIndex >= 0) {
+                            haptics.light();
+                            setStep(targetIndex + 1);
+                            scrollRef.current?.scrollTo({ y: 0, animated: true });
+                        }
+                    }} />}
                 </ScrollView>
             </KeyboardAvoidingView>
 
             {/* Footer CTA */}
             <View style={s.footer}>
-                {/* No último passo, se há pendências, o botão fica em estado warning */}
+                {/* Na última etapa, se há pendências, o botão fica em estado warning */}
                 <TouchableOpacity
                     style={[
                         s.ctaBtn,
-                        step === TOTAL_STEPS && hasIssues && s.ctaBtnWarning,
+                        isLastStep && hasIssues && s.ctaBtnWarning,
                         submitting && { opacity: 0.6 },
                     ]}
                     onPress={goNext}
@@ -357,7 +477,7 @@ export default function NewItineraryScreen() {
                             <>
                                 <Ionicons
                                     name={
-                                        step === TOTAL_STEPS
+                                        isLastStep
                                             ? (hasIssues ? 'alert-circle' : 'checkmark-circle')
                                             : 'arrow-forward'
                                     }
@@ -366,7 +486,7 @@ export default function NewItineraryScreen() {
                                     style={{ marginRight: 8 }}
                                 />
                                 <Text style={s.ctaText}>
-                                    {step === TOTAL_STEPS
+                                    {isLastStep
                                         ? (hasIssues
                                             ? `Corrigir ${submissionIssues.length} pendência${submissionIssues.length > 1 ? 's' : ''}`
                                             : 'Enviar para análise')
@@ -378,7 +498,7 @@ export default function NewItineraryScreen() {
                 </TouchableOpacity>
 
                 {/* Texto auxiliar abaixo do botão quando há pendências */}
-                {step === TOTAL_STEPS && hasIssues && (
+                {isLastStep && hasIssues && (
                     <View style={s.ctaHelperRow}>
                         <Ionicons name="warning-outline" size={14} color={theme.colors.warning || '#F59E0B'} />
                         <Text style={s.ctaHelperText}>
@@ -394,8 +514,503 @@ export default function NewItineraryScreen() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// DATE / TIME PICKER FIELDS — nativos, compactos
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Parse ISO date "AAAA-MM-DD" → Date. Retorna null se inválido.
+ */
+function parseISODate(iso: string): Date | null {
+    if (!iso) return null;
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function toISODate(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function formatDateBR(iso: string): string {
+    const d = parseISODate(iso);
+    if (!d) return '';
+    const day = String(d.getDate()).padStart(2, '0');
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${m}/${d.getFullYear()}`;
+}
+
+function parseHHMM(hhmm: string): { h: number; m: number } | null {
+    if (!hhmm) return null;
+    const match = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+    const h = Number(match[1]);
+    const m = Number(match[2]);
+    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+    return { h, m };
+}
+
+function DatePickerField({
+    label, value, onChange, required, placeholder = 'Selecionar data',
+}: {
+    label: string;
+    value: string; // AAAA-MM-DD
+    onChange: (iso: string) => void;
+    required?: boolean;
+    placeholder?: string;
+}) {
+    const [open, setOpen] = useState(false);
+    // Estado temporário do picker iOS — só commita no "Confirmar".
+    const [tempDate, setTempDate] = useState<Date>(() => parseISODate(value) || new Date());
+    const display = value ? formatDateBR(value) : '';
+
+    function openPicker() {
+        setTempDate(parseISODate(value) || new Date());
+        setOpen(true);
+    }
+
+    function onPickerChange(event: DateTimePickerEvent, selected?: Date) {
+        if (Platform.OS === 'android') {
+            // Android: o dialog nativo fecha sozinho. Salvamos só quando o
+            // user confirmou (event.type === 'set'); 'dismissed' descarta.
+            setOpen(false);
+            if (event.type === 'set' && selected) {
+                onChange(toISODate(selected));
+            }
+        } else {
+            // iOS: o spinner dispara onChange continuamente — só atualiza
+            // o estado temporário; commit no botão "Confirmar".
+            if (selected) setTempDate(selected);
+        }
+    }
+
+    return (
+        <View style={s.pickerFieldWrap}>
+            <Text style={s.label}>
+                {label}{required ? ' *' : ''}
+            </Text>
+            {/* Botão principal + botão limpar lado a lado (sem aninhar TouchableOpacity) */}
+            <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 6 }}>
+                <TouchableOpacity
+                    style={[s.pickerFieldTouchable, { flex: 1 }]}
+                    onPress={openPicker}
+                    activeOpacity={0.75}
+                >
+                    <Ionicons name="calendar-outline" size={16} color={theme.colors.primary} />
+                    <Text style={[s.pickerFieldText, !value && s.pickerFieldPlaceholder]}>
+                        {display || placeholder}
+                    </Text>
+                </TouchableOpacity>
+                {!!value && (
+                    <TouchableOpacity
+                        style={s.pickerClearBtn}
+                        onPress={() => onChange('')}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="close" size={16} color={theme.colors.text.tertiary} />
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {/* iOS — modal bottom sheet com spinner + Confirmar/Cancelar */}
+            {open && Platform.OS === 'ios' && (
+                <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
+                    <TouchableOpacity
+                        style={s.pickerModalBg}
+                        activeOpacity={1}
+                        onPress={() => setOpen(false)}
+                    >
+                        <TouchableOpacity activeOpacity={1} style={s.pickerModalCard}>
+                            <Text style={s.pickerModalTitle}>{label}</Text>
+                            <DateTimePicker
+                                value={tempDate}
+                                mode="date"
+                                display="spinner"
+                                onChange={onPickerChange}
+                                themeVariant="light"
+                                locale="pt-BR"
+                            />
+                            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                                <TouchableOpacity style={s.modalBtnGhost} onPress={() => setOpen(false)}>
+                                    <Text style={s.modalBtnGhostText}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={s.modalBtnPrimary}
+                                    onPress={() => {
+                                        onChange(toISODate(tempDate));
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Text style={s.modalBtnPrimaryText}>Confirmar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </Modal>
+            )}
+
+            {/* Android — dialog nativo padrão (renderizado fora do layout) */}
+            {open && Platform.OS === 'android' && (
+                <DateTimePicker
+                    value={tempDate}
+                    mode="date"
+                    display="default"
+                    onChange={onPickerChange}
+                />
+            )}
+
+            {/* Web — modal com input nativo type="date" (DateTimePicker não funciona em web) */}
+            {open && Platform.OS === 'web' && (
+                <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
+                    <TouchableOpacity
+                        style={s.pickerModalBg}
+                        activeOpacity={1}
+                        onPress={() => setOpen(false)}
+                    >
+                        <TouchableOpacity activeOpacity={1} style={s.pickerModalCard}>
+                            <Text style={s.pickerModalTitle}>{label}</Text>
+                            {/* @ts-ignore — input HTML nativo no Expo Web */}
+                            <input
+                                type="date"
+                                value={value || toISODate(tempDate)}
+                                onChange={(e: any) => {
+                                    const iso = e?.target?.value || '';
+                                    if (iso) {
+                                        const d = parseISODate(iso);
+                                        if (d) setTempDate(d);
+                                    }
+                                }}
+                                style={{
+                                    fontSize: 16,
+                                    padding: 12,
+                                    borderRadius: 10,
+                                    border: `1.5px solid ${theme.colors.borderLight}`,
+                                    width: '100%',
+                                    marginBottom: 12,
+                                }}
+                            />
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                <TouchableOpacity style={s.modalBtnGhost} onPress={() => setOpen(false)}>
+                                    <Text style={s.modalBtnGhostText}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={s.modalBtnPrimary}
+                                    onPress={() => {
+                                        onChange(toISODate(tempDate));
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Text style={s.modalBtnPrimaryText}>Confirmar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </Modal>
+            )}
+        </View>
+    );
+}
+
+function TimePickerField({
+    label, value, onChange, required, placeholder = 'Selecionar horário',
+}: {
+    label: string;
+    value: string; // HH:MM
+    onChange: (hhmm: string) => void;
+    required?: boolean;
+    placeholder?: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const [tempTime, setTempTime] = useState<Date>(() => {
+        const d = new Date();
+        const parsed = parseHHMM(value);
+        if (parsed) { d.setHours(parsed.h, parsed.m, 0, 0); }
+        else { d.setHours(9, 0, 0, 0); }
+        return d;
+    });
+
+    function openPicker() {
+        const d = new Date();
+        const parsed = parseHHMM(value);
+        if (parsed) { d.setHours(parsed.h, parsed.m, 0, 0); }
+        else { d.setHours(9, 0, 0, 0); }
+        setTempTime(d);
+        setOpen(true);
+    }
+
+    function onPickerChange(event: DateTimePickerEvent, selected?: Date) {
+        if (Platform.OS === 'android') {
+            setOpen(false);
+            if (event.type === 'set' && selected) {
+                const hh = String(selected.getHours()).padStart(2, '0');
+                const mm = String(selected.getMinutes()).padStart(2, '0');
+                onChange(`${hh}:${mm}`);
+            }
+        } else {
+            if (selected) setTempTime(selected);
+        }
+    }
+
+    function commitTime() {
+        const hh = String(tempTime.getHours()).padStart(2, '0');
+        const mm = String(tempTime.getMinutes()).padStart(2, '0');
+        onChange(`${hh}:${mm}`);
+        setOpen(false);
+    }
+
+    return (
+        <View style={s.pickerFieldWrap}>
+            <Text style={s.label}>{label}{required ? ' *' : ''}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity
+                    style={[s.pickerFieldTouchable, { minWidth: 120, alignSelf: 'flex-start', flex: 1 }]}
+                    onPress={openPicker}
+                    activeOpacity={0.75}
+                >
+                    <Clock size={16} color={theme.colors.primary} />
+                    <Text style={[s.pickerFieldText, !value && s.pickerFieldPlaceholder]}>
+                        {value || placeholder}
+                    </Text>
+                </TouchableOpacity>
+                {!!value && (
+                    <TouchableOpacity onPress={() => onChange('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <X size={16} color={theme.colors.text.tertiary} />
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {/* iOS — spinner em modal com botão Confirmar */}
+            {open && Platform.OS === 'ios' && (
+                <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
+                    <TouchableOpacity
+                        style={s.pickerModalBg}
+                        activeOpacity={1}
+                        onPress={() => setOpen(false)}
+                    >
+                        <TouchableOpacity activeOpacity={1} style={s.pickerModalCard}>
+                            <Text style={s.pickerModalTitle}>{label}</Text>
+                            <DateTimePicker
+                                value={tempTime}
+                                mode="time"
+                                display="spinner"
+                                onChange={onPickerChange}
+                                themeVariant="light"
+                                is24Hour
+                            />
+                            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                                <TouchableOpacity style={s.modalBtnGhost} onPress={() => setOpen(false)}>
+                                    <Text style={s.modalBtnGhostText}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={s.modalBtnPrimary} onPress={commitTime}>
+                                    <Text style={s.modalBtnPrimaryText}>Confirmar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </Modal>
+            )}
+
+            {/* Android — dialog nativo padrão */}
+            {open && Platform.OS === 'android' && (
+                <DateTimePicker
+                    value={tempTime}
+                    mode="time"
+                    display="default"
+                    onChange={onPickerChange}
+                    is24Hour
+                />
+            )}
+
+            {/* Web — modal com input nativo type="time" */}
+            {open && Platform.OS === 'web' && (
+                <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
+                    <TouchableOpacity
+                        style={s.pickerModalBg}
+                        activeOpacity={1}
+                        onPress={() => setOpen(false)}
+                    >
+                        <TouchableOpacity activeOpacity={1} style={s.pickerModalCard}>
+                            <Text style={s.pickerModalTitle}>{label}</Text>
+                            {/* @ts-ignore — input HTML nativo no Expo Web */}
+                            <input
+                                type="time"
+                                value={value || `${String(tempTime.getHours()).padStart(2,'0')}:${String(tempTime.getMinutes()).padStart(2,'0')}`}
+                                onChange={(e: any) => {
+                                    const hhmm = e?.target?.value || '';
+                                    if (hhmm) {
+                                        const parsed = parseHHMM(hhmm);
+                                        if (parsed) {
+                                            const d = new Date();
+                                            d.setHours(parsed.h, parsed.m, 0, 0);
+                                            setTempTime(d);
+                                        }
+                                    }
+                                }}
+                                style={{
+                                    fontSize: 16,
+                                    padding: 12,
+                                    borderRadius: 10,
+                                    border: `1.5px solid ${theme.colors.borderLight}`,
+                                    width: '100%',
+                                    marginBottom: 12,
+                                }}
+                            />
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                <TouchableOpacity style={s.modalBtnGhost} onPress={() => setOpen(false)}>
+                                    <Text style={s.modalBtnGhostText}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={s.modalBtnPrimary} onPress={commitTime}>
+                                    <Text style={s.modalBtnPrimaryText}>Confirmar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </Modal>
+            )}
+        </View>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// QUANTITY STEPPER — compacto para duração/quantidade (não monetário)
+// ═══════════════════════════════════════════════════════════════════
+
+function QuantityStepper({
+    value, onChange, min = 0, max, step = 1,
+    unit, onUnitChange, units, width = 64,
+}: {
+    value: number;
+    onChange: (v: number) => void;
+    min?: number;
+    max?: number;
+    step?: number;
+    unit?: string;
+    onUnitChange?: (u: string) => void;
+    units?: string[];
+    width?: number;
+}) {
+    const clamp = (n: number) => {
+        if (Number.isNaN(n)) return min;
+        if (n < min) return min;
+        if (max != null && n > max) return max;
+        return n;
+    };
+    const dec = () => onChange(clamp(value - step));
+    const inc = () => onChange(clamp(value + step));
+    const atMin = value <= min;
+    const atMax = max != null && value >= max;
+    return (
+        <View style={s.qsRow}>
+            <TouchableOpacity
+                style={[s.qsBtn, atMin && s.qsBtnDisabled]}
+                onPress={dec}
+                disabled={atMin}
+                activeOpacity={0.7}
+            >
+                <Ionicons
+                    name="remove"
+                    size={18}
+                    color={atMin ? theme.colors.text.disabled : theme.colors.primary}
+                />
+            </TouchableOpacity>
+            <TextInput
+                style={[s.qsInput, { width }]}
+                keyboardType="number-pad"
+                value={String(value)}
+                selectTextOnFocus
+                onChangeText={v => {
+                    const n = parseInt(v.replace(/\D/g, ''), 10);
+                    onChange(clamp(Number.isNaN(n) ? min : n));
+                }}
+            />
+            <TouchableOpacity
+                style={[s.qsBtn, atMax && s.qsBtnDisabled]}
+                onPress={inc}
+                disabled={atMax}
+                activeOpacity={0.7}
+            >
+                <Ionicons
+                    name="add"
+                    size={18}
+                    color={atMax ? theme.colors.text.disabled : theme.colors.primary}
+                />
+            </TouchableOpacity>
+            {unit && onUnitChange && units && units.length > 0 && (
+                <TouchableOpacity
+                    style={s.qsUnit}
+                    onPress={() => {
+                        const idx = units.indexOf(unit);
+                        const next = units[(idx + 1) % units.length];
+                        onUnitChange(next);
+                    }}
+                    activeOpacity={0.7}
+                >
+                    <Text style={s.qsUnitText}>{unit}</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // STEP 1 — IDENTIDADE
 // ═══════════════════════════════════════════════════════════════════
+
+type LucideIcon = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+
+const STYLE_ICON_MAP: Record<string, LucideIcon> = {
+    economico: Wallet,
+    moderado:  BarChart3,
+    luxo:      Crown,
+};
+
+const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
+    cultura:     Landmark,
+    gastronomia: ChefHat,
+    natureza:    Leaf,
+    esportes:    Dumbbell,
+    cruzeiros:   Ship,
+    eurotrip:    Globe,
+    relax:       Sparkles,
+    praia:       Sun,
+    historico:   BookOpen,
+    festivais:   Music,
+    mochilao:    Backpack,
+    familia:     Users,
+    romantico:   Heart,
+    aventura:    Mountain,
+};
+
+const EXTRA_SPENDING_ICON_MAP: Record<string, LucideIcon> = {
+    internet:       Wifi,
+    seguro:         Shield,
+    taxas:          Landmark,
+    visto:          FileText,
+    lavanderia:     Shirt,
+    guardavolume:   Package,
+    gorjetas:       Coins,
+    compras:        ShoppingBag,
+    bagagem:        Luggage,
+    aluguel:        Wrench,
+    farmacia:       Pill,
+    estacionamento: Car,
+    outros:         Sparkles,
+};
+
+const MODULE_ICON_MAP: Record<string, LucideIcon> = {
+    itinerario:    CalendarDays,
+    voo:           Plane,
+    hospedagem:    Building2,
+    passeios:      Ticket,
+    transporte:    Bus,
+    dicas:         Lightbulb,
+    restaurantes:  Utensils,
+    checklist:     ListChecks,
+    gastos_extras: Wallet,
+};
 
 function StepIdentity({ form, update }: StepProps) {
     const toggleArray = (arr: string[], val: string, max?: number): string[] => {
@@ -404,115 +1019,211 @@ function StepIdentity({ form, update }: StepProps) {
         return [...arr, val];
     };
 
+    function updateLocationCountry(locIdx: number, value: string) {
+        const locs = [...form.locations];
+        locs[locIdx] = { ...locs[locIdx], country: value };
+        update('locations', locs);
+        if (locIdx === 0) update('country', value);
+    }
+
+    function updateLocationCity(locIdx: number, cityIdx: number, value: string) {
+        const locs = [...form.locations];
+        const cities = [...locs[locIdx].cities];
+        cities[cityIdx] = value;
+        locs[locIdx] = { ...locs[locIdx], cities };
+        update('locations', locs);
+        if (locIdx === 0 && cityIdx === 0) update('destination', value);
+    }
+
+    function addCity(locIdx: number) {
+        const locs = [...form.locations];
+        locs[locIdx] = { ...locs[locIdx], cities: [...locs[locIdx].cities, ''] };
+        update('locations', locs);
+    }
+
+    function removeCity(locIdx: number, cityIdx: number) {
+        const locs = [...form.locations];
+        const cities = locs[locIdx].cities.filter((_, i) => i !== cityIdx);
+        locs[locIdx] = { ...locs[locIdx], cities };
+        update('locations', locs);
+    }
+
+    function addCountry() {
+        update('locations', [...form.locations, { country: '', cities: [''] }]);
+    }
+
+    function removeCountry(locIdx: number) {
+        update('locations', form.locations.filter((_, i) => i !== locIdx));
+    }
+
     return (
         <View>
-            <SectionHeader title="Identidade & Indexação" subtitle="O que o viajante vê primeiro." />
+            <SectionHeader
+                title="Identidade & Indexação"
+                subtitle="Título, destino e categorias — o que o viajante vê primeiro na vitrine."
+            />
             <FormInput
-                label="Título do roteiro"
+                label="Título do Roteiro"
                 required
-                placeholder="Ex: 7 dias em Paris sem gastar uma fortuna"
+                placeholder='Ex: "Japão Autêntico: 15 dias de gastronomia, templos e cultura viva"'
                 value={form.title}
                 onChangeText={v => update('title', v)}
                 maxLength={120}
             />
-            <FormInput
-                label="Subtítulo"
-                placeholder="Frase curta de apoio (opcional)"
-                value={form.subtitle}
-                onChangeText={v => update('subtitle', v)}
-                maxLength={160}
+
+            {/* Países e cidades estruturados */}
+            {form.locations.map((loc, locIdx) => (
+                <View key={locIdx} style={s.locCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
+                        <View style={{ flex: 1 }}>
+                            <FormInput
+                                label={locIdx === 0 ? 'País *' : `País ${locIdx + 1}`}
+                                placeholder={locIdx === 0 ? 'Digite ou selecione o país...' : 'Digite o país...'}
+                                value={loc.country}
+                                onChangeText={v => updateLocationCountry(locIdx, v)}
+                            />
+                        </View>
+                        {form.locations.length > 1 && (
+                            <TouchableOpacity onPress={() => removeCountry(locIdx)} style={s.locRemoveBtn}>
+                                <Ionicons name="close" size={18} color={theme.colors.error} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                        {loc.cities.map((city, cityIdx) => (
+                            <View key={cityIdx} style={s.cityTag}>
+                                <TextInput
+                                    style={s.cityInput}
+                                    value={city}
+                                    onChangeText={v => updateLocationCity(locIdx, cityIdx, v)}
+                                    placeholder={locIdx === 0 && cityIdx === 0 ? 'Cidade *' : 'Cidade...'}
+                                    placeholderTextColor={theme.colors.text.disabled}
+                                />
+                                {!(locIdx === 0 && loc.cities.length === 1) && (
+                                    <TouchableOpacity onPress={() => removeCity(locIdx, cityIdx)}>
+                                        <Ionicons name="close" size={13} color={theme.colors.text.tertiary} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        ))}
+                        <TouchableOpacity style={s.addCityBtn} onPress={() => addCity(locIdx)}>
+                            <Ionicons name="add" size={14} color={theme.colors.primary} />
+                            <Text style={s.addCityText}>Cidade</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            ))}
+
+            <TouchableOpacity style={s.addCountryBtn} onPress={addCountry}>
+                <Text style={s.addCountryText}>+ Adicionar País</Text>
+            </TouchableOpacity>
+
+            <Text style={s.label}>Duração (dias) *</Text>
+            <QuantityStepper
+                value={form.duration || 1}
+                onChange={v => update('duration', Math.max(1, v))}
+                min={1}
+                max={365}
             />
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
-                    <FormInput
-                        label="Cidade principal"
-                        required
-                        placeholder="Ex: Paris"
-                        value={form.locations[0]?.cities[0] ?? ''}
-                        onChangeText={(v: string) => {
-                            const locs = [...form.locations];
-                            if (!locs[0]) locs[0] = { country: '', cities: [v] };
-                            else locs[0] = { ...locs[0], cities: [v, ...locs[0].cities.slice(1)] };
-                            update('locations', locs);
-                            update('destination', v);
-                        }}
-                    />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <FormInput
-                        label="País"
-                        required
-                        placeholder="Ex: França"
-                        value={form.locations[0]?.country ?? ''}
-                        onChangeText={(v: string) => {
-                            const locs = [...form.locations];
-                            if (!locs[0]) locs[0] = { country: v, cities: [''] };
-                            else locs[0] = { ...locs[0], country: v };
-                            update('locations', locs);
-                            update('country', v);
-                        }}
-                    />
-                </View>
+
+            <View style={s.formGroup}>
+                <Text style={s.label}>Sobre o Roteiro</Text>
+                <TextInput
+                    style={s.textArea}
+                    placeholder="Venda seu roteiro: que experiência única você viveu? Que dor você resolve para o viajante? Por que esse roteiro é diferente de tudo que ele encontra no Google?"
+                    placeholderTextColor={theme.colors.text.disabled}
+                    value={form.description}
+                    onChangeText={v => update('description', v)}
+                    multiline
+                    numberOfLines={5}
+                    textAlignVertical="top"
+                />
+                <Text style={s.charCounter}>{form.description.length} caracteres</Text>
             </View>
-            <FormInput
-                label="Duração (dias)"
-                required
-                keyboardType="number-pad"
-                placeholder="Ex: 7"
-                value={form.duration ? String(form.duration) : ''}
-                onChangeText={v => update('duration', Math.max(1, parseInt(v) || 0))}
-            />
-            <FormInput
-                label="Descrição"
-                required
-                placeholder="Conte por que o seu roteiro é especial..."
-                value={form.description}
-                onChangeText={v => update('description', v)}
-                multiline
-                numberOfLines={5}
-                style={{ minHeight: 110, textAlignVertical: 'top' }}
-            />
-            <Text style={s.label}>Categorias temáticas ({MAX_CATEGORIES} máx, mínimo 1)</Text>
+
+            <Text style={s.label}>Estilo de Experiência — {form.travelStyles.length}/1</Text>
+            <View style={s.chipRow}>
+                {STYLE_OPTIONS.map(st => {
+                    const active = form.travelStyles.includes(st.key);
+                    const IconComp = STYLE_ICON_MAP[st.key];
+                    return (
+                        <TouchableOpacity
+                            key={st.key}
+                            style={[s.chip, active && s.chipActive]}
+                            onPress={() => {
+                                if (active) update('travelStyles', []);
+                                else update('travelStyles', [st.key]);
+                            }}
+                        >
+                            {IconComp && (
+                                <IconComp
+                                    size={13}
+                                    strokeWidth={2}
+                                    color={active ? theme.colors.primary : theme.colors.text.secondary}
+                                />
+                            )}
+                            <Text style={[s.chipText, active && s.chipTextActive]}>{st.label}</Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
+
+            <Text style={s.label}>Categorias Temáticas (mín 1, máx {MAX_CATEGORIES}) — {form.categories.length}/{MAX_CATEGORIES}</Text>
             <View style={s.chipRow}>
                 {CATEGORY_OPTIONS.map(c => {
                     const active = form.categories.includes(c.key);
+                    const IconComp = CATEGORY_ICON_MAP[c.key];
                     return (
                         <TouchableOpacity
                             key={c.key}
                             style={[s.chip, active && s.chipActive]}
                             onPress={() => update('categories', toggleArray(form.categories, c.key, MAX_CATEGORIES))}
                         >
-                            <Text style={{ fontSize: 13 }}>{c.emoji}</Text>
+                            {IconComp && (
+                                <IconComp
+                                    size={13}
+                                    strokeWidth={2}
+                                    color={active ? theme.colors.primary : theme.colors.text.secondary}
+                                />
+                            )}
                             <Text style={[s.chipText, active && s.chipTextActive]}>{c.label}</Text>
                         </TouchableOpacity>
                     );
                 })}
             </View>
-            <Text style={s.label}>Experiência de gasto</Text>
-            <Text style={s.helper}>Escolha apenas uma opção que represente o estilo do seu roteiro.</Text>
-            <View style={s.chipRow}>
-                {STYLE_OPTIONS.map(st => {
-                    const active = form.travelStyles.includes(st.key);
-                    return (
-                        <TouchableOpacity
-                            key={st.key}
-                            style={[s.chip, active && s.chipActive]}
-                            onPress={() => {
-                                // Seleção única (radio): clicar em uma já ativa desmarca; senão substitui as outras.
-                                if (active) update('travelStyles', []);
-                                else update('travelStyles', [st.key]);
-                            }}
-                        >
-                            <Text style={[s.chipText, active && s.chipTextActive]}>{st.label}</Text>
-                        </TouchableOpacity>
-                    );
-                })}
+
+            {/* Destaques da Viagem — inspirado na seção do site */}
+            <View style={s.highlightsHeader}>
+                <View style={s.highlightsIconBox}>
+                    <Star size={20} strokeWidth={2} color={theme.colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        <Text style={s.highlightsTitle}>Destaques da Viagem</Text>
+                        <View style={s.moduleStepBadgeOpt}>
+                            <Text style={s.moduleStepBadgeOptText}>Opcional</Text>
+                        </View>
+                    </View>
+                    <Text style={s.highlightsSubtitle}>
+                        Os momentos únicos que diferenciam seu roteiro dos demais
+                    </Text>
+                </View>
             </View>
-            <Text style={s.label}>Destaques do roteiro (frases curtas)</Text>
+
+            {form.highlights.length === 0 && (
+                <View style={s.highlightsEmptyCard}>
+                    <Star size={36} strokeWidth={1.6} color={theme.colors.primary + 'AA'} />
+                    <Text style={s.highlightsEmptyTitle}>Quais foram os momentos inesquecíveis?</Text>
+                    <Text style={s.highlightsEmptyText}>
+                        Liste as experiências únicas que só seu roteiro oferece — é o que chama atenção na vitrine.
+                    </Text>
+                </View>
+            )}
+
             <EditableList
                 items={form.highlights}
                 onItemsChange={items => update('highlights', items)}
-                placeholder="Ex: Tour gastronômico em Pigalle"
+                placeholder="Ex: Jantar em restaurante com vista para o Monte Fuji ao entardecer..."
             />
         </View>
     );
@@ -582,8 +1293,31 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
         <View>
             <SectionHeader
                 title="Comprovante de viagem"
-                subtitle="Anexe um documento que prove que você esteve no destino (passagens, carimbo de passaporte, etc.). Obrigatório para envio à análise."
+                subtitle="Anexe um documento que comprove que você esteve no destino. Obrigatório para envio à análise."
             />
+
+            {/* Aviso explicativo — inspirado no bloco da versão web */}
+            <View style={s.proofInfoCard}>
+                <View style={s.proofInfoIconWrap}>
+                    <Ionicons name="warning-outline" size={20} color="#ea580c" />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={s.proofInfoTitle}>Comprovação de Viagem</Text>
+                    <Text style={s.proofInfoText}>
+                        Para garantir a autenticidade dos roteiros na plataforma VAMO, solicitamos o envio de pelo menos um comprovante que mostre que você esteve no destino (ex.: bilhete aéreo em seu nome, recibo de hotel, fatura ou passaporte carimbado).{' '}
+                        <Text style={{ fontWeight: '700' }}>Este documento é mantido em sigilo pela moderação</Text>
+                        {' '}e <Text style={{ fontWeight: '700' }}>não</Text> aparecerá publicamente.
+                    </Text>
+                </View>
+            </View>
+
+            {/* Label com badge de obrigatoriedade */}
+            <View style={s.proofLabelRow}>
+                <Text style={s.proofLabelText}>Arquivo de Comprovação</Text>
+                <View style={s.proofObrigBadge}>
+                    <Text style={s.proofObrigText}>OBRIGATÓRIO</Text>
+                </View>
+            </View>
 
             {hasProof ? (
                 <View style={s.proofCard}>
@@ -625,7 +1359,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                     ) : (
                         <>
                             <Ionicons name="cloud-upload-outline" size={36} color={theme.colors.primary} />
-                            <Text style={s.uploadText}>Anexar comprovante</Text>
+                            <Text style={s.uploadText}>Selecionar Arquivo</Text>
                             <Text style={s.uploadHint}>JPG, PNG, WEBP · até 25 MB</Text>
                         </>
                     )}
@@ -649,39 +1383,33 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
 function StepCommerce({ form, update }: StepProps) {
     return (
         <View>
-            <SectionHeader title="Preço & Comercial" subtitle="Defina como seu roteiro será vendido." />
+            <SectionHeader title="Estrutura Comercial" subtitle="Defina o preço do seu roteiro." />
+
             <FormInput
-                label="Preço de venda (R$)"
+                label="Preço"
                 required
                 keyboardType="decimal-pad"
-                placeholder="Ex: 89.90"
+                placeholder="Ex: 89,90"
                 value={form.price ? String(form.price) : ''}
                 onChangeText={v => update('price', parseFloat(v.replace(',', '.')) || 0)}
             />
-            <CurrencyPicker
-                label="Moeda"
-                value={form.currency}
-                onChange={(code) => update('currency', code as any)}
-            />
-            <FormInput
-                label="Preço promocional (opcional)"
-                keyboardType="decimal-pad"
-                placeholder="Ex: 69.90"
-                value={form.promoPrice ? String(form.promoPrice) : ''}
-                onChangeText={v => update('promoPrice', v ? parseFloat(v.replace(',', '.')) : undefined)}
-            />
-            <FormInput
-                label="Parcelas máximas (opcional)"
-                keyboardType="number-pad"
-                placeholder="Ex: 6"
-                value={form.installments ? String(form.installments) : ''}
-                onChangeText={v => update('installments', v ? parseInt(v) : undefined)}
-            />
-            <SwitchRow label="Acesso imediato após compra"  value={form.immediateAccess} onChange={v => update('immediateAccess', v)} />
-            <SwitchRow label="Acesso vitalício"              value={form.lifetimeAccess}  onChange={v => update('lifetimeAccess', v)} />
-            <SwitchRow label="Download offline"              value={form.offlineDownload} onChange={v => update('offlineDownload', v)} />
-            <SwitchRow label="Permitir compartilhar"         value={form.allowShare}      onChange={v => update('allowShare', v)} />
-            <SwitchRow label="Permitir exportar PDF"         value={form.allowPdf}        onChange={v => update('allowPdf', v)} />
+
+            {/* Aviso automático — produto digital */}
+            <View style={s.commerceWarningCard}>
+                <Ionicons name="warning-outline" size={16} color="#ea580c" style={{ marginTop: 1 }} />
+                <Text style={s.commerceWarningText}>
+                    Aviso automático: <Text style={{ fontStyle: 'italic' }}>"Produto digital. Não inclui serviços turísticos."</Text>
+                </Text>
+            </View>
+
+            {/* Acesso offline — característica automática do produto */}
+            <View style={s.commerceOfflineCard}>
+                <Ionicons name="wifi-outline" size={16} color={theme.colors.primary} style={{ marginTop: 1 }} />
+                <Text style={s.commerceOfflineText}>
+                    <Text style={{ fontWeight: '700', color: theme.colors.primary }}>Acesso Offline: </Text>
+                    Após a compra, o viajante poderá consultar o roteiro completo mesmo sem conexão com a internet.
+                </Text>
+            </View>
         </View>
     );
 }
@@ -699,9 +1427,23 @@ function StepModules({ form, update }: StepProps) {
     }
     return (
         <View>
-            <SectionHeader title="Módulos ativos" subtitle="Escolha o que está incluído no seu roteiro. O comprador decide com base nisso." />
+            <View style={s.modulesHeader}>
+                <View style={{ flex: 1 }}>
+                    <Text style={s.stepTitle}>Módulos do Roteiro</Text>
+                    <Text style={s.stepHint}>O que está incluído — o comprador decide com base nos módulos ativos</Text>
+                </View>
+                <View style={s.modulesObrigBadge}>
+                    <Text style={s.modulesObrigText}>Obrigatório</Text>
+                </View>
+            </View>
+
+            <Text style={s.modulesIntro}>
+                Ative os módulos que serão incluídos no roteiro. Módulos ativos precisam ter ao menos 1 item preenchido.
+            </Text>
+
             {MODULE_OPTIONS.map(m => {
                 const active = form.activeModules.includes(m.key);
+                const IconComp = MODULE_ICON_MAP[m.key];
                 return (
                     <TouchableOpacity
                         key={m.key}
@@ -709,14 +1451,25 @@ function StepModules({ form, update }: StepProps) {
                         onPress={() => toggle(m.key)}
                         activeOpacity={0.85}
                     >
-                        <Text style={{ fontSize: 24 }}>{m.emoji}</Text>
+                        <View style={[s.moduleIconBox, active && s.moduleIconBoxActive]}>
+                            {IconComp && (
+                                <IconComp
+                                    size={22}
+                                    strokeWidth={2}
+                                    color={theme.colors.primary}
+                                />
+                            )}
+                        </View>
                         <View style={{ flex: 1 }}>
                             <Text style={s.moduleTitle}>{m.label}</Text>
                             <Text style={s.moduleDesc}>{m.desc}</Text>
                         </View>
-                        <View style={[s.moduleCheck, active && s.moduleCheckActive]}>
-                            {active && <Ionicons name="checkmark" size={16} color="#fff" />}
-                        </View>
+                        <Switch
+                            value={active}
+                            onValueChange={() => toggle(m.key)}
+                            trackColor={{ false: theme.colors.borderLight, true: theme.colors.primary + '80' }}
+                            thumbColor={active ? theme.colors.primary : '#fff'}
+                        />
                     </TouchableOpacity>
                 );
             })}
@@ -735,14 +1488,67 @@ function emptyDay(n: number): Day {
     return { dayNumber: n, title: `Dia ${n}`, summary: '', description: '', activities: [] };
 }
 
-function StepDays({ form, update }: StepProps) {
-    function syncDays() {
-        const needed = form.duration || 1;
-        const current = [...form.days];
-        while (current.length < needed) current.push(emptyDay(current.length + 1));
-        while (current.length > needed) current.pop();
-        update('days', current);
+function dayHasContent(d: Day): boolean {
+    return !!(d.description?.trim() || d.title?.trim() || (d.activities && d.activities.length > 0));
+}
+
+function dayIsComplete(d: Day): boolean {
+    return !!d.description?.trim()
+        && Array.isArray(d.activities) && d.activities.length > 0
+        && d.activities.every(a => !!a.title?.trim());
+}
+
+function parseActivityDuration(raw: string): { num: number; unit: 'min' | 'h' | 'd' } {
+    const m = (raw || '').match(/^(\d+)\s*(min|h|d)?$/i);
+    if (m) {
+        const num = parseInt(m[1], 10) || 1;
+        const unit = ((m[2] || 'h').toLowerCase()) as 'min' | 'h' | 'd';
+        return { num, unit };
     }
+    return { num: 1, unit: 'h' };
+}
+
+function formatActivityTime(raw: string): string {
+    const digits = (raw || '').replace(/\D/g, '').slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+function StepDays({ form, update }: StepProps) {
+    const duration = Math.max(form.duration || 1, 1);
+    const [expanded, setExpanded] = useState<Record<number, boolean>>({ 0: true });
+
+    // ── Geração automática dos dias conforme a duração ─────────────
+    // Ao entrar no step: se faltam dias, criar vazios. Se sobram, alertar.
+    useEffect(() => {
+        if (form.days.length === duration) return;
+        if (form.days.length < duration) {
+            const next = [...form.days];
+            while (next.length < duration) next.push(emptyDay(next.length + 1));
+            update('days', next.map((d, i) => ({ ...d, dayNumber: i + 1 })));
+            return;
+        }
+        // form.days.length > duration → vamos remover excedentes
+        const toRemove = form.days.slice(duration);
+        const hasContent = toRemove.some(dayHasContent);
+        if (!hasContent) {
+            update('days', form.days.slice(0, duration).map((d, i) => ({ ...d, dayNumber: i + 1 })));
+            return;
+        }
+        Alert.alert(
+            'Reduzir duração do roteiro?',
+            `Você reduziu a duração para ${duration} dia${duration > 1 ? 's' : ''}, mas ${toRemove.length === 1 ? 'o dia' : 'os dias'} ${toRemove.map((_, i) => duration + i + 1).join(', ')} ${toRemove.length === 1 ? 'já possui' : 'já possuem'} informações preenchidas. Deseja remover ${toRemove.length === 1 ? 'esse dia' : 'esses dias'}?`,
+            [
+                { text: 'Manter dias extras', style: 'cancel' },
+                {
+                    text: 'Remover',
+                    style: 'destructive',
+                    onPress: () => update('days', form.days.slice(0, duration).map((d, i) => ({ ...d, dayNumber: i + 1 }))),
+                },
+            ],
+        );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [duration]);
 
     function updateDay(i: number, patch: Partial<Day>) {
         const next = form.days.map((d, idx) => idx === i ? { ...d, ...patch } : d);
@@ -764,73 +1570,207 @@ function StepDays({ form, update }: StepProps) {
         update('days', next);
     }
 
+    const completed = form.days.slice(0, duration).filter(dayIsComplete).length;
+    const allComplete = completed === duration;
+
     return (
         <View>
-            <SectionHeader title={`Roteiro dia a dia (${form.duration || '?'} dias)`} subtitle="O coração do seu roteiro. Cada dia deve ter descrição e pelo menos 1 atividade." />
-            {form.days.length !== form.duration && (
-                <TouchableOpacity style={s.syncBtn} onPress={syncDays}>
-                    <Ionicons name="sync" size={16} color={theme.colors.primary} />
-                    <Text style={s.syncBtnText}>Gerar {form.duration || 0} dias</Text>
-                </TouchableOpacity>
-            )}
-            {form.days.map((d, i) => (
-                <View key={i} style={s.dayCard}>
-                    <Text style={s.dayHeader}>Dia {i + 1}</Text>
-                    <FormInput label="Título do dia"
-                        placeholder="Ex: Chegada e bairro Marais"
-                        value={d.title}
-                        onChangeText={v => updateDay(i, { title: v })}
-                    />
-                    <FormInput label="Descrição do dia" required
-                        placeholder="O que acontece neste dia..."
-                        multiline numberOfLines={3}
-                        style={{ minHeight: 80, textAlignVertical: 'top' }}
-                        value={d.description}
-                        onChangeText={v => updateDay(i, { description: v })}
-                    />
-                    <Text style={s.label}>Atividades ({d.activities.length})</Text>
-                    {d.activities.map((a, ai) => (
-                        <View key={ai} style={s.activityCard}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={s.activityBadge}>Atividade {ai + 1}</Text>
-                                <TouchableOpacity onPress={() => removeActivity(i, ai)}>
-                                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+            <ModuleStepHeader
+                icon={CalendarDays}
+                title="Itinerário por dia"
+                subtitle="Roteiro dia a dia completo"
+                hint="Monte o roteiro dia a dia conforme a duração informada. Cada dia precisa de descrição e ao menos 1 atividade."
+            />
+
+            {/* Progresso X/Y dias preenchidos */}
+            <View style={[s.daysProgressCard, allComplete && s.daysProgressCardOk]}>
+                <Ionicons
+                    name={allComplete ? 'checkmark-circle' : 'time-outline'}
+                    size={18}
+                    color={allComplete ? theme.colors.success : theme.colors.primary}
+                />
+                <Text style={s.daysProgressText}>
+                    {completed}/{duration} dias preenchidos
+                    {allComplete ? ' ✓' : ''}
+                </Text>
+            </View>
+
+            {form.days.slice(0, duration).map((d, i) => {
+                const open = !!expanded[i];
+                const complete = dayIsComplete(d);
+                const titleStripped = (d.title || '').replace(new RegExp(`^Dia\\s*${i + 1}\\s*(?:-|—)?\\s*`, 'i'), '');
+                return (
+                    <View key={i} style={s.dayCard}>
+                        <TouchableOpacity
+                            style={s.dayHeaderRow}
+                            onPress={() => setExpanded(p => ({ ...p, [i]: !p[i] }))}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[s.dayBadge, complete && s.dayBadgeComplete]}>
+                                <Text style={[s.dayBadgeText, complete && { color: '#fff' }]}>{i + 1}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={s.dayHeaderTitle}>
+                                    Dia {i + 1}{titleStripped ? ` — ${titleStripped}` : ''}
+                                </Text>
+                                <Text style={s.dayHeaderStatus}>
+                                    {complete
+                                        ? `${d.activities.length} atividade${d.activities.length === 1 ? '' : 's'} · completo`
+                                        : !d.description?.trim()
+                                            ? 'Falta descrição'
+                                            : d.activities.length === 0
+                                                ? 'Falta atividade'
+                                                : 'Atividade sem título'}
+                                </Text>
+                            </View>
+                            <Ionicons
+                                name={open ? 'chevron-up' : 'chevron-down'}
+                                size={20}
+                                color={theme.colors.text.tertiary}
+                            />
+                        </TouchableOpacity>
+
+                        {open && (
+                            <View style={s.dayBody}>
+                                <FormInput
+                                    label="Título do dia"
+                                    placeholder="Ex: Torre Eiffel e Trocadéro"
+                                    value={titleStripped}
+                                    onChangeText={v => updateDay(i, { title: v })}
+                                />
+                                <FormInput
+                                    label="O que esperar nesse dia..."
+                                    required
+                                    placeholder="Ex: Manhã de passeios no centro e tarde livre"
+                                    multiline numberOfLines={3}
+                                    style={{ minHeight: 80, textAlignVertical: 'top' }}
+                                    value={d.description}
+                                    onChangeText={v => updateDay(i, { description: v })}
+                                />
+
+                                <Text style={s.label}>Atividades ({d.activities.length})</Text>
+                                {d.activities.map((a, ai) => {
+                                    const { num, unit } = parseActivityDuration(a.duration);
+                                    return (
+                                        <View key={ai} style={s.activityCard}>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Text style={s.activityBadge}>Atividade {ai + 1}</Text>
+                                                <TouchableOpacity onPress={() => removeActivity(i, ai)}>
+                                                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            <FormInput
+                                                label="O que fazer"
+                                                required
+                                                placeholder="Ex: Visita ao Museu do Louvre"
+                                                value={a.title}
+                                                onChangeText={v => updateActivity(i, ai, { title: v })}
+                                            />
+                                            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                                                <TimePickerField
+                                                    label="Horário"
+                                                    value={a.time}
+                                                    onChange={v => updateActivity(i, ai, { time: v })}
+                                                    placeholder="09:00"
+                                                />
+                                                <View>
+                                                    <Text style={s.label}>Duração</Text>
+                                                    <QuantityStepper
+                                                        value={num}
+                                                        onChange={n => updateActivity(i, ai, { duration: `${Math.max(1, n)}${unit}` })}
+                                                        min={1}
+                                                        max={unit === 'h' ? 23 : unit === 'd' ? 30 : 300}
+                                                        step={unit === 'min' ? 5 : 1}
+                                                        unit={unit}
+                                                        onUnitChange={u => updateActivity(i, ai, { duration: `${num}${u}` })}
+                                                        units={['min', 'h', 'd']}
+                                                    />
+                                                </View>
+                                            </View>
+                                            <FormInput
+                                                label="Nome do local ou endereço"
+                                                placeholder="Ex: Rua Direita, 250"
+                                                value={a.location}
+                                                onChangeText={v => updateActivity(i, ai, { location: v })}
+                                            />
+                                            <FormInput
+                                                label="Link da localização (Google Maps)"
+                                                placeholder="Ex: https://goo.gl/maps/..."
+                                                autoCapitalize="none"
+                                                value={a.mapLink}
+                                                onChangeText={v => updateActivity(i, ai, { mapLink: v })}
+                                            />
+                                            <FormInput
+                                                label="Dica opcional"
+                                                placeholder="Ex: Tente chegar 20 minutos antes para evitar filas"
+                                                multiline numberOfLines={2}
+                                                style={{ minHeight: 60, textAlignVertical: 'top' }}
+                                                value={a.tips}
+                                                onChangeText={v => updateActivity(i, ai, { tips: v })}
+                                            />
+                                        </View>
+                                    );
+                                })}
+                                <TouchableOpacity style={s.addInline} onPress={() => addActivity(i)}>
+                                    <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
+                                    <Text style={s.addInlineText}>Adicionar atividade</Text>
                                 </TouchableOpacity>
                             </View>
-                            <FormInput label="Título" required placeholder="Ex: Museu do Louvre"
-                                value={a.title} onChangeText={v => updateActivity(i, ai, { title: v })} />
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
-                                <View style={{ flex: 1 }}>
-                                    <FormInput label="Horário" placeholder="09:00"
-                                        value={a.time} onChangeText={v => updateActivity(i, ai, { time: v })} />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <FormInput label="Duração" placeholder="2h"
-                                        value={a.duration} onChangeText={v => updateActivity(i, ai, { duration: v })} />
-                                </View>
-                            </View>
-                            <FormInput label="Local" placeholder="Ex: Rue de Rivoli"
-                                value={a.location} onChangeText={v => updateActivity(i, ai, { location: v })} />
-                            <FormInput label="Descrição" placeholder="Detalhes da atividade"
-                                multiline numberOfLines={2}
-                                style={{ minHeight: 60, textAlignVertical: 'top' }}
-                                value={a.description} onChangeText={v => updateActivity(i, ai, { description: v })} />
-                            <FormInput label="Dicas" placeholder="Dicas para essa atividade"
-                                value={a.tips} onChangeText={v => updateActivity(i, ai, { tips: v })} />
-                        </View>
-                    ))}
-                    <TouchableOpacity style={s.addInline} onPress={() => addActivity(i)}>
-                        <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
-                        <Text style={s.addInlineText}>Adicionar atividade</Text>
-                    </TouchableOpacity>
-                </View>
-            ))}
+                        )}
+                    </View>
+                );
+            })}
         </View>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// STEP 6 — CONTEÚDO (hospedagem, passeios, transporte, restaurantes, voo)
+// MODULE STEP HEADER — usado por todas as etapas dinâmicas de módulos
+// ═══════════════════════════════════════════════════════════════════
+
+function ModuleStepHeader({
+    icon: IconComp,
+    title,
+    subtitle,
+    required = true,
+    hint,
+}: {
+    icon: LucideIcon;
+    title: string;
+    subtitle?: string;
+    required?: boolean;
+    hint?: string;
+}) {
+    return (
+        <>
+            <View style={s.moduleStepHeader}>
+                <View style={s.moduleStepIconBox}>
+                    <IconComp size={22} strokeWidth={2} color={theme.colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        <Text style={s.moduleStepTitle}>{title}</Text>
+                        <View style={required ? s.moduleStepBadgeReq : s.moduleStepBadgeOpt}>
+                            <Text style={required ? s.moduleStepBadgeReqText : s.moduleStepBadgeOptText}>
+                                {required ? 'Obrigatório' : 'Opcional'}
+                            </Text>
+                        </View>
+                    </View>
+                    {subtitle && <Text style={s.moduleStepSubtitle}>{subtitle}</Text>}
+                </View>
+            </View>
+            {hint && (
+                <View style={s.moduleStepHintCard}>
+                    <Ionicons name="information-circle-outline" size={16} color={theme.colors.primary} />
+                    <Text style={s.moduleStepHintText}>{hint}</Text>
+                </View>
+            )}
+        </>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FACTORIES — items vazios reutilizados pelos steps de módulos
 // ═══════════════════════════════════════════════════════════════════
 
 function emptyAccommodation(): Accommodation { return { name: '', address: '', mapLink: '', description: '', nights: '', rating: '', externalLink: '', tips: '', startDate: '', endDate: '' }; }
@@ -838,53 +1778,101 @@ function emptyAttraction(): AttractionItem { return { name: '', type: '', locati
 function emptyTransport(): Transport { return { description: '', passTypes: '', notes: '', startDate: '', endDate: '' }; }
 function emptyRestaurant(): RestaurantItem { return { name: '', cuisine: '', location: '', description: '', hours: '', hoursStart: '', externalLink: '', tips: '', startDate: '', endDate: '' }; }
 
-function StepContent({ form, update }: StepProps) {
-    const isActive = (k: ModuleKey) => form.activeModules.includes(k);
-    const noneActive = !['hospedagem','passeios','transporte','restaurantes','voo'].some(m => isActive(m as ModuleKey));
+// ═══════════════════════════════════════════════════════════════════
+// STEP MODULES — Hospedagens
+// ═══════════════════════════════════════════════════════════════════
 
-    if (noneActive) {
-        return (
-            <View>
-                <SectionHeader title="Conteúdo dos módulos" />
-                <Text style={s.emptyHint}>Nenhum módulo de conteúdo ativado. Volte ao passo 4 para ativar Hospedagens, Passeios, Transporte, Restaurantes ou Voo.</Text>
-            </View>
-        );
-    }
-
+function StepAccommodations({ form, update, token }: StepProps) {
     return (
         <View>
-            <SectionHeader title="Conteúdo dos módulos" subtitle="Preencha o conteúdo dos módulos ativos." />
-
-            {isActive('hospedagem') && (
-                <Repeater
-                    title="🏨 Hospedagens"
-                    items={form.accommodations}
-                    onChange={v => update('accommodations', v)}
-                    factory={emptyAccommodation}
-                    render={(item, set) => (
-                        <>
-                            <FormInput label="Nome" required placeholder="Ex: Hotel Le Marais" value={item.name} onChangeText={v => set({ name: v })} />
-                            <FormInput label="Endereço" placeholder="Rua..." value={item.address} onChangeText={v => set({ address: v })} />
-                            <FormInput label="Descrição" placeholder="Por que recomenda..." multiline value={item.description} onChangeText={v => set({ description: v })} style={{ minHeight: 60, textAlignVertical: 'top' }} />
-                            <FormInput label="Link externo" placeholder="https://..." value={item.externalLink} onChangeText={v => set({ externalLink: v })} autoCapitalize="none" />
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
-                                <View style={{ flex: 1 }}><FormInput label="Noites" keyboardType="number-pad" value={item.nights} onChangeText={v => set({ nights: v })} /></View>
-                                <View style={{ flex: 1 }}><FormInput label="Rating (1-5)" keyboardType="decimal-pad" value={item.rating} onChangeText={v => set({ rating: v })} /></View>
+            <ModuleStepHeader
+                icon={Building2}
+                title="Hospedagens"
+                subtitle="Hotéis e hospedagens recomendadas — item mais consultado antes da compra"
+                hint="Adicione ao menos 1 hospedagem com nome para que esse módulo fique completo."
+            />
+            <Repeater
+                title="Hospedagens adicionadas"
+                items={form.accommodations}
+                onChange={v => update('accommodations', v)}
+                factory={emptyAccommodation}
+                render={(item, set) => (
+                    <>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <View style={{ flex: 2 }}>
+                                <FormInput label="Nome do hotel / hostel" required placeholder="Ex: Waldorf Astoria" value={item.name} onChangeText={v => set({ name: v })} />
                             </View>
-                        </>
-                    )}
-                />
-            )}
+                            <View style={{ width: 90 }}>
+                                <FormInput label="Nota" keyboardType="decimal-pad" placeholder="Ex: 8.5" value={item.rating} onChangeText={v => set({ rating: v })} />
+                            </View>
+                        </View>
+                        <FormInput label="Nome do local ou endereço" placeholder="Ex: Rue de Rivoli, 228" value={item.address} onChangeText={v => set({ address: v })} />
+                        <FormInput label="Link da localização (Google Maps)" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
+                        <Text style={s.label}>Noites *</Text>
+                        <QuantityStepper
+                            value={Math.max(1, parseInt(item.nights, 10) || 1)}
+                            onChange={n => set({ nights: String(Math.max(1, n)) })}
+                            min={1}
+                            max={365}
+                        />
+                        <FormInput
+                            label="O que torna essa hospedagem especial?"
+                            placeholder="Ex: A localização é excelente ao lado do metrô principal e o café da manhã..."
+                            multiline value={item.description}
+                            onChangeText={v => set({ description: v })}
+                            style={{ minHeight: 60, textAlignVertical: 'top' }}
+                        />
+                        <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                            <DatePickerField label="Check-in"  value={item.startDate} onChange={v => set({ startDate: v })} />
+                            <DatePickerField label="Check-out" value={item.endDate}   onChange={v => set({ endDate: v })} />
+                        </View>
+                        <FormInput label="Link externo (Booking, Hostelworld...)" placeholder="Ex: https://booking.com/hotel/..." autoCapitalize="none" value={item.externalLink} onChangeText={v => set({ externalLink: v })} />
+                        <FormInput
+                            label="Dica extra"
+                            placeholder="Ex: Peça o quarto no último andar para ter vista..."
+                            multiline value={item.tips}
+                            onChangeText={v => set({ tips: v })}
+                            style={{ minHeight: 50, textAlignVertical: 'top' }}
+                        />
+                        <CostBlock
+                            cost={item.cost}
+                            legacySpending={item.spending}
+                            onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
+                            defaultCurrency={form.currency || 'BRL'}
+                            helperShort="Valor por pessoa da estadia. Comprovante (reserva, recibo) aumenta a confiança."
+                            encourageProof
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                        />
+                    </>
+                )}
+            />
+        </View>
+    );
+}
 
-            {isActive('passeios') && (
-                <Repeater
-                    title="🎫 Passeios & Atrações"
-                    items={form.attractions}
-                    onChange={v => update('attractions', v)}
-                    factory={emptyAttraction}
-                    render={(item, set) => (
+// ═══════════════════════════════════════════════════════════════════
+// STEP MODULES — Passeios & Atrações
+// ═══════════════════════════════════════════════════════════════════
+
+function StepAttractions({ form, update, token }: StepProps) {
+    return (
+        <View>
+            <ModuleStepHeader
+                icon={Ticket}
+                title="Passeios & Atrações"
+                subtitle="Passeios imperdíveis com horários, preços e dicas de experiência"
+                hint="Adicione ao menos 1 atração com nome para que esse módulo fique completo."
+            />
+            <Repeater
+                title="Atrações adicionadas"
+                items={form.attractions}
+                onChange={v => update('attractions', v)}
+                factory={emptyAttraction}
+                render={(item, set) => {
+                    const { num, unit } = parseActivityDuration(item.duration);
+                    return (
                         <>
-                            <FormInput label="Nome" required placeholder="Ex: Torre Eiffel" value={item.name} onChangeText={v => set({ name: v })} />
+                            <FormInput label="Nome da atração" required placeholder="Ex: Torre Eiffel" value={item.name} onChangeText={v => set({ name: v })} />
                             <Text style={s.label}>Tipo</Text>
                             <View style={s.chipRow}>
                                 {ATTRACTION_TYPES.map(t => {
@@ -896,207 +1884,498 @@ function StepContent({ form, update }: StepProps) {
                                     );
                                 })}
                             </View>
-                            <FormInput label="Local" placeholder="Endereço ou bairro" value={item.location} onChangeText={v => set({ location: v })} />
-                            <FormInput label="Descrição" placeholder="O que esperar..." multiline value={item.description} onChangeText={v => set({ description: v })} style={{ minHeight: 60, textAlignVertical: 'top' }} />
-                            <FormInput label="Preço (opcional)" placeholder="Ex: 22 EUR" value={item.price || ''} onChangeText={v => set({ price: v })} />
-                            <FormInput label="Horários" placeholder="Ex: Ter-Dom 9h-18h" value={item.hours} onChangeText={v => set({ hours: v })} />
-                            <FormInput label="Link externo" placeholder="https://..." value={item.externalLink} onChangeText={v => set({ externalLink: v })} autoCapitalize="none" />
-                            <FormInput label="Dicas" placeholder="Compre online para furar fila..." value={item.tips} onChangeText={v => set({ tips: v })} />
+                            <FormInput label="Nome do local ou endereço" placeholder="Ex: Champ de Mars, 5 Ave..." value={item.location} onChangeText={v => set({ location: v })} />
+                            <FormInput label="Link do Google Maps" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
+                            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                                <DatePickerField label="Data de Início" value={item.startDate} onChange={v => set({ startDate: v })} />
+                                <DatePickerField label="Data de Fim"    value={item.endDate}   onChange={v => set({ endDate: v })} />
+                            </View>
+                            <Text style={s.label}>Duração</Text>
+                            <QuantityStepper
+                                value={num}
+                                onChange={n => set({ duration: `${Math.max(1, n)}${unit}` })}
+                                min={1}
+                                max={unit === 'h' ? 23 : unit === 'd' ? 30 : 300}
+                                step={unit === 'min' ? 5 : 1}
+                                unit={unit}
+                                onUnitChange={u => set({ duration: `${num}${u}` })}
+                                units={['min', 'h', 'd']}
+                            />
+                            <FormInput
+                                label="Descrição / Por que recomendar"
+                                required
+                                placeholder="Ex: Uma vista imperdível..."
+                                multiline value={item.description}
+                                onChangeText={v => set({ description: v })}
+                                style={{ minHeight: 60, textAlignVertical: 'top' }}
+                            />
+                            <FormInput label="Link externo" placeholder="Ex: www.toureiffel.paris" autoCapitalize="none" value={item.externalLink} onChangeText={v => set({ externalLink: v })} />
+                            {/* Horário recomendado: apenas o horário inicial.
+                                Mantemos o formato "HH:MM" em item.hours para preservar o payload. */}
+                            {(() => {
+                                // Compat: payload antigo podia ter "HH:MM - HH:MM" (intervalo).
+                                // Lemos apenas a 1a parte como horário recomendado.
+                                const first = (item.hours || '').split(/\s*[-–]\s*/)[0]?.trim() || '';
+                                const start = parseHHMM(first) ? first : '';
+                                return (
+                                    <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                                        <TimePickerField
+                                            label="Horário recomendado"
+                                            value={start}
+                                            onChange={v => set({ hours: v })}
+                                            placeholder="09:00"
+                                        />
+                                    </View>
+                                );
+                            })()}
+                            <FormInput
+                                label="Dica de experiência"
+                                placeholder="Ex: Vá próximo ao pôr do sol..."
+                                multiline value={item.tips}
+                                onChangeText={v => set({ tips: v })}
+                                style={{ minHeight: 50, textAlignVertical: 'top' }}
+                            />
+                            <CostBlock
+                                cost={item.cost}
+                                legacySpending={item.spending}
+                                onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
+                                defaultCurrency={form.currency || 'BRL'}
+                                helperShort="Valor por pessoa do ingresso/passeio. Para passeios caros, comprovante aumenta a confiança."
+                                encourageProof
+                                uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                            />
                         </>
-                    )}
-                />
-            )}
-
-            {isActive('transporte') && (
-                <Repeater
-                    title="🚌 Transporte"
-                    items={form.transports}
-                    onChange={v => update('transports', v)}
-                    factory={emptyTransport}
-                    render={(item, set) => (
-                        <>
-                            <FormInput label="Descrição" required placeholder="Ex: Metrô Paris" value={item.description} onChangeText={v => set({ description: v })} multiline style={{ minHeight: 60, textAlignVertical: 'top' }} />
-                            <FormInput label="Tipos de passe" required placeholder="Ex: Navigo Semanal" value={item.passTypes} onChangeText={v => set({ passTypes: v })} />
-                            <FormInput label="Observações" placeholder="Dicas..." value={item.notes} onChangeText={v => set({ notes: v })} />
-                        </>
-                    )}
-                />
-            )}
-
-            {isActive('restaurantes') && (
-                <Repeater
-                    title="🍴 Restaurantes"
-                    items={form.restaurants}
-                    onChange={v => update('restaurants', v)}
-                    factory={emptyRestaurant}
-                    render={(item, set) => (
-                        <>
-                            <FormInput label="Nome" required value={item.name} onChangeText={v => set({ name: v })} />
-                            <FormInput label="Local" required value={item.location} onChangeText={v => set({ location: v })} />
-                            <FormInput label="Tipo de cozinha" value={item.cuisine} onChangeText={v => set({ cuisine: v })} />
-                            <FormInput label="Descrição" multiline value={item.description} onChangeText={v => set({ description: v })} style={{ minHeight: 60, textAlignVertical: 'top' }} />
-                            <FormInput label="Horário" placeholder="Ex: 12h-23h" value={item.hours} onChangeText={v => set({ hours: v })} />
-                            <FormInput label="Link externo" placeholder="https://..." value={item.externalLink} onChangeText={v => set({ externalLink: v })} autoCapitalize="none" />
-                        </>
-                    )}
-                />
-            )}
-
-            {isActive('voo') && <FlightSection form={form} update={update} />}
-        </View>
-    );
-}
-
-function FlightSection({ form, update }: StepProps) {
-    const setLeg = (key: 'flightOutbound' | 'flightReturn', patch: Partial<FlightLeg>) =>
-        update(key, { ...form[key], ...patch });
-    return (
-        <View style={{ marginTop: 16 }}>
-            <Text style={s.repeaterTitle}>✈️ Voo</Text>
-            <Text style={s.label}>Ida</Text>
-            <FormInput label="Companhia"           value={form.flightOutbound.airline}            onChangeText={v => setLeg('flightOutbound', { airline: v })} />
-            <FormInput label="Cidade de origem"    value={form.flightOutbound.originCity}         onChangeText={v => setLeg('flightOutbound', { originCity: v })} />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-                <View style={{ flex: 1 }}><FormInput label="Aeroporto origem"      value={form.flightOutbound.originAirport}      onChangeText={v => setLeg('flightOutbound', { originAirport: v })} /></View>
-                <View style={{ flex: 1 }}><FormInput label="Aeroporto destino"     value={form.flightOutbound.destinationAirport} onChangeText={v => setLeg('flightOutbound', { destinationAirport: v })} /></View>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-                <View style={{ flex: 1 }}><FormInput label="Partida (data/hora)"   placeholder="2026-08-12 10:30" value={form.flightOutbound.departureDate}      onChangeText={v => setLeg('flightOutbound', { departureDate: v })} /></View>
-                <View style={{ flex: 1 }}><FormInput label="Chegada"               placeholder="2026-08-12 18:00" value={form.flightOutbound.arrivalDate}        onChangeText={v => setLeg('flightOutbound', { arrivalDate: v })} /></View>
-            </View>
-
-            <Text style={[s.label, { marginTop: 12 }]}>Volta</Text>
-            <FormInput label="Companhia"           value={form.flightReturn.airline}            onChangeText={v => setLeg('flightReturn', { airline: v })} />
-            <FormInput label="Cidade de origem"    value={form.flightReturn.originCity}         onChangeText={v => setLeg('flightReturn', { originCity: v })} />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-                <View style={{ flex: 1 }}><FormInput label="Aeroporto origem"      value={form.flightReturn.originAirport}      onChangeText={v => setLeg('flightReturn', { originAirport: v })} /></View>
-                <View style={{ flex: 1 }}><FormInput label="Aeroporto destino"     value={form.flightReturn.destinationAirport} onChangeText={v => setLeg('flightReturn', { destinationAirport: v })} /></View>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-                <View style={{ flex: 1 }}><FormInput label="Partida"               placeholder="2026-08-19 21:00" value={form.flightReturn.departureDate}      onChangeText={v => setLeg('flightReturn', { departureDate: v })} /></View>
-                <View style={{ flex: 1 }}><FormInput label="Chegada"               placeholder="2026-08-20 05:30" value={form.flightReturn.arrivalDate}        onChangeText={v => setLeg('flightReturn', { arrivalDate: v })} /></View>
-            </View>
+                    );
+                }}
+            />
         </View>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// STEP 7 — DICAS, CHECKLIST, GASTOS
+// STEP MODULES — Transporte
+// ═══════════════════════════════════════════════════════════════════
+
+function StepTransport({ form, update, token }: StepProps) {
+    return (
+        <View>
+            <ModuleStepHeader
+                icon={Bus}
+                title="Transporte"
+                subtitle="Como se locomover no destino — metrô, passes e dicas de mobilidade"
+                hint="Adicione ao menos 1 orientação de transporte com descrição e tipo de passe."
+            />
+            <Repeater
+                title="Transportes adicionados"
+                items={form.transports}
+                onChange={v => update('transports', v)}
+                factory={emptyTransport}
+                render={(item, set) => (
+                    <>
+                        <FormInput
+                            label="Descrição do transporte / Passe"
+                            required
+                            placeholder="Ex: JR Pass (Japan Rail Pass)"
+                            value={item.description}
+                            onChangeText={v => set({ description: v })}
+                            multiline
+                            style={{ minHeight: 60, textAlignVertical: 'top' }}
+                        />
+                        <FormInput
+                            label="Tipo de passe / bilhete"
+                            required
+                            placeholder="Ex: Passe Semanal Nacional (7 dias)"
+                            value={item.passTypes}
+                            onChangeText={v => set({ passTypes: v })}
+                        />
+                        <DatePickerField label="Data" value={item.startDate} onChange={v => set({ startDate: v })} />
+                        <FormInput
+                            label="Notas e dicas adicionais"
+                            placeholder="Ex: Leve uma foto 3x4..."
+                            multiline value={item.notes}
+                            onChangeText={v => set({ notes: v })}
+                            style={{ minHeight: 50, textAlignVertical: 'top' }}
+                        />
+                        <CostBlock
+                            cost={item.cost}
+                            legacySpending={item.spending}
+                            onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
+                            defaultCurrency={form.currency || 'BRL'}
+                            helperShort="Valor por pessoa do passe/transporte — opcional. Use estimativa para transporte local."
+                            encourageProof
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                        />
+                    </>
+                )}
+            />
+        </View>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STEP MODULES — Restaurantes & Gastronomia
+// ═══════════════════════════════════════════════════════════════════
+
+function StepRestaurants({ form, update, token }: StepProps) {
+    return (
+        <View>
+            <ModuleStepHeader
+                icon={Utensils}
+                title="Restaurantes & Gastronomia"
+                subtitle="Onde comer bem — experiências gastronômicas autênticas e locais"
+                hint="Adicione ao menos 1 restaurante com nome e local."
+            />
+            <Repeater
+                title="Restaurantes adicionados"
+                items={form.restaurants}
+                onChange={v => update('restaurants', v)}
+                factory={emptyRestaurant}
+                render={(item, set) => (
+                    <>
+                        <FormInput label="Nome do restaurante" required placeholder="Ex: Le Jules Verne" value={item.name} onChangeText={v => set({ name: v })} />
+                        <Text style={s.label}>Culinária</Text>
+                        <View style={s.chipRow}>
+                            {CUISINE_OPTIONS.map(c => {
+                                const active = item.cuisine === c;
+                                return (
+                                    <TouchableOpacity key={c} style={[s.chip, active && s.chipActive]} onPress={() => set({ cuisine: c })}>
+                                        <Text style={[s.chipText, active && s.chipTextActive]}>{c}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                        <FormInput label="Localização / Bairro" required placeholder="Ex: Montmartre" value={item.location} onChangeText={v => set({ location: v })} />
+                        <FormInput
+                            label="Descrição / Por que recomendar"
+                            placeholder="Ex: O melhor croque monsieur da cidade com vista incrível..."
+                            multiline value={item.description}
+                            onChangeText={v => set({ description: v })}
+                            style={{ minHeight: 60, textAlignVertical: 'top' }}
+                        />
+                        <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                            <TimePickerField label="Horário" value={item.hoursStart} onChange={v => set({ hoursStart: v })} placeholder="11:00" />
+                            <DatePickerField label="Data"    value={item.startDate}  onChange={v => set({ startDate: v })} />
+                        </View>
+                        <FormInput label="Link externo (Google Maps, reserva)" placeholder="Ex: https://..." autoCapitalize="none" value={item.externalLink} onChangeText={v => set({ externalLink: v })} />
+                        <FormInput
+                            label="Dicas de experiência"
+                            placeholder="Ex: Chegue cedo ou faça reserva, o local lota rápido..."
+                            multiline value={item.tips}
+                            onChangeText={v => set({ tips: v })}
+                            style={{ minHeight: 50, textAlignVertical: 'top' }}
+                        />
+                        <CostBlock
+                            cost={item.cost}
+                            legacySpending={item.spending}
+                            onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
+                            defaultCurrency={form.currency || 'BRL'}
+                            helperShort="Valor por pessoa da refeição — opcional. Use estimativa quando o preço varia."
+                            encourageProof
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                        />
+                    </>
+                )}
+            />
+        </View>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STEP MODULES — Meu Voo
+// ═══════════════════════════════════════════════════════════════════
+
+function StepFlight({ form, update, token }: StepProps) {
+    const setLeg = (key: 'flightOutbound' | 'flightReturn', patch: Partial<FlightLeg>) =>
+        update(key, { ...form[key], ...patch });
+
+    const renderLeg = (
+        legKey: 'flightOutbound' | 'flightReturn',
+        leg: FlightLeg,
+        title: string,
+    ) => (
+        <View style={s.activityCard}>
+            <Text style={[s.repeaterTitle, { marginTop: 0 }]}>{title}</Text>
+            <FormInput label="Companhia aérea" placeholder="Ex: LATAM, Gol, Air France" value={leg.airline} onChangeText={v => setLeg(legKey, { airline: v })} />
+            <FormInput label="Cidade de Saída" required placeholder="Ex: São Paulo, Rio de Janeiro, Brasília" value={leg.originCity} onChangeText={v => setLeg(legKey, { originCity: v })} />
+            <FormInput label="Aeroporto de Origem" placeholder="Ex: GRU — São Paulo/Guarulhos" value={leg.originAirport} onChangeText={v => setLeg(legKey, { originAirport: v })} />
+            <FormInput label="Aeroporto de Destino" placeholder="Ex: CDG — Paris/Charles de Gaulle" value={leg.destinationAirport} onChangeText={v => setLeg(legKey, { destinationAirport: v })} />
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                <DatePickerField label="Data de Saída"   required value={leg.departureDate} onChange={v => setLeg(legKey, { departureDate: v })} />
+                <DatePickerField label="Data de Chegada" required value={leg.arrivalDate}   onChange={v => setLeg(legKey, { arrivalDate: v })} />
+                <View>
+                    <Text style={s.label}>Paradas</Text>
+                    <QuantityStepper
+                        value={leg.stops ?? 0}
+                        onChange={n => setLeg(legKey, { stops: Math.max(0, n) })}
+                        min={0}
+                        max={10}
+                    />
+                </View>
+            </View>
+        </View>
+    );
+
+    return (
+        <View>
+            <ModuleStepHeader
+                icon={Plane}
+                title="Meu Voo"
+                subtitle="Sugestões de voo para o destino — aumenta a confiança do comprador"
+                hint="Preencha cidade de origem e datas de ida e volta para o módulo ficar completo."
+            />
+
+            {renderLeg('flightOutbound', form.flightOutbound, 'Voo de Ida')}
+            {renderLeg('flightReturn', form.flightReturn, 'Voo de Volta')}
+
+            <Text style={[s.repeaterTitle, { marginTop: 16 }]}>Dicas sobre o Voo</Text>
+            <EditableList
+                items={form.flightTips}
+                onItemsChange={items => update('flightTips', items)}
+                placeholder="Ex: Voo noturno é a melhor opção — dormi no avião e cheguei descansado de manhã"
+            />
+
+            {/* Gasto da passagem aérea (opcional). Comprovante de reserva
+                aumenta a confiança do roteiro. */}
+            <CostBlock
+                cost={form.flightCost}
+                legacySpending={form.flightSpending}
+                onChange={c => {
+                    update('flightCost', c);
+                    update('flightSpending', costToLegacySpending(c));
+                }}
+                defaultCurrency={form.currency || 'BRL'}
+                helperShort="Valor da passagem por pessoa — opcional. Reserva/recibo aumenta a confiança."
+                encourageProof
+                uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+            />
+        </View>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FACTORIES — Checklist / Spending
 // ═══════════════════════════════════════════════════════════════════
 
 function emptyChecklist(): ChecklistItem { return { category: 'documentos', item: '', isDefault: false }; }
 function emptySpending(): SpendingEntry { return { moduleKey: 'gasto', label: '', icon: '💳', priceValue: '', priceCurrency: 'BRL', receiptUrl: '' }; }
 
-function StepExtras({ form, update }: StepProps) {
-    const isActive = (k: ModuleKey) => form.activeModules.includes(k);
-    const showAny = isActive('dicas') || isActive('checklist') || isActive('gasto');
+// ═══════════════════════════════════════════════════════════════════
+// STEP MODULES — Dicas Exclusivas
+// ═══════════════════════════════════════════════════════════════════
 
-    if (!showAny) {
-        return (
-            <View>
-                <SectionHeader title="Dicas, checklist e gastos" />
-                <Text style={s.emptyHint}>Nenhum dos módulos opcionais (Dicas, Checklist, Gastos) está ativo. Volte ao passo 4 se quiser ativar.</Text>
+function StepTips({ form, update }: StepProps) {
+    const filled = form.generalTips.filter(t => t.trim() !== '').length;
+    return (
+        <View>
+            <ModuleStepHeader
+                icon={Lightbulb}
+                title="Dicas Exclusivas"
+                subtitle="Segredos e dicas práticas que só quem foi sabe — seu grande diferencial"
+                hint={`Adicione no mínimo ${MIN_TIPS} dicas exclusivas para esse módulo ficar completo.`}
+            />
+            <View style={[s.daysProgressCard, filled >= MIN_TIPS && s.daysProgressCardOk]}>
+                <Ionicons
+                    name={filled >= MIN_TIPS ? 'checkmark-circle' : 'time-outline'}
+                    size={18}
+                    color={filled >= MIN_TIPS ? theme.colors.success : theme.colors.primary}
+                />
+                <Text style={s.daysProgressText}>
+                    {filled}/{MIN_TIPS} dicas preenchidas{filled >= MIN_TIPS ? ' ✓' : ''}
+                </Text>
             </View>
-        );
-    }
+            <EditableList
+                items={form.generalTips}
+                onItemsChange={v => update('generalTips', v)}
+                placeholder="Ex: Compre o passe Navigo na segunda-feira"
+            />
+        </View>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STEP MODULES — Checklist
+// ═══════════════════════════════════════════════════════════════════
+
+function StepChecklist({ form, update }: StepProps) {
+    const filled = form.checklistItems.filter(c => c.item?.trim() !== '').length;
+    return (
+        <View>
+            <ModuleStepHeader
+                icon={ListChecks}
+                title="Checklist"
+                subtitle="Lista de preparação que o viajante usa antes e durante a viagem"
+                hint={`Adicione no mínimo ${MIN_CHECKLIST} itens para esse módulo ficar completo.`}
+            />
+            <View style={[s.daysProgressCard, filled >= MIN_CHECKLIST && s.daysProgressCardOk]}>
+                <Ionicons
+                    name={filled >= MIN_CHECKLIST ? 'checkmark-circle' : 'time-outline'}
+                    size={18}
+                    color={filled >= MIN_CHECKLIST ? theme.colors.success : theme.colors.primary}
+                />
+                <Text style={s.daysProgressText}>
+                    {filled}/{MIN_CHECKLIST} itens preenchidos{filled >= MIN_CHECKLIST ? ' ✓' : ''}
+                </Text>
+            </View>
+            {form.checklistItems.map((c, i) => (
+                <View key={i} style={s.checkRow}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={s.checkCat}>{c.category}</Text>
+                        <TextInput
+                            style={s.checkInput}
+                            placeholder="Item do checklist"
+                            placeholderTextColor={theme.colors.text.disabled}
+                            value={c.item}
+                            onChangeText={v => {
+                                const next = [...form.checklistItems];
+                                next[i] = { ...next[i], item: v };
+                                update('checklistItems', next);
+                            }}
+                        />
+                    </View>
+                    <TouchableOpacity onPress={() => update('checklistItems', form.checklistItems.filter((_, x) => x !== i))}>
+                        <Ionicons name="close-circle" size={20} color={theme.colors.text.tertiary} />
+                    </TouchableOpacity>
+                </View>
+            ))}
+            <Text style={[s.label, { marginTop: 14 }]}>Adicionar item por categoria</Text>
+            <View style={s.chipRow}>
+                {CHECKLIST_CATS.map(cat => (
+                    <TouchableOpacity
+                        key={cat}
+                        style={s.chipGhost}
+                        onPress={() => update('checklistItems', [...form.checklistItems, { category: cat, item: '', isDefault: false }])}
+                    >
+                        <Ionicons name="add" size={14} color={theme.colors.primary} />
+                        <Text style={s.chipGhostText}>{cat}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </View>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STEP MODULES — Estimativa de Gastos por Pessoa
+// ═══════════════════════════════════════════════════════════════════
+
+// SpendingFieldset (legacy) foi substituído por CostBlock em todos os
+// módulos. Mantemos apenas o tipo ModuleSpending importado para
+// retrocompatibilidade com payload/legacy data.
+
+// ═══════════════════════════════════════════════════════════════════
+// STEP MODULE — Gastos Extras
+// ═══════════════════════════════════════════════════════════════════
+
+function emptyExtraSpending(): ExtraSpendingItem {
+    return {
+        id: `extra_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        category: 'outros',
+        title: '',
+        description: '',
+        value: '',
+        currency: 'BRL',
+    };
+}
+
+function StepExtraSpending({ form, update, token }: StepProps) {
+    const items = form.extraSpendingItems || [];
+
+    const setItems = (next: ExtraSpendingItem[]) => update('extraSpendingItems', next);
+    const updateItem = (i: number, patch: Partial<ExtraSpendingItem>) => {
+        setItems(items.map((e, idx) => idx === i ? { ...e, ...patch } : e));
+    };
 
     return (
         <View>
-            <SectionHeader title="Dicas, checklist & gastos" subtitle="Conteúdo extra dos módulos ativos." />
+            <ModuleStepHeader
+                icon={Wallet}
+                title="Gastos Extras"
+                subtitle="Chip, seguro, taxas, gorjetas, lavanderia e outros gastos da viagem"
+                hint="Adicione gastos que não se encaixam nos outros módulos. Valor é opcional."
+            />
 
-            {isActive('dicas') && (
-                <View style={{ marginTop: 8 }}>
-                    <Text style={s.repeaterTitle}>💡 Dicas exclusivas (mín. {MIN_TIPS})</Text>
-                    <EditableList
-                        items={form.generalTips}
-                        onItemsChange={v => update('generalTips', v)}
-                        placeholder="Ex: Compre o passe Navigo na segunda-feira"
+            {items.length === 0 ? (
+                <View style={s.spendingEmpty}>
+                    <Wallet size={36} strokeWidth={1.4} color={theme.colors.primary + '88'} />
+                    <Text style={s.spendingEmptyTitle}>Nenhum gasto extra adicionado</Text>
+                    <Text style={s.spendingEmptyText}>
+                        Adicione gastos que não se encaixam nos outros módulos (chip, seguro, taxas, gorjetas, etc.).
+                    </Text>
+                </View>
+            ) : null}
+
+            {items.map((e, i) => (
+                <View key={e.id || i} style={s.spendingCard}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={s.activityBadge}>Gasto extra {i + 1}</Text>
+                        <TouchableOpacity onPress={() => setItems(items.filter((_, x) => x !== i))}>
+                            <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text style={s.label}>Categoria</Text>
+                    <View style={s.chipRow}>
+                        {EXTRA_SPENDING_CATEGORIES.map(c => {
+                            const active = e.category === c.key;
+                            const IconComp = EXTRA_SPENDING_ICON_MAP[c.key];
+                            return (
+                                <TouchableOpacity
+                                    key={c.key}
+                                    style={[s.chip, active && s.chipActive]}
+                                    onPress={() => updateItem(i, { category: c.key })}
+                                >
+                                    {IconComp && (
+                                        <IconComp
+                                            size={14}
+                                            strokeWidth={2}
+                                            color={active ? theme.colors.primary : theme.colors.text.secondary}
+                                        />
+                                    )}
+                                    <Text style={[s.chipText, active && s.chipTextActive]}>{c.label}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    <FormInput
+                        label="Título/nome do gasto"
+                        required
+                        placeholder="Ex: Chip de internet 10GB"
+                        value={e.title}
+                        onChangeText={v => updateItem(i, { title: v })}
+                    />
+                    <FormInput
+                        label="Descrição (opcional)"
+                        placeholder="Detalhes ou contexto do gasto"
+                        multiline
+                        value={e.description}
+                        onChangeText={v => updateItem(i, { description: v })}
+                        style={{ minHeight: 50, textAlignVertical: 'top' }}
+                    />
+
+                    <CostBlock
+                        cost={e.cost}
+                        legacySpending={e.value ? { value: e.value, currency: e.currency || 'BRL' } : undefined}
+                        onChange={c => {
+                            const legacy = costToLegacySpending(c);
+                            updateItem(i, {
+                                cost: c,
+                                value: legacy?.value ?? '',
+                                currency: legacy?.currency ?? e.currency ?? 'BRL',
+                            });
+                        }}
+                        defaultCurrency={form.currency || 'BRL'}
+                        helperShort="Gastos variáveis (chip, taxas, gorjetas) costumam ser estimativas."
+                        encourageProof
+                        uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
                     />
                 </View>
-            )}
+            ))}
 
-            {isActive('checklist') && (
-                <View style={{ marginTop: 16 }}>
-                    <Text style={s.repeaterTitle}>✅ Checklist (mín. {MIN_CHECKLIST})</Text>
-                    {form.checklistItems.map((c, i) => (
-                        <View key={i} style={s.checkRow}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={s.checkCat}>{c.category}</Text>
-                                <TextInput
-                                    style={s.checkInput}
-                                    placeholder="Item do checklist"
-                                    placeholderTextColor={theme.colors.text.disabled}
-                                    value={c.item}
-                                    onChangeText={v => {
-                                        const next = [...form.checklistItems];
-                                        next[i] = { ...next[i], item: v };
-                                        update('checklistItems', next);
-                                    }}
-                                />
-                            </View>
-                            <TouchableOpacity onPress={() => update('checklistItems', form.checklistItems.filter((_, x) => x !== i))}>
-                                <Ionicons name="close-circle" size={20} color={theme.colors.text.tertiary} />
-                            </TouchableOpacity>
-                        </View>
-                    ))}
-                    <View style={s.chipRow}>
-                        {CHECKLIST_CATS.map(cat => (
-                            <TouchableOpacity
-                                key={cat}
-                                style={s.chipGhost}
-                                onPress={() => update('checklistItems', [...form.checklistItems, { category: cat, item: '', isDefault: false }])}
-                            >
-                                <Ionicons name="add" size={14} color={theme.colors.primary} />
-                                <Text style={s.chipGhostText}>{cat}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            )}
-
-            {isActive('gasto') && (
-                <View style={{ marginTop: 16 }}>
-                    <Text style={s.repeaterTitle}>💳 Estimativa de gastos por pessoa</Text>
-                    {form.spendingEntries.map((e, i) => (
-                        <View key={i} style={s.spendingCard}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                <Text style={s.checkCat}>{e.label || 'Item'}</Text>
-                                <TouchableOpacity onPress={() => update('spendingEntries', form.spendingEntries.filter((_, x) => x !== i))}>
-                                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
-                                </TouchableOpacity>
-                            </View>
-                            <FormInput label="Categoria" placeholder="🏨 Hospedagem"  value={e.label}      onChangeText={v => { const n = [...form.spendingEntries]; n[i] = { ...n[i], label: v }; update('spendingEntries', n); }} />
-                            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
-                                <View style={{ flex: 2 }}><FormInput label="Valor"  keyboardType="decimal-pad" value={e.priceValue} onChangeText={v => { const n = [...form.spendingEntries]; n[i] = { ...n[i], priceValue: v }; update('spendingEntries', n); }} /></View>
-                                <View style={{ flex: 1 }}>
-                                    <CurrencyPicker
-                                        label="Moeda"
-                                        compact
-                                        value={e.priceCurrency || 'BRL'}
-                                        onChange={(code) => {
-                                            const n = [...form.spendingEntries];
-                                            n[i] = { ...n[i], priceCurrency: code };
-                                            update('spendingEntries', n);
-                                        }}
-                                    />
-                                </View>
-                            </View>
-                        </View>
-                    ))}
-                    <View style={s.chipRow}>
-                        {SPENDING_CATS.map(cat => (
-                            <TouchableOpacity
-                                key={cat}
-                                style={s.chipGhost}
-                                onPress={() => update('spendingEntries', [...form.spendingEntries, { moduleKey: 'gasto', label: cat, icon: cat.split(' ')[0], priceValue: '', priceCurrency: form.currency, receiptUrl: '' }])}
-                            >
-                                <Ionicons name="add" size={14} color={theme.colors.primary} />
-                                <Text style={s.chipGhostText}>{cat}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            )}
+            <TouchableOpacity style={s.addInline} onPress={() => setItems([...items, emptyExtraSpending()])}>
+                <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
+                <Text style={s.addInlineText}>Adicionar gasto extra</Text>
+            </TouchableOpacity>
         </View>
     );
 }
@@ -1140,7 +2419,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
                 else failures.push(`Foto ${i + 1}: ${r.reason?.message || 'erro desconhecido'}`);
             });
             if (slot === 'cover') update('highlightPhotos', [...form.highlightPhotos, ...fresh].slice(0, 3));
-            else update('images', [...form.images, ...fresh].slice(0, 12));
+            else update('images', [...form.images, ...fresh].slice(0, 10));
             if (failures.length > 0) {
                 Alert.alert(
                     `${failures.length} foto(s) não enviada(s)`,
@@ -1161,7 +2440,13 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
 
     return (
         <View>
-            <SectionHeader title="Fotos do roteiro" subtitle="Fotos reais aumentam a conversão. Capa: 3 fotos principais. Galeria: até 12 fotos extras." />
+            <ModuleStepHeader
+                icon={Camera}
+                title="Fotos e Vídeos"
+                subtitle="Imagens reais da sua viagem — fotos autênticas aumentam a conversão"
+                required={false}
+                hint="Capa: até 3 fotos principais. Galeria: até 10 fotos extras."
+            />
 
             <Text style={s.repeaterTitle}>Capa (até 3 fotos)</Text>
             <View style={s.imgGrid}>
@@ -1180,7 +2465,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
                 )}
             </View>
 
-            <Text style={[s.repeaterTitle, { marginTop: 20 }]}>Galeria</Text>
+            <Text style={[s.repeaterTitle, { marginTop: 20 }]}>Galeria (até 10 fotos)</Text>
             <View style={s.imgGrid}>
                 {form.images.map((url, i) => (
                     <View key={i} style={s.imgThumbWrap}>
@@ -1190,7 +2475,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
                         </TouchableOpacity>
                     </View>
                 ))}
-                {form.images.length < 12 && (
+                {form.images.length < 10 && (
                     <TouchableOpacity style={s.imgAdd} onPress={() => pickAndUpload('gallery')} disabled={uploadingGallery}>
                         {uploadingGallery ? <ActivityIndicator color={theme.colors.primary} /> : <Ionicons name="add" size={32} color={theme.colors.primary} />}
                     </TouchableOpacity>
@@ -1204,7 +2489,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
 // STEP 9 — REVISÃO
 // ═══════════════════════════════════════════════════════════════════
 
-function StepReview({ form, onPreview }: { form: ItineraryFormState; onPreview: () => void }) {
+function StepReview({ form, onPreview, onFixIssue }: { form: ItineraryFormState; onPreview: () => void; onFixIssue: (section: string) => void }) {
     const blocks = useMemo(() => calcQualityBlocks(form), [form]);
     const totalScore = useMemo(() => calcQuality(form), [form]);
     const issues = useMemo(() => validateForSubmission(form), [form]);
@@ -1224,8 +2509,17 @@ function StepReview({ form, onPreview }: { form: ItineraryFormState; onPreview: 
             {issues.length > 0 ? (
                 <View style={s.issuesCard}>
                     <Text style={s.issuesTitle}>⚠️ Pendências para envio</Text>
+                    <Text style={s.issueHint}>Toque para ir até a etapa e corrigir.</Text>
                     {issues.map((i, idx) => (
-                        <Text key={idx} style={s.issueText}>• {i.message}</Text>
+                        <TouchableOpacity
+                            key={idx}
+                            style={s.issueRow}
+                            onPress={() => onFixIssue(i.section)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={s.issueText}>• {i.message}</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.colors.warning || '#F59E0B'} />
+                        </TouchableOpacity>
                     ))}
                 </View>
             ) : (
@@ -1279,6 +2573,9 @@ function StepReview({ form, onPreview }: { form: ItineraryFormState; onPreview: 
 interface StepProps {
     form: ItineraryFormState;
     update: <K extends keyof ItineraryFormState>(key: K, value: ItineraryFormState[K]) => void;
+    /** Token de auth para uploads (comprovantes de custo, fotos). Pode ser
+     *  null/undefined em rotas públicas — o backend de uploads aceita ambos. */
+    token?: string | null;
 }
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -1363,6 +2660,39 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
  * Lança Error com mensagem descritiva ao falhar (em vez de retornar null
  * silenciosamente) — permite mostrar o erro real ao usuário.
  */
+/**
+ * Renova o accessToken usando o refreshToken salvo no AsyncStorage.
+ * Retorna o novo accessToken ou null se o refresh falhar (refreshToken
+ * também expirado/inválido — usuário precisa fazer login de novo).
+ */
+async function tryRefreshSession(): Promise<string | null> {
+    try {
+        const raw = await AsyncStorage.getItem('@vamo_session');
+        if (!raw) return null;
+        const session = JSON.parse(raw);
+        const refreshToken = session?.refreshToken;
+        if (!refreshToken) return null;
+
+        const res = await fetch(`${API_BASE}/auth/traveler/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const newToken = data.accessToken;
+        if (!newToken) return null;
+
+        await AsyncStorage.setItem(
+            '@vamo_session',
+            JSON.stringify({ ...session, accessToken: newToken }),
+        );
+        return newToken;
+    } catch {
+        return null;
+    }
+}
+
 async function uploadOne(
     uri: string,
     token: string | null | undefined,
@@ -1381,42 +2711,60 @@ async function uploadOne(
 
     console.log('[upload] iniciando', { filename, mime: inferredMime, platform: Platform.OS });
 
-    const formData = new FormData();
-    if (Platform.OS === 'web') {
-        // Web: precisa de Blob/File real, não objeto {uri, ...}
-        const blobRes = await fetch(uri);
-        if (!blobRes.ok) {
-            throw new Error(`Não foi possível ler o arquivo selecionado (HTTP ${blobRes.status}).`);
+    // Constrói o FormData (factory para podermos reconstruir no retry —
+    // alguns FormData em RN não são reutilizáveis após uma falha).
+    const buildFormData = async (): Promise<FormData> => {
+        const fd = new FormData();
+        if (Platform.OS === 'web') {
+            const blobRes = await fetch(uri);
+            if (!blobRes.ok) {
+                throw new Error(`Não foi possível ler o arquivo selecionado (HTTP ${blobRes.status}).`);
+            }
+            const blob = await blobRes.blob();
+            console.log('[upload] blob criado', { size: blob.size, type: blob.type });
+            fd.append('file', blob, filename);
+        } else {
+            // @ts-ignore RN-specific form data shape
+            fd.append('file', { uri, name: filename, type: inferredMime });
         }
-        const blob = await blobRes.blob();
-        console.log('[upload] blob criado', { size: blob.size, type: blob.type });
-        formData.append('file', blob, filename);
-    } else {
-        // Native: shape específico do RN
-        // @ts-ignore RN-specific form data shape
-        formData.append('file', { uri, name: filename, type: inferredMime });
+        return fd;
+    };
+
+    // Tentativa principal. Em caso de 401, refresh + 1 retry.
+    let currentToken = token;
+    let res: Response;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const headers: Record<string, string> = {};
+        if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
+        const formData = await buildFormData();
+        res = await fetch(`${API_BASE}/uploads`, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+        if (res.status !== 401 || attempt === 1) break;
+        // 401 na primeira tentativa: tenta refresh
+        console.log('[upload] 401 — tentando refresh do token...');
+        const newToken = await tryRefreshSession();
+        if (!newToken) {
+            console.warn('[upload] refresh falhou — sessão expirada');
+            throw new Error('Sua sessão expirou. Faça login novamente.');
+        }
+        currentToken = newToken;
+        console.log('[upload] token renovado, retentando upload...');
     }
-
-    const headers: Record<string, string> = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    // No web NÃO setar Content-Type — o browser adiciona o boundary multipart sozinho.
-
-    const res = await fetch(`${API_BASE}/uploads`, {
-        method: 'POST',
-        headers,
-        body: formData,
-    });
 
     const elapsed = Date.now() - startedAt;
-    if (!res.ok) {
+    if (!res!.ok) {
         let detail = '';
-        try { detail = await res.text(); } catch {}
-        console.warn('[upload] falhou', { status: res.status, detail, elapsed });
-        if (res.status === 413) throw new Error('Arquivo muito grande (máx 25 MB).');
-        if (res.status === 415) throw new Error('Formato de arquivo não suportado.');
-        throw new Error(`Upload falhou (HTTP ${res.status}). Verifique sua conexão.`);
+        try { detail = await res!.text(); } catch {}
+        console.warn('[upload] falhou', { status: res!.status, detail, elapsed });
+        if (res!.status === 401) throw new Error('Sua sessão expirou. Faça login novamente.');
+        if (res!.status === 413) throw new Error('Arquivo muito grande (máx 25 MB).');
+        if (res!.status === 415) throw new Error('Formato de arquivo não suportado.');
+        throw new Error(`Upload falhou (HTTP ${res!.status}). Verifique sua conexão.`);
     }
-    const data = await res.json();
+    const data = await res!.json();
     const url = data.url || data.urls?.[0];
     if (!url) {
         console.warn('[upload] resposta sem URL:', data);
@@ -1483,6 +2831,9 @@ function deserializeFromApi(data: any): ItineraryFormState {
         flightOutbound: data.flightInfo?.outbound || { ...EMPTY_FLIGHT_LEG },
         flightReturn:   data.flightInfo?.return   || { ...EMPTY_FLIGHT_LEG },
         flightTips: data.flightInfo?.tips || [],
+        flightSpending: data.flightInfo?.spending || undefined,
+        flightCost: data.flightInfo?.cost || undefined,
+        extraSpendingItems: data.extraSpendingItems || [],
         images: (data.images || []).map((img: any) => typeof img === 'string' ? img : img.url).filter(Boolean),
         mediaUrls: data.mediaUrls || [],
         highlightPhotos: data.highlightPhotos || [],
@@ -1544,12 +2895,105 @@ const s = StyleSheet.create({
     moduleCardActive: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary + '08' },
     moduleTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary },
     moduleDesc:  { fontSize: 12, color: theme.colors.text.tertiary, marginTop: 2 },
-    moduleCheck: {
-        width: 24, height: 24, borderRadius: 12,
-        borderWidth: 2, borderColor: theme.colors.borderLight,
+    moduleIconBox: {
+        width: 44, height: 44, borderRadius: 12,
+        backgroundColor: theme.colors.primary + '12',
         alignItems: 'center', justifyContent: 'center',
     },
-    moduleCheckActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+    moduleIconBoxActive: {
+        backgroundColor: theme.colors.primary + '20',
+    },
+    modulesHeader: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8,
+    },
+    modulesObrigBadge: {
+        paddingHorizontal: 10, paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: '#fff7ed',
+        borderWidth: 1, borderColor: '#fed7aa',
+    },
+    modulesObrigText: {
+        fontSize: 11, fontWeight: '700', color: '#ea580c',
+    },
+    modulesIntro: {
+        fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19,
+        marginBottom: 16,
+    },
+
+    moduleStepHeader: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+        marginBottom: 12,
+    },
+    moduleStepIconBox: {
+        width: 48, height: 48, borderRadius: 14,
+        backgroundColor: theme.colors.primary + '15',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    moduleStepTitle: {
+        fontSize: 20, fontWeight: '800', color: theme.colors.text.primary,
+    },
+    moduleStepSubtitle: {
+        fontSize: 13, color: theme.colors.text.secondary, lineHeight: 18, marginTop: 4,
+    },
+    moduleStepBadgeReq: {
+        paddingHorizontal: 8, paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor: '#fff7ed',
+        borderWidth: 1, borderColor: '#fed7aa',
+    },
+    moduleStepBadgeReqText: {
+        fontSize: 10, fontWeight: '700', color: '#ea580c',
+    },
+    moduleStepBadgeOpt: {
+        paddingHorizontal: 8, paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor: theme.colors.borderLight,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
+    },
+    moduleStepBadgeOptText: {
+        fontSize: 10, fontWeight: '700', color: theme.colors.text.tertiary,
+    },
+    moduleStepHintCard: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+        padding: 12, marginBottom: 14, borderRadius: 12,
+        backgroundColor: theme.colors.primary + '08',
+        borderLeftWidth: 3, borderLeftColor: theme.colors.primary,
+    },
+    moduleStepHintText: {
+        flex: 1, fontSize: 12, color: theme.colors.text.secondary, lineHeight: 17,
+    },
+
+    highlightsHeader: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+        marginTop: 18, marginBottom: 12,
+    },
+    highlightsIconBox: {
+        width: 44, height: 44, borderRadius: 12,
+        backgroundColor: theme.colors.primary + '15',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    highlightsTitle: {
+        fontSize: 17, fontWeight: '800', color: theme.colors.text.primary,
+    },
+    highlightsSubtitle: {
+        fontSize: 12, color: theme.colors.text.secondary, lineHeight: 17, marginTop: 3,
+    },
+    highlightsEmptyCard: {
+        alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 24, paddingHorizontal: 18,
+        marginBottom: 12, borderRadius: 16,
+        borderWidth: 1.5, borderStyle: 'dashed',
+        borderColor: theme.colors.primary + '50',
+        backgroundColor: theme.colors.primary + '06',
+    },
+    highlightsEmptyTitle: {
+        fontSize: 14, fontWeight: '700', color: theme.colors.text.primary,
+        marginTop: 10, textAlign: 'center',
+    },
+    highlightsEmptyText: {
+        fontSize: 12, color: theme.colors.text.secondary, lineHeight: 17,
+        marginTop: 6, textAlign: 'center', paddingHorizontal: 8,
+    },
 
     syncBtn: {
         flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -1560,11 +3004,131 @@ const s = StyleSheet.create({
     syncBtnText: { fontSize: 13, color: theme.colors.primary, fontWeight: '700' },
 
     dayCard: {
-        padding: 14, marginBottom: 14, borderRadius: 14,
+        marginBottom: 12, borderRadius: 14,
         borderWidth: 1, borderColor: theme.colors.borderLight,
-        backgroundColor: '#fff',
+        backgroundColor: '#fff', overflow: 'hidden',
     },
     dayHeader: { fontSize: 15, fontWeight: '800', color: theme.colors.primary, marginBottom: 8 },
+    dayHeaderRow: {
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        paddingHorizontal: 14, paddingVertical: 12,
+    },
+    dayBadge: {
+        width: 32, height: 32, borderRadius: 16,
+        backgroundColor: theme.colors.primary + '15',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    dayBadgeComplete: {
+        backgroundColor: theme.colors.success,
+    },
+    dayBadgeText: { fontSize: 14, fontWeight: '800', color: theme.colors.primary },
+    dayHeaderTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary },
+    dayHeaderStatus: { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 },
+    dayBody: {
+        paddingHorizontal: 14, paddingBottom: 14,
+        borderTopWidth: 1, borderTopColor: theme.colors.borderLight,
+    },
+    daysProgressCard: {
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+        padding: 12, marginBottom: 16, borderRadius: 12,
+        backgroundColor: theme.colors.primary + '10',
+        borderWidth: 1, borderColor: theme.colors.primary + '30',
+    },
+    daysProgressCardOk: {
+        backgroundColor: '#D1FAE5', borderColor: '#6EE7B7',
+    },
+    daysProgressText: {
+        fontSize: 13, fontWeight: '700', color: theme.colors.text.primary,
+    },
+    durationRow: {
+        flexDirection: 'row', alignItems: 'stretch', marginTop: 6,
+        borderWidth: 1.5, borderColor: theme.colors.borderLight,
+        borderRadius: 10, overflow: 'hidden', backgroundColor: '#fff',
+    },
+    durationInput: {
+        flex: 1, paddingHorizontal: 12, fontSize: 14,
+        color: theme.colors.text.primary,
+    },
+    durationUnit: {
+        paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
+        backgroundColor: theme.colors.primary + '15',
+        borderLeftWidth: 1, borderLeftColor: theme.colors.borderLight,
+    },
+    durationUnitText: {
+        fontSize: 13, fontWeight: '700', color: theme.colors.primary,
+    },
+
+    // QuantityStepper — compacto, não estica
+    qsRow: {
+        flexDirection: 'row', alignItems: 'stretch',
+        alignSelf: 'flex-start',
+        marginTop: 6, marginBottom: 4,
+        borderWidth: 1.5, borderColor: theme.colors.borderLight,
+        borderRadius: 10, overflow: 'hidden',
+        backgroundColor: '#fff',
+    },
+    qsBtn: {
+        width: 40, alignItems: 'center', justifyContent: 'center',
+        backgroundColor: theme.colors.primary + '10',
+    },
+    qsBtnDisabled: {
+        backgroundColor: theme.colors.borderLight + '60',
+    },
+    qsInput: {
+        paddingVertical: 10, paddingHorizontal: 4,
+        fontSize: 16, fontWeight: '700',
+        color: theme.colors.text.primary,
+        textAlign: 'center',
+        borderLeftWidth: 1, borderRightWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    qsUnit: {
+        paddingHorizontal: 14, minWidth: 56,
+        alignItems: 'center', justifyContent: 'center',
+        backgroundColor: theme.colors.primary + '15',
+        borderLeftWidth: 1, borderLeftColor: theme.colors.borderLight,
+    },
+    qsUnitText: {
+        fontSize: 13, fontWeight: '700', color: theme.colors.primary,
+    },
+
+    // DatePickerField / TimePickerField
+    pickerFieldWrap: {
+        marginTop: 6,
+    },
+    pickerFieldTouchable: {
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+        paddingHorizontal: 12, paddingVertical: 11,
+        borderRadius: 10, borderWidth: 1.5,
+        borderColor: theme.colors.borderLight,
+        backgroundColor: '#fff',
+        minWidth: 150,
+    },
+    pickerFieldText: {
+        flex: 1, fontSize: 14, fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    pickerFieldPlaceholder: {
+        fontWeight: '400',
+        color: theme.colors.text.disabled,
+    },
+    pickerModalBg: {
+        flex: 1, justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    pickerModalCard: {
+        backgroundColor: '#fff',
+        padding: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+        borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    },
+    pickerModalTitle: {
+        fontSize: 15, fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 4, textAlign: 'center',
+    },
+    pickerClearBtn: {
+        paddingHorizontal: 6, paddingVertical: 4,
+    },
 
     activityCard: {
         padding: 12, marginTop: 10, borderRadius: 12,
@@ -1590,6 +3154,36 @@ const s = StyleSheet.create({
     },
     uploadText: { marginTop: 8, fontWeight: '700', color: theme.colors.primary, fontSize: 14 },
     uploadHint: { marginTop: 2, fontSize: 12, color: theme.colors.text.tertiary },
+
+    proofInfoCard: {
+        flexDirection: 'row', gap: 12,
+        padding: 14, marginBottom: 20,
+        borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#ea580c',
+        backgroundColor: '#fff7ed',
+        borderWidth: 1, borderColor: '#fed7aa',
+    },
+    proofInfoIconWrap: {
+        marginTop: 1,
+    },
+    proofInfoTitle: {
+        fontSize: 14, fontWeight: '700', color: '#c2410c', marginBottom: 6,
+    },
+    proofInfoText: {
+        fontSize: 13, color: '#7c2d12', lineHeight: 19,
+    },
+    proofLabelRow: {
+        flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10,
+    },
+    proofLabelText: {
+        fontSize: 14, fontWeight: '700', color: theme.colors.text.primary,
+    },
+    proofObrigBadge: {
+        paddingHorizontal: 8, paddingVertical: 3,
+        borderRadius: 6, borderWidth: 1.5, borderColor: theme.colors.error,
+    },
+    proofObrigText: {
+        fontSize: 10, fontWeight: '800', color: theme.colors.error, letterSpacing: 0.5,
+    },
 
     proofCard: {
         flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12,
@@ -1625,6 +3219,51 @@ const s = StyleSheet.create({
         backgroundColor: theme.colors.surfaceLight,
         borderWidth: 1, borderColor: theme.colors.borderLight,
     },
+    spendingHeader: {
+        flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8,
+    },
+    spendingIconBox: {
+        width: 32, height: 32, borderRadius: 9,
+        backgroundColor: theme.colors.primary + '15',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    spendingLabel: {
+        fontWeight: '700', fontSize: 14, color: theme.colors.text.primary,
+    },
+    spendingWarn: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+        padding: 12, marginBottom: 14, borderRadius: 10,
+        backgroundColor: 'rgba(249, 115, 22, 0.06)',
+        borderLeftWidth: 3, borderLeftColor: '#f97316',
+    },
+    spendingWarnText: {
+        flex: 1, fontSize: 12, color: theme.colors.text.secondary, lineHeight: 17,
+    },
+    spendingEmpty: {
+        alignItems: 'center', paddingVertical: 28, paddingHorizontal: 14,
+        marginTop: 8, borderRadius: 14,
+        borderWidth: 1.5, borderStyle: 'dashed',
+        borderColor: theme.colors.primary + '40',
+        backgroundColor: theme.colors.primary + '06',
+    },
+    spendingEmptyTitle: {
+        fontSize: 14, fontWeight: '700', color: theme.colors.text.primary,
+        marginTop: 10, textAlign: 'center',
+    },
+    spendingEmptyText: {
+        fontSize: 12, color: theme.colors.text.secondary, lineHeight: 17,
+        marginTop: 6, textAlign: 'center',
+    },
+
+    // SpendingFieldset (inline em itens de módulo)
+    spFieldset: {
+        marginTop: 12, padding: 12, borderRadius: 12,
+        backgroundColor: theme.colors.primary + '06',
+        borderWidth: 1, borderColor: theme.colors.primary + '25',
+    },
+    spFieldsetLabel: {
+        fontSize: 13, fontWeight: '700', color: theme.colors.primary,
+    },
 
     imgGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     imgThumbWrap: { position: 'relative' },
@@ -1652,8 +3291,14 @@ const s = StyleSheet.create({
         padding: 14, borderRadius: 12, backgroundColor: '#FEF3C7',
         borderWidth: 1, borderColor: '#FCD34D', marginBottom: 14,
     },
-    issuesTitle: { fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 6 },
-    issueText:   { fontSize: 13, color: '#92400E', lineHeight: 20 },
+    issuesTitle: { fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 2 },
+    issueHint:   { fontSize: 11, color: '#92400E', opacity: 0.75, marginBottom: 6, fontStyle: 'italic' },
+    issueRow:    {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingVertical: 8, paddingHorizontal: 6, borderRadius: 8,
+        borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#FCD34D',
+    },
+    issueText:   { flex: 1, fontSize: 13, color: '#92400E', lineHeight: 20 },
 
     okCard: {
         flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -1686,6 +3331,70 @@ const s = StyleSheet.create({
     criterion:  { fontSize: 12, color: theme.colors.text.tertiary },
 
     emptyHint: { fontSize: 13, color: theme.colors.text.tertiary, lineHeight: 20, marginTop: 8 },
+
+    locCard: {
+        backgroundColor: theme.colors.surfaceLight,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
+        borderRadius: 12, padding: 14, marginBottom: 12,
+    },
+    locRemoveBtn: {
+        width: 36, height: 36, borderRadius: 8,
+        alignItems: 'center', justifyContent: 'center',
+        backgroundColor: '#fef2f2', marginBottom: 2,
+    },
+    cityTag: {
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        backgroundColor: '#fff', borderWidth: 1, borderColor: theme.colors.borderLight,
+        borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
+    },
+    cityInput: {
+        fontSize: 13, fontWeight: '500', color: theme.colors.text.primary,
+        minWidth: 70, maxWidth: 160,
+    },
+    addCityBtn: {
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        paddingHorizontal: 10, paddingVertical: 5,
+        borderRadius: 8, borderWidth: 1.5, borderStyle: 'dashed',
+        borderColor: theme.colors.primary + '60',
+    },
+    addCityText: { fontSize: 12, color: theme.colors.primary, fontWeight: '600' },
+    addCountryBtn: {
+        alignSelf: 'flex-start', marginBottom: 16,
+        paddingHorizontal: 14, paddingVertical: 9,
+        borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed',
+        borderColor: theme.colors.primary + '60',
+        backgroundColor: 'transparent',
+    },
+    addCountryText: { fontSize: 13, color: theme.colors.primary, fontWeight: '700' },
+
+    formGroup: { marginTop: 14 },
+    textArea: {
+        marginTop: 6, borderWidth: 1.5, borderColor: theme.colors.borderLight,
+        borderRadius: 10, padding: 12, minHeight: 120,
+        fontSize: 14, color: theme.colors.text.primary,
+        backgroundColor: '#fff', lineHeight: 20,
+    },
+    charCounter: { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 4, textAlign: 'right' },
+
+    commerceWarningCard: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+        marginTop: 16, padding: 14, borderRadius: 12,
+        backgroundColor: '#fff7ed',
+        borderWidth: 1, borderColor: '#fed7aa',
+    },
+    commerceWarningText: {
+        flex: 1, fontSize: 13, color: '#7c2d12', lineHeight: 19,
+    },
+    commerceOfflineCard: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+        marginTop: 12, padding: 14, borderRadius: 12,
+        backgroundColor: theme.colors.primary + '08',
+        borderLeftWidth: 3, borderLeftColor: theme.colors.primary,
+        borderWidth: 1, borderColor: theme.colors.primary + '30',
+    },
+    commerceOfflineText: {
+        flex: 1, fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19,
+    },
 
     footer: {
         paddingHorizontal: 20, paddingVertical: 12,

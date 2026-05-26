@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+    KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { useAuth } from '../src/contexts/AuthContext';
 import { haptics } from '../src/services/haptics';
+import VamoLogo from '../src/components/common/VamoLogo';
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -76,7 +77,7 @@ export default function RegisterScreen() {
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                         <Ionicons name="arrow-back" size={22} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.logo}>VAMO</Text>
+                    <VamoLogo size={160} />
                     <Text style={styles.tagline}>Crie sua conta e comece a explorar</Text>
                 </LinearGradient>
 
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    logo: { fontSize: 36, fontWeight: '900', color: '#fff', letterSpacing: 4, marginBottom: 6 },
+    logoImage: { width: 180, height: 72, marginBottom: 8 },
     tagline: { fontSize: 13, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
     card: {
         flex: 1,

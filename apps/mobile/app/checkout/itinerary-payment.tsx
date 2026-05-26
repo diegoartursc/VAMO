@@ -8,6 +8,7 @@ import {
     SafeAreaView,
     Pressable,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,37 +40,33 @@ export default function ItineraryPaymentScreen() {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const [processing, setProcessing] = useState(false);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
 
     const handleConfirmPayment = async () => {
         if (processing) return;
         setProcessing(true);
+        setPaymentError(null);
         try {
+            console.log('[purchase] iniciando', { itineraryId, paymentMethod });
             // Record the purchase. Sends JWT so the sale is attributed to the
             // authenticated traveler (não cai no dev-fallback do backend).
             const result = await purchaseItinerary(itineraryId as string, paymentMethod, accessToken);
+            console.log('[purchase] sucesso', result);
 
-            const isReturning = result.alreadyPurchased;
-            Alert.alert(
-                isReturning ? 'Roteiro já adquirido' : 'Pagamento confirmado!',
-                isReturning
-                    ? 'Você já comprou este roteiro. Ele continua disponível em Meus Roteiros.'
-                    : 'Seu roteiro já está disponível em Meus Roteiros.',
-                [
-                    { text: 'Ver meus roteiros', onPress: () => router.replace('/(tabs)/my-trips' as any) },
-                    {
-                        text: 'Abrir roteiro',
-                        onPress: () => router.replace({
-                            pathname: `/itinerary/${itineraryId}` as any,
-                            params: { showSuccess: 'true' },
-                        }),
-                    },
-                ],
-            );
+            // Redireciona direto para a tela do roteiro com `showSuccess=true`.
+            // O PurchaseSuccessModal já existente na tela de detalhes captura
+            // o param e mostra a confirmação ("Compra Realizada"). Evita
+            // Alert.alert, que tem limitações no Expo web e pode parecer
+            // travado pro usuário. Funciona pros dois casos: nova compra OU
+            // compra já existente (o usuário tem acesso ao roteiro em ambos).
+            router.replace({
+                pathname: `/itinerary/${itineraryId}` as any,
+                params: { showSuccess: 'true' },
+            });
         } catch (err: any) {
-            Alert.alert(
-                'Erro ao processar pagamento',
-                err?.message || 'Tente novamente em instantes.',
-            );
+            const msg = err?.message || 'Não foi possível concluir a compra agora. Tente novamente.';
+            console.warn('[purchase] erro:', msg);
+            setPaymentError(msg);
         } finally {
             setProcessing(false);
         }
@@ -242,16 +239,46 @@ export default function ItineraryPaymentScreen() {
                     <Text style={styles.link}>Termos e condições</Text>.
                 </Text>
 
+                {paymentError && (
+                    <View style={styles.errorBox}>
+                        <Ionicons name="alert-circle" size={16} color={theme.colors.error} />
+                        <Text style={styles.errorBoxText}>{paymentError}</Text>
+                    </View>
+                )}
+
                 {paymentMethod === 'apple' && (
-                    <TouchableOpacity style={styles.applePayButton} onPress={handleConfirmPayment}>
-                        <Ionicons name="logo-apple" size={24} color="#fff" />
-                        <Text style={styles.applePayText}>Pay</Text>
+                    <TouchableOpacity
+                        style={[styles.applePayButton, processing && { opacity: 0.6 }]}
+                        onPress={handleConfirmPayment}
+                        disabled={processing}
+                        activeOpacity={0.85}
+                    >
+                        {processing ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <>
+                                <Ionicons name="logo-apple" size={24} color="#fff" />
+                                <Text style={styles.applePayText}>Pay</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                 )}
 
                 {paymentMethod !== 'apple' && (
-                    <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmPayment}>
-                        <Text style={styles.confirmButtonText}>Confirmar pagamento</Text>
+                    <TouchableOpacity
+                        style={[styles.confirmButton, processing && { opacity: 0.6 }]}
+                        onPress={handleConfirmPayment}
+                        disabled={processing}
+                        activeOpacity={0.85}
+                    >
+                        {processing ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                <ActivityIndicator color="#fff" />
+                                <Text style={styles.confirmButtonText}>Processando...</Text>
+                            </View>
+                        ) : (
+                            <Text style={styles.confirmButtonText}>Confirmar pagamento</Text>
+                        )}
                     </TouchableOpacity>
                 )}
             </View>
@@ -426,4 +453,16 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     errorText: { color: theme.colors.text.primary, fontSize: 16, textAlign: 'center', marginTop: 40 },
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        padding: 10,
+        marginBottom: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.error + '55',
+        backgroundColor: theme.colors.error + '10',
+    },
+    errorBoxText: { flex: 1, fontSize: 12, color: theme.colors.error, lineHeight: 16 },
 });

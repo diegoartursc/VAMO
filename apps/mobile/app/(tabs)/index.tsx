@@ -22,6 +22,7 @@ import { useFavoriteAnimation } from '../../src/components/providers/FavoriteAni
 
 // Components
 import { Icon } from '../../src/components/common/Icons';
+import VamoLogo from '../../src/components/common/VamoLogo';
 import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
@@ -31,9 +32,6 @@ import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
 
-
-// Data
-import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
 
 const { width } = Dimensions.get('window');
 
@@ -55,7 +53,7 @@ const HeroHeader = ({ onSearchPress, router }: { onSearchPress: () => void; rout
             <SafeAreaView style={styles.heroSafeArea}>
                 {/* Brand Logo & Actions */}
                 <View style={styles.heroTopRow}>
-                    <Image source={require('../../assets/images/logo_transparent.png')} style={styles.brandLogo} />
+                    <VamoLogo size={120} style={styles.brandLogo} />
                     <View style={{ flexDirection: 'row', gap: 12 }}>
                         <TouchableOpacity style={styles.iconButton} onPress={() => Alert.alert('🔔 Notificações', 'Você não possui notificações no momento.')}>
                             <Icon name="bell" size={24} color="#FFF" />
@@ -228,7 +226,7 @@ export default function HomeScreen() {
                         {allItineraries.filter(i => i.featured).slice(0, 5).map((itinerary) => (
                             <ItineraryCard
                                 key={itinerary.id}
-                                width={280}
+                                width={320}
                                 itinerary={itinerary}
                                 onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                             />
@@ -250,7 +248,7 @@ export default function HomeScreen() {
                         {allItineraries.slice(0, 5).map((itinerary) => (
                             <ItineraryCard
                                 key={itinerary.id}
-                                width={280}
+                                width={320}
                                 itinerary={itinerary}
                                 onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                             />

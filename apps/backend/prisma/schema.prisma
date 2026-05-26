@@ -445,9 +445,15 @@ model Itinerary {
   extraCities      String[]
   extraCountries   String[]
   // ─── Módulos como JSON (estrutura semi-livre) ───
-  flightInfo       Json?    // { outbound: {...}, return: {...}, totalPrice, priceCurrency, tips: [] }
-  attractions      Json?    // [{ name, type, location, mapLink, description, hours, duration, externalLink, tips, startDate, endDate, ticketValue, ticketCurrency }]
-  restaurants      Json?    // [{ name, cuisine, location, description, hours, hoursStart, externalLink, tips, startDate, endDate, priceValue, priceCurrency }]
+  flightInfo       Json?    // { outbound, return, totalPrice, priceCurrency, tips: [], spending, cost }
+  attractions      Json?    // [{ name, type, location, mapLink, description, hours, duration, externalLink, tips, startDate, endDate, ticketValue, ticketCurrency, spending?, cost? }]
+  restaurants      Json?    // [{ name, cuisine, location, description, hours, hoursStart, externalLink, tips, startDate, endDate, priceValue, priceCurrency, spending?, cost? }]
+  // ─── Gastos Extras (módulo "Gastos Extras" — transparência graduada) ───
+  // [{ id, category, title, description, value, currency, cost?: ModuleCostInfo }]
+  // Persiste em JSON porque a estrutura é livre e gerenciada inteiramente
+  // pelo cliente (mobile). Mantém retrocompatibilidade automática com
+  // roteiros antigos (default null).
+  extraSpendingItems Json?
   generalTips      String[]
   mediaUrls        String[] // Fotos/vídeos extras
   highlightPhotos  String[] // 3 fotos de destaque do criador
@@ -567,6 +573,12 @@ model ItineraryAccommodation {
   endDate      String?
   totalPrice   String?   // preço total da estadia
   priceCurrency String?
+  // ─── Transparência graduada de custos (opt-in) ───
+  // `spending`: { value, currency } — formato legado de gasto por pessoa
+  // `cost`: ModuleCostInfo { amount, currency, disclosureType, notes, proofFiles, proofStatus, updatedAt }
+  // Ambos opcionais; null para roteiros antigos.
+  spending     Json?
+  cost         Json?
   order        Int       @default(0)
   createdAt    DateTime  @default(now())
 
@@ -587,6 +599,9 @@ model ItineraryTransport {
   endDate        String?
   priceValue     String?
   priceCurrency  String?
+  // ─── Transparência graduada de custos (opt-in) ───
+  spending       Json?
+  cost           Json?
   order          Int       @default(0)
   createdAt      DateTime  @default(now())
 

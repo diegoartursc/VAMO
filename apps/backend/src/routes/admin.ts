@@ -132,7 +132,18 @@ router.get('/pending', verifyAdmin, async (req: Request, res: Response) => {
                 creator: { select: { id: true, traveler: { select: { name: true, avatar: true } } } },
                 images: { take: 1, orderBy: { order: 'asc' }, select: { url: true } },
             },
-        }),
+        }).then(rows => rows.map((r: any) => ({
+            // Resolve thumbnail server-side: prefere ItineraryImage[0], depois
+            // highlightPhotos[0], depois mediaUrls[0]. Admin sempre vê algo.
+            ...r,
+            images: r.images?.length
+                ? r.images
+                : r.highlightPhotos?.[0]
+                    ? [{ url: r.highlightPhotos[0] }]
+                    : r.mediaUrls?.[0]
+                        ? [{ url: r.mediaUrls[0] }]
+                        : [],
+        }))),
     ]);
 
     res.json({ packages, itineraries });
@@ -161,12 +172,26 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
             orderBy: { updatedAt: 'desc' },
             take: 50,
             select: {
-                id: true, title: true, destination: true, status: true,
+                id: true, title: true, destination: true, country: true, status: true,
                 approvalNote: true, approvedAt: true, createdAt: true, qualityScore: true,
+                price: true, currency: true,
                 travelProofUrl: true,
+                // Galeria + capa (highlightPhotos) — admin precisa ver thumbnail
+                images: { take: 1, orderBy: { order: 'asc' }, select: { url: true } },
+                highlightPhotos: true,
+                mediaUrls: true,
                 creator: { select: { traveler: { select: { name: true } } } },
             },
-        }),
+        }).then(rows => rows.map((r: any) => ({
+            ...r,
+            images: r.images?.length
+                ? r.images
+                : r.highlightPhotos?.[0]
+                    ? [{ url: r.highlightPhotos[0] }]
+                    : r.mediaUrls?.[0]
+                        ? [{ url: r.mediaUrls[0] }]
+                        : [],
+        }))),
     ]);
 
     res.json({ packages, itineraries });
@@ -220,6 +245,201 @@ router.post('/itineraries/:id/reject', verifyAdmin, async (req: Request, res: Re
         },
     });
     res.json({ id: it.id, status: it.status, approvalNote: it.approvalNote });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// COST DISCLOSURE — Admin review of cost proofs (transparência graduada)
+// ─────────────────────────────────────────────────────────────────────────
+//
+// Para qualquer item com `cost.disclosureType === 'verified'` que tenha
+// `proofFiles`, o admin pode revisar o comprovante e aprovar/rejeitar.
+// Aprovação muda `proofStatus` para "approved" e habilita o selo
+// "Verificado pela VAMO" na vitrine. Rejeição muda para "rejected".
+
+interface CostProofRow {
+    module: string;     // 'accommodation' | 'transport' | 'attraction' | 'restaurant' | 'flight' | 'extra'
+    itemRef: string;    // 'accommodations[0]', 'attractions[2]', 'flightCost', etc.
+    itemLabel?: string; // name/title do item (fallback)
+    disclosureType: string;
+    proofStatus: string;
+    amount?: string | number | null;
+    currency?: string;
+    notes?: string;
+    proofFiles: Array<{ url: string; name?: string; mimeType?: string }>;
+}
+
+function extractCostRowsFromItinerary(it: any): CostProofRow[] {
+    const rows: CostProofRow[] = [];
+    const pushItem = (
+        module: CostProofRow['module'],
+        itemRef: string,
+        item: any,
+        label?: string,
+    ) => {
+        const c = item?.cost;
+        if (!c || c.disclosureType !== 'verified') return;
+        const files = Array.isArray(c.proofFiles) ? c.proofFiles : [];
+        if (files.length === 0) return; // Sem comprovante anexado, nada a revisar
+        rows.push({
+            module,
+            itemRef,
+            itemLabel: label || undefined,
+            disclosureType: c.disclosureType,
+            proofStatus: c.proofStatus || 'uploaded',
+            amount: c.amount,
+            currency: c.currency,
+            notes: c.notes,
+            proofFiles: files,
+        });
+    };
+
+    (it.accommodations || []).forEach((a: any, i: number) =>
+        pushItem('accommodation', `accommodations[${i}]`, a, a.name));
+    (it.transports || []).forEach((t: any, i: number) =>
+        pushItem('transport', `transports[${i}]`, t, t.description));
+    (Array.isArray(it.attractions) ? it.attractions : []).forEach((a: any, i: number) =>
+        pushItem('attraction', `attractions[${i}]`, a, a.name));
+    (Array.isArray(it.restaurants) ? it.restaurants : []).forEach((r: any, i: number) =>
+        pushItem('restaurant', `restaurants[${i}]`, r, r.name));
+    (Array.isArray(it.extraSpendingItems) ? it.extraSpendingItems : []).forEach((e: any, i: number) =>
+        pushItem('extra', `extraSpendingItems[${i}]`, e, e.title));
+
+    if (it.flightInfo) {
+        pushItem('flight', 'flightInfo', it.flightInfo, 'Passagem aérea');
+    }
+    return rows;
+}
+
+// GET /api/admin/itineraries/:id/cost-proofs
+// Lista todos os comprovantes anexados a itens com disclosureType=verified.
+router.get('/itineraries/:id/cost-proofs', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id as string;
+        const it = await prisma.itinerary.findUnique({
+            where: { id },
+            include: {
+                accommodations: { orderBy: { order: 'asc' } },
+                transports: { orderBy: { order: 'asc' } },
+                creator: { include: { traveler: { select: { name: true, avatar: true } } } },
+            },
+        });
+        if (!it) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+        const rows = extractCostRowsFromItinerary(it);
+        res.json({
+            id: it.id,
+            title: it.title,
+            destination: it.destination,
+            country: it.country,
+            status: it.status,
+            creator: {
+                id: it.creator.id,
+                name: it.creator.traveler.name,
+            },
+            totalProofs: rows.length,
+            byStatus: {
+                uploaded: rows.filter(r => r.proofStatus === 'uploaded').length,
+                pending_review: rows.filter(r => r.proofStatus === 'pending_review').length,
+                approved: rows.filter(r => r.proofStatus === 'approved').length,
+                rejected: rows.filter(r => r.proofStatus === 'rejected').length,
+            },
+            proofs: rows,
+        });
+    } catch (error) {
+        console.error('[admin cost-proofs] error:', error);
+        res.status(500).json({ error: 'Failed to fetch cost proofs' });
+    }
+});
+
+// POST /api/admin/itineraries/:id/cost-proofs/decide
+// body: { module, itemRef, decision: 'approved' | 'rejected' | 'pending_review', note?: string }
+//
+// Aprovação habilita selo "Verificado pela VAMO" no item. Rejeição
+// mantém o valor visível mas remove o selo.
+router.post('/itineraries/:id/cost-proofs/decide', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id as string;
+        const { module, itemRef, decision, note } = req.body || {};
+
+        const ALLOWED: ReadonlyArray<string> = ['approved', 'rejected', 'pending_review'];
+        if (!module || !itemRef || !decision || !ALLOWED.includes(decision)) {
+            res.status(400).json({
+                error: 'Required: module, itemRef, decision (approved | rejected | pending_review)',
+            });
+            return;
+        }
+
+        const it = await prisma.itinerary.findUnique({
+            where: { id },
+            include: {
+                accommodations: { orderBy: { order: 'asc' } },
+                transports: { orderBy: { order: 'asc' } },
+            },
+        });
+        if (!it) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+
+        // Resolve item de acordo com itemRef. Formatos aceitos:
+        //   accommodations[N], transports[N]  → tabela dedicada (updateById)
+        //   attractions[N], restaurants[N], extraSpendingItems[N], flightInfo → JSON do Itinerary
+        const match = /^(\w+)(?:\[(\d+)\])?$/.exec(String(itemRef));
+        if (!match) {
+            res.status(400).json({ error: 'Invalid itemRef format' });
+            return;
+        }
+        const field = match[1] as string;
+        const idx = match[2] != null ? parseInt(match[2], 10) : null;
+
+        const setCostStatus = (existingCost: any): any => ({
+            ...(existingCost || {}),
+            proofStatus: decision,
+            ...(decision === 'rejected' && note ? { adminNote: note } : {}),
+            updatedAt: new Date().toISOString(),
+        });
+
+        if (field === 'accommodations' && idx != null) {
+            const item = (it as any).accommodations?.[idx];
+            if (!item) { res.status(404).json({ error: 'Accommodation not found' }); return; }
+            await prisma.itineraryAccommodation.update({
+                where: { id: item.id },
+                data: { cost: setCostStatus(item.cost) },
+            });
+        } else if (field === 'transports' && idx != null) {
+            const item = (it as any).transports?.[idx];
+            if (!item) { res.status(404).json({ error: 'Transport not found' }); return; }
+            await prisma.itineraryTransport.update({
+                where: { id: item.id },
+                data: { cost: setCostStatus(item.cost) },
+            });
+        } else if ((field === 'attractions' || field === 'restaurants' || field === 'extraSpendingItems') && idx != null) {
+            const list = ((it as any)[field] || []).slice();
+            if (!list[idx]) { res.status(404).json({ error: `${field}[${idx}] not found` }); return; }
+            list[idx] = { ...list[idx], cost: setCostStatus(list[idx].cost) };
+            await prisma.itinerary.update({
+                where: { id },
+                data: { [field]: list } as any,
+            });
+        } else if (field === 'flightInfo') {
+            const fi = (it as any).flightInfo || {};
+            const next = { ...fi, cost: setCostStatus(fi.cost) };
+            await prisma.itinerary.update({
+                where: { id },
+                data: { flightInfo: next },
+            });
+        } else {
+            res.status(400).json({ error: 'Unsupported module/itemRef combination' });
+            return;
+        }
+
+        res.json({ id, module, itemRef, decision, note: note ?? null });
+    } catch (error) {
+        console.error('[admin cost-proofs decide] error:', error);
+        res.status(500).json({ error: 'Failed to update cost proof decision' });
+    }
 });
 
 export default router;

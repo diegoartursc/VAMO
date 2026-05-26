@@ -163,12 +163,29 @@ const SECTION_MODULE_MAP: Partial<Record<SectionKey, string>> = {
 
 interface Activity { title: string; description: string; time: string; duration: string; location: string; mapLink?: string; type: string; icon: string; tips: string; category: string; }
 interface Day { dayNumber: number; title: string; summary: string; description: string; activities: Activity[]; }
-interface Accommodation { name: string; address: string; mapLink: string; description: string; nights: string; rating: string; externalLink: string; tips: string; startDate: string; endDate: string; }
-interface Transport { description: string; passTypes: string; notes: string; startDate: string; endDate: string; }
+// Tipos de custo (transparência graduada). Mantemos os imports leves
+// para evitar tree-shaking issues em arquivos client-only do Next.
+type CostDisclosureType = "not_informed" | "estimated" | "verified";
+type CostProofStatus = "none" | "uploaded" | "pending_review" | "approved" | "rejected";
+interface CostProofFile { url: string; name?: string; mimeType?: string; size?: number; uploadedAt?: string; }
+interface ModuleCostInfo {
+    amount?: string | null;
+    currency?: string;
+    disclosureType: CostDisclosureType;
+    notes?: string;
+    proofFiles?: CostProofFile[];
+    proofStatus?: CostProofStatus;
+    updatedAt?: string;
+}
+interface ModuleSpending { value: string; currency: string; }
+
+interface Accommodation { name: string; address: string; mapLink: string; description: string; nights: string; rating: string; externalLink: string; tips: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
+interface Transport { description: string; passTypes: string; notes: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
 interface ChecklistItem { category: string; item: string; isDefault: boolean; }
 interface BreakdownItem { category: string; min: string; max: string; currency: string; }
-interface RestaurantItem { name: string; cuisine: string; location: string; description: string; hours: string; hoursStart: string; externalLink: string; tips: string; startDate: string; endDate: string; }
-interface AttractionItem { name: string; type: string; location: string; mapLink: string; description: string; hours: string; duration: string; externalLink: string; tips: string; startDate: string; endDate: string; price?: string; }
+interface RestaurantItem { name: string; cuisine: string; location: string; description: string; hours: string; hoursStart: string; externalLink: string; tips: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
+interface AttractionItem { name: string; type: string; location: string; mapLink: string; description: string; hours: string; duration: string; externalLink: string; tips: string; startDate: string; endDate: string; price?: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
+interface ExtraSpendingItem { id: string; category: string; title: string; description: string; value: string; currency: string; cost?: ModuleCostInfo; }
 interface SpendingEntry { moduleKey: string; label: string; icon: string; priceValue: string; priceCurrency: string; receiptUrl: string; originCity?: string; }
 const SPENDING_MODULE_MAP: Record<string, { label: string; icon: string }> = {
     voo: { label: "Passagem Aérea", icon: "✈️" },
@@ -508,6 +525,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [newFlightTip, setNewFlightTip] = useState("");
     const [flightTotalPrice, setFlightTotalPrice] = useState("");
     const [flightPriceCurrency, setFlightPriceCurrency] = useState("BRL");
+    /** Round-trip de cost/spending do módulo voo (preenchidos via mobile). */
+    const [flightSpending, setFlightSpending] = useState<ModuleSpending | undefined>(undefined);
+    const [flightCost, setFlightCost] = useState<ModuleCostInfo | undefined>(undefined);
+    /** Gastos extras do módulo "Gastos Extras" (preenchidos via mobile). */
+    const [extraSpendingItems, setExtraSpendingItems] = useState<ExtraSpendingItem[]>([]);
 
     /* ─── Bloco 7: Checklist ─── */
     const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
@@ -675,6 +697,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         nights,
                         rating: a.rating?.toString() || "", externalLink: a.externalLink || "", tips: a.tips || "",
                         startDate: a.startDate || "", endDate: a.endDate || "",
+                        // Preserva campos de custo vindos do mobile/backend (round-trip safety)
+                        spending: a.spending,
+                        cost: a.cost,
                     };
                 }));
                 // Transports
@@ -682,6 +707,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     description: t.description || "", passTypes: t.passTypes || "",
                     notes: t.notes || "",
                     startDate: t.startDate || "", endDate: t.endDate || "",
+                    spending: t.spending,
+                    cost: t.cost,
                 })));
                 // Checklists
                 setChecklistItems((data.checklists || []).map((c: any) => ({
@@ -703,7 +730,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     setFlightTotalPrice(data.flightInfo.totalPrice || "");
                     setFlightPriceCurrency(data.flightInfo.priceCurrency || "BRL");
                     setFlightTips(data.flightInfo.tips || []);
+                    // Round-trip: preserva cost/spending do módulo voo (criados via mobile)
+                    setFlightSpending(data.flightInfo.spending || undefined);
+                    setFlightCost(data.flightInfo.cost || undefined);
                 }
+                // Extra spending items (módulo "Gastos Extras" — preenchido via mobile)
+                setExtraSpendingItems((data.extraSpendingItems || []) as ExtraSpendingItem[]);
 
                 // Restaurants
                 setRestaurants((data.restaurants || []).map((r: any) => {
@@ -716,6 +748,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         hoursStart: r.hoursStart || parts[0] || "",
                         externalLink: r.externalLink || "", tips: r.tips || "",
                         startDate: r.startDate || "", endDate: r.endDate || "",
+                        spending: r.spending,
+                        cost: r.cost,
                     };
                 }));
                 // General Tips
@@ -732,6 +766,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         duration: a.duration || "1h",
                         externalLink: a.externalLink || "", tips: a.tips || "",
                         startDate: a.startDate || "", endDate: a.endDate || "",
+                        price: a.price,
+                        spending: a.spending,
+                        cost: a.cost,
                     };
                 }));
                 // Spending entries
@@ -777,6 +814,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 outbound: flightOutbound,
                 return: flightReturn,
                 tips: flightTips.filter(t => t.trim()),
+                // Round-trip: preserva os dados de custo do voo (set via mobile)
+                spending: flightSpending,
+                cost: flightCost,
             } : undefined,
             restaurants: restaurants.filter(r => r.name.trim()).map(r => ({
                 ...r,
@@ -784,10 +824,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             })),
             generalTips: generalTips.filter(t => t.trim()),
             attractions: attractions.filter(a => a.name.trim()),
+            extraSpendingItems,
             mediaUrls: mediaUrls.filter(Boolean),
             highlightPhotos: highlightPhotos.filter(Boolean),
         };
-    }, [title, subtitle, destination, country, locations, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, allowShare, highlightItems, inclusionItems, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTips, restaurants, generalTips, attractions, mediaUrls, highlightPhotos, rating, reviewCount, spendingEntries]);
+    }, [title, subtitle, destination, country, locations, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, allowShare, highlightItems, inclusionItems, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTips, flightSpending, flightCost, restaurants, generalTips, attractions, extraSpendingItems, mediaUrls, highlightPhotos, rating, reviewCount, spendingEntries]);
 
     /* ─── Save ─── */
     const handleSave = async () => {
@@ -2306,6 +2347,13 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                 inclusions={previewInclusions}
                                 estimatedSpending={estimatedSpending}
                                 featured={featured}
+                                accommodations={accommodations}
+                                attractions={attractions}
+                                transports={transports}
+                                restaurants={restaurants}
+                                extraSpendingItems={extraSpendingItems}
+                                flightCost={flightCost}
+                                flightSpending={flightSpending}
                             />
                         )}
                     </div>
@@ -2544,6 +2592,13 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             inclusions={previewInclusions}
                             estimatedSpending={estimatedSpending}
                             featured={featured}
+                            accommodations={accommodations}
+                            attractions={attractions}
+                            transports={transports}
+                            restaurants={restaurants}
+                            extraSpendingItems={extraSpendingItems}
+                            flightCost={flightCost}
+                            flightSpending={flightSpending}
                         />
                     )}
                 </div>

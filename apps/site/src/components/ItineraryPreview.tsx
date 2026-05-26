@@ -1,6 +1,7 @@
 "use client";
 
 import { useDollarRate } from "../hooks/useDollarRate";
+import BudgetSummaryCard from "./BudgetSummaryCard";
 
 /**
  * Componente de Prévia do Roteiro
@@ -26,6 +27,17 @@ interface ItineraryPreviewProps {
   featured?: boolean;
   creatorName?: string;
   locations?: { country: string; cities: string[] }[];
+  /** Módulos do roteiro — usados para calcular o "Referência de custos da
+   *  viagem" (transparência graduada). Cada item pode ter `cost` (novo)
+   *  ou `spending` (legado); a função `calculateBudgetSummary` resolve
+   *  ambos. Passar undefined desativa o bloco. */
+  accommodations?: any[];
+  attractions?: any[];
+  transports?: any[];
+  restaurants?: any[];
+  extraSpendingItems?: any[];
+  flightCost?: any;
+  flightSpending?: any;
 }
 
 export default function ItineraryPreview({
@@ -46,6 +58,13 @@ export default function ItineraryPreview({
   featured,
   creatorName = "Você (Criador)",
   locations = [],
+  accommodations,
+  attractions,
+  transports,
+  restaurants,
+  extraSpendingItems,
+  flightCost,
+  flightSpending,
 }: ItineraryPreviewProps) {
   const { rates } = useDollarRate();
 
@@ -484,7 +503,22 @@ export default function ItineraryPreview({
             </div>
           </div>
 
-          {/* Estimativa de Gasto */}
+          {/* Referência de custos da viagem (transparência graduada) */}
+          <BudgetSummaryCard
+            form={{
+              accommodations,
+              attractions,
+              transports,
+              restaurants,
+              extraSpendingItems,
+              flightCost,
+              flightSpending,
+            }}
+            variant="preview"
+            hideWhenEmpty
+          />
+
+          {/* Estimativa de Gasto (legado — manualEntries agregadas) */}
           {estimatedSpending && (estimatedSpending.min > 0 || estimatedSpending.max > 0) && (
             <div>
               <div

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { AdminDataProvider, useAdmin, FilterBar, ItemList, ApproveRejectModal } from "../shared";
+import CostProofsModal from "../CostProofsModal";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 
@@ -10,6 +11,8 @@ function ItinerariesContent() {
     const [filter, setFilter] = useState("ALL");
     const [modal, setModal] = useState<{ type: "approve" | "reject"; itemType: "packages" | "itineraries"; id: string; title: string } | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
+    /** Roteiro atualmente aberto na modal de comprovantes (null = fechado). */
+    const [costProofsItineraryId, setCostProofsItineraryId] = useState<string | null>(null);
 
     const filtered = filter === "ALL" ? allItineraries : allItineraries.filter(i => i.status === filter);
 
@@ -50,8 +53,24 @@ function ItinerariesContent() {
                 ACTIVE: allItineraries.filter(i => i.status === "ACTIVE").length,
                 REJECTED: allItineraries.filter(i => i.status === "REJECTED").length,
             }} />
-            <ItemList items={filtered} type="itineraries" onApprove={handleApprove} onReject={handleReject} emptyMsg="Nenhum roteiro neste filtro" showStatus />
+            <ItemList
+                items={filtered}
+                type="itineraries"
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onCostProofs={(id) => setCostProofsItineraryId(id)}
+                emptyMsg="Nenhum roteiro neste filtro"
+                showStatus
+            />
             <ApproveRejectModal modal={modal} onClose={() => setModal(null)} onConfirm={confirmAction} loading={actionLoading} />
+            {costProofsItineraryId && (
+                <CostProofsModal
+                    itineraryId={costProofsItineraryId}
+                    getToken={getToken}
+                    onClose={() => setCostProofsItineraryId(null)}
+                    onToast={showToast}
+                />
+            )}
         </div>
     );
 }

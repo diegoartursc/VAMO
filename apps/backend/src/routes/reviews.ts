@@ -104,6 +104,11 @@ router.post('/', async (req: Request, res: Response) => {
         const userName = traveler?.name ?? 'Viajante';
         const userInitial = userName.charAt(0).toUpperCase();
 
+        // Check if traveler actually purchased this itinerary
+        const purchase = await prisma.itinerarySale.findFirst({
+            where: { travelerId, itineraryId },
+        });
+
         // Criar o review
         const review = await prisma.review.create({
             data: {
@@ -111,7 +116,7 @@ router.post('/', async (req: Request, res: Response) => {
                 itineraryId,
                 rating: Number(rating),
                 comment,
-                verified: true, // verificado pois foi validado via compra
+                verified: !!purchase, // só marcado como verificado se houver compra registrada
                 language: 'pt-BR',
                 userName,
                 userInitial,

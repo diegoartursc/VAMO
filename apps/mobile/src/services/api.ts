@@ -207,7 +207,7 @@ export async function getPurchasedItineraryDetail(
 // ─── My Trips ───
 /**
  * Lista compras do usuário autenticado. O backend resolve o traveler a partir
- * do JWT enviado no header (sem JWT, cai no dev-fallback do primeiro traveler).
+ * do JWT enviado no header. Token obrigatório — retorna 401 sem autenticação.
  */
 export async function getMyTrips(accessToken?: string | null): Promise<{
     upcomingPackages: any[];
