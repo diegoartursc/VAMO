@@ -691,7 +691,6 @@ export default function PurchasedItineraryScreen() {
                                                     </View>
                                                     <Text style={styles.activityTitle}>{activity.title}</Text>
                                                     <View style={styles.locRow}>
-                                                        <Icon name="location" size={11} color={theme.colors.text.tertiary} />
                                                         <Text style={styles.activityLocation}>{activity.location}</Text>
                                                     </View>
                                                     <Text style={styles.activityDesc} numberOfLines={3}>

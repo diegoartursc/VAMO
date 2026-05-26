@@ -19,6 +19,8 @@ interface CoverCarouselProps {
     height?: number;
     borderRadius?: number;
     width?: number;
+    /** Distância dos dots ao fundo. Útil pra empurrá-los acima de badges sobrepostos (ex.: preço/duração no card). */
+    dotsBottom?: number;
 }
 
 /**
@@ -31,6 +33,7 @@ const CoverCarouselInner = ({
     height = 200,
     borderRadius = 0,
     width,
+    dotsBottom = 10,
 }: CoverCarouselProps) => {
     const { width: windowWidth } = useWindowDimensions();
     const [activeIndex, setActiveIndex] = useState(0);
@@ -211,7 +214,7 @@ const CoverCarouselInner = ({
 
             {/* Pagination Dots */}
             {validImages.length <= 6 && (
-                <View style={styles.dotsContainer}>
+                <View style={[styles.dotsContainer, { bottom: dotsBottom }]}>
                     {validImages.map((_, idx) => (
                         <View
                             key={idx}
@@ -286,21 +289,20 @@ const styles = StyleSheet.create({
     },
     dotsContainer: {
         position: 'absolute',
-        bottom: 10,
         left: 0,
         right: 0,
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 5,
+        gap: 6,
     },
     dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
     },
     dotActive: {
         backgroundColor: '#FFFFFF',
-        width: 18,
+        width: 22,
         borderRadius: 4,
     },
     dotInactive: {

@@ -226,7 +226,7 @@ export default function HomeScreen() {
                         {allItineraries.filter(i => i.featured).slice(0, 5).map((itinerary) => (
                             <ItineraryCard
                                 key={itinerary.id}
-                                width={280}
+                                width={320}
                                 itinerary={itinerary}
                                 onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                             />
@@ -248,7 +248,7 @@ export default function HomeScreen() {
                         {allItineraries.slice(0, 5).map((itinerary) => (
                             <ItineraryCard
                                 key={itinerary.id}
-                                width={280}
+                                width={320}
                                 itinerary={itinerary}
                                 onPress={() => router.push(`/itinerary/${itinerary.id}`)}
                             />

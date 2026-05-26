@@ -76,7 +76,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
         >
             {/* ── Imagem com overlay ── */}
             <View style={styles.imageWrapper}>
-                <CoverCarousel images={getCoverImages(itinerary)} height={200} />
+                <CoverCarousel images={getCoverImages(itinerary)} height={240} dotsBottom={44} />
 
                 {/* Gradiente inferior na imagem para leitura */}
                 <LinearGradient
@@ -275,20 +275,20 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: 80,
+        height: 110,
     },
     priceBadge: {
         position: 'absolute',
-        bottom: 12,
-        left: 14,
+        bottom: 14,
+        left: 16,
         backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        paddingHorizontal: 11,
+        paddingVertical: 5,
         borderRadius: 20,
         backdropFilter: 'blur(4px)',
     },
     priceBadgeText: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '800',
         color: '#FFF',
         letterSpacing: -0.3,
@@ -305,36 +305,36 @@ const styles = StyleSheet.create({
     },
     favButton: {
         position: 'absolute',
-        top: 12,
-        left: 12,
-        width: 34,
-        height: 34,
-        borderRadius: 17,
+        top: 14,
+        left: 14,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: 'rgba(0,0,0,0.4)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     verifiedBadge: {
         position: 'absolute',
-        top: 12,
-        right: 12,
+        top: 14,
+        right: 14,
     },
     durationBadge: {
         position: 'absolute',
-        bottom: 12,
-        right: 14,
+        bottom: 14,
+        right: 16,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 5,
         backgroundColor: 'rgba(0,0,0,0.5)',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 9,
+        paddingVertical: 5,
         borderRadius: 20,
     },
     durationText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: '600',
-        color: 'rgba(255,255,255,0.9)',
+        color: 'rgba(255,255,255,0.95)',
     },
 
     // ── Conteúdo ──
@@ -390,12 +390,12 @@ const styles = StyleSheet.create({
 
     // Título
     title: {
-        fontSize: 17,
+        fontSize: 18,
         fontWeight: '800',
         color: theme.colors.text.primary,
-        lineHeight: 23,
+        lineHeight: 25,
         letterSpacing: -0.3,
-        marginBottom: 6,
+        marginBottom: 8,
     },
     description: {
         fontSize: 13,
