@@ -77,13 +77,13 @@ interface LegacyShape {
  */
 export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
     if (!item) {
-        return { disclosureType: "not_informed", currency: "BRL", amount: "", sharedByPeople: 1, proofFiles: [], proofStatus: "none" };
+        return { disclosureType: "not_informed", currency: "AUD", amount: "", sharedByPeople: 1, proofFiles: [], proofStatus: "none" };
     }
     if (item.cost && typeof item.cost === "object") {
         const c = item.cost;
         return {
             amount: c.amount ?? "",
-            currency: c.currency ?? "BRL",
+            currency: c.currency ?? "AUD",
             disclosureType: c.disclosureType ?? "not_informed",
             sharedByPeople: normalizeSharedBy(c.sharedByPeople),
             notes: c.notes ?? "",
@@ -94,7 +94,7 @@ export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
     }
     // Fallback legado
     const legacyValue = item.spending?.value ?? item.price ?? item.value ?? "";
-    const legacyCurrency = item.spending?.currency ?? item.currency ?? "BRL";
+    const legacyCurrency = item.spending?.currency ?? item.currency ?? "AUD";
     const hasValue = parseMoney(legacyValue) > 0;
     return {
         amount: hasValue ? String(legacyValue) : "",
@@ -110,7 +110,7 @@ export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
 /**
  * Cria um ModuleCostInfo "limpo" para um novo item. Default not_informed.
  */
-export function createEmptyCostInfo(currency: string = "BRL"): ModuleCostInfo {
+export function createEmptyCostInfo(currency: string = "AUD"): ModuleCostInfo {
     return {
         amount: "",
         currency,
@@ -149,12 +149,12 @@ export function getAmountPerPerson(cost?: ModuleCostInfo | null): number {
 // Formatação para exibição
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Formata número como moeda. Default: pt-BR + BRL. */
-export function formatMoney(amount: number, currency: string = "BRL", locale: string = "pt-BR"): string {
+/** Formata número como moeda. Default: en-AU + AUD. */
+export function formatMoney(amount: number, currency: string = "AUD", locale: string = "en-AU"): string {
     try {
         return new Intl.NumberFormat(locale, {
             style: "currency",
-            currency: currency || "BRL",
+            currency: currency || "AUD",
             maximumFractionDigits: 2,
         }).format(amount);
     } catch {
@@ -168,7 +168,7 @@ export function formatMoney(amount: number, currency: string = "BRL", locale: st
  * principal quanto o badge (selo) quando aplicável.
  */
 export interface CostLabel {
-    /** Texto principal (ex: "Custo estimado: cerca de R$ 250"). */
+    /** Texto principal (ex: "Custo estimado: cerca de A$ 250"). */
     text: string;
     /** Selo curto (ex: "Comprovado"). null se não aplica. */
     badge: string | null;
@@ -185,10 +185,10 @@ export interface CostLabel {
 /**
  * Gera os textos de exibição de um custo, seguindo a regra de produto:
  *  - not_informed:           "Valor não informado"
- *  - estimated + valor:      "Custo estimado: cerca de R$ X"
- *  - verified + aprovado:    "Custo comprovado: R$ X" + selo "Verificado pela VAMO"
- *  - verified + uploaded:    "Custo com comprovante enviado: R$ X" + selo "Comprovado pelo criador"
- *  - verified + sem arquivo: "Custo: R$ X" + selo "Aguardando comprovante"
+ *  - estimated + valor:      "Custo estimado: cerca de A$ X"
+ *  - verified + aprovado:    "Custo comprovado: A$ X" + selo "Verificado pela VAMO"
+ *  - verified + uploaded:    "Custo com comprovante enviado: A$ X" + selo "Comprovado pelo criador"
+ *  - verified + sem arquivo: "Custo: A$ X" + selo "Aguardando comprovante"
  */
 export function formatCostLabel(
     info: ModuleCostInfo | null | undefined,
@@ -198,7 +198,7 @@ export function formatCostLabel(
     const resolved = info ?? { disclosureType: "not_informed" as CostDisclosureType };
     const type = resolved.disclosureType;
     const amount = parseMoney(resolved.amount);
-    const currency = resolved.currency || "BRL";
+    const currency = resolved.currency || "AUD";
     const moneyStr = amount > 0 ? formatMoney(amount, currency, locale) : "";
     const hasFile = (resolved.proofFiles?.length ?? 0) > 0;
     const status = resolved.proofStatus ?? "none";
@@ -337,7 +337,7 @@ export interface BudgetSummary {
     totalEstimated: number;
     /** Subtotal de itens com disclosureType="verified" e valor > 0. */
     totalVerified: number;
-    /** Moeda dominante encontrada (BRL por padrão). */
+    /** Moeda dominante encontrada (AUD por padrão). */
     currency: string;
     /** Contagens */
     informedItemsCount: number;
@@ -367,7 +367,7 @@ export function calculateBudgetSummary(form?: Partial<ItineraryFormState> | null
         totalInformed: 0,
         totalEstimated: 0,
         totalVerified: 0,
-        currency: "BRL",
+        currency: "AUD",
         informedItemsCount: 0,
         notInformedItemsCount: 0,
         estimatedItemsCount: 0,
@@ -419,7 +419,7 @@ export function calculateBudgetSummary(form?: Partial<ItineraryFormState> | null
         // é por pessoa — assim o PeopleSimulator pode multiplicar pela
         // quantidade de viajantes do comprador sem distorção.
         const perPerson = getAmountPerPerson(info);
-        const c = info.currency || "BRL";
+        const c = info.currency || "AUD";
         currencyCounts.set(c, (currencyCounts.get(c) ?? 0) + 1);
 
         if (info.disclosureType === "not_informed") {
@@ -444,7 +444,7 @@ export function calculateBudgetSummary(form?: Partial<ItineraryFormState> | null
     const totalItemsCount = items.length;
 
     // Moeda dominante
-    let dominantCurrency = "BRL";
+    let dominantCurrency = "AUD";
     let max = 0;
     for (const [c, n] of currencyCounts.entries()) {
         if (n > max) { max = n; dominantCurrency = c; }
@@ -665,7 +665,7 @@ function toReferenceItem(
         amountTotal,
         amountPerPerson,
         sharedByPeople,
-        currency: info.currency || "BRL",
+        currency: info.currency || "AUD",
         disclosureType: info.disclosureType,
         hasProof,
         proofStatus: info.proofStatus,

@@ -54,12 +54,12 @@ export interface Day {
  */
 export interface ModuleSpending {
     value: string;        // valor por pessoa (string para preservar zeros)
-    currency: string;     // código (BRL, USD, EUR, ...)
+    currency: string;     // código (AUD, USD, EUR, BRL, ...)
 }
 
 export const EMPTY_MODULE_SPENDING: ModuleSpending = {
     value: "",
-    currency: "BRL",
+    currency: "AUD",
 };
 
 /**
@@ -118,7 +118,7 @@ export interface ModuleCostInfo {
      *  por pessoa. Para gastos compartilhados (sharedByPeople>1), o
      *  valor por pessoa é calculado como amount/sharedByPeople. */
     amount?: string | null;
-    /** Código de moeda (BRL, USD, EUR, ...). Default: "BRL". */
+    /** Código de moeda (AUD, USD, EUR, BRL, ...). Default: "AUD". */
     currency?: string;
     /** Como o criador classifica esta informação de custo. */
     disclosureType: CostDisclosureType;
@@ -138,7 +138,7 @@ export interface ModuleCostInfo {
 
 export const EMPTY_MODULE_COST_INFO: ModuleCostInfo = {
     amount: "",
-    currency: "BRL",
+    currency: "AUD",
     disclosureType: "not_informed",
     sharedByPeople: 1,
     notes: "",
@@ -346,7 +346,7 @@ export function createEmptyForm(): ItineraryFormState {
         categories: [],
         travelProofUrl: "",
         price: 0,
-        currency: "BRL",
+        currency: "AUD",
         immediateAccess: true,
         lifetimeAccess: true,
         offlineDownload: true,

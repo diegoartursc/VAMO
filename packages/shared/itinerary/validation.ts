@@ -12,6 +12,7 @@ import type {
     ModuleSpending,
 } from "./types";
 import {
+    MAX_CATEGORIES,
     MIN_DAYS,
     MIN_TIPS,
     MIN_CHECKLIST,
@@ -48,6 +49,19 @@ export interface ValidationIssue {
  */
 function spendingOk(_sp?: ModuleSpending | null): boolean {
     return true;
+}
+
+function isValidOptionalUrl(value?: string | null): boolean {
+    const raw = value?.trim();
+    if (!raw) return true;
+    if (/\s/.test(raw)) return false;
+    const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    try {
+        const url = new URL(candidate);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+        return false;
+    }
 }
 
 /** Verifica se um módulo ativo tem conteúdo mínimo. */
@@ -122,17 +136,33 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
     if (form.categories.length < MIN_CATEGORIES) {
         issues.push({ section: "identity", message: `Selecione pelo menos ${MIN_CATEGORIES} categoria` });
     }
+    if (form.categories.length > MAX_CATEGORIES) {
+        issues.push({ section: "identity", message: `Selecione no máximo ${MAX_CATEGORIES} categorias` });
+    }
+    const uniqueCategories = new Set(form.categories.map(c => c.trim().toLowerCase()).filter(Boolean));
+    if (uniqueCategories.size !== form.categories.filter(Boolean).length) {
+        issues.push({ section: "identity", message: "Remova categorias duplicadas" });
+    }
+    if (!form.description.trim()) {
+        issues.push({ section: "identity", message: "Escreva uma descrição para o roteiro" });
+    }
     if (!form.travelProofUrl?.trim()) {
         issues.push({ section: "proof", message: "Anexe o Comprovante de Viagem" });
     }
-    if (form.price <= 0) {
+    if (!Number.isFinite(form.price) || form.price <= 0) {
         issues.push({ section: "commerce", message: "Defina um preço de venda válido" });
+    }
+    if (!Number.isFinite(form.duration) || form.duration < 1) {
+        issues.push({ section: "identity", message: "A duração precisa ter pelo menos 1 dia" });
     }
     if (form.activeModules.length < 1) {
         issues.push({ section: "modules", message: "Ative pelo menos 1 módulo" });
     }
     if (form.days.length < MIN_DAYS) {
         issues.push({ section: "itinerary", message: `Cadastre pelo menos ${MIN_DAYS} dias de roteiro` });
+    }
+    if (form.highlightPhotos.filter(Boolean).length < 1) {
+        issues.push({ section: "media", message: "Adicione pelo menos 1 imagem de capa" });
     }
 
     // Nota: comprovante de gasto por módulo é OPCIONAL — não geramos
@@ -176,6 +206,40 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
                     ? `${check.label}: valor marcado como comprovado, mas sem comprovante anexado.`
                     : `${check.label}: ${broken} valores comprovados sem comprovante anexado.`,
             });
+        }
+    }
+
+    for (const [index, day] of form.days.entries()) {
+        for (const [activityIndex, activity] of (day.activities || []).entries()) {
+            if (!isValidOptionalUrl(activity.mapLink)) {
+                issues.push({
+                    section: "itinerary",
+                    message: `Dia ${index + 1}, atividade ${activityIndex + 1}: link do mapa inválido`,
+                });
+            }
+        }
+    }
+
+    const linkChecks: Array<{ section: string; label: string; values: string[] }> = [
+        {
+            section: "hospedagem",
+            label: "Hospedagens",
+            values: form.accommodations.flatMap(a => [a.mapLink, a.externalLink]).filter(Boolean) as string[],
+        },
+        {
+            section: "passeios",
+            label: "Passeios & Atrações",
+            values: form.attractions.flatMap(a => [a.mapLink, a.externalLink]).filter(Boolean) as string[],
+        },
+        {
+            section: "restaurantes",
+            label: "Restaurantes",
+            values: form.restaurants.map(r => r.externalLink).filter(Boolean) as string[],
+        },
+    ];
+    for (const check of linkChecks) {
+        if (check.values.some(v => !isValidOptionalUrl(v))) {
+            issues.push({ section: check.section, message: `${check.label}: revise links inválidos` });
         }
     }
 

@@ -143,6 +143,6 @@ export const CURRENCIES: { code: Currency; label: string; symbol: string; emoji:
 export const MAX_STYLES = 3;
 export const MAX_CATEGORIES = 5;
 export const MIN_CATEGORIES = 1;
-export const MIN_DAYS = 3;
+export const MIN_DAYS = 1;
 export const MIN_TIPS = 2;
 export const MIN_CHECKLIST = 5;
