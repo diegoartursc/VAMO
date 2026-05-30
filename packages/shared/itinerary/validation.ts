@@ -7,20 +7,61 @@
 
 import type {
     ItineraryFormState,
+    ModuleCostInfo,
     ModuleKey,
+    ModuleSpending,
 } from "./types";
 import {
+    MAX_CATEGORIES,
     MIN_DAYS,
     MIN_TIPS,
     MIN_CHECKLIST,
     MIN_CATEGORIES,
 } from "./constants";
 
+/**
+ * Checa se um `ModuleCostInfo` está em estado inconsistente: marcado como
+ * `verified` mas sem nenhum comprovante anexado. Esse estado nunca pode
+ * passar pra análise — o usuário precisa anexar comprovante OU trocar
+ * para "estimated"/"not_informed".
+ */
+function isVerifiedWithoutProof(cost?: ModuleCostInfo | null): boolean {
+    if (!cost) return false;
+    if (cost.disclosureType !== "verified") return false;
+    const proofs = cost.proofFiles ?? [];
+    return proofs.length === 0;
+}
+
 export interface ValidationIssue {
     /** Identificador da seção/módulo. */
     section: string;
     /** Mensagem amigável para o usuário. */
     message: string;
+}
+
+/**
+ * Gasto por módulo é 100% opcional. Tanto o valor quanto o comprovante
+ * não são obrigatórios. Esta função sempre retorna `true` — mantida
+ * apenas como hook para validações futuras (ex.: detectar formato
+ * inválido). Nunca deve bloquear envio.
+ *
+ * (Regra anterior exigia comprovante quando valor > 0. Foi revertida.)
+ */
+function spendingOk(_sp?: ModuleSpending | null): boolean {
+    return true;
+}
+
+function isValidOptionalUrl(value?: string | null): boolean {
+    const raw = value?.trim();
+    if (!raw) return true;
+    if (/\s/.test(raw)) return false;
+    const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    try {
+        const url = new URL(candidate);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+        return false;
+    }
 }
 
 /** Verifica se um módulo ativo tem conteúdo mínimo. */
@@ -37,28 +78,37 @@ export function isModuleComplete(
                     && d.activities.every(a => a.title?.trim() !== ""));
         case "voo": {
             const { flightOutbound: out, flightReturn: ret } = form;
-            return !!(out.originCity && out.departureDate && out.arrivalDate
+            const baseOk = !!(out.originCity && out.departureDate && out.arrivalDate
                 && ret.originCity && ret.departureDate && ret.arrivalDate);
+            return baseOk && spendingOk(form.flightSpending);
         }
         case "hospedagem":
             return form.accommodations.length > 0
-                && form.accommodations.every(a => a.name?.trim() !== "");
+                && form.accommodations.every(a => a.name?.trim() !== "" && spendingOk(a.spending));
         case "passeios":
             return form.attractions.length > 0
-                && form.attractions.every(a => a.name?.trim() !== "");
+                && form.attractions.every(a => a.name?.trim() !== "" && spendingOk(a.spending));
         case "transporte":
             return form.transports.length > 0
                 && form.transports.every(t =>
                     t.description?.trim() !== ""
-                    && t.passTypes?.trim() !== "");
+                    && t.passTypes?.trim() !== ""
+                    && spendingOk(t.spending));
         case "dicas":
             return form.generalTips.filter(t => t.trim() !== "").length >= MIN_TIPS;
         case "restaurantes":
             return form.restaurants.length > 0
                 && form.restaurants.every(r =>
-                    r.name?.trim() !== "" && r.location?.trim() !== "");
+                    r.name?.trim() !== ""
+                    && r.location?.trim() !== ""
+                    && spendingOk(r.spending));
         case "checklist":
             return form.checklistItems.filter(c => c.item?.trim() !== "").length >= MIN_CHECKLIST;
+        case "gastos_extras":
+            return form.extraSpendingItems.length > 0
+                && form.extraSpendingItems.every(e => e.title?.trim() !== "");
+        // Legacy: módulo "gasto" foi removido das opções, mas mantemos a
+        // checagem aqui para roteiros antigos que ainda o tenham ativo.
         case "gasto":
             return form.spendingEntries.length > 0
                 && form.spendingEntries.every(e => {
@@ -86,11 +136,24 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
     if (form.categories.length < MIN_CATEGORIES) {
         issues.push({ section: "identity", message: `Selecione pelo menos ${MIN_CATEGORIES} categoria` });
     }
-    if (!form.travelProofUrl?.trim()) {
-        issues.push({ section: "identity", message: "Anexe o Comprovante de Viagem" });
+    if (form.categories.length > MAX_CATEGORIES) {
+        issues.push({ section: "identity", message: `Selecione no máximo ${MAX_CATEGORIES} categorias` });
     }
-    if (form.price <= 0) {
+    const uniqueCategories = new Set(form.categories.map(c => c.trim().toLowerCase()).filter(Boolean));
+    if (uniqueCategories.size !== form.categories.filter(Boolean).length) {
+        issues.push({ section: "identity", message: "Remova categorias duplicadas" });
+    }
+    if (!form.description.trim()) {
+        issues.push({ section: "identity", message: "Escreva uma descrição para o roteiro" });
+    }
+    if (!form.travelProofUrl?.trim()) {
+        issues.push({ section: "proof", message: "Anexe o Comprovante de Viagem" });
+    }
+    if (!Number.isFinite(form.price) || form.price <= 0) {
         issues.push({ section: "commerce", message: "Defina um preço de venda válido" });
+    }
+    if (!Number.isFinite(form.duration) || form.duration < 1) {
+        issues.push({ section: "identity", message: "A duração precisa ter pelo menos 1 dia" });
     }
     if (form.activeModules.length < 1) {
         issues.push({ section: "modules", message: "Ative pelo menos 1 módulo" });
@@ -98,6 +161,13 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
     if (form.days.length < MIN_DAYS) {
         issues.push({ section: "itinerary", message: `Cadastre pelo menos ${MIN_DAYS} dias de roteiro` });
     }
+    if (form.highlightPhotos.filter(Boolean).length < 1) {
+        issues.push({ section: "media", message: "Adicione pelo menos 1 imagem de capa" });
+    }
+
+    // Nota: comprovante de gasto por módulo é OPCIONAL — não geramos
+    // pendência por ausência. O comprovante geral de viagem
+    // (travelProofUrl) continua sendo obrigatório no bloco acima.
 
     for (const m of form.activeModules) {
         if (!isModuleComplete(m, form)) {
@@ -108,19 +178,85 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
         }
     }
 
+    // ── Consistência de "Valor comprovado" sem comprovante ──
+    // Quando o usuário escolhe explicitamente "Valor comprovado" mas não
+    // anexa arquivo, o item fica em estado inconsistente: não dá pra dar
+    // o selo de comprovado sem comprovante. Geramos pendência por módulo
+    // afetado para que o usuário corrija (anexar OU rebaixar para
+    // estimado/não informar). Só checamos módulos ativos.
+    const activeSet = new Set<ModuleKey>(form.activeModules);
+
+    type CostCheck = { module: ModuleKey; section: string; label: string; costs: Array<ModuleCostInfo | undefined | null> };
+    const costChecks: CostCheck[] = [
+        { module: "voo",           section: "voo",           label: "Meu Voo",                  costs: [form.flightCost] },
+        { module: "hospedagem",    section: "hospedagem",    label: "Hospedagens",              costs: form.accommodations.map(a => a.cost) },
+        { module: "passeios",      section: "passeios",      label: "Passeios & Atrações",      costs: form.attractions.map(a => a.cost) },
+        { module: "transporte",    section: "transporte",    label: "Transporte",               costs: form.transports.map(t => t.cost) },
+        { module: "restaurantes",  section: "restaurantes",  label: "Restaurantes & Gastronomia", costs: form.restaurants.map(r => r.cost) },
+        { module: "gastos_extras", section: "gastos_extras", label: "Gastos Extras",            costs: form.extraSpendingItems.map(e => e.cost) },
+    ];
+
+    for (const check of costChecks) {
+        if (!activeSet.has(check.module)) continue;
+        const broken = check.costs.filter(isVerifiedWithoutProof).length;
+        if (broken > 0) {
+            issues.push({
+                section: check.section,
+                message: broken === 1
+                    ? `${check.label}: valor marcado como comprovado, mas sem comprovante anexado.`
+                    : `${check.label}: ${broken} valores comprovados sem comprovante anexado.`,
+            });
+        }
+    }
+
+    for (const [index, day] of form.days.entries()) {
+        for (const [activityIndex, activity] of (day.activities || []).entries()) {
+            if (!isValidOptionalUrl(activity.mapLink)) {
+                issues.push({
+                    section: "itinerary",
+                    message: `Dia ${index + 1}, atividade ${activityIndex + 1}: link do mapa inválido`,
+                });
+            }
+        }
+    }
+
+    const linkChecks: Array<{ section: string; label: string; values: string[] }> = [
+        {
+            section: "hospedagem",
+            label: "Hospedagens",
+            values: form.accommodations.flatMap(a => [a.mapLink, a.externalLink]).filter(Boolean) as string[],
+        },
+        {
+            section: "passeios",
+            label: "Passeios & Atrações",
+            values: form.attractions.flatMap(a => [a.mapLink, a.externalLink]).filter(Boolean) as string[],
+        },
+        {
+            section: "restaurantes",
+            label: "Restaurantes",
+            values: form.restaurants.map(r => r.externalLink).filter(Boolean) as string[],
+        },
+    ];
+    for (const check of linkChecks) {
+        if (check.values.some(v => !isValidOptionalUrl(v))) {
+            issues.push({ section: check.section, message: `${check.label}: revise links inválidos` });
+        }
+    }
+
     return issues;
 }
 
 function moduleIncompleteMessage(key: ModuleKey): string {
     switch (key) {
-        case "itinerario":   return "Preencha todos os dias com descrição e ao menos 1 atividade";
-        case "voo":          return "Preencha origem, ida e volta do voo";
-        case "hospedagem":   return "Adicione pelo menos 1 hospedagem com nome";
-        case "passeios":     return "Adicione pelo menos 1 passeio com nome";
-        case "transporte":   return "Adicione transporte com descrição e tipo de passe";
-        case "dicas":        return `Preencha pelo menos ${MIN_TIPS} dicas exclusivas`;
-        case "restaurantes": return "Adicione pelo menos 1 restaurante com nome e local";
-        case "checklist":    return `Preencha pelo menos ${MIN_CHECKLIST} itens no checklist`;
-        case "gasto":        return "Preencha valores válidos nos itens de gasto";
+        case "itinerario":    return "Preencha todos os dias com descrição e ao menos 1 atividade";
+        case "voo":           return "Preencha origem, ida e volta do voo";
+        case "hospedagem":    return "Adicione pelo menos 1 hospedagem com nome";
+        case "passeios":      return "Adicione pelo menos 1 passeio com nome";
+        case "transporte":    return "Adicione transporte com descrição e tipo de passe";
+        case "dicas":         return `Preencha pelo menos ${MIN_TIPS} dicas exclusivas`;
+        case "restaurantes":  return "Adicione pelo menos 1 restaurante com nome e local";
+        case "checklist":     return `Preencha pelo menos ${MIN_CHECKLIST} itens no checklist`;
+        case "gastos_extras": return "Adicione pelo menos 1 gasto extra com título";
+        case "gasto":         return "Preencha valores válidos nos itens de gasto";
     }
 }

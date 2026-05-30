@@ -36,9 +36,23 @@ logs/
 *.log
 
 # ─── Backups & archives ───
+# POLÍTICA: backups (tarballs, snapshots, dumps) NÃO devem viver dentro
+# do projeto. O destino correto é a pasta irmã `../VAMO-backups-archive/`,
+# fora do diretório do VAMO. Veja BACKUPS.md.
+# As regras abaixo são de segurança: se alguém criar backup por engano
+# aqui dentro, fica fora do Git.
 backups/
 *.tar.gz
 *_pid.txt
+# Backup automático criado pelo script de reset — agora vai pra fora do
+# projeto, mas mantemos a regra caso alguém rode versão antiga do script.
+apps/backend/public_backup_*/
+public_backup_*/
+
+# ─── Runtime uploads (não devem ser versionados) ───
+# Multer escreve aqui em dev. O .gitkeep mantém a pasta no repo.
+apps/backend/public/uploads/*
+!apps/backend/public/uploads/.gitkeep
 
 # ─── Temp files ───
 *.tmp
@@ -59,3 +73,7 @@ Thumbs.db
 # ─── Claude / agentes ───
 .claude/worktrees/
 .agent/
+
+# ─── Gaveta do desenvolvedor (qualquer coisa local que não deve ir pro repo) ───
+# Veja .local/README.md. Tudo aqui é invisível pro Git.
+.local/

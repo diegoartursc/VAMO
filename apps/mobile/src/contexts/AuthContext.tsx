@@ -34,6 +34,8 @@ export interface AuthUser {
     email: string;
     avatar: string | null;
     verificationLevel: string | null;
+    phone: string | null;
+    cpf: string | null;
 }
 
 interface AuthContextType {
@@ -123,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: traveler.email,
             avatar: traveler.avatar,
             verificationLevel: creator?.verificationLevel ?? null,
+            phone: traveler.phone ?? null,
+            cpf: traveler.cpf ?? null,
         });
         console.log('[auth] usuário aplicado:', {
             travelerId: traveler.id,

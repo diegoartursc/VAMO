@@ -511,7 +511,7 @@ export default function AdminDashboardPage() {
                                     <input type="text" value={newAgency.name} onChange={e => setNewAgency({ ...newAgency, name: e.target.value })} required style={{ padding: "12px", borderRadius: "10px", border: "1.5px solid #E2E8F0", outline: "none", fontFamily: "inherit", fontSize: "14px" }} />
                                 </div>
                                 <div style={{ display: "grid", gap: "6px" }}>
-                                    <label style={{ fontSize: "12px", fontWeight: "700", color: "#64748B" }}>CNPJ</label>
+                                    <label style={{ fontSize: "12px", fontWeight: "700", color: "#64748B" }}>Identificação fiscal (opcional)</label>
                                     <input type="text" value={newAgency.cnpj} onChange={e => setNewAgency({ ...newAgency, cnpj: e.target.value })} required style={{ padding: "12px", borderRadius: "10px", border: "1.5px solid #E2E8F0", outline: "none", fontFamily: "inherit", fontSize: "14px" }} />
                                 </div>
                                 <hr style={{ border: "0", borderTop: "1px solid #E2E8F0", margin: "4px 0" }} />
@@ -620,7 +620,7 @@ function ItemList({ items, type, onApprove, onReject, emptyMsg }: {
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                         <div style={{ fontSize: "14px", fontWeight: "700", color: "#1FA89F" }}>
-                            {type === "packages" ? item.priceMin ? `R$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `R$ ${item.price.toLocaleString("pt-BR")}` : "—"}
+                            {type === "packages" ? item.priceMin ? `A$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `A$ ${item.price.toLocaleString("pt-BR")}` : "—"}
                         </div>
                     </div>
                     <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>

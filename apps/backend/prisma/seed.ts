@@ -374,13 +374,13 @@ async function seedPackages() {
 async function seedItineraries() {
     const itins = [
         {
-            id: 'itin-1', creatorId: 'diego', title: 'Paris Econômica - 10 dias por R$ 6.000',
+            id: 'itin-1', creatorId: 'diego', title: 'Paris Econômica - 10 dias por A$ 2.000',
             destination: 'Paris', country: 'França',
             description: 'Roteiro completo com planilha de gastos, hospedagens baratas, restaurantes locais e atrações gratuitas.',
             price: 49.90, duration: 10, rating: 4.9, reviewCount: 456, featured: true,
             highlights: ['Visita à Torre Eiffel com subida ao topo', 'Passeio pelo Museu do Louvre e Mona Lisa', 'Cruzeiro noturno pelo Rio Sena', 'Exploração de Montmartre e Sacré-Cœur', 'Dia em Versailles e seus jardins'],
             inclusions: ['Planilha', 'Mapa'],
-            estimatedSpending: { min: 5500, max: 7000, currency: 'BRL', breakdown: [{ category: '🏨 Hospedagem', amount: 'R$ 2.000 - 2.800', description: 'Hostels e hotéis econômicos' }, { category: '🍽️ Alimentação', amount: 'R$ 1.500 - 2.000', description: 'Mercados locais e bistrôs' }, { category: '🚇 Transporte', amount: 'R$ 800 - 1.000', description: 'Passe de metrô e caminhadas' }, { category: '🎭 Atrações', amount: 'R$ 1.200 - 1.200', description: 'Museus e pontos turísticos' }] },
+            estimatedSpending: { min: 1800, max: 2400, currency: 'AUD', breakdown: [{ category: '🏨 Hospedagem', amount: 'A$ 700 - 950', description: 'Hostels e hotéis econômicos' }, { category: '🍽️ Alimentação', amount: 'A$ 500 - 700', description: 'Mercados locais e bistrôs' }, { category: '🚇 Transporte', amount: 'A$ 260 - 330', description: 'Passe de metrô e caminhadas' }, { category: '🎭 Atrações', amount: 'A$ 400 - 400', description: 'Museus e pontos turísticos' }] },
             images: ['https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=1600', 'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=1600', 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=1600'],
         },
         {
@@ -390,7 +390,7 @@ async function seedItineraries() {
             price: 79.90, duration: 15, rating: 4.8, reviewCount: 312, featured: true,
             highlights: ['Exploração dos templos de Asakusa e Meiji', 'Travessia do cruzamento de Shibuya', 'Dia completo em Akihabara', 'Visita ao Monte Fuji', 'Experiência em onsen tradicional'],
             inclusions: ['Planilha', 'Mapa', 'Guia de Frases'],
-            estimatedSpending: { min: 12000, max: 18000, currency: 'BRL', breakdown: [{ category: '🏨 Hospedagem', amount: 'R$ 4.500 - 7.000', description: 'Hostels, capsule hotels e ryokans' }, { category: '🍽️ Alimentação', amount: 'R$ 3.000 - 4.500', description: 'Ramen, izakayas e konbinis' }] },
+            estimatedSpending: { min: 3500, max: 5500, currency: 'AUD', breakdown: [{ category: '🏨 Hospedagem', amount: 'A$ 1.400 - 2.200', description: 'Hostels, capsule hotels e ryokans' }, { category: '🍽️ Alimentação', amount: 'A$ 900 - 1.400', description: 'Ramen, izakayas e konbinis' }] },
             images: ['https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600', 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1600', 'https://images.unsplash.com/photo-1526481280693-3bfa7568e0f3?w=1600'],
         },
         {

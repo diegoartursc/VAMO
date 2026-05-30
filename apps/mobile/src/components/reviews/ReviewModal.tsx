@@ -8,8 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { submitItineraryReview } from '../../services/api';
 import { haptics } from '../../services/haptics';
-
-const TRAVELER_ID = 'trav-diego';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ReviewModalProps {
     visible: boolean;
@@ -26,6 +25,7 @@ export default function ReviewModal({
     itineraryTitle,
     onSuccess,
 }: ReviewModalProps) {
+    const { accessToken, isAuthenticated } = useAuth();
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [loading, setLoading] = useState(false);
@@ -63,17 +63,26 @@ export default function ReviewModal({
     };
 
     const handleSubmit = async () => {
-        if (rating === 0 || loading) return;
+        if (loading) return;
+        if (rating === 0) {
+            const { Alert } = require('react-native');
+            Alert.alert('Avaliação', 'Selecione uma nota para avaliar o roteiro.');
+            return;
+        }
+        if (!isAuthenticated || !accessToken) {
+            const { Alert } = require('react-native');
+            Alert.alert('Login necessário', 'Faça login para enviar sua avaliação.');
+            return;
+        }
         haptics.light();
         setLoading(true);
         try {
             await submitItineraryReview({
-                travelerId: TRAVELER_ID,
                 itineraryId,
                 rating,
                 comment: comment.trim() || 'Ótima experiência!',
                 photos: [],
-            });
+            }, accessToken);
             haptics.success();
             setSubmitted(true);
             setTimeout(() => {

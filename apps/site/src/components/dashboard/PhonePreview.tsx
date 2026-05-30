@@ -39,7 +39,7 @@ export default function PhonePreview({
     country,
     duration,
     price,
-    currency = "BRL",
+    currency = "AUD",
     coverImage,
     highlights = [],
     days = [],
@@ -47,7 +47,7 @@ export default function PhonePreview({
     categories = [],
     type = "roteiro",
 }: PhonePreviewProps) {
-    const currencySymbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "R$";
+    const currencySymbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "BRL" ? "R$" : "A$";
     const formattedPrice = price > 0 ? `${currencySymbol} ${price.toLocaleString("pt-BR")}` : "—";
     const hasContent = !!(title || destination);
 

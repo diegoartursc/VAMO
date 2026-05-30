@@ -3,6 +3,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CART_KEY = '@vamo_cart';
 
+export const normalizeCartItemIds = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+
+    const seen = new Set<string>();
+    const ids: string[] = [];
+
+    value.forEach((item) => {
+        if (typeof item !== 'string') return;
+        const id = item.trim();
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        ids.push(id);
+    });
+
+    return ids;
+};
+
 interface CartContextType {
     cartItems: string[];
     isInCart: (id: string) => boolean;
@@ -30,31 +47,45 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     const loadCart = async () => {
         try {
             const stored = await AsyncStorage.getItem(CART_KEY);
-            if (stored) setCartItems(JSON.parse(stored));
+            if (stored) {
+                const normalized = normalizeCartItemIds(JSON.parse(stored));
+                setCartItems(normalized);
+                if (stored !== JSON.stringify(normalized)) {
+                    await AsyncStorage.setItem(CART_KEY, JSON.stringify(normalized));
+                }
+            }
         } catch (error) {
             console.error('Error loading cart:', error);
+            await AsyncStorage.removeItem(CART_KEY);
+            setCartItems([]);
         } finally {
             setIsLoading(false);
         }
     };
 
     const saveCart = async (items: string[]) => {
+        const normalized = normalizeCartItemIds(items);
         try {
-            await AsyncStorage.setItem(CART_KEY, JSON.stringify(items));
-            setCartItems(items);
+            setCartItems(normalized);
+            await AsyncStorage.setItem(CART_KEY, JSON.stringify(normalized));
         } catch (error) {
             console.error('Error saving cart:', error);
         }
     };
 
-    const isInCart = useCallback((id: string) => cartItems.includes(id), [cartItems]);
+    const isInCart = useCallback((id: string) => {
+        return typeof id === 'string' && cartItems.includes(id.trim());
+    }, [cartItems]);
 
     const addToCart = useCallback(async (id: string) => {
-        if (!cartItems.includes(id)) await saveCart([...cartItems, id]);
+        const normalizedId = typeof id === 'string' ? id.trim() : '';
+        if (!normalizedId) return;
+        if (!cartItems.includes(normalizedId)) await saveCart([...cartItems, normalizedId]);
     }, [cartItems]);
 
     const removeFromCart = useCallback(async (id: string) => {
-        await saveCart(cartItems.filter(i => i !== id));
+        const normalizedId = typeof id === 'string' ? id.trim() : '';
+        await saveCart(cartItems.filter(i => i !== normalizedId));
     }, [cartItems]);
 
     const clearCart = useCallback(async () => {

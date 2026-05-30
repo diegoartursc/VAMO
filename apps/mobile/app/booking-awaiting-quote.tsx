@@ -1,3 +1,4 @@
+import { formatMoney } from '@vamo/shared/itinerary';
 import React from 'react';
 import {
     View,
@@ -123,7 +124,7 @@ export default function BookingAwaitingQuoteScreen() {
                     <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#3a3a3a', paddingTop: 12, marginTop: 4 }]}>
                         <Ionicons name="pricetag" size={18} color="#14b8a6" />
                         <Text style={[styles.summaryText, { fontWeight: '700' }]}>
-                            Terrestre: R$ {parseFloat(totalPrice as string).toLocaleString('pt-BR')}
+                            Terrestre: {formatMoney(parseFloat(totalPrice as string))}
                         </Text>
                     </View>
                     <Text style={styles.summaryNote}>

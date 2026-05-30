@@ -26,6 +26,10 @@ export function getReviewsByPackageId(packageId: string): Review[] {
     return MOCK_REVIEWS.filter(review => review.packageId === packageId);
 }
 
+export function getReviewsByItineraryId(itineraryId: string): Review[] {
+    return MOCK_REVIEWS.filter(review => review.packageId === itineraryId);
+}
+
 export function getReviewCount(packageId: string): number {
     return getReviewsByPackageId(packageId).length;
 }

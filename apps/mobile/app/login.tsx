@@ -6,17 +6,36 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert,
+    KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { useAuth } from '../src/contexts/AuthContext';
 import { haptics } from '../src/services/haptics';
+import VamoLogo from '../src/components/common/VamoLogo';
 
 export default function LoginScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams<{
+        next?: string;
+        itineraryId?: string;
+        price?: string;
+        fullName?: string;
+        email?: string;
+        countryCode?: string;
+        phone?: string;
+        source?: string;
+    }>();
+    const nextRoute = Array.isArray(params.next) ? params.next[0] : params.next;
+    const nextItineraryId = Array.isArray(params.itineraryId) ? params.itineraryId[0] : params.itineraryId;
+    const nextPrice = Array.isArray(params.price) ? params.price[0] : params.price;
+    const nextFullName = Array.isArray(params.fullName) ? params.fullName[0] : params.fullName;
+    const nextEmail = Array.isArray(params.email) ? params.email[0] : params.email;
+    const nextCountryCode = Array.isArray(params.countryCode) ? params.countryCode[0] : params.countryCode;
+    const nextPhone = Array.isArray(params.phone) ? params.phone[0] : params.phone;
+    const nextSource = Array.isArray(params.source) ? params.source[0] : params.source;
     const { login } = useAuth();
 
     const [email, setEmail] = useState('');
@@ -39,7 +58,23 @@ export default function LoginScreen() {
             await login(email.trim().toLowerCase(), password);
             console.log('[login screen] login ok — redirecionando');
             haptics.success();
-            router.replace('/(tabs)/profile');
+            if (nextRoute) {
+                // Retorna pro fluxo que disparou o login (ex.: checkout de roteiro)
+                router.replace({
+                    pathname: nextRoute as any,
+                    params: {
+                        ...(nextItineraryId ? { itineraryId: nextItineraryId } : {}),
+                        ...(nextPrice ? { price: nextPrice } : {}),
+                        ...(nextFullName ? { fullName: nextFullName } : {}),
+                        ...(nextEmail ? { email: nextEmail } : {}),
+                        ...(nextCountryCode ? { countryCode: nextCountryCode } : {}),
+                        ...(nextPhone ? { phone: nextPhone } : {}),
+                        ...(nextSource ? { source: nextSource } : {}),
+                    },
+                });
+            } else {
+                router.replace('/(tabs)/profile');
+            }
         } catch (err: any) {
             haptics.error?.();
             const msg = err?.message || 'Erro ao fazer login. Verifique e-mail e senha.';
@@ -63,7 +98,7 @@ export default function LoginScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.header}
                 >
-                    <Text style={styles.logo}>VAMO</Text>
+                    <VamoLogo size={160} />
                     <Text style={styles.tagline}>Roteiros criados por quem já esteve lá</Text>
                 </LinearGradient>
 
@@ -187,11 +222,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 28,
         alignItems: 'center',
     },
-    logo: {
-        fontSize: 40,
-        fontWeight: '900',
-        color: '#fff',
-        letterSpacing: 4,
+    logoImage: {
+        width: 180,
+        height: 72,
         marginBottom: 8,
     },
     tagline: {

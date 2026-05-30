@@ -124,7 +124,7 @@ async function main() {
                 { category: 'Atrações', amount: 800, description: 'Palácio + museus' },
             ],
         },
-        spendingProfile: { icon: '💶', label: 'Moderado (≈ R$ 600/dia)' },
+        spendingProfile: { icon: '💶', label: 'Moderado (≈ A$ 200/dia)' },
         receiveList: [
             { icon: '📅', label: 'Roteiro dia a dia (5 dias)' },
             { icon: '🗺️', label: 'Mapa offline dos bairros' },
@@ -253,11 +253,11 @@ async function main() {
     const transports1 = [
         { description: 'Metrô de Lisboa — 4 linhas que conectam tudo que importa',
           passTypes: 'Viva Viagem + zapping (€6 cartão + crédito)',
-          estimatedPrice: 'R$ 8/trajeto', notes: 'Recarregue €10 pro primeiro dia',
+          estimatedPrice: 'A$ 3/trajeto', notes: 'Recarregue €10 pro primeiro dia',
           priceValue: '8', priceCurrency: 'BRL' },
         { description: 'Trem CP para Sintra e Cascais',
           passTypes: 'Bilhete único Rossio-Sintra (€2,30 ida)',
-          estimatedPrice: 'R$ 14 round-trip',
+          estimatedPrice: 'A$ 5 round-trip',
           priceValue: '14', priceCurrency: 'BRL',
           startDate: '2025-09-17', endDate: '2025-09-19' },
     ];
@@ -369,7 +369,7 @@ async function main() {
                 { category: 'Atrações', amount: 1200, description: 'Templos + museus + onsen' },
             ],
         },
-        spendingProfile: { icon: '💴', label: 'Confortável (≈ R$ 1.400/dia)' },
+        spendingProfile: { icon: '💴', label: 'Confortável (≈ A$ 450/dia)' },
         receiveList: [
             { icon: '📅', label: 'Roteiro dia a dia (7 dias)' },
             { icon: '🗾', label: 'Mapa metrô + JR offline' },
@@ -525,11 +525,11 @@ async function main() {
     const transports2 = [
         { description: 'JR Pass 7 dias — ilimitado em todos os trens JR',
           passTypes: 'JR Pass Ordinary 7 days',
-          estimatedPrice: 'R$ 1.650', notes: 'Comprar ANTES de viajar',
+          estimatedPrice: 'A$ 550', notes: 'Comprar ANTES de viajar',
           priceValue: '1650', priceCurrency: 'BRL' },
         { description: 'Cartão Suica — pagamento contactless pra metrô, ônibus, lojas',
           passTypes: 'Suica (¥2000 inicial com ¥500 depósito)',
-          estimatedPrice: 'R$ 70',
+          estimatedPrice: 'A$ 25',
           priceValue: '70', priceCurrency: 'BRL' },
         { description: 'Shinkansen Tóquio → Nikko (incluído no JR Pass)',
           passTypes: 'JR Pass cobre', estimatedPrice: 'Sem custo extra',

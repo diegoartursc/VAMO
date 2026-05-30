@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 // Mock user data for auto-fill
 const USER = {
@@ -305,7 +306,7 @@ export default function CheckoutContactScreen() {
             {/* Footer */}
             <View style={styles.footer}>
                 <View>
-                    <Text style={styles.footerPrice}>R$ {parseFloat(totalPrice!).toLocaleString('pt-BR')}</Text>
+                    <Text style={styles.footerPrice}>{formatMoney(parseFloat(totalPrice!))}</Text>
                     <Text style={styles.footerLabel}>Total</Text>
                 </View>
                 <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>

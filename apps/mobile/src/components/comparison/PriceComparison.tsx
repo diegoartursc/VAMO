@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '../../theme/theme';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 interface PriceBreakdown {
     flight: number;
@@ -31,7 +32,7 @@ export function PriceComparison({
     const savingsPercent = Math.round((savings / agencyTotal) * 100);
 
     const formatPrice = (value: number) =>
-        value === 0 ? 'GRÁTIS' : `R$ ${value.toLocaleString('pt-BR')}`;
+        value === 0 ? 'GRÁTIS' : formatMoney(value);
 
     const items = [
         { icon: '✈️', label: 'Voo', agency: agencyPrice.flight, creator: creatorPrice.flight },
@@ -114,7 +115,7 @@ export function PriceComparison({
                 <View style={styles.savingsContent}>
                     <Text style={styles.savingsTitle}>VOCÊ ECONOMIZA</Text>
                     <Text style={styles.savingsAmount}>
-                        R$ {savings.toLocaleString('pt-BR')} ({savingsPercent}%)
+                        {formatMoney(savings)} ({savingsPercent}%)
                     </Text>
                 </View>
             </View>

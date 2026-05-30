@@ -153,8 +153,8 @@ function AgenciesContent() {
                                 <input type="text" value={newAgency.name} onChange={e => setNewAgency({ ...newAgency, name: e.target.value })} required style={{ padding: "10px", borderRadius: "8px", border: "1.5px solid #E0E4EB", outline: "none", fontFamily: "inherit", fontSize: "13px" }} />
                             </div>
                             <div style={{ display: "grid", gap: "4px" }}>
-                                <label style={{ fontSize: "11px", fontWeight: "700", color: "#5A6B8C" }}>CNPJ</label>
-                                <input type="text" value={newAgency.cnpj} onChange={e => setNewAgency({ ...newAgency, cnpj: e.target.value })} required style={{ padding: "10px", borderRadius: "8px", border: "1.5px solid #E0E4EB", outline: "none", fontFamily: "inherit", fontSize: "13px" }} />
+                                <label style={{ fontSize: "11px", fontWeight: "700", color: "#5A6B8C" }}>Identificação fiscal (opcional)</label>
+                                <input type="text" value={newAgency.cnpj} onChange={e => setNewAgency({ ...newAgency, cnpj: e.target.value })} style={{ padding: "10px", borderRadius: "8px", border: "1.5px solid #E0E4EB", outline: "none", fontFamily: "inherit", fontSize: "13px" }} />
                             </div>
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>

@@ -163,12 +163,29 @@ const SECTION_MODULE_MAP: Partial<Record<SectionKey, string>> = {
 
 interface Activity { title: string; description: string; time: string; duration: string; location: string; mapLink?: string; type: string; icon: string; tips: string; category: string; }
 interface Day { dayNumber: number; title: string; summary: string; description: string; activities: Activity[]; }
-interface Accommodation { name: string; address: string; mapLink: string; description: string; nights: string; rating: string; externalLink: string; tips: string; startDate: string; endDate: string; }
-interface Transport { description: string; passTypes: string; notes: string; startDate: string; endDate: string; }
+// Tipos de custo (transparência graduada). Mantemos os imports leves
+// para evitar tree-shaking issues em arquivos client-only do Next.
+type CostDisclosureType = "not_informed" | "estimated" | "verified";
+type CostProofStatus = "none" | "uploaded" | "pending_review" | "approved" | "rejected";
+interface CostProofFile { url: string; name?: string; mimeType?: string; size?: number; uploadedAt?: string; }
+interface ModuleCostInfo {
+    amount?: string | null;
+    currency?: string;
+    disclosureType: CostDisclosureType;
+    notes?: string;
+    proofFiles?: CostProofFile[];
+    proofStatus?: CostProofStatus;
+    updatedAt?: string;
+}
+interface ModuleSpending { value: string; currency: string; }
+
+interface Accommodation { name: string; address: string; mapLink: string; description: string; nights: string; rating: string; externalLink: string; tips: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
+interface Transport { description: string; passTypes: string; notes: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
 interface ChecklistItem { category: string; item: string; isDefault: boolean; }
 interface BreakdownItem { category: string; min: string; max: string; currency: string; }
-interface RestaurantItem { name: string; cuisine: string; location: string; description: string; hours: string; hoursStart: string; externalLink: string; tips: string; startDate: string; endDate: string; }
-interface AttractionItem { name: string; type: string; location: string; mapLink: string; description: string; hours: string; duration: string; externalLink: string; tips: string; startDate: string; endDate: string; price?: string; }
+interface RestaurantItem { name: string; cuisine: string; location: string; description: string; hours: string; hoursStart: string; externalLink: string; tips: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
+interface AttractionItem { name: string; type: string; location: string; mapLink: string; description: string; hours: string; duration: string; externalLink: string; tips: string; startDate: string; endDate: string; price?: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
+interface ExtraSpendingItem { id: string; category: string; title: string; description: string; value: string; currency: string; cost?: ModuleCostInfo; }
 interface SpendingEntry { moduleKey: string; label: string; icon: string; priceValue: string; priceCurrency: string; receiptUrl: string; originCity?: string; }
 const SPENDING_MODULE_MAP: Record<string, { label: string; icon: string }> = {
     voo: { label: "Passagem Aérea", icon: "✈️" },
@@ -182,7 +199,6 @@ interface FlightLeg { airline: string; originCity: string; originAirport: string
 const EMPTY_FLIGHT_LEG: FlightLeg = { airline: "", originCity: "", originAirport: "", destinationAirport: "", departureDate: "", arrivalDate: "", stops: 0 };
 const CUISINE_OPTIONS = ["Ramen", "Sushi", "Tempura", "Izakaya", "Yakitori", "Italiana", "Francesa", "Brasileira", "Mexicana", "Indiana", "Tailandesa", "Fast Food", "Café", "Padaria", "Bistrô", "Fine Dining", "Street Food", "Vegetariana", "Frutos do Mar", "Outro"];
 
-const DEFAULT_CREATOR_ID = "creator-diego-001";
 const SPENDING_CATS = ["🏨 Hospedagem", "🍽️ Alimentação", "🚌 Transporte", "🎫 Atrações", "🎁 Extras"];
 const CURRENCIES = [
     { code: "AED", symbol: "د.إ", name: "Dirham dos Emirados", emoji: "🇦🇪" },
@@ -440,19 +456,19 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Cotações (definidas pelo admin em /admin/conversao) ─── */
     const { dollarRate, formattedRate, rates } = useDollarRate();
-    /** Converte um valor em qualquer moeda para número em BRL usando as taxas do admin. */
-    const convertToBRLNumber = (value: string | number, currency: string): number => {
+    /** Converte um valor em qualquer moeda para número na moeda base do mercado (AUD) usando as taxas do admin. */
+    const convertToBaseNumber = (value: string | number, currency: string): number => {
         const n = typeof value === "number" ? value : parseFloat(value);
         if (isNaN(n) || n <= 0) return 0;
-        if (currency === "BRL") return n;
+        if (currency === "AUD") return n;
         const rate = rates[currency];
         if (rate === undefined || rate <= 0) return 0;
         return n * rate;
     };
-    const toBRL = (value: string, currency: string): string | null => {
-        const brl = convertToBRLNumber(value, currency);
-        if (brl <= 0 || currency === "BRL") return null;
-        return brl.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+    const toBase = (value: string, currency: string): string | null => {
+        const aud = convertToBaseNumber(value, currency);
+        if (aud <= 0 || currency === "AUD") return null;
+        return aud.toLocaleString("pt-BR", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
     };
 
     /* ─── UI state ─── */
@@ -481,7 +497,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Bloco 2: Comercial ─── */
     const [price, setPrice] = useState(0);
-    const [currency, setCurrency] = useState("BRL");
+    const [currency, setCurrency] = useState("AUD");
     const [promoPrice, setPromoPrice] = useState<number | null>(null);
     const [installments, setInstallments] = useState<number | null>(null);
     const [immediateAccess, setImmediateAccess] = useState(true);
@@ -507,7 +523,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [flightTips, setFlightTips] = useState<string[]>([]);
     const [newFlightTip, setNewFlightTip] = useState("");
     const [flightTotalPrice, setFlightTotalPrice] = useState("");
-    const [flightPriceCurrency, setFlightPriceCurrency] = useState("BRL");
+    const [flightPriceCurrency, setFlightPriceCurrency] = useState("AUD");
+    /** Round-trip de cost/spending do módulo voo (preenchidos via mobile). */
+    const [flightSpending, setFlightSpending] = useState<ModuleSpending | undefined>(undefined);
+    const [flightCost, setFlightCost] = useState<ModuleCostInfo | undefined>(undefined);
+    /** Gastos extras do módulo "Gastos Extras" (preenchidos via mobile). */
+    const [extraSpendingItems, setExtraSpendingItems] = useState<ExtraSpendingItem[]>([]);
 
     /* ─── Bloco 7: Checklist ─── */
     const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
@@ -541,10 +562,10 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [reviewCount, setReviewCount] = useState(0);
 
     /* ─── Estimated Spending (computed from manual entries for preview) ─── */
-    /* Total em BRL é calculado dinamicamente usando as taxas atuais do admin (hook useDollarRate).
+    /* Total na moeda base (AUD) é calculado dinamicamente usando as taxas atuais do admin (hook useDollarRate).
        Este valor NÃO é persistido no banco — apenas os manualEntries com moeda original são salvos. */
     const estimatedSpending = useMemo(() => {
-        const total = spendingEntries.reduce((s, e) => s + convertToBRLNumber(e.priceValue, e.priceCurrency), 0);
+        const total = spendingEntries.reduce((s, e) => s + convertToBaseNumber(e.priceValue, e.priceCurrency), 0);
         if (total === 0) return { min: 0, max: 0, manualEntries: [] };
         return { min: Math.round(total), max: Math.round(total), manualEntries: spendingEntries };
     }, [spendingEntries, rates]);
@@ -604,7 +625,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             setDuration(1); setDescription("");
             setTravelStyles([]); setCategories([]);
             setProductType("DIGITAL");
-            setPrice(0); setCurrency("BRL");
+            setPrice(0); setCurrency("AUD");
             setPromoPrice(null); setInstallments(null);
             setImmediateAccess(true); setLifetimeAccess(true);
             setFeatured(false); setActiveModules([]);
@@ -640,7 +661,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 setDuration(data.duration || 1); setDescription(data.description || "");
                 setTravelStyles(data.travelStyles || []); setCategories(data.categories || []);
                 setProductType(data.productType || "DIGITAL");
-                setPrice(data.price || 0); setCurrency(data.currency || "BRL");
+                setPrice(data.price || 0); setCurrency(data.currency || "AUD");
                 setPromoPrice(data.promoPrice || null); setInstallments(data.installments || null);
                 setImmediateAccess(data.immediateAccess ?? true); setLifetimeAccess(data.lifetimeAccess ?? true);
                 setFeatured(data.featured || false);
@@ -675,6 +696,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         nights,
                         rating: a.rating?.toString() || "", externalLink: a.externalLink || "", tips: a.tips || "",
                         startDate: a.startDate || "", endDate: a.endDate || "",
+                        // Preserva campos de custo vindos do mobile/backend (round-trip safety)
+                        spending: a.spending,
+                        cost: a.cost,
                     };
                 }));
                 // Transports
@@ -682,6 +706,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     description: t.description || "", passTypes: t.passTypes || "",
                     notes: t.notes || "",
                     startDate: t.startDate || "", endDate: t.endDate || "",
+                    spending: t.spending,
+                    cost: t.cost,
                 })));
                 // Checklists
                 setChecklistItems((data.checklists || []).map((c: any) => ({
@@ -701,9 +727,14 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     setFlightOutbound(mapLeg(data.flightInfo.outbound));
                     setFlightReturn(mapLeg(data.flightInfo.return));
                     setFlightTotalPrice(data.flightInfo.totalPrice || "");
-                    setFlightPriceCurrency(data.flightInfo.priceCurrency || "BRL");
+                    setFlightPriceCurrency(data.flightInfo.priceCurrency || "AUD");
                     setFlightTips(data.flightInfo.tips || []);
+                    // Round-trip: preserva cost/spending do módulo voo (criados via mobile)
+                    setFlightSpending(data.flightInfo.spending || undefined);
+                    setFlightCost(data.flightInfo.cost || undefined);
                 }
+                // Extra spending items (módulo "Gastos Extras" — preenchido via mobile)
+                setExtraSpendingItems((data.extraSpendingItems || []) as ExtraSpendingItem[]);
 
                 // Restaurants
                 setRestaurants((data.restaurants || []).map((r: any) => {
@@ -716,6 +747,8 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         hoursStart: r.hoursStart || parts[0] || "",
                         externalLink: r.externalLink || "", tips: r.tips || "",
                         startDate: r.startDate || "", endDate: r.endDate || "",
+                        spending: r.spending,
+                        cost: r.cost,
                     };
                 }));
                 // General Tips
@@ -732,13 +765,16 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         duration: a.duration || "1h",
                         externalLink: a.externalLink || "", tips: a.tips || "",
                         startDate: a.startDate || "", endDate: a.endDate || "",
+                        price: a.price,
+                        spending: a.spending,
+                        cost: a.cost,
                     };
                 }));
                 // Spending entries
                 if (data.estimatedSpending?.manualEntries) {
                     setSpendingEntries(data.estimatedSpending.manualEntries.map((e: any) => ({
                         moduleKey: e.moduleKey || "", label: e.label || "", icon: e.icon || "",
-                        priceValue: e.priceValue || "", priceCurrency: e.priceCurrency || "BRL",
+                        priceValue: e.priceValue || "", priceCurrency: e.priceCurrency || "AUD",
                         receiptUrl: e.receiptUrl || "",
                     })));
                 }
@@ -752,7 +788,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Build payload ─── */
     const buildPayload = useCallback(() => {
-        /* IMPORTANTE: os valores convertidos a BRL NÃO são salvos no banco. Só persistimos
+        /* IMPORTANTE: os valores convertidos a AUD NÃO são salvos no banco. Só persistimos
            as entradas originais (valor + moeda escolhida pelo criador). A conversão para a
            moeda preferida do cliente acontece em tempo de exibição, usando a cotação atual
            do admin (useDollarRate → rates). */
@@ -760,7 +796,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         const mainCountry = locations[0]?.country || "";
         const mainDestination = locations[0]?.cities[0] || "";
         return {
-            creatorId: DEFAULT_CREATOR_ID, title, subtitle, destination: mainDestination, country: mainCountry, locations, description,
+            title, subtitle, destination: mainDestination, country: mainCountry, locations, description,
             price: price.toString(), currency, duration: duration.toString(), featured,
             travelStyles, categories, productType, activeModules,
             promoPrice: promoPrice?.toString() || undefined,
@@ -777,6 +813,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 outbound: flightOutbound,
                 return: flightReturn,
                 tips: flightTips.filter(t => t.trim()),
+                // Round-trip: preserva os dados de custo do voo (set via mobile)
+                spending: flightSpending,
+                cost: flightCost,
             } : undefined,
             restaurants: restaurants.filter(r => r.name.trim()).map(r => ({
                 ...r,
@@ -784,10 +823,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             })),
             generalTips: generalTips.filter(t => t.trim()),
             attractions: attractions.filter(a => a.name.trim()),
+            extraSpendingItems,
             mediaUrls: mediaUrls.filter(Boolean),
             highlightPhotos: highlightPhotos.filter(Boolean),
         };
-    }, [title, subtitle, destination, country, locations, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, allowShare, highlightItems, inclusionItems, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTips, restaurants, generalTips, attractions, mediaUrls, highlightPhotos, rating, reviewCount, spendingEntries]);
+    }, [title, subtitle, destination, country, locations, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, allowShare, highlightItems, inclusionItems, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTips, flightSpending, flightCost, restaurants, generalTips, attractions, extraSpendingItems, mediaUrls, highlightPhotos, rating, reviewCount, spendingEntries]);
 
     /* ─── Save ─── */
     const handleSave = async () => {
@@ -1734,14 +1774,14 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         const existing = spendingEntries.find(e => e.moduleKey === k);
                         if (existing) return existing;
                         const meta = SPENDING_MODULE_MAP[k];
-                        return { moduleKey: k, label: meta.label, icon: meta.icon, priceValue: "", priceCurrency: "BRL", receiptUrl: "" };
+                        return { moduleKey: k, label: meta.label, icon: meta.icon, priceValue: "", priceCurrency: "AUD", receiptUrl: "" };
                     });
                     // Defer state update to avoid render loop
                     setTimeout(() => { setSpendingEntries(synced); markDirty(); }, 0);
                 }
 
-                /* Total convertido em BRL usando taxas atuais do admin (somente para exibição) */
-                const spTotal = spendingEntries.reduce((s, e) => s + convertToBRLNumber(e.priceValue, e.priceCurrency), 0);
+                /* Total convertido na moeda base (AUD) usando taxas atuais do admin (somente para exibição) */
+                const spTotal = spendingEntries.reduce((s, e) => s + convertToBaseNumber(e.priceValue, e.priceCurrency), 0);
 
                 return (<>
                     <div className="form-helper" style={{ display: "flex", gap: 10, marginBottom: 16, padding: "10px 14px", background: "rgba(40,201,191,0.05)", borderRadius: 8, borderLeft: "3px solid var(--primary)" }}>
@@ -1800,9 +1840,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                                 {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.emoji} {c.code} - {c.name}</option>)}
                                             </select>
                                         </div>
-                                        {parseFloat(entry.priceValue) > 0 && toBRL(entry.priceValue, entry.priceCurrency) && (
+                                        {parseFloat(entry.priceValue) > 0 && toBase(entry.priceValue, entry.priceCurrency) && (
                                             <span style={{ fontSize: 12, color: "var(--text-secondary)", background: "var(--surface-light)", borderRadius: 6, padding: "3px 8px", whiteSpace: "nowrap", alignSelf: "flex-end", marginBottom: 4 }}>
-                                                ≈ {toBRL(entry.priceValue, entry.priceCurrency)}
+                                                ≈ {toBase(entry.priceValue, entry.priceCurrency)}
                                             </span>
                                         )}
                                         {entry.moduleKey === "voo" && (
@@ -1877,7 +1917,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             {spTotal > 0 && (
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "linear-gradient(135deg, var(--primary), var(--accent, #6366f1))", borderRadius: 10, color: "#fff" }}>
                                     <span style={{ fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><BarChart3 size={16} strokeWidth={2} /> Total Estimado</span>
-                                    <span style={{ fontWeight: 800, fontSize: 18 }}>R$ {fmt(spTotal)}</span>
+                                    <span style={{ fontWeight: 800, fontSize: 18 }}>A$ {fmt(spTotal)}</span>
                                 </div>
                             )}
                         </div>
@@ -2306,6 +2346,13 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                 inclusions={previewInclusions}
                                 estimatedSpending={estimatedSpending}
                                 featured={featured}
+                                accommodations={accommodations}
+                                attractions={attractions}
+                                transports={transports}
+                                restaurants={restaurants}
+                                extraSpendingItems={extraSpendingItems}
+                                flightCost={flightCost}
+                                flightSpending={flightSpending}
                             />
                         )}
                     </div>
@@ -2544,6 +2591,13 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             inclusions={previewInclusions}
                             estimatedSpending={estimatedSpending}
                             featured={featured}
+                            accommodations={accommodations}
+                            attractions={attractions}
+                            transports={transports}
+                            restaurants={restaurants}
+                            extraSpendingItems={extraSpendingItems}
+                            flightCost={flightCost}
+                            flightSpending={flightSpending}
                         />
                     )}
                 </div>

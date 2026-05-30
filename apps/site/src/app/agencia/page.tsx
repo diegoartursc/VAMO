@@ -29,7 +29,7 @@ export default function AgenciaDashboardPage() {
     }, []);
 
     const formatCurrency = (value: number) =>
-        `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+        `A$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
     const activePackages = packages.filter(p => p.status === "ACTIVE" || p.status === "active");
     const totalSales = packages.reduce((s, p) => s + (p.recentPurchases || 0), 0);

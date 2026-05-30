@@ -17,6 +17,7 @@ import { theme } from '../src/theme/theme';
 import { getPackageById } from '../src/services/api';
 import { haptics } from '../src/services/haptics';
 import { analytics } from '../src/services/analytics';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 const { width } = Dimensions.get('window');
 
@@ -91,6 +92,7 @@ export default function BookingConfirmedScreen() {
                     <Image
                         source={{ uri: packageData.images[0] }}
                         style={styles.heroImage}
+                        resizeMode="cover"
                     />
                     <LinearGradient
                         colors={['transparent', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
@@ -186,7 +188,7 @@ export default function BookingConfirmedScreen() {
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Total pago</Text>
                             <Text style={styles.totalValue}>
-                                R$ {parseFloat(totalPrice as string || '0').toLocaleString('pt-BR')}
+                                {formatMoney(parseFloat(totalPrice as string || '0'))}
                             </Text>
                         </View>
                     </View>

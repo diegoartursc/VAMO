@@ -17,7 +17,7 @@ export function PriceSlider({ min, max, value, onChange, step = 100 }: PriceSlid
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
-            currency: 'BRL',
+            currency: 'AUD',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
         }).format(price);

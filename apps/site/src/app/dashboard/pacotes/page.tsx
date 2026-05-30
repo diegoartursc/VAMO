@@ -83,9 +83,9 @@ export default function PacotesListPage() {
                                     <td>{pkg.destination}, {pkg.country}</td>
                                     <td>
                                         {pkg.price?.min != null
-                                            ? `R$ ${pkg.price.min.toLocaleString("pt-BR")}`
+                                            ? `A$ ${pkg.price.min.toLocaleString("pt-BR")}`
                                             : pkg.priceMin != null
-                                                ? `R$ ${pkg.priceMin.toLocaleString("pt-BR")}`
+                                                ? `A$ ${pkg.priceMin.toLocaleString("pt-BR")}`
                                                 : "—"}
                                     </td>
                                     <td>{pkg.duration} dias</td>

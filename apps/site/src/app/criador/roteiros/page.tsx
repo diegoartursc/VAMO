@@ -30,7 +30,7 @@ export default function RoteirosPage() {
     };
 
     const formatCurrency = (value: number) =>
-        `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+        `A$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
     const formatDate = (iso: string) => {
         const d = new Date(iso);

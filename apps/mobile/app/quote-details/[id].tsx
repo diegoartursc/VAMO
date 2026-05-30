@@ -1,3 +1,4 @@
+import { formatMoney } from '@vamo/shared/itinerary';
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -183,20 +184,20 @@ export default function QuoteDetailsScreen() {
                                 <View style={styles.priceRow}>
                                     <Text style={styles.priceLabel}>Terrestre</Text>
                                     <Text style={styles.priceLabel}>
-                                        R$ {q.terrestrePrice.toLocaleString('pt-BR')}
+                                        {formatMoney(q.terrestrePrice)}
                                     </Text>
                                 </View>
                                 <View style={styles.priceRow}>
                                     <Text style={styles.priceLabel}>Aéreo ({q.airline})</Text>
                                     <Text style={styles.priceLabel}>
-                                        R$ {q.airfarePrice.toLocaleString('pt-BR')}
+                                        {formatMoney(q.airfarePrice)}
                                     </Text>
                                 </View>
                                 <View style={styles.priceDivider} />
                                 <View style={styles.priceRow}>
                                     <Text style={styles.totalLabel}>Total/pessoa</Text>
                                     <Text style={styles.totalValue}>
-                                        R$ {q.totalPrice.toLocaleString('pt-BR')}
+                                        {formatMoney(q.totalPrice)}
                                     </Text>
                                 </View>
                             </View>

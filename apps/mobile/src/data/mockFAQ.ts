@@ -1,5 +1,5 @@
 /**
- * FAQ data for itineraries and packages.
+ * FAQ data for digital itineraries.
  * Each entry is tied to a seller/creator and has a list of Q&A pairs.
  */
 
@@ -20,7 +20,7 @@ export const itineraryFAQs: Record<string, FAQData> = {
         items: [
             {
                 question: 'Como recebo o roteiro após a compra?',
-                answer: 'Assim que o pagamento for confirmado, você recebe o roteiro completo no seu email em formato PDF. Também fica disponível no app para acesso offline.',
+                answer: 'Assim que o pagamento for confirmado, o roteiro fica disponível em Meus Roteiros no app. Download offline será liberado em uma próxima versão.',
             },
             {
                 question: 'Posso adaptar o roteiro para mais ou menos dias?',
@@ -60,14 +60,14 @@ export const itineraryFAQs: Record<string, FAQData> = {
 };
 
 /**
- * FAQs for travel packages, keyed by package ID.
+ * Legacy-compatible FAQs, keyed by old route ID.
  */
 export const packageFAQs: Record<string, FAQData> = {
     'pkg-1': {
         items: [
             {
-                question: 'O que está incluído no pacote?',
-                answer: 'O pacote inclui transporte, guia em português, ingressos para as atrações listadas e seguro viagem. Alimentação não está incluída, salvo quando mencionado.',
+                question: 'O que está incluído no roteiro?',
+                answer: 'O roteiro inclui informações, dicas, links e recomendações digitais conforme descrito na página do produto.',
             },
             {
                 question: 'Posso cancelar após a reserva?',
@@ -111,15 +111,15 @@ export const packageFAQs: Record<string, FAQData> = {
         items: [
             {
                 question: 'O seguro viagem está incluído?',
-                answer: 'Sim, todos os pacotes incluem seguro viagem básico. Para uma cobertura mais completa, oferecemos upgrade por um valor adicional.',
+                answer: 'Não. Seguro viagem deve ser contratado separadamente pelo viajante quando fizer sentido para o destino.',
             },
             {
-                question: 'É possível personalizar o roteiro do pacote?',
-                answer: 'Sim! No tour privativo, você pode ajustar o roteiro conforme suas preferências. Basta conversar com nosso time após a reserva.',
+                question: 'É possível adaptar o roteiro?',
+                answer: 'Sim. O conteúdo serve como guia e pode ser ajustado pelo viajante conforme tempo, orçamento e preferências.',
             },
             {
                 question: 'Alimentação está incluída?',
-                answer: 'O pacote inclui paradas em restaurantes recomendados, mas a alimentação é por conta do viajante. Indicamos opções para todos os bolsos.',
+                answer: 'Não. Restaurantes e alimentação aparecem como recomendações ou estimativas, mas são pagos diretamente pelo viajante.',
             },
         ],
     },
@@ -132,7 +132,7 @@ export const defaultItineraryFAQ: FAQData = {
     items: [
         {
             question: 'Como recebo o roteiro?',
-            answer: 'Após a confirmação do pagamento, o roteiro é enviado para seu email e fica disponível no app para acesso offline.',
+            answer: 'Após a confirmação do pagamento, o roteiro fica disponível em Meus Roteiros no app. Download offline será liberado em uma próxima versão.',
         },
 
         {
@@ -146,7 +146,7 @@ export const defaultPackageFAQ: FAQData = {
     items: [
         {
             question: 'O que está incluído?',
-            answer: 'Cada pacote detalha exatamente o que está incluído na descrição. Transporte e guia geralmente estão inclusos.',
+            answer: 'Cada roteiro detalha exatamente os módulos digitais incluídos, como dias, atividades, links, dicas e estimativas.',
         },
         {
             question: 'Posso cancelar minha reserva?',

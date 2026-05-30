@@ -19,6 +19,7 @@ interface PurchaseSuccessModalProps {
     visible: boolean;
     onClose: () => void;
     onGoToMyTrips: () => void;
+    onViewItinerary: () => void;
     itineraryTitle: string;
 }
 
@@ -26,6 +27,7 @@ export function PurchaseSuccessModal({
     visible,
     onClose,
     onGoToMyTrips,
+    onViewItinerary,
     itineraryTitle,
 }: PurchaseSuccessModalProps) {
     const [scaleAnim] = useState(new Animated.Value(0));
@@ -73,6 +75,11 @@ export function PurchaseSuccessModal({
     const handleGoToMyTrips = () => {
         haptics.light();
         onGoToMyTrips();
+    };
+
+    const handleViewItinerary = () => {
+        haptics.light();
+        onViewItinerary();
     };
 
     return (
@@ -127,11 +134,11 @@ export function PurchaseSuccessModal({
                     </Animated.View>
 
                     {/* Title */}
-                    <Text style={styles.title}>Compra Realizada! 🎉</Text>
+                    <Text style={styles.title}>Pagamento confirmado!</Text>
 
                     {/* Message */}
                     <Text style={styles.message}>
-                        Parabéns! Você adquiriu o roteiro:
+                        Seu roteiro digital já está disponível no app:
                     </Text>
                     <Text style={styles.itineraryTitle} numberOfLines={2}>
                         {itineraryTitle}
@@ -141,7 +148,7 @@ export function PurchaseSuccessModal({
                     <View style={styles.infoBox}>
                         <Ionicons name="information-circle" size={20} color={theme.colors.primary} />
                         <Text style={styles.infoText}>
-                            Acesse <Text style={styles.infoTextBold}>Minhas Viagens</Text> para conferir todos os detalhes do seu roteiro
+                            Acesse agora o roteiro liberado ou encontre a compra sempre em <Text style={styles.infoTextBold}>Meus Roteiros</Text>.
                         </Text>
                     </View>
 
@@ -149,7 +156,7 @@ export function PurchaseSuccessModal({
                     <View style={styles.actions}>
                         <TouchableOpacity
                             style={styles.primaryButton}
-                            onPress={handleGoToMyTrips}
+                            onPress={handleViewItinerary}
                             activeOpacity={0.8}
                         >
                             <LinearGradient
@@ -158,17 +165,26 @@ export function PurchaseSuccessModal({
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                             >
-                                <Ionicons name="airplane" size={20} color="#fff" />
-                                <Text style={styles.primaryButtonText}>Ir para Minhas Viagens</Text>
+                                <Ionicons name="map" size={20} color="#fff" />
+                                <Text style={styles.primaryButtonText}>Ver roteiro</Text>
                             </LinearGradient>
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             style={styles.secondaryButton}
+                            onPress={handleGoToMyTrips}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="library-outline" size={18} color={theme.colors.primary} />
+                            <Text style={styles.secondaryButtonText}>Ir para Meus Roteiros</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.tertiaryButton}
                             onPress={handleClose}
                             activeOpacity={0.8}
                         >
-                            <Text style={styles.secondaryButtonText}>Continuar Explorando</Text>
+                            <Text style={styles.tertiaryButtonText}>Continuar explorando</Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
@@ -292,12 +308,25 @@ const styles = StyleSheet.create({
         width: '100%',
         height: 48,
         borderRadius: 16,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 8,
         backgroundColor: theme.colors.surfaceLight,
     },
     secondaryButtonText: {
         fontSize: 15,
+        fontWeight: '600',
+        color: theme.colors.primary,
+    },
+    tertiaryButton: {
+        width: '100%',
+        minHeight: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tertiaryButtonText: {
+        fontSize: 14,
         fontWeight: '600',
         color: theme.colors.text.secondary,
     },

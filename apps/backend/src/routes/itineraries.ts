@@ -10,7 +10,10 @@ const router = Router();
 router.get('/', async (req: Request, res: Response) => {
     try {
         const { destination, featured, sort } = req.query;
-        const where: any = { status: 'APPROVED' };
+        // Aceita roteiros em qualquer status público da vitrine. O frontend
+        // (mobile + site) já considera ACTIVE e APPROVED equivalentes; o filtro
+        // só rígido em APPROVED escondia roteiros legítimos que ficam ACTIVE.
+        const where: any = { status: { in: ['APPROVED', 'ACTIVE'] } };
         if (destination) where.destination = { contains: destination as string, mode: 'insensitive' };
         if (featured === 'true') where.featured = true;
 
@@ -20,6 +23,18 @@ router.get('/', async (req: Request, res: Response) => {
         if (sort === 'price_desc')  orderBy = [{ price: 'desc' }];
         if (sort === 'rating')      orderBy = [{ rating: 'desc' }, { qualityScore: 'desc' }];
         if (sort === 'score')       orderBy = [{ qualityScore: 'desc' }, { rating: 'desc' }];
+        // Marketplace-oriented sorts (Parte C)
+        if (sort === 'newest')      orderBy = [{ createdAt: 'desc' }];
+        if (sort === 'popular')     orderBy = [{ featured: 'desc' }, { qualityScore: 'desc' }, { rating: 'desc' }];
+        // "sales" usa o totalSales do criador (a Itinerary não tem salesCount próprio
+        // ainda — proxy seguro até existir uma tabela de transações própria).
+        if (sort === 'sales') {
+            orderBy = [
+                { creator: { totalSales: 'desc' } },
+                { qualityScore: 'desc' },
+                { rating: 'desc' },
+            ];
+        }
 
         const itineraries = await prisma.itinerary.findMany({
             where, orderBy,
@@ -39,10 +54,25 @@ router.get('/', async (req: Request, res: Response) => {
             },
             description: it.description, price: it.price, currency: it.currency,
             images: it.images.map(img => img.url), rating: it.rating,
+            // Capa e galeria — sem estes, o card cai em fallback quando o criador
+            // só preencheu highlightPhotos (caso comum no fluxo de criação atual).
+            highlightPhotos: (it as any).highlightPhotos || [],
+            mediaUrls: (it as any).mediaUrls || [],
             reviewCount: it.reviewCount, inclusions: it.inclusions,
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
             qualityScore: it.qualityScore,
+            // Campos para badges do card (vitrines): categorias temáticas e módulos ativos
+            categories: it.categories || [],
+            travelStyles: it.travelStyles || [],
+            activeModules: it.activeModules || [],
+            // Campos para badge de orçamento do card (BudgetSummaryCard).
+            // Apenas JSON cols (zero query extra). Accommodations/Transports
+            // ficam ausentes na listagem por serem relações.
+            attractions: it.attractions || [],
+            restaurants: it.restaurants || [],
+            extraSpendingItems: (it as any).extraSpendingItems || [],
+            flightInfo: it.flightInfo || null,
         }));
 
         res.json(result);
@@ -56,7 +86,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/featured', async (req: Request, res: Response) => {
     try {
         const itineraries = await prisma.itinerary.findMany({
-            where: { featured: true, status: 'APPROVED' },
+            where: { featured: true, status: { in: ['APPROVED', 'ACTIVE'] } },
             orderBy: [{ qualityScore: 'desc' }, { rating: 'desc' }],
             include: {
                 creator: { include: { traveler: { select: { name: true, avatar: true } } } },
@@ -74,10 +104,24 @@ router.get('/featured', async (req: Request, res: Response) => {
             },
             description: it.description, price: it.price, currency: it.currency,
             images: it.images.map(img => img.url), rating: it.rating,
+            // Capa e galeria — espelha GET /api/itineraries pra cards manterem fidelidade.
+            highlightPhotos: (it as any).highlightPhotos || [],
+            mediaUrls: (it as any).mediaUrls || [],
             reviewCount: it.reviewCount, inclusions: it.inclusions,
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
             qualityScore: it.qualityScore,
+            // Campos para badges do card (vitrines): categorias temáticas e módulos ativos
+            categories: it.categories || [],
+            travelStyles: it.travelStyles || [],
+            activeModules: it.activeModules || [],
+            // Campos para badge de orçamento do card (BudgetSummaryCard).
+            // Apenas JSON cols (zero query extra). Accommodations/Transports
+            // ficam ausentes na listagem por serem relações.
+            attractions: it.attractions || [],
+            restaurants: it.restaurants || [],
+            extraSpendingItems: (it as any).extraSpendingItems || [],
+            flightInfo: it.flightInfo || null,
         }));
 
         res.json(result);
@@ -129,13 +173,31 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
         const averageRating = allReviews.length > 0
             ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
             : 0;
+        // Contagens por status (UPPERCASE no DB)
+        const activeOrApproved = itineraries.filter(it => it.status === 'ACTIVE' || it.status === 'APPROVED');
+        const publishedItineraries = activeOrApproved.length;
+        // Qualidade média APENAS de roteiros ativos/aprovados. Roteiros
+        // em DRAFT/PENDING_REVIEW/REJECTED não entram — score deles é
+        // referencial pra criação, não métrica pública do criador.
+        // null = "sem roteiros ativos" (UI deve mostrar — em vez de 0%).
+        const averageQualityScore = activeOrApproved.length > 0
+            ? Math.round(activeOrApproved.reduce((sum, it) => sum + (it.qualityScore || 0), 0) / activeOrApproved.length)
+            : null;
+        const pendingReview = itineraries.filter(it => it.status === 'PENDING_REVIEW').length;
+        const draftItineraries = itineraries.filter(it => it.status === 'DRAFT').length;
+        const rejectedItineraries = itineraries.filter(it => it.status === 'REJECTED').length;
 
         res.json({
             totalRevenue,
             totalSales,
             averageRating: Math.round(averageRating * 10) / 10,
+            averageQualityScore,
             totalReviews: allReviews.length,
             activeItineraries: itineraries.filter(it => it.status === 'ACTIVE').length,
+            publishedItineraries,
+            pendingReview,
+            draftItineraries,
+            rejectedItineraries,
             totalItineraries: itineraries.length,
             itineraries: itineraries.map(it => ({
                 id: it.id,
@@ -149,6 +211,7 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
                 reviewCount: it.reviewCount,
                 duration: it.duration,
                 price: it.price,
+                qualityScore: it.qualityScore,
                 updatedAt: it.updatedAt.toISOString(),
             })),
         });
@@ -159,12 +222,244 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
 });
 
 // GET /api/itineraries/:id
-router.get('/:id', async (req: Request, res: Response) => {
+// GET /api/itineraries/:id/purchased
+// Detalhe COMPLETO de um roteiro comprado. Exige autenticação (JWT do
+// traveler) e bloqueia se o usuário não tem registro de compra
+// (`ItinerarySale`) para esse roteiro. Retorna o mesmo payload do `/:id`
+// público — a tela pós-compra reaproveita todos os campos (accommodationOptions,
+// transport.items, checklist, days, etc.). Sem este endpoint, a tela
+// "Meus Roteiros → abrir" caía em 404 e mostrava "Este roteiro não está
+// liberado para esta conta."
+router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const travelerId = req.traveler?.travelerId;
+        if (!travelerId) {
+            res.status(401).json({ error: 'Autenticação necessária' });
+            return;
+        }
+
+        const itineraryId = req.params.id as string;
+        const sale = await prisma.itinerarySale.findFirst({
+            where: { itineraryId, travelerId },
+            select: { id: true },
+        });
+        if (!sale) {
+            res.status(403).json({ error: 'Roteiro não comprado por este usuário' });
+            return;
+        }
+
+        const it = await prisma.itinerary.findUnique({
+            where: { id: itineraryId },
+            include: {
+                creator: { include: { traveler: { select: { name: true, avatar: true, id: true } } } },
+                images: { orderBy: { order: 'asc' }, select: { url: true } },
+                days: { orderBy: { dayNumber: 'asc' }, include: { activities: { orderBy: { order: 'asc' } } } },
+                files: true,
+                accommodations: { orderBy: { order: 'asc' } },
+                transports:     { orderBy: { order: 'asc' } },
+                checklists:     { orderBy: { order: 'asc' } },
+                reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' }, take: 10 },
+            },
+        });
+        if (!it) { res.status(404).json({ error: 'Itinerary not found' }); return; }
+
+        // Reaproveita o mesmo shape do GET /:id (a tela pós-compra consome
+        // o mesmo payload). Pular o gate de status público: quem comprou
+        // tem acesso mesmo se o roteiro depois foi pausado/arquivado.
+        const i = it as any;
+        const accommodationList = (i.accommodations || []).map((a: any) => ({
+            id: a.id, name: a.name, neighborhood: a.neighborhood,
+            description: a.description, priceRange: a.priceRange, rating: a.rating,
+            externalLink: a.externalLink, address: a.address, mapLink: a.mapLink,
+            tips: a.tips, nights: a.nights, startDate: a.startDate, endDate: a.endDate,
+            totalPrice: a.totalPrice, priceCurrency: a.priceCurrency, order: a.order,
+            spending: a.spending ?? undefined, cost: a.cost ?? undefined,
+        }));
+        const transportList = (i.transports || []).map((t: any) => ({
+            id: t.id, description: t.description, passTypes: t.passTypes,
+            estimatedPrice: t.estimatedPrice, notes: t.notes,
+            startDate: t.startDate, endDate: t.endDate,
+            priceValue: t.priceValue, priceCurrency: t.priceCurrency, order: t.order,
+            spending: t.spending ?? undefined, cost: t.cost ?? undefined,
+        }));
+        const checklistList = (i.checklists || []).map((c: any) => ({
+            id: c.id, category: c.category, item: c.item,
+            isDefault: c.isDefault, order: c.order, completed: false,
+        }));
+
+        res.json({
+            id: i.id, title: i.title, destination: i.destination, country: i.country,
+            creator: {
+                id: i.creator.id, name: i.creator.traveler.name,
+                avatar: i.creator.traveler.avatar || '👤',
+                verificationLevel: i.creator.verificationLevel.toLowerCase(),
+                rating: i.creator.averageRating, salesCount: i.creator.totalSales,
+            },
+            description: i.description, price: i.price, currency: i.currency,
+            images: (i.images || []).map((img: any) => img.url), rating: i.rating,
+            reviewCount: i.reviewCount, inclusions: i.inclusions,
+            duration: i.duration, featured: i.featured,
+            highlights: i.highlights, estimatedSpending: i.estimatedSpending,
+            downloadCount: i.downloadCount,
+            subtitle: i.subtitle, travelStyles: i.travelStyles, categories: i.categories,
+            productType: i.productType, activeModules: i.activeModules,
+            promoPrice: i.promoPrice, installments: i.installments,
+            immediateAccess: i.immediateAccess, lifetimeAccess: i.lifetimeAccess,
+            offlineDownload: i.offlineDownload, allowPdf: i.allowPdf, allowShare: i.allowShare,
+            travelProofUrl: i.travelProofUrl,
+            qualityScore: i.qualityScore, status: i.status,
+            approvalNote: i.approvalNote, approvedAt: i.approvedAt,
+            extraCities: i.extraCities || [], extraCountries: i.extraCountries || [],
+            tripStartDate: i.tripStartDate, tripEndDate: i.tripEndDate,
+            flightInfo:   i.flightInfo   || null,
+            attractions:  i.attractions  || [],
+            restaurants:  i.restaurants  || [],
+            generalTips:  i.generalTips  || [],
+            mediaUrls:    i.mediaUrls    || [],
+            highlightPhotos: i.highlightPhotos || [],
+            spendingProfile: i.spendingProfile || null,
+            receiveList:  i.receiveList  || null,
+            extraSpendingItems: i.extraSpendingItems || [],
+            accommodations: accommodationList,
+            accommodationOptions: accommodationList,
+            transports: transportList,
+            transport: { items: transportList },
+            checklists: checklistList,
+            checklist: checklistList,
+            days: (i.days || []).map((d: any) => ({
+                dayNumber: d.dayNumber, title: d.title, summary: d.summary,
+                description: d.description,
+                activities: (d.activities || []).map((a: any) => ({
+                    id: a.id, title: a.title, description: a.description,
+                    duration: a.duration, location: a.location, tips: a.tips,
+                    time: a.time, type: a.type, icon: a.icon, images: a.images,
+                    mapLink: a.mapLink, completed: a.completed, notes: a.notes,
+                    latitude: a.latitude, longitude: a.longitude, category: a.category,
+                })),
+            })),
+            files: (i.files || []).map((f: any) => ({ id: f.id, name: f.name, type: f.type, url: f.url, size: f.size })),
+            reviews: (i.reviews || []).map((r: any) => ({
+                id: r.id, rating: r.rating, text: r.comment,
+                date: r.createdAt.toISOString().split('T')[0],
+                verified: r.verified, helpful: r.helpful,
+                user: { name: r.userName, location: r.userLocation, avatar: r.userAvatar, initial: r.userInitial },
+                photos: (r.images || []).map((img: any) => img.url),
+                responses: (r.responses || []).map((rsp: any) => ({
+                    id: rsp.id, text: rsp.text, createdAt: rsp.createdAt,
+                })),
+            })),
+        });
+    } catch (error) {
+        console.error('Error fetching purchased itinerary:', error);
+        res.status(500).json({ error: 'Failed to fetch purchased itinerary' });
+    }
+});
+
+// GET /api/itineraries/:id/creator
+// Visão completa para o criador dono do roteiro, incluindo rascunhos,
+// rejeitados e itens em análise. Usada pelo app para editar e ver status.
+router.get('/:id/creator', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const id = req.params.id as string;
+        const it = await prisma.itinerary.findUnique({
+            where: { id },
+            include: {
+                creator: { include: { traveler: { select: { id: true, name: true, avatar: true } } } },
+                images: { orderBy: { order: 'asc' }, select: { url: true } },
+                days: { orderBy: { dayNumber: 'asc' }, include: { activities: { orderBy: { order: 'asc' } } } },
+                accommodations: { orderBy: { order: 'asc' } },
+                transports: { orderBy: { order: 'asc' } },
+                checklists: { orderBy: { order: 'asc' } },
+                sales: { select: { id: true, price: true, createdAt: true } },
+            },
+        });
+        if (!it) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+        if (!(await requireCreatorOwner(req, res, it.creatorId))) return;
+
+        res.json({
+            ...it,
+            images: it.images.map(img => img.url),
+            creator: {
+                id: it.creator.id,
+                name: it.creator.traveler.name,
+                travelerId: it.creator.traveler.id,
+                avatar: it.creator.traveler.avatar,
+            },
+        });
+    } catch (error) {
+        console.error('[itineraries.creator.get] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch creator itinerary' });
+    }
+});
+
+// PATCH /api/itineraries/:id/creator/status
+// Ações de status do criador: reenviar para análise, pausar e republicar
+// roteiro pausado. Aprovação/rejeição seguem exclusivas do admin.
+router.patch('/:id/creator/status', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const id = req.params.id as string;
+        const requestedStatus = normalizeStatus(req.body?.status);
+        if (!requestedStatus || !CREATOR_STATUS_ACTIONS.includes(requestedStatus as any)) {
+            res.status(400).json({ error: 'Status inválido para ação do criador.' });
+            return;
+        }
+
+        const existing = await prisma.itinerary.findUnique({
+            where: { id },
+            include: {
+                days: { include: { activities: true } },
+                accommodations: true,
+                transports: true,
+                checklists: true,
+            },
+        });
+        if (!existing) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+        if (!(await requireCreatorOwner(req, res, existing.creatorId))) return;
+
+        const current = existing.status as string;
+        if (requestedStatus === 'PAUSED' && current !== 'ACTIVE') {
+            res.status(400).json({ error: 'Apenas roteiros publicados podem ser pausados.' });
+            return;
+        }
+        if (requestedStatus === 'ACTIVE' && !['PAUSED', 'APPROVED'].includes(current)) {
+            res.status(400).json({ error: 'Apenas roteiros pausados ou aprovados podem ser publicados pelo criador.' });
+            return;
+        }
+        if (requestedStatus === 'PENDING_REVIEW') {
+            const issues = validateItinerarySubmission(existing);
+            if (issues.length) {
+                res.status(400).json({ error: `Corrija antes de enviar: ${issues.join(' ')}` });
+                return;
+            }
+        }
+
+        const updated = await prisma.itinerary.update({
+            where: { id },
+            data: requestedStatus === 'PENDING_REVIEW'
+                ? { status: 'PENDING_REVIEW', approvalNote: null, approvedAt: null, approvedBy: null }
+                : { status: requestedStatus as any },
+            select: { id: true, status: true, approvalNote: true, approvedAt: true, updatedAt: true },
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error('[itineraries.creator.status] Error:', error);
+        res.status(500).json({ error: 'Failed to update itinerary status' });
+    }
+});
+
+router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
         const it = await prisma.itinerary.findUnique({
             where: { id: req.params.id as string },
             include: {
-                creator: { include: { traveler: { select: { name: true, avatar: true } } } },
+                creator: { include: { traveler: { select: { name: true, avatar: true, id: true } } } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
                 days: { orderBy: { dayNumber: 'asc' }, include: { activities: { orderBy: { order: 'asc' } } } },
                 files: true,
@@ -177,6 +472,14 @@ router.get('/:id', async (req: Request, res: Response) => {
 
         if (!it) { res.status(404).json({ error: 'Itinerary not found' }); return; }
 
+        // Block access to non-public itineraries for non-owners
+        const isPublic = PUBLIC_STATUSES.includes(it.status as string);
+        const isOwner  = req.traveler?.travelerId === (it as any).creator?.traveler?.id;
+        if (!isPublic && !isOwner) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+
         const i = it as any;
 
         // Map accommodations (format also as accommodationOptions for post-purchase screen)
@@ -186,6 +489,9 @@ router.get('/:id', async (req: Request, res: Response) => {
             externalLink: a.externalLink, address: a.address, mapLink: a.mapLink,
             tips: a.tips, nights: a.nights, startDate: a.startDate, endDate: a.endDate,
             totalPrice: a.totalPrice, priceCurrency: a.priceCurrency, order: a.order,
+            // Transparência graduada de custos (round-trip)
+            spending: a.spending ?? undefined,
+            cost: a.cost ?? undefined,
         }));
 
         // Map transports (also as transport.items for post-purchase screen)
@@ -194,6 +500,9 @@ router.get('/:id', async (req: Request, res: Response) => {
             estimatedPrice: t.estimatedPrice, notes: t.notes,
             startDate: t.startDate, endDate: t.endDate,
             priceValue: t.priceValue, priceCurrency: t.priceCurrency, order: t.order,
+            // Transparência graduada de custos (round-trip)
+            spending: t.spending ?? undefined,
+            cost: t.cost ?? undefined,
         }));
 
         // Map checklists (flatten to a single "checklist" array for post-purchase screen)
@@ -238,6 +547,8 @@ router.get('/:id', async (req: Request, res: Response) => {
             highlightPhotos: i.highlightPhotos || [],
             spendingProfile: i.spendingProfile || null,
             receiveList:  i.receiveList  || null,
+            // ─── Transparência graduada de custos ───
+            extraSpendingItems: i.extraSpendingItems || [],
             // ─── Relações (com alias compat pro mobile pós-compra) ───
             accommodations: accommodationList,
             accommodationOptions: accommodationList,  // alias para mobile pós-compra
@@ -302,7 +613,10 @@ function calcItineraryQuality(data: any): number {
     if ((data.promoPrice && parseFloat(data.promoPrice) > 0) || data.installments) s += 2;
 
     // Bloco 3 — Imagens de capa (8 pts)
-    const imgs = (data.images || []).filter(Boolean);
+    const imgs = Array.from(new Set([
+        ...((data.images || []).filter(Boolean)),
+        ...((data.highlightPhotos || []).filter(Boolean)),
+    ]));
     if (imgs.length >= 1) s += 5;
     if (imgs.length >= 3) s += 3;
 
@@ -340,6 +654,120 @@ function calcItineraryQuality(data: any): number {
     return Math.min(Math.round(s), 100);
 }
 
+const CREATOR_WRITABLE_STATUSES = ['DRAFT', 'PENDING_REVIEW'] as const;
+const CREATOR_STATUS_ACTIONS = ['PENDING_REVIEW', 'ACTIVE', 'PAUSED'] as const;
+const PUBLIC_STATUSES = ['APPROVED', 'ACTIVE'];
+
+function normalizeStatus(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    return value.trim().toUpperCase();
+}
+
+function hasContentUpdate(body: any): boolean {
+    const keys = [
+        'title', 'destination', 'country', 'description', 'price', 'currency', 'duration',
+        'highlights', 'inclusions', 'estimatedSpending', 'images', 'days', 'subtitle',
+        'travelStyles', 'categories', 'productType', 'activeModules', 'promoPrice',
+        'installments', 'immediateAccess', 'lifetimeAccess', 'offlineDownload', 'allowPdf',
+        'allowShare', 'accommodations', 'transports', 'checklists', 'travelProofUrl',
+        'extraCities', 'extraCountries', 'flightInfo', 'attractions', 'restaurants',
+        'generalTips', 'mediaUrls', 'highlightPhotos', 'tripStartDate', 'tripEndDate',
+        'spendingProfile', 'receiveList', 'extraSpendingItems',
+    ];
+    return keys.some(key => Object.prototype.hasOwnProperty.call(body || {}, key));
+}
+
+function validateItinerarySubmission(data: any): string[] {
+    const issues: string[] = [];
+    const activeModules = Array.isArray(data.activeModules) ? data.activeModules : [];
+    const days = Array.isArray(data.days) ? data.days : [];
+
+    if (!String(data.title || '').trim()) issues.push('Defina um título para o roteiro.');
+    if (!String(data.destination || '').trim() || !String(data.country || '').trim()) issues.push('Informe cidade e país de destino.');
+    if (!String(data.description || '').trim()) issues.push('Escreva uma descrição para o roteiro.');
+    if (!Array.isArray(data.categories) || data.categories.filter(Boolean).length < 1) issues.push('Selecione pelo menos 1 categoria.');
+    if (!Number.isFinite(Number(data.price)) || Number(data.price) <= 0) issues.push('Defina um preço de venda válido.');
+    if (!Number.isFinite(Number(data.duration)) || Number(data.duration) < 1) issues.push('A duração precisa ter pelo menos 1 dia.');
+    if (!String(data.travelProofUrl || '').trim()) issues.push('Anexe o comprovante de viagem.');
+    if (activeModules.length < 1) issues.push('Ative pelo menos 1 módulo.');
+    if (days.length < 1) issues.push('Cadastre pelo menos 1 dia de roteiro.');
+
+    const coverCount = new Set([
+        ...((data.highlightPhotos || []).filter(Boolean)),
+        ...((data.images || []).filter(Boolean)),
+    ]).size;
+    if (coverCount < 1) issues.push('Adicione pelo menos 1 imagem de capa.');
+
+    const moduleIncomplete = (key: string): string | null => {
+        if (key === 'itinerario') {
+            const ok = days.length > 0 && days.every((d: any) =>
+                String(d.description || '').trim()
+                && Array.isArray(d.activities)
+                && d.activities.length > 0
+                && d.activities.every((a: any) => String(a.title || '').trim()));
+            return ok ? null : 'Preencha o itinerário por dia com descrição e atividades.';
+        }
+        if (key === 'voo') {
+            const out = data.flightInfo?.outbound;
+            const ret = data.flightInfo?.return;
+            const ok = !!(out?.originCity && out?.departureDate && out?.arrivalDate && ret?.originCity && ret?.departureDate && ret?.arrivalDate);
+            return ok ? null : 'Preencha os dados mínimos de ida e volta em Meu Voo.';
+        }
+        if (key === 'hospedagem') {
+            const rows = Array.isArray(data.accommodations) ? data.accommodations : [];
+            return rows.length > 0 && rows.every((a: any) => String(a.name || '').trim()) ? null : 'Adicione pelo menos 1 hospedagem com nome.';
+        }
+        if (key === 'passeios') {
+            const rows = Array.isArray(data.attractions) ? data.attractions : [];
+            return rows.length > 0 && rows.every((a: any) => String(a.name || '').trim()) ? null : 'Adicione pelo menos 1 passeio ou atração.';
+        }
+        if (key === 'transporte') {
+            const rows = Array.isArray(data.transports) ? data.transports : [];
+            return rows.length > 0 && rows.every((t: any) => String(t.description || '').trim() && String(t.passTypes || '').trim()) ? null : 'Preencha as dicas de transporte.';
+        }
+        if (key === 'dicas') {
+            const rows = Array.isArray(data.generalTips) ? data.generalTips : [];
+            return rows.filter((t: string) => String(t || '').trim()).length >= 2 ? null : 'Adicione pelo menos 2 dicas exclusivas.';
+        }
+        if (key === 'restaurantes') {
+            const rows = Array.isArray(data.restaurants) ? data.restaurants : [];
+            return rows.length > 0 && rows.every((r: any) => String(r.name || '').trim() && String(r.location || '').trim()) ? null : 'Adicione pelo menos 1 restaurante com nome e localização.';
+        }
+        if (key === 'checklist') {
+            const rows = Array.isArray(data.checklists) ? data.checklists : [];
+            return rows.filter((c: any) => String(c.item || '').trim()).length >= 5 ? null : 'Adicione pelo menos 5 itens no checklist.';
+        }
+        if (key === 'gastos_extras') {
+            const rows = Array.isArray(data.extraSpendingItems) ? data.extraSpendingItems : [];
+            return rows.length > 0 && rows.every((e: any) => String(e.title || '').trim()) ? null : 'Preencha pelo menos 1 gasto extra.';
+        }
+        return null;
+    };
+
+    for (const moduleKey of activeModules) {
+        const error = moduleIncomplete(moduleKey);
+        if (error) issues.push(error);
+    }
+
+    return Array.from(new Set(issues));
+}
+
+async function requireCreatorOwner(req: AuthRequest, res: Response, creatorId: string): Promise<boolean> {
+    if (!req.traveler?.travelerId) {
+        res.status(401).json({ error: 'Faça login como criador para continuar.' });
+        return false;
+    }
+    const creator = await prisma.creator.findUnique({
+        where: { id: creatorId },
+        select: { travelerId: true },
+    });
+    if (!creator || creator.travelerId !== req.traveler.travelerId) {
+        res.status(403).json({ error: 'Sem permissão para acessar este roteiro' });
+        return false;
+    }
+    return true;
+}
+
 // ─── CREATE ───
 // POST /api/itineraries (requires auth)
 router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async (req: AuthRequest, res: Response) => {
@@ -361,7 +789,21 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
             mediaUrls, highlightPhotos,
             tripStartDate, tripEndDate,
             spendingProfile, receiveList,
+            // ─── Transparência graduada de custos ───
+            extraSpendingItems,
         } = req.body;
+        void creatorId;
+
+        if (!req.traveler?.travelerId) {
+            res.status(401).json({ error: 'Faça login como criador para publicar roteiros.' });
+            return;
+        }
+
+        const requestedStatus = normalizeStatus(req.body?.status) || 'PENDING_REVIEW';
+        if (!CREATOR_WRITABLE_STATUSES.includes(requestedStatus as any)) {
+            res.status(400).json({ error: 'Criadores só podem salvar rascunho ou enviar para análise.' });
+            return;
+        }
 
         // Validate required fields (description is optional — backend stores empty string if absent)
         const missing: string[] = [];
@@ -386,26 +828,47 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
             return;
         }
 
-        // Resolve creator em ordem:
-        // 1. creatorId enviado explicitamente no body
-        // 2. travelerId do token JWT → busca creator vinculado
-        // SEM fallback para "primeiro creator" (causa o bug do Diego)
+        // Resolve o criador exclusivamente pelo JWT. Não confiamos em
+        // creatorId vindo do frontend porque isso vincula roteiro ao usuário errado.
         let resolvedCreatorId: string | null = null;
-        if (creatorId) {
-            const existing = await prisma.creator.findUnique({ where: { id: creatorId } });
-            if (existing) resolvedCreatorId = existing.id;
-        }
-        if (!resolvedCreatorId && req.traveler?.travelerId) {
-            const myCreator = await (prisma.creator as any).findUnique({
-                where: { travelerId: req.traveler.travelerId },
-                select: { id: true },
+        const myCreator = await (prisma.creator as any).findUnique({
+            where: { travelerId: req.traveler.travelerId },
+            select: { id: true },
+        });
+        resolvedCreatorId = myCreator?.id || null;
+        console.log('[POST /itineraries] creator resolved from token:', { travelerId: req.traveler.travelerId, creatorId: resolvedCreatorId });
+
+        // Auto-promote: se o traveler logado ainda não tem Creator, criar agora.
+        // Política de produto: criar o primeiro roteiro já torna o usuário um roteirista.
+        if (!resolvedCreatorId) {
+            const traveler = await prisma.traveler.findUnique({
+                where: { id: req.traveler.travelerId },
+                select: { id: true, name: true, bio: true },
             });
-            resolvedCreatorId = myCreator?.id || null;
-            console.log('[POST /itineraries] creator resolved from token:', { travelerId: req.traveler.travelerId, creatorId: resolvedCreatorId });
+            if (traveler) {
+                const newCreator = await (prisma.creator as any).create({
+                    data: {
+                        travelerId: traveler.id,
+                        bio: traveler.bio || `Roteirista no VAMO — ${traveler.name}`,
+                        verificationLevel: 'BASIC',
+                    },
+                    select: { id: true },
+                });
+                resolvedCreatorId = newCreator.id;
+                console.log('[POST /itineraries] auto-created creator for traveler:', { travelerId: traveler.id, creatorId: resolvedCreatorId });
+            }
         }
         if (!resolvedCreatorId) {
             res.status(401).json({ error: 'Faça login como criador para publicar roteiros.' });
             return;
+        }
+
+        if (requestedStatus === 'PENDING_REVIEW') {
+            const issues = validateItinerarySubmission(req.body);
+            if (issues.length) {
+                res.status(400).json({ error: `Corrija antes de enviar: ${issues.join(' ')}` });
+                return;
+            }
         }
 
         const qualityScore = calcItineraryQuality(req.body);
@@ -418,7 +881,7 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 country,
                 description: description || '',
                 price: parseFloat(price),
-                currency: currency || 'BRL',
+                currency: currency || 'AUD',
                 duration: parseInt(duration),
                 highlights: highlights || [],
                 inclusions: inclusions || [],
@@ -437,7 +900,10 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 allowPdf: allowPdf ?? false,
                 allowShare: allowShare ?? true,
                 qualityScore,
-                status: 'PENDING_REVIEW',  // sempre vai para fila de aprovação
+                status: requestedStatus as any,
+                approvalNote: null,
+                approvedAt: null,
+                approvedBy: null,
                 travelProofUrl: travelProofUrl || undefined,
                 // ─── Novos campos ───
                 extraCities: extraCities || [],
@@ -452,6 +918,8 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 tripEndDate: tripEndDate ? new Date(tripEndDate) : undefined,
                 spendingProfile: spendingProfile || undefined,
                 receiveList: receiveList || undefined,
+                // ─── Transparência graduada de custos: módulo "Gastos Extras" ───
+                extraSpendingItems: extraSpendingItems ?? undefined,
                 images: images?.length ? {
                     create: images.map((url: string, i: number) => ({ url, order: i })),
                 } : undefined,
@@ -495,6 +963,9 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                         endDate: a.endDate || undefined,
                         totalPrice: a.totalPrice || undefined,
                         priceCurrency: a.priceCurrency || undefined,
+                        // Transparência graduada de custos
+                        spending: a.spending ?? undefined,
+                        cost: a.cost ?? undefined,
                         order: i,
                     })),
                 } : undefined,
@@ -506,6 +977,9 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                         endDate: t.endDate || undefined,
                         priceValue: t.priceValue || undefined,
                         priceCurrency: t.priceCurrency || undefined,
+                        // Transparência graduada de custos
+                        spending: t.spending ?? undefined,
+                        cost: t.cost ?? undefined,
                         order: i,
                     })),
                 } : undefined,
@@ -564,14 +1038,27 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
             mediaUrls, highlightPhotos,
             tripStartDate, tripEndDate,
             spendingProfile, receiveList,
+            // ─── Transparência graduada de custos ───
+            extraSpendingItems,
         } = req.body;
 
         // Check itinerary exists
-        const existing = await prisma.itinerary.findUnique({ where: { id } });
+        const existing = await prisma.itinerary.findUnique({
+            where: { id },
+            include: {
+                images: { orderBy: { order: 'asc' }, select: { url: true } },
+                days: { include: { activities: true } },
+                accommodations: true,
+                transports: true,
+                checklists: true,
+            },
+        });
         if (!existing) {
             res.status(404).json({ error: 'Itinerary not found' });
             return;
         }
+
+        if (!(await requireCreatorOwner(req, res, existing.creatorId))) return;
 
         // Validate styles max 3
         if (travelStyles && travelStyles.length > 3) {
@@ -596,7 +1083,17 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (inclusions !== undefined) updateData.inclusions = inclusions;
         if (estimatedSpending !== undefined) updateData.estimatedSpending = estimatedSpending;
         if (featured !== undefined) updateData.featured = featured;
-        if (status !== undefined) updateData.status = status.toUpperCase();
+
+        const requestedStatus = normalizeStatus(status);
+        if (requestedStatus && !CREATOR_WRITABLE_STATUSES.includes(requestedStatus as any)) {
+            res.status(400).json({ error: 'Criadores só podem salvar rascunho ou enviar para análise.' });
+            return;
+        }
+        if (requestedStatus) {
+            updateData.status = requestedStatus;
+        } else if (hasContentUpdate(req.body) && !['DRAFT', 'PENDING_REVIEW'].includes(existing.status as string)) {
+            updateData.status = 'PENDING_REVIEW';
+        }
         // New fields
         if (subtitle !== undefined) updateData.subtitle = subtitle;
         if (travelStyles !== undefined) updateData.travelStyles = travelStyles;
@@ -624,10 +1121,37 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (tripEndDate !== undefined)     updateData.tripEndDate = tripEndDate ? new Date(tripEndDate) : null;
         if (spendingProfile !== undefined) updateData.spendingProfile = spendingProfile;
         if (receiveList !== undefined)     updateData.receiveList = receiveList;
+        // Transparência graduada de custos: módulo "Gastos Extras"
+        if (extraSpendingItems !== undefined) updateData.extraSpendingItems = extraSpendingItems;
 
         // Recalculate quality score
-        const merged = { ...existing, ...updateData, days, accommodations, transports, checklists };
+        const merged = {
+            ...existing,
+            ...updateData,
+            days: days ?? existing.days,
+            accommodations: accommodations ?? existing.accommodations,
+            transports: transports ?? existing.transports,
+            checklists: checklists ?? existing.checklists,
+            attractions: attractions ?? existing.attractions,
+            restaurants: restaurants ?? existing.restaurants,
+            generalTips: generalTips ?? existing.generalTips,
+            highlightPhotos: highlightPhotos ?? existing.highlightPhotos,
+            images: images ?? existing.images.map(img => img.url),
+            extraSpendingItems: extraSpendingItems ?? existing.extraSpendingItems,
+            flightInfo: flightInfo ?? existing.flightInfo,
+        };
         updateData.qualityScore = calcItineraryQuality(merged);
+
+        if (updateData.status === 'PENDING_REVIEW') {
+            const issues = validateItinerarySubmission(merged);
+            if (issues.length) {
+                res.status(400).json({ error: `Corrija antes de enviar: ${issues.join(' ')}` });
+                return;
+            }
+            updateData.approvalNote = null;
+            updateData.approvedAt = null;
+            updateData.approvedBy = null;
+        }
 
         // Use a transaction for atomic updates
         const result = await prisma.$transaction(async (tx) => {
@@ -702,6 +1226,9 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
                                 endDate: a.endDate || undefined,
                                 totalPrice: a.totalPrice || undefined,
                                 priceCurrency: a.priceCurrency || undefined,
+                                // Transparência graduada de custos
+                                spending: a.spending ?? undefined,
+                                cost: a.cost ?? undefined,
                                 order: i,
                             },
                         });
@@ -724,6 +1251,9 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
                                 endDate: t.endDate || undefined,
                                 priceValue: t.priceValue || undefined,
                                 priceCurrency: t.priceCurrency || undefined,
+                                // Transparência graduada de custos
+                                spending: t.spending ?? undefined,
+                                cost: t.cost ?? undefined,
                                 order: i,
                             },
                         });
@@ -782,6 +1312,8 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
             return;
         }
 
+        if (!(await requireCreatorOwner(req, res, existing.creatorId))) return;
+
         if (hard === 'true') {
             // Hard delete — remove completely
             await prisma.itinerary.delete({ where: { id } });
@@ -801,7 +1333,7 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
 });
 
 // ─── PURCHASE ───
-// POST /api/itineraries/:id/purchase (traveler-auth optional → falls back to demo traveler)
+// POST /api/itineraries/:id/purchase (traveler-auth required)
 // Records an ItinerarySale so the itinerary appears in the traveler's "Meus Roteiros".
 router.post('/:id/purchase', async (req: Request, res: Response) => {
     try {
@@ -818,17 +1350,13 @@ router.post('/:id/purchase', async (req: Request, res: Response) => {
             } catch { /* ignore — fall through */ }
         }
         if (!travelerId) {
-            const firstTraveler = await prisma.traveler.findFirst({ orderBy: { createdAt: 'asc' } });
-            travelerId = firstTraveler?.id || null;
-        }
-        if (!travelerId) {
-            res.status(400).json({ error: 'No traveler available to record purchase' });
+            res.status(401).json({ error: 'Autenticação necessária para realizar a compra' });
             return;
         }
 
         const itinerary = await prisma.itinerary.findUnique({ where: { id: itineraryId } });
         if (!itinerary) { res.status(404).json({ error: 'Itinerary not found' }); return; }
-        if (itinerary.status !== 'APPROVED') {
+        if (itinerary.status !== 'APPROVED' && itinerary.status !== 'ACTIVE') {
             res.status(400).json({ error: 'Itinerary is not available for purchase' });
             return;
         }

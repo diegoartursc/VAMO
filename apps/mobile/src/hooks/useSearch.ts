@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchContext, SearchFilters } from '../contexts/SearchContext';
-import { getPackages, getItineraries } from '../services/api';
-import { applyAllFilters, applyAllItineraryFilters } from '../utils/searchUtils';
-import { Package } from '../types';
+import { getItineraries } from '../services/api';
+import { applyAllItineraryFilters, itineraryMatchesCategory } from '../utils/searchUtils';
 
 /**
  * Hook personalizado para gerenciar busca e filtros.
@@ -10,25 +9,22 @@ import { Package } from '../types';
  */
 export function useSearch() {
     const context = useSearchContext();
-    const [allPackages, setAllPackages] = useState<any[]>([]);
     const [allItineraries, setAllItineraries] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
         async function loadData() {
             try {
-                const [pkgs, itins] = await Promise.all([
-                    getPackages(),
-                    getItineraries(),
-                ]);
+                setError(null);
+                const itins = await getItineraries();
                 if (!cancelled) {
-                    setAllPackages(pkgs || []);
                     setAllItineraries(itins || []);
                 }
-            } catch (err) {
+            } catch (err: any) {
                 if (!cancelled) {
-                    setAllPackages([]);
+                    setError(err?.message || 'Não foi possível carregar os roteiros.');
                     setAllItineraries([]);
                 }
             } finally {
@@ -40,86 +36,45 @@ export function useSearch() {
     }, []);
 
     /**
-     * Filtra os pacotes com base nos filtros atuais e intent de viagem
-     */
-    const filteredPackages = useMemo(() => {
-        let packages = applyAllFilters(allPackages, context.filters);
-
-        // Apply category filter
-        if (context.selectedCategory) {
-            packages = packages.filter(p =>
-                p.categories?.includes(context.selectedCategory!)
-            );
-        }
-
-        // Apply travel intent filter (budget/style)
-        if (context.travelIntent) {
-            if (context.travelIntent === 'luxo') {
-                packages = packages.filter(p =>
-                    p.categories?.includes('luxury') || p.badge === 'luxury'
-                );
-            } else if (context.travelIntent === 'economico' || context.travelIntent === 'custo-beneficio') {
-                packages = packages.filter(p =>
-                    (p.priceComparison === 'below' || p.badge === 'value') &&
-                    !p.categories?.includes('luxury')
-                );
-            } else if (context.travelIntent === 'moderado') {
-                // Middle ground: exclude pure luxury packages
-                packages = packages.filter(p => !p.categories?.includes('luxury') && p.badge !== 'luxury');
-            }
-        }
-
-        return packages;
-    }, [allPackages, context.filters, context.travelIntent, context.selectedCategory]);
-
-    /**
      * Filtra roteiros com base nos filtros atuais, categoria e intent de viagem
      */
     const filteredItineraries = useMemo(() => {
-        let itineraries = applyAllItineraryFilters(allItineraries, context.filters);
-
-        // Filtro por categoria temática
-        if (context.selectedCategory) {
-            itineraries = itineraries.filter(it =>
-                it.categories?.includes(context.selectedCategory!)
-            );
-        }
+        let itineraries = applyAllItineraryFilters(allItineraries, {
+            ...context.filters,
+            selectedCategories: context.selectedCategories,
+        });
 
         // Filtro por intenção de viagem (estilo)
         if (context.travelIntent) {
             if (context.travelIntent === 'luxo') {
                 itineraries = itineraries.filter(it =>
-                    it.travelStyles?.includes('luxo') || it.categories?.includes('luxury')
+                    itineraryMatchesCategory(it, ['luxo', 'luxury'])
                 );
             } else if (context.travelIntent === 'economico' || context.travelIntent === 'custo-beneficio') {
                 itineraries = itineraries.filter(it =>
-                    it.travelStyles?.includes('economico') || it.travelStyles?.includes('mochilao')
+                    itineraryMatchesCategory(it, ['economico', 'mochilao'])
                 );
             } else if (context.travelIntent === 'moderado') {
                 itineraries = itineraries.filter(it =>
-                    !it.travelStyles?.includes('luxo')
+                    !itineraryMatchesCategory(it, ['luxo', 'luxury'])
                 );
             } else if (context.travelIntent === 'mochilao') {
                 itineraries = itineraries.filter(it =>
-                    it.travelStyles?.includes('mochilao') || it.travelStyles?.includes('economico')
+                    itineraryMatchesCategory(it, ['mochilao', 'economico'])
                 );
             } else if (context.travelIntent === 'romantico') {
                 itineraries = itineraries.filter(it =>
-                    it.travelStyles?.includes('romantico')
+                    itineraryMatchesCategory(it, ['romantico'])
                 );
             } else if (context.travelIntent === 'aventura') {
                 itineraries = itineraries.filter(it =>
-                    it.travelStyles?.includes('aventura') || it.categories?.includes('aventura')
+                    itineraryMatchesCategory(it, ['aventura'])
                 );
             }
         }
 
         return itineraries;
-    }, [allItineraries, context.filters, context.travelIntent, context.selectedCategory]);
-
-    const getPackagesOnly = useCallback((): Package[] => {
-        return filteredPackages;
-    }, [filteredPackages]);
+    }, [allItineraries, context.filters, context.travelIntent, context.selectedCategories]);
 
     const getItinerariesOnly = useCallback(() => {
         return filteredItineraries;
@@ -127,10 +82,9 @@ export function useSearch() {
 
     const getAllResults = useCallback(() => {
         return {
-            packages: filteredPackages,
             itineraries: filteredItineraries,
         };
-    }, [filteredPackages, filteredItineraries]);
+    }, [filteredItineraries]);
 
     const applyFilters = useCallback((filters: SearchFilters) => {
         context.setFilters(filters);
@@ -151,9 +105,9 @@ export function useSearch() {
             priceMax < 50000 ||
             duration !== undefined ||
             context.travelIntent ||
-            context.selectedCategory
+            context.selectedCategories.length > 0
         );
-    }, [context.filters, context.travelIntent, context.selectedCategory]);
+    }, [context.filters, context.travelIntent, context.selectedCategories]);
 
     const activeFilterCount = useMemo(() => {
         let count = 0;
@@ -161,14 +115,14 @@ export function useSearch() {
         if (destination) count++;
         if (duration !== undefined) count++;
         if (context.travelIntent) count++;
-        if (context.selectedCategory) count++;
+        if (context.selectedCategories.length > 0) count++;
         if (priceMin > 0 || priceMax < 50000) count++;
         return count;
-    }, [context.filters, context.travelIntent, context.selectedCategory]);
+    }, [context.filters, context.travelIntent, context.selectedCategories]);
 
     const totalResultsCount = useMemo(() => {
-        return filteredPackages.length + filteredItineraries.length;
-    }, [filteredPackages, filteredItineraries]);
+        return filteredItineraries.length;
+    }, [filteredItineraries]);
 
     return {
         // Filtros
@@ -185,24 +139,30 @@ export function useSearch() {
 
         // Category
         selectedCategory: context.selectedCategory,
+        selectedCategories: context.selectedCategories,
         setSelectedCategory: context.setSelectedCategory,
+        setSelectedCategories: context.setSelectedCategories,
+        toggleSelectedCategory: context.toggleSelectedCategory,
 
         // Resultados
-        filteredPackages,
         filteredItineraries,
         totalResultsCount,
-        getPackagesOnly,
         getItinerariesOnly,
         getAllResults,
 
         // Estado
         isSearching: context.isSearching,
         loading,
+        error,
         activeTab: context.activeTab,
         setActiveTab: context.setActiveTab,
 
         // Raw data for screens that need it
-        allPackages,
         allItineraries,
+
+        // Histórico de intenção (para "Continue sua busca")
+        searchIntent: context.searchIntent,
+        recordSearchIntent: context.recordSearchIntent,
+        clearSearchIntent: context.clearSearchIntent,
     };
 }

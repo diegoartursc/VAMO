@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -7,38 +7,85 @@ import {
     TouchableOpacity,
     TextInput,
     Image,
-    Alert,
     Platform,
     StatusBar,
     Animated,
+    ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
 import { Ionicons } from '@expo/vector-icons';
 import { haptics } from '../src/services/haptics';
-import { addReview, getUserReviewForPackage } from '../src/data/mockReviews';
-import { getItineraryById } from '../src/data/mockItineraries';
-import { getPurchasedItineraryById } from '../src/data/mockPurchasedItineraries';
+import { getItineraryById, getReviews, submitItineraryReview, updateItineraryReview } from '../src/services/api';
+import { useAuth } from '../src/contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
-
-const TRAVELER_ID = 'trav-diego';
+import { notify } from '../src/utils/notify';
+import { uploadFile } from '../src/utils/uploadFile';
 
 const STAR_LABELS = ['', 'Péssimo', 'Ruim', 'Bom', 'Muito bom', 'Excelente'];
 
 export default function WriteReviewScreen() {
-    const { itineraryId } = useLocalSearchParams<{ itineraryId: string }>();
+    const params = useLocalSearchParams<{ itineraryId: string }>();
+    const itineraryId = Array.isArray(params.itineraryId) ? params.itineraryId[0] : params.itineraryId;
     const router = useRouter();
-    const itinerary = getItineraryById(itineraryId) || getPurchasedItineraryById(itineraryId);
-    const existingReview = getUserReviewForPackage(TRAVELER_ID, `itinerary-${itineraryId}`);
+    const { user, accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
 
-    const [rating, setRating] = useState(existingReview?.rating || 0);
-    const [text, setText] = useState(existingReview?.text || '');
-    const [photos, setPhotos] = useState<string[]>(existingReview?.photos || []);
+    const [itinerary, setItinerary] = useState<any | null>(null);
+    const [loadingItinerary, setLoadingItinerary] = useState(true);
+    const [existingReview, setExistingReview] = useState<any | null>(null);
+
+    const [rating, setRating] = useState(0);
+    const [text, setText] = useState('');
+    const [photos, setPhotos] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
+    const starScales = useRef([1, 2, 3, 4, 5].map(() => new Animated.Value(1))).current;
 
-    // Animated scales for star touch feedback
-    const starScales = [1, 2, 3, 4, 5].map(() => new Animated.Value(1));
+    // Gate de autenticação: sem usuário logado, sem avaliação.
+    useEffect(() => {
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            router.replace({
+                pathname: '/login' as any,
+                params: { next: '/write-review', ...(itineraryId ? { itineraryId } : {}) },
+            });
+        }
+    }, [authLoading, isAuthenticated, itineraryId, router]);
+
+    // Carrega o roteiro real (backend) e a review já feita por este usuário, se houver.
+    useEffect(() => {
+        let mounted = true;
+        const load = async () => {
+            if (!itineraryId) {
+                setLoadingItinerary(false);
+                return;
+            }
+            try {
+                const [itineraryData, reviewsResp] = await Promise.all([
+                    getItineraryById(itineraryId),
+                    getReviews({ itineraryId }),
+                ]);
+                if (!mounted) return;
+                setItinerary(itineraryData);
+
+                if (user?.travelerId) {
+                    const mine = reviewsResp.reviews.find((r: any) => r.travelerId === user.travelerId);
+                    if (mine) {
+                        setExistingReview(mine);
+                        setRating(Number(mine.rating) || 0);
+                        setText(typeof mine.text === 'string' ? mine.text : (mine.comment ?? ''));
+                        setPhotos(Array.isArray(mine.photos) ? mine.photos : []);
+                    }
+                }
+            } catch (err) {
+                console.error('[write-review] erro carregando dados:', err);
+            } finally {
+                if (mounted) setLoadingItinerary(false);
+            }
+        };
+        load();
+        return () => { mounted = false; };
+    }, [itineraryId, user?.travelerId]);
 
     const handleStarPress = (star: number) => {
         haptics.light();
@@ -61,20 +108,31 @@ export default function WriteReviewScreen() {
 
     const handlePickPhoto = async () => {
         if (photos.length >= 5) {
-            Alert.alert('Limite', 'Você pode adicionar no máximo 5 fotos.');
+            notify({ title: 'Limite', message: 'Você pode adicionar no máximo 5 fotos.' });
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsMultipleSelection: true,
-            selectionLimit: 5 - photos.length,
-            quality: 0.8,
-        });
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+                notify({ title: 'Fotos', message: 'Permita o acesso às fotos para anexar imagens à avaliação.' });
+                return;
+            }
 
-        if (!result.canceled) {
-            const newPhotos = result.assets.map(a => a.uri);
-            setPhotos(prev => [...prev, ...newPhotos].slice(0, 5));
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsMultipleSelection: true,
+                selectionLimit: 5 - photos.length,
+                quality: 0.8,
+            });
+
+            if (!result.canceled) {
+                const newPhotos = result.assets.map(a => a.uri).filter(Boolean);
+                setPhotos(prev => [...prev, ...newPhotos].slice(0, 5));
+            }
+        } catch (err) {
+            console.error('[write-review] erro selecionando fotos:', err);
+            notify({ title: 'Fotos', message: 'Não foi possível selecionar as fotos. Tente novamente.' });
         }
     };
 
@@ -83,48 +141,99 @@ export default function WriteReviewScreen() {
         setPhotos(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = () => {
-        if (rating === 0) {
-            Alert.alert('Avaliação', 'Selecione uma nota de 1 a 5 estrelas.');
+    const handleSubmit = async () => {
+        if (submitting) return;
+        if (!isAuthenticated) {
+            notify({ title: 'Login necessário', message: 'Faça login para enviar sua avaliação.' });
             return;
         }
-        if (text.trim().length < 20) {
-            Alert.alert('Avaliação', 'Escreva pelo menos 20 caracteres sobre sua experiência.');
+        if (rating === 0) {
+            notify({ title: 'Avaliação', message: 'Selecione uma nota para avaliar o roteiro.' });
+            return;
+        }
+        if (!user?.travelerId || !itineraryId) {
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar sua avaliação.' });
             return;
         }
 
         setSubmitting(true);
         haptics.light();
+        try {
+            // Upload das fotos locais (uri 'file://' ou 'blob:') antes de
+            // criar a review — o backend espera URLs públicas (string[]).
+            // Fotos que já são URL pública (http/https) passam direto.
+            const uploadedPhotos: string[] = [];
+            for (let i = 0; i < photos.length; i++) {
+                const p = photos[i];
+                if (typeof p !== 'string' || !p) continue;
+                if (/^https?:\/\//i.test(p)) {
+                    uploadedPhotos.push(p);
+                    continue;
+                }
+                try {
+                    const url = await uploadFile(p, accessToken, `review-${Date.now()}-${i}.jpg`);
+                    uploadedPhotos.push(url);
+                } catch (uploadErr: any) {
+                    console.error('[write-review] erro no upload de foto:', uploadErr);
+                    throw new Error('Não foi possível enviar uma das fotos. Tente novamente.');
+                }
+            }
 
-        // Mock: add review to local data
-        const today = new Date();
-        const dateStr = today.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
-
-        addReview({
-            packageId: `itinerary-${itineraryId}`,
-            userId: TRAVELER_ID,
-            user: {
-                name: 'Diego Artur',
-                location: 'Brasil',
-                avatar: '#0D9488',
-                initial: 'D',
-            },
-            rating,
-            date: dateStr,
-            verified: true,
-            text: text.trim(),
-            photos: photos.length > 0 ? photos : undefined,
-        });
-
-        setTimeout(() => {
+            const payload = {
+                rating,
+                comment: text.trim(),
+                photos: uploadedPhotos,
+            };
+            let savedReview;
+            if (existingReview?.id) {
+                const resp = await updateItineraryReview(existingReview.id, payload, accessToken);
+                savedReview = resp.review;
+            } else {
+                const resp = await submitItineraryReview({
+                    itineraryId,
+                    ...payload,
+                }, accessToken);
+                savedReview = resp.review;
+            }
+            setExistingReview(savedReview);
+            setPhotos(savedReview.photos || uploadedPhotos);
+            haptics.success?.();
+            notify({
+                title: existingReview ? 'Avaliação atualizada com sucesso.' : 'Avaliação enviada com sucesso.',
+                message: existingReview
+                    ? 'Suas mudanças foram salvas.'
+                    : 'Obrigado por compartilhar sua experiência. Sua avaliação ajuda outros viajantes.',
+                onDismiss: () => router.replace({ pathname: '/purchased-itinerary/[id]', params: { id: itineraryId } } as any),
+            });
+        } catch (err: any) {
+            haptics.error?.();
+            const msg: string = err?.message || 'Não foi possível enviar sua avaliação.';
+            // Tratamento amigável dos 3 erros mais comuns do backend.
+            if (msg.includes('já avaliou')) {
+                notify({
+                    title: 'Avaliação',
+                    message: 'Você já avaliou este roteiro.',
+                    onDismiss: () => router.back(),
+                });
+            } else if (msg.includes('Apenas quem comprou')) {
+                notify({ title: 'Avaliação indisponível', message: 'Apenas quem comprou este roteiro pode avaliá-lo.' });
+            } else if (msg.includes('próprios roteiros') || msg.includes('Criadores')) {
+                notify({ title: 'Avaliação indisponível', message: 'Criadores não podem avaliar seus próprios roteiros.' });
+            } else {
+                notify({ title: 'Erro', message: msg });
+            }
+        } finally {
             setSubmitting(false);
-            Alert.alert(
-                '✅ Avaliação Publicada!',
-                'Obrigado por compartilhar sua experiência. Sua avaliação ajuda outros viajantes.',
-                [{ text: 'OK', onPress: () => router.back() }]
-            );
-        }, 600);
+        }
     };
+
+    if (authLoading || loadingItinerary) {
+        return (
+            <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+        );
+    }
 
     if (!itinerary) {
         return (
@@ -139,7 +248,8 @@ export default function WriteReviewScreen() {
         );
     }
 
-    const canSubmit = rating > 0 && text.trim().length >= 20 && !submitting;
+    const coverImage = Array.isArray(itinerary.images) && itinerary.images[0] ? itinerary.images[0] : undefined;
+    const creatorName = itinerary.creator?.name ?? 'Criador VAMO';
 
     return (
         <View style={styles.container}>
@@ -164,14 +274,20 @@ export default function WriteReviewScreen() {
             >
                 {/* Itinerary Info Card */}
                 <View style={styles.itineraryCard}>
-                    <Image source={{ uri: itinerary.images[0] }} style={styles.itineraryImage} />
+                    {coverImage ? (
+                        <Image source={{ uri: coverImage }} style={styles.itineraryImage} resizeMode="cover" />
+                    ) : (
+                        <View style={[styles.itineraryImage, styles.itineraryImageFallback]}>
+                            <Icon name="map" size={24} color={theme.colors.text.tertiary} />
+                        </View>
+                    )}
                     <View style={styles.itineraryInfo}>
                         <Text style={styles.itineraryTitle} numberOfLines={2}>{itinerary.title}</Text>
                         <Text style={styles.itineraryDest}>
                             📍 {itinerary.destination}, {itinerary.country}
                         </Text>
                         <Text style={styles.itineraryCreator}>
-                            por {itinerary.creator.name}
+                            por {creatorName}
                         </Text>
                     </View>
                 </View>
@@ -216,7 +332,7 @@ export default function WriteReviewScreen() {
                         maxLength={1000}
                     />
                     <Text style={styles.charCount}>
-                        {text.length}/1000 {text.length < 20 && text.length > 0 && '(mín. 20 caracteres)'}
+                        {text.length}/1000
                     </Text>
                 </View>
 
@@ -231,7 +347,7 @@ export default function WriteReviewScreen() {
                     <View style={styles.photoGrid}>
                         {photos.map((uri, index) => (
                             <View key={index} style={styles.photoWrapper}>
-                                <Image source={{ uri }} style={styles.photoPreview} />
+                                <Image source={{ uri }} style={styles.photoPreview} resizeMode="cover" />
                                 <TouchableOpacity
                                     style={styles.photoRemoveBtn}
                                     onPress={() => removePhoto(index)}
@@ -254,7 +370,7 @@ export default function WriteReviewScreen() {
                 </View>
 
                 {/* Preview Card */}
-                {rating > 0 && text.trim().length >= 20 && (
+                {rating > 0 && (
                     <View style={styles.previewSection}>
                         <Text style={styles.sectionTitle}>Preview da avaliação</Text>
                         <View style={styles.previewCard}>
@@ -270,18 +386,20 @@ export default function WriteReviewScreen() {
                             </View>
                             <View style={styles.previewHeader}>
                                 <View style={[styles.previewAvatar, { backgroundColor: '#0D9488' }]}>
-                                    <Text style={styles.previewAvatarText}>D</Text>
+                                    <Text style={styles.previewAvatarText}>{(user?.name || 'V').charAt(0).toUpperCase()}</Text>
                                 </View>
                                 <View>
-                                    <Text style={styles.previewName}>Diego Artur</Text>
+                                    <Text style={styles.previewName}>{user?.name || 'Viajante'}</Text>
                                     <Text style={styles.previewDate}>Hoje • Compra verificada</Text>
                                 </View>
                             </View>
-                            <Text style={styles.previewText} numberOfLines={3}>{text}</Text>
+                            {text.trim() ? (
+                                <Text style={styles.previewText} numberOfLines={3}>{text.trim()}</Text>
+                            ) : null}
                             {photos.length > 0 && (
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.previewPhotos}>
                                     {photos.map((uri, i) => (
-                                        <Image key={i} source={{ uri }} style={styles.previewPhoto} />
+                                        <Image key={i} source={{ uri }} style={styles.previewPhoto} resizeMode="cover" />
                                     ))}
                                 </ScrollView>
                             )}
@@ -291,14 +409,18 @@ export default function WriteReviewScreen() {
 
                 {/* Submit Button */}
                 <TouchableOpacity
-                    style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
+                    style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
                     onPress={handleSubmit}
-                    disabled={!canSubmit}
+                    disabled={submitting}
                     activeOpacity={0.8}
                 >
-                    <Icon name="send" size={20} color="#fff" />
+                    {submitting ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                        <Icon name="send" size={20} color="#fff" />
+                    )}
                     <Text style={styles.submitButtonText}>
-                        {submitting ? 'Publicando...' : existingReview ? 'Atualizar Avaliação' : 'Publicar Avaliação'}
+                        {submitting ? 'Enviando...' : existingReview ? 'Atualizar avaliação' : 'Enviar avaliação'}
                     </Text>
                 </TouchableOpacity>
 
@@ -355,6 +477,10 @@ const styles = StyleSheet.create({
         height: 64,
         borderRadius: 10,
         backgroundColor: theme.colors.surfaceLight,
+    },
+    itineraryImageFallback: {
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     itineraryInfo: { flex: 1, gap: 2 },
     itineraryTitle: {

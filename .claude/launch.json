@@ -4,23 +4,26 @@
     {
       "name": "backend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "apps/backend"],
-      "port": 3333,
-      "autoPort": false
+      "runtimeArgs": ["run", "dev:backend"],
+      "port": 3333
     },
     {
       "name": "site",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "apps/site", "--", "-p", "3033"],
-      "port": 3033,
-      "autoPort": false
+      "runtimeArgs": ["run", "dev:site"],
+      "port": 3033
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:site", "--", "-p", "3034"],
+      "port": 3034
     },
     {
       "name": "mobile",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "apps/mobile"],
-      "port": 8081,
-      "autoPort": false
+      "runtimeArgs": ["run", "dev:mobile"],
+      "port": 8081
     }
   ]
 }

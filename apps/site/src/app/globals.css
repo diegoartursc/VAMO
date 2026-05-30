@@ -1072,6 +1072,14 @@ a {
   letter-spacing: -2px;
 }
 
+.auth-side-logo-img {
+  height: 60px;
+  width: auto;
+  margin-bottom: 24px;
+  object-fit: contain;
+  display: block;
+}
+
 .auth-side h2 {
   font-size: 28px;
   font-weight: 800;

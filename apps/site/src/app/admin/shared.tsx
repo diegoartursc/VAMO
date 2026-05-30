@@ -219,10 +219,12 @@ export function FilterBar({ current, onChange, counts }: { current: string; onCh
     );
 }
 
-export function ItemList({ items, type, onApprove, onReject, emptyMsg, showStatus }: {
+export function ItemList({ items, type, onApprove, onReject, onCostProofs, emptyMsg, showStatus }: {
     items: any[]; type: "packages" | "itineraries";
     onApprove: (type: "packages" | "itineraries", id: string, title: string) => void;
     onReject: (type: "packages" | "itineraries", id: string, title: string) => void;
+    /** Quando setado, mostra botão "Comprovantes" no row (apenas para itineraries). */
+    onCostProofs?: (id: string, title: string) => void;
     emptyMsg: string; showStatus?: boolean;
 }) {
     if (items.length === 0) return <EmptyState msg={emptyMsg} />;
@@ -287,27 +289,44 @@ export function ItemList({ items, type, onApprove, onReject, emptyMsg, showStatu
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontSize: "14px", fontWeight: "700", color: "#1FA89F" }}>
-                                {type === "packages" ? item.priceMin ? `R$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `R$ ${item.price.toLocaleString("pt-BR")}` : "—"}
+                                {type === "packages" ? item.priceMin ? `A$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `A$ ${item.price.toLocaleString("pt-BR")}` : "—"}
                             </div>
                         </div>
-                        {isPending && (
-                            <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-                                <button onClick={() => onApprove(type, item.id, item.title)} style={{
-                                    padding: "9px 16px", borderRadius: "10px", border: "none",
-                                    background: "linear-gradient(135deg, #28C9BF, #1FA89F)",
-                                    color: "#fff", fontWeight: "700", fontSize: "13px", cursor: "pointer",
-                                    boxShadow: "0 2px 8px rgba(40,201,191,0.25)",
-                                    display: "flex", alignItems: "center", gap: "6px",
-                                }}>{Icon.check({ size: 14, color: "#fff" })} Aprovar</button>
-                                <button onClick={() => onReject(type, item.id, item.title)} style={{
-                                    padding: "9px 16px", borderRadius: "10px",
-                                    border: "1.5px solid rgba(239,68,68,0.2)",
-                                    background: "rgba(239,68,68,0.06)",
-                                    color: "#DC2626", fontWeight: "700", fontSize: "13px", cursor: "pointer",
-                                    display: "flex", alignItems: "center", gap: "6px",
-                                }}>{Icon.x({ size: 14, color: "#DC2626" })} Rejeitar</button>
-                            </div>
-                        )}
+                        <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                            {type === "itineraries" && onCostProofs && (
+                                <button
+                                    onClick={() => onCostProofs(item.id, item.title)}
+                                    title="Revisar comprovantes de custo"
+                                    style={{
+                                        padding: "9px 14px", borderRadius: "10px",
+                                        border: "1.5px solid rgba(40,201,191,0.25)",
+                                        background: "rgba(40,201,191,0.08)",
+                                        color: "#1FA89F", fontWeight: "700", fontSize: "13px", cursor: "pointer",
+                                        display: "flex", alignItems: "center", gap: "6px",
+                                    }}
+                                >
+                                    🛡️ Comprovantes
+                                </button>
+                            )}
+                            {isPending && (
+                                <>
+                                    <button onClick={() => onApprove(type, item.id, item.title)} style={{
+                                        padding: "9px 16px", borderRadius: "10px", border: "none",
+                                        background: "linear-gradient(135deg, #28C9BF, #1FA89F)",
+                                        color: "#fff", fontWeight: "700", fontSize: "13px", cursor: "pointer",
+                                        boxShadow: "0 2px 8px rgba(40,201,191,0.25)",
+                                        display: "flex", alignItems: "center", gap: "6px",
+                                    }}>{Icon.check({ size: 14, color: "#fff" })} Aprovar</button>
+                                    <button onClick={() => onReject(type, item.id, item.title)} style={{
+                                        padding: "9px 16px", borderRadius: "10px",
+                                        border: "1.5px solid rgba(239,68,68,0.2)",
+                                        background: "rgba(239,68,68,0.06)",
+                                        color: "#DC2626", fontWeight: "700", fontSize: "13px", cursor: "pointer",
+                                        display: "flex", alignItems: "center", gap: "6px",
+                                    }}>{Icon.x({ size: 14, color: "#DC2626" })} Rejeitar</button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 );
             })}

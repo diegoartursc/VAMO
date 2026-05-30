@@ -116,9 +116,10 @@ router.post('/login', async (req: Request, res: Response) => {
     try {
         const validatedData = travelerLoginSchema.parse(req.body);
 
-        // Find traveler by email
+        // Find traveler by email (include creator if exists)
         const traveler = await prisma.traveler.findUnique({
             where: { email: validatedData.email },
+            include: { creator: { select: { id: true, verificationLevel: true } } },
         });
 
         if (!traveler || !traveler.passwordHash) {
@@ -149,6 +150,9 @@ router.post('/login', async (req: Request, res: Response) => {
                 email: traveler.email,
                 avatar: traveler.avatar,
             },
+            creator: traveler.creator
+                ? { id: traveler.creator.id, verificationLevel: traveler.creator.verificationLevel }
+                : null,
             accessToken,
             refreshToken,
         });
@@ -198,6 +202,45 @@ router.post('/refresh', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Traveler refresh error:', error);
         res.status(500).json({ error: 'Failed to refresh token' });
+    }
+});
+
+// ─── GET /api/auth/traveler/me ───
+router.get('/me', async (req: Request, res: Response) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No token provided' });
+        }
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
+        if (!decoded || typeof decoded === 'string' || !(decoded as any).travelerId) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+
+        const traveler = await prisma.traveler.findUnique({
+            where: { id: (decoded as any).travelerId },
+            include: { creator: { select: { id: true, verificationLevel: true } } },
+        });
+
+        if (!traveler) {
+            return res.status(404).json({ error: 'Traveler not found' });
+        }
+
+        res.json({
+            traveler: {
+                id: traveler.id,
+                name: traveler.name,
+                email: traveler.email,
+                avatar: traveler.avatar,
+            },
+            creator: traveler.creator
+                ? { id: traveler.creator.id, verificationLevel: traveler.creator.verificationLevel }
+                : null,
+        });
+    } catch (error) {
+        console.error('Traveler /me error:', error);
+        res.status(500).json({ error: 'Failed to fetch profile' });
     }
 });
 

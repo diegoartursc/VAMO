@@ -115,7 +115,7 @@ export default function DatePickerModal({
     const formatPrice = (price: number) => {
         return price.toLocaleString('pt-BR', {
             style: 'currency',
-            currency: 'BRL',
+            currency: 'AUD',
         });
     };
 

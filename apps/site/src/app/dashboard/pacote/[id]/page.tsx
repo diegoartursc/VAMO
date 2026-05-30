@@ -79,7 +79,7 @@ const CATEGORY_OPTIONS = [
     { key: "aventura", label: "Aventura" },
 ];
 
-const CURRENCIES = ["BRL (R$)", "USD ($)", "EUR (€)", "GBP (£)"];
+const CURRENCIES = ["AUD (A$)", "BRL (R$)", "USD ($)", "EUR (€)", "GBP (£)"];
 
 function getDurationLabel(days: number): string {
     if (days <= 3) return "Fim de semana";
@@ -132,7 +132,7 @@ const EMPTY_FORM = {
     priceMin: 0,
     priceMax: 0,
     promoPrice: null as number | null,
-    currency: "BRL (R$)",
+    currency: "AUD (A$)",
     installments: 12,
     cancellationPolicy: "",
     hasFreeCancellation: false,
@@ -1033,7 +1033,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                                     </strong>
                                                     {!dep.editing && dep.startDate && (
                                                         <div style={{ fontSize: 13, color: '#718096', marginTop: 2 }}>
-                                                            R$ {dep.price.toLocaleString('pt-BR')} · Vagas VAMO: {dep.capacityVamoAvailable}/{dep.capacityVamo} · {dep.status}
+                                                            A$ {dep.price.toLocaleString('pt-BR')} · Vagas VAMO: {dep.capacityVamoAvailable}/{dep.capacityVamo} · {dep.status}
                                                         </div>
                                                     )}
                                                 </div>
@@ -1063,7 +1063,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                                         />
                                                     </div>
                                                     <div className="editor-field">
-                                                        <label>Preço por pessoa (R$) *</label>
+                                                        <label>Preço por pessoa (A$) *</label>
                                                         <input
                                                             type="number"
                                                             value={dep.price || ''}

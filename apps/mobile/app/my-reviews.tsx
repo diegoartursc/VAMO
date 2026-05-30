@@ -96,7 +96,7 @@ function ReviewCard({ review }: { review: Review }) {
             {/* Itinerary info */}
             {itinerary && (
                 <View style={styles.cardItinerary}>
-                    <Image source={{ uri: itinerary.images[0] }} style={styles.cardItineraryImage} />
+                    <Image source={{ uri: itinerary.images[0] }} style={styles.cardItineraryImage} resizeMode="cover" />
                     <View style={styles.cardItineraryInfo}>
                         <Text style={styles.cardItineraryTitle} numberOfLines={1}>
                             {itinerary.title}
@@ -121,7 +121,7 @@ function ReviewCard({ review }: { review: Review }) {
                 {review.photos && review.photos.length > 0 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cardPhotos}>
                         {review.photos.map((photo, i) => (
-                            <Image key={i} source={{ uri: photo }} style={styles.cardPhoto} />
+                            <Image key={i} source={{ uri: photo }} style={styles.cardPhoto} resizeMode="cover" />
                         ))}
                     </ScrollView>
                 )}

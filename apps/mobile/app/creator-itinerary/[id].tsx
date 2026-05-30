@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    Platform, StatusBar, ActivityIndicator, Alert, Linking, Animated,
+    Platform, StatusBar, ActivityIndicator, Alert, Animated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
@@ -76,7 +77,7 @@ const mt = StyleSheet.create({
 export default function CreatorItineraryScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
-    const { accessToken } = useAuth();
+    const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
 
     const [itinerary, setItinerary] = useState<FullItinerary | null>(null);
     const [loading, setLoading] = useState(true);
@@ -85,24 +86,32 @@ export default function CreatorItineraryScreen() {
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const fetchItinerary = useCallback(async () => {
+        if (authLoading) return;
+        if (!isAuthenticated || !accessToken) {
+            setError('Faça login para acessar a área do criador.');
+            setLoading(false);
+            return;
+        }
         if (!id) return;
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/itineraries/${id}`, {
-                headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+            const res = await fetch(`${API_BASE}/itineraries/${id}/creator`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
             });
+            if (res.status === 403) throw new Error('Você não tem permissão para acessar este roteiro.');
+            if (res.status === 401) throw new Error('Faça login para acessar a área do criador.');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             // Normalise status to lowercase
             setItinerary({ ...data, status: (data.status ?? 'draft').toLowerCase() as ItineraryStatus });
         } catch (err: any) {
-            setError('Não foi possível carregar o roteiro.');
+            setError(err?.message || 'Não foi possível carregar o roteiro.');
             console.error('[creator-itinerary] erro:', err?.message);
         } finally {
             setLoading(false);
         }
-    }, [id, accessToken]);
+    }, [id, accessToken, authLoading, isAuthenticated]);
 
     useEffect(() => { fetchItinerary(); }, [fetchItinerary]);
 
@@ -132,15 +141,18 @@ export default function CreatorItineraryScreen() {
                     onPress: async () => {
                         setSubmitting(true);
                         try {
-                            const res = await fetch(`${API_BASE}/itineraries/${itinerary.id}`, {
-                                method: 'PUT',
+                            const res = await fetch(`${API_BASE}/itineraries/${itinerary.id}/creator/status`, {
+                                method: 'PATCH',
                                 headers: {
                                     'Content-Type': 'application/json',
                                     Authorization: `Bearer ${accessToken}`,
                                 },
                                 body: JSON.stringify({ status: 'PENDING_REVIEW' }),
                             });
-                            if (!res.ok) throw new Error('Falha ao reenviar');
+                            if (!res.ok) {
+                                const err = await res.json().catch(() => ({}));
+                                throw new Error(err?.error || 'Falha ao reenviar');
+                            }
                             haptics.success();
                             setItinerary(prev => prev ? { ...prev, status: 'pending_review', approvalNote: null } : prev);
                         } catch (err: any) {
@@ -173,12 +185,15 @@ export default function CreatorItineraryScreen() {
                     text: label,
                     onPress: async () => {
                         try {
-                            const res = await fetch(`${API_BASE}/itineraries/${itinerary.id}`, {
-                                method: 'PUT',
+                            const res = await fetch(`${API_BASE}/itineraries/${itinerary.id}/creator/status`, {
+                                method: 'PATCH',
                                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
                                 body: JSON.stringify({ status: newStatus }),
                             });
-                            if (!res.ok) throw new Error('Falha');
+                            if (!res.ok) {
+                                const err = await res.json().catch(() => ({}));
+                                throw new Error(err?.error || 'Falha');
+                            }
                             haptics.success();
                             setItinerary(prev => prev ? { ...prev, status: newStatus.toLowerCase() as ItineraryStatus } : prev);
                         } catch {
@@ -203,9 +218,15 @@ export default function CreatorItineraryScreen() {
             <View style={s.center}>
                 <Ionicons name="cloud-offline-outline" size={48} color={theme.colors.text.tertiary} />
                 <Text style={s.errorText}>{error ?? 'Roteiro não encontrado'}</Text>
-                <TouchableOpacity style={s.retryBtn} onPress={fetchItinerary}>
-                    <Text style={s.retryText}>Tentar novamente</Text>
-                </TouchableOpacity>
+                {isAuthenticated ? (
+                    <TouchableOpacity style={s.retryBtn} onPress={fetchItinerary}>
+                        <Text style={s.retryText}>Tentar novamente</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity style={s.retryBtn} onPress={() => router.replace({ pathname: '/login' as any, params: { next: `/creator-itinerary/${id}` } })}>
+                        <Text style={s.retryText}>Entrar na conta</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         );
     }
@@ -235,7 +256,7 @@ export default function CreatorItineraryScreen() {
                     </View>
                     <Text style={s.headerTitle} numberOfLines={2}>{itinerary.title}</Text>
                     <Text style={s.headerMeta}>
-                        {itinerary.destination}, {itinerary.country} · {itinerary.duration} dias · R$ {itinerary.price.toFixed(2).replace('.', ',')}
+                        {itinerary.destination}, {itinerary.country} · {itinerary.duration} dias · {formatMoney(itinerary.price)}
                     </Text>
                 </View>
             </LinearGradient>
@@ -286,7 +307,7 @@ export default function CreatorItineraryScreen() {
                         <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
                         <View style={{ flex: 1 }}>
                             <Text style={s.approvedTitle}>Roteiro aprovado! 🎉</Text>
-                            <Text style={s.approvedText}>Seu roteiro foi aprovado pela equipe VAMO e em breve estará publicado no marketplace.</Text>
+                            <Text style={s.approvedText}>Seu roteiro foi aprovado pela equipe VAMO. Publique quando estiver pronto para vender no marketplace.</Text>
                         </View>
                     </View>
                 )}
@@ -308,7 +329,7 @@ export default function CreatorItineraryScreen() {
                         <Text style={s.sectionTitle}>Desempenho</Text>
                         <View style={s.metricsRow}>
                             <MetricTile icon="cart-outline" value={String(totalSales)} label="vendas" color={theme.colors.primary} />
-                            <MetricTile icon="cash-outline" value={`R$ ${totalRevenue.toFixed(0)}`} label="receita" color={theme.colors.success} />
+                            <MetricTile icon="cash-outline" value={formatMoney(totalRevenue)} label="receita" color={theme.colors.success} />
                             {itinerary.rating > 0 && (
                                 <MetricTile icon="star" value={itinerary.rating.toFixed(1)} label="avaliação" color="#F59E0B" />
                             )}
@@ -380,16 +401,22 @@ export default function CreatorItineraryScreen() {
                             <Text style={[s.actionBtnText, { color: theme.colors.success }]}>Publicar novamente</Text>
                         </TouchableOpacity>
                     )}
+                    {itinerary.status === 'approved' && (
+                        <TouchableOpacity style={[s.actionBtn, s.actionBtnSecondary]} onPress={togglePause}>
+                            <Ionicons name="play-circle-outline" size={16} color={theme.colors.success} />
+                            <Text style={[s.actionBtnText, { color: theme.colors.success }]}>Publicar roteiro</Text>
+                        </TouchableOpacity>
+                    )}
                     {(itinerary.status === 'draft' || itinerary.status === 'rejected') && (
                         <TouchableOpacity
                             style={[s.actionBtn, s.actionBtnPrimary]}
                             onPress={() => {
                                 haptics.light();
-                                Linking.openURL(`https://vamo.app/dashboard/roteiro/${itinerary.id}`);
+                                router.push(`/new-itinerary?id=${encodeURIComponent(itinerary.id)}` as any);
                             }}
                         >
-                            <Ionicons name="open-outline" size={16} color="#fff" />
-                            <Text style={s.actionBtnText}>Editar no painel web</Text>
+                            <Ionicons name="create-outline" size={16} color="#fff" />
+                            <Text style={s.actionBtnText}>Editar roteiro</Text>
                         </TouchableOpacity>
                     )}
                 </View>

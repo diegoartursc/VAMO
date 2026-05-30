@@ -9,7 +9,9 @@ const router = Router();
 const registerSchema = z.object({
     // Agency data
     agencyName: z.string().min(2, 'Nome da agência deve ter no mínimo 2 caracteres'),
-    cnpj: z.string().min(14, 'CNPJ inválido'),
+    // CNPJ opcional (mercado australiano não usa CNPJ-BR). Quando ausente,
+    // a agência é criada sem identificação fiscal.
+    cnpj: z.string().min(1).optional(),
     whatsapp: z.string().optional(),
     contactUrl: z.string().url().optional(),
     // Employee (admin) data
@@ -37,13 +39,15 @@ router.post('/register', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Email já cadastrado' });
         }
 
-        // Check if CNPJ already exists
-        const existingAgency = await prisma.agency.findUnique({
-            where: { cnpj: validatedData.cnpj },
-        });
+        // Check if CNPJ already exists (apenas quando informado)
+        if (validatedData.cnpj) {
+            const existingAgency = await prisma.agency.findUnique({
+                where: { cnpj: validatedData.cnpj },
+            });
 
-        if (existingAgency) {
-            return res.status(400).json({ error: 'CNPJ já cadastrado' });
+            if (existingAgency) {
+                return res.status(400).json({ error: 'CNPJ já cadastrado' });
+            }
         }
 
         // Hash password
@@ -54,7 +58,7 @@ router.post('/register', async (req: Request, res: Response) => {
             const agency = await tx.agency.create({
                 data: {
                     name: validatedData.agencyName,
-                    cnpj: validatedData.cnpj,
+                    cnpj: validatedData.cnpj ?? null,
                     whatsapp: validatedData.whatsapp,
                     contactUrl: validatedData.contactUrl,
                 },

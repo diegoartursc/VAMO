@@ -1,32 +1,169 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
-import { VerifiedBadge } from '../../src/components/creator/VerifiedBadge';
 import { CreatorCard } from '../../src/components/creator/CreatorCard';
-import { PriceComparison } from '../../src/components/comparison/PriceComparison';
 import { getFeaturedCreators as apiFeaturedCreators } from '../../src/services/api';
-import { VERIFICATION_CONFIGS } from '../../src/types/creator';
+import { CREATOR_REPUTATION_LEVELS } from '../../src/gamification';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import { useSearch } from '../../src/hooks/useSearch';
 import { CTACarousel } from '../../src/components/home/CTACarousel';
-import { CoverCarousel } from '../../src/components/common/CoverCarousel';
-import { ITINERARY_INCLUSIONS } from '../../src/data/itineraryInclusions';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
+import { CATEGORIES } from '../../src/constants/categories';
+
+// Critérios de ORDENAÇÃO (não filtro). Cada opção apenas reorganiza a
+// lista — nunca esconde resultados. "relevance" é o estado padrão.
+const SORT_OPTIONS: { key: string; label: string; icon: IconName }[] = [
+    { key: 'relevance', label: 'Mais relevantes',  icon: 'compass' },
+    { key: 'popular',   label: 'Mais populares',   icon: 'star' },
+    { key: 'sales',     label: 'Mais vendidos',    icon: 'shopping-cart' },
+    { key: 'rating',    label: 'Melhor avaliados', icon: 'award' },
+    { key: 'newest',    label: 'Novidades',        icon: 'gem' },
+    { key: 'price_asc', label: 'Menor preço',      icon: 'wallet' },
+    { key: 'price_desc',label: 'Maior preço',      icon: 'trophy' },
+];
+
+const SORT_LABELS: Record<string, string> = Object.fromEntries(
+    SORT_OPTIONS.map((o) => [o.key, o.label]),
+);
+
+const DEFAULT_SORT = 'relevance';
+
+const isPublicItinerary = (itinerary: any) => {
+    const status = String(itinerary?.status ?? itinerary?.approvalStatus ?? 'active').toLowerCase();
+    return ['active', 'ativo', 'published', 'publicado'].includes(status);
+};
+
+const ts = (it: any) =>
+    new Date(it?.publishedAt || it?.approvedAt || it?.createdAt || it?.updatedAt || 0).getTime();
+
+const salesOf = (it: any) =>
+    Number(it?.salesCount ?? it?.purchasesCount ?? it?.soldCount ?? it?.creator?.salesCount ?? 0);
+
+const popularityOf = (it: any) =>
+    Number(it?.popularityScore ?? 0) ||
+    salesOf(it) * 3 +
+    Number(it?.favoritesCount ?? 0) * 2 +
+    Number(it?.viewsCount ?? 0);
+
+/**
+ * Ordena uma lista de roteiros sem nunca filtrá-la.
+ * Roteiros sem dado no critério escolhido vão pro fim, mas continuam visíveis.
+ */
+const sortItineraries = (itineraries: any[], sort: string | null) => {
+    const list = [...itineraries];
+    const key = sort || DEFAULT_SORT;
+
+    switch (key) {
+        case 'sales':
+            return list.sort((a, b) => salesOf(b) - salesOf(a) || ts(b) - ts(a));
+        case 'rating':
+            return list.sort((a, b) =>
+                Number(b?.rating || 0) - Number(a?.rating || 0) ||
+                Number(b?.reviewCount || 0) - Number(a?.reviewCount || 0) ||
+                salesOf(b) - salesOf(a),
+            );
+        case 'newest':
+            return list.sort((a, b) => ts(b) - ts(a));
+        case 'popular':
+            return list.sort((a, b) =>
+                Number(b?.featured === true) - Number(a?.featured === true) ||
+                popularityOf(b) - popularityOf(a) ||
+                Number(b?.qualityScore || 0) - Number(a?.qualityScore || 0) ||
+                Number(b?.rating || 0) - Number(a?.rating || 0),
+            );
+        case 'price_asc':
+            return list.sort((a, b) => Number(a?.price || 0) - Number(b?.price || 0));
+        case 'price_desc':
+            return list.sort((a, b) => Number(b?.price || 0) - Number(a?.price || 0));
+        case 'relevance':
+        default:
+            // Mantém a ordem natural da busca (já vem ranqueada pelo backend/useSearch)
+            return list;
+    }
+};
 
 export default function ItinerariesScreen() {
     const router = useRouter();
-    const { filters, applyFilters, allItineraries } = useSearch();
+    const {
+        sort: sortParam,
+        category: categoryParam,
+        intent: intentParam,
+        destination: destinationParam,
+    } = useLocalSearchParams<{
+        sort?: string;
+        category?: string;
+        intent?: string;
+        destination?: string;
+    }>();
+    const {
+        filters,
+        applyFilters,
+        allItineraries,
+        filteredItineraries,
+        hasActiveFilters,
+        selectedCategories,
+        setSelectedCategory,
+        setTravelIntent,
+        loading,
+        error,
+    } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
-    const [showComparison, setShowComparison] = useState(false);
     const [featuredCreators, setFeaturedCreators] = useState<any[]>([]);
+
+    // Estado local da ordenação ativa. Hidratado pelo query param "sort" da home.
+    // Nunca null — sempre cai no DEFAULT_SORT pra deixar claro que ordenação é
+    // independente dos filtros reais.
+    const [activeSort, setActiveSort] = useState<string>(sortParam ?? DEFAULT_SORT);
 
     useEffect(() => {
         apiFeaturedCreators().then(setFeaturedCreators).catch(console.error);
     }, []);
+
+    // Sincroniza com o query param vindo da home (caso o usuário troque
+    // de chip clicando em outro shortcut antes de voltar à home).
+    useEffect(() => {
+        if (sortParam && sortParam !== activeSort && SORT_LABELS[sortParam]) {
+            setActiveSort(sortParam);
+        }
+    }, [sortParam]);
+
+    useEffect(() => {
+        if (categoryParam) setSelectedCategory(categoryParam);
+        if (intentParam) setTravelIntent(intentParam);
+        if (destinationParam && destinationParam !== filters.destination) {
+            applyFilters({ ...filters, destination: destinationParam });
+        }
+    }, [categoryParam, intentParam, destinationParam]);
+
+    const itinerariesToShow = useMemo(() => {
+        const base = hasActiveFilters ? filteredItineraries : allItineraries;
+        return sortItineraries(base.filter(isPublicItinerary), activeSort);
+    }, [activeSort, hasActiveFilters, filteredItineraries, allItineraries]);
+
+    const activeCategoryLabel = useMemo(() => {
+        if (selectedCategories.length === 0) return undefined;
+        const labels = selectedCategories
+            .map(category => CATEGORIES.find(cat => cat.id === category)?.label)
+            .filter(Boolean);
+        if (labels.length <= 2) return labels.join(' ou ');
+        return `${labels.slice(0, 2).join(' ou ')} +${labels.length - 2}`;
+    }, [selectedCategories]);
+
+    // Título reflete apenas filtros reais — nunca a ordenação. A ordenação
+    // aparece como subtexto pra não dar a impressão de que "Melhor avaliados"
+    // está limitando a lista.
+    const sectionTitle = activeCategoryLabel
+        ? `Roteiros de ${activeCategoryLabel}`
+        : filters.destination
+        ? `Roteiros em ${filters.destination}`
+        : 'Roteiros encontrados';
+
+    const sortLabel = SORT_LABELS[activeSort] ?? SORT_LABELS[DEFAULT_SORT];
+    const resultsCount = itinerariesToShow.length;
 
     return (
         <View style={styles.container}>
@@ -52,17 +189,127 @@ export default function ItinerariesScreen() {
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* 1️⃣ Featured Itineraries - PRIORITY */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Roteiros mais escolhidos pela comunidade</Text>
+                {/* Ordenação — chips que só reorganizam, nunca filtram a lista */}
+                <View style={styles.sortChipsRow}>
+                    <Text style={styles.sortChipsLabel}>Ordenar por</Text>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+                    >
+                        {SORT_OPTIONS.map((f) => {
+                            const active = activeSort === f.key;
+                            return (
+                                <TouchableOpacity
+                                    key={f.key}
+                                    style={[styles.sortChip, active && styles.sortChipActive]}
+                                    onPress={() => setActiveSort(f.key)}
+                                    activeOpacity={0.85}
+                                    accessibilityRole="button"
+                                    accessibilityState={{ selected: active }}
+                                >
+                                    <Icon
+                                        name={f.icon}
+                                        size={14}
+                                        color={active ? '#fff' : theme.colors.primary}
+                                        strokeWidth={2.2}
+                                    />
+                                    <Text style={[styles.sortChipText, active && styles.sortChipTextActive]}>
+                                        {f.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
 
-                    {allItineraries.filter(it => it.featured).map((itinerary) => (
-                        <ItineraryCard
-                            key={itinerary.id}
-                            itinerary={itinerary}
-                            onPress={() => router.push(`/itinerary/${itinerary.id}`)}
-                        />
-                    ))}
+                {/* 1. Lista pública de roteiros digitais */}
+                <View style={styles.section}>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+                            {!loading && resultsCount > 0 && (
+                                <Text style={styles.sectionMeta}>
+                                    {resultsCount} {resultsCount === 1 ? 'roteiro' : 'roteiros'}
+                                    {'  ·  '}
+                                    Ordenado por <Text style={styles.sectionMetaStrong}>{sortLabel}</Text>
+                                </Text>
+                            )}
+                        </View>
+                        {hasActiveFilters && (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setActiveSort(DEFAULT_SORT);
+                                    setSelectedCategory(null);
+                                    setTravelIntent(null);
+                                    applyFilters({
+                                        destination: '',
+                                        duration: undefined,
+                                        priceMin: 0,
+                                        priceMax: 50000,
+                                    });
+                                }}
+                            >
+                                <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>
+                                    Limpar filtros
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {loading ? (
+                        <View style={styles.listState}>
+                            <ActivityIndicator color={theme.colors.primary} />
+                            <Text style={styles.listStateText}>Carregando roteiros digitais...</Text>
+                        </View>
+                    ) : error ? (
+                        <View style={styles.listState}>
+                            <Icon name="info" size={32} color={theme.colors.text.tertiary} />
+                            <Text style={styles.listStateTitle}>Não foi possível carregar os roteiros.</Text>
+                            <Text style={styles.listStateText}>{error}</Text>
+                        </View>
+                    ) : itinerariesToShow.length === 0 ? (
+                        <View style={styles.listState}>
+                            <Icon name="search" size={32} color={theme.colors.text.tertiary} />
+                            <Text style={styles.listStateTitle}>
+                                {hasActiveFilters
+                                    ? 'Nenhum roteiro encontrado para os filtros aplicados.'
+                                    : 'Nenhum roteiro disponível por enquanto.'}
+                            </Text>
+                            <Text style={styles.listStateText}>
+                                {hasActiveFilters
+                                    ? 'Ajuste os filtros ou explore todos os roteiros ativos.'
+                                    : 'Em breve novos roteiros serão publicados aqui.'}
+                            </Text>
+                            {hasActiveFilters && (
+                                <TouchableOpacity
+                                    style={styles.listStateButton}
+                                    onPress={() => {
+                                        setActiveSort(DEFAULT_SORT);
+                                        setSelectedCategory(null);
+                                        setTravelIntent(null);
+                                        applyFilters({
+                                            destination: '',
+                                            duration: undefined,
+                                            priceMin: 0,
+                                            priceMax: 50000,
+                                        });
+                                    }}
+                                    activeOpacity={0.85}
+                                >
+                                    <Text style={styles.listStateButtonText}>Limpar filtros</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    ) : (
+                        itinerariesToShow.map((itinerary) => (
+                            <ItineraryCard
+                                key={itinerary.id}
+                                itinerary={itinerary}
+                                onPress={() => router.push(`/itinerary/${itinerary.id}`)}
+                            />
+                        ))
+                    )}
                 </View>
 
                 {/* 2️⃣ Featured Creators */}
@@ -85,28 +332,32 @@ export default function ItinerariesScreen() {
                     ))}
                 </View>
 
-                {/* 3️⃣ Verification Levels */}
+                {/* 3️⃣ Reputação dos Roteiristas (Trilha do Roteirista) */}
                 <View style={styles.section}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Icon name="shield-check" size={18} color={theme.colors.primary} strokeWidth={2} />
-                        <Text style={styles.sectionTitle}>Níveis de Verificação</Text>
+                        <Text style={styles.sectionTitle}>Reputação dos Roteiristas</Text>
                     </View>
                     <Text style={styles.sectionSubtitle}>
-                        Aqui você sabe exatamente quem está por trás de cada roteiro
+                        Entenda o nível de experiência e confiança por trás de cada roteiro.
                     </Text>
 
                     <View style={styles.badgesGrid}>
-                        {(['basic', 'trusted', 'expert', 'ambassador'] as const).map((level) => {
-                            const config = VERIFICATION_CONFIGS[level];
-                            return (
-                                <View key={level} style={styles.badgeExplanation}>
-                                    <VerifiedBadge level={level} size="large" />
+                        {CREATOR_REPUTATION_LEVELS.map((config) => (
+                            <View key={config.level} style={styles.badgeExplanation}>
+                                <View style={[styles.reputationChip, { backgroundColor: config.bgColor }]}>
+                                    <Text style={{ fontSize: 20 }}>{config.icon}</Text>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 14, fontWeight: '700', color: config.color, marginBottom: 2 }}>
+                                        {config.label}
+                                    </Text>
                                     <Text style={styles.badgeDescription}>
                                         {config.description}
                                     </Text>
                                 </View>
-                            );
-                        })}
+                            </View>
+                        ))}
                     </View>
                 </View>
 
@@ -228,16 +479,90 @@ const styles = StyleSheet.create({
     section: {
         padding: theme.spacing.md,
     },
+    sortChipsRow: {
+        paddingTop: 10,
+        paddingBottom: 12,
+        backgroundColor: '#fff',
+        gap: 8,
+    },
+    sortChipsLabel: {
+        paddingHorizontal: 16,
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 0.6,
+        color: theme.colors.text.tertiary,
+        textTransform: 'uppercase',
+    },
+    sortChip: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        paddingHorizontal: 14, paddingVertical: 8,
+        backgroundColor: theme.colors.surface,
+        borderRadius: 9999,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
+    },
+    sortChipActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    sortChipText: {
+        fontSize: 13, fontWeight: '600', color: theme.colors.text.primary,
+    },
+    sortChipTextActive: { color: '#fff' },
     sectionTitle: {
         fontSize: 20,
         fontWeight: '700',
         color: theme.colors.text.primary,
         marginBottom: 4,
     },
+    sectionMeta: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 6,
+    },
+    sectionMetaStrong: {
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
     sectionSubtitle: {
         fontSize: 14,
         color: theme.colors.text.secondary,
         marginBottom: 10,
+    },
+    listState: {
+        minHeight: 150,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 28,
+        paddingHorizontal: 18,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        backgroundColor: theme.colors.background,
+    },
+    listStateTitle: {
+        marginTop: 10,
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        textAlign: 'center',
+    },
+    listStateText: {
+        marginTop: 8,
+        color: theme.colors.text.secondary,
+        fontSize: 13,
+        textAlign: 'center',
+    },
+    listStateButton: {
+        marginTop: 14,
+        borderRadius: 10,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
+    listStateButtonText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '700',
     },
     badgesGrid: {
         gap: theme.spacing.sm,
@@ -254,6 +579,13 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 13,
         color: theme.colors.text.secondary,
+    },
+    reputationChip: {
+        width: 44,
+        height: 44,
+        borderRadius: theme.borderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     toggleButton: {
         paddingVertical: theme.spacing.sm,

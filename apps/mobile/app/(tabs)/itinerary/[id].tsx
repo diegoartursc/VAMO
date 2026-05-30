@@ -1,107 +1,207 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
-    Image,
     TouchableOpacity,
     Dimensions,
     StatusBar,
     Platform,
+    ActivityIndicator,
+    Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../src/theme/theme';
 import { getItineraryById, getCurrencyRates } from '../../../src/services/api';
-import { getReviewsByPackageId, getAverageRating, getCategoryRatings, getCommunityPhotos, getTopRatedCategoriesText } from '../../../src/data/mockReviews';
-import { Alert, Linking, Share } from 'react-native';
+import { getReviewsByItineraryId } from '../../../src/data/mockReviews';
 import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
 import CollapsibleSection from '../../../src/components/common/CollapsibleSection';
 import PremiumReviewsSection from '../../../src/components/reviews/PremiumReviewsSection';
-import { shareService } from '../../../src/services/sharing';
 import { haptics } from '../../../src/services/haptics';
-import { ITINERARY_INCLUSIONS } from '../../../src/data/itineraryInclusions';
+import { getReceivedModules, getCategoryChips } from '../../../src/utils/itineraryCardBadges';
+import {
+    getExperienceStyle,
+    getWhyBuyBullets,
+    getIdealForBullets,
+    getUnlockPreviewCards,
+    getBeforeBuyItems,
+} from '../../../src/utils/itinerarySales';
 import { Icon } from '../../../src/components/common/Icons';
 import { CoverCarousel } from '../../../src/components/common/CoverCarousel';
+import MediaGallery from '../../../src/components/common/MediaGallery';
+import { getCoverImages, getCoverFocalPoint } from '../../../src/utils/itineraryMedia';
 import { LinearGradient } from 'expo-linear-gradient';
 import FAQSection from '../../../src/components/FAQSection';
-import { getItineraryFAQ } from '../../../src/data/mockFAQ';
 import { PurchaseSuccessModal } from '../../../src/components/modals/PurchaseSuccessModal';
 import { useFavorites } from '../../../src/hooks/useFavorites';
 import { useCart } from '../../../src/hooks/useCart';
 import { useAuth } from '../../../src/contexts/AuthContext';
+import { useSearchContext } from '../../../src/contexts/SearchContext';
+import BudgetSummaryCard from '../../../src/components/dashboard/BudgetSummaryCard';
+import PeopleSimulator from '../../../src/components/dashboard/PeopleSimulator';
+import { getCostReferences, calculateBudgetSummary, formatMoney, type CostReferencesGroup } from '@vamo/shared/itinerary';
 
 const { width, height } = Dimensions.get('window');
 
 export default function ItineraryDetailScreen() {
     const { id, showSuccess } = useLocalSearchParams<{ id: string; showSuccess?: string }>();
+    const itineraryId = Array.isArray(id) ? id[0] : id;
     const router = useRouter();
     const [itinerary, setItinerary] = useState<any>(null);
-    const [showBuyOptions, setShowBuyOptions] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
+    const [peopleCount, setPeopleCount] = useState<number>(1);
     const [cartToast, setCartToast] = useState(false);
-    const reviews = getReviewsByPackageId(`itinerary-${id}`);
     const { isFavorite, toggleFavorite } = useFavorites();
     const { isInCart, addToCart } = useCart();
     const { accessToken } = useAuth();
+    const { recordSearchIntent } = useSearchContext();
+
+    const loadItinerary = useCallback(async () => {
+        if (!itineraryId) {
+            setItinerary(null);
+            setLoadError('Roteiro inválido.');
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+        setLoadError(null);
+        try {
+            const data = await getItineraryById(itineraryId);
+            if (!data) {
+                setItinerary(null);
+                setLoadError('Roteiro não encontrado ou indisponível.');
+                return;
+            }
+            setItinerary(data);
+        } catch (error) {
+            console.error('Error loading itinerary:', error);
+            setItinerary(null);
+            setLoadError('Não foi possível carregar este roteiro agora.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [itineraryId]);
 
     useEffect(() => {
-        getItineraryById(id).then(setItinerary).catch(console.error);
+        loadItinerary();
         getCurrencyRates().then(setCurrencyRates).catch(console.error);
-    }, [id]);
+    }, [loadItinerary]);
 
-    /** Converte valor em qualquer moeda para BRL formatado, usando taxas do admin */
-    const toBRL = (value: string | number, currency: string): string => {
-        const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
-        if (n <= 0) return 'R$ 0';
-        const brl = currency === 'BRL' ? n : n * (currencyRates[currency] ?? 1);
-        return brl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    // Registra a visualização para alimentar "Continue sua busca" na Home.
+    useEffect(() => {
+        if (!itinerary?.id) return;
+        recordSearchIntent({
+            lastViewedIds: [String(itinerary.id)],
+            lastCountry: itinerary.country,
+            lastCity: itinerary.destination,
+            lastCategories: Array.isArray(itinerary.categories) ? itinerary.categories : undefined,
+        });
+    }, [itinerary?.id, recordSearchIntent]);
+
+    const goBackOrExplore = () => {
+        if (router.canGoBack()) {
+            router.back();
+            return;
+        }
+        router.replace('/(tabs)/itineraries' as any);
     };
 
-    if (!itinerary) {
+    /** Converte valor em qualquer moeda para AUD formatado, usando taxas do admin */
+    const toBRL = (value: string | number, currency: string): string => {
+        const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+        if (n <= 0) return formatMoney(0);
+        const aud = currency === 'AUD' ? n : n * (currencyRates[currency] ?? 1);
+        return formatMoney(aud);
+    };
+
+    if (isLoading) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Carregando...</Text>
+            <View style={styles.stateContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={styles.stateTitle}>Carregando roteiro...</Text>
+                <Text style={styles.stateText}>Estamos buscando os detalhes, imagens e avaliações deste roteiro digital.</Text>
             </View>
         );
     }
 
-    const handlePurchase = () => {
-        setShowSuccessModal(true);
-    };
+    if (!itinerary) {
+        return (
+            <View style={styles.stateContainer}>
+                <Ionicons name="map-outline" size={42} color={theme.colors.text.tertiary} />
+                <Text style={styles.stateTitle}>{loadError || 'Roteiro indisponível'}</Text>
+                <Text style={styles.stateText}>
+                    Ele pode ter sido removido, pausado ou ainda não estar aprovado para a vitrine.
+                </Text>
+                <View style={styles.stateActions}>
+                    <TouchableOpacity style={styles.stateSecondaryButton} onPress={goBackOrExplore}>
+                        <Ionicons name="arrow-back" size={17} color={theme.colors.primary} />
+                        <Text style={styles.stateSecondaryText}>Voltar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.statePrimaryButton} onPress={loadItinerary}>
+                        <Ionicons name="refresh" size={17} color="#fff" />
+                        <Text style={styles.statePrimaryText}>Tentar novamente</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
+    const price = Number(itinerary.price) || 0;
+    const duration = Number(itinerary.duration) || 0;
+    const rating = Number(itinerary.rating) || 0;
+    const reviewCount = Number(itinerary.reviewCount) || 0;
+    const creator = itinerary.creator || {};
+    const creatorId = creator.id;
+    const creatorName = creator.name || 'Criador VAMO';
+    const creatorRating = Number(creator.rating) || 0;
+    const creatorSales = Number(creator.salesCount) || 0;
+    const destinationLabel = [itinerary.destination, itinerary.country].filter(Boolean).join(', ') || 'Destino VAMO';
+    const reviews = Array.isArray(itinerary.reviews) ? itinerary.reviews : getReviewsByItineraryId(`itinerary-${itineraryId}`);
+    const averageReviewRating = reviews.length > 0
+        ? Number((reviews.reduce((sum: number, review: any) => sum + (Number(review.rating) || 0), 0) / reviews.length).toFixed(1))
+        : rating;
+    const reviewPhotos = reviews.flatMap((review: any) => Array.isArray(review.photos) ? review.photos : []);
 
     const handleGoToMyTrips = () => {
         setShowSuccessModal(false);
         router.push('/(tabs)/my-trips' as any);
     };
+    const handleViewPurchasedItinerary = () => {
+        setShowSuccessModal(false);
+        router.replace(`/purchased-itinerary/${itineraryId}` as any);
+    };
     const handleBuyNow = () => {
         // Login gate: usuário deslogado não pode comprar. Redireciona para
         // login com `next` apontando de volta pra esta tela de detalhe.
         if (!accessToken) {
-            router.push({ pathname: '/login' as any, params: { next: `/itinerary/${id}` } });
+            router.push({ pathname: '/login' as any, params: { next: `/itinerary/${itineraryId}` } });
             return;
         }
         router.push({
             pathname: `/checkout/itinerary-contact` as any,
             params: {
-                itineraryId: id,
-                price: itinerary.price.toString(),
+                itineraryId,
+                price: price.toString(),
             },
         });
     };
 
     const handleToggleFavorite = async () => {
         haptics.light();
-        await toggleFavorite(id);
+        await toggleFavorite(itineraryId);
     };
 
     const handleAddToCart = async () => {
         haptics.medium();
-        if (!isInCart(id)) {
-            await addToCart(id);
+        if (!isInCart(itineraryId)) {
+            await addToCart(itineraryId);
             setCartToast(true);
             setTimeout(() => setCartToast(false), 2500);
         } else {
@@ -117,7 +217,12 @@ export default function ItineraryDetailScreen() {
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* Hero Image */}
                 <View style={styles.heroContainer}>
-                    <CoverCarousel images={itinerary.images} height={420} />
+                    <CoverCarousel
+                        images={getCoverImages(itinerary)}
+                        height={420}
+                        focalPoint={getCoverFocalPoint(itinerary)}
+                        panEnabled={false}
+                    />
                     {/* Bottom gradient for smooth transition to content sheet */}
                     <LinearGradient
                         colors={['transparent', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.6)']}
@@ -136,9 +241,9 @@ export default function ItineraryDetailScreen() {
                                 onPress={handleToggleFavorite}
                             >
                                 <Ionicons
-                                    name={isFavorite(id) ? 'heart' : 'heart-outline'}
+                                    name={isFavorite(itineraryId) ? 'heart' : 'heart-outline'}
                                     size={22}
-                                    color={isFavorite(id) ? '#EF4444' : '#fff'}
+                                    color={isFavorite(itineraryId) ? '#EF4444' : '#fff'}
                                 />
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -148,7 +253,7 @@ export default function ItineraryDetailScreen() {
                                     try {
                                         await Share.share({
                                             title: itinerary.title,
-                                            message: `🗺️ Confira este roteiro no VAMO!\n\n${itinerary.title}\n📍 ${itinerary.destination}, ${itinerary.country}\n💰 R$ ${itinerary.price.toFixed(2)}`,
+                                            message: `Confira este roteiro digital no VAMO!\n\n${itinerary.title}\nDestino: ${destinationLabel}\nValor: ${formatMoney(price)}`,
                                         });
                                     } catch (error) {
                                         // User cancelled
@@ -165,23 +270,29 @@ export default function ItineraryDetailScreen() {
                 <View style={styles.contentSheet}>
                     {/* Creator Badge */}
                     <View style={styles.creatorRow}>
-                        <View style={styles.creatorBadge}>
+                        <TouchableOpacity
+                            style={styles.creatorBadge}
+                            activeOpacity={creatorId ? 0.85 : 1}
+                            disabled={!creatorId}
+                            accessibilityLabel={`Ver perfil de ${creatorName}`}
+                            onPress={() => creatorId && router.push(`/creator/${creatorId}` as any)}
+                        >
                             <View style={styles.creatorAvatarCircle}>
                                 <Icon name="circle-user" size={22} color={theme.colors.primary} />
                             </View>
                             <View>
                                 <View style={styles.creatorNameRow}>
-                                    <Text style={styles.creatorName}>{itinerary.creator.name}</Text>
-                                    <VerifiedBadge level={itinerary.creator.verificationLevel} size="small" showLabel={false} />
+                                    <Text style={styles.creatorName}>{creatorName}</Text>
+                                    <VerifiedBadge level={creator.verificationLevel || 'basic'} size="small" showLabel={false} />
                                 </View>
                                 <View style={styles.creatorStatsRow}>
                                     <Icon name="star" size={11} color="#F59E0B" strokeWidth={2.5} />
                                     <Text style={styles.creatorStats}>
-                                        {itinerary.creator.rating} · {itinerary.creator.salesCount.toLocaleString('pt-BR')} vendas
+                                        {creatorRating.toFixed(1)} · {creatorSales.toLocaleString('pt-BR')} vendas
                                     </Text>
                                 </View>
                             </View>
-                        </View>
+                        </TouchableOpacity>
 
                         {/* Creator Verification Link */}
                         <TouchableOpacity
@@ -236,51 +347,68 @@ export default function ItineraryDetailScreen() {
                     <View style={styles.statsCard}>
                         <View style={styles.statItem}>
                             <Icon name="star" size={16} color="#F59E0B" strokeWidth={2.5} />
-                            <Text style={styles.statText}>{itinerary.rating}</Text>
-                            <Text style={styles.statLabel}>({itinerary.reviewCount})</Text>
+                            <Text style={styles.statText}>{rating.toFixed(1)}</Text>
+                            <Text style={styles.statLabel}>({reviewCount})</Text>
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.statItem}>
                             <Icon name="calendar" size={16} color={theme.colors.primary} />
-                            <Text style={styles.statText}>{itinerary.duration} dias</Text>
+                            <Text style={styles.statText}>{duration} dias</Text>
                         </View>
                     </View>
 
-                    {/* Price & CTA */}
+                    {/* Price & CTA — card de compra com 2 linhas claras
+                        Linha 1: preço + parcelamento
+                        Linha 2: [Adicionar ao carrinho] [Comprar agora] */}
                     <LinearGradient
                         colors={['#1A3263', '#162A55']}
                         style={styles.priceSection}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     >
-                        <View>
-                            <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.65)' }]}>Roteiro completo</Text>
+                        <View style={styles.priceInfo}>
+                            <Text style={styles.priceLabelText}>Roteiro completo</Text>
                             <View style={styles.priceRow}>
-                                <Text style={[styles.priceSymbol, { color: '#28C9BF' }]}>R$</Text>
-                                <Text style={[styles.priceValue, { color: '#FFFFFF' }]}>{itinerary.price.toFixed(2).replace('.', ',')}</Text>
+                                <Text style={styles.priceSymbolText}>A$</Text>
+                                <Text style={styles.priceValueText}>
+                                    {price.toFixed(2).replace('.', ',')}
+                                </Text>
                             </View>
-                            <Text style={[styles.priceNote, { color: 'rgba(255,255,255,0.5)' }]}>• Acesso imediato após compra</Text>
+                            <Text style={styles.priceInstallment}>
+                                Em até 12x de {formatMoney(price / 12)} sem juros
+                            </Text>
+                            <View style={styles.priceMeta}>
+                                <Ionicons name="flash" size={12} color="#28C9BF" />
+                                <Text style={styles.priceMetaText}>Acesso imediato após a compra</Text>
+                            </View>
                         </View>
-                        <View style={styles.priceCtas}>
-                            {/* Botão Carrinho */}
+
+                        <View style={styles.purchaseActions}>
+                            {/* Adicionar ao carrinho / No carrinho */}
                             <TouchableOpacity
-                                style={[styles.cartCta, isInCart(id) && styles.cartCtaActive]}
+                                style={[styles.cartCtaWide, isInCart(itineraryId) && styles.cartCtaWideActive]}
                                 onPress={handleAddToCart}
-                                activeOpacity={0.8}
+                                activeOpacity={0.85}
+                                accessibilityLabel={isInCart(itineraryId) ? 'No carrinho' : 'Adicionar ao carrinho'}
                             >
-                                <Ionicons
-                                    name={isInCart(id) ? 'checkmark-circle' : 'cart-outline'}
-                                    size={20}
-                                    color={isInCart(id) ? '#28C9BF' : 'rgba(255,255,255,0.85)'}
+                                <Icon
+                                    name={isInCart(itineraryId) ? 'verified' : 'shopping-cart'}
+                                    size={18}
+                                    color={isInCart(itineraryId) ? '#28C9BF' : '#FFFFFF'}
                                 />
+                                <Text style={[styles.cartCtaWideText, isInCart(itineraryId) && styles.cartCtaWideTextActive]}>
+                                    {isInCart(itineraryId) ? 'No carrinho' : 'Adicionar'}
+                                </Text>
                             </TouchableOpacity>
-                            {/* Botão Comprar */}
+
+                            {/* Comprar Agora — CTA primário */}
                             <TouchableOpacity
                                 style={styles.buyButton}
                                 onPress={handleBuyNow}
+                                activeOpacity={0.85}
                             >
-                                <Text style={styles.buyButtonText}>Comprar Agora</Text>
-                                <Icon name="chevron-right" size={18} color="#fff" strokeWidth={2.5} />
+                                <Text style={styles.buyButtonText}>Comprar agora</Text>
+                                <Icon name="chevron-right" size={16} color="#fff" strokeWidth={2.5} />
                             </TouchableOpacity>
                         </View>
                     </LinearGradient>
@@ -292,6 +420,42 @@ export default function ItineraryDetailScreen() {
                             <Text style={styles.cartToastText}>Adicionado ao carrinho!</Text>
                         </View>
                     )}
+
+                    {/* Estilo da experiência + Categorias */}
+                    {(() => {
+                        const expStyle = getExperienceStyle(itinerary);
+                        const categoryChips = getCategoryChips(itinerary);
+                        if (!expStyle && categoryChips.length === 0) return null;
+                        return (
+                            <View style={styles.salesChipsBlock}>
+                                {expStyle && (
+                                    <View style={styles.styleCard}>
+                                        <View style={styles.styleBadge}>
+                                            <Ionicons name="sparkles-outline" size={12} color="#fff" />
+                                            <Text style={styles.styleBadgeText}>Estilo</Text>
+                                        </View>
+                                        <Text style={styles.styleLabel}>{expStyle.label}</Text>
+                                        {expStyle.blurb ? (
+                                            <Text style={styles.styleBlurb}>{expStyle.blurb}</Text>
+                                        ) : null}
+                                    </View>
+                                )}
+                                {categoryChips.length > 0 && (
+                                    <View style={styles.categoriesContainer}>
+                                        <Text style={styles.categoriesTitle}>Categorias deste roteiro</Text>
+                                        <View style={styles.categoryChipsRow}>
+                                            {categoryChips.map((chip) => (
+                                                <View key={chip.key} style={styles.categoryChip}>
+                                                    <Icon name={chip.icon} size={13} color={theme.colors.primaryDark} />
+                                                    <Text style={styles.categoryChipText}>{chip.label}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        );
+                    })()}
 
                     {/* Aviso: Produto Digital */}
                     <View style={styles.productNotice}>
@@ -308,147 +472,166 @@ export default function ItineraryDetailScreen() {
                         padding: 14, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.colors.primary,
                     }}>
                         <Ionicons name="cloud-offline-outline" size={20} color={theme.colors.primary} />
-                        <Text style={{ flex: 1, fontSize: 13, color: theme.colors.text, lineHeight: 18 }}>
-                            <Text style={{ fontWeight: '700', color: theme.colors.primary }}>100% Offline</Text>
-                            {' — '}Após a compra, o roteiro fica disponível para consulta mesmo sem conexão com a internet.
+                        <Text style={{ flex: 1, fontSize: 13, color: theme.colors.text.primary, lineHeight: 18 }}>
+                            <Text style={{ fontWeight: '700', color: theme.colors.primary }}>Salvo na conta</Text>
+                            {' — '}Após a compra, o roteiro aparece em Meus Roteiros. Download offline será liberado em breve.
                         </Text>
                     </View>
 
-                    {/* Estimativa de Gasto */}
-                    {itinerary.estimatedSpending && (
-                        <CollapsibleSection title="Estimativa de Gastos por Pessoa" defaultExpanded={false}>
-                            {(() => {
-                                const sp = itinerary.estimatedSpending;
-                                // Novo formato: manualEntries com moeda original → converte para BRL dinamicamente
-                                const manualEntries: any[] = (sp.manualEntries || []).filter(
-                                    (e: any) => parseFloat(e.priceValue) > 0
-                                );
-                                const hasManual = manualEntries.length > 0;
+                    {/* Referência de custos da viagem (transparência graduada) */}
+                    {(() => {
+                        const costForm = {
+                            accommodations: itinerary.accommodations,
+                            attractions: itinerary.attractions,
+                            transports: itinerary.transports,
+                            restaurants: itinerary.restaurants,
+                            extraSpendingItems: itinerary.extraSpendingItems,
+                            flightCost: itinerary.flightInfo?.cost,
+                            flightSpending: itinerary.flightInfo?.spending,
+                        };
+                        const summary = calculateBudgetSummary(costForm as any);
+                        return (
+                            <>
+                                <BudgetSummaryCard
+                                    form={costForm as any}
+                                    summary={summary}
+                                    variant="public"
+                                    hideWhenEmpty
+                                />
+                                <PeopleSimulator
+                                    totalPerPerson={summary.totalInformed}
+                                    currency={summary.currency}
+                                    value={peopleCount}
+                                    onChange={setPeopleCount}
+                                />
+                            </>
+                        );
+                    })()}
 
-                                // Labels e ícones por moduleKey
-                                const MODULE_LABELS: Record<string, string> = {
-                                    voo: 'Passagem Aérea', hospedagem: 'Hospedagem',
-                                    passeios: 'Passeios & Atrações', transporte: 'Transporte Local',
-                                    restaurantes: 'Alimentação', extras: 'Outros Gastos',
-                                };
-                                const MODULE_ICONS: Record<string, string> = {
-                                    voo: 'plane', hospedagem: 'hotel', passeios: 'compass',
-                                    transporte: 'car', restaurantes: 'utensils', extras: 'star',
-                                };
+                    {/* Referência de Gastos por Pessoa — agregação por módulo */}
+                    {(() => {
+                        const costGroups = getCostReferences({
+                            accommodations: itinerary.accommodations,
+                            attractions: itinerary.attractions,
+                            transports: itinerary.transports,
+                            restaurants: itinerary.restaurants,
+                            extraSpendingItems: itinerary.extraSpendingItems,
+                            flightCost: itinerary.flightInfo?.cost,
+                            flightSpending: itinerary.flightInfo?.spending,
+                        } as any);
+                        if (costGroups.length === 0) return null;
 
-                                // Total BRL calculado na hora (usando taxas do admin)
-                                const totalBRL = hasManual
-                                    ? manualEntries.reduce((sum: number, e: any) => {
-                                          const n = parseFloat(e.priceValue) || 0;
-                                          const rate = e.priceCurrency === 'BRL' ? 1 : (currencyRates[e.priceCurrency] ?? 1);
-                                          return sum + n * rate;
-                                      }, 0)
-                                    : (sp.max || sp.min || 0);
+                        const MODULE_ICONS: Record<CostReferencesGroup['moduleKey'], any> = {
+                            voo: 'plane',
+                            hospedagem: 'hotel',
+                            passeios: 'compass',
+                            transporte: 'car',
+                            restaurantes: 'utensils',
+                            gastos_extras: 'star',
+                        };
 
-                                const totalFormatted = totalBRL > 0
-                                    ? totalBRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-                                    : null;
-
-                                return (
-                                    <>
-                                        {/* Total Card */}
-                                        {totalFormatted && (
-                                            <LinearGradient
-                                                colors={['#1A3263', '#1E4D8C']}
-                                                style={styles.spendingTotalCard}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 1 }}
-                                            >
-                                                <View>
-                                                    <Text style={styles.spendingTotalLabel}>Estimativa total por pessoa · {itinerary.duration} dias</Text>
-                                                    <Text style={styles.spendingTotalRange}>{totalFormatted}</Text>
-                                                    {sp.flightDeparture && (
-                                                        <View style={styles.flightDepartureRow}>
-                                                            <Icon name="plane" size={12} color="rgba(255,255,255,0.7)" />
-                                                            <Text style={styles.flightDepartureText}>
-                                                                Voo saindo de {sp.flightDeparture}
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                                <Text style={styles.spendingTotalNote}>*valores aproximados</Text>
-                                            </LinearGradient>
-                                        )}
-
-                                        {/* Itens por categoria — novo formato (manualEntries) */}
-                                        {hasManual && (
-                                            <View style={styles.spendingBreakdown}>
-                                                {manualEntries.map((e: any, index: number) => (
-                                                    <View key={index} style={styles.breakdownItem}>
-                                                        <View style={styles.breakdownIconWrap}>
-                                                            <Icon name={MODULE_ICONS[e.moduleKey] || 'star'} size={18} color={theme.colors.primary} />
-                                                        </View>
-                                                        <View style={styles.breakdownContent}>
-                                                            <Text style={styles.breakdownCategory}>
-                                                                {MODULE_LABELS[e.moduleKey] || e.label || e.moduleKey}
-                                                            </Text>
-                                                        </View>
-                                                        <View style={styles.breakdownAmountBadge}>
-                                                            <Text style={styles.breakdownAmount}>
-                                                                {toBRL(e.priceValue, e.priceCurrency)}
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                ))}
-                                            </View>
-                                        )}
-
-                                        {/* Fallback: formato antigo (breakdown) */}
-                                        {!hasManual && sp.breakdown && (
-                                            <View style={styles.spendingBreakdown}>
-                                                {sp.breakdown.map((item: any, index: number) => {
-                                                    const cleanCategory = item.category.replace(/^[\p{Emoji}\s]+/u, '').trim();
-                                                    const catLower = cleanCategory.toLowerCase();
-                                                    const iconName: any =
-                                                        catLower.includes('hosped') || catLower.includes('hotel') ? 'hotel' :
-                                                        catLower.includes('aliment') || catLower.includes('comida') ? 'utensils' :
-                                                        catLower.includes('transport') ? 'car' :
-                                                        catLower.includes('voo') || catLower.includes('passagem') ? 'plane' :
-                                                        catLower.includes('atra') || catLower.includes('tour') ? 'compass' : 'star';
-                                                    return (
-                                                        <View key={index} style={styles.breakdownItem}>
-                                                            <View style={styles.breakdownIconWrap}>
-                                                                <Icon name={iconName} size={18} color={theme.colors.primary} />
-                                                            </View>
-                                                            <View style={styles.breakdownContent}>
-                                                                <Text style={styles.breakdownCategory}>{cleanCategory}</Text>
-                                                                <Text style={styles.breakdownDescription}>{item.description}</Text>
-                                                            </View>
-                                                            <View style={styles.breakdownAmountBadge}>
-                                                                <Text style={styles.breakdownAmount}>{item.amount}</Text>
-                                                            </View>
-                                                        </View>
-                                                    );
-                                                })}
-                                            </View>
-                                        )}
-
-                                        {/* Disclaimer */}
-                                        <View style={styles.spendingDisclaimer}>
-                                            <Icon name="info" size={15} color={theme.colors.text.tertiary} />
-                                            <Text style={styles.disclaimerText}>
-                                                Valores estimados em R$ conforme cotação atual. Podem variar por época do ano e estilo de viagem.
+                        return (
+                            <CollapsibleSection title="Referência de Gastos por Pessoa" defaultExpanded={false}>
+                                {costGroups.map(group => (
+                                    <View key={group.moduleKey} style={{ marginBottom: 12 }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                            <Icon name={MODULE_ICONS[group.moduleKey]} size={14} color={theme.colors.primary} />
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text.primary }}>
+                                                {group.moduleLabel}
                                             </Text>
                                         </View>
-                                    </>
-                                );
-                            })()}
-                        </CollapsibleSection>
-                    )}
+                                        {group.items.map((item, idx) => {
+                                            const isVerified = item.disclosureType === 'verified';
+                                            const proofOk = item.hasProof && (item.proofStatus === 'uploaded' || item.proofStatus === 'pending_review' || item.proofStatus === 'approved');
+                                            const showVerifiedBadge = isVerified && proofOk;
+                                            const isShared = item.sharedByPeople > 1;
+                                            return (
+                                                <View key={idx} style={styles.breakdownItem}>
+                                                    <View style={styles.breakdownContent}>
+                                                        <Text style={styles.breakdownCategory}>{item.title}</Text>
+                                                        <Text style={styles.breakdownDescription}>
+                                                            <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
+                                                            {' por pessoa'}
+                                                            {item.currency !== 'AUD' && (
+                                                                <Text> ≈ {toBRL(item.amountPerPerson, item.currency)}</Text>
+                                                            )}
+                                                        </Text>
+                                                        {isShared && (
+                                                            <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>
+                                                                Base: {formatMoney(item.amountTotal, item.currency)} total ÷ {item.sharedByPeople} pessoas
+                                                            </Text>
+                                                        )}
+                                                        {!isShared && (
+                                                            <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>
+                                                                Gasto individual
+                                                            </Text>
+                                                        )}
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                                                            <Ionicons
+                                                                name={showVerifiedBadge ? 'shield-checkmark' : 'pricetag-outline'}
+                                                                size={11}
+                                                                color={showVerifiedBadge ? theme.colors.verified : theme.colors.info}
+                                                            />
+                                                            <Text style={{ fontSize: 11, color: showVerifiedBadge ? theme.colors.verified : theme.colors.info, fontWeight: '600' }}>
+                                                                {showVerifiedBadge ? 'Valor comprovado' : 'Valor estimado'}
+                                                            </Text>
+                                                            {showVerifiedBadge && item.proofStatus === 'approved' && (
+                                                                <Text style={{ fontSize: 11, color: theme.colors.verified, fontWeight: '600' }}>
+                                                                    {' · '}Comprovante aprovado pela VAMO
+                                                                </Text>
+                                                            )}
+                                                        </View>
+                                                    </View>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                ))}
+                                <View style={styles.spendingDisclaimer}>
+                                    <Icon name="info" size={15} color={theme.colors.text.tertiary} />
+                                    <Text style={styles.disclaimerText}>
+                                        Valores informados pelo criador como referência. Podem variar por época, câmbio e disponibilidade.
+                                    </Text>
+                                </View>
+                            </CollapsibleSection>
+                        );
+                    })()}
 
                     {/* Sobre o Roteiro */}
                     <CollapsibleSection title="Sobre o Roteiro" defaultExpanded>
                         <Text style={styles.description}>{itinerary.description}</Text>
                     </CollapsibleSection>
 
+                    {/* Fotos e Vídeos da Viagem (highlightPhotos + images + mediaUrls) */}
+                    <MediaGallery itinerary={itinerary} />
+
+                    {/* Por que comprar este roteiro? */}
+                    {(() => {
+                        const bullets = getWhyBuyBullets(itinerary);
+                        if (bullets.length === 0) return null;
+                        return (
+                            <View style={styles.whyBuyCard}>
+                                <View style={styles.whyBuyHeader}>
+                                    <Ionicons name="ribbon" size={18} color={theme.colors.primary} />
+                                    <Text style={styles.whyBuyTitle}>Por que comprar este roteiro?</Text>
+                                </View>
+                                <View style={styles.whyBuyList}>
+                                    {bullets.map((text, i) => (
+                                        <View key={i} style={styles.whyBuyItem}>
+                                            <View style={styles.whyBuyDot}>
+                                                <Ionicons name="checkmark" size={11} color="#fff" />
+                                            </View>
+                                            <Text style={styles.whyBuyText}>{text}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        );
+                    })()}
+
                     {/* Destaques */}
                     {itinerary.highlights && itinerary.highlights.length > 0 && (
-                        <CollapsibleSection title="Destaques" defaultExpanded>
+                        <CollapsibleSection title="Destaques da viagem" defaultExpanded>
                             <View style={styles.highlightsContainer}>
                                 {itinerary.highlights.map((highlight: any, index: number) => (
                                     <View key={index} style={styles.highlightRow}>
@@ -462,28 +645,66 @@ export default function ItineraryDetailScreen() {
                         </CollapsibleSection>
                     )}
 
-                    {/* O que você vai receber */}
-                    <CollapsibleSection title="O que você vai receber" defaultExpanded>
-                        <Text style={styles.inclusionsIntro}>
-                            Ao comprar este roteiro, você terá acesso a todas as informações necessárias para sua viagem:
-                        </Text>
+                    {/* O que você vai receber — apenas módulos ativos E preenchidos no roteiro real */}
+                    {(() => {
+                        const receivedModules = getReceivedModules(itinerary);
+                        if (receivedModules.length === 0) return null;
+                        return (
+                            <CollapsibleSection title="O que você vai receber" defaultExpanded>
+                                <Text style={styles.inclusionsIntro}>
+                                    Ao comprar este roteiro, você terá acesso a:
+                                </Text>
 
-                        <View style={styles.inclusionsList}>
-                            {ITINERARY_INCLUSIONS.map((item) => (
-                                <View key={item.id} style={styles.inclusionItem}>
-                                    <View style={[styles.inclusionIcon, { backgroundColor: item.bgColor }]}>
-                                        <Icon name={item.icon as any} size={24} color={item.iconColor} />
-                                    </View>
-                                    <View style={styles.inclusionContent}>
-                                        <Text style={styles.inclusionTitle}>{item.title}</Text>
-                                        <Text style={styles.inclusionDesc}>
-                                            {item.description}
-                                        </Text>
-                                    </View>
+                                <View style={styles.inclusionsList}>
+                                    {receivedModules.map((item) => (
+                                        <View key={item.key} style={styles.inclusionItem}>
+                                            <View style={[styles.inclusionIcon, { backgroundColor: item.bgColor }]}>
+                                                <Icon name={item.icon} size={24} color={item.iconColor} />
+                                            </View>
+                                            <View style={styles.inclusionContent}>
+                                                <Text style={styles.inclusionTitle}>{item.title}</Text>
+                                                <Text style={styles.inclusionDesc}>
+                                                    {item.description}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    ))}
                                 </View>
-                            ))}
-                        </View>
-                    </CollapsibleSection>
+                            </CollapsibleSection>
+                        );
+                    })()}
+
+                    {/* Prévia do que você vai desbloquear */}
+                    {(() => {
+                        const cards = getUnlockPreviewCards(itinerary);
+                        if (cards.length === 0) return null;
+                        return (
+                            <View style={styles.unlockSection}>
+                                <View style={styles.unlockHeader}>
+                                    <Ionicons name="lock-closed" size={16} color={theme.colors.primary} />
+                                    <Text style={styles.unlockTitle}>Prévia do que você vai desbloquear</Text>
+                                </View>
+                                <Text style={styles.unlockSubtitle}>
+                                    Conteúdo completo liberado em Meus Roteiros após a compra.
+                                </Text>
+                                <View style={styles.unlockGrid}>
+                                    {cards.map((card) => (
+                                        <View key={card.key} style={styles.unlockCard}>
+                                            <View style={styles.unlockIconBox}>
+                                                <Icon name={card.icon} size={18} color={theme.colors.primaryDark} />
+                                            </View>
+                                            <Text style={styles.unlockCardTitle} numberOfLines={2}>{card.title}</Text>
+                                            <Text style={styles.unlockCardSub} numberOfLines={2}>{card.subtitle}</Text>
+                                            <View style={styles.unlockLockRow}>
+                                                <Ionicons name="lock-closed" size={11} color={theme.colors.text.tertiary} />
+                                                <Text style={styles.unlockLockText}>Após a compra</Text>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        );
+                    })()}
 
                     {/* Como você vai receber */}
                     <CollapsibleSection title="Como você vai receber">
@@ -504,7 +725,7 @@ export default function ItineraryDetailScreen() {
                                 </View>
                                 <View style={styles.howReceiveContent}>
                                     <Text style={styles.howReceiveStepTitle}>2. Acesse pelo app</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Seu roteiro aparece em "Minhas Viagens" instantaneamente</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Seu roteiro aparece em Meus Roteiros instantaneamente</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
@@ -513,8 +734,8 @@ export default function ItineraryDetailScreen() {
                                     <Ionicons name="cloud-download-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>3. Baixe offline</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Salve o roteiro completo para acessar sem internet durante a viagem</Text>
+                                    <Text style={styles.howReceiveStepTitle}>3. Download offline em breve</Text>
+                                    <Text style={styles.howReceiveStepDesc}>O roteiro fica salvo na sua conta; acesso sem internet será liberado em uma próxima versão</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
@@ -523,17 +744,47 @@ export default function ItineraryDetailScreen() {
                                     <Ionicons name="infinite-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>4. Acesso vitalício</Text>
-                                    <Text style={styles.howReceiveStepDesc}>O roteiro é seu para sempre — consulte quando quiser, quantas vezes precisar</Text>
+                                    <Text style={styles.howReceiveStepTitle}>
+                                        {itinerary.lifetimeAccess ? '4. Acesso permanente' : '4. Conteúdo salvo na conta'}
+                                    </Text>
+                                    <Text style={styles.howReceiveStepDesc}>
+                                        {itinerary.lifetimeAccess
+                                            ? 'Consulte o roteiro quando quiser, quantas vezes precisar'
+                                            : 'Consulte o roteiro pelo app sempre que estiver logado na sua conta'}
+                                    </Text>
                                 </View>
                             </View>
                         </View>
                     </CollapsibleSection>
 
+                    {/* Para quem é este roteiro */}
+                    {(() => {
+                        const bullets = getIdealForBullets(itinerary);
+                        if (bullets.length === 0) return null;
+                        return (
+                            <View style={styles.idealForCard}>
+                                <View style={styles.idealForHeader}>
+                                    <Ionicons name="people-circle-outline" size={20} color={theme.colors.primaryDark} />
+                                    <Text style={styles.idealForTitle}>Para quem é este roteiro</Text>
+                                </View>
+                                <Text style={styles.idealForIntro}>Este roteiro é ideal para quem busca:</Text>
+                                <View style={styles.idealForList}>
+                                    {bullets.map((b, i) => (
+                                        <View key={i} style={styles.idealForItem}>
+                                            <View style={styles.idealForBullet} />
+                                            <Text style={styles.idealForText}>{b}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        );
+                    })()}
+
                     {/* Perguntas Frequentes */}
                     <FAQSection
-                        items={getItineraryFAQ(id)}
-                        creatorName={itinerary.creator.name}
+                        itineraryId={itineraryId}
+                        creatorName={creatorName}
+                        creatorId={creator?.id}
                     />
 
                     {/* Premium Reviews Section */}
@@ -541,11 +792,10 @@ export default function ItineraryDetailScreen() {
                         <View style={styles.reviewsSection}>
                             <PremiumReviewsSection
                                 reviews={reviews}
-                                averageRating={getAverageRating(`itinerary-${id}`)}
+                                averageRating={averageReviewRating}
                                 totalReviews={reviews.length}
-                                categoryRatings={getCategoryRatings(`itinerary-${id}`)}
-                                communityPhotos={getCommunityPhotos(`itinerary-${id}`)}
-                                topRatedSummary={getTopRatedCategoriesText(`itinerary-${id}`)}
+                                communityPhotos={reviewPhotos}
+                                topRatedSummary="Avaliações de viajantes que compraram este roteiro"
                             />
                         </View>
                     )}
@@ -556,43 +806,28 @@ export default function ItineraryDetailScreen() {
                         <View style={styles.trustContent}>
                             <Text style={styles.trustTitle}>Criador Verificado</Text>
                             <Text style={styles.trustText}>
-                                {itinerary.creator.name} é um viajante verificado pelo VAMO com {itinerary.creator.salesCount}+ roteiros vendidos
+                                {creatorName} é um roteirista verificado pelo VAMO com {creatorSales.toLocaleString('pt-BR')} roteiros vendidos
                             </Text>
                         </View>
                     </View>
 
-                    {/* Disclaimer Legal */}
-                    <View style={styles.disclaimerBox}>
-                        <View style={styles.disclaimerHeader}>
-                            <Ionicons name="document-text-outline" size={18} color={theme.colors.text.tertiary} />
-                            <Text style={styles.disclaimerTitle}>Informações Importantes</Text>
+                    {/* Antes de comprar, saiba */}
+                    <View style={styles.beforeBuyBox}>
+                        <View style={styles.beforeBuyHeader}>
+                            <Ionicons name="information-circle-outline" size={18} color={theme.colors.text.primary} />
+                            <Text style={styles.beforeBuyTitle}>Antes de comprar, saiba</Text>
                         </View>
-                        <View style={styles.disclaimerItems}>
-                            <View style={styles.disclaimerItem}>
-                                <Ionicons name="document-text-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
-                                <Text style={styles.disclaimerItemText}>
-                                    <Text style={styles.disclaimerItemBold}>Produto digital:</Text> Você está adquirindo acesso a um roteiro com informações, dicas e planejamento de viagem elaborados por um viajante experiente.
-                                </Text>
-                            </View>
-                            <View style={styles.disclaimerItem}>
-                                <Ionicons name="bulb-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
-                                <Text style={styles.disclaimerItemText}>
-                                    <Text style={styles.disclaimerItemBold}>Conteúdo informativo:</Text> O pagamento é pelo acesso à informação em si. A VAMO não comercializa nem garante a execução dos serviços, passeios ou experiências descritos no roteiro.
-                                </Text>
-                            </View>
-                            <View style={styles.disclaimerItem}>
-                                <Ionicons name="lock-closed-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
-                                <Text style={styles.disclaimerItemText}>
-                                    <Text style={styles.disclaimerItemBold}>Acesso permanente:</Text> Após a compra, o conteúdo ficará disponível na sua conta para consulta a qualquer momento.
-                                </Text>
-                            </View>
-                            <View style={styles.disclaimerItem}>
-                                <Ionicons name="warning-outline" size={16} color={theme.colors.warning || '#F59E0B'} style={{ marginTop: 2, marginRight: 8 }} />
-                                <Text style={styles.disclaimerItemText}>
-                                    Preços, horários e disponibilidade dos locais mencionados podem sofrer alterações. Recomendamos confirmar as informações antes da viagem.
-                                </Text>
-                            </View>
+                        <View style={styles.beforeBuyList}>
+                            {getBeforeBuyItems(itinerary).map((item, i) => (
+                                <View key={i} style={styles.beforeBuyItem}>
+                                    <Icon name={item.icon} size={15} color={theme.colors.text.secondary} />
+                                    <Text style={styles.beforeBuyItemText}>{item.text}</Text>
+                                </View>
+                            ))}
                         </View>
+                        <Text style={styles.beforeBuyDisclaimer}>
+                            Os valores são referências informadas pelo criador e podem variar conforme data, temporada, câmbio, disponibilidade e estilo de consumo.
+                        </Text>
                     </View>
 
                     <View style={{ height: 100 }} />
@@ -604,6 +839,7 @@ export default function ItineraryDetailScreen() {
                 visible={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
                 onGoToMyTrips={handleGoToMyTrips}
+                onViewItinerary={handleViewPurchasedItinerary}
                 itineraryTitle={itinerary.title}
             />
         </View>
@@ -770,73 +1006,109 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
     priceSection: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flexDirection: 'column',
         backgroundColor: theme.colors.surface,
-        padding: 20,
-        borderRadius: 16,
+        padding: 18,
+        borderRadius: 18,
         marginBottom: 24,
-        ...theme.shadows.small,
+        gap: 14,
+        ...theme.shadows.medium,
     },
-    priceLabel: {
+    priceInfo: {
+        gap: 4,
+    },
+    priceLabelText: {
         fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginBottom: 4,
+        fontWeight: '600',
+        color: 'rgba(255,255,255,0.65)',
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
     },
     priceRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        marginBottom: 4,
+        gap: 4,
+        marginTop: 2,
     },
-    priceSymbol: {
+    priceSymbolText: {
         fontSize: 16,
         fontWeight: '600',
-        color: theme.colors.success,
-        marginRight: 4,
+        color: '#28C9BF',
     },
-    priceValue: {
+    priceValueText: {
         fontSize: 32,
-        fontWeight: '700',
-        color: theme.colors.success,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: -0.8,
     },
-    priceNote: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary,
+    priceInstallment: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.78)',
+        fontWeight: '500',
+        marginTop: 2,
     },
-    priceCtas: {
-        flexDirection: 'column',
-        gap: 10,
-        alignItems: 'flex-end',
-    },
-    cartCta: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 1.5,
-        borderColor: 'rgba(255,255,255,0.3)',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cartCtaActive: {
-        borderColor: '#28C9BF',
-        backgroundColor: 'rgba(40,201,191,0.15)',
-    },
-    buyButton: {
+    priceMeta: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 4,
+        marginTop: 6,
+    },
+    priceMetaText: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.6)',
+    },
+    purchaseActions: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 4,
+    },
+    // Botão "Adicionar" — secundário, outline branca
+    cartCtaWide: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         gap: 8,
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingVertical: 13,
-        borderRadius: 28,
+        borderRadius: 999,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.28)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        minHeight: 48,
+        minWidth: 130,
+    },
+    cartCtaWideActive: {
+        borderColor: '#28C9BF',
+        backgroundColor: 'rgba(40,201,191,0.18)',
+    },
+    cartCtaWideText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        letterSpacing: -0.1,
+    },
+    cartCtaWideTextActive: {
+        color: '#28C9BF',
+    },
+    // Botão "Comprar agora" — primário teal, ocupa o resto da linha
+    buyButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 18,
+        paddingVertical: 13,
+        borderRadius: 999,
+        minHeight: 48,
         ...theme.shadows.button,
     },
     buyButtonText: {
-        fontSize: 14,
-        fontWeight: '700',
+        fontSize: 15,
+        fontWeight: '800',
         color: '#fff',
+        letterSpacing: -0.2,
     },
     cartToast: {
         flexDirection: 'row',
@@ -1066,6 +1338,62 @@ const styles = StyleSheet.create({
         color: theme.colors.error,
         textAlign: 'center',
     },
+    stateContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 28,
+        backgroundColor: theme.colors.background,
+    },
+    stateTitle: {
+        marginTop: 14,
+        fontSize: 18,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        textAlign: 'center',
+    },
+    stateText: {
+        marginTop: 8,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.text.secondary,
+        textAlign: 'center',
+    },
+    stateActions: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 22,
+    },
+    statePrimaryButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 7,
+        minHeight: 44,
+        paddingHorizontal: 16,
+        borderRadius: 999,
+        backgroundColor: theme.colors.primary,
+    },
+    statePrimaryText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#fff',
+    },
+    stateSecondaryButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 7,
+        minHeight: 44,
+        paddingHorizontal: 16,
+        borderRadius: 999,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    stateSecondaryText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: theme.colors.primary,
+    },
 
     // Product Notice (inline compact)
     productNotice: {
@@ -1145,4 +1473,291 @@ const styles = StyleSheet.create({
     howReceiveStepTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 2 },
     howReceiveStepDesc: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19 },
     howReceiveLine: { width: 2, height: 16, backgroundColor: theme.colors.primary + '25', marginLeft: 21 },
+
+    // ── Sales chips block (Estilo + Categorias)
+    salesChipsBlock: {
+        gap: 12,
+        marginBottom: 16,
+    },
+    styleCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 1,
+    },
+    styleBadge: {
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        marginBottom: 8,
+    },
+    styleBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#fff',
+        letterSpacing: 0.4,
+        textTransform: 'uppercase',
+    },
+    styleLabel: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    styleBlurb: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+    },
+    categoriesContainer: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    categoriesTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+        marginBottom: 10,
+    },
+    categoryChipsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    categoryChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: `${theme.colors.primary}12`,
+        borderWidth: 1,
+        borderColor: `${theme.colors.primary}33`,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+    },
+    categoryChipText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.colors.primaryDark,
+    },
+
+    // ── Why buy
+    whyBuyCard: {
+        marginBottom: 16,
+        padding: 16,
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    whyBuyHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    whyBuyTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+    },
+    whyBuyList: {
+        gap: 10,
+    },
+    whyBuyItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+    },
+    whyBuyDot: {
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 1,
+    },
+    whyBuyText: {
+        flex: 1,
+        fontSize: 13.5,
+        lineHeight: 19,
+        color: theme.colors.text.primary,
+    },
+
+    // ── Unlock preview
+    unlockSection: {
+        marginBottom: 16,
+        padding: 16,
+        backgroundColor: `${theme.colors.primary}08`,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: `${theme.colors.primary}22`,
+    },
+    unlockHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 4,
+    },
+    unlockTitle: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+    },
+    unlockSubtitle: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginBottom: 12,
+    },
+    unlockGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    unlockCard: {
+        width: '48%',
+        backgroundColor: theme.colors.surface,
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    unlockIconBox: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: `${theme.colors.primary}1A`,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+    },
+    unlockCardTitle: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        marginBottom: 3,
+    },
+    unlockCardSub: {
+        fontSize: 11.5,
+        color: theme.colors.text.secondary,
+        lineHeight: 15,
+        marginBottom: 8,
+    },
+    unlockLockRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    unlockLockText: {
+        fontSize: 10.5,
+        color: theme.colors.text.tertiary,
+        fontWeight: '600',
+    },
+
+    // ── Para quem é este roteiro
+    idealForCard: {
+        marginBottom: 16,
+        padding: 16,
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    idealForHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 6,
+    },
+    idealForTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+    },
+    idealForIntro: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginBottom: 10,
+    },
+    idealForList: {
+        gap: 8,
+    },
+    idealForItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+    },
+    idealForBullet: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        marginTop: 7,
+        backgroundColor: theme.colors.primary,
+    },
+    idealForText: {
+        flex: 1,
+        fontSize: 13.5,
+        lineHeight: 19,
+        color: theme.colors.text.primary,
+    },
+
+    // ── Antes de comprar saiba
+    beforeBuyBox: {
+        marginBottom: 16,
+        padding: 16,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    beforeBuyHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    beforeBuyTitle: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+    },
+    beforeBuyList: {
+        gap: 10,
+    },
+    beforeBuyItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+    },
+    beforeBuyItemText: {
+        flex: 1,
+        fontSize: 12.5,
+        lineHeight: 17,
+        color: theme.colors.text.secondary,
+    },
+    beforeBuyDisclaimer: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderLight,
+        fontSize: 11,
+        lineHeight: 15,
+        color: theme.colors.text.tertiary,
+        fontStyle: 'italic',
+    },
 });

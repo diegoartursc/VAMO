@@ -20,9 +20,9 @@ interface CartItem {
     creator?: { id: string; name: string };
 }
 
-function formatPrice(p: number, currency = "BRL") {
+function formatPrice(p: number, currency = "AUD") {
     try { return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(p); }
-    catch { return `R$ ${p.toFixed(2)}`; }
+    catch { return `A$ ${p.toFixed(2)}`; }
 }
 
 function pickCover(images?: string[]): string {
@@ -63,7 +63,7 @@ export default function CarrinhoPage() {
                 <p style={{ color: "#6b7280", marginTop: 8 }}>
                     Explore roteiros e adicione os que você quer comprar.
                 </p>
-                <Link href="/explorar" style={{
+                <Link href="/criadores" style={{
                     display: "inline-block", marginTop: 24,
                     padding: "12px 24px", background: "#1A3263", color: "#fff",
                     borderRadius: 9999, textDecoration: "none", fontWeight: 600,
@@ -136,7 +136,7 @@ export default function CarrinhoPage() {
                         <span>Total</span>
                         <span style={{ color: "#1A3263" }}>{formatPrice(total)}</span>
                     </div>
-                    <button onClick={() => router.push("/checkout")} style={{
+                    <button onClick={() => alert('Checkout em breve! Por enquanto entre em contato pelo WhatsApp.')} style={{
                         width: "100%", marginTop: 12,
                         background: "linear-gradient(90deg,#28C9BF,#1A3263)",
                         color: "#fff", border: "none", padding: "14px 22px",

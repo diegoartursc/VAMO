@@ -22,7 +22,7 @@ export interface Package {
     price: {
         min: number;
         max: number;
-        currency: 'BRL';
+        currency: 'AUD';
     };
     images: string[];
     duration: number; // days

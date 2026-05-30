@@ -10,6 +10,7 @@ import { Package } from '../../types';
 import { Icon } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
 import { PackageBadge } from '../badges/PackageBadge';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 interface PackageCardProps {
     pkg: Package;
@@ -27,7 +28,11 @@ export const PackageCard: React.FC<PackageCardProps> = ({
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
             <View style={styles.cardImageContainer}>
-                <CoverCarousel images={pkg.images || []} height={200} />
+                <CoverCarousel
+                    images={pkg.images || []}
+                    aspectRatio={4 / 3}
+                    coverMode="containWithBlurredBg"
+                />
 
                 {/* Badges Overlay */}
                 <View style={styles.cardBadges}>
@@ -135,7 +140,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
                     <View style={styles.priceSection}>
                         <Text style={styles.priceLabel}>A partir de</Text>
                         <Text style={styles.priceValue}>
-                            R$ {pkg.price.min.toLocaleString('pt-BR')}
+                            {typeof pkg.price.min === 'number' ? formatMoney(pkg.price.min) : pkg.price.min}
                         </Text>
                         <Text style={styles.priceLabel}>por pessoa</Text>
                         <Text style={styles.reviewCountFooter}>

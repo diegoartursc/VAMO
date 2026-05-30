@@ -50,10 +50,10 @@ const CATEGORIES = [
 ];
 
 const BUDGET_OPTIONS = [
-    { label: 'Até R$ 5.000', min: 0, max: 5000 },
-    { label: 'R$ 5.000 - R$ 10.000', min: 5000, max: 10000 },
-    { label: 'R$ 10.000 - R$ 20.000', min: 10000, max: 20000 },
-    { label: 'Acima de R$ 20.000', min: 20000, max: 100000 },
+    { label: 'Até A$ 500', min: 0, max: 500 },
+    { label: 'A$ 500 - A$ 1.500', min: 500, max: 1500 },
+    { label: 'A$ 1.500 - A$ 3.000', min: 1500, max: 3000 },
+    { label: 'Acima de A$ 3.000', min: 3000, max: 100000 },
     { label: 'Qualquer valor', min: 0, max: 100000 },
 ];
 

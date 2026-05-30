@@ -146,6 +146,29 @@ export async function login(email: string, password: string): Promise<TravelerSe
     return loginInFlight;
 }
 
+/**
+ * Lê o body da resposta de forma robusta: tenta JSON, se falhar (ex: 429
+ * com body em texto puro como "Too many requests"), captura como texto e
+ * embrulha em um objeto `{ error }`. Garante que o caller NUNCA recebe
+ * um SyntaxError de JSON.parse vazando para a UI.
+ */
+async function safeParseBody(res: Response): Promise<any> {
+    const text = await res.text().catch(() => '');
+    if (!text) return {};
+    try { return JSON.parse(text); } catch {
+        return { error: text.slice(0, 200) };
+    }
+}
+
+/** Detecta resposta de rate-limit (429) e devolve mensagem amigável. */
+function rateLimitMessage(res: Response | null): string | null {
+    if (!res) return null;
+    if (res.status === 429) {
+        return 'O servidor está limitando muitas tentativas. Aguarde 1–2 minutos e tente novamente.';
+    }
+    return null;
+}
+
 async function doLogin(email: string, password: string): Promise<TravelerSession | AuthSession> {
     // 1. Tenta como traveler/creator
     let travelerResp: Response | null = null;
@@ -159,6 +182,10 @@ async function doLogin(email: string, password: string): Promise<TravelerSession
         console.error('[auth.login] traveler request failed:', err);
         throw new Error('Não foi possível contatar o servidor. Verifique se o backend está rodando.');
     }
+
+    // Tratamento explícito de rate-limit antes de tentar fallback
+    const rateLimitMsg = rateLimitMessage(travelerResp);
+    if (rateLimitMsg) throw new Error(rateLimitMsg);
 
     if (travelerResp.ok) {
         const data = await travelerResp.json();
@@ -193,6 +220,9 @@ async function doLogin(email: string, password: string): Promise<TravelerSession
         throw new Error('Não foi possível contatar o servidor. Verifique se o backend está rodando.');
     }
 
+    const agencyRateLimitMsg = rateLimitMessage(agencyResp);
+    if (agencyRateLimitMsg) throw new Error(agencyRateLimitMsg);
+
     if (agencyResp.ok) {
         const data: LoginResponse = await agencyResp.json();
         setTokens(data.accessToken, data.refreshToken);
@@ -204,8 +234,8 @@ async function doLogin(email: string, password: string): Promise<TravelerSession
     }
 
     // 3. Credenciais inválidas — lança erro de verdade (sem mock!)
-    const errBody = await travelerResp.json().catch(() => ({ error: 'Email ou senha incorretos' }));
-    throw new Error(errBody.error || 'Email ou senha incorretos');
+    const errBody = await safeParseBody(travelerResp);
+    throw new Error(errBody?.error || 'Email ou senha incorretos');
 }
 
 /**

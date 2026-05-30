@@ -13,8 +13,8 @@ function getGreeting() {
 }
 
 function formatCurrency(value: number) {
-    if (value >= 1000) return `R$ ${(value / 1000).toFixed(1).replace(".", ",")}k`;
-    return `R$ ${value.toLocaleString("pt-BR")}`;
+    if (value >= 1000) return `A$ ${(value / 1000).toFixed(1).replace(".", ",")}k`;
+    return `A$ ${value.toLocaleString("pt-BR")}`;
 }
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {

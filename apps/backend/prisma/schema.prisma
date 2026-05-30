@@ -266,7 +266,7 @@ model CreatorBalance {
   creatorId        String   @unique
   availableBalance Float    @default(0)
   pendingBalance   Float    @default(0)
-  currency         String   @default("BRL")
+  currency         String   @default("AUD")
   updatedAt        DateTime @updatedAt
 
   creator          Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
@@ -287,7 +287,7 @@ model Package {
   description         String        @db.Text
   fullDescription     String?       @db.Text
   emotionalIntro      String?       @db.Text
-  currency            String        @default("BRL")
+  currency            String        @default("AUD")
   duration            Int
   maxSlots            Int?
   // Price range (derived from pricing windows or set manually)
@@ -412,7 +412,7 @@ model Itinerary {
   country          String
   description      String   @db.Text
   price            Float
-  currency         String   @default("BRL")
+  currency         String   @default("AUD")
   duration         Int
   rating           Float?
   reviewCount      Int      @default(0)
@@ -445,12 +445,23 @@ model Itinerary {
   extraCities      String[]
   extraCountries   String[]
   // ─── Módulos como JSON (estrutura semi-livre) ───
-  flightInfo       Json?    // { outbound: {...}, return: {...}, totalPrice, priceCurrency, tips: [] }
-  attractions      Json?    // [{ name, type, location, mapLink, description, hours, duration, externalLink, tips, startDate, endDate, ticketValue, ticketCurrency }]
-  restaurants      Json?    // [{ name, cuisine, location, description, hours, hoursStart, externalLink, tips, startDate, endDate, priceValue, priceCurrency }]
+  flightInfo       Json?    // { outbound, return, totalPrice, priceCurrency, tips: [], spending, cost }
+  attractions      Json?    // [{ name, type, location, mapLink, description, hours, duration, externalLink, tips, startDate, endDate, ticketValue, ticketCurrency, spending?, cost? }]
+  restaurants      Json?    // [{ name, cuisine, location, description, hours, hoursStart, externalLink, tips, startDate, endDate, priceValue, priceCurrency, spending?, cost? }]
+  // ─── Gastos Extras (módulo "Gastos Extras" — transparência graduada) ───
+  // [{ id, category, title, description, value, currency, cost?: ModuleCostInfo }]
+  // Persiste em JSON porque a estrutura é livre e gerenciada inteiramente
+  // pelo cliente (mobile). Mantém retrocompatibilidade automática com
+  // roteiros antigos (default null).
+  extraSpendingItems Json?
   generalTips      String[]
   mediaUrls        String[] // Fotos/vídeos extras
   highlightPhotos  String[] // 3 fotos de destaque do criador
+  // Enquadramento da capa: { x: 0..1, y: 0..1 } — 0.5/0.5 = centro.
+  // Permite ao criador ajustar qual parte da capa aparece no card/hero
+  // sem precisar recortar a imagem. Aplicado via objectPosition (web) e
+  // (futuro) transform translation (native). Default null = centralizado.
+  coverFocalPoint  Json?
   // ─── Datas da viagem (para exibição pós-compra) ───
   tripStartDate    DateTime?
   tripEndDate      DateTime?
@@ -567,6 +578,12 @@ model ItineraryAccommodation {
   endDate      String?
   totalPrice   String?   // preço total da estadia
   priceCurrency String?
+  // ─── Transparência graduada de custos (opt-in) ───
+  // `spending`: { value, currency } — formato legado de gasto por pessoa
+  // `cost`: ModuleCostInfo { amount, currency, disclosureType, notes, proofFiles, proofStatus, updatedAt }
+  // Ambos opcionais; null para roteiros antigos.
+  spending     Json?
+  cost         Json?
   order        Int       @default(0)
   createdAt    DateTime  @default(now())
 
@@ -587,6 +604,9 @@ model ItineraryTransport {
   endDate        String?
   priceValue     String?
   priceCurrency  String?
+  // ─── Transparência graduada de custos (opt-in) ───
+  spending       Json?
+  cost           Json?
   order          Int       @default(0)
   createdAt      DateTime  @default(now())
 

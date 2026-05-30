@@ -18,6 +18,7 @@ import agencyDocRoutes from './routes/agency-documents';
 import auditLogsRoutes from './routes/audit-logs';
 import ratesRoutes from './routes/rates';
 import uploadsRoutes from './routes/uploads';
+import questionRoutes from './routes/questions';
 
 // Load environment variables
 dotenv.config();
@@ -26,9 +27,24 @@ const app = express();
 const PORT = process.env.PORT || 3333;
 
 // Rate limiting
+// Em desenvolvimento (NODE_ENV !== 'production') o limite é generoso e
+// pulamos requests de localhost — durante desenvolvimento é comum disparar
+// muitos requests via HMR, testes e refetches, e bloquear o login da
+// própria máquina cria um falso positivo que parece bug crítico.
+const isDev = process.env.NODE_ENV !== 'production';
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: isDev ? 5000 : 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Em dev, pula completamente localhost (evita falsos positivos por HMR/loops)
+    skip: isDev
+        ? (req) => {
+            const ip = (req.ip || '').toString();
+            return ip === '127.0.0.1' || ip === '::1' || ip.endsWith(':127.0.0.1') || ip.endsWith(':::1') || ip === '::ffff:127.0.0.1';
+        }
+        : undefined,
+    message: { error: 'Muitas requisições. Aguarde alguns minutos e tente novamente.' },
 });
 
 // Allowed origins: site dashboard, local dev, and Expo mobile app
@@ -95,6 +111,7 @@ app.use('/api/agency-docs', agencyDocRoutes);
 app.use('/api/admin/audit-logs', auditLogsRoutes);
 app.use('/api/rates', ratesRoutes);
 app.use('/api/uploads', uploadsRoutes);
+app.use('/api/questions', questionRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
