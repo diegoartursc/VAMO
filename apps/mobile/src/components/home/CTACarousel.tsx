@@ -5,16 +5,18 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Dimensions,
+    useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { theme } from '../../theme/theme';
 import { Icon, IconName } from '../common/Icons';
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width - 48; // 24px margin on each side
-const AUTO_SCROLL_INTERVAL = 3500; // 3.5 seconds
+const AUTO_SCROLL_INTERVAL = 3500;
+// Padding lateral da seção (igual nas duas pontas — card ativo cabe inteiro).
+const HORIZONTAL_PADDING = 16;
+// Gap entre slides — sem isso os dois encostam.
+const CARD_GAP = 12;
 
 interface CTASlide {
     id: number;
@@ -45,28 +47,38 @@ const slides: CTASlide[] = [
 ];
 
 export const CTACarousel: React.FC = () => {
+    // useWindowDimensions atualiza em resize/rotate — Dimensions.get no
+    // top-level cristalizava o valor do primeiro render e quebrava em web.
+    const { width: screenWidth } = useWindowDimensions();
+    const cardWidth = screenWidth - HORIZONTAL_PADDING * 2;
+    // O snap salta de slide em slide: cardWidth + gap.
+    const snapInterval = cardWidth + CARD_GAP;
+
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollViewRef = useRef<ScrollView>(null);
     const router = useRouter();
+    const isTouchingRef = useRef(false);
 
-    // Auto-scroll effect
+    // Auto-scroll. Pausa quando o usuário tá tocando (caso esteja arrastando).
     useEffect(() => {
         const interval = setInterval(() => {
+            if (isTouchingRef.current) return;
             const nextIndex = (currentIndex + 1) % slides.length;
             scrollViewRef.current?.scrollTo({
-                x: nextIndex * CARD_WIDTH,
+                x: nextIndex * snapInterval,
                 animated: true,
             });
             setCurrentIndex(nextIndex);
         }, AUTO_SCROLL_INTERVAL);
 
         return () => clearInterval(interval);
-    }, [currentIndex]);
+    }, [currentIndex, snapInterval]);
 
     const handleScroll = (event: any) => {
         const offsetX = event.nativeEvent.contentOffset.x;
-        const index = Math.round(offsetX / CARD_WIDTH);
-        setCurrentIndex(index);
+        // Arredonda pelo passo de snap (não pela cardWidth), senão drift acumula.
+        const index = Math.max(0, Math.min(slides.length - 1, Math.round(offsetX / snapInterval)));
+        if (index !== currentIndex) setCurrentIndex(index);
     };
 
     const handleCardPress = (targetTab?: string) => {
@@ -82,21 +94,29 @@ export const CTACarousel: React.FC = () => {
             <ScrollView
                 ref={scrollViewRef}
                 horizontal
-                pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
+                // pagingEnabled SEM snapToInterval custom: paginava em múltiplos
+                // da viewport (screenWidth), não do cardWidth — causava drift e
+                // cortava o card. Usar snapToInterval=cardWidth+gap é o caminho.
                 decelerationRate="fast"
-                snapToInterval={CARD_WIDTH}
-                snapToAlignment="center"
-                contentContainerStyle={styles.scrollContent}
+                snapToInterval={snapInterval}
+                snapToAlignment="start"
+                contentContainerStyle={{ paddingHorizontal: HORIZONTAL_PADDING }}
+                onTouchStart={() => { isTouchingRef.current = true; }}
+                onTouchEnd={() => { isTouchingRef.current = false; }}
             >
-                {slides.map((slide) => (
+                {slides.map((slide, idx) => (
                     <TouchableOpacity
                         key={slide.id}
                         onPress={() => handleCardPress(slide.targetTab)}
                         activeOpacity={0.9}
-                        style={styles.slideWrapper}
+                        style={{
+                            width: cardWidth,
+                            // Gap só ENTRE slides — último não tem.
+                            marginRight: idx === slides.length - 1 ? 0 : CARD_GAP,
+                        }}
                     >
                         <LinearGradient
                             colors={slide.gradientColors}
@@ -107,8 +127,8 @@ export const CTACarousel: React.FC = () => {
                             <View style={styles.iconContainer}>
                                 <Icon name={slide.iconName} size={28} color="#fff" strokeWidth={1.5} />
                             </View>
-                            <Text style={styles.title}>{slide.title}</Text>
-                            <Text style={styles.subtitle}>{slide.subtitle}</Text>
+                            <Text style={styles.title} numberOfLines={2}>{slide.title}</Text>
+                            <Text style={styles.subtitle} numberOfLines={3}>{slide.subtitle}</Text>
                             <View style={styles.ctaRow}>
                                 <Text style={styles.ctaText}>Explorar</Text>
                                 <Icon name="chevron-right" size={16} color="rgba(255,255,255,0.9)" />
@@ -138,16 +158,9 @@ const styles = StyleSheet.create({
     container: {
         marginBottom: 24,
     },
-    scrollContent: {
-        paddingHorizontal: 24,
-    },
-    slideWrapper: {
-        width: CARD_WIDTH,
-        marginRight: 0,
-    },
     card: {
         borderRadius: 20,
-        padding: 36,
+        padding: 28,
         minHeight: 200,
         justifyContent: 'center',
         alignItems: 'center',
