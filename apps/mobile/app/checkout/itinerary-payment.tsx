@@ -7,58 +7,160 @@ import {
     TouchableOpacity,
     SafeAreaView,
     Pressable,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getItineraryById, purchaseItinerary } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
-import { useState as useStateModal } from 'react';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useCart } from '../../src/hooks/useCart';
+import { formatMoney } from '@vamo/shared/itinerary';
+
+type PaymentMethod = 'apple' | 'pix' | 'card';
+
+const getParam = (value: string | string[] | undefined): string => {
+    if (Array.isArray(value)) return value[0] || '';
+    return value || '';
+};
+
+const formatPrice = (value: number) => (
+    value > 0 ? formatMoney(value) : 'Grátis'
+);
+
+const hasValidContactData = ({
+    fullName,
+    email,
+    countryCode,
+    phone,
+}: {
+    fullName: string;
+    email: string;
+    countryCode: string;
+    phone: string;
+}) => (
+    fullName.trim().split(/\s+/).length >= 2
+    && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim().toLowerCase())
+    && countryCode.replace(/\D/g, '').length >= 1
+    && phone.replace(/\D/g, '').length >= 8
+);
 
 export default function ItineraryPaymentScreen() {
     const router = useRouter();
-    const { accessToken } = useAuth();
-    const {
-        itineraryId,
-        price,
-        fullName,
-        email,
-        countryCode,
-        phone,
-    } = useLocalSearchParams();
+    const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
+    const { removeFromCart } = useCart();
+    const params = useLocalSearchParams();
+    const itineraryId = getParam(params.itineraryId as string | string[] | undefined);
+    const receivedPrice = getParam(params.price as string | string[] | undefined);
+    const fullName = getParam(params.fullName as string | string[] | undefined);
+    const email = getParam(params.email as string | string[] | undefined);
+    const countryCode = getParam(params.countryCode as string | string[] | undefined);
+    const phone = getParam(params.phone as string | string[] | undefined);
+    const source = getParam(params.source as string | string[] | undefined);
 
     const [itinerary, setItinerary] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
-        getItineraryById(itineraryId as string).then(setItinerary).catch(console.error);
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            router.replace({
+                pathname: '/login' as any,
+                params: {
+                    next: '/checkout/itinerary-payment',
+                    ...(itineraryId ? { itineraryId } : {}),
+                    ...(receivedPrice ? { price: receivedPrice } : {}),
+                    ...(fullName ? { fullName } : {}),
+                    ...(email ? { email } : {}),
+                    ...(countryCode ? { countryCode } : {}),
+                    ...(phone ? { phone } : {}),
+                    ...(source ? { source } : {}),
+                },
+            });
+        }
+    }, [authLoading, isAuthenticated, itineraryId, receivedPrice, fullName, email, countryCode, phone, source, router]);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const loadItinerary = async () => {
+            if (!itineraryId) {
+                setLoadError('Roteiro inválido.');
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+            setLoadError(null);
+            try {
+                const data = await getItineraryById(itineraryId);
+                if (!mounted) return;
+                if (!data) {
+                    setItinerary(null);
+                    setLoadError('Roteiro não encontrado ou indisponível.');
+                    return;
+                }
+                setItinerary(data);
+            } catch (error) {
+                console.error('Error loading payment itinerary:', error);
+                if (!mounted) return;
+                setItinerary(null);
+                setLoadError('Não foi possível carregar o pagamento.');
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        loadItinerary();
+        return () => { mounted = false; };
     }, [itineraryId]);
 
-    const [paymentMethod, setPaymentMethod] = useState<'apple' | 'pix' | 'card'>('pix');
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
     const [summaryExpanded, setSummaryExpanded] = useState(true);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const [processing, setProcessing] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
+    const routePrice = Number(receivedPrice);
+    const itineraryPrice = Number(itinerary?.price);
+    const paymentAmount = Number.isFinite(itineraryPrice) && itineraryPrice >= 0
+        ? itineraryPrice
+        : Number.isFinite(routePrice) && routePrice >= 0
+        ? routePrice
+        : 0;
+    const destinationLabel = [itinerary?.destination, itinerary?.country].filter(Boolean).join(', ') || 'Destino a confirmar';
+    const duration = Number(itinerary?.duration) || 0;
+    const rating = Number(itinerary?.rating) || 0;
+    const reviewCount = Number(itinerary?.reviewCount) || 0;
+    const hasContactData = hasValidContactData({ fullName, email, countryCode, phone });
 
     const handleConfirmPayment = async () => {
         if (processing) return;
+        if (!itineraryId || !itinerary) {
+            setPaymentError('Não foi possível identificar o roteiro desta compra.');
+            return;
+        }
+        if (!hasContactData) {
+            setPaymentError('Revise seus dados de contato antes de confirmar o pagamento.');
+            return;
+        }
         setProcessing(true);
         setPaymentError(null);
         try {
             console.log('[purchase] iniciando', { itineraryId, paymentMethod });
             // Record the purchase. Sends JWT so the sale is attributed to the
             // authenticated traveler (não cai no dev-fallback do backend).
-            const result = await purchaseItinerary(itineraryId as string, paymentMethod, accessToken);
+            const result = await purchaseItinerary(itineraryId, paymentMethod, accessToken);
             console.log('[purchase] sucesso', result);
+
+            if (source === 'cart') {
+                await removeFromCart(itineraryId);
+            }
 
             // Redireciona direto para a tela do roteiro com `showSuccess=true`.
             // O PurchaseSuccessModal já existente na tela de detalhes captura
-            // o param e mostra a confirmação ("Compra Realizada"). Evita
-            // Alert.alert, que tem limitações no Expo web e pode parecer
-            // travado pro usuário. Funciona pros dois casos: nova compra OU
-            // compra já existente (o usuário tem acesso ao roteiro em ambos).
+            // o param e mostra a confirmação. Funciona pros dois casos:
+            // nova compra OU compra já existente.
             router.replace({
                 pathname: `/itinerary/${itineraryId}` as any,
                 params: { showSuccess: 'true' },
@@ -72,10 +174,33 @@ export default function ItineraryPaymentScreen() {
         }
     };
 
+    const selectPaymentMethod = (method: PaymentMethod) => {
+        if (processing) return;
+        setPaymentMethod(method);
+        setPaymentError(null);
+    };
+
+    if (authLoading || loading) {
+        return (
+            <View style={styles.stateContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={styles.stateTitle}>Carregando pagamento...</Text>
+                <Text style={styles.stateText}>Buscando o roteiro e preparando o resumo da compra.</Text>
+            </View>
+        );
+    }
+
     if (!itinerary) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Carregando...</Text>
+            <View style={styles.stateContainer}>
+                <Ionicons name="alert-circle-outline" size={42} color={theme.colors.text.tertiary} />
+                <Text style={styles.stateTitle}>{loadError || 'Pagamento indisponível'}</Text>
+                <Text style={styles.stateText}>
+                    Não foi possível continuar sem um roteiro válido.
+                </Text>
+                <TouchableOpacity style={styles.stateButton} onPress={() => router.replace('/(tabs)/itineraries' as any)}>
+                    <Text style={styles.stateButtonText}>Explorar roteiros</Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -119,19 +244,9 @@ export default function ItineraryPaymentScreen() {
                     </View>
 
                     <Pressable
-                        style={[styles.paymentOption, paymentMethod === 'pix' && styles.paymentOptionSelected]}
-                        onPress={() => setPaymentMethod('pix')}
-                    >
-                        <View style={[styles.radio, paymentMethod === 'pix' && styles.radioSelected]}>
-                            {paymentMethod === 'pix' && <View style={styles.radioDot} />}
-                        </View>
-                        <Text style={styles.paymentOptionText}>PIX</Text>
-                        <Text style={[styles.pixBadge, { marginLeft: 'auto' }]}>🔷</Text>
-                    </Pressable>
-
-                    <Pressable
                         style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionSelected]}
-                        onPress={() => setPaymentMethod('card')}
+                        onPress={() => selectPaymentMethod('card')}
+                        disabled={processing}
                     >
                         <View style={[styles.radio, paymentMethod === 'card' && styles.radioSelected]}>
                             {paymentMethod === 'card' && <View style={styles.radioDot} />}
@@ -142,7 +257,8 @@ export default function ItineraryPaymentScreen() {
 
                     <Pressable
                         style={[styles.paymentOption, paymentMethod === 'apple' && styles.paymentOptionSelected]}
-                        onPress={() => setPaymentMethod('apple')}
+                        onPress={() => selectPaymentMethod('apple')}
+                        disabled={processing}
                     >
                         <View style={[styles.radio, paymentMethod === 'apple' && styles.radioSelected]}>
                             {paymentMethod === 'apple' && <View style={styles.radioDot} />}
@@ -191,32 +307,33 @@ export default function ItineraryPaymentScreen() {
                             <View style={styles.summaryExpandedContent}>
                                 <Text style={styles.itineraryTitle}>{itinerary.title}</Text>
                                 <View style={styles.rating}>
-                                    <Text>⭐ {itinerary.rating} ({itinerary.reviewCount})</Text>
+                                    <Ionicons name="star" size={14} color="#F59E0B" />
+                                    <Text style={styles.ratingText}>{rating.toFixed(1)} ({reviewCount})</Text>
                                 </View>
 
                                 <View style={styles.detailsGrid}>
                                     <View style={styles.detailRow}>
                                         <Ionicons name="location" size={16} color={theme.colors.text.secondary} />
                                         <Text style={styles.detailText}>
-                                            {itinerary.destination}, {itinerary.country}
+                                            {destinationLabel}
                                         </Text>
                                     </View>
                                     <View style={styles.detailRow}>
                                         <Ionicons name="calendar" size={16} color={theme.colors.text.secondary} />
                                         <Text style={styles.detailText}>
-                                            {itinerary.duration} dias de viagem
+                                            {duration > 0 ? `${duration} dias de viagem` : 'Duração a confirmar'}
                                         </Text>
                                     </View>
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="download" size={16} color={theme.colors.success} />
+                                        <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
                                         <Text style={[styles.detailText, { color: theme.colors.success }]}>
-                                            Acesso imediato após compra
+                                            Liberação em Meus Roteiros após confirmação
                                         </Text>
                                     </View>
                                 </View>
 
                                 <Text style={styles.totalInSummary}>
-                                    R$ {parseFloat(price as string).toFixed(2).replace('.', ',')}
+                                    {formatPrice(paymentAmount)}
                                 </Text>
                             </View>
                         )}
@@ -230,9 +347,18 @@ export default function ItineraryPaymentScreen() {
             <View style={styles.footer}>
                 <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total</Text>
-                    <Text style={styles.totalPrice}>R$ {parseFloat(price as string).toFixed(2).replace('.', ',')}</Text>
+                    <Text style={styles.totalPrice}>{formatPrice(paymentAmount)}</Text>
                     <Text style={styles.taxIncluded}>Todos os impostos e taxas inclusos</Text>
                 </View>
+
+                {!hasContactData && (
+                    <View style={styles.errorBox}>
+                        <Ionicons name="alert-circle" size={16} color={theme.colors.error} />
+                        <Text style={styles.errorBoxText}>
+                            Dados de contato incompletos. Volte para revisar antes de pagar.
+                        </Text>
+                    </View>
+                )}
 
                 <Text style={styles.terms}>
                     Ao prosseguir, você confirma estar de acordo com os{' '}
@@ -413,6 +539,7 @@ const styles = StyleSheet.create({
     summaryExpandedContent: { marginTop: 16, gap: 12 },
     itineraryTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.text.primary },
     rating: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+    ratingText: { fontSize: 13, color: theme.colors.text.secondary, fontWeight: '600' },
     detailsGrid: { gap: 8 },
     detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     detailText: { fontSize: 14, color: theme.colors.text.secondary },
@@ -453,6 +580,41 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     errorText: { color: theme.colors.text.primary, fontSize: 16, textAlign: 'center', marginTop: 40 },
+    stateContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 28,
+        backgroundColor: theme.colors.background,
+    },
+    stateTitle: {
+        marginTop: 14,
+        fontSize: 18,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        textAlign: 'center',
+    },
+    stateText: {
+        marginTop: 8,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.text.secondary,
+        textAlign: 'center',
+    },
+    stateButton: {
+        marginTop: 22,
+        minHeight: 44,
+        paddingHorizontal: 18,
+        borderRadius: 999,
+        backgroundColor: theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    stateButtonText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#fff',
+    },
     errorBox: {
         flexDirection: 'row',
         alignItems: 'center',

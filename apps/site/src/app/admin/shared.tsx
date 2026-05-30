@@ -289,7 +289,7 @@ export function ItemList({ items, type, onApprove, onReject, onCostProofs, empty
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontSize: "14px", fontWeight: "700", color: "#1FA89F" }}>
-                                {type === "packages" ? item.priceMin ? `R$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `R$ ${item.price.toLocaleString("pt-BR")}` : "—"}
+                                {type === "packages" ? item.priceMin ? `A$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `A$ ${item.price.toLocaleString("pt-BR")}` : "—"}
                             </div>
                         </div>
                         <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>

@@ -31,6 +31,7 @@ import {
     HeartPulse,
     Star,
     Share2,
+    Send,
     Bell,
     Edit,
     Lock,
@@ -86,8 +87,8 @@ export type IconName =
     | 'search' | 'plane' | 'hotel' | 'coffee' | 'car' | 'ship'
     | 'verified' | 'shield-check' | 'check-square' | 'award'
     | 'star' | 'chevron-right' | 'chevron-left' | 'chevron-down'
-    | 'filter' | 'calendar' | 'clock' | 'menu' | 'close'
-    | 'heart' | 'heart-pulse' | 'share' | 'phone' | 'mail' | 'logout'
+    | 'filter' | 'calendar' | 'clock' | 'menu' | 'close' | 'x'
+    | 'heart' | 'heart-pulse' | 'share' | 'send' | 'phone' | 'mail' | 'logout'
     | 'card' | 'globe' | 'help' | 'file' | 'settings' | 'info'
     | 'image' | 'camera' | 'location' | 'compass' | 'navigation'
     | 'gem' | 'piggy-bank' | 'wallet' | 'trophy' | 'landmark'
@@ -103,6 +104,7 @@ interface IconProps {
     color?: string;
     style?: StyleProp<ViewStyle>;
     strokeWidth?: number;
+    fill?: string;
 }
 
 // Icon Mapping — VAMO 2.0 Complete System
@@ -116,6 +118,7 @@ const ICON_MAP: Record<string, any> = {
     search: Search,
     menu: Menu,
     close: X,
+    x: X,
     'chevron-right': ChevronRight,
     'chevron-left': ChevronLeft,
     'chevron-down': ChevronDown,
@@ -140,6 +143,7 @@ const ICON_MAP: Record<string, any> = {
     'heart-pulse': HeartPulse,
     star: Star,
     share: Share2,
+    send: Send,
     bell: Bell,
     edit: Edit,
     lock: Lock,
@@ -199,7 +203,8 @@ export const Icon: React.FC<IconProps> = ({
     size = 24,
     color = theme.colors.text.primary,
     style,
-    strokeWidth = 1.5 // VAMO 2.0 Standard: Thin & Elegant
+    strokeWidth = 1.5, // VAMO 2.0 Standard: Thin & Elegant
+    fill = 'none',
 }) => {
     const IconComponent = ICON_MAP[name] || HelpCircle;
 
@@ -207,6 +212,7 @@ export const Icon: React.FC<IconProps> = ({
         <IconComponent
             size={size}
             color={color}
+            fill={fill}
             style={style}
             strokeWidth={strokeWidth}
         />

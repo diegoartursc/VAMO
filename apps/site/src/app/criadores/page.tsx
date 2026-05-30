@@ -37,7 +37,7 @@ export default function CriadoresPage() {
                             <div className="stat-label">Comissão por venda</div>
                         </div>
                         <div className="stat-item">
-                            <div className="stat-value">R$ 0</div>
+                            <div className="stat-value">A$ 0</div>
                             <div className="stat-label">Investimento inicial</div>
                         </div>
                         <div className="stat-item">

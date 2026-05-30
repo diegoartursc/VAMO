@@ -66,7 +66,7 @@ export default function CriadorOverview() {
                     </div>
                     <div className="dash-stat-label">Receita</div>
                     <div className="dash-stat-value green">
-                        {loading ? "..." : `R$ ${stats.totalRevenue.toLocaleString("pt-BR")}`}
+                        {loading ? "..." : `A$ ${stats.totalRevenue.toLocaleString("pt-BR")}`}
                     </div>
                 </div>
             </div>

@@ -63,7 +63,7 @@ const SECTION_TIPS: Record<SectionKey, string[]> = {
         "Adicione pelo menos 3 fotos de alta qualidade do destino",
     ],
     commerce: [
-        "Roteiros entre R$ 29-99 têm a melhor taxa de conversão",
+        "Roteiros entre A$ 19-49 têm a melhor taxa de conversão",
         "Ative parcelas para aumentar as vendas em até 40%",
         "O preço promocional cria urgência — use com moderação",
     ],
@@ -103,7 +103,6 @@ interface ChecklistItem { category: string; item: string; isDefault: boolean; }
 interface FaqItem { question: string; answer: string; }
 interface BreakdownItem { category: string; min: string; max: string; }
 
-const DEFAULT_CREATOR_ID = "creator-diego-001";
 const SPENDING_CATS = ["Hospedagem", "Alimentação", "Transporte", "Atrações", "Extras"];
 
 function getDurationLabel(d: number) {
@@ -164,7 +163,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Bloco 2: Comercial ─── */
     const [price, setPrice] = useState(0);
-    const [currency, setCurrency] = useState("BRL");
+    const [currency, setCurrency] = useState("AUD");
     const [promoPrice, setPromoPrice] = useState<number | null>(null);
     const [installments, setInstallments] = useState<number | null>(null);
     const [immediateAccess, setImmediateAccess] = useState(true);
@@ -184,7 +183,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Bloco 5: Gasto ─── */
     const [spendingBreakdown, setSpendingBreakdown] = useState<BreakdownItem[]>([]);
-    const [spendingCurrency, setSpendingCurrency] = useState("BRL");
+    const [spendingCurrency, setSpendingCurrency] = useState("AUD");
 
     /* ─── Bloco 6: Checklist + FAQ ─── */
     const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
@@ -233,7 +232,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         setDuration(data.duration || 1); setDescription(data.description || "");
         setTravelStyles(data.travelStyles || []); setCategories(data.categories || []);
         setProductType(data.productType || "DIGITAL");
-        setPrice(data.price || 0); setCurrency(data.currency || "BRL");
+        setPrice(data.price || 0); setCurrency(data.currency || "AUD");
         setPromoPrice(data.promoPrice || null); setInstallments(data.installments || null);
         setImmediateAccess(data.immediateAccess ?? true); setLifetimeAccess(data.lifetimeAccess ?? true);
         setFeatured(data.featured || false);
@@ -242,7 +241,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         setImages(Array.isArray(data.images) ? data.images.map((img: any) => typeof img === "string" ? img : img.url) : [""]);
         setAllowShare(data.allowShare ?? true);
         const sp = data.estimatedSpending || {};
-        setSpendingCurrency(sp.currency || "BRL");
+        setSpendingCurrency(sp.currency || "AUD");
         setSpendingBreakdown((sp.breakdown || []).map((b: any) => ({ category: b.category || "", min: b.min || "", max: b.max || "" })));
         setDays((data.days || []).map((d: any) => ({
             dayNumber: d.dayNumber, title: d.title || "", summary: d.summary || "", description: d.description || "",
@@ -288,7 +287,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         const mainCountry = locations[0]?.country || "";
         const mainDestination = locations[0]?.cities[0] || "";
         return {
-            creatorId: DEFAULT_CREATOR_ID, title, subtitle, destination: mainDestination, country: mainCountry, locations, description,
+            title, subtitle, destination: mainDestination, country: mainCountry, locations, description,
             price: price.toString(), currency, duration: duration.toString(), featured,
             travelStyles, categories, productType, activeModules,
             promoPrice: promoPrice?.toString() || undefined,
@@ -568,7 +567,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     <div className="form-group" style={{ flex: 1 }}>
                         <label className="form-label">Moeda</label>
                         <select className="form-input" value={currency} onChange={e => { setCurrency(e.target.value); markDirty(); }}>
-                            <option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
+                            <option value="AUD">AUD (A$)</option><option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
                         </select>
                     </div>
                 </div>
@@ -708,7 +707,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             </div>
                             <div className="editor-activity-row">
                                 <input className="form-input" value={acc.neighborhood} onChange={e => { const u = [...accommodations]; u[i].neighborhood = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Bairro / Localização" />
-                                <input className="form-input" value={acc.priceRange} onChange={e => { const u = [...accommodations]; u[i].priceRange = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Faixa de preço (ex: R$ 150-250/noite)" />
+                                <input className="form-input" value={acc.priceRange} onChange={e => { const u = [...accommodations]; u[i].priceRange = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Faixa de preço (ex: A$ 50-90/noite)" />
                             </div>
                             <div className="editor-activity-row">
                                 <textarea className="form-input" value={acc.description} onChange={e => { const u = [...accommodations]; u[i].description = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Descrição curta e dicas" style={{ minHeight: 50 }} rows={2} />
@@ -732,7 +731,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             </div>
                             <div className="editor-activity-row">
                                 <input className="form-input" value={t.passTypes} onChange={e => { const u = [...transports]; u[i].passTypes = e.target.value; setTransports(u); markDirty(); }} placeholder="Tipo de passe / bilhete" />
-                                <input className="form-input" value={t.estimatedPrice} onChange={e => { const u = [...transports]; u[i].estimatedPrice = e.target.value; setTransports(u); markDirty(); }} placeholder="Preço estimado (ex: R$ 170/semana)" />
+                                <input className="form-input" value={t.estimatedPrice} onChange={e => { const u = [...transports]; u[i].estimatedPrice = e.target.value; setTransports(u); markDirty(); }} placeholder="Preço estimado (ex: A$ 55/semana)" />
                             </div>
                             <div className="editor-activity-row">
                                 <textarea className="form-input" value={t.notes} onChange={e => { const u = [...transports]; u[i].notes = e.target.value; setTransports(u); markDirty(); }} placeholder="Notas e dicas adicionais" style={{ minHeight: 50 }} rows={2} />
@@ -752,7 +751,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 <div className="form-group">
                     <label className="form-label">Moeda</label>
                     <select className="form-input" value={spendingCurrency} onChange={e => { setSpendingCurrency(e.target.value); markDirty(); }}>
-                        <option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
+                        <option value="AUD">AUD (A$)</option><option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
                     </select>
                 </div>
                 {spendingBreakdown.length === 0 && (
@@ -776,7 +775,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         <div className="editor-breakdown-total">
                             <span className="editor-breakdown-total-label">Total estimado por pessoa</span>
                             <span className="editor-breakdown-total-value">
-                                R$ {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.min) || 0), 0).toLocaleString("pt-BR")} – {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.max) || 0), 0).toLocaleString("pt-BR")}
+                                A$ {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.min) || 0), 0).toLocaleString("pt-BR")} – {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.max) || 0), 0).toLocaleString("pt-BR")}
                             </span>
                         </div>
                     </>

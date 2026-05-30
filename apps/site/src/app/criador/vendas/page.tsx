@@ -7,7 +7,7 @@ export default function VendasPage() {
     const [pending] = useState(1200.00);
 
     const formatCurrency = (val: number) =>
-        `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        `A$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
     const transactions = [
         { id: 1, date: "27/02/2026", desc: "Venda: Roteiro Chapada Diamantina", amount: 450.00, status: "Recebido" },

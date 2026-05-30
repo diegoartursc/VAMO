@@ -118,8 +118,8 @@ export default function CadastroPage() {
                         </div>
                         <div className="form-row">
                             <div className="form-group">
-                                <label className="form-label">CPF</label>
-                                <input type="text" className="form-input" placeholder="000.000.000-00" value={form.cpf} onChange={set("cpf")} required />
+                                <label className="form-label">Documento fiscal (opcional)</label>
+                                <input type="text" className="form-input" placeholder="Opcional" value={form.cpf} onChange={set("cpf")} />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Telefone (opcional)</label>

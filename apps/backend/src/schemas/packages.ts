@@ -16,7 +16,7 @@ export const CreatePackageSchema = z.object({
     duration: z.number().int().positive('Duration must be positive'),
     priceMin: z.number().positive('Price must be positive'),
     priceMax: z.number().positive('Price must be positive').optional(),
-    currency: z.enum(['BRL', 'USD', 'EUR', 'GBP']).default('BRL'),
+    currency: z.enum(['AUD', 'USD', 'EUR', 'GBP', 'BRL']).default('AUD'),
     continent: z.string().optional(),
     airport: z.string().optional(),
     multiDestination: z.boolean().default(false),

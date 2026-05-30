@@ -15,7 +15,9 @@ async function fetchApi<T>(endpoint: string): Promise<T> {
     return res.json();
 }
 
-// ─── Packages ───
+// ─── Legacy Package APIs ───
+// Mantidos apenas para telas legadas ainda existentes. O fluxo principal do
+// VAMO usa roteiros digitais via Itineraries.
 export async function getPackages(params?: {
     destination?: string; featured?: boolean; category?: string;
     minPrice?: number; maxPrice?: number; sort?: string;
@@ -57,16 +59,12 @@ export async function getRelatedPackages(id: string): Promise<any[]> {
 export async function getItineraries(params?: {
     destination?: string; featured?: boolean; sort?: string;
 }): Promise<any[]> {
-    try {
-        const query = new URLSearchParams();
-        if (params?.destination) query.set('destination', params.destination);
-        if (params?.featured) query.set('featured', 'true');
-        if (params?.sort) query.set('sort', params.sort);
-        const qs = query.toString();
-        return await fetchApi(`/itineraries${qs ? `?${qs}` : ''}`);
-    } catch {
-        return [];
-    }
+    const query = new URLSearchParams();
+    if (params?.destination) query.set('destination', params.destination);
+    if (params?.featured) query.set('featured', 'true');
+    if (params?.sort) query.set('sort', params.sort);
+    const qs = query.toString();
+    return fetchApi(`/itineraries${qs ? `?${qs}` : ''}`);
 }
 
 export async function getItineraryById(id: string): Promise<any | null> {
@@ -75,6 +73,10 @@ export async function getItineraryById(id: string): Promise<any | null> {
     } catch {
         return null;
     }
+}
+
+export async function getItineraryByIdStrict(id: string): Promise<any> {
+    return fetchApi(`/itineraries/${id}`);
 }
 
 export async function getFeaturedItineraries(): Promise<any[]> {
@@ -191,7 +193,7 @@ export async function getPurchasedItineraryDetail(
     try {
         const headers: Record<string, string> = {};
         if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE_URL}/itineraries/${id}`, { headers });
+        const res = await fetch(`${API_BASE_URL}/itineraries/${id}/purchased`, { headers });
         if (!res.ok) return null;
         const data = await res.json();
         // Normalizar checklist: a API retorna { item } mas a tela espera { text }
@@ -209,29 +211,29 @@ export async function getPurchasedItineraryDetail(
  * Lista compras do usuário autenticado. O backend resolve o traveler a partir
  * do JWT enviado no header. Token obrigatório — retorna 401 sem autenticação.
  */
-export async function getMyTrips(accessToken?: string | null): Promise<{
-    upcomingPackages: any[];
-    pastPackages: any[];
+export interface MyTripsResponse {
     purchasedItineraries: any[];
-    savedItems: any[];
-}> {
-    try {
-        const headers: Record<string, string> = {};
-        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE_URL}/my-trips`, { headers });
-        if (!res.ok) throw new Error(`API ${res.status}`);
-        return await res.json();
-    } catch {
-        return { upcomingPackages: [], pastPackages: [], purchasedItineraries: [], savedItems: [] };
-    }
+}
+
+export async function getMyTrips(accessToken?: string | null): Promise<MyTripsResponse> {
+    const headers: Record<string, string> = {};
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const res = await fetch(`${API_BASE_URL}/my-trips`, { headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `API ${res.status}`);
+    return {
+        purchasedItineraries: Array.isArray(data.purchasedItineraries) ? data.purchasedItineraries : [],
+    };
 }
 
 // ─── Reviews ────────────────────────────────────────────
 
-async function postApi<T>(endpoint: string, body: object): Promise<T> {
+async function postApi<T>(endpoint: string, body: object, accessToken?: string | null): Promise<T> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
     });
     const data = await res.json();
@@ -240,13 +242,33 @@ async function postApi<T>(endpoint: string, body: object): Promise<T> {
 }
 
 export async function submitItineraryReview(params: {
-    travelerId: string;
     itineraryId: string;
     rating: number;
     comment: string;
     photos: string[];
-}): Promise<{ review: { id: string; rating: number; comment: string } }> {
-    return postApi('/reviews', params);
+}, accessToken?: string | null): Promise<{ review: { id: string; itineraryId: string; rating: number; comment: string; photos: string[] } }> {
+    return postApi('/reviews', params, accessToken);
+}
+
+export async function updateItineraryReview(
+    reviewId: string,
+    params: {
+        rating: number;
+        comment: string;
+        photos: string[];
+    },
+    accessToken?: string | null,
+): Promise<{ review: { id: string; itineraryId: string; rating: number; comment: string; photos: string[] } }> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const res = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(params),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
+    return data;
 }
 
 export async function getMyReviews(travelerId: string): Promise<{
@@ -265,4 +287,101 @@ export async function getMyReviews(travelerId: string): Promise<{
     } catch {
         return { reviews: [] };
     }
+}
+
+// ─── Questions (FAQ Q&A) ───
+/** Pergunta exibida na seção "Perguntas sobre este roteiro". */
+export interface ItineraryQuestion {
+    id: string;
+    itineraryId?: string;
+    question: string;
+    createdAt: string;
+    user?: { id?: string; name?: string; avatar?: string | null };
+    isMine?: boolean;
+    answer: { id?: string; text: string; createdAt: string } | null;
+    status: 'answered' | 'pending';
+    itinerary?: {
+        id: string; title: string; destination: string; country: string;
+        image: string | null; creatorName: string;
+    };
+}
+
+/** Lista perguntas de um roteiro (públicas + pendentes do próprio usuário). */
+export async function getItineraryQuestions(
+    itineraryId: string,
+    accessToken?: string | null,
+): Promise<{ questions: ItineraryQuestion[] }> {
+    try {
+        const headers: Record<string, string> = {};
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE_URL}/questions/itinerary/${encodeURIComponent(itineraryId)}`, { headers });
+        if (!res.ok) return { questions: [] };
+        return await res.json();
+    } catch {
+        return { questions: [] };
+    }
+}
+
+/** Cria uma nova pergunta sobre o roteiro. Exige autenticação. */
+export async function createItineraryQuestion(
+    itineraryId: string,
+    questionText: string,
+    accessToken?: string | null,
+): Promise<{ question: ItineraryQuestion }> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const res = await fetch(`${API_BASE_URL}/questions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ itineraryId, questionText }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Falha ao enviar pergunta (HTTP ${res.status})`);
+    return data;
+}
+
+/** Perguntas do usuário autenticado (para a tela "Minhas Perguntas"). */
+export async function getMyQuestions(accessToken?: string | null): Promise<{ questions: ItineraryQuestion[] }> {
+    if (!accessToken) return { questions: [] };
+    try {
+        const res = await fetch(`${API_BASE_URL}/questions/mine`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!res.ok) return { questions: [] };
+        return await res.json();
+    } catch {
+        return { questions: [] };
+    }
+}
+
+/** Perguntas recebidas pelo criador autenticado (todos os seus roteiros). */
+export async function getCreatorQuestions(accessToken?: string | null): Promise<{ questions: ItineraryQuestion[] }> {
+    if (!accessToken) return { questions: [] };
+    try {
+        const res = await fetch(`${API_BASE_URL}/questions/creator/mine`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!res.ok) return { questions: [] };
+        return await res.json();
+    } catch {
+        return { questions: [] };
+    }
+}
+
+/** Criador responde a uma pergunta sua. */
+export async function answerQuestion(
+    questionId: string,
+    answerText: string,
+    accessToken?: string | null,
+): Promise<{ answer: { id: string; text: string; createdAt: string } }> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const res = await fetch(`${API_BASE_URL}/questions/${encodeURIComponent(questionId)}/answer`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ answerText }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Falha ao enviar resposta (HTTP ${res.status})`);
+    return data;
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    Modal, Linking, Platform, Alert, Dimensions, Animated,
+    Modal, Linking, Platform, Alert, Dimensions, Animated, Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -11,9 +11,16 @@ import { haptics } from '../../src/services/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useFavorites } from '../../src/hooks/useFavorites';
+import { getMyTrips } from '../../src/services/api';
+import { openExternalUrl as openSafeExternalUrl } from '../../src/utils/externalLinks';
+import { calculateTravelerProgress } from '../../src/gamification';
+import { getCreatorQuestions } from '../../src/services/api';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 const VIEW_MODE_KEY = '@vamo_profile_view_mode';
+const PROFILE_PREFS_KEY = '@vamo_profile_preferences';
 type ViewMode = 'traveler' | 'creator';
 
 // ─── Creator dashboard stats (resumo) ─────────────────────────
@@ -47,12 +54,12 @@ interface CreatorStatsSummary {
 
 const { width } = Dimensions.get('window');
 
-const CURRENCIES = ['(€) Euro', '(R$) Real', '($) Dólar', '(£) Libra'];
+const CURRENCIES = ['(A$) AUD', '(€) Euro', '(R$) Real', '($) Dólar', '(£) Libra'];
 const LANGUAGES = ['português', 'english', 'español'];
 const APPEARANCES = ['Predefinida pelo sistema', 'Claro', 'Escuro'];
 
 const TRAVEL_TYPES = ['Luxo', 'Econômico', 'Mochilão', 'Família', 'Romântico', 'Aventura'];
-const BUDGET_RANGES = ['Até R$ 2.000', 'R$ 2.000 – 5.000', 'R$ 5.000 – 10.000', 'R$ 10.000+'];
+const BUDGET_RANGES = ['Até A$ 1.000', 'A$ 1.000 – 3.000', 'A$ 3.000 – 6.000', 'A$ 6.000+'];
 const INTEREST_OPTIONS = [
     { id: 'natureza', icon: 'trees' as IconName, label: 'Natureza' },
     { id: 'cultura', icon: 'landmark' as IconName, label: 'Cultura' },
@@ -63,6 +70,15 @@ const INTEREST_OPTIONS = [
     { id: 'vida_noturna', icon: 'star' as IconName, label: 'Vida Noturna' },
     { id: 'religiao', icon: 'landmark' as IconName, label: 'Religião' },
 ];
+
+const DEFAULT_PROFILE_PREFERENCES = {
+    currency: '(A$) AUD',
+    language: 'português',
+    appearance: 'Predefinida pelo sistema',
+    travelType: 'Aventura',
+    budget: 'A$ 1.000 – 3.000',
+    selectedInterests: ['cultura', 'gastronomia'],
+};
 
 // Milestones estáticos — futuramente via API
 const MILESTONES_BASE = [
@@ -75,6 +91,7 @@ const MILESTONES_BASE = [
 export default function ProfileScreen() {
     const router = useRouter();
     const { user, accessToken, isAuthenticated, isLoading, logout } = useAuth();
+    const { favorites, isLoading: favoritesLoading } = useFavorites();
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     // ─── Modo de visualização (Viajante/Roteirista) ──────────────
@@ -179,12 +196,15 @@ export default function ProfileScreen() {
         try { await AsyncStorage.setItem(VIEW_MODE_KEY, mode); } catch { /* ignore */ }
     };
 
-    const [currency, setCurrency] = useState('(R$) Real');
-    const [language, setLanguage] = useState('português');
-    const [appearance, setAppearance] = useState('Predefinida pelo sistema');
-    const [travelType, setTravelType] = useState('Aventura');
-    const [budget, setBudget] = useState('R$ 2.000 – 5.000');
-    const [selectedInterests, setSelectedInterests] = useState<string[]>(['cultura', 'gastronomia']);
+    const [currency, setCurrency] = useState(DEFAULT_PROFILE_PREFERENCES.currency);
+    const [language, setLanguage] = useState(DEFAULT_PROFILE_PREFERENCES.language);
+    const [appearance, setAppearance] = useState(DEFAULT_PROFILE_PREFERENCES.appearance);
+    const [travelType, setTravelType] = useState(DEFAULT_PROFILE_PREFERENCES.travelType);
+    const [budget, setBudget] = useState(DEFAULT_PROFILE_PREFERENCES.budget);
+    const [selectedInterests, setSelectedInterests] = useState<string[]>(DEFAULT_PROFILE_PREFERENCES.selectedInterests);
+    const [preferencesHydrated, setPreferencesHydrated] = useState(false);
+    const [purchasedCount, setPurchasedCount] = useState<number | null>(null);
+    const [pendingQuestionsCount, setPendingQuestionsCount] = useState<number>(0);
 
     // Modal states
     const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -205,17 +225,104 @@ export default function ProfileScreen() {
         }).start();
     }, []);
 
+    useEffect(() => {
+        AsyncStorage.getItem(PROFILE_PREFS_KEY)
+            .then((raw) => {
+                if (!raw) return;
+                const prefs = JSON.parse(raw);
+                if (CURRENCIES.includes(prefs.currency)) setCurrency(prefs.currency);
+                if (LANGUAGES.includes(prefs.language)) setLanguage(prefs.language);
+                if (APPEARANCES.includes(prefs.appearance)) setAppearance(prefs.appearance);
+                if (TRAVEL_TYPES.includes(prefs.travelType)) setTravelType(prefs.travelType);
+                if (BUDGET_RANGES.includes(prefs.budget)) setBudget(prefs.budget);
+                if (Array.isArray(prefs.selectedInterests)) {
+                    const allowed = new Set(INTEREST_OPTIONS.map((item) => item.id));
+                    setSelectedInterests(Array.from(new Set(prefs.selectedInterests.filter((id: string) => allowed.has(id)))));
+                }
+            })
+            .catch(() => {})
+            .finally(() => setPreferencesHydrated(true));
+    }, []);
+
+    useEffect(() => {
+        if (!preferencesHydrated) return;
+        AsyncStorage.setItem(PROFILE_PREFS_KEY, JSON.stringify({
+            currency,
+            language,
+            appearance,
+            travelType,
+            budget,
+            selectedInterests,
+        })).catch(() => {});
+    }, [appearance, budget, currency, language, preferencesHydrated, selectedInterests, travelType]);
+
+    useEffect(() => {
+        if (!accessToken || !isAuthenticated) {
+            setPurchasedCount(null);
+            return;
+        }
+        let mounted = true;
+        getMyTrips(accessToken)
+            .then((result) => {
+                if (!mounted) return;
+                setPurchasedCount(result.purchasedItineraries.length);
+            })
+            .catch(() => {
+                if (mounted) setPurchasedCount(null);
+            });
+        return () => { mounted = false; };
+    }, [accessToken, isAuthenticated]);
+
+    // Conta perguntas pendentes nos roteiros do criador (badge da Ação Rápida).
+    // Refeita sempre que o accessToken muda; falha silenciosa para 0.
+    useEffect(() => {
+        if (!accessToken || !isAuthenticated) { setPendingQuestionsCount(0); return; }
+        let mounted = true;
+        getCreatorQuestions(accessToken)
+            .then(({ questions }) => {
+                if (!mounted) return;
+                setPendingQuestionsCount(questions.filter(q => q.status === 'pending').length);
+            })
+            .catch(() => { if (mounted) setPendingQuestionsCount(0); });
+        return () => { mounted = false; };
+    }, [accessToken, isAuthenticated]);
+
     // Debug: logar usuário atual
     useEffect(() => {
         console.log('[profile] isAuthenticated:', isAuthenticated, '| userId:', user?.travelerId, '| email:', user?.email);
     }, [isAuthenticated, user]);
+
+    const openExternalUrl = async (url: string, fallbackMessage = 'Não foi possível abrir este link agora.') => {
+        await openSafeExternalUrl(url, { fallbackMessage });
+    };
+
+    const handleOpenSettings = async () => {
+        haptics.light();
+        try {
+            await Linking.openSettings();
+        } catch {
+            Alert.alert('Configurações', 'Não foi possível abrir as configurações do dispositivo agora.');
+        }
+    };
 
     const handleRateApp = () => {
         haptics.success();
         const storeUrl = Platform.OS === 'ios'
             ? 'https://apps.apple.com/app/id1234567890'
             : 'https://play.google.com/store/apps/details?id=com.vamo';
-        Linking.openURL(storeUrl);
+        openExternalUrl(storeUrl, 'A loja de aplicativos não está disponível agora.');
+    };
+
+    const handleShareApp = async () => {
+        haptics.light();
+        try {
+            await Share.share({
+                title: 'VAMO',
+                message: 'Conheça o VAMO: marketplace de roteiros digitais criados por viajantes experientes. https://vamo.app',
+            });
+        } catch {
+            Alert.alert('Compartilhar', 'Não foi possível abrir o compartilhamento agora.');
+        }
     };
 
     const handleLogout = () => {
@@ -236,7 +343,7 @@ export default function ProfileScreen() {
 
     const handleStatPress = (type: 'itineraries' | 'saved') => {
         haptics.light();
-        router.push('/(tabs)/my-trips');
+        router.push(type === 'itineraries' ? '/(tabs)/my-trips' : '/(tabs)/saved');
     };
 
     const toggleInterest = (id: string) => {
@@ -246,6 +353,17 @@ export default function ProfileScreen() {
     };
 
     const completedMilestones = MILESTONES_BASE.filter(m => m.done).length;
+    // Passaporte VAMO — progresso lúdico do viajante a partir de sinais reais.
+    const profileCompleted = !!(user?.name && user?.email && user?.avatar);
+    const savedCount = favorites.length;
+    const travelerProgress = calculateTravelerProgress({
+        profileCompleted,
+        savedCount,
+        // TODO: ligar contagem real de avaliações do viajante quando houver endpoint.
+        reviewsCount: 0,
+        purchasesCount: purchasedCount ?? 0,
+        destinationsCount: savedCount,
+    });
 
     // Não logado: mostrar tela de login prompt
     if (!isLoading && !isAuthenticated) {
@@ -350,53 +468,91 @@ export default function ProfileScreen() {
                         onOpenItinerary={(id) => { haptics.light(); router.push(`/(tabs)/itinerary/${id}`); }}
                         onSales={() => { haptics.light(); router.push('/created-itineraries'); }}
                         onReviews={() => { haptics.light(); router.push('/my-reviews'); }}
+                        onQuestions={() => { haptics.light(); router.push('/creator-questions'); }}
+                        pendingQuestionsCount={pendingQuestionsCount}
                     />
                 ) : (
                     /* Quick stats do viajante (modo padrão) */
                     <View style={styles.statsRow}>
-                        <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/my-trips')}>
+                        <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('itineraries')}>
                             <Icon name="book-open" size={22} color={theme.colors.primary} />
-                            <Text style={styles.statValue}>—</Text>
+                            <Text style={styles.statValue}>{purchasedCount === null ? '—' : purchasedCount}</Text>
                             <Text style={styles.statLabel}>Meus Roteiros</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/saved')}>
+                        <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('saved')}>
                             <Icon name="heart" size={22} color={theme.colors.primary} />
-                            <Text style={styles.statValue}>—</Text>
+                            <Text style={styles.statValue}>{favoritesLoading ? '—' : favorites.length}</Text>
                             <Text style={styles.statLabel}>Salvos</Text>
                         </TouchableOpacity>
                     </View>
                 )}
 
-                {/* ══════════ 3. SUA JORNADA NO VAMO ══════════ */}
+                {/* ══════════ 3. PASSAPORTE VAMO ══════════ */}
                 <View style={styles.sectionSpaced}>
                     <View style={styles.sectionTitleRow}>
                         <Icon name="globe" size={16} color={theme.colors.primary} />
-                        <Text style={styles.sectionTitle}>Sua Jornada no VAMO</Text>
-                        <Text style={styles.journeyProgress}>{completedMilestones}/{MILESTONES_BASE.length}</Text>
+                        <Text style={styles.sectionTitle}>Passaporte VAMO</Text>
+                        <Text style={styles.journeyProgress}>{travelerProgress.completedMissions}/{travelerProgress.missions.length}</Text>
                     </View>
+                    <Text style={styles.passportSubtitle}>
+                        Complete missões, ganhe carimbos e evolua sua jornada como viajante.
+                    </Text>
                     <View style={styles.sectionCard}>
-                        {/* Progress bar */}
-                        <View style={styles.progressBarContainer}>
-                            <View style={[styles.progressBarFill, { width: `${(completedMilestones / MILESTONES_BASE.length) * 100}%` }]} />
+                        {/* Nível atual */}
+                        <View style={styles.passportLevelRow}>
+                            <View style={[styles.passportLevelIcon, { backgroundColor: travelerProgress.levelConfig.bgColor }]}>
+                                <Text style={{ fontSize: 26 }}>{travelerProgress.levelConfig.icon}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.passportLevelLabel}>{travelerProgress.levelConfig.label}</Text>
+                                <Text style={styles.passportLevelDesc} numberOfLines={2}>
+                                    {travelerProgress.levelConfig.description}
+                                </Text>
+                            </View>
                         </View>
-                        {MILESTONES_BASE.map((milestone, idx) => (
+
+                        {/* Progresso até o próximo nível */}
+                        <View style={styles.progressBarContainer}>
+                            <View style={[styles.progressBarFill, { width: `${Math.round(travelerProgress.progressPct * 100)}%` }]} />
+                        </View>
+                        <Text style={styles.passportNextText}>
+                            {travelerProgress.nextLevelConfig
+                                ? `Próximo carimbo: ${travelerProgress.nextLevelConfig.label} · ${travelerProgress.xp}/${travelerProgress.nextLevelConfig.minXp} XP`
+                                : `Nível máximo alcançado · ${travelerProgress.xp} XP`}
+                        </Text>
+
+                        {/* Carimbos / missões */}
+                        <View style={styles.stampsDivider} />
+                        {travelerProgress.missions.map((mission, idx) => (
                             <View
-                                key={milestone.id}
+                                key={mission.key}
                                 style={[
                                     styles.milestoneRow,
-                                    idx === MILESTONES_BASE.length - 1 && styles.milestoneRowLast,
+                                    idx === travelerProgress.missions.length - 1 && styles.milestoneRowLast,
                                 ]}
                             >
-                                {milestone.done ? (
-                                    <Icon name="verified" size={20} color={theme.colors.success} />
+                                {mission.completed ? (
+                                    <View style={styles.stampDone}>
+                                        <Icon name="verified" size={15} color="#fff" />
+                                    </View>
                                 ) : (
-                                    <Icon name="lock" size={18} color={theme.colors.text.tertiary} />
+                                    <View style={styles.stampPending}>
+                                        <Icon name="lock" size={13} color={theme.colors.text.tertiary} />
+                                    </View>
                                 )}
-                                <Text style={[
-                                    styles.milestoneLabel,
-                                    !milestone.done && styles.milestoneLabelLocked,
-                                ]}>
-                                    {milestone.label}
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[
+                                        styles.milestoneLabel,
+                                        !mission.completed && styles.milestoneLabelLocked,
+                                    ]}>
+                                        {mission.label}
+                                    </Text>
+                                    {!!mission.hint && !mission.completed && (
+                                        <Text style={styles.missionHint}>{mission.hint}</Text>
+                                    )}
+                                </View>
+                                <Text style={[styles.missionXp, mission.completed && styles.missionXpDone]}>
+                                    +{mission.xp}
                                 </Text>
                             </View>
                         ))}
@@ -453,7 +609,7 @@ export default function ProfileScreen() {
                             Alert.alert('Dados Pessoais', `Nome: ${user?.name || '—'}\nEmail: ${user?.email || '—'}\n\nA edição de dados pessoais estará disponível em breve.`, [{ text: 'OK' }]);
                         }} />
                         <SettingItem icon="bell" title="Notificações" onPress={() => {
-                            haptics.light(); Linking.openSettings();
+                            handleOpenSettings();
                         }} />
                         <SettingItem icon="shield-check" title="Segurança" onPress={() => {
                             haptics.light();
@@ -517,6 +673,11 @@ export default function ProfileScreen() {
                                 onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
                             />
                             <SettingItem
+                                icon="message-circle"
+                                title="Perguntas recebidas"
+                                onPress={() => { haptics.light(); router.push('/creator-questions'); }}
+                            />
+                            <SettingItem
                                 icon="briefcase"
                                 title="Dashboard do criador"
                                 onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
@@ -562,10 +723,10 @@ export default function ProfileScreen() {
                             haptics.light(); setShowAboutModal(true);
                         }} />
                         <SettingItem icon="message-circle" title="Central de Ajuda" onPress={() => {
-                            haptics.light(); Linking.openURL('https://vamo.app/ajuda');
+                            haptics.light(); openExternalUrl('https://vamo.app/ajuda', 'A Central de Ajuda não está disponível agora.');
                         }} />
                         <SettingItem icon="phone" title="Falar com suporte" iconColor="#25D366" onPress={() => {
-                            haptics.light(); Linking.openURL('https://wa.me/5511999999999?text=Olá! Preciso de ajuda no VAMO.');
+                            haptics.light(); openExternalUrl('https://wa.me/5511999999999?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20no%20VAMO.', 'Não foi possível abrir o WhatsApp agora.');
                         }} />
                         <SettingItem icon="clipboard-list" title="Minhas solicitações" onPress={() => {
                             haptics.light();
@@ -579,10 +740,7 @@ export default function ProfileScreen() {
                     <Text style={styles.sectionTitle}>Avaliação</Text>
                     <View style={styles.sectionCard}>
                         <SettingItem icon="star" title="Avaliar o aplicativo" onPress={handleRateApp} />
-                        <SettingItem icon="share" title="Compartilhar com amigos" onPress={() => {
-                            haptics.light();
-                            Alert.alert('Compartilhar', 'Funcionalidade disponível em breve!');
-                        }} isLast />
+                        <SettingItem icon="share" title="Compartilhar com amigos" onPress={handleShareApp} isLast />
                     </View>
                 </View>
 
@@ -591,10 +749,10 @@ export default function ProfileScreen() {
                     <Text style={styles.sectionTitle}>Legal</Text>
                     <View style={styles.sectionCard}>
                         <SettingItem icon="file" title="Termos de Uso" onPress={() => {
-                            haptics.light(); Linking.openURL('https://vamo.app/termos');
+                            haptics.light(); openExternalUrl('https://vamo.app/termos', 'Os Termos de Uso não estão disponíveis agora.');
                         }} />
                         <SettingItem icon="shield-check" title="Política de Privacidade" onPress={() => {
-                            haptics.light(); Linking.openURL('https://vamo.app/privacidade');
+                            haptics.light(); openExternalUrl('https://vamo.app/privacidade', 'A Política de Privacidade não está disponível agora.');
                         }} />
                         <SettingItem icon="trash" title="Excluir minha conta" titleColor={theme.colors.error} onPress={() => {
                             haptics.warning();
@@ -989,6 +1147,85 @@ const styles = StyleSheet.create({
     milestoneLabelLocked: {
         color: theme.colors.text.tertiary,
     },
+    // ── Passaporte VAMO ──────────────────────────────
+    passportSubtitle: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginTop: -4,
+        marginBottom: 12,
+        lineHeight: 18,
+    },
+    passportLevelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 12,
+        paddingTop: 12,
+    },
+    passportLevelIcon: {
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    passportLevelLabel: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        letterSpacing: -0.3,
+    },
+    passportLevelDesc: {
+        fontSize: 12.5,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
+        lineHeight: 17,
+    },
+    passportNextText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.colors.primary,
+        marginHorizontal: 12,
+        marginTop: -4,
+        marginBottom: 4,
+    },
+    stampsDivider: {
+        height: 1,
+        backgroundColor: theme.colors.borderLight,
+        marginHorizontal: 12,
+        marginTop: 8,
+    },
+    stampDone: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    stampPending: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: theme.colors.surfaceLight,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    missionHint: {
+        fontSize: 11.5,
+        color: theme.colors.text.tertiary,
+        marginTop: 2,
+    },
+    missionXp: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: theme.colors.text.tertiary,
+    },
+    missionXpDone: {
+        color: theme.colors.primary,
+    },
 
     // Shortcuts
     shortcutsRow: {
@@ -1164,6 +1401,8 @@ function CreatorDashboard({
     onOpenItinerary,
     onSales,
     onReviews,
+    onQuestions,
+    pendingQuestionsCount = 0,
 }: {
     stats: CreatorStatsSummary | null;
     userName?: string;
@@ -1172,6 +1411,8 @@ function CreatorDashboard({
     onOpenItinerary: (id: string) => void;
     onSales: () => void;
     onReviews: () => void;
+    onQuestions: () => void;
+    pendingQuestionsCount?: number;
 }) {
     const loading = !stats;
     const itineraries = stats?.itineraries ?? [];
@@ -1232,7 +1473,7 @@ function CreatorDashboard({
                     iconBg="#6366F114"
                     label="Vendas totais"
                     value={loading ? '—' : String(stats!.totalSales)}
-                    subtext={loading ? '' : `R$ ${Math.round(stats!.totalRevenue)} em receita`}
+                    subtext={loading ? '' : `${formatMoney(Math.round(stats!.totalRevenue))} em receita`}
                 />
                 <MetricCard
                     icon="star"
@@ -1257,7 +1498,7 @@ function CreatorDashboard({
                 <View style={cdStyles.revenueLeft}>
                     <Text style={cdStyles.revenueLabel}>Receita acumulada</Text>
                     <Text style={cdStyles.revenueValue}>
-                        {loading ? '—' : `R$ ${Math.round(stats!.totalRevenue).toLocaleString('pt-BR')}`}
+                        {loading ? '—' : formatMoney(Math.round(stats!.totalRevenue))}
                     </Text>
                     <Text style={cdStyles.revenueSub}>
                         {loading
@@ -1334,7 +1575,7 @@ function CreatorDashboard({
                                 </View>
                                 <View style={cdStyles.itineraryMeta}>
                                     {typeof it.price === 'number' && it.price > 0 && (
-                                        <MetaPill icon="card" label={`R$ ${it.price.toFixed(0)}`} />
+                                        <MetaPill icon="card" label={formatMoney(it.price)} />
                                     )}
                                     {typeof it.qualityScore === 'number' && (
                                         <MetaPill icon="star" label={`Score ${it.qualityScore}%`} />
@@ -1390,6 +1631,17 @@ function CreatorDashboard({
                 />
                 <QuickAction
                     icon="message-circle"
+                    iconBg={theme.colors.primary + '14'}
+                    iconColor={theme.colors.primary}
+                    title="Perguntas Recebidas"
+                    subtitle={pendingQuestionsCount > 0
+                        ? `${pendingQuestionsCount} ${pendingQuestionsCount === 1 ? 'pendente' : 'pendentes'}`
+                        : 'Dúvidas dos viajantes'}
+                    badge={pendingQuestionsCount > 0 ? pendingQuestionsCount : undefined}
+                    onPress={onQuestions}
+                />
+                <QuickAction
+                    icon="star"
                     iconBg="#F59E0B14"
                     iconColor="#F59E0B"
                     title="Comentários"
@@ -1446,10 +1698,11 @@ function MetaPill({ icon, label }: { icon: IconName; label: string }) {
 }
 
 function QuickAction({
-    icon, iconBg, iconColor, title, subtitle, onPress,
+    icon, iconBg, iconColor, title, subtitle, onPress, badge,
 }: {
     icon: IconName; iconBg: string; iconColor: string;
     title: string; subtitle: string; onPress: () => void;
+    badge?: number;
 }) {
     return (
         <TouchableOpacity
@@ -1464,6 +1717,13 @@ function QuickAction({
                 <Text style={cdStyles.quickActionTitle}>{title}</Text>
                 <Text style={cdStyles.quickActionSub}>{subtitle}</Text>
             </View>
+            {typeof badge === 'number' && badge > 0 && (
+                <View style={cdStyles.quickActionBadge}>
+                    <Text style={cdStyles.quickActionBadgeText}>
+                        {badge > 99 ? '99+' : badge}
+                    </Text>
+                </View>
+            )}
             <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
         </TouchableOpacity>
     );
@@ -1748,6 +2008,23 @@ const cdStyles = StyleSheet.create({
         fontSize: 12,
         color: theme.colors.text.tertiary,
         marginTop: 1,
+    },
+    // Badge contador (ex.: perguntas pendentes) — pill teal compacta.
+    quickActionBadge: {
+        minWidth: 22,
+        height: 22,
+        paddingHorizontal: 7,
+        borderRadius: 11,
+        backgroundColor: theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 4,
+    },
+    quickActionBadgeText: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: -0.2,
     },
     proTipCard: {
         marginHorizontal: 20,

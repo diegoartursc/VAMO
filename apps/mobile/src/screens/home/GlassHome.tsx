@@ -9,7 +9,7 @@ export default function GlassHomeScreen() {
             <HeroSection
                 image="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1000"
                 title="Sua próxima aventura começa aqui."
-                subtitle="Descubra pacotes incríveis e roteiros criados por viajantes experientes."
+                subtitle="Descubra roteiros digitais criados por viajantes experientes."
                 badge="Futurista"
             />
             <View style={styles.content}>

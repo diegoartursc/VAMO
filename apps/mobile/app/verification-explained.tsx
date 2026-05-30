@@ -14,13 +14,13 @@ import { theme } from '../src/theme/theme';
 const VERIFICATION_STEPS = [
     {
         icon: 'document-text-outline',
-        title: 'Documentação Completa',
-        description: 'CNPJ ativo, Cadastur (Ministério do Turismo) e contrato social verificados.',
+        title: 'Identidade Confirmada',
+        description: 'Validamos identidade, dados de contato e consistência do perfil antes de exibir o selo.',
     },
     {
         icon: 'shield-checkmark-outline',
-        title: 'Histórico Analisado',
-        description: 'Avaliamos reclamações em sites como Reclame Aqui e histórico de operação.',
+        title: 'Experiência Analisada',
+        description: 'Avaliamos histórico de viagens, portfólio, redes e evidências de experiência real no destino.',
     },
 
     {
@@ -42,7 +42,7 @@ export default function VerificationExplainedScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Verificação de Agências</Text>
+                <Text style={styles.headerTitle}>Verificação de Criadores</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -54,7 +54,7 @@ export default function VerificationExplainedScreen() {
                     </View>
                     <Text style={styles.heroTitle}>Sua segurança é nossa prioridade</Text>
                     <Text style={styles.heroSubtitle}>
-                        Toda agência com o selo ✓ passou por um processo rigoroso de verificação.
+                        Todo criador com selo passou por uma análise de identidade, experiência e qualidade do conteúdo.
                     </Text>
                 </View>
 
@@ -81,23 +81,23 @@ export default function VerificationExplainedScreen() {
                     <Text style={styles.faqTitle}>Perguntas Frequentes</Text>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>O preço final inclui tudo?</Text>
+                        <Text style={styles.faqQuestion}>O preço final é pelo quê?</Text>
                         <Text style={styles.faqAnswer}>
-                            Sim. Todos os valores exibidos são finais. Taxas, quando existentes, são mostradas antes do checkout.
+                            O valor é pelo acesso ao roteiro digital. Gastos de viagem, hospedagem, transporte e atrações aparecem como referência quando informados.
                         </Text>
                     </View>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>E se houver um imprevisto?</Text>
+                        <Text style={styles.faqQuestion}>O criador opera passeios ou reservas?</Text>
                         <Text style={styles.faqAnswer}>
-                            A agência é responsável pela operação. Você pode acionar a garantia VAMO diretamente pelo app.
+                            Não. O VAMO vende conteúdo digital de planejamento. Serviços turísticos devem ser contratados diretamente pelo viajante.
                         </Text>
                     </View>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>Como funciona o reembolso?</Text>
+                        <Text style={styles.faqQuestion}>E se o conteúdo tiver problema?</Text>
                         <Text style={styles.faqAnswer}>
-                            Cada pacote exibe sua política. A maioria oferece reembolso integral até 24h antes.
+                            Você pode reportar pelo suporte. A equipe revisa o caso e aciona o criador quando for necessário corrigir informações.
                         </Text>
                     </View>
                 </View>

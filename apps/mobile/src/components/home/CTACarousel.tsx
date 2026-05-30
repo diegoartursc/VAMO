@@ -22,7 +22,7 @@ interface CTASlide {
     title: string;
     subtitle: string;
     gradientColors: [string, string];
-    targetTab?: 'home' | 'packages' | 'itineraries' | 'profile';
+    targetTab?: 'home' | 'itineraries' | 'profile';
 }
 
 const slides: CTASlide[] = [

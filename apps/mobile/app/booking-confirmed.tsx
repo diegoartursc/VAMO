@@ -17,6 +17,7 @@ import { theme } from '../src/theme/theme';
 import { getPackageById } from '../src/services/api';
 import { haptics } from '../src/services/haptics';
 import { analytics } from '../src/services/analytics';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 const { width } = Dimensions.get('window');
 
@@ -187,7 +188,7 @@ export default function BookingConfirmedScreen() {
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Total pago</Text>
                             <Text style={styles.totalValue}>
-                                R$ {parseFloat(totalPrice as string || '0').toLocaleString('pt-BR')}
+                                {formatMoney(parseFloat(totalPrice as string || '0'))}
                             </Text>
                         </View>
                     </View>

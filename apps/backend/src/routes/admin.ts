@@ -96,19 +96,21 @@ router.get('/stats', verifyAdmin, async (_req: Request, res: Response) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [pendingPackages, pendingItineraries, approvedToday, rejectedTotal] = await Promise.all([
+    const [pendingPackages, pendingItineraries, approvedPackagesToday, approvedItinerariesToday, rejectedPackages, rejectedItineraries] = await Promise.all([
         prisma.package.count({ where: { status: 'PENDING_REVIEW' } }),
         prisma.itinerary.count({ where: { status: 'PENDING_REVIEW' } }),
         prisma.package.count({ where: { status: 'APPROVED', approvedAt: { gte: today } } }),
+        prisma.itinerary.count({ where: { status: 'ACTIVE', approvedAt: { gte: today } } }),
         prisma.package.count({ where: { status: 'REJECTED' } }),
+        prisma.itinerary.count({ where: { status: 'REJECTED' } }),
     ]);
 
     res.json({
         pendingPackages,
         pendingItineraries,
         totalPending: pendingPackages + pendingItineraries,
-        approvedToday,
-        rejectedTotal,
+        approvedToday: approvedPackagesToday + approvedItinerariesToday,
+        rejectedTotal: rejectedPackages + rejectedItineraries,
     });
 });
 
@@ -197,6 +199,34 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
     res.json({ packages, itineraries });
 });
 
+// GET /api/admin/itineraries/:id
+router.get('/itineraries/:id', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id as string;
+        const itinerary = await prisma.itinerary.findUnique({
+            where: { id },
+            include: {
+                creator: { select: { id: true, traveler: { select: { id: true, name: true, avatar: true, email: true } } } },
+                images: { orderBy: { order: 'asc' } },
+                days: { orderBy: { dayNumber: 'asc' }, include: { activities: { orderBy: { order: 'asc' } } } },
+                accommodations: { orderBy: { order: 'asc' } },
+                transports: { orderBy: { order: 'asc' } },
+                checklists: { orderBy: { order: 'asc' } },
+                files: true,
+                reviews: { orderBy: { createdAt: 'desc' }, take: 10, include: { images: true, responses: true } },
+            },
+        });
+        if (!itinerary) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+        res.json(itinerary);
+    } catch (error) {
+        console.error('[admin itinerary detail] error:', error);
+        res.status(500).json({ error: 'Failed to fetch itinerary detail' });
+    }
+});
+
 // POST /api/admin/packages/:id/approve
 router.post('/packages/:id/approve', verifyAdmin, async (req: Request, res: Response) => {
     const id = req.params.id as string;
@@ -224,27 +254,60 @@ router.post('/packages/:id/reject', verifyAdmin, async (req: Request, res: Respo
 
 // POST /api/admin/itineraries/:id/approve
 router.post('/itineraries/:id/approve', verifyAdmin, async (req: Request, res: Response) => {
-    const id = req.params.id as string;
-    const it = await prisma.itinerary.update({
-        where: { id },
-        data: { status: 'APPROVED', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
-    });
-    res.json({ id: it.id, status: it.status, approvedAt: it.approvedAt });
+    try {
+        const id = req.params.id as string;
+        const existing = await prisma.itinerary.findUnique({ where: { id }, select: { id: true, status: true } });
+        if (!existing) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+        if (existing.status !== 'PENDING_REVIEW') {
+            res.status(400).json({ error: 'Apenas roteiros em análise podem ser aprovados.' });
+            return;
+        }
+        const it = await prisma.itinerary.update({
+            where: { id },
+            data: { status: 'ACTIVE', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
+        });
+        res.json({ id: it.id, status: it.status, approvedAt: it.approvedAt });
+    } catch (error) {
+        console.error('[admin itinerary approve] error:', error);
+        res.status(500).json({ error: 'Failed to approve itinerary' });
+    }
 });
 
 // POST /api/admin/itineraries/:id/reject
 router.post('/itineraries/:id/reject', verifyAdmin, async (req: Request, res: Response) => {
-    const id = req.params.id as string;
-    const { note } = req.body || {};
-    const it = await prisma.itinerary.update({
-        where: { id },
-        data: {
-            status: 'REJECTED',
-            approvalNote: note || 'Não atende aos critérios de qualidade da plataforma.',
-            approvedBy: (req as any).admin.id,
-        },
-    });
-    res.json({ id: it.id, status: it.status, approvalNote: it.approvalNote });
+    try {
+        const id = req.params.id as string;
+        const { note } = req.body || {};
+        const rejectionNote = String(note || '').trim();
+        if (!rejectionNote) {
+            res.status(400).json({ error: 'Informe o motivo da rejeição.' });
+            return;
+        }
+        const existing = await prisma.itinerary.findUnique({ where: { id }, select: { id: true, status: true } });
+        if (!existing) {
+            res.status(404).json({ error: 'Itinerary not found' });
+            return;
+        }
+        if (existing.status !== 'PENDING_REVIEW') {
+            res.status(400).json({ error: 'Apenas roteiros em análise podem ser rejeitados.' });
+            return;
+        }
+        const it = await prisma.itinerary.update({
+            where: { id },
+            data: {
+                status: 'REJECTED',
+                approvalNote: rejectionNote,
+                approvedBy: (req as any).admin.id,
+            },
+        });
+        res.json({ id: it.id, status: it.status, approvalNote: it.approvalNote });
+    } catch (error) {
+        console.error('[admin itinerary reject] error:', error);
+        res.status(500).json({ error: 'Failed to reject itinerary' });
+    }
 });
 
 // ─────────────────────────────────────────────────────────────────────────

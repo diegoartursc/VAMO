@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
     Image,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -12,13 +13,61 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
-import {
-    formatDate,
-    PurchasedItineraryItem,
-} from '../../src/data/mockMyTrips';
 import { getMyTrips } from '../../src/services/api';
 import { Icon } from '../../src/components/common/Icons';
 import { useAuth } from '../../src/contexts/AuthContext';
+
+const PLACEHOLDER_IMAGE =
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop';
+
+interface PurchasedItineraryItem {
+    id: string;
+    title: string;
+    destination: string;
+    country: string;
+    image: string;
+    purchaseDate: string;
+    creatorName: string;
+    creatorAvatar: string;
+    price: number;
+    currency: string;
+    duration?: number;
+}
+
+function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Data indisponível';
+    return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    });
+}
+
+function normalizePurchasedItineraries(value: unknown): PurchasedItineraryItem[] {
+    if (!Array.isArray(value)) return [];
+
+    const seen = new Set<string>();
+    return value.flatMap((item: any) => {
+        const id = typeof item?.id === 'string' ? item.id.trim() : '';
+        if (!id || seen.has(id)) return [];
+        seen.add(id);
+
+        return [{
+            id,
+            title: item?.title || 'Roteiro digital',
+            destination: item?.destination || 'Destino a confirmar',
+            country: item?.country || '',
+            image: typeof item?.image === 'string' && item.image.trim() ? item.image : PLACEHOLDER_IMAGE,
+            purchaseDate: item?.purchaseDate || new Date().toISOString(),
+            creatorName: item?.creatorName || 'Criador VAMO',
+            creatorAvatar: item?.creatorAvatar || '',
+            price: Number.isFinite(Number(item?.price)) ? Number(item.price) : 0,
+            currency: item?.currency || 'AUD',
+            duration: Number.isFinite(Number(item?.duration)) ? Number(item.duration) : undefined,
+        }];
+    });
+}
 
 // ─── Login Prompt ─────────────────────────────────────────
 function LoginPrompt() {
@@ -126,6 +175,7 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
     const slideAnim = useRef(new Animated.Value(30)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const scaleAnim = useRef(new Animated.Value(1)).current;
+    const [imageFailed, setImageFailed] = useState(false);
 
     useEffect(() => {
         Animated.parallel([
@@ -152,8 +202,12 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
 
     const priceFormatted = new Intl.NumberFormat('pt-BR', {
         style: 'currency',
-        currency: itin.currency ?? 'BRL',
+        currency: itin.currency ?? 'AUD',
     }).format(itin.price);
+    const destinationLabel = [itin.destination, itin.country].filter(Boolean).join(', ') || 'Destino a confirmar';
+    const durationLabel = itin.duration && itin.duration > 0
+        ? `${itin.duration} ${itin.duration === 1 ? 'dia' : 'dias'}`
+        : null;
 
     return (
         <Animated.View
@@ -171,7 +225,11 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
             >
                 {/* Hero Image */}
                 <View style={styles.cardImageContainer}>
-                    <Image source={{ uri: itin.image }} style={styles.cardImage} />
+                    <Image
+                        source={{ uri: imageFailed ? PLACEHOLDER_IMAGE : itin.image }}
+                        style={styles.cardImage}
+                        onError={() => setImageFailed(true)}
+                    />
                     <LinearGradient
                         colors={['transparent', 'rgba(26,50,99,0.82)']}
                         style={styles.cardImageOverlay}
@@ -181,8 +239,8 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
                     <View style={styles.cardTopRow}>
                         <View style={styles.destinationBadge}>
                             <Icon name="location" size={11} color="#fff" />
-                            <Text style={styles.destinationText}>
-                                {itin.destination}, {itin.country}
+                            <Text style={styles.destinationText} numberOfLines={1}>
+                                {destinationLabel}
                             </Text>
                         </View>
                         <View style={styles.priceBadge}>
@@ -210,6 +268,12 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
                     </View>
 
                     <View style={styles.footerRight}>
+                        {durationLabel ? (
+                            <>
+                                <Icon name="clock" size={12} color={theme.colors.text.tertiary} />
+                                <Text style={styles.purchaseDate}>{durationLabel}</Text>
+                            </>
+                        ) : null}
                         <Icon name="calendar" size={12} color={theme.colors.text.tertiary} />
                         <Text style={styles.purchaseDate}>
                             {formatDate(itin.purchaseDate)}
@@ -221,6 +285,45 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
                 </View>
             </TouchableOpacity>
         </Animated.View>
+    );
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+    const router = useRouter();
+    return (
+        <View style={styles.emptyState}>
+            <LinearGradient
+                colors={[theme.colors.error + '18', theme.colors.error + '08']}
+                style={styles.emptyIconCircle}
+            >
+                <Icon name="refresh" size={38} color={theme.colors.error} />
+            </LinearGradient>
+
+            <Text style={styles.emptyTitle}>Não foi possível carregar</Text>
+            <Text style={styles.emptySubtitle}>{message}</Text>
+
+            <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={onRetry}
+                activeOpacity={0.85}
+            >
+                <LinearGradient
+                    colors={theme.colors.gradients.action as unknown as [string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.emptyButtonGradient}
+                >
+                    <Icon name="refresh" size={16} color="#fff" />
+                    <Text style={styles.emptyButtonText}>Tentar novamente</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/(tabs)/index')} style={{ marginBottom: 32 }}>
+                <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600', textAlign: 'center' }}>
+                    Explorar roteiros
+                </Text>
+            </TouchableOpacity>
+        </View>
     );
 }
 
@@ -289,6 +392,8 @@ function EmptyState() {
 export default function MyTripsScreen() {
     const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [itineraries, setItineraries] = useState<PurchasedItineraryItem[]>([]);
     const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -296,23 +401,48 @@ export default function MyTripsScreen() {
         Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
     }, []);
 
-    useEffect(() => {
-        // Only fetch when we know auth status and user is authenticated
+    const loadPurchasedItineraries = useCallback((isRefresh = false) => {
         if (authLoading) return;
-        if (!isAuthenticated) { setLoading(false); return; }
-
+        if (!isAuthenticated) {
+            setItineraries([]);
+            setLoadError(null);
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
         let mounted = true;
-        setLoading(true);
+        if (!isRefresh) setLoading(true);
+        setLoadError(null);
         getMyTrips(accessToken)
             .then((result) => {
                 if (mounted) {
-                    setItineraries(result.purchasedItineraries);
+                    setItineraries(normalizePurchasedItineraries(result.purchasedItineraries));
                     setLoading(false);
+                    setRefreshing(false);
                 }
             })
-            .catch(() => { if (mounted) setLoading(false); });
+            .catch((error) => {
+                if (!mounted) return;
+                console.warn('Error loading purchased itineraries:', error);
+                setItineraries([]);
+                setLoadError('Suas compras não foram carregadas. Verifique a conexão e tente novamente.');
+                setLoading(false);
+                setRefreshing(false);
+            });
         return () => { mounted = false; };
     }, [accessToken, isAuthenticated, authLoading]);
+
+    useEffect(() => {
+        const cleanup = loadPurchasedItineraries(false);
+        return cleanup;
+    }, [loadPurchasedItineraries]);
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadPurchasedItineraries(true);
+    }, [loadPurchasedItineraries]);
+
+    const showLoading = authLoading || loading;
 
     return (
         <View style={styles.container}>
@@ -326,7 +456,7 @@ export default function MyTripsScreen() {
                 >
                     <View style={styles.headerTop}>
                         <View>
-                            <Text style={styles.headerLabel}>BIBLIOTECA DE VIAGENS</Text>
+                            <Text style={styles.headerLabel}>BIBLIOTECA DIGITAL</Text>
                             <Text style={styles.headerTitle}>Meus Roteiros</Text>
                         </View>
                         <View style={styles.headerIconCircle}>
@@ -341,8 +471,15 @@ export default function MyTripsScreen() {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={theme.colors.primary}
+                    />
+                }
             >
-                {(authLoading || loading) ? (
+                {showLoading ? (
                     <>
                         <SkeletonCard />
                         <SkeletonCard />
@@ -350,6 +487,8 @@ export default function MyTripsScreen() {
                     </>
                 ) : !isAuthenticated ? (
                     <LoginPrompt />
+                ) : loadError ? (
+                    <ErrorState message={loadError} onRetry={() => loadPurchasedItineraries(false)} />
                 ) : itineraries.length === 0 ? (
                     <EmptyState />
                 ) : (

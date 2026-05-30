@@ -37,7 +37,7 @@ export default function AgenciaConfiguracoesPage() {
                     <input className="form-input" defaultValue="VAMO Demo Agency" />
                 </div>
                 <div className="form-group">
-                    <label className="form-label">CNPJ</label>
+                    <label className="form-label">Identificação fiscal (opcional)</label>
                     <input className="form-input" defaultValue="00.000.000/0001-00" readOnly style={{ opacity: 0.6 }} />
                 </div>
                 <div className="form-group">

@@ -7,10 +7,10 @@ import { Icon } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
 import { VerifiedBadge } from '../creator/VerifiedBadge';
 import { getModuleBadges, getCategoryChips } from '../../utils/itineraryCardBadges';
-import { getCoverImages } from '../../utils/itineraryMedia';
+import { getCoverImages, getCoverFocalPoint } from '../../utils/itineraryMedia';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useCart } from '../../hooks/useCart';
-import { calculateBudgetSummary } from '@vamo/shared/itinerary';
+import { calculateBudgetSummary, formatMoney } from '@vamo/shared/itinerary';
 
 const MAX_CATEGORY_CHIPS = 3;
 const MAX_MODULE_CHIPS = 3;
@@ -34,8 +34,25 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     const { isInCart, addToCart } = useCart();
     const [cartAdded, setCartAdded] = useState(false);
 
-    const fav = isFavorite(itinerary.id);
-    const inCart = isInCart(itinerary.id);
+    const itineraryId = typeof itinerary?.id === 'string' ? itinerary.id : '';
+    const fav = itineraryId ? isFavorite(itineraryId) : false;
+    const inCart = itineraryId ? isInCart(itineraryId) : false;
+    const itineraryPrice = Number(itinerary.price);
+    const priceLabel = Number.isFinite(itineraryPrice) && itineraryPrice > 0
+        ? formatMoney(itineraryPrice, 'AUD')
+        : 'Grátis';
+    const creatorName = itinerary.creator?.name || 'Criador VAMO';
+    const creatorRating = Number(itinerary.creator?.rating);
+    const creatorRatingLabel = Number.isFinite(creatorRating) && creatorRating > 0
+        ? creatorRating.toFixed(1)
+        : 'Novo';
+    const salesCount = Number(itinerary.creator?.salesCount);
+    const salesLabel = Number.isFinite(salesCount) && salesCount > 0
+        ? `${salesCount.toLocaleString('pt-BR')} vendas`
+        : 'Roteirista';
+    const title = itinerary.title || 'Roteiro digital';
+    const description = itinerary.description || 'Planejamento digital com dicas práticas para sua viagem.';
+    const destination = itinerary.destination || itinerary.city || 'Destino a confirmar';
 
     // Badge de confiança do orçamento (só aparece se há sinal positivo —
     // evita poluir cards de roteiros antigos sem dados de custo).
@@ -56,13 +73,15 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
 
     const handleFav = async (e: any) => {
         e.stopPropagation?.();
-        await toggleFavorite(itinerary.id);
+        if (!itineraryId) return;
+        await toggleFavorite(itineraryId);
     };
 
     const handleCart = async (e: any) => {
         e.stopPropagation?.();
+        if (!itineraryId) return;
         if (!inCart) {
-            await addToCart(itinerary.id);
+            await addToCart(itineraryId);
             setCartAdded(true);
             setTimeout(() => setCartAdded(false), 2000);
         }
@@ -76,7 +95,18 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
         >
             {/* ── Imagem com overlay ── */}
             <View style={styles.imageWrapper}>
-                <CoverCarousel images={getCoverImages(itinerary)} height={240} dotsBottom={44} />
+                {/* aspectRatio 4:3 → capa mais alta e proporcional.
+                    coverMode='containWithBlurredBg' → o usuário vê a foto
+                    quase inteira (contain), e as sobras são preenchidas
+                    com o próprio fundo blurred — sem barra preta/branca,
+                    sem corte agressivo do destino. */}
+                <CoverCarousel
+                    images={getCoverImages(itinerary)}
+                    aspectRatio={4 / 3}
+                    focalPoint={getCoverFocalPoint(itinerary)}
+                    coverMode="containWithBlurredBg"
+                    dotsBottom={44}
+                />
 
                 {/* Gradiente inferior na imagem para leitura */}
                 <LinearGradient
@@ -88,7 +118,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                 {/* Preço flutuante sobre imagem */}
                 <View style={styles.priceBadge}>
                     <Text style={styles.priceBadgeText}>
-                        R$ {itinerary.price?.toFixed(2).replace('.', ',')}
+                        {priceLabel}
                     </Text>
                 </View>
 
@@ -97,6 +127,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     style={styles.favButton}
                     onPress={handleFav}
                     activeOpacity={0.8}
+                    accessibilityLabel={fav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                     <Ionicons
@@ -134,16 +165,16 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                         </View>
                         <View>
                             <Text style={styles.creatorName} numberOfLines={1}>
-                                {itinerary.creator?.name}
+                                {creatorName}
                             </Text>
                             <View style={styles.ratingRow}>
                                 <Icon name="star" size={11} color="#F59E0B" strokeWidth={2.5} />
                                 <Text style={styles.ratingText}>
-                                    {itinerary.creator?.rating?.toFixed(1)}
+                                    {creatorRatingLabel}
                                 </Text>
                                 <Text style={styles.ratingDivider}>·</Text>
                                 <Text style={styles.salesText}>
-                                    {itinerary.creator?.salesCount?.toLocaleString('pt-BR')} vendas
+                                    {salesLabel}
                                 </Text>
                             </View>
                         </View>
@@ -157,12 +188,12 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
 
                 {/* Título */}
                 <Text style={styles.title} numberOfLines={2}>
-                    {itinerary.title}
+                    {title}
                 </Text>
 
                 {/* Descrição */}
                 <Text style={styles.description} numberOfLines={2}>
-                    {itinerary.description}
+                    {description}
                 </Text>
 
                 {/* Categorias temáticas — chips navy com ícone Lucide profissional */}
@@ -221,7 +252,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     <View style={styles.destinationRow}>
                         <Icon name="location" size={14} color={theme.colors.text.tertiary} />
                         <Text style={styles.destinationText} numberOfLines={1}>
-                            {itinerary.destination}{itinerary.country ? `, ${itinerary.country}` : ''}
+                            {destination}{itinerary.country ? `, ${itinerary.country}` : ''}
                         </Text>
                     </View>
                     <View style={styles.footerActions}>
@@ -285,7 +316,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 11,
         paddingVertical: 5,
         borderRadius: 20,
-        backdropFilter: 'blur(4px)',
     },
     priceBadgeText: {
         fontSize: 15,

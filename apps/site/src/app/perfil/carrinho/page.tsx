@@ -20,9 +20,9 @@ interface CartItem {
     creator?: { id: string; name: string };
 }
 
-function formatPrice(p: number, currency = "BRL") {
+function formatPrice(p: number, currency = "AUD") {
     try { return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(p); }
-    catch { return `R$ ${p.toFixed(2)}`; }
+    catch { return `A$ ${p.toFixed(2)}`; }
 }
 
 function pickCover(images?: string[]): string {

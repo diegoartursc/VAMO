@@ -3,8 +3,8 @@
  *
  * Usa a lista canônica de moedas de @vamo/shared (mesma do admin/site).
  * Apresenta um campo compacto que, ao ser tocado, abre um modal com a
- * lista pesquisável. Cada item exibe: código (BRL), símbolo (R$) e
- * nome localizado em pt-BR (Real brasileiro).
+ * lista pesquisável. Cada item exibe: código (AUD), símbolo (A$) e
+ * nome localizado em pt-BR (Dólar Australiano — moeda padrão do mercado).
  *
  * Props mínimas: { value, onChange }. Suporta opcionalmente `label`,
  * `disabled` e `compact` (variação ainda mais condensada para uso
@@ -143,7 +143,7 @@ export function CurrencyPicker({
 }
 
 const s = StyleSheet.create({
-    label: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary, marginTop: 14, marginBottom: 6 },
+    label: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary, marginBottom: 6 },
 
     trigger: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -152,7 +152,7 @@ const s = StyleSheet.create({
         borderWidth: 1, borderColor: theme.colors.borderLight,
         borderRadius: 12,
     },
-    triggerCompact: { paddingVertical: 8, paddingHorizontal: 10 },
+    triggerCompact: { paddingVertical: 12, paddingHorizontal: 10 },
     triggerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     triggerSymbol: { fontSize: 18, fontWeight: '700', color: theme.colors.primary, minWidth: 26, textAlign: 'center' },
     triggerCode: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary },

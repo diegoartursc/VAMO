@@ -1,10 +1,11 @@
 import { Share, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
-import { analytics } from './analytics';
+import { openExternalUrl } from '../utils/externalLinks';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 /**
  * Sharing Service
- * Handles deep links and social sharing functionality
+ * Handles deep links and social sharing functionality for digital itineraries.
  */
 
 const APP_SCHEME = 'vamo';
@@ -17,35 +18,26 @@ interface ShareContent {
 }
 
 class ShareService {
-    /**
-     * Generate deep link for a package
-     */
-    getPackageDeepLink(packageId: string): string {
-        return Linking.createURL(`package/${packageId}`);
+    getItineraryDeepLink(itineraryId: string): string {
+        return Linking.createURL(`itinerary/${itineraryId}`);
     }
 
-    /**
-     * Generate web URL for a package (fallback for non-app users)
-     */
-    getPackageWebUrl(packageId: string): string {
-        return `${WEB_BASE_URL}/package/${packageId}`;
+    getItineraryWebUrl(itineraryId: string): string {
+        return `${WEB_BASE_URL}/itinerary/${itineraryId}`;
     }
 
-    /**
-     * Share a package via native share sheet
-     */
-    async sharePackage(
-        packageId: string,
-        packageTitle: string,
+    async shareItinerary(
+        itineraryId: string,
+        itineraryTitle: string,
         destination: string,
         price: number
     ): Promise<boolean> {
         try {
-            const webUrl = this.getPackageWebUrl(packageId);
+            const webUrl = this.getItineraryWebUrl(itineraryId);
 
             const content: ShareContent = {
-                title: packageTitle,
-                message: `🌍 Confira este pacote incrível no VAMO!\n\n${packageTitle}\n📍 ${destination}\n💰 A partir de R$ ${price.toLocaleString('pt-BR')}\n\n${webUrl}`,
+                title: itineraryTitle,
+                message: `Confira este roteiro digital no VAMO!\n\n${itineraryTitle}\nDestino: ${destination}\nValor: ${formatMoney(price)}\n\n${webUrl}`,
                 url: webUrl,
             };
 
@@ -56,29 +48,25 @@ class ShareService {
             );
 
             if (result.action === Share.sharedAction) {
-                analytics.packageShared(packageId, result.activityType || 'unknown');
                 return true;
             }
 
             return false;
         } catch (error) {
-            console.error('Error sharing package:', error);
+            console.error('Error sharing itinerary:', error);
             return false;
         }
     }
 
-    /**
-     * Share booking confirmation
-     */
-    async shareBookingConfirmation(
-        bookingId: string,
-        packageTitle: string,
+    async sharePurchaseConfirmation(
+        purchaseId: string,
+        itineraryTitle: string,
         date: string
     ): Promise<boolean> {
         try {
             const content: ShareContent = {
-                title: 'Minha Viagem no VAMO',
-                message: `🎉 Reservei uma viagem incrível!\n\n${packageTitle}\n📅 ${date}\n\n#VAMO #Viagem`,
+                title: 'Meu roteiro no VAMO',
+                message: `Comprei um roteiro digital no VAMO!\n\n${itineraryTitle}\nData: ${date}\nPedido: ${purchaseId}`,
             };
 
             const result = await Share.share({
@@ -88,7 +76,7 @@ class ShareService {
 
             return result.action === Share.sharedAction;
         } catch (error) {
-            console.error('Error sharing booking:', error);
+            console.error('Error sharing purchase:', error);
             return false;
         }
     }
@@ -108,10 +96,10 @@ class ShareService {
                 await Linking.openURL(url);
                 return true;
             } else {
-                // Fallback to web WhatsApp
                 const webUrl = `https://wa.me/${cleanNumber}?text=${encodedMessage}`;
-                await Linking.openURL(webUrl);
-                return true;
+                return openExternalUrl(webUrl, {
+                    fallbackMessage: 'Não foi possível abrir o WhatsApp agora.',
+                });
             }
         } catch (error) {
             console.error('Error opening WhatsApp:', error);
@@ -119,16 +107,15 @@ class ShareService {
         }
     }
 
-    /**
-     * Contact agency via WhatsApp
-     */
-    async contactAgency(
-        agencyPhone: string,
-        packageTitle: string,
-        packageId: string
+    async contactSupport(
+        phoneNumber: string,
+        itineraryTitle?: string,
+        itineraryId?: string
     ): Promise<boolean> {
-        const message = `Olá! Tenho interesse no pacote "${packageTitle}" (ID: ${packageId}). Gostaria de mais informações.`;
-        return this.openWhatsApp(agencyPhone, message);
+        const context = itineraryTitle
+            ? ` sobre o roteiro "${itineraryTitle}"${itineraryId ? ` (ID: ${itineraryId})` : ''}`
+            : '';
+        return this.openWhatsApp(phoneNumber, `Olá! Preciso de ajuda no VAMO${context}.`);
     }
 
     /**
@@ -142,18 +129,16 @@ class ShareService {
 
             const segments = parsed.path.split('/');
 
-            // Parse package deep link: vamo://package/{id}
-            if (segments[0] === 'package' && segments[1]) {
+            if (segments[0] === 'itinerary' && segments[1]) {
                 return {
-                    screen: 'package',
+                    screen: 'itinerary',
                     params: { id: segments[1] },
                 };
             }
 
-            // Parse booking deep link: vamo://booking/{id}
-            if (segments[0] === 'booking' && segments[1]) {
+            if (segments[0] === 'purchased-itinerary' && segments[1]) {
                 return {
-                    screen: 'booking',
+                    screen: 'purchased-itinerary',
                     params: { id: segments[1] },
                 };
             }

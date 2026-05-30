@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
+import { formatMoney } from '@vamo/shared/itinerary';
 import DatePickerModal from '../../src/components/DatePickerModal';
 import ParticipantsModal from '../../src/components/ParticipantsModal';
 
@@ -79,12 +80,7 @@ export default function AvailabilityScreen() {
         return (option.pricePerAdult * adultsCount) + (option.pricePerChild * childrenCount);
     };
 
-    const formatPrice = (value: number) => {
-        return value.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-        });
-    };
+    const formatPrice = (value: number) => formatMoney(value);
 
     const formatDate = (date: Date) => {
         return date.toLocaleDateString('pt-BR', {

@@ -18,6 +18,7 @@ import agencyDocRoutes from './routes/agency-documents';
 import auditLogsRoutes from './routes/audit-logs';
 import ratesRoutes from './routes/rates';
 import uploadsRoutes from './routes/uploads';
+import questionRoutes from './routes/questions';
 
 // Load environment variables
 dotenv.config();
@@ -110,6 +111,7 @@ app.use('/api/agency-docs', agencyDocRoutes);
 app.use('/api/admin/audit-logs', auditLogsRoutes);
 app.use('/api/rates', ratesRoutes);
 app.use('/api/uploads', uploadsRoutes);
+app.use('/api/questions', questionRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

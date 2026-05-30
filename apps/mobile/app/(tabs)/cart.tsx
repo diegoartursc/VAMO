@@ -10,8 +10,8 @@ import {
     Platform,
     StatusBar,
     Dimensions,
-    Alert,
     ActivityIndicator,
+    RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,11 +19,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { useCart } from '../../src/hooks/useCart';
 import { haptics } from '../../src/services/haptics';
+import { confirm } from '../../src/utils/confirm';
+import { getItineraryById } from '../../src/services/api';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight ?? 24);
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
-
 // ─── Tipo mínimo usado pelo card do carrinho ─────────────────────
 interface CartItemData {
     id: string;
@@ -34,21 +35,59 @@ interface CartItemData {
     duration: number;
     images: string[];          // URLs já normalizadas
     creator: { name: string; avatar: string };
+    lifetimeAccess?: boolean;
+    /** false quando o roteiro não pode ser comprado agora (rascunho, em
+     *  análise, arquivado, removido, sem preço). */
+    available: boolean;
+    /** Motivo curto da indisponibilidade, exibido no card. */
+    unavailableReason?: string;
 }
 
 const PLACEHOLDER_IMG =
     'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop';
 
-/** Busca um roteiro real da API e normaliza pro shape do card. */
-async function fetchItinerary(id: string): Promise<CartItemData | null> {
+/** Status do roteiro que permitem compra na vitrine. */
+const PURCHASABLE_STATUSES = new Set(['active', 'approved', 'published', 'ativo', 'aprovado', 'publicado']);
+
+/** Decide se o roteiro está comprável e devolve o motivo quando não. */
+function evaluateAvailability(d: any): { ok: true } | { ok: false; reason: string } {
+    const rawStatus = String(d?.status ?? d?.approvalStatus ?? 'active').toLowerCase();
+    if (!PURCHASABLE_STATUSES.has(rawStatus)) {
+        switch (rawStatus) {
+            case 'draft':           return { ok: false, reason: 'Rascunho — ainda não publicado' };
+            case 'pending_review':  return { ok: false, reason: 'Em análise pela VAMO' };
+            case 'rejected':        return { ok: false, reason: 'Não aprovado para a vitrine' };
+            case 'paused':          return { ok: false, reason: 'Temporariamente pausado pelo criador' };
+            case 'archived':        return { ok: false, reason: 'Arquivado' };
+            default:                return { ok: false, reason: 'Indisponível agora' };
+        }
+    }
+    const price = Number(d?.price);
+    if (!Number.isFinite(price) || price < 0) {
+        return { ok: false, reason: 'Sem preço definido' };
+    }
+    return { ok: true };
+}
+
+/** Busca um roteiro real da API e normaliza pro shape do card. Quando o
+ *  roteiro foi removido (API devolve null) ou está em estado não-comprável,
+ *  devolvemos um placeholder marcado como `available: false` em vez de
+ *  filtrar — o usuário precisa ver no carrinho que aquilo virou indisponível. */
+async function fetchItinerary(id: string): Promise<CartItemData> {
     try {
-        const res = await fetch(`${API_BASE}/itineraries/${id}`);
-        if (!res.ok) return null;
-        const d = await res.json();
-        // Imagens podem vir como [{ url }] ou como string[]
+        const d = await getItineraryById(id);
+        if (!d) {
+            return {
+                id, title: 'Roteiro indisponível', destination: '', country: '',
+                price: 0, duration: 0, images: [PLACEHOLDER_IMG],
+                creator: { name: '—', avatar: '👤' },
+                available: false, unavailableReason: 'Roteiro removido ou não encontrado',
+            };
+        }
         const imgs: string[] = Array.isArray(d.images)
             ? d.images.map((x: any) => (typeof x === 'string' ? x : x?.url)).filter(Boolean)
             : [];
+        const availability = evaluateAvailability(d);
         return {
             id: d.id,
             title: d.title || 'Roteiro',
@@ -61,17 +100,23 @@ async function fetchItinerary(id: string): Promise<CartItemData | null> {
                 name: d.creator?.traveler?.name || d.creator?.name || 'Criador VAMO',
                 avatar: d.creator?.traveler?.avatar || '👤',
             },
+            lifetimeAccess: Boolean(d.lifetimeAccess),
+            available: availability.ok,
+            unavailableReason: availability.ok ? undefined : availability.reason,
         };
     } catch {
-        return null;
+        return {
+            id, title: 'Roteiro indisponível', destination: '', country: '',
+            price: 0, duration: 0, images: [PLACEHOLDER_IMG],
+            creator: { name: '—', avatar: '👤' },
+            available: false, unavailableReason: 'Não foi possível carregar este roteiro',
+        };
     }
 }
 
 // ─── Helpers ────────────────────────────────────────────────────
 const formatPrice = (price: number) =>
-    price % 1 === 0
-        ? `R$ ${price}`
-        : `R$ ${price.toFixed(2).replace('.', ',')}`;
+    price > 0 ? formatMoney(price) : 'Grátis';
 
 // ════════════════════════════════════════════════════════════════
 //  SCREEN
@@ -93,46 +138,60 @@ export default function CartScreen() {
     // Carrega dados reais dos roteiros do carrinho via API
     const [items, setItems]   = useState<CartItemData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const loadItems = useCallback(async () => {
-        if (cartItems.length === 0) { setItems([]); setLoading(false); return; }
-        setLoading(true);
+    const loadItems = useCallback(async (isRefresh = false) => {
+        if (cartItems.length === 0) {
+            setItems([]);
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
+        if (!isRefresh) setLoading(true);
         const results = await Promise.all(cartItems.map(fetchItinerary));
-        setItems(results.filter((r): r is CartItemData => r !== null));
+        setItems(results);
         setLoading(false);
+        setRefreshing(false);
     }, [cartItems]);
 
     useEffect(() => { loadItems(); }, [loadItems]);
 
-    const isEmpty = !loading && items.length === 0;
-    const subtotal = items.reduce((sum, it) => sum + it.price, 0);
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadItems(true);
+    }, [loadItems]);
 
-    const handleRemove = (item: CartItemData) => {
+    const availableItems = items.filter((it) => it.available);
+    const unavailableCount = items.length - availableItems.length;
+    const isEmpty = !loading && cartItems.length === 0;
+    const onlyUnavailable = !loading && items.length > 0 && availableItems.length === 0;
+    const subtotal = availableItems.reduce((sum, it) => sum + it.price, 0);
+    // MVP: backend só aceita 1 compra por requisição. O CTA mostra o total
+    // de disponíveis e a quantidade real; ao tocar, abrimos checkout do
+    // primeiro com aviso quando há fila.
+    const checkoutAmount = subtotal;
+    const checkoutCount = availableItems.length;
+
+    const handleRemove = async (item: CartItemData) => {
         haptics.medium();
-        Alert.alert(
-            'Remover do carrinho?',
-            `"${item.title}" será removido.`,
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Remover',
-                    style: 'destructive',
-                    onPress: () => { haptics.light(); removeFromCart(item.id); },
-                },
-            ]
-        );
+        const ok = await confirm({
+            title: 'Remover do carrinho?',
+            message: `"${item.title}" será removido.`,
+            confirmText: 'Remover',
+            destructive: true,
+        });
+        if (ok) { haptics.light(); removeFromCart(item.id); }
     };
 
-    const handleClearAll = () => {
+    const handleClearAll = async () => {
         haptics.medium();
-        Alert.alert(
-            'Limpar carrinho?',
-            'Todos os roteiros serão removidos.',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Limpar', style: 'destructive', onPress: () => { haptics.light(); clearCart(); } },
-            ]
-        );
+        const ok = await confirm({
+            title: 'Limpar carrinho?',
+            message: 'Todos os roteiros serão removidos.',
+            confirmText: 'Limpar',
+            destructive: true,
+        });
+        if (ok) { haptics.light(); clearCart(); }
     };
 
     /**
@@ -143,24 +202,22 @@ export default function CartScreen() {
      * TODO (futuro): implementar checkout multi-item no backend (orders +
      * order_items) e navegar para um summary screen aqui.
      */
-    const handleCheckout = () => {
-        if (items.length === 0) return;
+    const handleCheckout = async () => {
+        if (availableItems.length === 0) return;
         haptics.bookingConfirmed();
         const proceed = (it: CartItemData) => {
             router.push({
                 pathname: '/checkout/itinerary-contact' as any,
-                params: { itineraryId: it.id, price: it.price.toString() },
+                params: { itineraryId: it.id, price: it.price.toString(), source: 'cart' },
             });
         };
-        if (items.length === 1) { proceed(items[0]); return; }
-        Alert.alert(
-            'Compra individual',
-            `Você tem ${items.length} roteiros no carrinho. Por ora, compras são feitas um a um. Deseja começar pelo primeiro ("${items[0].title}")?`,
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Comprar primeiro', onPress: () => proceed(items[0]) },
-            ],
-        );
+        if (availableItems.length === 1) { proceed(availableItems[0]); return; }
+        const ok = await confirm({
+            title: 'Checkout individual',
+            message: `Você tem ${availableItems.length} roteiros disponíveis, mas o checkout atual libera uma compra por vez. Vamos começar por "${availableItems[0].title}" no valor de ${formatPrice(availableItems[0].price)}. Os demais continuam no carrinho.`,
+            confirmText: 'Comprar primeiro',
+        });
+        if (ok) proceed(availableItems[0]);
     };
 
     return (
@@ -202,10 +259,12 @@ export default function CartScreen() {
                         <View style={styles.headerCountBadge}>
                             <Ionicons name="receipt-outline" size={12} color="rgba(255,255,255,0.85)" />
                             <Text style={styles.headerCountText}>
-                                {items.length} roteiro{items.length !== 1 ? 's' : ''} selecionado{items.length !== 1 ? 's' : ''}
+                                {loading
+                                    ? '...'
+                                    : `${items.length} ${items.length === 1 ? 'roteiro' : 'roteiros'}`}
                             </Text>
                         </View>
-                        {items.length > 0 && (
+                        {cartItems.length > 0 && (
                             <TouchableOpacity onPress={handleClearAll} activeOpacity={0.7}>
                                 <Text style={styles.clearAllText}>Limpar tudo</Text>
                             </TouchableOpacity>
@@ -218,15 +277,38 @@ export default function CartScreen() {
             {loading ? (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <ActivityIndicator color={theme.colors.primary} />
+                    <Text style={styles.loadingText}>Carregando carrinho...</Text>
                 </View>
             ) : isEmpty ? (
                 <EmptyState onExplore={() => router.push('/(tabs)/index' as any)} />
+            ) : onlyUnavailable ? (
+                <UnavailableState
+                    onExplore={() => router.push('/(tabs)/index' as any)}
+                    onRefresh={onRefresh}
+                />
             ) : (
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={theme.colors.primary}
+                        />
+                    }
                 >
                     <Animated.View style={{ opacity: bodyAnim }}>
+                        {unavailableCount > 0 && (
+                            <View style={styles.unavailableBanner}>
+                                <Ionicons name="information-circle-outline" size={17} color={theme.colors.primary} />
+                                <Text style={styles.unavailableBannerText}>
+                                    {unavailableCount === 1
+                                        ? '1 roteiro do carrinho não está disponível agora e não entra no total.'
+                                        : `${unavailableCount} roteiros do carrinho não estão disponíveis agora e não entram no total.`}
+                                </Text>
+                            </View>
+                        )}
 
                         {/* Cart items */}
                         {items.map((item, index) => (
@@ -234,13 +316,16 @@ export default function CartScreen() {
                                 key={item.id}
                                 item={item}
                                 index={index}
-                                onPress={() => router.push(`/(tabs)/itinerary/${item.id}` as any)}
+                                onPress={() => item.available
+                                    ? router.push(`/(tabs)/itinerary/${item.id}` as any)
+                                    : undefined
+                                }
                                 onRemove={() => handleRemove(item)}
                             />
                         ))}
 
                         {/* Order summary */}
-                        <OrderSummary items={items} subtotal={subtotal} />
+                        <OrderSummary items={availableItems} subtotal={subtotal} />
 
                         {/* Spacer for bottom sheet */}
                         <View style={{ height: 140 }} />
@@ -249,8 +334,12 @@ export default function CartScreen() {
             )}
 
             {/* ══════════ STICKY CHECKOUT BAR ══════════ */}
-            {!isEmpty && (
-                <CheckoutBar subtotal={subtotal} onPress={handleCheckout} />
+            {!loading && items.length > 0 && (
+                <CheckoutBar
+                    amount={checkoutAmount}
+                    itemCount={checkoutCount}
+                    onPress={handleCheckout}
+                />
             )}
         </View>
     );
@@ -272,6 +361,7 @@ function CartItemCard({
 }) {
     const cardAnim  = useRef(new Animated.Value(0)).current;
     const pressScale = useRef(new Animated.Value(1)).current;
+    const [imageFailed, setImageFailed] = useState(false);
 
     useEffect(() => {
         Animated.timing(cardAnim, {
@@ -282,10 +372,14 @@ function CartItemCard({
     const onPressIn  = () => Animated.spring(pressScale, { toValue: 0.975, useNativeDriver: true, speed: 22 }).start();
     const onPressOut = () => Animated.spring(pressScale, { toValue: 1,     useNativeDriver: true, speed: 22 }).start();
 
+    // Sempre numérico quando o dado existe — evita misturar "fim de semana"
+    // com "7 dias" no mesmo carrinho. Só caímos no texto solto quando o
+    // criador não preencheu duração.
     const durationLabel =
-        item.duration <= 3 ? 'fim de semana' :
-        item.duration <= 7 ? `${item.duration} dias` :
-        `${item.duration} dias`;
+        item.duration <= 0
+            ? 'duração a confirmar'
+            : `${item.duration} ${item.duration === 1 ? 'dia' : 'dias'}`;
+    const destinationLabel = [item.destination, item.country].filter(Boolean).join(', ') || 'Destino a confirmar';
 
     return (
         <Animated.View style={[
@@ -299,65 +393,96 @@ function CartItemCard({
             },
         ]}>
             <TouchableOpacity
-                activeOpacity={1}
+                activeOpacity={item.available ? 1 : 0.95}
                 onPress={onPress}
-                onPressIn={onPressIn}
-                onPressOut={onPressOut}
+                onPressIn={item.available ? onPressIn : undefined}
+                onPressOut={item.available ? onPressOut : undefined}
+                disabled={!item.available}
             >
-                <View style={styles.card}>
+                <View style={[styles.card, !item.available && styles.cardDisabled]}>
                     {/* Thumbnail */}
                     <View style={styles.thumbWrapper}>
-                        <Image
-                            source={{ uri: item.images[0] }}
-                            style={styles.thumbImage}
-                            resizeMode="cover"
-                        />
+                        {imageFailed ? (
+                            <View style={[styles.thumbImage, styles.thumbFallback]}>
+                                <Ionicons name="map-outline" size={28} color="rgba(255,255,255,0.55)" />
+                            </View>
+                        ) : (
+                            <Image
+                                source={{ uri: item.images[0] }}
+                                style={styles.thumbImage}
+                                resizeMode="cover"
+                                onError={() => setImageFailed(true)}
+                            />
+                        )}
                         <LinearGradient
                             colors={['transparent', 'rgba(26,50,99,0.45)']}
                             style={StyleSheet.absoluteFill}
                         />
+                        {!item.available && (
+                            <View style={styles.unavailableBadge}>
+                                <Ionicons name="lock-closed" size={11} color="#fff" />
+                                <Text style={styles.unavailableBadgeText}>Indisponível</Text>
+                            </View>
+                        )}
                     </View>
 
                     {/* Content */}
                     <View style={styles.cardBody}>
                         <View style={styles.cardTopRow}>
-                            {/* Title */}
+                            {/* Title - padding direito reserva espaço pro botão X absoluto */}
                             <Text style={styles.cardTitle} numberOfLines={2}>
                                 {item.title}
                             </Text>
-                            {/* Remove button */}
-                            <TouchableOpacity
-                                style={styles.removeBtn}
-                                onPress={onRemove}
-                                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="close" size={14} color={theme.colors.text.tertiary} />
-                            </TouchableOpacity>
                         </View>
 
-                        {/* Meta row */}
-                        <View style={styles.metaRow}>
-                            <Ionicons name="location-outline" size={11} color={theme.colors.text.tertiary} />
-                            <Text style={styles.metaText}>{item.destination}, {item.country}</Text>
-                            <View style={styles.metaDot} />
-                            <Ionicons name="time-outline" size={11} color={theme.colors.text.tertiary} />
-                            <Text style={styles.metaText}>{durationLabel}</Text>
-                        </View>
+                        {/* Meta row (oculta quando placeholder de indisponível) */}
+                        {(item.destination || item.duration > 0) && (
+                            <View style={styles.metaRow}>
+                                <Ionicons name="location-outline" size={11} color={theme.colors.text.tertiary} />
+                                <Text style={styles.metaText} numberOfLines={1}>{destinationLabel}</Text>
+                                <View style={styles.metaDot} />
+                                <Ionicons name="time-outline" size={11} color={theme.colors.text.tertiary} />
+                                <Text style={styles.metaText}>{durationLabel}</Text>
+                            </View>
+                        )}
 
                         {/* Creator pill */}
-                        <View style={styles.creatorPill}>
-                            <Text style={styles.creatorAvatar}>{item.creator.avatar}</Text>
-                            <Text style={styles.creatorName} numberOfLines={1}>{item.creator.name}</Text>
-                        </View>
+                        {item.creator.name && item.creator.name !== '—' && (
+                            <View style={styles.creatorPill}>
+                                <Text style={styles.creatorAvatar}>{item.creator.avatar}</Text>
+                                <Text style={styles.creatorName} numberOfLines={1}>{item.creator.name}</Text>
+                            </View>
+                        )}
 
-                        {/* Price row */}
-                        <View style={styles.priceRow}>
-                            <Text style={styles.priceLabel}>Acesso vitalício</Text>
-                            <Text style={styles.priceValue}>{formatPrice(item.price)}</Text>
-                        </View>
+                        {/* Price row OR motivo da indisponibilidade */}
+                        {item.available ? (
+                            <View style={styles.priceRow}>
+                                <Text style={styles.priceLabel}>
+                                    {item.lifetimeAccess ? 'Acesso permanente' : 'Roteiro digital'}
+                                </Text>
+                                <Text style={styles.priceValue}>{formatPrice(item.price)}</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.unavailableReasonRow}>
+                                <Ionicons name="alert-circle-outline" size={13} color={theme.colors.text.tertiary} />
+                                <Text style={styles.unavailableReasonText} numberOfLines={2}>
+                                    {item.unavailableReason ?? 'Indisponível no momento'}
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
+            </TouchableOpacity>
+
+            {/* Botão X fora do TouchableOpacity pai para nunca ser bloqueado por disabled */}
+            <TouchableOpacity
+                style={styles.removeBtn}
+                onPress={onRemove}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                activeOpacity={0.7}
+                accessibilityLabel={`Remover ${item.title} do carrinho`}
+            >
+                <Ionicons name="close" size={14} color={theme.colors.text.tertiary} />
             </TouchableOpacity>
         </Animated.View>
     );
@@ -367,6 +492,20 @@ function CartItemCard({
 //  ORDER SUMMARY
 // ════════════════════════════════════════════════════════════════
 function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: number }) {
+    if (items.length === 0) {
+        // Sem itens disponíveis — explicamos em vez de mostrar um resumo vazio.
+        return (
+            <View style={styles.summaryCard}>
+                <View style={styles.summaryHeader}>
+                    <Ionicons name="receipt" size={16} color={theme.colors.primary} />
+                    <Text style={styles.summaryTitle}>Resumo do Pedido</Text>
+                </View>
+                <Text style={styles.summaryEmptyText}>
+                    Nenhum roteiro disponível para compra agora. Remova os indisponíveis ou tente novamente mais tarde.
+                </Text>
+            </View>
+        );
+    }
     return (
         <View style={styles.summaryCard}>
             {/* Header */}
@@ -375,15 +514,23 @@ function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: nu
                 <Text style={styles.summaryTitle}>Resumo do Pedido</Text>
             </View>
 
-            {/* Item lines */}
-            {items.map((item, i) => (
-                <View key={item.id} style={[styles.summaryRow, i === 0 && { marginTop: 4 }]}>
-                    <Text style={styles.summaryRowLabel} numberOfLines={1}>
-                        {item.destination}
-                    </Text>
-                    <Text style={styles.summaryRowValue}>{formatPrice(item.price)}</Text>
-                </View>
-            ))}
+            {/* Item lines — usa o título do roteiro, mantém o destino como subtexto */}
+            {items.map((item, i) => {
+                const destinationLabel = [item.destination, item.country].filter(Boolean).join(', ');
+                return (
+                    <View key={item.id} style={[styles.summaryRow, i === 0 && { marginTop: 4 }]}>
+                        <View style={{ flex: 1, paddingRight: 8 }}>
+                            <Text style={styles.summaryRowLabel} numberOfLines={2}>
+                                {item.title}
+                            </Text>
+                            {destinationLabel ? (
+                                <Text style={styles.summaryRowSub} numberOfLines={1}>{destinationLabel}</Text>
+                            ) : null}
+                        </View>
+                        <Text style={styles.summaryRowValue}>{formatPrice(item.price)}</Text>
+                    </View>
+                );
+            })}
 
             {/* Divider */}
             <View style={styles.summaryDivider} />
@@ -393,14 +540,20 @@ function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: nu
                 <Text style={styles.summaryTotalLabel}>Total</Text>
                 <View>
                     <Text style={styles.summaryTotalValue}>{formatPrice(subtotal)}</Text>
-                    <Text style={styles.summaryTotalNote}>{items.length} roteiro{items.length !== 1 ? 's' : ''}</Text>
+                    <Text style={styles.summaryTotalNote}>
+                        {items.length} {items.length === 1 ? 'roteiro disponível' : 'roteiros disponíveis'}
+                    </Text>
                 </View>
             </View>
 
             {/* Trust note */}
             <View style={styles.trustRow}>
                 <Ionicons name="shield-checkmark-outline" size={12} color={theme.colors.primary} />
-                <Text style={styles.trustText}>Pagamento seguro · Acesso imediato após confirmação</Text>
+                <Text style={styles.trustText}>
+                    {items.length > 1
+                        ? 'Checkout individual · compre um roteiro por vez'
+                        : 'Pagamento seguro · acesso imediato após confirmação'}
+                </Text>
             </View>
         </View>
     );
@@ -409,31 +562,56 @@ function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: nu
 // ════════════════════════════════════════════════════════════════
 //  CHECKOUT BAR (sticky bottom)
 // ════════════════════════════════════════════════════════════════
-function CheckoutBar({ subtotal, onPress }: { subtotal: number; onPress: () => void }) {
+function CheckoutBar({
+    amount,
+    itemCount,
+    onPress,
+}: {
+    amount: number;
+    itemCount: number;
+    onPress: () => void;
+}) {
     const scaleAnim = useRef(new Animated.Value(1)).current;
 
     const onIn  = () => Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 20 }).start();
     const onOut = () => Animated.spring(scaleAnim, { toValue: 1,    useNativeDriver: true, speed: 20 }).start();
 
+    const disabled = itemCount === 0;
+    const buttonLabel = disabled
+        ? 'Nenhum roteiro disponível'
+        : itemCount === 1
+        ? 'Comprar 1 roteiro'
+        : `Comprar ${itemCount} roteiros`;
+
     return (
         <View style={styles.checkoutBar}>
-            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Animated.View style={[styles.checkoutBarInner, { transform: [{ scale: scaleAnim }] }]}>
                 <TouchableOpacity
                     activeOpacity={1}
-                    onPress={onPress}
-                    onPressIn={onIn}
-                    onPressOut={onOut}
+                    onPress={disabled ? undefined : onPress}
+                    onPressIn={disabled ? undefined : onIn}
+                    onPressOut={disabled ? undefined : onOut}
+                    disabled={disabled}
+                    accessibilityState={{ disabled }}
                 >
                     <LinearGradient
-                        colors={['#28C9BF', '#1A3263']}
-                        style={styles.checkoutBtn}
+                        colors={disabled ? ['#94A3B8', '#64748B'] : ['#28C9BF', '#1A3263']}
+                        style={[styles.checkoutBtn, disabled && { opacity: 0.85 }]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                     >
-                        <Ionicons name="lock-closed" size={16} color="#fff" />
-                        <Text style={styles.checkoutBtnText}>Finalizar Compra</Text>
+                        {/* Esquerda: ícone + label */}
+                        <View style={styles.checkoutBtnLeft}>
+                            <Ionicons name="lock-closed" size={18} color="#fff" />
+                            <Text style={styles.checkoutBtnText} numberOfLines={1}>
+                                {buttonLabel}
+                            </Text>
+                        </View>
+                        {/* Direita: pill de preço com padding generoso */}
                         <View style={styles.checkoutPricePill}>
-                            <Text style={styles.checkoutPriceText}>{formatPrice(subtotal)}</Text>
+                            <Text style={styles.checkoutPriceText}>
+                                {disabled ? formatMoney(0) : formatPrice(amount)}
+                            </Text>
                         </View>
                     </LinearGradient>
                 </TouchableOpacity>
@@ -487,7 +665,7 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
 
             {/* Micro trust row */}
             <View style={styles.emptyTrustRow}>
-                {['Acesso vitalício', 'Download offline', 'Suporte incluso'].map((label, i) => (
+                {['Salvo na conta', 'Download offline em breve', 'Compra segura'].map((label, i) => (
                     <View key={i} style={styles.emptyTrustItem}>
                         <Ionicons name="checkmark-circle" size={13} color={theme.colors.primary} />
                         <Text style={styles.emptyTrustText}>{label}</Text>
@@ -508,6 +686,45 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
                 </LinearGradient>
             </TouchableOpacity>
         </Animated.View>
+    );
+}
+
+function UnavailableState({
+    onExplore,
+    onRefresh,
+}: {
+    onExplore: () => void;
+    onRefresh: () => void;
+}) {
+    return (
+        <View style={styles.emptyState}>
+            <View style={styles.emptyIconWrap}>
+                <LinearGradient
+                    colors={['rgba(40,201,191,0.15)', 'rgba(40,201,191,0.04)']}
+                    style={styles.emptyIconBg}
+                />
+                <Ionicons name="cloud-offline-outline" size={52} color={theme.colors.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>Itens indisponíveis agora</Text>
+            <Text style={styles.emptyText}>
+                Os roteiros salvos no carrinho podem ter sido pausados, removidos ou não carregaram por falha de conexão.
+            </Text>
+            <TouchableOpacity style={styles.secondaryCta} onPress={onRefresh} activeOpacity={0.85}>
+                <Ionicons name="refresh" size={16} color={theme.colors.primary} />
+                <Text style={styles.secondaryCtaText}>Tentar novamente</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onExplore} activeOpacity={0.88} style={styles.emptyCtaWrapper}>
+                <LinearGradient
+                    colors={['#28C9BF', '#1A3263']}
+                    style={styles.emptyCta}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                >
+                    <Ionicons name="search" size={16} color="#fff" />
+                    <Text style={styles.emptyCtaText}>Explorar Roteiros</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+        </View>
     );
 }
 
@@ -583,11 +800,34 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.6)',
         textDecorationLine: 'underline',
     },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+    },
 
     // ── List ────────────────────────────────────────
     listContent: {
         paddingTop: 16,
         paddingHorizontal: 16,
+    },
+    unavailableBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 14,
+        backgroundColor: theme.colors.primary + '10',
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '22',
+    },
+    unavailableBannerText: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 17,
+        color: theme.colors.text.secondary,
+        fontWeight: '600',
     },
 
     // ── Cart Item Card ───────────────────────────────
@@ -603,6 +843,41 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
     },
+    cardDisabled: {
+        opacity: 0.6,
+        backgroundColor: theme.colors.surfaceLight,
+    },
+    unavailableBadge: {
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    },
+    unavailableBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#fff',
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+    },
+    unavailableReasonRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 8,
+    },
+    unavailableReasonText: {
+        flex: 1,
+        fontSize: 12,
+        fontStyle: 'italic',
+        color: theme.colors.text.secondary,
+    },
     thumbWrapper: {
         width: 100,
         height: 118,
@@ -611,6 +886,11 @@ const styles = StyleSheet.create({
     thumbImage: {
         width: 100,
         height: 118,
+    },
+    thumbFallback: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.secondary,
     },
     cardBody: {
         flex: 1,
@@ -622,7 +902,7 @@ const styles = StyleSheet.create({
     cardTopRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 6,
+        paddingRight: 28,
     },
     cardTitle: {
         flex: 1,
@@ -632,14 +912,16 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     removeBtn: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
         width: 24,
         height: 24,
         borderRadius: 12,
         backgroundColor: theme.colors.surfaceHighlight,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 1,
-        flexShrink: 0,
+        zIndex: 10,
     },
     metaRow: {
         flexDirection: 'row',
@@ -734,14 +1016,24 @@ const styles = StyleSheet.create({
     },
     summaryRowLabel: {
         fontSize: 13,
-        color: theme.colors.text.secondary,
-        flex: 1,
-        marginRight: 12,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+    },
+    summaryRowSub: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginTop: 2,
     },
     summaryRowValue: {
         fontSize: 13,
-        fontWeight: '600',
+        fontWeight: '700',
         color: theme.colors.text.primary,
+    },
+    summaryEmptyText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginTop: 6,
+        lineHeight: 18,
     },
     summaryDivider: {
         height: 1,
@@ -796,41 +1088,62 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        paddingHorizontal: 16,
-        paddingBottom: Platform.OS === 'ios' ? 32 : 18,
-        paddingTop: 12,
-        backgroundColor: 'rgba(255,255,255,0.94)',
+        // Barra de fundo full-width; conteúdo centralizado com padding lateral.
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+        paddingTop: 14,
+        backgroundColor: 'rgba(255,255,255,0.96)',
         borderTopWidth: 1,
         borderTopColor: theme.colors.borderLight,
+    },
+    // Wrapper ocupa 100% das margens definidas acima.
+    // No web/tablet limitamos a 600px para não esticar demais.
+    checkoutBarInner: {
+        width: '100%',
+        maxWidth: 600,
     },
     checkoutBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        paddingVertical: 16,
-        borderRadius: theme.borderRadius.lg,
+        justifyContent: 'space-between',
+        paddingLeft: 24,
+        paddingRight: 14,
+        paddingVertical: 0,
+        minHeight: 68,
+        borderRadius: 22,
         ...theme.shadows.button,
     },
+    // Grupo esquerdo: ícone + texto
+    checkoutBtnLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
+        marginRight: 12,
+    },
     checkoutBtnText: {
-        fontSize: 16,
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#fff',
+        letterSpacing: -0.3,
+        flexShrink: 1,
+    },
+    checkoutPricePill: {
+        backgroundColor: 'rgba(255,255,255,0.22)',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 999,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.35)',
+        minWidth: 96,
+        alignItems: 'center',
+    },
+    checkoutPriceText: {
+        fontSize: 17,
         fontWeight: '800',
         color: '#fff',
         letterSpacing: -0.2,
-        flex: 1,
-    },
-    checkoutPricePill: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: 12,
-        paddingVertical: 5,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
-    },
-    checkoutPriceText: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: '#fff',
     },
 
     // ── Empty State ──────────────────────────────────
@@ -903,5 +1216,24 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#fff',
         letterSpacing: -0.2,
+    },
+    secondaryCta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        alignSelf: 'stretch',
+        paddingVertical: 13,
+        paddingHorizontal: 20,
+        borderRadius: theme.borderRadius.lg,
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '25',
+        marginBottom: 12,
+    },
+    secondaryCtaText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: theme.colors.primary,
     },
 });

@@ -266,7 +266,7 @@ model CreatorBalance {
   creatorId        String   @unique
   availableBalance Float    @default(0)
   pendingBalance   Float    @default(0)
-  currency         String   @default("BRL")
+  currency         String   @default("AUD")
   updatedAt        DateTime @updatedAt
 
   creator          Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
@@ -287,7 +287,7 @@ model Package {
   description         String        @db.Text
   fullDescription     String?       @db.Text
   emotionalIntro      String?       @db.Text
-  currency            String        @default("BRL")
+  currency            String        @default("AUD")
   duration            Int
   maxSlots            Int?
   // Price range (derived from pricing windows or set manually)
@@ -412,7 +412,7 @@ model Itinerary {
   country          String
   description      String   @db.Text
   price            Float
-  currency         String   @default("BRL")
+  currency         String   @default("AUD")
   duration         Int
   rating           Float?
   reviewCount      Int      @default(0)
@@ -457,6 +457,11 @@ model Itinerary {
   generalTips      String[]
   mediaUrls        String[] // Fotos/vídeos extras
   highlightPhotos  String[] // 3 fotos de destaque do criador
+  // Enquadramento da capa: { x: 0..1, y: 0..1 } — 0.5/0.5 = centro.
+  // Permite ao criador ajustar qual parte da capa aparece no card/hero
+  // sem precisar recortar a imagem. Aplicado via objectPosition (web) e
+  // (futuro) transform translation (native). Default null = centralizado.
+  coverFocalPoint  Json?
   // ─── Datas da viagem (para exibição pós-compra) ───
   tripStartDate    DateTime?
   tripEndDate      DateTime?

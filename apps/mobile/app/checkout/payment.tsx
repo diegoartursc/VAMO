@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 export default function CheckoutPaymentScreen() {
     const router = useRouter();
@@ -168,17 +169,6 @@ export default function CheckoutPaymentScreen() {
                     </Pressable>
 
                     <Pressable
-                        style={[styles.paymentOption, paymentMethod === 'pix' && styles.paymentOptionSelected]}
-                        onPress={() => setPaymentMethod('pix')}
-                    >
-                        <View style={[styles.radio, paymentMethod === 'pix' && styles.radioSelected]}>
-                            {paymentMethod === 'pix' && <View style={styles.radioDot} />}
-                        </View>
-                        <Text style={styles.paymentOptionText}>PIX</Text>
-                        <Text style={[styles.pixBadge, { marginLeft: 'auto' }]}>🔷</Text>
-                    </Pressable>
-
-                    <Pressable
                         style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionSelected]}
                         onPress={() => setPaymentMethod('card')}
                     >
@@ -264,7 +254,7 @@ export default function CheckoutPaymentScreen() {
                                 </View>
 
                                 <Text style={styles.totalInSummary}>
-                                    R$ {parseFloat(totalPrice as string).toLocaleString('pt-BR')}
+                                    {formatMoney(parseFloat(totalPrice as string))}
                                 </Text>
                             </View>
                         )}
@@ -294,7 +284,7 @@ export default function CheckoutPaymentScreen() {
             <View style={styles.footer}>
                 <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total</Text>
-                    <Text style={styles.totalPrice}>R$ {parseFloat(totalPrice as string).toLocaleString('pt-BR')}</Text>
+                    <Text style={styles.totalPrice}>{formatMoney(parseFloat(totalPrice as string))}</Text>
                     <Text style={styles.taxIncluded}>Todos os impostos e taxas inclusos</Text>
                 </View>
 

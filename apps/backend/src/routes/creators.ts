@@ -58,7 +58,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             include: {
                 traveler: { select: { name: true, avatar: true } },
                 itineraries: {
-                    where: { status: { in: ['APPROVED', 'ACTIVE'] } },
+                    where: { status: 'ACTIVE' },
                     include: { images: { orderBy: { order: 'asc' }, take: 1, select: { url: true } } },
                 },
             },

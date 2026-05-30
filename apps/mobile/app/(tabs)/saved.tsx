@@ -26,10 +26,10 @@ import { theme } from '../../src/theme/theme';
 import { Icon } from '../../src/components/common/Icons';
 import { useFavorites } from '../../src/hooks/useFavorites';
 import { haptics } from '../../src/services/haptics';
+import { getItineraryByIdStrict } from '../../src/services/api';
+import { formatMoney } from '@vamo/shared/itinerary';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
-
 // ─── Tipo mínimo que usamos para exibir o card ─────────────
 interface FavItem {
     id: string;
@@ -45,15 +45,19 @@ interface FavItem {
     creator?: { name: string };
 }
 
+type FavoriteFetchResult =
+    | { status: 'available'; item: FavItem }
+    | { status: 'unavailable' };
+
 // ─── Busca um roteiro pelo id ───────────────────────────────
-async function fetchItinerary(id: string): Promise<FavItem | null> {
+async function fetchItinerary(id: string): Promise<FavoriteFetchResult> {
     try {
-        const res = await fetch(`${API_BASE}/itineraries/${id}`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data as FavItem;
-    } catch {
-        return null;
+        const data = await getItineraryByIdStrict(id);
+        return { status: 'available', item: data as FavItem };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (message.includes('404')) return { status: 'unavailable' };
+        throw error;
     }
 }
 
@@ -63,6 +67,8 @@ export default function SavedScreen() {
     const { favorites, removeFavorite, isLoading: favsLoading } = useFavorites();
 
     const [items, setItems] = useState<FavItem[]>([]);
+    const [unavailableCount, setUnavailableCount] = useState(0);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -75,17 +81,30 @@ export default function SavedScreen() {
     // Carrega dados reais dos roteiros favoritados
     const loadItems = useCallback(async (isRefresh = false) => {
         if (!isRefresh) setLoading(true);
+        setLoadError(null);
         if (favorites.length === 0) {
             setItems([]);
+            setUnavailableCount(0);
             setLoading(false);
             setRefreshing(false);
             return;
         }
-        // Busca em paralelo todos os IDs
-        const results = await Promise.all(favorites.map(fetchItinerary));
-        setItems(results.filter((r): r is FavItem => r !== null));
-        setLoading(false);
-        setRefreshing(false);
+        try {
+            // Busca em paralelo todos os IDs
+            const results = await Promise.all(favorites.map(fetchItinerary));
+            const loadedItems = results
+                .filter((r): r is { status: 'available'; item: FavItem } => r.status === 'available')
+                .map((r) => r.item);
+            setItems(loadedItems);
+            setUnavailableCount(favorites.length - loadedItems.length);
+        } catch {
+            setItems([]);
+            setUnavailableCount(0);
+            setLoadError('Não foi possível carregar seus favoritos agora.');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
     }, [favorites]);
 
     // Re-busca sempre que favorites mudar (add/remove) ou na montagem
@@ -114,7 +133,8 @@ export default function SavedScreen() {
         );
     };
 
-    const isEmpty = !loading && items.length === 0;
+    const isEmpty = !loading && favorites.length === 0;
+    const onlyUnavailable = !loading && favorites.length > 0 && items.length === 0;
 
     return (
         <View style={styles.container}>
@@ -161,6 +181,17 @@ export default function SavedScreen() {
                 </View>
             ) : isEmpty ? (
                 <EmptyState onExplore={() => router.push('/(tabs)/index' as any)} />
+            ) : loadError ? (
+                <LoadErrorState
+                    message={loadError}
+                    onExplore={() => router.push('/(tabs)/index' as any)}
+                    onRefresh={onRefresh}
+                />
+            ) : onlyUnavailable ? (
+                <UnavailableState
+                    onExplore={() => router.push('/(tabs)/index' as any)}
+                    onRefresh={onRefresh}
+                />
             ) : (
                 <ScrollView
                     showsVerticalScrollIndicator={false}
@@ -173,6 +204,14 @@ export default function SavedScreen() {
                         />
                     }
                 >
+                    {unavailableCount > 0 && (
+                        <View style={styles.unavailableBanner}>
+                            <Ionicons name="information-circle-outline" size={17} color={theme.colors.primary} />
+                            <Text style={styles.unavailableBannerText}>
+                                {unavailableCount} roteiro{unavailableCount !== 1 ? 's' : ''} salvo{unavailableCount !== 1 ? 's' : ''} não {unavailableCount !== 1 ? 'estão' : 'está'} disponível agora.
+                            </Text>
+                        </View>
+                    )}
                     {items.map((item, index) => (
                         <SavedCard
                             key={item.id}
@@ -218,10 +257,16 @@ function SavedCard({
     const handlePressOut = () =>
         Animated.spring(pressScale, { toValue: 1, useNativeDriver: true, speed: 20 }).start();
 
-    const imageUri = item.images?.[0] ?? null;
-    const priceFormatted = item.price % 1 === 0
-        ? String(item.price)
-        : item.price.toFixed(2).replace('.', ',');
+    const [imageFailed, setImageFailed] = useState(false);
+    const imageUri = !imageFailed ? item.images?.[0] ?? null : null;
+    const price = Number(item.price) || 0;
+    const duration = Number(item.duration) || 0;
+    const rating = Number(item.rating) || 0;
+    const reviewCount = Number(item.reviewCount) || 0;
+    const priceFormatted = price > 0
+        ? (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ','))
+        : 'Grátis';
+    const destinationLabel = [item.destination, item.country].filter(Boolean).join(', ') || 'Destino a confirmar';
 
     return (
         <Animated.View style={[
@@ -247,6 +292,7 @@ function SavedCard({
                             source={{ uri: imageUri }}
                             style={styles.cardImage}
                             resizeMode="cover"
+                            onError={() => setImageFailed(true)}
                         />
                     ) : (
                         <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
@@ -263,11 +309,19 @@ function SavedCard({
 
                     {/* Price — top left */}
                     <View style={styles.priceBadge}>
-                        <Text style={styles.priceBadgeText}>R$ {priceFormatted}</Text>
+                        <Text style={styles.priceBadgeText}>{price > 0 ? formatMoney(price) : priceFormatted}</Text>
                     </View>
 
                     {/* Heart remove — top right */}
-                    <TouchableOpacity style={styles.heartBtn} onPress={onRemove} activeOpacity={0.8}>
+                    <TouchableOpacity
+                        style={styles.heartBtn}
+                        onPress={(event) => {
+                            event.stopPropagation?.();
+                            onRemove();
+                        }}
+                        activeOpacity={0.8}
+                        accessibilityLabel={`Remover ${item.title} dos favoritos`}
+                    >
                         <Ionicons name="heart" size={18} color="#FF5A6E" />
                     </TouchableOpacity>
 
@@ -275,14 +329,14 @@ function SavedCard({
                     <View style={styles.cardBottom}>
                         <View style={styles.durationChip}>
                             <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.9)" />
-                            <Text style={styles.durationText}>{item.duration} dias</Text>
+                            <Text style={styles.durationText}>{duration} dias</Text>
                         </View>
 
                         <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
 
                         <View style={styles.destRow}>
                             <Icon name="location" size={12} color="rgba(255,255,255,0.75)" />
-                            <Text style={styles.destText}>{item.destination}, {item.country}</Text>
+                            <Text style={styles.destText} numberOfLines={1}>{destinationLabel}</Text>
                         </View>
 
                         <View style={styles.metaRow}>
@@ -294,12 +348,12 @@ function SavedCard({
                                 </View>
                             ) : null}
 
-                            {item.rating > 0 && (
+                            {rating > 0 && (
                                 <View style={styles.ratingPill}>
                                     <Ionicons name="star" size={12} color="#FFC107" />
-                                    <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-                                    {item.reviewCount > 0 && (
-                                        <Text style={styles.ratingCount}>({item.reviewCount})</Text>
+                                    <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+                                    {reviewCount > 0 && (
+                                        <Text style={styles.ratingCount}>({reviewCount})</Text>
                                     )}
                                 </View>
                             )}
@@ -308,6 +362,86 @@ function SavedCard({
                 </View>
             </TouchableOpacity>
         </Animated.View>
+    );
+}
+
+function LoadErrorState({
+    message,
+    onExplore,
+    onRefresh,
+}: {
+    message: string;
+    onExplore: () => void;
+    onRefresh: () => void;
+}) {
+    return (
+        <View style={styles.emptyState}>
+            <LinearGradient
+                colors={theme.colors.gradients.action as unknown as [string, string]}
+                style={styles.emptyIconCircle}
+            >
+                <Ionicons name="cloud-offline-outline" size={40} color="#fff" />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>Erro ao carregar favoritos</Text>
+            <Text style={styles.emptySubtitle}>{message}</Text>
+            <View style={styles.emptyActionsRow}>
+                <TouchableOpacity style={styles.secondaryCTA} onPress={onRefresh} activeOpacity={0.85}>
+                    <Ionicons name="refresh" size={17} color={theme.colors.primary} />
+                    <Text style={styles.secondaryCTAText}>Tentar novamente</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onExplore} activeOpacity={0.85}>
+                    <LinearGradient
+                        colors={theme.colors.gradients.aurora as unknown as [string, string, string]}
+                        style={styles.exploreCTA}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                    >
+                        <Icon name="compass" size={18} color="#fff" />
+                        <Text style={styles.exploreCTAText}>Explorar roteiros</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+}
+
+function UnavailableState({
+    onExplore,
+    onRefresh,
+}: {
+    onExplore: () => void;
+    onRefresh: () => void;
+}) {
+    return (
+        <View style={styles.emptyState}>
+            <LinearGradient
+                colors={theme.colors.gradients.action as unknown as [string, string]}
+                style={styles.emptyIconCircle}
+            >
+                <Ionicons name="cloud-offline-outline" size={40} color="#fff" />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>Seus favoritos não estão disponíveis agora</Text>
+            <Text style={styles.emptySubtitle}>
+                Eles podem ter sido pausados, removidos da vitrine ou não carregaram por falha de conexão.
+            </Text>
+            <View style={styles.emptyActionsRow}>
+                <TouchableOpacity style={styles.secondaryCTA} onPress={onRefresh} activeOpacity={0.85}>
+                    <Ionicons name="refresh" size={17} color={theme.colors.primary} />
+                    <Text style={styles.secondaryCTAText}>Tentar novamente</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onExplore} activeOpacity={0.85}>
+                    <LinearGradient
+                        colors={theme.colors.gradients.aurora as unknown as [string, string, string]}
+                        style={styles.exploreCTA}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                    >
+                        <Icon name="compass" size={18} color="#fff" />
+                        <Text style={styles.exploreCTAText}>Explorar roteiros</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 }
 
@@ -449,6 +583,24 @@ const styles = StyleSheet.create({
     listContent: {
         padding: 16,
         paddingTop: 20,
+    },
+    unavailableBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 14,
+        backgroundColor: theme.colors.primary + '10',
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '22',
+    },
+    unavailableBannerText: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 17,
+        color: theme.colors.text.secondary,
+        fontWeight: '600',
     },
 
     // ── Card ──
@@ -659,5 +811,26 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#fff',
+    },
+    emptyActionsRow: {
+        alignItems: 'center',
+        gap: 12,
+    },
+    secondaryCTA: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 999,
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '25',
+    },
+    secondaryCTAText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: theme.colors.primary,
     },
 });

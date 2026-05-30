@@ -359,7 +359,7 @@ router.post('/', authMiddleware, createAuditMiddleware('CREATE'), async (req: Au
                 description: data.description || '',
                 fullDescription: data.fullDescription,
                 emotionalIntro: data.emotionalIntro,
-                currency: data.currency || 'BRL',
+                currency: data.currency || 'AUD',
                 duration: data.duration,
                 nights,
                 continent,

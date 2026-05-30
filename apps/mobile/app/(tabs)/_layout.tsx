@@ -81,7 +81,7 @@ export default function TabsLayout() {
                     name="packages"
                     options={{
                         href: null,
-                        title: 'Pacotes',
+                        title: 'Roteiros',
                     }}
                 />
                 <Tabs.Screen
@@ -96,8 +96,8 @@ export default function TabsLayout() {
                     name="package/[id]"
                     options={{
                         href: null,
-                        title: 'Detalhes do Pacote',
-                        headerShown: true,
+                        title: 'Roteiro',
+                        headerShown: false,
                     }}
                 />
                 <Tabs.Screen

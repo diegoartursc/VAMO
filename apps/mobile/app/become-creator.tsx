@@ -7,13 +7,14 @@
 import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    Dimensions, Platform, StatusBar,
+    Dimensions, Platform, StatusBar, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
+import { useAuth } from '../src/contexts/AuthContext';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -229,6 +230,7 @@ const slide_s = StyleSheet.create({
 // ─── Main screen ───────────────────────────────────────────────
 export default function BecomeCreatorScreen() {
     const router = useRouter();
+    const { isAuthenticated, isLoading } = useAuth();
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const goToNext = useCallback(() => {
@@ -248,6 +250,40 @@ export default function BecomeCreatorScreen() {
 
     const currentSlide = SLIDES[currentIndex];
     const isLast = currentIndex === SLIDES.length - 1;
+
+    if (isLoading) {
+        return (
+            <View style={styles.authRoot}>
+                <ActivityIndicator size="large" color="#fff" />
+            </View>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <View style={styles.authRoot}>
+                <StatusBar barStyle="light-content" />
+                <TouchableOpacity
+                    style={styles.closeBtn}
+                    onPress={() => { haptics.light(); router.back(); }}
+                >
+                    <Ionicons name="close" size={22} color="#fff" />
+                </TouchableOpacity>
+                <Ionicons name="lock-closed-outline" size={48} color="#fff" />
+                <Text style={styles.authTitle}>Entre para criar roteiros</Text>
+                <Text style={styles.authText}>
+                    Sua conta protege seus rascunhos, envios para análise, vendas e receita de criador.
+                </Text>
+                <TouchableOpacity
+                    style={styles.authButton}
+                    onPress={() => router.replace({ pathname: '/login' as any, params: { next: '/become-creator' } })}
+                    activeOpacity={0.85}
+                >
+                    <Text style={styles.authButtonText}>Entrar na conta</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.root}>
@@ -281,6 +317,36 @@ export default function BecomeCreatorScreen() {
 
 const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: '#1A3263' },
+    authRoot: {
+        flex: 1,
+        backgroundColor: '#1A3263',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 32,
+    },
+    authTitle: {
+        marginTop: 18,
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#fff',
+        textAlign: 'center',
+    },
+    authText: {
+        marginTop: 10,
+        marginBottom: 28,
+        fontSize: 15,
+        lineHeight: 22,
+        color: 'rgba(255,255,255,0.82)',
+        textAlign: 'center',
+    },
+    authButton: {
+        backgroundColor: '#fff',
+        borderRadius: 14,
+        paddingHorizontal: 28,
+        paddingVertical: 15,
+        ...theme.shadows.button,
+    },
+    authButtonText: { fontSize: 15, fontWeight: '800', color: theme.colors.primary },
     closeBtn: {
         position: 'absolute',
         top: Platform.OS === 'ios' ? 56 : 36,

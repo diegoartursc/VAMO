@@ -51,6 +51,8 @@ export const theme = {
       aurora: ['#1A3263', '#1E4D8C', '#28C9BF'],       // Aurora: Navy → Mid Blue → Teal
       card: ['transparent', 'rgba(0,0,0,0.5)'],        // Card image bottom overlay
       hero: ['rgba(26,50,99,0.7)', 'rgba(26,50,99,0.4)', 'rgba(40,201,191,0.15)'], // Hero 3-stop
+      heroOverlay: ['rgba(16,32,64,0.18)', 'rgba(16,32,64,0.48)', 'rgba(16,32,64,0.88)'],
+      shimmer: ['transparent', 'rgba(255,255,255,0.62)', 'transparent'],
     },
 
     // Backdrop / Glass tokens

@@ -137,7 +137,7 @@ export default function VendasPage() {
         new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 
     const formatCurrency = (v: number) =>
-        `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+        `A$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
     const getUrgencyColor = (createdAt: string) => {
         const hours = (Date.now() - new Date(createdAt).getTime()) / 3600000;

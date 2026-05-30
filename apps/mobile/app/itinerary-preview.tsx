@@ -27,12 +27,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { CoverCarousel } from '../src/components/common/CoverCarousel';
 import MediaGallery from '../src/components/common/MediaGallery';
-import { getCoverImages } from '../src/utils/itineraryMedia';
+import { getCoverImages, getCoverFocalPoint } from '../src/utils/itineraryMedia';
 import CollapsibleSection from '../src/components/common/CollapsibleSection';
 import { Icon } from '../src/components/common/Icons';
 import { VerifiedBadge } from '../src/components/creator/VerifiedBadge';
 import FAQSection from '../src/components/FAQSection';
-import { getItineraryFAQ } from '../src/data/mockFAQ';
 import { getReceivedModules } from '../src/utils/itineraryCardBadges';
 import { getCurrencyRates } from '../src/services/api';
 import { haptics } from '../src/services/haptics';
@@ -85,7 +84,7 @@ function buildManualEntries(form: ItineraryFormState) {
         entries.push({
             moduleKey: 'voo',
             priceValue: form.flightSpending!.value,
-            priceCurrency: form.flightSpending!.currency || 'BRL',
+            priceCurrency: form.flightSpending!.currency || 'AUD',
             label: MODULE_LABELS.voo,
         });
     }
@@ -98,7 +97,7 @@ function buildManualEntries(form: ItineraryFormState) {
         (items || []).forEach(it => {
             const v = parseValue(it?.spending?.value);
             if (v <= 0) return;
-            const cur = it?.spending?.currency || form.currency || 'BRL';
+            const cur = it?.spending?.currency || form.currency || 'AUD';
             totals.set(cur, (totals.get(cur) || 0) + v);
         });
         totals.forEach((value, currency) => {
@@ -120,7 +119,7 @@ function buildManualEntries(form: ItineraryFormState) {
     (form.extraSpendingItems || []).forEach(e => {
         const v = parseValue(e.value);
         if (v <= 0) return;
-        const cur = e.currency || form.currency || 'BRL';
+        const cur = e.currency || form.currency || 'AUD';
         extrasTotals.set(cur, (extrasTotals.get(cur) || 0) + v);
     });
     extrasTotals.forEach((value, currency) => {
@@ -199,18 +198,18 @@ export default function ItineraryPreviewScreen() {
 
     const toBRL = (value: string | number, currency: string): string => {
         const n = typeof value === 'number' ? value : parseValue(String(value));
-        if (n <= 0) return 'R$ 0';
-        const brl = currency === 'BRL' ? n : n * (rates[currency] ?? 1);
-        return brl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+        if (n <= 0) return formatMoney(0);
+        const aud = currency === 'AUD' ? n : n * (rates[currency] ?? 1);
+        return formatMoney(aud);
     };
 
-    const totalBRL = manualEntries.reduce((s, e) => {
+    const totalAUD = manualEntries.reduce((s, e) => {
         const n = parseValue(e.priceValue);
-        const rate = e.priceCurrency === 'BRL' ? 1 : (rates[e.priceCurrency] ?? 1);
+        const rate = e.priceCurrency === 'AUD' ? 1 : (rates[e.priceCurrency] ?? 1);
         return s + n * rate;
     }, 0);
-    const totalFormatted = totalBRL > 0
-        ? totalBRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+    const totalFormatted = totalAUD > 0
+        ? formatMoney(totalAUD)
         : null;
 
     const creatorName = user?.name || 'Você';
@@ -246,7 +245,12 @@ export default function ItineraryPreviewScreen() {
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* ── HERO (idêntico ao detalhe público) ── */}
                 <View style={styles.heroContainer}>
-                    <CoverCarousel images={heroSafe} height={420} />
+                    <CoverCarousel
+                        images={heroSafe}
+                        height={420}
+                        focalPoint={getCoverFocalPoint(form)}
+                        panEnabled={false}
+                    />
                     <LinearGradient
                         colors={['transparent', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.6)']}
                         style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 }}
@@ -362,7 +366,7 @@ export default function ItineraryPreviewScreen() {
                         <View>
                             <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.65)' }]}>Roteiro completo</Text>
                             <View style={styles.priceRow}>
-                                <Text style={[styles.priceSymbol, { color: '#28C9BF' }]}>R$</Text>
+                                <Text style={[styles.priceSymbol, { color: '#28C9BF' }]}>A$</Text>
                                 <Text style={[styles.priceValue, { color: '#FFFFFF' }]}>
                                     {effectivePrice > 0
                                         ? effectivePrice.toFixed(2).replace('.', ',')
@@ -371,7 +375,7 @@ export default function ItineraryPreviewScreen() {
                             </View>
                             {promoNumber > 0 && priceNumber > 0 ? (
                                 <Text style={styles.priceStrikethrough}>
-                                    de R$ {priceNumber.toFixed(2).replace('.', ',')}
+                                    de {formatMoney(priceNumber)}
                                 </Text>
                             ) : null}
                             <Text style={[styles.priceNote, { color: 'rgba(255,255,255,0.5)' }]}>
@@ -470,7 +474,7 @@ export default function ItineraryPreviewScreen() {
                                                         <Text style={styles.breakdownDescription}>
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
                                                             {' por pessoa'}
-                                                            {item.currency !== 'BRL' && (
+                                                            {item.currency !== 'AUD' && (
                                                                 <Text> ≈ {toBRL(item.amountPerPerson, item.currency)}</Text>
                                                             )}
                                                         </Text>
@@ -603,7 +607,7 @@ export default function ItineraryPreviewScreen() {
                     </CollapsibleSection>
 
                     {/* FAQ */}
-                    <FAQSection items={getItineraryFAQ('preview')} creatorName={creatorName} />
+                    <FAQSection creatorName={creatorName} />
 
                     {/* ─────────────────────────────────────────────────────
                        Conteúdo profundo dos módulos ativos

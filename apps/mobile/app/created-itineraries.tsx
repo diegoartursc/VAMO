@@ -8,13 +8,16 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     Platform, StatusBar, ActivityIndicator, RefreshControl,
-    Animated,
+    Animated, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
+import { formatMoney } from '@vamo/shared/itinerary';
+import { confirm } from '../src/utils/confirm';
+import { notify } from '../src/utils/notify';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
@@ -35,9 +38,20 @@ interface CreatorItinerary {
     duration: number;
     price: number;
     updatedAt: string;
+    /** Setado quando o roteiro foi aprovado pelo menos uma vez — usado pra
+     *  distinguir "Em análise" (primeira submissão) de "Alterações em análise"
+     *  (republicação após edição). */
+    approvedAt?: string | null;
 }
 
+/** Roteiro está esperando análise por causa de uma edição de algo já
+ *  publicado anteriormente — não é a primeira submissão. */
+const isPendingRevisionOfPublished = (it: { status: ItineraryStatus; approvedAt?: string | null }) =>
+    it.status === 'pending_review' && !!it.approvedAt;
+
 interface DashboardStats {
+    isCreator?: boolean;
+    creator?: { id: string; verificationLevel?: string };
     totalRevenue: number;
     totalSales: number;
     averageRating: number;
@@ -78,12 +92,13 @@ const QUICK_ACTION: Partial<Record<ItineraryStatus, { label: string; icon: strin
 };
 
 // ─── Status badge ───────────────────────────────────────────────
-function StatusBadge({ status }: { status: ItineraryStatus }) {
-    const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.draft;
+function StatusBadge({ item }: { item: { status: ItineraryStatus; approvedAt?: string | null } }) {
+    const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.draft;
+    const label = isPendingRevisionOfPublished(item) ? 'Alterações em análise' : cfg.label;
     return (
         <View style={[badge.wrap, { backgroundColor: cfg.bg }]}>
             <Ionicons name={cfg.icon as any} size={11} color={cfg.color} />
-            <Text style={[badge.text, { color: cfg.color }]}>{cfg.label}</Text>
+            <Text style={[badge.text, { color: cfg.color }]}>{label}</Text>
         </View>
     );
 }
@@ -181,7 +196,7 @@ function StatsSummary({ stats }: { stats: DashboardStats }) {
             <View style={sum.divider} />
             <View style={sum.item}>
                 <Text style={sum.value}>
-                    R$ {stats.totalRevenue > 0 ? stats.totalRevenue.toFixed(0) : '0'}
+                    {formatMoney(stats.totalRevenue > 0 ? Math.round(stats.totalRevenue) : 0)}
                 </Text>
                 <Text style={sum.label}>Receita</Text>
             </View>
@@ -201,18 +216,121 @@ const sum = StyleSheet.create({
     divider: { width: 1, height: 32, backgroundColor: theme.colors.borderLight },
 });
 
+function CreatorActionGrid({
+    stats,
+    onAll,
+    onNew,
+    onSales,
+    onReviews,
+    onSettings,
+}: {
+    stats: DashboardStats;
+    onAll: () => void;
+    onNew: () => void;
+    onSales: () => void;
+    onReviews: () => void;
+    onSettings: () => void;
+}) {
+    const actions = [
+        { key: 'all', label: 'Meus roteiros', icon: 'albums-outline', onPress: onAll, badge: String(stats.totalItineraries) },
+        { key: 'new', label: 'Novo roteiro', icon: 'add-circle-outline', onPress: onNew },
+        { key: 'sales', label: 'Minhas vendas', icon: 'cash-outline', onPress: onSales, badge: String(stats.totalSales) },
+        { key: 'reviews', label: 'Avaliações', icon: 'star-outline', onPress: onReviews, badge: stats.totalReviews > 0 ? String(stats.totalReviews) : undefined },
+        { key: 'settings', label: 'Configurações', icon: 'settings-outline', onPress: onSettings },
+    ];
+
+    return (
+        <View style={actions_s.grid}>
+            {actions.map(action => (
+                <TouchableOpacity
+                    key={action.key}
+                    style={actions_s.button}
+                    onPress={action.onPress}
+                    activeOpacity={0.78}
+                >
+                    <View style={actions_s.iconWrap}>
+                        <Ionicons name={action.icon as any} size={18} color={theme.colors.primary} />
+                        {!!action.badge && (
+                            <View style={actions_s.badge}>
+                                <Text style={actions_s.badgeText}>{action.badge}</Text>
+                            </View>
+                        )}
+                    </View>
+                    <Text style={actions_s.label} numberOfLines={2}>{action.label}</Text>
+                </TouchableOpacity>
+            ))}
+        </View>
+    );
+}
+
+const actions_s = StyleSheet.create({
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 4,
+    },
+    button: {
+        width: '31.8%',
+        minHeight: 82,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 10,
+        gap: 8,
+    },
+    iconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: theme.colors.primary + '12',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    badge: {
+        position: 'absolute',
+        top: -4,
+        right: -6,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        paddingHorizontal: 5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.primary,
+    },
+    badgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+    label: { fontSize: 11, fontWeight: '700', color: theme.colors.text.primary, textAlign: 'center', lineHeight: 14 },
+});
+
 // ─── Itinerary card with quick action ─────────────────────────
 function ItineraryCard({
     item,
     onPress,
     onQuickAction,
+    onEdit,
+    onDelete,
 }: {
     item: CreatorItinerary;
     onPress: () => void;
     onQuickAction: () => void;
+    onEdit: () => void;
+    onDelete: () => void;
 }) {
     const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.draft;
     const qa = QUICK_ACTION[item.status];
+    // Editar disponível em qualquer status menos arquivado. Em pending_review
+    // permitimos editar (atualiza a submissão), em active dispara aviso de
+    // "vai pra nova análise" via onEdit.
+    const canEdit = item.status !== 'archived';
+    // Excluir disponível em qualquer status menos arquivado (já está arquivado).
+    const canDelete = item.status !== 'archived';
 
     return (
         <TouchableOpacity style={card.container} onPress={onPress} activeOpacity={0.75}>
@@ -223,7 +341,7 @@ function ItineraryCard({
                 {/* Title + badge */}
                 <View style={card.titleRow}>
                     <Text style={card.title} numberOfLines={2}>{item.title || 'Sem título'}</Text>
-                    <StatusBadge status={item.status} />
+                    <StatusBadge item={item} />
                 </View>
 
                 {/* Destination */}
@@ -241,7 +359,7 @@ function ItineraryCard({
                 <View style={card.metricsRow}>
                     <View style={card.metric}>
                         <Text style={card.metricVal}>
-                            R$ {item.price.toFixed(0)}
+                            {formatMoney(item.price)}
                         </Text>
                         <Text style={card.metricLabel}>preço</Text>
                     </View>
@@ -254,7 +372,7 @@ function ItineraryCard({
                     {item.revenue > 0 && (
                         <View style={card.metric}>
                             <Text style={[card.metricVal, { color: theme.colors.success }]}>
-                                R$ {item.revenue.toFixed(0)}
+                                {formatMoney(item.revenue)}
                             </Text>
                             <Text style={card.metricLabel}>receita</Text>
                         </View>
@@ -269,17 +387,41 @@ function ItineraryCard({
                         </View>
                     )}
 
-                    {/* Quick action button — alinhado à direita */}
-                    {qa && (
-                        <TouchableOpacity
-                            style={[card.qaBtn, { borderColor: qa.color + '40', backgroundColor: qa.color + '0D' }]}
-                            onPress={e => { e.stopPropagation?.(); haptics.light(); onQuickAction(); }}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                            <Ionicons name={qa.icon as any} size={13} color={qa.color} />
-                            <Text style={[card.qaBtnText, { color: qa.color }]}>{qa.label}</Text>
-                        </TouchableOpacity>
-                    )}
+                    {/* Ações alinhadas à direita: Editar + Excluir + ação por status */}
+                    <View style={card.actionsRow}>
+                        {canEdit && (
+                            <TouchableOpacity
+                                style={[card.qaBtn, card.editBtn]}
+                                onPress={(e) => { e.stopPropagation?.(); haptics.light(); onEdit(); }}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                accessibilityLabel="Editar roteiro"
+                            >
+                                <Ionicons name="create-outline" size={13} color={theme.colors.primary} />
+                                <Text style={[card.qaBtnText, { color: theme.colors.primary }]}>Editar</Text>
+                            </TouchableOpacity>
+                        )}
+                        {canDelete && (
+                            <TouchableOpacity
+                                style={[card.qaBtn, card.deleteBtn]}
+                                onPress={(e) => { e.stopPropagation?.(); onDelete(); }}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                accessibilityLabel="Excluir roteiro"
+                            >
+                                <Ionicons name="trash-outline" size={13} color={theme.colors.error} />
+                                <Text style={[card.qaBtnText, { color: theme.colors.error }]}>Excluir</Text>
+                            </TouchableOpacity>
+                        )}
+                        {qa && (
+                            <TouchableOpacity
+                                style={[card.qaBtn, { borderColor: qa.color + '40', backgroundColor: qa.color + '0D' }]}
+                                onPress={(e) => { e.stopPropagation?.(); haptics.light(); onQuickAction(); }}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <Ionicons name={qa.icon as any} size={13} color={qa.color} />
+                                <Text style={[card.qaBtnText, { color: qa.color }]}>{qa.label}</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
 
                 {/* Context hints */}
@@ -295,7 +437,9 @@ function ItineraryCard({
                     <View style={[card.hint, { backgroundColor: '#FEF3C7' }]}>
                         <Ionicons name="time-outline" size={13} color="#D97706" />
                         <Text style={[card.hintText, { color: '#D97706' }]}>
-                            Aguardando análise (até 48h)
+                            {isPendingRevisionOfPublished(item)
+                                ? 'Suas alterações estão em análise (até 48h). A versão pública volta após aprovação.'
+                                : 'Aguardando análise (até 48h).'}
                         </Text>
                     </View>
                 )}
@@ -331,11 +475,24 @@ const card = StyleSheet.create({
     metric: { alignItems: 'flex-start' },
     metricVal: { fontSize: 13, fontWeight: '700', color: theme.colors.text.primary },
     metricLabel: { fontSize: 10, color: theme.colors.text.tertiary, marginTop: 1 },
+    actionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginLeft: 'auto',
+    },
     qaBtn: {
         flexDirection: 'row', alignItems: 'center', gap: 4,
         borderWidth: 1, borderRadius: 8,
         paddingHorizontal: 8, paddingVertical: 4,
-        marginLeft: 'auto',
+    },
+    editBtn: {
+        borderColor: theme.colors.primary + '40',
+        backgroundColor: theme.colors.primary + '0D',
+    },
+    deleteBtn: {
+        borderColor: theme.colors.error + '40',
+        backgroundColor: theme.colors.error + '0D',
     },
     qaBtnText: { fontSize: 11, fontWeight: '700' },
     hint: {
@@ -359,7 +516,7 @@ const EMPTY_MESSAGES: Record<FilterTab, { emoji: string; title: string; text: st
 // ─── Main screen ───────────────────────────────────────────────
 export default function CreatedItinerariesScreen() {
     const router = useRouter();
-    const { accessToken, isAuthenticated } = useAuth();
+    const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
 
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -369,11 +526,19 @@ export default function CreatedItinerariesScreen() {
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
     const fetchData = useCallback(async (isRefresh = false) => {
+        if (authLoading) return;
+        if (!isAuthenticated || !accessToken) {
+            setStats(null);
+            setError(null);
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
         if (!isRefresh) setLoading(true);
         setError(null);
         try {
             const res = await fetch(`${API_BASE}/itineraries/dashboard/stats`, {
-                headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+                headers: { Authorization: `Bearer ${accessToken}` },
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data: DashboardStats = await res.json();
@@ -385,7 +550,7 @@ export default function CreatedItinerariesScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [accessToken]);
+    }, [accessToken, authLoading, isAuthenticated]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -403,7 +568,7 @@ export default function CreatedItinerariesScreen() {
     }, [fadeAnim]);
 
     // ── Loading ─────────────────────────────────────────────────
-    if (loading) {
+    if (authLoading || loading) {
         return (
             <View style={s.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -416,12 +581,16 @@ export default function CreatedItinerariesScreen() {
     if (!isAuthenticated) {
         return (
             <View style={s.container}>
-                <Header onBack={() => router.back()} onNew={() => router.push('/new-itinerary')} count={0} />
+                <Header
+                    onBack={() => router.back()}
+                    onNew={() => router.push({ pathname: '/login' as any, params: { next: '/become-creator' } })}
+                    count={0}
+                />
                 <View style={s.emptyState}>
                     <Ionicons name="lock-closed-outline" size={48} color={theme.colors.text.tertiary} />
                     <Text style={s.emptyTitle}>Login necessário</Text>
                     <Text style={s.emptyText}>Faça login para ver seus roteiros criados.</Text>
-                    <TouchableOpacity style={s.ctaButton} onPress={() => router.push('/login')}>
+                    <TouchableOpacity style={s.ctaButton} onPress={() => router.push({ pathname: '/login' as any, params: { next: '/created-itineraries' } })}>
                         <Text style={s.ctaButtonText}>Entrar na conta</Text>
                     </TouchableOpacity>
                 </View>
@@ -440,6 +609,32 @@ export default function CreatedItinerariesScreen() {
                     <Text style={s.emptyText}>{error}</Text>
                     <TouchableOpacity style={s.ctaButton} onPress={() => fetchData()}>
                         <Text style={s.ctaButtonText}>Tentar novamente</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
+    if (stats?.isCreator === false) {
+        return (
+            <View style={s.container}>
+                <Header
+                    onBack={() => router.back()}
+                    onNew={() => router.push('/become-creator')}
+                    count={0}
+                />
+                <View style={s.emptyState}>
+                    <Ionicons name="sparkles-outline" size={52} color={theme.colors.primary} />
+                    <Text style={s.emptyTitle}>Ative seu portal de roteirista</Text>
+                    <Text style={s.emptyText}>
+                        Crie sua área de criador para publicar roteiros digitais, acompanhar vendas e receber avaliações.
+                    </Text>
+                    <TouchableOpacity
+                        style={s.ctaButton}
+                        onPress={() => { haptics.medium(); router.push('/become-creator'); }}
+                    >
+                        <Ionicons name="compass-outline" size={18} color="#fff" />
+                        <Text style={s.ctaButtonText}>Começar como roteirista</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -470,6 +665,83 @@ export default function CreatedItinerariesScreen() {
         router.push(`/creator-itinerary/${item.id}`);
     };
 
+    /** Editar roteiro: abre o wizard nativo de criação em modo edição
+     *  (mesma tela usada para criar, hidratada com os dados existentes via
+     *  query param `id`). Se o roteiro está PUBLICADO, avisa antes que a
+     *  edição passa por nova análise e sai temporariamente da vitrine. */
+    const openEditor = (id: string) => {
+        router.push(`/new-itinerary?id=${encodeURIComponent(id)}` as any);
+    };
+
+    const handleEdit = async (item: CreatorItinerary) => {
+        if (item.status === 'active' || item.status === 'approved') {
+            // confirm() em vez de Alert.alert — no Expo Web o Alert é no-op
+            // e a confirmação sumia silenciosamente, fazendo o botão Editar
+            // parecer "quebrado". Ver memory: alert-noop-on-web.
+            const ok = await confirm({
+                title: 'Editar roteiro publicado',
+                message: 'Alterações em roteiros publicados passam por nova análise antes de ficarem disponíveis na VAMO. O roteiro pode sair temporariamente da vitrine durante a revisão.',
+                confirmText: 'Continuar edição',
+                cancelText: 'Cancelar',
+            });
+            if (!ok) return;
+        }
+        openEditor(item.id);
+    };
+
+    /** Exclui (arquiva) um roteiro do criador.
+     *  - Soft delete por padrão: backend muda status para ARCHIVED.
+     *  - confirm() cross-platform (no web, Alert é no-op).
+     *  - Refetch da lista no sucesso pra UI ficar consistente. */
+    const handleDelete = async (item: CreatorItinerary) => {
+        if (!accessToken) {
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para excluir o roteiro.' });
+            return;
+        }
+        const ok = await confirm({
+            title: 'Excluir roteiro?',
+            message: `"${item.title || 'Sem título'}"\n\nEssa ação removerá o roteiro da sua área de criador. Se ele estiver publicado, deixará de aparecer na vitrine VAMO. Compradores anteriores mantêm acesso ao conteúdo já adquirido.`,
+            confirmText: 'Excluir roteiro',
+            cancelText: 'Cancelar',
+            destructive: true,
+        });
+        if (!ok) return;
+        try {
+            haptics.medium();
+            const res = await fetch(`${API_BASE}/itineraries/${encodeURIComponent(item.id)}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({} as any));
+                throw new Error(err?.error || `Erro ${res.status} ao excluir o roteiro`);
+            }
+            haptics.success();
+            notify({ title: 'Roteiro arquivado', message: 'Ele não aparece mais na vitrine. Você pode revisar quando quiser na aba de arquivados.' });
+            await fetchData(true);
+        } catch (e: any) {
+            haptics.error?.();
+            notify({ title: 'Não foi possível excluir', message: e?.message || 'Tente novamente em instantes.' });
+        }
+    };
+
+    const handleShowSales = () => {
+        haptics.light();
+        notify({
+            title: 'Minhas vendas',
+            message: `Vendas confirmadas: ${stats?.totalSales ?? 0}\nReceita total: ${formatMoney(stats?.totalRevenue ?? 0)}`,
+        });
+    };
+
+    const handleShowReviews = () => {
+        haptics.light();
+        const rating = stats && stats.averageRating > 0 ? stats.averageRating.toFixed(1) : 'Sem nota ainda';
+        notify({
+            title: 'Avaliações',
+            message: `Avaliação média: ${rating}\nTotal de avaliações: ${stats?.totalReviews ?? 0}`,
+        });
+    };
+
     return (
         <View style={s.container}>
             <StatusBar barStyle="dark-content" />
@@ -498,6 +770,17 @@ export default function CreatedItinerariesScreen() {
                 <>
                     {/* Stats summary */}
                     {stats && <StatsSummary stats={stats} />}
+
+                    {stats && (
+                        <CreatorActionGrid
+                            stats={stats}
+                            onAll={() => { haptics.selection(); handleFilterChange('all'); }}
+                            onNew={() => { haptics.medium(); router.push('/new-itinerary'); }}
+                            onSales={handleShowSales}
+                            onReviews={handleShowReviews}
+                            onSettings={() => { haptics.light(); router.push('/(tabs)/profile' as any); }}
+                        />
+                    )}
 
                     {/* Filter tab bar */}
                     <FilterTabBar
@@ -538,6 +821,8 @@ export default function CreatedItinerariesScreen() {
                                         item={item}
                                         onPress={() => { haptics.light(); router.push(`/creator-itinerary/${item.id}`); }}
                                         onQuickAction={() => handleQuickAction(item)}
+                                        onEdit={() => handleEdit(item)}
+                                        onDelete={() => handleDelete(item)}
                                     />
                                 ))
                             )}

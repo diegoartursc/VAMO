@@ -1,7 +1,54 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
+
+function normalizePhotoUrls(photos: unknown): string[] {
+    if (!Array.isArray(photos)) return [];
+    return photos
+        .map((photo) => {
+            if (typeof photo === 'string') return photo;
+            if (photo && typeof photo === 'object' && typeof (photo as any).url === 'string') {
+                return (photo as any).url;
+            }
+            return '';
+        })
+        .map((url) => url.trim())
+        .filter((url) => /^https?:\/\//i.test(url));
+}
+
+async function recalculateItineraryAndCreatorRating(itineraryId: string) {
+    const itineraryReviews = await prisma.review.findMany({
+        where: { itineraryId },
+        select: { rating: true },
+    });
+    const newAvg = itineraryReviews.length > 0
+        ? itineraryReviews.reduce((sum, r) => sum + r.rating, 0) / itineraryReviews.length
+        : 0;
+
+    const itinerary = await prisma.itinerary.update({
+        where: { id: itineraryId },
+        data: {
+            rating: Math.round(newAvg * 10) / 10,
+            reviewCount: itineraryReviews.length,
+        },
+        select: { creatorId: true },
+    });
+
+    const creatorReviews = await prisma.review.findMany({
+        where: { itinerary: { creatorId: itinerary.creatorId } },
+        select: { rating: true },
+    });
+    const creatorAvg = creatorReviews.length > 0
+        ? creatorReviews.reduce((sum, r) => sum + r.rating, 0) / creatorReviews.length
+        : 0;
+
+    await prisma.creator.update({
+        where: { id: itinerary.creatorId },
+        data: { averageRating: creatorReviews.length > 0 ? Math.round(creatorAvg * 10) / 10 : null },
+    });
+}
 
 // GET /api/reviews?packageId=X or ?itineraryId=X
 router.get('/', async (req: Request, res: Response) => {
@@ -79,16 +126,25 @@ router.get('/my', async (req: Request, res: Response) => {
 
 // POST /api/reviews
 // Envia uma avaliação de roteiro comprado
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const { travelerId, itineraryId, rating, comment, photos } = req.body;
+        const { itineraryId, rating, comment, photos } = req.body;
+        const travelerId = req.traveler?.travelerId;
 
         // Validações básicas
-        if (!travelerId || !itineraryId || !rating || !comment) {
-            return res.status(400).json({ error: 'travelerId, itineraryId, rating e comment são obrigatórios' });
+        if (!travelerId) {
+            return res.status(401).json({ error: 'Autenticação necessária para enviar avaliação' });
         }
-        if (rating < 1 || rating > 5) {
+        if (!itineraryId || rating === undefined || rating === null) {
+            return res.status(400).json({ error: 'itineraryId e rating são obrigatórios' });
+        }
+        const numericRating = Number(rating);
+        if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
             return res.status(400).json({ error: 'rating deve ser entre 1 e 5' });
+        }
+        const photoUrls = normalizePhotoUrls(photos);
+        if (Array.isArray(photos) && photoUrls.length !== photos.length) {
+            return res.status(400).json({ error: 'As fotos da avaliação devem ser URLs válidas.' });
         }
 
         // Verificar se já avaliou este roteiro
@@ -104,19 +160,35 @@ router.post('/', async (req: Request, res: Response) => {
         const userName = traveler?.name ?? 'Viajante';
         const userInitial = userName.charAt(0).toUpperCase();
 
-        // Check if traveler actually purchased this itinerary
+        // Apenas quem comprou o roteiro pode avaliá-lo. Conferimos via
+        // ItinerarySale; sem registro de compra, recusamos a submissão.
         const purchase = await prisma.itinerarySale.findFirst({
             where: { travelerId, itineraryId },
         });
+        if (!purchase) {
+            return res.status(403).json({ error: 'Apenas quem comprou este roteiro pode avaliá-lo.' });
+        }
+
+        // Criar bloqueio extra: o criador não avalia o próprio roteiro
+        const itineraryRow = await prisma.itinerary.findUnique({
+            where: { id: itineraryId },
+            select: { id: true, creator: { select: { travelerId: true } } },
+        });
+        if (!itineraryRow) {
+            return res.status(404).json({ error: 'Roteiro não encontrado' });
+        }
+        if (itineraryRow?.creator?.travelerId === travelerId) {
+            return res.status(403).json({ error: 'Criadores não podem avaliar seus próprios roteiros.' });
+        }
 
         // Criar o review
         const review = await prisma.review.create({
             data: {
                 travelerId,
                 itineraryId,
-                rating: Number(rating),
-                comment,
-                verified: !!purchase, // só marcado como verificado se houver compra registrada
+                rating: numericRating,
+                comment: typeof comment === 'string' ? comment.trim() : '',
+                verified: true,
                 language: 'pt-BR',
                 userName,
                 userInitial,
@@ -126,31 +198,83 @@ router.post('/', async (req: Request, res: Response) => {
         });
 
         // Criar as imagens da review (se houver)
-        if (Array.isArray(photos) && photos.length > 0) {
+        if (photoUrls.length > 0) {
             await prisma.reviewImage.createMany({
-                data: photos.map((url: string) => ({ reviewId: review.id, url })),
+                data: photoUrls.map((url: string, order: number) => ({ reviewId: review.id, url, order })),
             });
         }
 
-        // Recalcular rating médio do itinerário
-        const allReviews = await prisma.review.findMany({
-            where: { itineraryId },
-            select: { rating: true },
-        });
-        const newAvg = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+        await recalculateItineraryAndCreatorRating(itineraryId);
 
-        await prisma.itinerary.update({
-            where: { id: itineraryId },
-            data: {
-                rating: Math.round(newAvg * 10) / 10,
-                reviewCount: allReviews.length,
-            },
-        });
-
-        res.status(201).json({ review: { id: review.id, rating: review.rating, comment: review.comment } });
+        res.status(201).json({ review: { id: review.id, itineraryId, rating: review.rating, comment: review.comment, photos: photoUrls } });
     } catch (error) {
         console.error('Error creating review:', error);
         res.status(500).json({ error: 'Falha ao enviar avaliação' });
+    }
+});
+
+// PUT /api/reviews/:id
+// Atualiza uma avaliação já feita pelo comprador.
+router.put('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const id = String(req.params.id);
+        const { rating, comment, photos } = req.body;
+        const travelerId = req.traveler?.travelerId;
+
+        if (!travelerId) {
+            return res.status(401).json({ error: 'Autenticação necessária para atualizar avaliação' });
+        }
+        if (rating === undefined || rating === null) {
+            return res.status(400).json({ error: 'rating é obrigatório' });
+        }
+        const numericRating = Number(rating);
+        if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
+            return res.status(400).json({ error: 'rating deve ser entre 1 e 5' });
+        }
+        const photoUrls = normalizePhotoUrls(photos);
+        if (Array.isArray(photos) && photoUrls.length !== photos.length) {
+            return res.status(400).json({ error: 'As fotos da avaliação devem ser URLs válidas.' });
+        }
+
+        const existing = await prisma.review.findUnique({
+            where: { id },
+            select: { id: true, travelerId: true, itineraryId: true },
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Avaliação não encontrada' });
+        }
+        if (existing.travelerId !== travelerId) {
+            return res.status(403).json({ error: 'Você só pode editar suas próprias avaliações.' });
+        }
+        if (!existing.itineraryId) {
+            return res.status(400).json({ error: 'Esta avaliação não pertence a um roteiro.' });
+        }
+
+        const review = await prisma.$transaction(async (tx) => {
+            await tx.reviewImage.deleteMany({ where: { reviewId: id } });
+            const updated = await tx.review.update({
+                where: { id },
+                data: {
+                    rating: numericRating,
+                    comment: typeof comment === 'string' ? comment.trim() : '',
+                },
+            });
+
+            if (photoUrls.length > 0) {
+                await tx.reviewImage.createMany({
+                    data: photoUrls.map((url: string, order: number) => ({ reviewId: id, url, order })),
+                });
+            }
+
+            return updated;
+        });
+
+        await recalculateItineraryAndCreatorRating(existing.itineraryId);
+
+        res.json({ review: { id: review.id, itineraryId: existing.itineraryId, rating: review.rating, comment: review.comment, photos: photoUrls } });
+    } catch (error) {
+        console.error('Error updating review:', error);
+        res.status(500).json({ error: 'Falha ao atualizar avaliação' });
     }
 });
 

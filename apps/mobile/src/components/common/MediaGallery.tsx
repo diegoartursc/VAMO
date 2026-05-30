@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
-import { getAllMedia, type MediaItem } from '../../utils/itineraryMedia';
+import { getGalleryMedia, type MediaItem } from '../../utils/itineraryMedia';
 
 export interface MediaGalleryProps {
     /** Itinerário completo OU lista de mídias pré-computada. */
@@ -36,7 +36,7 @@ export default function MediaGallery({
     subtitle = 'Registros reais enviados pelo roteirista',
     initialCount = 6,
 }: MediaGalleryProps) {
-    const allMedia = mediaProp ?? getAllMedia(itinerary);
+    const allMedia = mediaProp ?? getGalleryMedia(itinerary);
     const [expanded, setExpanded] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
     const [failed, setFailed] = useState<Set<string>>(new Set());

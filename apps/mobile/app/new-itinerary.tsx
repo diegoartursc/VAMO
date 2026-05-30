@@ -39,6 +39,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
+import { notify } from '../src/utils/notify';
 import FormInput from '../src/components/dashboard/FormInput';
 import EditableList from '../src/components/dashboard/EditableList';
 import CostBlock, { costToLegacySpending } from '../src/components/dashboard/CostBlock';
@@ -137,6 +138,7 @@ const ISSUE_SECTION_TO_STEP: Record<string, StepKey> = {
     restaurantes:  'restaurantes',
     checklist:     'checklist',
     gastos_extras: 'gastos_extras',
+    media:         'media',
 };
 
 function buildSteps(activeModules: ModuleKey[]): StepKey[] {
@@ -155,7 +157,7 @@ function buildSteps(activeModules: ModuleKey[]): StepKey[] {
 export default function NewItineraryScreen() {
     const router = useRouter();
     const { id: editId } = useLocalSearchParams<{ id?: string }>();
-    const { accessToken } = useAuth();
+    const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
     const isEdit = !!editId;
 
     const [step, setStep] = useState(1);
@@ -200,22 +202,35 @@ export default function NewItineraryScreen() {
     // ── Carregar para edição ────────────────────────────────────
     useEffect(() => {
         if (!isEdit || !editId) return;
+        if (authLoading) return;
+        if (!isAuthenticated || !accessToken) {
+            setLoading(false);
+            return;
+        }
         (async () => {
+            setLoading(true);
             try {
-                const res = await fetch(`${API_BASE}/itineraries/${editId}`, {
-                    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+                const res = await fetch(`${API_BASE}/itineraries/${editId}/creator`, {
+                    headers: { Authorization: `Bearer ${accessToken}` },
                 });
+                if (res.status === 403) throw new Error('Você não tem permissão para editar este roteiro.');
+                if (res.status === 401) throw new Error('Faça login para editar este roteiro.');
                 if (!res.ok) throw new Error('Roteiro não encontrado');
                 const data = await res.json();
                 setForm(deserializeFromApi(data));
             } catch (e: any) {
-                Alert.alert('Erro ao carregar', e?.message || 'Não foi possível abrir o roteiro.');
-                router.back();
+                // notify() em vez de Alert.alert pra funcionar no Expo Web também
+                // (Alert.alert é no-op no web → "página quebrada" silenciosa).
+                notify({
+                    title: 'Erro ao carregar',
+                    message: e?.message || 'Não foi possível abrir o roteiro.',
+                    onDismiss: () => router.back(),
+                });
             } finally {
                 setLoading(false);
             }
         })();
-    }, [isEdit, editId]);
+    }, [isEdit, editId, accessToken, authLoading, isAuthenticated, router]);
 
     // ── Salvar draft local ──────────────────────────────────────
     const saveDraftLocal = useCallback((f: ItineraryFormState, s: number) => {
@@ -261,7 +276,7 @@ export default function NewItineraryScreen() {
     // ── Envio para análise ──────────────────────────────────────
     async function submit() {
         if (!accessToken) {
-            Alert.alert('Sessão expirada', 'Faça login novamente para enviar o roteiro.');
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar o roteiro.' });
             return;
         }
         const issues = validateForSubmission(form);
@@ -283,10 +298,10 @@ export default function NewItineraryScreen() {
                 }
                 scrollRef.current?.scrollTo({ y: 0, animated: true });
             } else {
-                Alert.alert(
-                    'Faltam algumas coisas',
-                    issues.map(i => `• ${i.message}`).join('\n'),
-                );
+                notify({
+                    title: 'Faltam algumas coisas',
+                    message: issues.map(i => `• ${i.message}`).join('\n'),
+                });
             }
             return;
         }
@@ -309,7 +324,7 @@ export default function NewItineraryScreen() {
             router.replace('/await-review');
         } catch (e: any) {
             haptics.error?.();
-            Alert.alert('Erro', e?.message || 'Não foi possível enviar.');
+            notify({ title: 'Erro ao enviar', message: e?.message || 'Não foi possível enviar.' });
         } finally {
             setSubmitting(false);
         }
@@ -331,7 +346,7 @@ export default function NewItineraryScreen() {
 
     // ── Salvar rascunho (sai sem enviar) ────────────────────────
     async function saveDraft() {
-        if (!accessToken) { Alert.alert('Sessão expirada', 'Faça login para salvar.'); return; }
+        if (!accessToken) { notify({ title: 'Sessão expirada', message: 'Faça login para salvar.' }); return; }
         setSaving(true);
         try {
             const payload = { ...buildPayload(form), status: 'DRAFT' };
@@ -349,16 +364,33 @@ export default function NewItineraryScreen() {
             await AsyncStorage.removeItem(DRAFT_KEY);
             router.replace('/created-itineraries');
         } catch (e: any) {
-            Alert.alert('Erro', e?.message || 'Não foi possível salvar o rascunho.');
+            notify({ title: 'Erro', message: e?.message || 'Não foi possível salvar o rascunho.' });
         } finally {
             setSaving(false);
         }
     }
 
-    if (loading) {
+    if (authLoading || loading) {
         return (
             <View style={[s.root, { alignItems: 'center', justifyContent: 'center' }]}>
                 <ActivityIndicator color={theme.colors.primary} />
+            </View>
+        );
+    }
+
+    if (!isAuthenticated || !accessToken) {
+        return (
+            <View style={[s.root, s.authState]}>
+                <StatusBar barStyle="dark-content" />
+                <Ionicons name="lock-closed-outline" size={44} color={theme.colors.text.tertiary} />
+                <Text style={s.authTitle}>Login necessário</Text>
+                <Text style={s.authText}>Entre na sua conta para criar, salvar ou editar roteiros digitais.</Text>
+                <TouchableOpacity
+                    style={s.authButton}
+                    onPress={() => router.replace({ pathname: '/login' as any, params: { next: '/new-itinerary' } })}
+                >
+                    <Text style={s.authButtonText}>Entrar na conta</Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -409,7 +441,9 @@ export default function NewItineraryScreen() {
                 </TouchableOpacity>
                 <View style={{ flex: 1, alignItems: 'center' }}>
                     <Text style={s.headerLabel}>{STEP_LABEL_MAP[stepKey]}</Text>
-                    <Text style={s.headerStep}>Passo {step} de {totalSteps} · Score {score}</Text>
+                    <Text style={s.headerStep}>
+                        {isEdit ? 'Editar roteiro · ' : ''}Passo {step} de {totalSteps} · Score {score}
+                    </Text>
                 </View>
                 <TouchableOpacity onPress={saveDraft} style={s.headerBtn} disabled={saving}>
                     {saving
@@ -489,7 +523,7 @@ export default function NewItineraryScreen() {
                                     {isLastStep
                                         ? (hasIssues
                                             ? `Corrigir ${submissionIssues.length} pendência${submissionIssues.length > 1 ? 's' : ''}`
-                                            : 'Enviar para análise')
+                                            : (isEdit ? 'Enviar alterações para análise' : 'Enviar para análise'))
                                         : 'Próximo'}
                                 </Text>
                             </>
@@ -590,7 +624,8 @@ function DatePickerField({
     return (
         <View style={s.pickerFieldWrap}>
             <Text style={s.label}>
-                {label}{required ? ' *' : ''}
+                {label}
+                {required && <Text style={s.requiredAsterisk}> *</Text>}
             </Text>
             {/* Botão principal + botão limpar lado a lado (sem aninhar TouchableOpacity) */}
             <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 6 }}>
@@ -763,7 +798,10 @@ function TimePickerField({
 
     return (
         <View style={s.pickerFieldWrap}>
-            <Text style={s.label}>{label}{required ? ' *' : ''}</Text>
+            <Text style={s.label}>
+                {label}
+                {required && <Text style={s.requiredAsterisk}> *</Text>}
+            </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <TouchableOpacity
                     style={[s.pickerFieldTouchable, { minWidth: 120, alignSelf: 'flex-start', flex: 1 }]}
@@ -1118,7 +1156,7 @@ function StepIdentity({ form, update }: StepProps) {
                 <Text style={s.addCountryText}>+ Adicionar País</Text>
             </TouchableOpacity>
 
-            <Text style={s.label}>Duração (dias) *</Text>
+            <Text style={s.label}>Duração (dias) <Text style={s.requiredAsterisk}>*</Text></Text>
             <QuantityStepper
                 value={form.duration || 1}
                 onChange={v => update('duration', Math.max(1, v))}
@@ -1391,7 +1429,7 @@ function StepCommerce({ form, update }: StepProps) {
                 keyboardType="decimal-pad"
                 placeholder="Ex: 89,90"
                 value={form.price ? String(form.price) : ''}
-                onChangeText={v => update('price', parseFloat(v.replace(',', '.')) || 0)}
+                onChangeText={v => update('price', Math.max(0, parseFloat(v.replace(',', '.')) || 0))}
             />
 
             {/* Aviso automático — produto digital */}
@@ -1808,7 +1846,7 @@ function StepAccommodations({ form, update, token }: StepProps) {
                         </View>
                         <FormInput label="Nome do local ou endereço" placeholder="Ex: Rue de Rivoli, 228" value={item.address} onChangeText={v => set({ address: v })} />
                         <FormInput label="Link da localização (Google Maps)" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
-                        <Text style={s.label}>Noites *</Text>
+                        <Text style={s.label}>Noites <Text style={s.requiredAsterisk}>*</Text></Text>
                         <QuantityStepper
                             value={Math.max(1, parseInt(item.nights, 10) || 1)}
                             onChange={n => set({ nights: String(Math.max(1, n)) })}
@@ -1838,7 +1876,7 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             cost={item.cost}
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
-                            defaultCurrency={form.currency || 'BRL'}
+                            defaultCurrency={form.currency || 'AUD'}
                             helperShort="Valor por pessoa da estadia. Comprovante (reserva, recibo) aumenta a confiança."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
@@ -1939,7 +1977,7 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 cost={item.cost}
                                 legacySpending={item.spending}
                                 onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
-                                defaultCurrency={form.currency || 'BRL'}
+                                defaultCurrency={form.currency || 'AUD'}
                                 helperShort="Valor por pessoa do ingresso/passeio. Para passeios caros, comprovante aumenta a confiança."
                                 encourageProof
                                 uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
@@ -2000,7 +2038,7 @@ function StepTransport({ form, update, token }: StepProps) {
                             cost={item.cost}
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
-                            defaultCurrency={form.currency || 'BRL'}
+                            defaultCurrency={form.currency || 'AUD'}
                             helperShort="Valor por pessoa do passe/transporte — opcional. Use estimativa para transporte local."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
@@ -2068,7 +2106,7 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             cost={item.cost}
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
-                            defaultCurrency={form.currency || 'BRL'}
+                            defaultCurrency={form.currency || 'AUD'}
                             helperShort="Valor por pessoa da refeição — opcional. Use estimativa quando o preço varia."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
@@ -2143,7 +2181,7 @@ function StepFlight({ form, update, token }: StepProps) {
                     update('flightCost', c);
                     update('flightSpending', costToLegacySpending(c));
                 }}
-                defaultCurrency={form.currency || 'BRL'}
+                defaultCurrency={form.currency || 'AUD'}
                 helperShort="Valor da passagem por pessoa — opcional. Reserva/recibo aumenta a confiança."
                 encourageProof
                 uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
@@ -2157,7 +2195,7 @@ function StepFlight({ form, update, token }: StepProps) {
 // ═══════════════════════════════════════════════════════════════════
 
 function emptyChecklist(): ChecklistItem { return { category: 'documentos', item: '', isDefault: false }; }
-function emptySpending(): SpendingEntry { return { moduleKey: 'gasto', label: '', icon: '💳', priceValue: '', priceCurrency: 'BRL', receiptUrl: '' }; }
+function emptySpending(): SpendingEntry { return { moduleKey: 'gasto', label: '', icon: '💳', priceValue: '', priceCurrency: 'AUD', receiptUrl: '' }; }
 
 // ═══════════════════════════════════════════════════════════════════
 // STEP MODULES — Dicas Exclusivas
@@ -2273,7 +2311,7 @@ function emptyExtraSpending(): ExtraSpendingItem {
         title: '',
         description: '',
         value: '',
-        currency: 'BRL',
+        currency: 'AUD',
     };
 }
 
@@ -2355,16 +2393,16 @@ function StepExtraSpending({ form, update, token }: StepProps) {
 
                     <CostBlock
                         cost={e.cost}
-                        legacySpending={e.value ? { value: e.value, currency: e.currency || 'BRL' } : undefined}
+                        legacySpending={e.value ? { value: e.value, currency: e.currency || 'AUD' } : undefined}
                         onChange={c => {
                             const legacy = costToLegacySpending(c);
                             updateItem(i, {
                                 cost: c,
                                 value: legacy?.value ?? '',
-                                currency: legacy?.currency ?? e.currency ?? 'BRL',
+                                currency: legacy?.currency ?? e.currency ?? 'AUD',
                             });
                         }}
-                        defaultCurrency={form.currency || 'BRL'}
+                        defaultCurrency={form.currency || 'AUD'}
                         helperShort="Gastos variáveis (chip, taxas, gorjetas) costumam ser estimativas."
                         encourageProof
                         uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
@@ -2384,6 +2422,35 @@ function StepExtraSpending({ form, update, token }: StepProps) {
 // STEP 8 — MÍDIA
 // ═══════════════════════════════════════════════════════════════════
 
+const MAX_IMAGE_UPLOAD_BYTES = 25 * 1024 * 1024;
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
+
+function getPickedAssetFileInfo(asset: ImagePicker.ImagePickerAsset, fallbackPrefix: string) {
+    const filename = (asset as any).fileName
+        || asset.uri.split('/').pop()?.split('?')[0]
+        || `${fallbackPrefix}-${Date.now()}.jpg`;
+    const size = (asset as any).fileSize as number | undefined;
+    const mime = ((asset as any).mimeType || '').toLowerCase();
+    const ext = (filename.match(/\.(\w+)$/)?.[1] || '').toLowerCase();
+    return { filename, size, mime, ext };
+}
+
+function validatePickedImage(asset: ImagePicker.ImagePickerAsset, index: number): string | null {
+    const { filename, size, mime, ext } = getPickedAssetFileInfo(asset, `foto-${index + 1}`);
+    if (size && size > MAX_IMAGE_UPLOAD_BYTES) {
+        return `${filename}: arquivo muito grande (${(size / (1024 * 1024)).toFixed(1)} MB). Máximo: 25 MB.`;
+    }
+
+    const hasKnownType = Boolean(mime || ext);
+    const allowed = (mime && ALLOWED_IMAGE_MIME_TYPES.has(mime)) || (ext && ALLOWED_IMAGE_EXTENSIONS.has(ext));
+    if (hasKnownType && !allowed) {
+        return `${filename}: formato não suportado. Use JPG, PNG, WEBP ou GIF.`;
+    }
+
+    return null;
+}
+
 function StepMedia({ form, update, token }: StepProps & { token: string | null | undefined }) {
     const [uploadingCover, setUploadingCover] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -2400,17 +2467,32 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
             quality: 0.85, allowsMultipleSelection: true, selectionLimit: 5,
         });
         if (res.canceled || !res.assets) return;
+        const validAssets: ImagePicker.ImagePickerAsset[] = [];
+        const validationFailures: string[] = [];
+        res.assets.forEach((asset, index) => {
+            const error = validatePickedImage(asset, index);
+            if (error) validationFailures.push(error);
+            else validAssets.push(asset);
+        });
+        if (validationFailures.length > 0) {
+            Alert.alert('Algumas fotos não podem ser enviadas', validationFailures.join('\n'));
+        }
+        if (validAssets.length === 0) return;
+
         const setter = slot === 'cover' ? setUploadingCover : setUploadingGallery;
         setter(true);
         try {
             // Upload em paralelo, mas com tolerância a falhas individuais
             const settled = await Promise.allSettled(
-                res.assets.map(a => uploadOne(
-                    a.uri,
-                    token,
-                    (a as any).fileName,
-                    (a as any).mimeType,
-                ))
+                validAssets.map((a, index) => {
+                    const info = getPickedAssetFileInfo(a, `foto-${index + 1}`);
+                    return uploadOne(
+                        a.uri,
+                        token,
+                        info.filename,
+                        info.mime || undefined,
+                    );
+                })
             );
             const fresh: string[] = [];
             const failures: string[] = [];
@@ -2444,8 +2526,8 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
                 icon={Camera}
                 title="Fotos e Vídeos"
                 subtitle="Imagens reais da sua viagem — fotos autênticas aumentam a conversão"
-                required={false}
-                hint="Capa: até 3 fotos principais. Galeria: até 10 fotos extras."
+                required
+                hint="Capa: pelo menos 1 foto principal. Galeria: até 10 fotos extras."
             />
 
             <Text style={s.repeaterTitle}>Capa (até 3 fotos)</Text>
@@ -2792,10 +2874,10 @@ function deserializeFromApi(data: any): ItineraryFormState {
         travelStyles: Array.isArray(data.travelStyles) && data.travelStyles.length > 0
             ? [data.travelStyles[0]]
             : [],
-        categories: data.categories || [],
+        categories: Array.from(new Set((data.categories || []).map((c: string) => String(c).trim()).filter(Boolean))),
         travelProofUrl: data.travelProofUrl || '',
         price: data.price || 0,
-        currency: data.currency || 'BRL',
+        currency: data.currency || 'AUD',
         promoPrice: data.promoPrice ?? undefined,
         installments: data.installments ?? undefined,
         immediateAccess: data.immediateAccess ?? true,
@@ -2846,6 +2928,34 @@ function deserializeFromApi(data: any): ItineraryFormState {
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: theme.colors.background },
+    authState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 32,
+    },
+    authTitle: {
+        marginTop: 16,
+        fontSize: 20,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+        textAlign: 'center',
+    },
+    authText: {
+        marginTop: 8,
+        marginBottom: 24,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.text.secondary,
+        textAlign: 'center',
+    },
+    authButton: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: 14,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        ...theme.shadows.button,
+    },
+    authButtonText: { fontSize: 15, fontWeight: '700', color: '#fff' },
     header: {
         flexDirection: 'row', alignItems: 'center',
         paddingTop: Platform.OS === 'ios' ? 56 : 32,
@@ -2864,6 +2974,7 @@ const s = StyleSheet.create({
     stepHint:  { fontSize: 14, color: theme.colors.text.secondary, marginBottom: 12, lineHeight: 20 },
 
     label: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary, marginTop: 14, marginBottom: 6 },
+    requiredAsterisk: { color: theme.colors.error, fontWeight: '700' },
     helper: { fontSize: 12, color: theme.colors.text.tertiary, marginBottom: 10, lineHeight: 16 },
 
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

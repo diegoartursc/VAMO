@@ -57,30 +57,37 @@ function extractUrls(field: unknown): string[] {
         .filter(isValidMediaUrl);
 }
 
+/** Máximo de imagens exibidas no carrossel de capa. Spec: 3 destaques. */
+export const MAX_COVER_IMAGES = 3;
+
 /**
  * Retorna as URLs para usar como CAPA do roteiro (carousel hero).
  *
- * Ordem de prioridade:
- *   1. highlightPhotos (capa marcada pelo criador)
- *   2. images (galeria principal)
- *   3. mediaUrls (mídia extra)
+ * Contrato:
+ *   - Se `highlightPhotos` tem qualquer URL válida, usa SÓ as destacadas
+ *     (capa marcada pelo criador). Capped em MAX_COVER_IMAGES.
+ *   - Senão, fallback: usa as primeiras imagens válidas de `images` ou
+ *     `mediaUrls`. Capped em MAX_COVER_IMAGES.
+ *   - Vídeos são filtrados — capa é só imagem.
  *
- * Deduplicado mantendo a primeira ocorrência. Retorna array vazio se
- * não há nenhuma imagem — o componente de exibição mostra fallback.
+ * Sem mídia em nenhum campo, retorna array vazio (componente mostra fallback).
  */
 export function getCoverImages(itinerary: any): string[] {
     if (!itinerary) return [];
-    const highlights = extractUrls(itinerary.highlightPhotos);
-    const gallery = extractUrls(itinerary.images);
-    const extras = extractUrls(itinerary.mediaUrls);
-    // Capa: prefere imagens (vídeo não é capa). Dedup.
-    const all = [...highlights, ...gallery, ...extras].filter(u => !isVideoUrl(u));
-    return Array.from(new Set(all));
+    const highlights = extractUrls(itinerary.highlightPhotos).filter(u => !isVideoUrl(u));
+    if (highlights.length > 0) {
+        return Array.from(new Set(highlights)).slice(0, MAX_COVER_IMAGES);
+    }
+    // Fallback quando o criador não marcou destaque: usa images depois mediaUrls.
+    const gallery = extractUrls(itinerary.images).filter(u => !isVideoUrl(u));
+    const extras = extractUrls(itinerary.mediaUrls).filter(u => !isVideoUrl(u));
+    const fallback = Array.from(new Set([...gallery, ...extras]));
+    return fallback.slice(0, MAX_COVER_IMAGES);
 }
 
 /**
  * Retorna TODOS os arquivos de mídia (fotos + vídeos) do roteiro, com
- * tipagem e origem. Para a seção "Fotos e Vídeos da Viagem".
+ * tipagem e origem. Útil para galeria full / lightbox.
  *
  * Imagens (highlight) vêm primeiro, depois galeria, depois extras.
  * Vídeos sempre vão para o final, mantendo a ordem original dentro do
@@ -117,6 +124,24 @@ export function getAllMedia(itinerary: any): MediaItem[] {
 }
 
 /**
+ * Mídias para a seção "Fotos e Vídeos da Viagem".
+ *
+ * Quando o criador marcou destaques (highlightPhotos), removemos elas da
+ * galeria — destaques já estão no topo via getCoverImages. Garantia
+ * de que os "10 adicionais" não dupliquem os "3 destaques".
+ *
+ * Quando NÃO há highlightPhotos, a galeria mostra todas as mídias (mesmo
+ * as que viraram capa por fallback) — preferimos exibir o material todo
+ * a esconder por causa de overlap em fallback.
+ */
+export function getGalleryMedia(itinerary: any): MediaItem[] {
+    if (!itinerary) return [];
+    const highlightUrls = new Set(extractUrls(itinerary.highlightPhotos));
+    if (highlightUrls.size === 0) return getAllMedia(itinerary);
+    return getAllMedia(itinerary).filter(m => !highlightUrls.has(m.url));
+}
+
+/**
  * Retorna apenas fotos (sem vídeos) — útil para galeria de imagens.
  */
 export function getAllPhotos(itinerary: any): MediaItem[] {
@@ -128,4 +153,77 @@ export function getAllPhotos(itinerary: any): MediaItem[] {
  */
 export function getAllVideos(itinerary: any): MediaItem[] {
     return getAllMedia(itinerary).filter(m => m.type === 'video');
+}
+
+// ─────────────────────────────────────────────
+// Focal point — enquadramento da capa
+// ─────────────────────────────────────────────
+
+export interface FocalPoint {
+    /** 0 = esquerda, 0.5 = centro, 1 = direita */
+    x: number;
+    /** 0 = topo, 0.5 = centro, 1 = base */
+    y: number;
+}
+
+export const DEFAULT_FOCAL_POINT: FocalPoint = { x: 0.5, y: 0.5 };
+
+function clamp01(n: unknown): number {
+    const v = typeof n === 'number' && Number.isFinite(n) ? n : 0.5;
+    return Math.max(0, Math.min(1, v));
+}
+
+/**
+ * Lê o focal point da capa do roteiro. Fallback: centro.
+ *
+ * Aceita as duas formas que podem vir do backend:
+ *   { x, y }
+ *   { coverFocalPoint: { x, y } }
+ */
+export function getCoverFocalPoint(itinerary: any): FocalPoint {
+    if (!itinerary) return DEFAULT_FOCAL_POINT;
+    const raw = itinerary.coverFocalPoint ?? itinerary.focalPoint ?? null;
+    if (!raw || typeof raw !== 'object') return DEFAULT_FOCAL_POINT;
+    return { x: clamp01(raw.x), y: clamp01(raw.y) };
+}
+
+/**
+ * Mídia "capa" pronta pra renderizar — URLs + focal point juntos.
+ * Mesma regra de prioridade de getCoverImages.
+ */
+export interface RouteCoverMedia {
+    images: string[];
+    focalPoint: FocalPoint;
+}
+
+export function getRouteCoverMedia(itinerary: any): RouteCoverMedia {
+    return {
+        images: getCoverImages(itinerary),
+        focalPoint: getCoverFocalPoint(itinerary),
+    };
+}
+
+/**
+ * One-stop pra qualquer surface (card, hero, preview, galeria).
+ *
+ * Evita que cada tela precise lembrar de chamar 3 helpers diferentes,
+ * e garante coerência: a capa sempre vem da mesma regra.
+ */
+export interface NormalizedRouteMedia {
+    coverImages: string[];
+    coverFocalPoint: FocalPoint;
+    galleryMedia: MediaItem[];
+    allMedia: MediaItem[];
+    coverUrl: string | null;
+}
+
+export function normalizeRouteMedia(itinerary: any): NormalizedRouteMedia {
+    const coverImages = getCoverImages(itinerary);
+    return {
+        coverImages,
+        coverFocalPoint: getCoverFocalPoint(itinerary),
+        galleryMedia: getGalleryMedia(itinerary),
+        allMedia: getAllMedia(itinerary),
+        coverUrl: coverImages[0] ?? null,
+    };
 }

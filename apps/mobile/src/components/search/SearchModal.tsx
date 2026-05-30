@@ -19,12 +19,13 @@ import { useSearch } from '../../hooks/useSearch';
 import { Icon, IconName } from '../common/Icons';
 
 const { height } = Dimensions.get('window');
+const MAX_PRICE = 50000;
 
 interface SearchModalProps {
     visible: boolean;
     onClose: () => void;
     onSearch: (filters: SearchFilters) => void;
-    context: 'home' | 'packages' | 'itineraries';
+    context: 'home' | 'itineraries';
     initialFilters?: Partial<SearchFilters>;
 }
 
@@ -40,34 +41,30 @@ export function SearchModal({
     const [clearAnim] = useState(new Animated.Value(0));
     const {
         travelIntent, setTravelIntent,
-        selectedCategory, setSelectedCategory,
-        filteredPackages, filteredItineraries,
-        activeFilterCount,
+        selectedCategories, toggleSelectedCategory, setSelectedCategory,
+        filteredItineraries,
     } = useSearch();
 
     // Filtros locais (estado do modal)
     const [destination, setDestination] = useState(initialFilters?.destination || '');
     const [duration, setDuration] = useState<number | undefined>(initialFilters?.duration);
     const [priceMin, setPriceMin] = useState<number>(initialFilters?.priceMin || 0);
-    const [priceMax, setPriceMax] = useState<number>(initialFilters?.priceMax || 15000);
+    const [priceMax, setPriceMax] = useState<number>(initialFilters?.priceMax || MAX_PRICE);
     const [activeDurationChip, setActiveDurationChip] = useState<number | null>(null);
 
     // Títulos por contexto
     const contextTitles = {
         home: 'Buscar Roteiros',
-        packages: 'Buscar Roteiros',
         itineraries: 'Buscar Roteiros',
     };
 
     // Contagem dinâmica de resultados
     const resultCount = useMemo(() => {
-        if (context === 'packages') return filteredPackages.length;
         if (context === 'itineraries') return filteredItineraries.length;
-        return filteredPackages.length + filteredItineraries.length;
-    }, [context, filteredPackages, filteredItineraries]);
+        return filteredItineraries.length;
+    }, [context, filteredItineraries]);
 
     const resultLabel = useMemo(() => {
-        if (context === 'packages') return 'roteiro';
         if (context === 'itineraries') return 'roteiro';
         return 'roteiro';
     }, [context]);
@@ -76,12 +73,12 @@ export function SearchModal({
     const localActiveCount = useMemo(() => {
         let count = 0;
         if (destination) count++;
-        if (duration !== 7) count++;
+        if (duration !== undefined) count++;
         if (travelIntent) count++;
-        if (selectedCategory) count++;
-        if (priceMin > 0 || priceMax < 15000) count++;
+        if (selectedCategories.length > 0) count++;
+        if (priceMin > 0 || priceMax < MAX_PRICE) count++;
         return count;
-    }, [destination, duration, travelIntent, selectedCategory, priceMin, priceMax]);
+    }, [destination, duration, travelIntent, selectedCategories, priceMin, priceMax]);
 
     useEffect(() => {
         if (visible) {
@@ -126,7 +123,7 @@ export function SearchModal({
         setDestination('');
         setDuration(undefined);
         setPriceMin(0);
-        setPriceMax(15000);
+        setPriceMax(MAX_PRICE);
         setActiveDurationChip(0); // Select 'Qualquer' by default when clearing
         setTravelIntent(null);
         setSelectedCategory(null);
@@ -166,8 +163,8 @@ export function SearchModal({
 
     // Format price
     const formatPrice = (value: number) => {
-        if (value >= 15000) return 'R$ 15.000+';
-        return `R$ ${value.toLocaleString('pt-BR')}`;
+        if (value >= MAX_PRICE) return 'A$ 10.000+';
+        return `A$ ${value.toLocaleString('pt-BR')}`;
     };
 
     return (
@@ -356,7 +353,7 @@ export function SearchModal({
                             contentContainerStyle={styles.categoriesScroll}
                         >
                             {CATEGORIES.map((cat) => {
-                                const isActive = selectedCategory === cat.id;
+                                const isActive = selectedCategories.includes(cat.id);
                                 return (
                                     <TouchableOpacity
                                         key={cat.id}
@@ -364,7 +361,7 @@ export function SearchModal({
                                             styles.categoryPill,
                                             isActive && styles.categoryPillActive,
                                         ]}
-                                        onPress={() => setSelectedCategory(isActive ? null : cat.id)}
+                                        onPress={() => toggleSelectedCategory(cat.id)}
                                     >
                                         <Icon
                                             name={cat.icon as IconName}
@@ -391,7 +388,7 @@ export function SearchModal({
                                 <Text style={styles.filterLabel}>Faixa de Preço</Text>
                             </View>
                             <Text style={styles.filterValue}>
-                                {priceMin === 0 && priceMax >= 15000
+                                {priceMin === 0 && priceMax >= MAX_PRICE
                                     ? 'Qualquer'
                                     : `${formatPrice(priceMin)} – ${formatPrice(priceMax)}`
                                 }
@@ -403,7 +400,7 @@ export function SearchModal({
                         <Slider
                             style={styles.slider}
                             minimumValue={0}
-                            maximumValue={15000}
+                            maximumValue={MAX_PRICE}
                             value={priceMin}
                             onValueChange={(val: number) => {
                                 const rounded = Math.round(val / 500) * 500;
@@ -420,7 +417,7 @@ export function SearchModal({
                         <Slider
                             style={styles.slider}
                             minimumValue={0}
-                            maximumValue={15000}
+                            maximumValue={MAX_PRICE}
                             value={priceMax}
                             onValueChange={(val: number) => {
                                 const rounded = Math.round(val / 500) * 500;
@@ -432,8 +429,8 @@ export function SearchModal({
                             step={500}
                         />
                         <View style={styles.sliderRange}>
-                            <Text style={styles.sliderRangeText}>R$ 0</Text>
-                            <Text style={styles.sliderRangeText}>R$ 15.000+</Text>
+                            <Text style={styles.sliderRangeText}>A$ 0</Text>
+                            <Text style={styles.sliderRangeText}>A$ 10.000+</Text>
                         </View>
                     </View>
                 </ScrollView>

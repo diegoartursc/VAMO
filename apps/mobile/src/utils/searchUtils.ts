@@ -1,155 +1,138 @@
-import { Package } from '../types';
-import { Itinerary } from '../data/mockItineraries';
+export interface ItineraryFilterInput {
+    destination?: string;
+    duration?: number;
+    priceMin: number;
+    priceMax: number;
+    ratingMin?: number;
+    featured?: boolean;
+    verifiedCreatorOnly?: boolean;
+    selectedCategories?: string[];
+}
 
-/**
- * Filtra pacotes por destino (cidade ou país)
- */
-export function filterByDestination(packages: Package[], destination: string): Package[] {
-    if (!destination || destination.trim() === '') {
-        return packages;
-    }
+export function normalizeText(value: unknown): string {
+    return String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, ' ');
+}
 
-    const searchTerm = destination.toLowerCase().trim();
+export function normalizeArray(value: unknown): string[] {
+    if (Array.isArray(value)) return value.map(normalizeText).filter(Boolean);
+    const normalized = normalizeText(value);
+    return normalized ? [normalized] : [];
+}
 
-    return packages.filter(pkg => {
-        const cityMatch = pkg.destination.toLowerCase().includes(searchTerm);
-        const countryMatch = pkg.country.toLowerCase().includes(searchTerm);
-        return cityMatch || countryMatch;
+const CATEGORY_ALIASES: Record<string, string[]> = {
+    aventura: ['aventura', 'trilha', 'trilhas', 'radical', 'outdoor'],
+    cultura: ['cultura', 'cultural', 'arte', 'museu', 'museus'],
+    gastronomia: ['gastronomia', 'gastronomico', 'gastronomica', 'culinaria', 'comida', 'restaurantes'],
+    historico: ['historico', 'historia', 'histórico', 'história'],
+    familia: ['familia', 'criancas', 'crianca', 'kids', 'com criancas'],
+    mochilao: ['mochilao', 'mochileiro', 'backpack', 'backpacking', 'economico'],
+    natureza: ['natureza', 'natural', 'trilha', 'trilhas', 'parque', 'parques'],
+    praia: ['praia', 'praias', 'litoral', 'mar'],
+    romantico: ['romantico', 'romance', 'casal', 'lua de mel'],
+};
+
+function getCategoryTerms(category: string): string[] {
+    const normalized = normalizeText(category);
+    return Array.from(new Set([normalized, ...(CATEGORY_ALIASES[normalized] || []).map(normalizeText)]));
+}
+
+export function getItinerarySearchableCategories(itinerary: any): string[] {
+    return Array.from(new Set([
+        ...normalizeArray(itinerary?.category),
+        ...normalizeArray(itinerary?.categories),
+        ...normalizeArray(itinerary?.tags),
+        ...normalizeArray(itinerary?.style),
+        ...normalizeArray(itinerary?.travelStyle),
+        ...normalizeArray(itinerary?.travelStyles),
+        ...normalizeArray(itinerary?.themes),
+        ...normalizeArray(itinerary?.interests),
+        ...normalizeArray(itinerary?.experienceTypes),
+    ]));
+}
+
+export function itineraryMatchesCategory(itinerary: any, selectedCategories?: string[] | string | null): boolean {
+    const selected = normalizeArray(selectedCategories);
+    if (selected.length === 0) return true;
+
+    const searchable = getItinerarySearchableCategories(itinerary);
+    if (searchable.length === 0) return false;
+
+    return selected.some(category =>
+        getCategoryTerms(category).some(term =>
+            searchable.some(item => item === term || item.includes(term) || term.includes(item)),
+        ),
+    );
+}
+
+export function filterItinerariesByDestination<T extends Record<string, any>>(itineraries: T[], destination: string): T[] {
+    const searchTerm = normalizeText(destination);
+    if (!searchTerm) return itineraries;
+
+    return itineraries.filter(itinerary => {
+        const searchable = [
+            itinerary?.destination,
+            itinerary?.country,
+            itinerary?.city,
+            itinerary?.title,
+            ...(Array.isArray(itinerary?.extraCities) ? itinerary.extraCities : []),
+            ...(Array.isArray(itinerary?.extraCountries) ? itinerary.extraCountries : []),
+        ].map(normalizeText);
+
+        return searchable.some(value => value.includes(searchTerm));
     });
 }
 
-/**
- * Filtra pacotes por intervalo de datas
- * Nota: Como Package não tem availableDates, retorna todos os pacotes
- * TODO: Adicionar campo availableDates ao tipo Package se necessário
- */
-export function filterByDate(
-    packages: Package[],
-    _startDate?: Date,
-    _endDate?: Date
-): Package[] {
-    // Por enquanto, retorna todos os pacotes pois não temos campo de data
-    return packages;
-}
-
-/**
- * Filtra pacotes por faixa de preço
- */
-export function filterByPrice(
-    packages: Package[],
-    minPrice: number,
-    maxPrice: number
-): Package[] {
-    return packages.filter(pkg => {
-        // Usa o menor preço do pacote para comparação
-        const price = pkg.price.min;
-        return price >= minPrice && price <= maxPrice;
+export function filterItinerariesByDuration<T extends Record<string, any>>(itineraries: T[], maxDuration: number): T[] {
+    return itineraries.filter(itinerary => {
+        const duration = Number(itinerary?.duration);
+        return Number.isFinite(duration) && duration <= maxDuration;
     });
 }
 
-/**
- * Filtra pacotes por duração (com tolerância de ±2 dias)
- */
-export function filterByDuration(
-    packages: Package[],
-    targetDuration: number
-): Package[] {
-    return packages.filter(pkg => {
-        return Math.abs(pkg.duration - targetDuration) <= 2;
+export function filterItinerariesByPrice<T extends Record<string, any>>(itineraries: T[], minPrice: number, maxPrice: number): T[] {
+    return itineraries.filter(itinerary => {
+        const price = Number(itinerary?.price);
+        return Number.isFinite(price) && price >= minPrice && price <= maxPrice;
     });
 }
 
-/**
- * Aplica todos os filtros de uma vez
- */
-export function applyAllFilters(
-    packages: Package[],
-    filters: {
-        destination?: string;
-        startDate?: Date;
-        endDate?: Date;
-        duration?: number;
-        priceMin: number;
-        priceMax: number;
-    }
-): Package[] {
-    let filtered = packages;
-
-    // Filtro por destino
-    if (filters.destination) {
-        filtered = filterByDestination(filtered, filters.destination);
+export function itineraryMatchesFilters<T extends Record<string, any>>(itinerary: T, filters: ItineraryFilterInput): boolean {
+    if (filters.destination && filterItinerariesByDestination([itinerary], filters.destination).length === 0) {
+        return false;
     }
 
-    // Filtro por data
-    if (filters.startDate || filters.endDate) {
-        filtered = filterByDate(filtered, filters.startDate, filters.endDate);
+    if (filters.selectedCategories?.length && !itineraryMatchesCategory(itinerary, filters.selectedCategories)) {
+        return false;
     }
 
-    // Filtro por duração
-    if (filters.duration !== undefined) {
-        filtered = filterByDuration(filtered, filters.duration);
+    if (filters.duration !== undefined && filterItinerariesByDuration([itinerary], filters.duration).length === 0) {
+        return false;
     }
 
-    // Filtro por preço
-    filtered = filterByPrice(filtered, filters.priceMin, filters.priceMax);
+    if (filterItinerariesByPrice([itinerary], filters.priceMin, filters.priceMax).length === 0) {
+        return false;
+    }
 
-    return filtered;
+    if (filters.ratingMin !== undefined && Number(itinerary?.rating || 0) < filters.ratingMin) {
+        return false;
+    }
+
+    if (filters.featured === true && itinerary?.featured !== true) {
+        return false;
+    }
+
+    if (filters.verifiedCreatorOnly === true && !itinerary?.creator?.verificationLevel) {
+        return false;
+    }
+
+    return true;
 }
 
-// ── Itinerary Filters ──────────────────────────────────────────────────
-
-/**
- * Filtra roteiros por destino (cidade ou país)
- */
-export function filterItinerariesByDestination(itineraries: Itinerary[], destination: string): Itinerary[] {
-    if (!destination || destination.trim() === '') {
-        return itineraries;
-    }
-    const searchTerm = destination.toLowerCase().trim();
-    return itineraries.filter(it => {
-        const cityMatch = it.destination.toLowerCase().includes(searchTerm);
-        const countryMatch = it.country.toLowerCase().includes(searchTerm);
-        return cityMatch || countryMatch;
-    });
-}
-
-/**
- * Filtra roteiros por duração (com tolerância de ±2 dias)
- */
-export function filterItinerariesByDuration(itineraries: Itinerary[], targetDuration: number): Itinerary[] {
-    return itineraries.filter(it => Math.abs(it.duration - targetDuration) <= 2);
-}
-
-/**
- * Filtra roteiros por faixa de preço (preço do roteiro em si)
- */
-export function filterItinerariesByPrice(itineraries: Itinerary[], minPrice: number, maxPrice: number): Itinerary[] {
-    return itineraries.filter(it => it.price >= minPrice && it.price <= maxPrice);
-}
-
-/**
- * Aplica todos os filtros aos roteiros
- */
-export function applyAllItineraryFilters(
-    itineraries: Itinerary[],
-    filters: {
-        destination?: string;
-        duration?: number;
-        priceMin: number;
-        priceMax: number;
-    }
-): Itinerary[] {
-    let filtered = itineraries;
-
-    if (filters.destination) {
-        filtered = filterItinerariesByDestination(filtered, filters.destination);
-    }
-
-    if (filters.duration !== undefined) {
-        filtered = filterItinerariesByDuration(filtered, filters.duration);
-    }
-
-    filtered = filterItinerariesByPrice(filtered, filters.priceMin, filters.priceMax);
-
-    return filtered;
+export function applyAllItineraryFilters<T extends Record<string, any>>(itineraries: T[], filters: ItineraryFilterInput): T[] {
+    return itineraries.filter(itinerary => itineraryMatchesFilters(itinerary, filters));
 }

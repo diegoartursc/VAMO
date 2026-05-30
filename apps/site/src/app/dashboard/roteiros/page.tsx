@@ -58,8 +58,8 @@ const Ic = {
 };
 
 function formatCurrency(v: number) {
-    if (v >= 1000) return `R$ ${(v / 1000).toFixed(1).replace(".", ",")}k`;
-    return `R$ ${v.toLocaleString("pt-BR")}`;
+    if (v >= 1000) return `A$ ${(v / 1000).toFixed(1).replace(".", ",")}k`;
+    return `A$ ${v.toLocaleString("pt-BR")}`;
 }
 
 function formatDate(iso: string) {

@@ -86,7 +86,7 @@ export default function CostBlock({
     cost,
     legacySpending,
     onChange,
-    defaultCurrency = 'BRL',
+    defaultCurrency = 'AUD',
     helperShort,
     encourageProof = false,
     uploadProof,
@@ -238,7 +238,7 @@ export default function CostBlock({
             {/* Inputs condicionais */}
             {isInformed && (
                 <View style={styles.inputsBlock}>
-                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
                         <View style={{ flex: 2 }}>
                             <FormInput
                                 label="Valor total pago"
@@ -419,7 +419,7 @@ export function costToLegacySpending(cost: ModuleCostInfo | null | undefined): M
     if (cost.disclosureType === 'not_informed') return undefined;
     const amount = cost.amount ?? '';
     if (!amount) return undefined;
-    return { value: String(amount), currency: cost.currency || 'BRL' };
+    return { value: String(amount), currency: cost.currency || 'AUD' };
 }
 
 const styles = StyleSheet.create({

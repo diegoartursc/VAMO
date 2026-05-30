@@ -36,37 +36,46 @@ export interface VerificationBadgeConfig {
     description: string;
 }
 
+/**
+ * Trilha do Roteirista — labels visíveis de reputação/confiança.
+ *
+ * O tipo técnico `VerificationLevel` (basic/trusted/expert/ambassador) é
+ * mantido por compatibilidade com o backend, mas o conteúdo visível segue a
+ * nova nomenclatura. NÃO usar "Expert"/"Especialista Local" na UI.
+ * A camada semântica de 5 níveis (incl. "Top Roteirista") vive em
+ * src/gamification/creatorLevels.ts.
+ */
 export const VERIFICATION_CONFIGS: Record<VerificationLevel, VerificationBadgeConfig> = {
     basic: {
         level: 'basic',
-        icon: '🥉',
-        label: 'Verificado',
-        color: '#8B4513',
-        bgColor: '#FFF8DC',
-        description: 'Identidade confirmada',
+        icon: '🛡️',
+        label: 'Roteirista Verificado',
+        color: '#1A3263',         // VAMO Navy
+        bgColor: '#EEF1F8',
+        description: 'Identidade confirmada e perfil aprovado',
     },
     trusted: {
         level: 'trusted',
-        icon: '🥈',
-        label: 'Confiável',
-        color: '#708090',
-        bgColor: '#F5F5F5',
-        description: '5+ roteiros, 4.5+ média',
+        icon: '⭐',
+        label: 'Roteirista Recomendado',
+        color: '#B8860B',
+        bgColor: '#FBF4E1',
+        description: 'Bons roteiros, avaliações positivas e histórico consistente',
     },
     expert: {
         level: 'expert',
-        icon: '🥇',
-        label: 'Expert',
-        color: '#B8860B',
-        bgColor: '#FFFACD',
-        description: '20+ roteiros, 4.8+ média, 50+ vendas',
+        icon: '🧭',
+        label: 'Curador de Viagens',
+        color: '#0E7C74',         // Deep Teal — sofisticado e temático
+        bgColor: '#E6FAF8',
+        description: 'Cria roteiros consistentes, bem avaliados e úteis para outros viajantes',
     },
     ambassador: {
         level: 'ambassador',
         icon: '💎',
-        label: 'Embaixador',
+        label: 'Embaixador VAMO',
         color: '#28C9BF',         // VAMO Teal
         bgColor: '#E6FAF8',       // Light Teal
-        description: 'Selecionado pela equipe VAMO',
+        description: 'Selecionado pela equipe VAMO como referência da comunidade',
     },
 };

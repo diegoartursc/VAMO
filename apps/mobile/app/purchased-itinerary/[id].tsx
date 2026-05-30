@@ -8,7 +8,6 @@ import {
     Animated,
     Image,
     Alert,
-    Linking,
     Share,
     Dimensions,
     StatusBar,
@@ -20,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
-import { hasUserReviewed, getUserReviewForPackage } from '../../src/data/mockReviews';
+import { getReviews } from '../../src/services/api';
 import { Icon } from '../../src/components/common/Icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPurchasedItineraryDetail, getCurrencyRates } from '../../src/services/api';
@@ -29,6 +28,7 @@ import BudgetSummaryCard from '../../src/components/dashboard/BudgetSummaryCard'
 import PeopleSimulator from '../../src/components/dashboard/PeopleSimulator';
 import MediaGallery from '../../src/components/common/MediaGallery';
 import { getCostReferences, calculateBudgetSummary, formatMoney, type CostReferencesGroup } from '@vamo/shared/itinerary';
+import { openExternalUrl as openSafeExternalUrl } from '../../src/utils/externalLinks';
 
 // AttractionInfo type (inline — no longer from mock)
 type AttractionInfo = {
@@ -36,6 +36,16 @@ type AttractionInfo = {
     hours?: string; duration?: string; tips?: string; externalLink?: string;
     mapLink?: string; ticketPrice?: string;
 };
+type ChecklistItem = { id: string; category?: string; item?: string; text?: string; completed?: boolean };
+type ItineraryDay = { dayNumber: number; title?: string; summary?: string; estimatedCost?: { min?: number; max?: number }; activities?: ItineraryActivity[] };
+type ItineraryActivity = { id: string; icon?: string; time?: string; duration?: string; title?: string; location?: string; description?: string; tips?: string | string[]; mapLink?: string };
+type AccommodationInfo = { id: string; name?: string; priceRange?: string; address?: string; location?: string; description?: string; rating?: number; tips?: string; mapLink?: string };
+type TransportInfo = { description?: string; priceValue?: string; priceCurrency?: string; passTypes?: string; notes?: string };
+type RestaurantInfo = { name?: string; cuisine?: string; location?: string; priceRange?: string; description?: string; hours?: string; tips?: string; externalLink?: string };
+type ReceiveItem = { icon?: string; label?: string };
+
+const PLACEHOLDER_IMAGE =
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop';
 
 const { width } = Dimensions.get('window');
 const HERO_HEIGHT = 340;
@@ -43,7 +53,12 @@ const HERO_HEIGHT = 340;
 export default function PurchasedItineraryScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { accessToken, user } = useAuth();
+    const {
+        accessToken,
+        user,
+        isAuthenticated,
+        isLoading: authLoading,
+    } = useAuth();
 
     // ─── Animations ────────────────────────────────────────
     const headerAnim = useRef(new Animated.Value(0)).current;
@@ -67,7 +82,7 @@ export default function PurchasedItineraryScreen() {
 
     // ─── State ─────────────────────────────────────────────
     const [itinerary, setItinerary] = useState<any | null>(null);
-    const [loadError, setLoadError] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [travelers, setTravelers] = useState(1);
     const [customDays, setCustomDays] = useState(7);
@@ -75,33 +90,65 @@ export default function PurchasedItineraryScreen() {
     const [completedChecklist, setCompletedChecklist] = useState<Set<string>>(new Set());
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
     const [peopleCount, setPeopleCount] = useState<number>(1);
+    /** Avaliação real (vinda da API) deste usuário pra este roteiro.
+     *  `null` = ainda não carregou; `undefined` = carregou e usuário ainda
+     *  não avaliou; objeto = review existente. */
+    const [userReview, setUserReview] = useState<any | null | undefined>(null);
+
+    // Carrega review do usuário a partir da API (substitui o mock antigo)
+    useEffect(() => {
+        if (authLoading) return;
+        if (!id || !user?.travelerId) {
+            setUserReview(undefined);
+            return;
+        }
+        let mounted = true;
+        getReviews({ itineraryId: id })
+            .then(({ reviews }) => {
+                if (!mounted) return;
+                const mine = reviews.find((r: any) => r.travelerId === user.travelerId);
+                setUserReview(mine ?? undefined);
+            })
+            .catch(() => { if (mounted) setUserReview(undefined); });
+        return () => { mounted = false; };
+    }, [authLoading, id, user?.travelerId]);
 
     useEffect(() => {
-        if (!id) { setLoadError(true); setIsLoading(false); return; }
+        if (authLoading) return;
+        if (!id) { setLoadError('Roteiro inválido.'); setIsLoading(false); return; }
+        if (!isAuthenticated || !accessToken) {
+            setItinerary(null);
+            setLoadError('Faça login para acessar este roteiro comprado.');
+            setIsLoading(false);
+            return;
+        }
         let mounted = true;
+        setIsLoading(true);
+        setLoadError(null);
         getPurchasedItineraryDetail(id, accessToken)
             .then((data) => {
                 if (!mounted) return;
                 if (data) {
                     setItinerary(data);
                     setCustomDays(data.duration || 7);
+                    setLoadError(null);
                     Animated.timing(headerAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start();
                 } else {
-                    setLoadError(true);
+                    setLoadError('Este roteiro não está liberado para esta conta.');
                 }
             })
-            .catch(() => { if (mounted) setLoadError(true); })
+            .catch(() => { if (mounted) setLoadError('Não foi possível carregar o roteiro comprado.'); })
             .finally(() => { if (mounted) setIsLoading(false); });
         getCurrencyRates().then(r => { if (mounted) setCurrencyRates(r); }).catch(() => {});
         return () => { mounted = false; };
-    }, [id, accessToken]);
+    }, [authLoading, id, accessToken, isAuthenticated]);
 
-    /** Converte valor em qualquer moeda para BRL formatado, usando taxas do admin */
+    /** Converte valor em qualquer moeda para AUD formatado, usando taxas do admin */
     const toBRL = (value: string | number, currency: string): string => {
         const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
-        if (n <= 0) return 'R$ 0';
-        const brl = currency === 'BRL' ? n : n * (currencyRates[currency] ?? 1);
-        return brl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+        if (n <= 0) return formatMoney(0);
+        const aud = currency === 'AUD' ? n : n * (currencyRates[currency] ?? 1);
+        return formatMoney(aud);
     };
 
     /**
@@ -150,13 +197,13 @@ export default function PurchasedItineraryScreen() {
             // Sem progresso salvo: inicializa com `completed=true` vindo da API
             // (compat com itens marcados por algum fluxo legado).
             const initial = (itinerary.checklist || [])
-                .filter((c: any) => c.completed)
-                .map((c: any) => c.id);
+                .filter((c: ChecklistItem) => c.completed)
+                .map((c: ChecklistItem) => c.id);
             if (initial.length > 0) setCompletedChecklist(new Set(initial));
         }).catch(() => { /* ignora — UI continua funcional só em memória */ });
     }, [itinerary, checklistStorageKey]);
 
-    if (isLoading) {
+    if (authLoading || isLoading) {
         return (
             <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -172,9 +219,23 @@ export default function PurchasedItineraryScreen() {
             <View style={styles.container}>
                 <View style={styles.errorContainer}>
                     <Icon name="file" size={48} color={theme.colors.text.tertiary} />
-                    <Text style={styles.errorText}>Roteiro não encontrado</Text>
-                    <TouchableOpacity style={styles.errorButton} onPress={() => router.back()}>
-                        <Text style={styles.errorButtonText}>Voltar</Text>
+                    <Text style={styles.errorText}>{loadError || 'Roteiro não encontrado'}</Text>
+                    <TouchableOpacity
+                        style={styles.errorButton}
+                        onPress={() => {
+                            if (!isAuthenticated && id) {
+                                router.push({
+                                    pathname: '/login',
+                                    params: { next: `/purchased-itinerary/${id}` },
+                                } as any);
+                                return;
+                            }
+                            router.back();
+                        }}
+                    >
+                        <Text style={styles.errorButtonText}>
+                            {!isAuthenticated && id ? 'Entrar' : 'Voltar'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -184,6 +245,9 @@ export default function PurchasedItineraryScreen() {
     // ─── Computed ──────────────────────────────────────────
     const currentProfile = itinerary.spendingProfile;
     const totalEstimate = (currentProfile?.dailyCost || 0) * travelers * customDays;
+    const days: ItineraryDay[] = Array.isArray(itinerary.days) ? itinerary.days : [];
+    const checklist: ChecklistItem[] = Array.isArray(itinerary.checklist) ? itinerary.checklist : [];
+    const heroImage = Array.isArray(itinerary.images) && itinerary.images[0] ? itinerary.images[0] : PLACEHOLDER_IMAGE;
 
     // ─── Handlers ──────────────────────────────────────────
     const toggleDay = (dayNumber: number) => {
@@ -215,7 +279,15 @@ export default function PurchasedItineraryScreen() {
 
     const handleDownload = () => {
         haptics.light();
-        Alert.alert('📥 Download Offline', 'Em breve você poderá baixar seu roteiro para acesso offline!');
+        Alert.alert('Acesso offline em breve', 'Por enquanto, o roteiro fica salvo na sua conta e pode ser acessado em Meus Roteiros.');
+    };
+
+    const openExternalUrl = async (url?: string) => {
+        haptics.light();
+        await openSafeExternalUrl(url, {
+            invalidMessage: 'Este item ainda não tem um link válido.',
+            fallbackMessage: 'Não foi possível abrir este link no dispositivo.',
+        });
     };
 
     const handleShare = async () => {
@@ -246,7 +318,7 @@ export default function PurchasedItineraryScreen() {
 
                 {/* ══════════ HERO ══════════ */}
                 <View style={styles.heroBlock}>
-                    <Image source={{ uri: itinerary.images[0] }} style={styles.heroImage} />
+                    <Image source={{ uri: heroImage }} style={styles.heroImage} />
                     <LinearGradient
                         colors={theme.colors.gradients.hero as unknown as [string, string, string]}
                         style={StyleSheet.absoluteFill}
@@ -317,7 +389,7 @@ export default function PurchasedItineraryScreen() {
                             <Ionicons name="cloud-download-outline" size={18} color={theme.colors.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.downloadBarTitle}>Baixar para acesso offline</Text>
+                            <Text style={styles.downloadBarTitle}>Acesso offline em breve</Text>
                             <Text style={styles.downloadBarSub}>Disponível em breve</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={18} color={theme.colors.primary} />
@@ -328,12 +400,12 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ COMECE POR AQUI — central da viagem ══════════ */}
                     {(() => {
-                        const daysCount = Array.isArray(itinerary.days) ? itinerary.days.length : 0;
+                        const daysCount = days.length;
                         const mediaCount =
                             (Array.isArray(itinerary.highlightPhotos) ? itinerary.highlightPhotos.length : 0) +
                             (Array.isArray(itinerary.images) ? itinerary.images.length : 0) +
                             (Array.isArray(itinerary.mediaUrls) ? itinerary.mediaUrls.length : 0);
-                        const checklistCount = Array.isArray(itinerary.checklist) ? itinerary.checklist.length : 0;
+                        const checklistCount = checklist.length;
 
                         type QA = { key: string; iconName: any; label: string; meta: string; sectionKey: string };
                         const actions: QA[] = [];
@@ -498,7 +570,7 @@ export default function PurchasedItineraryScreen() {
                                                         <Text style={styles.costRefItemValue}>
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
                                                             {' por pessoa'}
-                                                            {item.currency !== 'BRL' && (
+                                                            {item.currency !== 'AUD' && (
                                                                 <Text style={styles.costRefItemConverted}> ≈ {toBRL(item.amountPerPerson, item.currency)}</Text>
                                                             )}
                                                         </Text>
@@ -568,17 +640,17 @@ export default function PurchasedItineraryScreen() {
                             >
                                 <Text style={styles.totalCardLabel}>Estimativa total</Text>
                                 <Text style={styles.totalCardAmount}>
-                                    R$ {totalEstimate.toLocaleString('pt-BR')}
+                                    {formatMoney(totalEstimate)}
                                 </Text>
                                 <Text style={styles.totalCardDetail}>
-                                    {travelers} viajante{travelers > 1 ? 's' : ''} × {customDays} dias × R$ {currentProfile?.dailyCost}/dia
+                                    {travelers} viajante{travelers > 1 ? 's' : ''} × {customDays} dias × {formatMoney(currentProfile?.dailyCost ?? 0)}/dia
                                 </Text>
                             </LinearGradient>
 
                             {currentProfile && (
                                 <View style={styles.breakdownCard}>
                                     <Text style={styles.breakdownTitle}>Custo médio diário por pessoa</Text>
-                                    {currentProfile.breakdown.map((item, i) => (
+                                    {currentProfile.breakdown.map((item: { category: string; amount: number }, i: number) => (
                                         <View
                                             key={i}
                                             style={[
@@ -587,12 +659,12 @@ export default function PurchasedItineraryScreen() {
                                             ]}
                                         >
                                             <Text style={styles.breakdownCat}>{item.category}</Text>
-                                            <Text style={styles.breakdownVal}>R$ {item.amount}</Text>
+                                            <Text style={styles.breakdownVal}>{formatMoney(item.amount)}</Text>
                                         </View>
                                     ))}
                                     <View style={styles.breakdownTotalRow}>
                                         <Text style={styles.breakdownTotalLabel}>Total/dia</Text>
-                                        <Text style={styles.breakdownTotalVal}>R$ {currentProfile.dailyCost}</Text>
+                                        <Text style={styles.breakdownTotalVal}>{formatMoney(currentProfile.dailyCost)}</Text>
                                     </View>
                                 </View>
                             )}
@@ -620,11 +692,11 @@ export default function PurchasedItineraryScreen() {
                             <Text style={styles.flightLegLabel}>✈ Volta</Text>
                             <FlightCard flight={itinerary.flightInfo.return} />
 
-                            {itinerary.flightInfo.tips.length > 0 && (
+                            {Array.isArray(itinerary.flightInfo.tips) && itinerary.flightInfo.tips.length > 0 && (
                                 <>
                                     <Text style={styles.flightLegLabel}>💡 Dicas do viajante</Text>
                                     <View style={styles.tipsBox}>
-                                        {itinerary.flightInfo.tips.map((tip, i) => (
+                                        {itinerary.flightInfo.tips.map((tip: string, i: number) => (
                                             <View key={i} style={styles.tipRow}>
                                                 <View style={styles.tipDot} />
                                                 <Text style={styles.tipText}>{tip}</Text>
@@ -639,7 +711,7 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ ITINERÁRIO POR DIA ══════════ */}
                     <View style={styles.block} onLayout={trackSection('itinerary')}>
                         <SectionTitle icon="map-outline" label="Itinerário por Dia" />
-                        {itinerary.days.map(day => (
+                        {days.map((day: ItineraryDay) => (
                             <View key={day.dayNumber} style={styles.dayCard}>
                                 <TouchableOpacity
                                     style={styles.dayHeader}
@@ -671,11 +743,11 @@ export default function PurchasedItineraryScreen() {
 
                                 {expandedDays.has(day.dayNumber) && (
                                     <View style={styles.dayContent}>
-                                        {day.activities.map((activity, idx) => (
+                                        {(day.activities || []).map((activity: ItineraryActivity, idx: number) => (
                                             <View key={activity.id} style={styles.activityRow}>
                                                 <View style={styles.timelineCol}>
                                                     <View style={styles.timelineDot} />
-                                                    {idx < day.activities.length - 1 && (
+                                                    {idx < (day.activities || []).length - 1 && (
                                                         <View style={styles.timelineLine} />
                                                     )}
                                                 </View>
@@ -704,7 +776,7 @@ export default function PurchasedItineraryScreen() {
                                                         return tipsArr.length > 0 ? (
                                                             <View style={styles.activityTipBox}>
                                                                 <Text style={styles.activityTipTitle}>💡 Dicas</Text>
-                                                                {tipsArr.map((tip, ti) => (
+                                                                {tipsArr.map((tip: string, ti: number) => (
                                                                     <Text key={ti} style={styles.activityTipText}>• {tip}</Text>
                                                                 ))}
                                                             </View>
@@ -714,7 +786,7 @@ export default function PurchasedItineraryScreen() {
                                                     {activity.mapLink && (
                                                         <TouchableOpacity
                                                             style={styles.mapBtn}
-                                                            onPress={() => Linking.openURL(activity.mapLink!)}
+                                                            onPress={() => openExternalUrl(activity.mapLink)}
                                                         >
                                                             <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
                                                             <Text style={styles.mapBtnText}>Ver no mapa</Text>
@@ -728,7 +800,7 @@ export default function PurchasedItineraryScreen() {
                                             <View style={styles.dayCostBadge}>
                                                 <Ionicons name="wallet-outline" size={14} color={theme.colors.primary} />
                                                 <Text style={styles.dayCostText}>
-                                                    Estimativa: R$ {day.estimatedCost.min} — R$ {day.estimatedCost.max}
+                                                    Estimativa: {formatMoney(day.estimatedCost.min ?? 0)} — {formatMoney(day.estimatedCost.max ?? 0)}
                                                 </Text>
                                             </View>
                                         )}
@@ -742,7 +814,7 @@ export default function PurchasedItineraryScreen() {
                     {itinerary.accommodationOptions && itinerary.accommodationOptions.length > 0 && (
                         <View style={styles.block}>
                             <SectionTitle icon="home-outline" label="Onde Fiquei" />
-                            {itinerary.accommodationOptions.map(acc => (
+                            {itinerary.accommodationOptions.map((acc: AccommodationInfo) => (
                                 <View key={acc.id} style={[styles.card, { marginBottom: 12 }]}>
                                     <View style={styles.accHeader}>
                                         <Text style={styles.accName}>{acc.name}</Text>
@@ -771,7 +843,7 @@ export default function PurchasedItineraryScreen() {
                                     {acc.mapLink ? (
                                         <TouchableOpacity
                                             style={styles.mapBtn}
-                                            onPress={() => { haptics.light(); Linking.openURL(acc.mapLink!); }}
+                                            onPress={() => openExternalUrl(acc.mapLink)}
                                         >
                                             <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
                                             <Text style={styles.mapBtnText}>Ver no mapa</Text>
@@ -847,7 +919,7 @@ export default function PurchasedItineraryScreen() {
                                         {att.externalLink ? (
                                             <TouchableOpacity
                                                 style={styles.outlineBtn}
-                                                onPress={() => { haptics.light(); Linking.openURL(att.externalLink!); }}
+                                                onPress={() => openExternalUrl(att.externalLink)}
                                             >
                                                 <Icon name="globe" size={14} color={theme.colors.primary} />
                                                 <Text style={styles.outlineBtnText}>Site oficial</Text>
@@ -856,7 +928,7 @@ export default function PurchasedItineraryScreen() {
                                         {att.mapLink ? (
                                             <TouchableOpacity
                                                 style={styles.mapBtn}
-                                                onPress={() => { haptics.light(); Linking.openURL(att.mapLink!); }}
+                                                onPress={() => openExternalUrl(att.mapLink)}
                                             >
                                                 <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
                                                 <Text style={styles.mapBtnText}>Ver no mapa</Text>
@@ -872,7 +944,7 @@ export default function PurchasedItineraryScreen() {
                     {itinerary.transport && itinerary.transport.items.length > 0 && (
                         <View style={styles.block}>
                             <SectionTitle icon="navigate-outline" label="Transporte" />
-                            {itinerary.transport.items.map((item, i) => (
+                            {itinerary.transport.items.map((item: TransportInfo, i: number) => (
                                 <View key={i} style={styles.transportCard}>
                                     <View style={styles.transportHeader}>
                                         <Text style={styles.transportName}>{item.description}</Text>
@@ -899,7 +971,7 @@ export default function PurchasedItineraryScreen() {
                     {itinerary.restaurants && itinerary.restaurants.length > 0 && (
                         <View style={styles.block}>
                             <SectionTitle icon="restaurant-outline" label="Restaurantes & Gastronomia" />
-                            {itinerary.restaurants.map((rest, i) => (
+                            {itinerary.restaurants.map((rest: RestaurantInfo, i: number) => (
                                 <View key={i} style={[styles.card, { marginBottom: 12 }]}>
                                     <View style={styles.restaurantTop}>
                                         <View style={{ flex: 1 }}>
@@ -936,7 +1008,7 @@ export default function PurchasedItineraryScreen() {
                                     {rest.externalLink ? (
                                         <TouchableOpacity
                                             style={styles.outlineBtn}
-                                            onPress={() => { haptics.light(); Linking.openURL(rest.externalLink!); }}
+                                            onPress={() => openExternalUrl(rest.externalLink)}
                                         >
                                             <Icon name="globe" size={14} color={theme.colors.primary} />
                                             <Text style={styles.outlineBtnText}>Ver reservas</Text>
@@ -957,7 +1029,7 @@ export default function PurchasedItineraryScreen() {
                             {itinerary.extraSpendingItems.map((e: any, i: number) => {
                                 const cost = e.cost;
                                 const amount = parseFloat(e.value || cost?.amount || '0') || 0;
-                                const currency = e.currency || cost?.currency || 'BRL';
+                                const currency = e.currency || cost?.currency || 'AUD';
                                 const informed = !!cost && cost.disclosureType !== 'not_informed' && amount > 0;
                                 return (
                                     <View key={i} style={styles.spendingItemCard}>
@@ -966,7 +1038,7 @@ export default function PurchasedItineraryScreen() {
                                         {informed && (
                                             <Text style={styles.spendingItemValue}>
                                                 {formatMoney(amount, currency)}
-                                                {currency !== 'BRL' && (
+                                                {currency !== 'AUD' && (
                                                     <Text style={styles.costRefItemConverted}> ≈ {toBRL(amount, currency)}</Text>
                                                 )}
                                             </Text>
@@ -985,7 +1057,7 @@ export default function PurchasedItineraryScreen() {
                                 Recomendações de {itinerary.creator.name}
                             </Text>
                             <View style={styles.generalTipsCard}>
-                                {itinerary.generalTips.map((tip, i) => (
+                                {itinerary.generalTips.map((tip: string, i: number) => (
                                     <View
                                         key={i}
                                         style={[
@@ -1006,7 +1078,7 @@ export default function PurchasedItineraryScreen() {
                         <SectionTitle icon="checkmark-circle-outline" label="Checklist de Planejamento" />
                         <View style={styles.progressSection}>
                             <Text style={styles.progressLabel}>
-                                {completedChecklist.size} de {itinerary.checklist.length} concluídos
+                                {completedChecklist.size} de {checklist.length} concluídos
                             </Text>
                             <View style={styles.progressBarBg}>
                                 <LinearGradient
@@ -1014,8 +1086,8 @@ export default function PurchasedItineraryScreen() {
                                     style={[
                                         styles.progressBarFill,
                                         {
-                                            width: itinerary.checklist.length > 0
-                                                ? `${(completedChecklist.size / itinerary.checklist.length) * 100}%`
+                                            width: checklist.length > 0
+                                                ? `${(completedChecklist.size / checklist.length) * 100}%`
                                                 : '0%',
                                         },
                                     ]}
@@ -1025,8 +1097,8 @@ export default function PurchasedItineraryScreen() {
                             </View>
                         </View>
 
-                        {Array.from(new Set((itinerary.checklist || []).map((c: any) => c.category))).map((category: any) => {
-                            const items = itinerary.checklist.filter((c: any) => c.category === category);
+                        {Array.from(new Set(checklist.map((c: ChecklistItem) => c.category || 'outros'))).map((category: string) => {
+                            const items = checklist.filter((c: ChecklistItem) => (c.category || 'outros') === category);
                             if (items.length === 0) return null;
                             // Ionicons mapping — bullets removidos, ícones em circle teal claro.
                             const categoryConfig: Record<string, { label: string; icon: any }> = {
@@ -1057,7 +1129,7 @@ export default function PurchasedItineraryScreen() {
                                         <Text style={styles.checkCategoryCount}>{doneInCat}/{items.length}</Text>
                                     </View>
                                     <View style={styles.checkItemsCard}>
-                                        {items.map((item, itemIdx) => {
+                                        {items.map((item: ChecklistItem, itemIdx: number) => {
                                             const isChecked = completedChecklist.has(item.id);
                                             return (
                                                 <TouchableOpacity
@@ -1076,7 +1148,7 @@ export default function PurchasedItineraryScreen() {
                                                         styles.checkItemText,
                                                         isChecked && styles.checkItemTextDone,
                                                     ]}>
-                                                        {item.text}
+                                                        {item.text || item.item}
                                                     </Text>
                                                 </TouchableOpacity>
                                             );
@@ -1092,7 +1164,7 @@ export default function PurchasedItineraryScreen() {
                         <View style={styles.block}>
                             <SectionTitle icon="gift-outline" label="O que você recebeu" />
                             <View style={styles.card}>
-                                {itinerary.receiveList.map((item, i) => (
+                                {itinerary.receiveList.map((item: ReceiveItem, i: number) => (
                                     <View
                                         key={i}
                                         style={[
@@ -1114,34 +1186,44 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ AVALIAR ESTE ROTEIRO ══════════ */}
                     <View style={styles.block}>
                         <SectionTitle icon="star-outline" label="Avaliar este Roteiro" />
-                        {hasUserReviewed('trav-diego', `itinerary-${id}`) ? (
+                        {userReview ? (
                             <View style={styles.reviewDoneCard}>
                                 <View style={styles.reviewDoneHeader}>
                                     <Icon name="verified" size={20} color={theme.colors.primary} />
-                                    <Text style={styles.reviewDoneTitle}>Você já avaliou!</Text>
+                                    <Text style={styles.reviewDoneTitle}>Sua avaliação</Text>
                                 </View>
-                                {(() => {
-                                    const existing = getUserReviewForPackage('trav-diego', `itinerary-${id}`);
-                                    return existing ? (
-                                        <>
-                                            <View style={styles.reviewDoneStars}>
-                                                {[1, 2, 3, 4, 5].map(s => (
-                                                    <Ionicons
-                                                        key={s}
-                                                        name={s <= existing.rating ? 'star' : 'star-outline'}
-                                                        size={20}
-                                                        color="#FFD700"
-                                                    />
-                                                ))}
-                                            </View>
-                                            <Text style={styles.reviewDoneText} numberOfLines={3}>
-                                                {existing.text}
-                                            </Text>
-                                        </>
-                                    ) : (
-                                        <Text style={styles.reviewDoneText}>Avaliação enviada com sucesso!</Text>
-                                    );
-                                })()}
+                                <View style={styles.reviewDoneStars}>
+                                    {[1, 2, 3, 4, 5].map(s => (
+                                        <Ionicons
+                                            key={s}
+                                            name={s <= Number(userReview.rating || 0) ? 'star' : 'star-outline'}
+                                            size={20}
+                                            color="#FFD700"
+                                        />
+                                    ))}
+                                </View>
+                                {(userReview.text || userReview.comment) ? (
+                                    <Text style={styles.reviewDoneText} numberOfLines={4}>
+                                        {userReview.text || userReview.comment}
+                                    </Text>
+                                ) : null}
+                                {Array.isArray(userReview.photos) && userReview.photos.length > 0 ? (
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewDonePhotos}>
+                                        {userReview.photos.map((uri: string, index: number) => (
+                                            <Image
+                                                key={`${uri}-${index}`}
+                                                source={{ uri }}
+                                                style={styles.reviewDonePhoto}
+                                                resizeMode="cover"
+                                            />
+                                        ))}
+                                    </ScrollView>
+                                ) : null}
+                            </View>
+                        ) : userReview === null ? (
+                            // Loading — evita CTA piscar antes de saber se já avaliou
+                            <View style={[styles.reviewDoneCard, { alignItems: 'center', paddingVertical: 18 }]}>
+                                <ActivityIndicator size="small" color={theme.colors.primary} />
                             </View>
                         ) : (
                             <LinearGradient
@@ -2062,6 +2144,14 @@ const styles = StyleSheet.create({
     reviewDoneTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.primary },
     reviewDoneStars: { flexDirection: 'row', gap: 4, marginBottom: 10 },
     reviewDoneText: { fontSize: 14, color: theme.colors.text.secondary, lineHeight: 20 },
+    reviewDonePhotos: { marginTop: 12 },
+    reviewDonePhoto: {
+        width: 72,
+        height: 72,
+        borderRadius: 12,
+        marginRight: 10,
+        backgroundColor: theme.colors.surfaceLight,
+    },
 
     reviewCTACard: {
         borderRadius: 24,

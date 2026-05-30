@@ -74,14 +74,14 @@ export default function ItineraryPreview({
   const priceNum = typeof price === "string" ? parseFloat(price) || 0 : price;
   const durationNum = typeof duration === "string" ? parseInt(duration) || 0 : duration;
   const ratingNum = Math.min(5, Math.max(0, rating || 0));
-  const curSymbol = currency === "BRL" ? "R$" : currency;
+  const curSymbol = currency === "AUD" ? "A$" : currency === "BRL" ? "R$" : currency;
 
-  /** Converte um valor em qualquer moeda para BRL usando as taxas do admin */
-  const entryToBRL = (value: string | number, fromCurrency: string): string => {
+  /** Converte um valor em qualquer moeda para a moeda base do mercado (AUD) usando as taxas do admin */
+  const entryToBase = (value: string | number, fromCurrency: string): string => {
     const n = typeof value === "number" ? value : parseFloat(value) || 0;
-    if (n <= 0) return "R$ 0";
-    const brl = fromCurrency === "BRL" ? n : n * (rates[fromCurrency] ?? 0);
-    return brl.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+    if (n <= 0) return "A$ 0";
+    const aud = fromCurrency === "AUD" ? n : n * (rates[fromCurrency] ?? 0);
+    return aud.toLocaleString("pt-BR", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
   };
 
   // Paleta alinhada com o theme do mobile
@@ -572,7 +572,7 @@ export default function ItineraryPreview({
                           return (
                               <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "rgba(255,255,255,0.85)" }}>
                                   <span>{labels[e.moduleKey] || e.moduleKey}</span>
-                                  <span style={{ fontWeight: 600 }}>{entryToBRL(e.priceValue, e.priceCurrency)}</span>
+                                  <span style={{ fontWeight: 600 }}>{entryToBase(e.priceValue, e.priceCurrency)}</span>
                               </div>
                           );
                       })}

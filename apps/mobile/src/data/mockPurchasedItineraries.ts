@@ -58,7 +58,7 @@ export interface SpendingProfile {
     id: 'economico' | 'conforto' | 'luxo';
     label: string;
     icon: string;
-    dailyCost: number; // base cost per person per day in BRL
+    dailyCost: number; // base cost per person per day in AUD
     breakdown: {
         category: string;
         amount: number;

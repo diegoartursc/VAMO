@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,25 +10,52 @@ import {
     StatusBar,
     LayoutAnimation,
     UIManager,
+    ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
-import { getUserQuestions, UserQuestion } from '../src/data/mockUserQuestions';
+import { useAuth } from '../src/contexts/AuthContext';
+import { getMyQuestions, type ItineraryQuestion } from '../src/services/api';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const TRAVELER_ID = 'trav-diego';
-
 export default function MyQuestionsScreen() {
     const router = useRouter();
-    const questions = getUserQuestions(TRAVELER_ID);
+    const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
+    const [questions, setQuestions] = useState<ItineraryQuestion[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const load = useCallback(async () => {
+        if (!accessToken) { setQuestions([]); setLoading(false); return; }
+        setLoading(true);
+        const { questions } = await getMyQuestions(accessToken);
+        setQuestions(questions);
+        setLoading(false);
+    }, [accessToken]);
+
+    useEffect(() => {
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            router.replace({ pathname: '/login' as any, params: { next: '/my-questions' } });
+            return;
+        }
+        load();
+    }, [authLoading, isAuthenticated, load, router]);
 
     const answered = questions.filter(q => q.answer !== null);
     const pending = questions.filter(q => q.answer === null);
+
+    if (authLoading || loading) {
+        return (
+            <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -94,7 +121,7 @@ export default function MyQuestionsScreen() {
     );
 }
 
-function QuestionCard({ question }: { question: UserQuestion }) {
+function QuestionCard({ question }: { question: ItineraryQuestion }) {
     const router = useRouter();
     const [expanded, setExpanded] = useState(question.answer !== null);
     const isPending = question.answer === null;
@@ -109,16 +136,16 @@ function QuestionCard({ question }: { question: UserQuestion }) {
             {/* Itinerary header */}
             <TouchableOpacity
                 style={styles.cardItinerary}
-                onPress={() => router.push(`/itinerary/${question.itineraryId}` as any)}
+                onPress={() => router.push(`/itinerary/${question.itinerary?.id}` as any)}
                 activeOpacity={0.7}
             >
-                <Image source={{ uri: question.itineraryImage }} style={styles.cardImage} resizeMode="cover" />
+                <Image source={{ uri: question.itinerary?.image || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop' }} style={styles.cardImage} resizeMode="cover" />
                 <View style={styles.cardItineraryInfo}>
                     <Text style={styles.cardItineraryTitle} numberOfLines={1}>
-                        {question.itineraryTitle}
+                        {question.itinerary?.title || 'Roteiro'}
                     </Text>
                     <Text style={styles.cardItineraryDest}>
-                        📍 {question.itineraryDestination}, {question.itineraryCountry}
+                        📍 {question.itinerary?.destination ?? ''}{question.itinerary?.country ? `, ${question.itinerary.country}` : ''}
                     </Text>
                 </View>
                 <Icon name="chevron-right" size={16} color={theme.colors.text.tertiary} />
@@ -137,7 +164,7 @@ function QuestionCard({ question }: { question: UserQuestion }) {
                         color={isPending ? '#F59E0B' : theme.colors.primary}
                     />
                     <Text style={styles.questionLabel}>Sua pergunta</Text>
-                    <Text style={styles.questionDate}>{question.questionDate}</Text>
+                    <Text style={styles.questionDate}>{new Date(question.createdAt).toLocaleDateString('pt-BR')}</Text>
                 </View>
                 <Text style={styles.questionText}>{question.question}</Text>
 
@@ -156,11 +183,11 @@ function QuestionCard({ question }: { question: UserQuestion }) {
                     <View style={styles.answerHeader}>
                         <Ionicons name="person-circle-outline" size={16} color={theme.colors.primary} />
                         <Text style={styles.answerLabel}>
-                            Resposta de {question.creatorName}
+                            Resposta de {question.itinerary?.creatorName ?? 'criador'}
                         </Text>
-                        <Text style={styles.answerDate}>{question.answerDate}</Text>
+                        <Text style={styles.answerDate}>{question.answer?.createdAt ? new Date(question.answer.createdAt).toLocaleDateString('pt-BR') : ''}</Text>
                     </View>
-                    <Text style={styles.answerText}>{question.answer}</Text>
+                    <Text style={styles.answerText}>{question.answer?.text}</Text>
                 </View>
             )}
 

@@ -8,12 +8,14 @@ export const CURRENCY_RATES_KEY = "adminCurrencyRates";
 export type CurrencyRates = Record<string, number>;
 
 export const DEFAULT_RATES: CurrencyRates = {
-    AED: 1.36,
-    ARS: 0.005,
-    AUD: 3.3,
-    BOB: 0.72,
-    BRL: 1.0,
-    CAD: 3.7,
+    // Moeda base do mercado (Austrália): AUD = 1.0.
+    // As demais taxas representam o valor de 1 unidade da moeda em AUD.
+    AUD: 1.0,
+    AED: 0.41,
+    ARS: 0.0015,
+    BOB: 0.22,
+    BRL: 0.30,
+    CAD: 1.12,
     CHF: 5.6,
     CLP: 0.005,
     CNY: 0.7,
@@ -88,17 +90,20 @@ export function useDollarRate() {
         return () => window.removeEventListener("currencyRatesUpdated", handler);
     }, []);
 
-    const convertToBRL = (value: number, fromCurrency: string): string => {
-        let brl = value;
+    /** Converte um valor de qualquer moeda para a moeda base do mercado (AUD). */
+    const convertToBase = (value: number, fromCurrency: string): string => {
+        let aud = value;
         const upper = fromCurrency.toUpperCase();
-        if (upper !== "BRL") {
+        if (upper !== "AUD") {
             const rate = rates[upper];
             if (rate !== undefined) {
-                brl = value * rate;
+                aud = value * rate;
             }
         }
-        return brl.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        return aud.toLocaleString("pt-BR", { style: "currency", currency: "AUD" });
     };
+    // Alias retrocompatível para componentes que ainda usam o nome antigo.
+    const convertToBRL = convertToBase;
 
     // Propriedades mantidas estritamente para retrocompatibilidade
     const dollarRate = rates["USD"] || 5.0;
@@ -107,5 +112,5 @@ export function useDollarRate() {
         maximumFractionDigits: 4,
     });
 
-    return { dollarRate, formattedRate, convertToBRL, rates };
+    return { dollarRate, formattedRate, convertToBase, convertToBRL, rates };
 }

@@ -7,7 +7,7 @@ import { PurchasedItinerary, mockPurchasedItineraries } from './mockPurchasedIti
 
 export interface CreatorItineraryStats {
     totalSales: number;
-    totalRevenue: number;      // in BRL
+    totalRevenue: number;      // in AUD
     averageRating: number;
     reviewCount: number;
     viewsLast30Days: number;
@@ -47,7 +47,7 @@ export const EMPTY_ITINERARY_TEMPLATE: PurchasedItinerary = {
     },
     description: '',
     price: 0,
-    currency: 'BRL',
+    currency: 'AUD',
     images: [],
     rating: 0,
     reviewCount: 0,
