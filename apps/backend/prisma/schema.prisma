@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-arm64-openssl-3.0.x", "darwin-arm64"]
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x", "darwin-arm64", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -149,7 +149,9 @@ model Admin {
 model Agency {
   id              String    @id @default(cuid())
   name            String
-  cnpj            String    @unique
+  // CNPJ opcional: mercado australiano (AUD) não usa identificação fiscal BR.
+  // Múltiplos NULL são permitidos sob índice @unique no Postgres.
+  cnpj            String?   @unique
   logo            String?
   contactUrl      String?
   whatsapp        String?

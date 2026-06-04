@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getDashboardStats } from "@/lib/api";
-import { getSession, type AuthSession } from "@/lib/auth";
+import { getSession, isAgencySession, type AuthSession } from "@/lib/auth";
 
 export default function CriadorOverview() {
     const [session, setSession] = useState<AuthSession | null>(null);
@@ -15,7 +15,7 @@ export default function CriadorOverview() {
             getSession(),
             getDashboardStats(),
         ]).then(([s, data]) => {
-            if (s) setSession(s);
+            if (isAgencySession(s)) setSession(s);
             const its = data.itineraries || [];
             setStats({
                 total: its.length,

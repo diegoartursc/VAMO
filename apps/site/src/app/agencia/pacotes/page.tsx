@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAgencyPackages, deletePackage } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { getSession, isAgencySession } from "@/lib/auth";
 
 export default function PacotesListPage() {
     const [packages, setPackages] = useState<any[]>([]);
@@ -11,7 +11,8 @@ export default function PacotesListPage() {
     useEffect(() => {
         (async () => {
             try {
-                const session = await getSession();
+                const raw = await getSession();
+                const session = isAgencySession(raw) ? raw : null;
                 if (session?.agency?.id) {
                     const data = await getAgencyPackages(session.agency.id);
                     setPackages(data || []);

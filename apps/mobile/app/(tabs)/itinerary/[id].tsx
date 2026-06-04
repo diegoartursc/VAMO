@@ -18,6 +18,7 @@ import { theme } from '../../../src/theme/theme';
 import { getItineraryById, getCurrencyRates } from '../../../src/services/api';
 import { getReviewsByItineraryId } from '../../../src/data/mockReviews';
 import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
+import { VERIFICATION_CONFIGS, VerificationLevel } from '../../../src/types/creator';
 import CollapsibleSection from '../../../src/components/common/CollapsibleSection';
 import PremiumReviewsSection from '../../../src/components/reviews/PremiumReviewsSection';
 import { haptics } from '../../../src/services/haptics';
@@ -162,6 +163,9 @@ export default function ItineraryDetailScreen() {
     const creatorName = creator.name || 'Criador VAMO';
     const creatorRating = Number(creator.rating) || 0;
     const creatorSales = Number(creator.salesCount) || 0;
+    const creatorReputation =
+        VERIFICATION_CONFIGS[(creator.verificationLevel || 'basic') as VerificationLevel]
+        ?? VERIFICATION_CONFIGS.basic;
     const destinationLabel = [itinerary.destination, itinerary.country].filter(Boolean).join(', ') || 'Destino VAMO';
     const reviews = Array.isArray(itinerary.reviews) ? itinerary.reviews : getReviewsByItineraryId(`itinerary-${itineraryId}`);
     const averageReviewRating = reviews.length > 0
@@ -804,9 +808,10 @@ export default function ItineraryDetailScreen() {
                     <View style={styles.trustBox}>
                         <Ionicons name="shield-checkmark" size={24} color={theme.colors.verified} />
                         <View style={styles.trustContent}>
-                            <Text style={styles.trustTitle}>Criador Verificado</Text>
+                            <Text style={styles.trustTitle}>{creatorReputation.label}</Text>
                             <Text style={styles.trustText}>
-                                {creatorName} é um roteirista verificado pelo VAMO com {creatorSales.toLocaleString('pt-BR')} roteiros vendidos
+                                {creatorName} tem {creatorReputation.description.toLowerCase()}
+                                {creatorSales > 0 ? ` e ${creatorSales.toLocaleString('pt-BR')} roteiro${creatorSales === 1 ? '' : 's'} vendido${creatorSales === 1 ? '' : 's'}` : ''}.
                             </Text>
                         </View>
                     </View>

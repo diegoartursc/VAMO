@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, use, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getPackageById, createPackage, updatePackage } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { getSession, isAgencySession } from "@/lib/auth";
 import StepperNav, { StepperActions } from "../../../../components/dashboard/StepperNav";
 import PhonePreview from "../../../../components/dashboard/PhonePreview";
 import QualityCoach from "../../../../components/dashboard/QualityCoach";
@@ -192,7 +192,8 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
     useEffect(() => {
         (async () => {
             try {
-                const session = await getSession();
+                const raw = await getSession();
+                const session = isAgencySession(raw) ? raw : null;
                 if (session?.agency?.id) setForm(f => ({ ...f, agencyId: session.agency.id }));
             } catch { /* silent */ }
         })();

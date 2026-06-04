@@ -4,10 +4,15 @@ import { VerificationLevel, VERIFICATION_CONFIGS } from '../../types/creator';
 import { theme } from '../../theme/theme';
 
 interface VerifiedBadgeProps {
-    level: VerificationLevel;
+    level?: VerificationLevel | string | number | null;
     size?: 'small' | 'medium' | 'large';
     showLabel?: boolean;
     onPress?: () => void;
+}
+
+function getVerificationConfig(level?: VerificationLevel | string | number | null) {
+    const key = typeof level === 'string' ? level : 'basic';
+    return VERIFICATION_CONFIGS[key as VerificationLevel] ?? VERIFICATION_CONFIGS.basic;
 }
 
 export function VerifiedBadge({
@@ -16,7 +21,7 @@ export function VerifiedBadge({
     showLabel = true,
     onPress
 }: VerifiedBadgeProps) {
-    const config = VERIFICATION_CONFIGS[level];
+    const config = getVerificationConfig(level);
 
     const sizeStyles = {
         small: {
@@ -82,12 +87,8 @@ export function VerifiedBadge({
     return badge;
 }
 
-interface VerifiedBadgeWithTooltipProps extends VerifiedBadgeProps {
-    showTooltip?: boolean;
-}
-
-export function VerifiedBadgeExpanded({ level }: { level: VerificationLevel }) {
-    const config = VERIFICATION_CONFIGS[level];
+export function VerifiedBadgeExpanded({ level }: { level?: VerificationLevel | string | number | null }) {
+    const config = getVerificationConfig(level);
 
     return (
         <View style={[styles.expandedBadge, { backgroundColor: config.bgColor }]}>

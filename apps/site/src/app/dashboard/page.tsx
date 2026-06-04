@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { getSession, type AuthSession } from "../../lib/auth";
+import { getSession, isAgencySession, type AuthSession } from "../../lib/auth";
 import { getAgencyPackages, getAgencySales } from "../../lib/api";
 
 function getGreeting() {
@@ -64,7 +64,7 @@ export default function DashboardPage() {
         (async () => {
             try {
                 const s = await getSession();
-                if (!s) return;
+                if (!isAgencySession(s)) return;
                 setSession(s);
                 const [pkgs, sls] = await Promise.all([
                     getAgencyPackages(s.agency.id),

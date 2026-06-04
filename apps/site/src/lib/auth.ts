@@ -97,6 +97,18 @@ export interface AuthSession {
     agency: AuthAgency;
 }
 
+/**
+ * Type guard: diferencia a sessão legada de agência (employee + agency) da
+ * sessão de traveler/creator. Usado pelas rotas legadas (/agencia, /dashboard,
+ * /criador) que só sabem operar com AuthSession — quando a sessão ativa é de
+ * traveler, elas tratam como "sem sessão de agência" em vez de quebrar.
+ */
+export function isAgencySession(
+    session: TravelerSession | AuthSession | null | undefined,
+): session is AuthSession {
+    return !!session && "agency" in session && "employee" in session;
+}
+
 function getAgencySessionRaw(): AuthSession | null {
     if (typeof window === 'undefined') return null;
     const raw = localStorage.getItem(AGENCY_SESSION_KEY);

@@ -26,6 +26,7 @@ export default function RootLayout() {
                                 <Stack.Screen name="my-reviews" />
                                 <Stack.Screen name="my-questions" />
                                 <Stack.Screen name="creator-questions" />
+                                <Stack.Screen name="creator-earnings" />
                             </Stack>
                         </FavoriteAnimationProvider>
                     </NotificationProvider>

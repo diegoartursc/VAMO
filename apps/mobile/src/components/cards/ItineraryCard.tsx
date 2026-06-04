@@ -140,7 +140,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                 {/* Badge de verificação */}
                 <View style={styles.verifiedBadge}>
                     <VerifiedBadge
-                        level={itinerary.creator?.verificationLevel || 1}
+                        level={itinerary.creator?.verificationLevel || 'basic'}
                         size="small"
                     />
                 </View>
@@ -180,7 +180,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                         </View>
                     </View>
                     <VerifiedBadge
-                        level={itinerary.creator?.verificationLevel || 1}
+                        level={itinerary.creator?.verificationLevel || 'basic'}
                         size="small"
                         showLabel={false}
                     />

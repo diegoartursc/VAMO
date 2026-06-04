@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getSession, logout, type AuthSession } from "../../lib/auth";
+import { getSession, isAgencySession, logout, type AuthSession } from "../../lib/auth";
 
 /* ─── Icon helpers ─── */
 const SvgIcon = ({ d, size = 18 }: { d: string; size?: number }) => (
@@ -77,7 +77,7 @@ export default function CriadorLayout({ children }: { children: React.ReactNode 
 
     useEffect(() => {
         getSession()
-            .then((s) => { if (s) setSession(s); })
+            .then((s) => { if (isAgencySession(s)) setSession(s); })
             .catch(() => { })
             .finally(() => setSessionLoading(false));
     }, []);

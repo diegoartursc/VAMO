@@ -54,39 +54,31 @@ interface CreatorStatsSummary {
 
 const { width } = Dimensions.get('window');
 
-const CURRENCIES = ['(A$) AUD', '(€) Euro', '(R$) Real', '($) Dólar', '(£) Libra'];
-const LANGUAGES = ['português', 'english', 'español'];
-const APPEARANCES = ['Predefinida pelo sistema', 'Claro', 'Escuro'];
+const CURRENCIES = ['(A$) AUD', '($) USD', '(€) EUR', '(£) GBP', '(NZ$) NZD'];
+const LANGUAGES = ['english', 'español'];
+const APPEARANCES = ['System default', 'Light', 'Dark'];
 
-const TRAVEL_TYPES = ['Luxo', 'Econômico', 'Mochilão', 'Família', 'Romântico', 'Aventura'];
-const BUDGET_RANGES = ['Até A$ 1.000', 'A$ 1.000 – 3.000', 'A$ 3.000 – 6.000', 'A$ 6.000+'];
+const TRAVEL_TYPES = ['Luxury', 'Budget', 'Backpacking', 'Family', 'Romantic', 'Adventure'];
+const BUDGET_RANGES = ['Up to A$ 1,000', 'A$ 1,000 – 3,000', 'A$ 3,000 – 6,000', 'A$ 6,000+'];
 const INTEREST_OPTIONS = [
-    { id: 'natureza', icon: 'trees' as IconName, label: 'Natureza' },
-    { id: 'cultura', icon: 'landmark' as IconName, label: 'Cultura' },
-    { id: 'gastronomia', icon: 'utensils' as IconName, label: 'Gastronomia' },
-    { id: 'aventura', icon: 'mountain' as IconName, label: 'Aventura' },
-    { id: 'praia', icon: 'compass' as IconName, label: 'Praia' },
-    { id: 'compras', icon: 'briefcase' as IconName, label: 'Compras' },
-    { id: 'vida_noturna', icon: 'star' as IconName, label: 'Vida Noturna' },
-    { id: 'religiao', icon: 'landmark' as IconName, label: 'Religião' },
+    { id: 'nature', icon: 'trees' as IconName, label: 'Nature' },
+    { id: 'culture', icon: 'landmark' as IconName, label: 'Culture' },
+    { id: 'food', icon: 'utensils' as IconName, label: 'Food' },
+    { id: 'adventure', icon: 'mountain' as IconName, label: 'Adventure' },
+    { id: 'beaches', icon: 'compass' as IconName, label: 'Beaches' },
+    { id: 'shopping', icon: 'briefcase' as IconName, label: 'Shopping' },
+    { id: 'nightlife', icon: 'star' as IconName, label: 'Nightlife' },
+    { id: 'heritage', icon: 'landmark' as IconName, label: 'Heritage' },
 ];
 
 const DEFAULT_PROFILE_PREFERENCES = {
     currency: '(A$) AUD',
-    language: 'português',
-    appearance: 'Predefinida pelo sistema',
-    travelType: 'Aventura',
-    budget: 'A$ 1.000 – 3.000',
-    selectedInterests: ['cultura', 'gastronomia'],
+    language: 'english',
+    appearance: 'System default',
+    travelType: 'Adventure',
+    budget: 'A$ 1,000 – 3,000',
+    selectedInterests: ['culture', 'food'],
 };
-
-// Milestones estáticos — futuramente via API
-const MILESTONES_BASE = [
-    { id: 'first_review', label: 'Primeira avaliação', done: true },
-    { id: 'first_itinerary', label: 'Primeiro roteiro criado', done: false },
-    { id: 'five_destinations', label: '5 destinos visitados', done: false },
-    { id: 'ten_saved', label: '10 roteiros salvos', done: false },
-];
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -301,7 +293,7 @@ export default function ProfileScreen() {
         try {
             await Linking.openSettings();
         } catch {
-            Alert.alert('Configurações', 'Não foi possível abrir as configurações do dispositivo agora.');
+            Alert.alert('Settings', 'We could not open your device settings right now.');
         }
     };
 
@@ -310,7 +302,7 @@ export default function ProfileScreen() {
         const storeUrl = Platform.OS === 'ios'
             ? 'https://apps.apple.com/app/id1234567890'
             : 'https://play.google.com/store/apps/details?id=com.vamo';
-        openExternalUrl(storeUrl, 'A loja de aplicativos não está disponível agora.');
+        openExternalUrl(storeUrl, 'The app store is not available right now.');
     };
 
     const handleShareApp = async () => {
@@ -318,23 +310,23 @@ export default function ProfileScreen() {
         try {
             await Share.share({
                 title: 'VAMO',
-                message: 'Conheça o VAMO: marketplace de roteiros digitais criados por viajantes experientes. https://vamo.app',
+                message: 'Meet VAMO: a marketplace for digital travel itineraries created by experienced travellers. https://vamo.app',
             });
         } catch {
-            Alert.alert('Compartilhar', 'Não foi possível abrir o compartilhamento agora.');
+            Alert.alert('Share', 'We could not open sharing right now.');
         }
     };
 
     const handleLogout = () => {
         haptics.warning();
-        Alert.alert('Sair da conta', 'Tem certeza que deseja sair?', [
-            { text: 'Cancelar', style: 'cancel' },
+        Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+            { text: 'Cancel', style: 'cancel' },
             {
-                text: 'Sair', style: 'destructive',
+                text: 'Sign out', style: 'destructive',
                 onPress: async () => {
                     haptics.success();
                     await logout();
-                    console.log('[profile] logout realizado');
+                    console.log('[profile] signed out');
                     router.replace('/login');
                 },
             },
@@ -352,7 +344,6 @@ export default function ProfileScreen() {
         );
     };
 
-    const completedMilestones = MILESTONES_BASE.filter(m => m.done).length;
     // Passaporte VAMO — progresso lúdico do viajante a partir de sinais reais.
     const profileCompleted = !!(user?.name && user?.email && user?.avatar);
     const savedCount = favorites.length;
@@ -371,19 +362,19 @@ export default function ProfileScreen() {
             <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
                 <Icon name="circle-user" size={64} color={theme.colors.primary} />
                 <Text style={{ fontSize: 22, fontWeight: '800', color: theme.colors.text.primary, marginTop: 20, marginBottom: 8, textAlign: 'center' }}>
-                    Bem-vindo ao VAMO
+                    Welcome to VAMO
                 </Text>
                 <Text style={{ fontSize: 15, color: theme.colors.text.secondary, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
-                    Faça login para acessar seu perfil, favoritos, carrinho e roteiros.
+                    Sign in to access your profile, saved itineraries, cart and trips.
                 </Text>
                 <TouchableOpacity
                     style={{ backgroundColor: theme.colors.primary, borderRadius: 14, paddingHorizontal: 32, paddingVertical: 14, marginBottom: 12 }}
                     onPress={() => router.push('/login')}
                 >
-                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Entrar na conta</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Sign in</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => router.push('/register')}>
-                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>Criar conta grátis →</Text>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>Create a free account →</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -428,7 +419,7 @@ export default function ProfileScreen() {
                  */}
                 {isCreator && (
                     <View style={modeStyles.wrap}>
-                        <Text style={modeStyles.label}>Você está usando o VAMO como</Text>
+                        <Text style={modeStyles.label}>You are using VAMO as</Text>
                         <View style={modeStyles.segmented}>
                             <TouchableOpacity
                                 style={[modeStyles.seg, viewMode === 'traveler' && modeStyles.segActive]}
@@ -439,7 +430,7 @@ export default function ProfileScreen() {
                             >
                                 <Icon name="book-open" size={16} color={viewMode === 'traveler' ? '#fff' : theme.colors.text.secondary} />
                                 <Text style={[modeStyles.segText, viewMode === 'traveler' && modeStyles.segTextActive]}>
-                                    Viajante
+                                    Traveller
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -451,7 +442,7 @@ export default function ProfileScreen() {
                             >
                                 <Icon name="edit" size={16} color={viewMode === 'creator' ? '#fff' : theme.colors.text.secondary} />
                                 <Text style={[modeStyles.segText, viewMode === 'creator' && modeStyles.segTextActive]}>
-                                    Roteirista
+                                    Creator
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -466,7 +457,7 @@ export default function ProfileScreen() {
                         onCreate={() => { haptics.medium(); router.push('/new-itinerary'); }}
                         onSeeAll={() => { haptics.light(); router.push('/created-itineraries'); }}
                         onOpenItinerary={(id) => { haptics.light(); router.push(`/(tabs)/itinerary/${id}`); }}
-                        onSales={() => { haptics.light(); router.push('/created-itineraries'); }}
+                        onSales={() => { haptics.light(); router.push('/creator-earnings'); }}
                         onReviews={() => { haptics.light(); router.push('/my-reviews'); }}
                         onQuestions={() => { haptics.light(); router.push('/creator-questions'); }}
                         pendingQuestionsCount={pendingQuestionsCount}
@@ -635,9 +626,9 @@ export default function ProfileScreen() {
                             <View style={styles.creatorBannerLeft}>
                                 <Text style={styles.creatorBannerEmoji}>🚀</Text>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.creatorBannerTitle}>Torne-se um Roteirista</Text>
+                                    <Text style={styles.creatorBannerTitle}>Become a Creator</Text>
                                     <Text style={styles.creatorBannerSub}>
-                                        Crie roteiros, compartilhe experiências e ganhe dinheiro viajando.
+                                        Create itineraries, share your expertise and earn from your travel knowledge.
                                     </Text>
                                 </View>
                             </View>
@@ -656,30 +647,36 @@ export default function ProfileScreen() {
                     <View style={styles.sectionSpaced}>
                         <View style={styles.sectionTitleRow}>
                             <Icon name="edit" size={16} color={theme.colors.primary} />
-                            <Text style={styles.sectionTitle}>Área do Criador</Text>
+                            <Text style={styles.sectionTitle}>Creator Tools</Text>
                             <View style={styles.creatorBadge}>
-                                <Text style={styles.creatorBadgeText}>✓ Roteirista</Text>
+                                <Text style={styles.creatorBadgeText}>✓ Creator</Text>
                             </View>
                         </View>
                         <View style={styles.sectionCard}>
                             <SettingItem
                                 icon="edit"
-                                title="Criar novo roteiro"
+                                title="Create a new itinerary"
                                 onPress={() => { haptics.light(); router.push('/new-itinerary'); }}
                             />
                             <SettingItem
                                 icon="book-open"
-                                title="Meus roteiros criados"
+                                title="My created itineraries"
                                 onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
                             />
                             <SettingItem
                                 icon="message-circle"
-                                title="Perguntas recebidas"
+                                title="Received questions"
                                 onPress={() => { haptics.light(); router.push('/creator-questions'); }}
                             />
                             <SettingItem
+                                icon="wallet"
+                                title="Earnings"
+                                value="Track sales and payouts"
+                                onPress={() => { haptics.light(); router.push('/creator-earnings'); }}
+                            />
+                            <SettingItem
                                 icon="briefcase"
-                                title="Dashboard do criador"
+                                title="Creator dashboard"
                                 onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
                                 isLast
                             />
@@ -712,35 +709,35 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* ══════════ 6. SOBRE ══════════ */}
+                {/* ══════════ 6. ABOUT ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Sobre</Text>
+                    <Text style={styles.sectionTitle}>About</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="help" title="Como funciona" onPress={() => {
+                        <SettingItem icon="help" title="How it works" onPress={() => {
                             haptics.light(); setShowHowItWorksModal(true);
                         }} />
-                        <SettingItem icon="info" title="Sobre o VAMO" onPress={() => {
+                        <SettingItem icon="info" title="About VAMO" onPress={() => {
                             haptics.light(); setShowAboutModal(true);
                         }} />
-                        <SettingItem icon="message-circle" title="Central de Ajuda" onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/ajuda', 'A Central de Ajuda não está disponível agora.');
+                        <SettingItem icon="message-circle" title="Help Centre" onPress={() => {
+                            haptics.light(); openExternalUrl('https://vamo.app/help', 'The Help Centre is not available right now.');
                         }} />
-                        <SettingItem icon="phone" title="Falar com suporte" iconColor="#25D366" onPress={() => {
-                            haptics.light(); openExternalUrl('https://wa.me/5511999999999?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20no%20VAMO.', 'Não foi possível abrir o WhatsApp agora.');
+                        <SettingItem icon="phone" title="Contact support" iconColor={theme.colors.primary} onPress={() => {
+                            haptics.light(); openExternalUrl('https://vamo.app/support', 'Support is not available right now.');
                         }} />
-                        <SettingItem icon="clipboard-list" title="Minhas solicitações" onPress={() => {
+                        <SettingItem icon="clipboard-list" title="My requests" onPress={() => {
                             haptics.light();
-                            Alert.alert('Solicitações', 'Você não possui solicitações abertas no momento.', [{ text: 'OK' }]);
+                            Alert.alert('Requests', 'You do not have any open requests right now.', [{ text: 'OK' }]);
                         }} isLast />
                     </View>
                 </View>
 
-                {/* ══════════ AVALIAÇÃO ══════════ */}
+                {/* ══════════ RATING ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Avaliação</Text>
+                    <Text style={styles.sectionTitle}>Rating</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="star" title="Avaliar o aplicativo" onPress={handleRateApp} />
-                        <SettingItem icon="share" title="Compartilhar com amigos" onPress={handleShareApp} isLast />
+                        <SettingItem icon="star" title="Rate the app" onPress={handleRateApp} />
+                        <SettingItem icon="share" title="Share with friends" onPress={handleShareApp} isLast />
                     </View>
                 </View>
 
@@ -748,17 +745,17 @@ export default function ProfileScreen() {
                 <View style={styles.sectionSpaced}>
                     <Text style={styles.sectionTitle}>Legal</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="file" title="Termos de Uso" onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/termos', 'Os Termos de Uso não estão disponíveis agora.');
+                        <SettingItem icon="file" title="Terms of Use" onPress={() => {
+                            haptics.light(); openExternalUrl('https://vamo.app/terms', 'The Terms of Use are not available right now.');
                         }} />
-                        <SettingItem icon="shield-check" title="Política de Privacidade" onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/privacidade', 'A Política de Privacidade não está disponível agora.');
+                        <SettingItem icon="shield-check" title="Privacy Policy" onPress={() => {
+                            haptics.light(); openExternalUrl('https://vamo.app/privacy', 'The Privacy Policy is not available right now.');
                         }} />
-                        <SettingItem icon="trash" title="Excluir minha conta" titleColor={theme.colors.error} onPress={() => {
+                        <SettingItem icon="trash" title="Delete my account" titleColor={theme.colors.error} onPress={() => {
                             haptics.warning();
-                            Alert.alert('Excluir Conta', 'Esta ação é irreversível. Todos os seus dados serão apagados permanentemente.', [
-                                { text: 'Cancelar', style: 'cancel' },
-                                { text: 'Excluir', style: 'destructive', onPress: () => Alert.alert('Solicitação enviada', 'Sua conta será excluída em até 30 dias.') },
+                            Alert.alert('Delete account', 'This action is permanent. All your data will be deleted.', [
+                                { text: 'Cancel', style: 'cancel' },
+                                { text: 'Delete', style: 'destructive', onPress: () => Alert.alert('Request sent', 'Your account deletion request has been received.') },
                             ]);
                         }} isLast />
                     </View>
@@ -767,7 +764,7 @@ export default function ProfileScreen() {
                 {/* ══════════ SIGN OUT (less prominent than Delete) ══════════ */}
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Icon name="logout" size={18} color={theme.colors.text.tertiary} />
-                    <Text style={styles.logoutText}>Sair da conta</Text>
+                    <Text style={styles.logoutText}>Sign out</Text>
                 </TouchableOpacity>
 
                 {/* Version */}
@@ -777,15 +774,15 @@ export default function ProfileScreen() {
             </Animated.ScrollView>
 
             {/* ══════════ MODALS ══════════ */}
-            <PickerModal visible={showCurrencyPicker} title="Selecione a moeda" options={CURRENCIES} selected={currency}
+            <PickerModal visible={showCurrencyPicker} title="Select currency" options={CURRENCIES} selected={currency}
                 onSelect={(v) => { setCurrency(v); haptics.success(); }} onClose={() => setShowCurrencyPicker(false)} />
-            <PickerModal visible={showLanguagePicker} title="Selecione o idioma" options={LANGUAGES} selected={language}
+            <PickerModal visible={showLanguagePicker} title="Select language" options={LANGUAGES} selected={language}
                 onSelect={(v) => { setLanguage(v); haptics.success(); }} onClose={() => setShowLanguagePicker(false)} />
-            <PickerModal visible={showAppearancePicker} title="Selecione o tema" options={APPEARANCES} selected={appearance}
+            <PickerModal visible={showAppearancePicker} title="Select theme" options={APPEARANCES} selected={appearance}
                 onSelect={(v) => { setAppearance(v); haptics.success(); }} onClose={() => setShowAppearancePicker(false)} />
-            <PickerModal visible={showTravelTypePicker} title="Tipo de viagem" options={TRAVEL_TYPES} selected={travelType}
+            <PickerModal visible={showTravelTypePicker} title="Trip style" options={TRAVEL_TYPES} selected={travelType}
                 onSelect={(v) => { setTravelType(v); haptics.success(); }} onClose={() => setShowTravelTypePicker(false)} />
-            <PickerModal visible={showBudgetPicker} title="Orçamento médio" options={BUDGET_RANGES} selected={budget}
+            <PickerModal visible={showBudgetPicker} title="Average budget" options={BUDGET_RANGES} selected={budget}
                 onSelect={(v) => { setBudget(v); haptics.success(); }} onClose={() => setShowBudgetPicker(false)} />
 
             {/* Interests Multi-Select Modal */}
@@ -794,13 +791,13 @@ export default function ProfileScreen() {
                     <View style={modalStyles.container}>
                         <View style={modalStyles.handle} />
                         <View style={modalStyles.header}>
-                            <Text style={modalStyles.title}>Seus Interesses</Text>
+                            <Text style={modalStyles.title}>Your Interests</Text>
                             <TouchableOpacity onPress={() => setShowInterestsPicker(false)} style={modalStyles.closeButton}>
                                 <Icon name="close" size={20} color={theme.colors.text.secondary} />
                             </TouchableOpacity>
                         </View>
                         <Text style={modalStyles.interestsSubtitle}>
-                            Selecione seus interesses para recomendações personalizadas
+                            Select your interests for personalised recommendations
                         </Text>
                         <View style={modalStyles.interestsGrid}>
                             {INTEREST_OPTIONS.map((interest) => {
@@ -824,18 +821,18 @@ export default function ProfileScreen() {
                             style={modalStyles.doneButton}
                             onPress={() => { setShowInterestsPicker(false); haptics.success(); }}
                         >
-                            <Text style={modalStyles.doneButtonText}>Salvar ({selectedInterests.length})</Text>
+                            <Text style={modalStyles.doneButtonText}>Save ({selectedInterests.length})</Text>
                         </TouchableOpacity>
                         <View style={{ height: 16 }} />
                     </View>
                 </View>
             </Modal>
 
-            <InfoModal visible={showAboutModal} title="Sobre o VAMO"
-                content={`VAMO — Sua plataforma de roteiros de viagem\n\nVersão 1.0.0\n\nDescubra roteiros detalhados criados por viajantes experientes. Planeje sua viagem com quem já esteve lá.\n\n© 2026 VAMO. Todos os direitos reservados.`}
+            <InfoModal visible={showAboutModal} title="About VAMO"
+                content={`VAMO — Your marketplace for digital travel itineraries\n\nVersion 1.0.0\n\nDiscover detailed itineraries created by experienced travellers. Plan your trip with people who have been there.\n\n© 2026 VAMO. All rights reserved.`}
                 onClose={() => setShowAboutModal(false)} />
-            <InfoModal visible={showHowItWorksModal} title="Como funciona"
-                content={`1. Explore\nNavegue por roteiros criados por viajantes experientes.\n\n2. Escolha\nSelecione o roteiro perfeito para você e confira os detalhes.\n\n3. Adquira\nFinalize a compra do roteiro com segurança.\n\n4. Viaje!\nReceba todas as informações e aproveite sua aventura.`}
+            <InfoModal visible={showHowItWorksModal} title="How it works"
+                content={`1. Explore\nBrowse itineraries created by experienced travellers.\n\n2. Choose\nSelect the right itinerary and review the details.\n\n3. Buy\nComplete your purchase securely.\n\n4. Travel\nAccess the itinerary and enjoy your trip.`}
                 onClose={() => setShowHowItWorksModal(false)} />
         </View>
     );
@@ -1429,12 +1426,12 @@ function CreatorDashboard({
                     end={{ x: 1, y: 1 }}
                     style={cdStyles.hero}
                 >
-                    <Text style={cdStyles.heroEyebrow}>BOA VIAGEM</Text>
+                    <Text style={cdStyles.heroEyebrow}>CREATOR HUB</Text>
                     <Text style={cdStyles.heroTitle}>
-                        {userName ? `Olá, ${userName}` : 'Criador'}
+                        {userName ? `Hi, ${userName}` : 'Creator'}
                     </Text>
                     <Text style={cdStyles.heroSubtitle}>
-                        Gerencie seus roteiros, acompanhe vendas e expanda seu alcance.
+                        Manage your itineraries, track sales and grow your reach.
                     </Text>
                     <View style={cdStyles.heroCtas}>
                         <TouchableOpacity
@@ -1443,14 +1440,14 @@ function CreatorDashboard({
                             activeOpacity={0.85}
                         >
                             <Icon name="edit" size={15} color="#fff" />
-                            <Text style={cdStyles.heroPrimaryText}>Novo roteiro</Text>
+                            <Text style={cdStyles.heroPrimaryText}>New itinerary</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={cdStyles.heroSecondary}
                             onPress={onSeeAll}
                             activeOpacity={0.85}
                         >
-                            <Text style={cdStyles.heroSecondaryText}>Ver roteiros</Text>
+                            <Text style={cdStyles.heroSecondaryText}>View itineraries</Text>
                             <Ionicons name="arrow-forward" size={15} color="#fff" />
                         </TouchableOpacity>
                     </View>
@@ -1463,40 +1460,40 @@ function CreatorDashboard({
                     icon="briefcase"
                     iconColor={theme.colors.primary}
                     iconBg={theme.colors.primary + '14'}
-                    label="Roteiros ativos"
+                    label="Active itineraries"
                     value={loading ? '—' : String(stats!.publishedItineraries)}
-                    subtext={loading ? '' : `${stats!.totalItineraries} no total`}
+                    subtext={loading ? '' : `${stats!.totalItineraries} total`}
                 />
                 <MetricCard
                     icon="briefcase"
                     iconColor="#6366F1"
                     iconBg="#6366F114"
-                    label="Vendas totais"
+                    label="Total sales"
                     value={loading ? '—' : String(stats!.totalSales)}
-                    subtext={loading ? '' : `${formatMoney(Math.round(stats!.totalRevenue))} em receita`}
+                    subtext={loading ? '' : `${formatMoney(Math.round(stats!.totalRevenue))} revenue`}
                 />
                 <MetricCard
                     icon="star"
                     iconColor="#F59E0B"
                     iconBg="#F59E0B14"
-                    label="Avaliação média"
+                    label="Average rating"
                     value={loading || stats!.averageRating <= 0 ? '—' : stats!.averageRating.toFixed(1)}
-                    subtext="de 5.0"
+                    subtext="out of 5.0"
                 />
                 <MetricCard
                     icon="verified"
                     iconColor={theme.colors.success}
                     iconBg={theme.colors.success + '14'}
-                    label="Qualidade média"
+                    label="Average quality"
                     value={loading || stats!.averageQualityScore == null ? '—' : `${stats!.averageQualityScore}%`}
-                    subtext={loading || stats!.averageQualityScore == null ? 'Sem roteiros ativos' : 'Média dos roteiros ativos'}
+                    subtext={loading || stats!.averageQualityScore == null ? 'No active itineraries' : 'Average across active itineraries'}
                 />
             </View>
 
             {/* ── Receita acumulada (card em destaque) ── */}
             <View style={cdStyles.revenueCard}>
                 <View style={cdStyles.revenueLeft}>
-                    <Text style={cdStyles.revenueLabel}>Receita acumulada</Text>
+                    <Text style={cdStyles.revenueLabel}>Total earned</Text>
                     <Text style={cdStyles.revenueValue}>
                         {loading ? '—' : formatMoney(Math.round(stats!.totalRevenue))}
                     </Text>
@@ -1504,8 +1501,8 @@ function CreatorDashboard({
                         {loading
                             ? ''
                             : stats!.totalSales > 0
-                                ? `${stats!.totalSales} venda${stats!.totalSales === 1 ? '' : 's'} concluída${stats!.totalSales === 1 ? '' : 's'}`
-                                : 'Aguardando primeira venda'}
+                                ? `${stats!.totalSales} completed sale${stats!.totalSales === 1 ? '' : 's'}`
+                                : 'Waiting for your first sale'}
                     </Text>
                 </View>
                 <View style={cdStyles.revenueIconWrap}>
@@ -1517,22 +1514,22 @@ function CreatorDashboard({
             <View style={cdStyles.proTipCard}>
                 <View style={cdStyles.proTipHeader}>
                     <Ionicons name="flash" size={18} color={theme.colors.primary} />
-                    <Text style={cdStyles.proTipTitle}>DICA PRO</Text>
+                    <Text style={cdStyles.proTipTitle}>PRO TIP</Text>
                 </View>
                 <Text style={cdStyles.proTipBody}>
-                    Roteiros com score acima de{' '}
+                    Itineraries with a score above{' '}
                     <Text style={cdStyles.proTipHighlight}>80%</Text>
-                    {' '}têm aprovação 3× mais rápida e mais destaque no app.
+                    {' '}are easier for reviewers to approve and can earn more visibility in the app.
                 </Text>
             </View>
 
             {/* ── Seção "Seus Roteiros" ── */}
             <View style={cdStyles.section}>
                 <View style={cdStyles.sectionHeader}>
-                    <Text style={cdStyles.sectionTitle}>Seus Roteiros</Text>
+                    <Text style={cdStyles.sectionTitle}>Your Itineraries</Text>
                     {itineraries.length > 0 && (
                         <TouchableOpacity onPress={onSeeAll}>
-                            <Text style={cdStyles.sectionLink}>Ver todos</Text>
+                            <Text style={cdStyles.sectionLink}>See all</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -1540,15 +1537,15 @@ function CreatorDashboard({
                 {itineraries.length === 0 ? (
                     <View style={cdStyles.emptyCard}>
                         <Ionicons name="map-outline" size={28} color={theme.colors.text.tertiary} />
-                        <Text style={cdStyles.emptyTitle}>Nenhum roteiro ainda</Text>
-                        <Text style={cdStyles.emptyText}>Crie seu primeiro itinerário.</Text>
+                        <Text style={cdStyles.emptyTitle}>No itineraries yet</Text>
+                        <Text style={cdStyles.emptyText}>Create your first itinerary.</Text>
                         <TouchableOpacity
                             style={cdStyles.emptyCta}
                             onPress={onCreate}
                             activeOpacity={0.85}
                         >
                             <Icon name="edit" size={14} color="#fff" />
-                            <Text style={cdStyles.emptyCtaText}>Criar roteiro</Text>
+                            <Text style={cdStyles.emptyCtaText}>Create itinerary</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -1581,7 +1578,7 @@ function CreatorDashboard({
                                         <MetaPill icon="star" label={`Score ${it.qualityScore}%`} />
                                     )}
                                     {it.sales > 0 && (
-                                        <MetaPill icon="briefcase" label={`${it.sales} venda${it.sales === 1 ? '' : 's'}`} />
+                                        <MetaPill icon="briefcase" label={`${it.sales} sale${it.sales === 1 ? '' : 's'}`} />
                                     )}
                                 </View>
                             </TouchableOpacity>
@@ -1593,7 +1590,7 @@ function CreatorDashboard({
                                 activeOpacity={0.85}
                             >
                                 <Text style={cdStyles.seeAllText}>
-                                    Ver todos os {itineraries.length} roteiros
+                                    See all {itineraries.length} itineraries
                                 </Text>
                                 <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
                             </TouchableOpacity>
@@ -1602,41 +1599,41 @@ function CreatorDashboard({
                 )}
             </View>
 
-            {/* ── Ações Rápidas ── */}
+            {/* ── Quick Actions ── */}
             <View style={cdStyles.section}>
-                <Text style={cdStyles.sectionTitle}>Ações Rápidas</Text>
+                <Text style={cdStyles.sectionTitle}>Quick Actions</Text>
                 <QuickAction
                     icon="edit"
                     iconBg={theme.colors.primary + '14'}
                     iconColor={theme.colors.primary}
-                    title="Criar Roteiro"
-                    subtitle="Novo itinerário"
+                    title="Create Itinerary"
+                    subtitle="New itinerary"
                     onPress={onCreate}
                 />
                 <QuickAction
                     icon="book-open"
                     iconBg="#6366F114"
                     iconColor="#6366F1"
-                    title="Meus Roteiros"
-                    subtitle="Gerenciar tudo"
+                    title="My Itineraries"
+                    subtitle="Manage everything"
                     onPress={onSeeAll}
                 />
                 <QuickAction
-                    icon="briefcase"
+                    icon="wallet"
                     iconBg="#16A34A14"
                     iconColor="#16A34A"
-                    title="Minhas Vendas"
-                    subtitle="Histórico financeiro"
+                    title="Earnings"
+                    subtitle="Track sales and payouts"
                     onPress={onSales}
                 />
                 <QuickAction
                     icon="message-circle"
                     iconBg={theme.colors.primary + '14'}
                     iconColor={theme.colors.primary}
-                    title="Perguntas Recebidas"
+                    title="Questions"
                     subtitle={pendingQuestionsCount > 0
-                        ? `${pendingQuestionsCount} ${pendingQuestionsCount === 1 ? 'pendente' : 'pendentes'}`
-                        : 'Dúvidas dos viajantes'}
+                        ? `${pendingQuestionsCount} pending`
+                        : 'Traveller questions'}
                     badge={pendingQuestionsCount > 0 ? pendingQuestionsCount : undefined}
                     onPress={onQuestions}
                 />
@@ -1644,8 +1641,8 @@ function CreatorDashboard({
                     icon="star"
                     iconBg="#F59E0B14"
                     iconColor="#F59E0B"
-                    title="Comentários"
-                    subtitle="Avaliações dos viajantes"
+                    title="Reviews"
+                    subtitle="Traveller reviews"
                     onPress={onReviews}
                 />
             </View>
@@ -1670,13 +1667,13 @@ function MetricCard({ icon, iconColor, iconBg, label, value, subtext }: {
 }
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> = {
-    draft:          { label: 'Rascunho',  bg: '#94A3B81A', fg: '#475569' },
-    pending_review: { label: 'Em análise', bg: '#F59E0B1F', fg: '#A16207' },
-    approved:       { label: 'Aprovado',  bg: '#22C55E1F', fg: '#15803D' },
-    active:         { label: 'Publicado', bg: '#22C55E1F', fg: '#15803D' },
-    published:      { label: 'Publicado', bg: '#22C55E1F', fg: '#15803D' },
-    rejected:       { label: 'Rejeitado', bg: '#EF44441F', fg: '#B91C1C' },
-    archived:       { label: 'Arquivado', bg: '#94A3B81F', fg: '#475569' },
+    draft:          { label: 'Draft',  bg: '#94A3B81A', fg: '#475569' },
+    pending_review: { label: 'In review', bg: '#F59E0B1F', fg: '#A16207' },
+    approved:       { label: 'Approved',  bg: '#22C55E1F', fg: '#15803D' },
+    active:         { label: 'Published', bg: '#22C55E1F', fg: '#15803D' },
+    published:      { label: 'Published', bg: '#22C55E1F', fg: '#15803D' },
+    rejected:       { label: 'Rejected', bg: '#EF44441F', fg: '#B91C1C' },
+    archived:       { label: 'Archived', bg: '#94A3B81F', fg: '#475569' },
 };
 function StatusBadge({ status }: { status: string }) {
     const key = (status || '').toLowerCase();

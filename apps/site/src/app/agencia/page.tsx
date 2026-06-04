@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { getSession, type AuthSession } from "../../lib/auth";
+import { getSession, isAgencySession, type AuthSession } from "../../lib/auth";
 import { getAgencyPackages } from "../../lib/api";
 
 export default function AgenciaDashboardPage() {
@@ -13,7 +13,8 @@ export default function AgenciaDashboardPage() {
     useEffect(() => {
         (async () => {
             try {
-                const s = await getSession();
+                const raw = await getSession();
+                const s = isAgencySession(raw) ? raw : null;
                 if (s) setSession(s);
 
                 // If ADMIN, fetch all packages (passing no agencyId)

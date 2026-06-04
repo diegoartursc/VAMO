@@ -31,6 +31,7 @@ import { getCoverImages, getCoverFocalPoint } from '../src/utils/itineraryMedia'
 import CollapsibleSection from '../src/components/common/CollapsibleSection';
 import { Icon } from '../src/components/common/Icons';
 import { VerifiedBadge } from '../src/components/creator/VerifiedBadge';
+import { VERIFICATION_CONFIGS } from '../src/types/creator';
 import FAQSection from '../src/components/FAQSection';
 import { getReceivedModules } from '../src/utils/itineraryCardBadges';
 import { getCurrencyRates } from '../src/services/api';
@@ -214,6 +215,7 @@ export default function ItineraryPreviewScreen() {
 
     const creatorName = user?.name || 'Você';
     const verificationLevel = 'basic' as const;
+    const creatorReputation = VERIFICATION_CONFIGS[verificationLevel];
 
     const mainCountry = form.locations?.[0]?.country || form.country || '';
     const mainCity = form.locations?.[0]?.cities?.[0] || form.destination || '';
@@ -786,9 +788,9 @@ export default function ItineraryPreviewScreen() {
                     <View style={styles.trustBox}>
                         <Ionicons name="shield-checkmark" size={24} color={theme.colors.verified} />
                         <View style={styles.trustContent}>
-                            <Text style={styles.trustTitle}>Criador Verificado</Text>
+                            <Text style={styles.trustTitle}>{creatorReputation.label}</Text>
                             <Text style={styles.trustText}>
-                                {creatorName} faz parte da comunidade VAMO de criadores verificados.
+                                {creatorName} tem {creatorReputation.description.toLowerCase()}.
                             </Text>
                         </View>
                     </View>

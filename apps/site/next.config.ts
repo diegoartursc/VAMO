@@ -1,13 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-    // TODO(débito-técnico): Rotas legacy (/agencia/*, alguns /dashboard/*) ainda
-    // lêem session.agency / session.employee — campos do AuthSession antigo
-    // que não existem em TravelerSession. O build estrito quebra.
-    // Liberado pra desbloquear deploy; refatorar essas páginas pra usar
-    // getCurrentUser() ou type guards.
-    typescript: { ignoreBuildErrors: true },
-    eslint: { ignoreDuringBuilds: true },
+    // As rotas legacy (/agencia/*, /dashboard/*, /criador/*) que liam
+    // session.agency / session.employee agora narrowam a sessão com o type
+    // guard isAgencySession() (ver lib/auth.ts), então o build estrito passa.
+    // Mantemos os erros de tipo ATIVOS no build de propósito — não reintroduzir
+    // ignoreBuildErrors sem antes corrigir os tipos.
+    // (Next 16 removeu a chave `eslint` do config; ESLint roda via `npm run lint`.)
 
     async redirects() {
         return [

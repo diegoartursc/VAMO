@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getAgencySales, updateSaleDocuments } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { getSession, isAgencySession } from "@/lib/auth";
 
 export default function VendasListPage() {
     const [sales, setSales] = useState<any[]>([]);
@@ -20,7 +20,8 @@ export default function VendasListPage() {
 
     const fetchSales = async () => {
         try {
-            const session = await getSession();
+            const raw = await getSession();
+            const session = isAgencySession(raw) ? raw : null;
             if (session?.agency?.id) {
                 const data = await getAgencySales(session.agency.id);
                 setSales(data || []);

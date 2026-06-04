@@ -221,6 +221,136 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
     }
 });
 
+const PURCHASED_ITINERARY_INCLUDE = {
+    creator: { include: { traveler: { select: { name: true, avatar: true, id: true } } } },
+    images: { orderBy: { order: 'asc' as const }, select: { url: true } },
+    days: { orderBy: { dayNumber: 'asc' as const }, include: { activities: { orderBy: { order: 'asc' as const } } } },
+    files: true,
+    accommodations: { orderBy: { order: 'asc' as const } },
+    transports: { orderBy: { order: 'asc' as const } },
+    checklists: { orderBy: { order: 'asc' as const } },
+    reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' as const }, take: 10 },
+};
+
+function serializeDate(value: any): string | null {
+    if (!value) return null;
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'string') return value;
+    return null;
+}
+
+function getRouteSnapshot(purchaseData: any): any | null {
+    const snapshot = purchaseData?.routeSnapshot;
+    return snapshot && typeof snapshot === 'object' ? snapshot : null;
+}
+
+function toJsonSafe(value: any): any {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (value instanceof Date) return value.toISOString();
+    if (Array.isArray(value)) return value.map(toJsonSafe).filter((item) => item !== undefined);
+    if (typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value)
+                .map(([key, item]) => [key, toJsonSafe(item)])
+                .filter(([, item]) => item !== undefined),
+        );
+    }
+    return value;
+}
+
+function buildPurchasedItineraryPayload(it: any, sale?: { id?: string; price?: number; createdAt?: Date | string }) {
+    const accommodationList = (it.accommodations || []).map((a: any) => ({
+        id: a.id, name: a.name, neighborhood: a.neighborhood,
+        description: a.description, priceRange: a.priceRange, rating: a.rating,
+        externalLink: a.externalLink, address: a.address, mapLink: a.mapLink,
+        tips: a.tips, nights: a.nights, startDate: a.startDate, endDate: a.endDate,
+        totalPrice: a.totalPrice, priceCurrency: a.priceCurrency, order: a.order,
+        spending: a.spending ?? undefined, cost: a.cost ?? undefined,
+    }));
+    const transportList = (it.transports || []).map((t: any) => ({
+        id: t.id, description: t.description, passTypes: t.passTypes,
+        estimatedPrice: t.estimatedPrice, notes: t.notes,
+        startDate: t.startDate, endDate: t.endDate,
+        priceValue: t.priceValue, priceCurrency: t.priceCurrency, order: t.order,
+        spending: t.spending ?? undefined, cost: t.cost ?? undefined,
+    }));
+    const checklistList = (it.checklists || []).map((c: any) => ({
+        id: c.id, category: c.category, item: c.item,
+        isDefault: c.isDefault, order: c.order, completed: false,
+    }));
+
+    return {
+        id: it.id, title: it.title, destination: it.destination, country: it.country,
+        purchaseId: sale?.id,
+        purchasedAt: serializeDate(sale?.createdAt),
+        pricePaid: typeof sale?.price === 'number' ? sale.price : undefined,
+        snapshotVersion: 1,
+        archivedAccessNotice: ['ARCHIVED', 'PAUSED'].includes(String(it.status || '').toUpperCase())
+            ? 'Este roteiro não está mais disponível para novas compras, mas seu acesso permanece ativo.'
+            : undefined,
+        creator: {
+            id: it.creator.id, name: it.creator.traveler.name,
+            avatar: it.creator.traveler.avatar || '👤',
+            verificationLevel: it.creator.verificationLevel.toLowerCase(),
+            rating: it.creator.averageRating, salesCount: it.creator.totalSales,
+        },
+        description: it.description, price: it.price, currency: it.currency,
+        images: (it.images || []).map((img: any) => img.url), rating: it.rating,
+        reviewCount: it.reviewCount, inclusions: it.inclusions,
+        duration: it.duration, featured: it.featured,
+        highlights: it.highlights, estimatedSpending: it.estimatedSpending,
+        downloadCount: it.downloadCount,
+        subtitle: it.subtitle, travelStyles: it.travelStyles, categories: it.categories,
+        productType: it.productType, activeModules: it.activeModules,
+        promoPrice: it.promoPrice, installments: it.installments,
+        immediateAccess: it.immediateAccess, lifetimeAccess: it.lifetimeAccess,
+        offlineDownload: it.offlineDownload, allowPdf: it.allowPdf, allowShare: it.allowShare,
+        travelProofUrl: it.travelProofUrl,
+        qualityScore: it.qualityScore, status: it.status,
+        approvalNote: it.approvalNote, approvedAt: serializeDate(it.approvedAt),
+        extraCities: it.extraCities || [], extraCountries: it.extraCountries || [],
+        tripStartDate: serializeDate(it.tripStartDate), tripEndDate: serializeDate(it.tripEndDate),
+        flightInfo: it.flightInfo || null,
+        attractions: it.attractions || [],
+        restaurants: it.restaurants || [],
+        generalTips: it.generalTips || [],
+        mediaUrls: it.mediaUrls || [],
+        highlightPhotos: it.highlightPhotos || [],
+        spendingProfile: it.spendingProfile || null,
+        receiveList: it.receiveList || null,
+        extraSpendingItems: it.extraSpendingItems || [],
+        accommodations: accommodationList,
+        accommodationOptions: accommodationList,
+        transports: transportList,
+        transport: { items: transportList },
+        checklists: checklistList,
+        checklist: checklistList,
+        days: (it.days || []).map((d: any) => ({
+            dayNumber: d.dayNumber, title: d.title, summary: d.summary,
+            description: d.description,
+            activities: (d.activities || []).map((a: any) => ({
+                id: a.id, title: a.title, description: a.description,
+                duration: a.duration, location: a.location, tips: a.tips,
+                time: a.time, type: a.type, icon: a.icon, images: a.images,
+                mapLink: a.mapLink, completed: a.completed, notes: a.notes,
+                latitude: a.latitude, longitude: a.longitude, category: a.category,
+            })),
+        })),
+        files: (it.files || []).map((f: any) => ({ id: f.id, name: f.name, type: f.type, url: f.url, size: f.size })),
+        reviews: (it.reviews || []).map((r: any) => ({
+            id: r.id, rating: r.rating, text: r.comment,
+            date: serializeDate(r.createdAt)?.split('T')[0],
+            verified: r.verified, helpful: r.helpful,
+            user: { name: r.userName, location: r.userLocation, avatar: r.userAvatar, initial: r.userInitial },
+            photos: (r.images || []).map((img: any) => img.url),
+            responses: (r.responses || []).map((rsp: any) => ({
+                id: rsp.id, text: rsp.text, createdAt: serializeDate(rsp.createdAt),
+            })),
+        })),
+    };
+}
+
 // GET /api/itineraries/:id
 // GET /api/itineraries/:id/purchased
 // Detalhe COMPLETO de um roteiro comprado. Exige autenticação (JWT do
@@ -241,114 +371,34 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
         const itineraryId = req.params.id as string;
         const sale = await prisma.itinerarySale.findFirst({
             where: { itineraryId, travelerId },
-            select: { id: true },
+            select: { id: true, price: true, createdAt: true, purchaseData: true },
         });
         if (!sale) {
             res.status(403).json({ error: 'Roteiro não comprado por este usuário' });
             return;
         }
 
+        const snapshot = getRouteSnapshot(sale.purchaseData);
+        if (snapshot) {
+            res.json({
+                ...snapshot,
+                purchaseId: sale.id,
+                purchasedAt: serializeDate(sale.createdAt),
+                pricePaid: sale.price,
+            });
+            return;
+        }
+
         const it = await prisma.itinerary.findUnique({
             where: { id: itineraryId },
-            include: {
-                creator: { include: { traveler: { select: { name: true, avatar: true, id: true } } } },
-                images: { orderBy: { order: 'asc' }, select: { url: true } },
-                days: { orderBy: { dayNumber: 'asc' }, include: { activities: { orderBy: { order: 'asc' } } } },
-                files: true,
-                accommodations: { orderBy: { order: 'asc' } },
-                transports:     { orderBy: { order: 'asc' } },
-                checklists:     { orderBy: { order: 'asc' } },
-                reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' }, take: 10 },
-            },
+            include: PURCHASED_ITINERARY_INCLUDE,
         });
         if (!it) { res.status(404).json({ error: 'Itinerary not found' }); return; }
 
         // Reaproveita o mesmo shape do GET /:id (a tela pós-compra consome
         // o mesmo payload). Pular o gate de status público: quem comprou
         // tem acesso mesmo se o roteiro depois foi pausado/arquivado.
-        const i = it as any;
-        const accommodationList = (i.accommodations || []).map((a: any) => ({
-            id: a.id, name: a.name, neighborhood: a.neighborhood,
-            description: a.description, priceRange: a.priceRange, rating: a.rating,
-            externalLink: a.externalLink, address: a.address, mapLink: a.mapLink,
-            tips: a.tips, nights: a.nights, startDate: a.startDate, endDate: a.endDate,
-            totalPrice: a.totalPrice, priceCurrency: a.priceCurrency, order: a.order,
-            spending: a.spending ?? undefined, cost: a.cost ?? undefined,
-        }));
-        const transportList = (i.transports || []).map((t: any) => ({
-            id: t.id, description: t.description, passTypes: t.passTypes,
-            estimatedPrice: t.estimatedPrice, notes: t.notes,
-            startDate: t.startDate, endDate: t.endDate,
-            priceValue: t.priceValue, priceCurrency: t.priceCurrency, order: t.order,
-            spending: t.spending ?? undefined, cost: t.cost ?? undefined,
-        }));
-        const checklistList = (i.checklists || []).map((c: any) => ({
-            id: c.id, category: c.category, item: c.item,
-            isDefault: c.isDefault, order: c.order, completed: false,
-        }));
-
-        res.json({
-            id: i.id, title: i.title, destination: i.destination, country: i.country,
-            creator: {
-                id: i.creator.id, name: i.creator.traveler.name,
-                avatar: i.creator.traveler.avatar || '👤',
-                verificationLevel: i.creator.verificationLevel.toLowerCase(),
-                rating: i.creator.averageRating, salesCount: i.creator.totalSales,
-            },
-            description: i.description, price: i.price, currency: i.currency,
-            images: (i.images || []).map((img: any) => img.url), rating: i.rating,
-            reviewCount: i.reviewCount, inclusions: i.inclusions,
-            duration: i.duration, featured: i.featured,
-            highlights: i.highlights, estimatedSpending: i.estimatedSpending,
-            downloadCount: i.downloadCount,
-            subtitle: i.subtitle, travelStyles: i.travelStyles, categories: i.categories,
-            productType: i.productType, activeModules: i.activeModules,
-            promoPrice: i.promoPrice, installments: i.installments,
-            immediateAccess: i.immediateAccess, lifetimeAccess: i.lifetimeAccess,
-            offlineDownload: i.offlineDownload, allowPdf: i.allowPdf, allowShare: i.allowShare,
-            travelProofUrl: i.travelProofUrl,
-            qualityScore: i.qualityScore, status: i.status,
-            approvalNote: i.approvalNote, approvedAt: i.approvedAt,
-            extraCities: i.extraCities || [], extraCountries: i.extraCountries || [],
-            tripStartDate: i.tripStartDate, tripEndDate: i.tripEndDate,
-            flightInfo:   i.flightInfo   || null,
-            attractions:  i.attractions  || [],
-            restaurants:  i.restaurants  || [],
-            generalTips:  i.generalTips  || [],
-            mediaUrls:    i.mediaUrls    || [],
-            highlightPhotos: i.highlightPhotos || [],
-            spendingProfile: i.spendingProfile || null,
-            receiveList:  i.receiveList  || null,
-            extraSpendingItems: i.extraSpendingItems || [],
-            accommodations: accommodationList,
-            accommodationOptions: accommodationList,
-            transports: transportList,
-            transport: { items: transportList },
-            checklists: checklistList,
-            checklist: checklistList,
-            days: (i.days || []).map((d: any) => ({
-                dayNumber: d.dayNumber, title: d.title, summary: d.summary,
-                description: d.description,
-                activities: (d.activities || []).map((a: any) => ({
-                    id: a.id, title: a.title, description: a.description,
-                    duration: a.duration, location: a.location, tips: a.tips,
-                    time: a.time, type: a.type, icon: a.icon, images: a.images,
-                    mapLink: a.mapLink, completed: a.completed, notes: a.notes,
-                    latitude: a.latitude, longitude: a.longitude, category: a.category,
-                })),
-            })),
-            files: (i.files || []).map((f: any) => ({ id: f.id, name: f.name, type: f.type, url: f.url, size: f.size })),
-            reviews: (i.reviews || []).map((r: any) => ({
-                id: r.id, rating: r.rating, text: r.comment,
-                date: r.createdAt.toISOString().split('T')[0],
-                verified: r.verified, helpful: r.helpful,
-                user: { name: r.userName, location: r.userLocation, avatar: r.userAvatar, initial: r.userInitial },
-                photos: (r.images || []).map((img: any) => img.url),
-                responses: (r.responses || []).map((rsp: any) => ({
-                    id: rsp.id, text: rsp.text, createdAt: rsp.createdAt,
-                })),
-            })),
-        });
+        res.json(buildPurchasedItineraryPayload(it, sale));
     } catch (error) {
         console.error('Error fetching purchased itinerary:', error);
         res.status(500).json({ error: 'Failed to fetch purchased itinerary' });
@@ -1301,10 +1351,15 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
 
 // ─── DELETE ───
 // DELETE /api/itineraries/:id (requires auth)
+//
+// Buyer-access rule: creator "delete" is commercial archiving, never content
+// destruction. ItinerarySale.itinerary, ItineraryImage and ItineraryFile all
+// cascade on physical delete, so a hard delete can silently wipe a buyer's
+// digital library. Keep admin-only destructive cleanup out of this endpoint.
 router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), async (req: AuthRequest, res: Response) => {
     try {
         const id = req.params.id as string;
-        const { hard } = req.query;
+        const hardRequested = req.query.hard === 'true';
 
         const existing = await prisma.itinerary.findUnique({ where: { id: id as string } });
         if (!existing) {
@@ -1314,18 +1369,21 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
 
         if (!(await requireCreatorOwner(req, res, existing.creatorId))) return;
 
-        if (hard === 'true') {
-            // Hard delete — remove completely
-            await prisma.itinerary.delete({ where: { id } });
-        } else {
-            // Soft delete — archive
-            await prisma.itinerary.update({
-                where: { id },
-                data: { status: 'ARCHIVED' },
-            });
-        }
+        const salesCount = await prisma.itinerarySale.count({ where: { itineraryId: id } });
 
-        res.json({ success: true, message: hard === 'true' ? 'Itinerary deleted' : 'Itinerary archived' });
+        // Soft delete — archive. Removes from storefront/search/purchase
+        // while preserving content for existing buyers.
+        await prisma.itinerary.update({
+            where: { id },
+            data: { status: 'ARCHIVED' },
+        });
+        res.json({
+            success: true,
+            message: 'Itinerary archived',
+            mode: 'archive',
+            salesCount,
+            hardRequested,
+        });
     } catch (error) {
         console.error('Error deleting itinerary:', error);
         res.status(500).json({ error: 'Failed to delete itinerary' });
@@ -1354,12 +1412,11 @@ router.post('/:id/purchase', async (req: Request, res: Response) => {
             return;
         }
 
-        const itinerary = await prisma.itinerary.findUnique({ where: { id: itineraryId } });
+        const itinerary = await prisma.itinerary.findUnique({
+            where: { id: itineraryId },
+            include: PURCHASED_ITINERARY_INCLUDE,
+        });
         if (!itinerary) { res.status(404).json({ error: 'Itinerary not found' }); return; }
-        if (itinerary.status !== 'APPROVED' && itinerary.status !== 'ACTIVE') {
-            res.status(400).json({ error: 'Itinerary is not available for purchase' });
-            return;
-        }
 
         // Idempotent: if a sale already exists for this traveler+itinerary, return it.
         const existing = await prisma.itinerarySale.findFirst({
@@ -1370,12 +1427,23 @@ router.post('/:id/purchase', async (req: Request, res: Response) => {
             return;
         }
 
+        if (itinerary.status !== 'APPROVED' && itinerary.status !== 'ACTIVE') {
+            res.status(400).json({ error: 'Itinerary is not available for purchase' });
+            return;
+        }
+
         const sale = await prisma.itinerarySale.create({
             data: {
                 itineraryId,
                 travelerId,
                 price: itinerary.price,
                 commission: itinerary.price * 0.15, // 15% platform commission
+                purchaseData: {
+                    routeSnapshot: toJsonSafe(buildPurchasedItineraryPayload(itinerary, {
+                        price: itinerary.price,
+                        createdAt: new Date(),
+                    })),
+                },
             },
         });
 

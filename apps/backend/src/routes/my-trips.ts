@@ -23,22 +23,31 @@ router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Re
 
         const seenItineraryIds = new Set<string>();
         const purchasedItineraries = itinerarySales.filter((s: any) => {
-            if (!s.itinerary?.id || seenItineraryIds.has(s.itinerary.id)) return false;
-            seenItineraryIds.add(s.itinerary.id);
+            const snapshot = s.purchaseData?.routeSnapshot;
+            const itineraryId = snapshot?.id || s.itinerary?.id;
+            if (!itineraryId || seenItineraryIds.has(itineraryId)) return false;
+            seenItineraryIds.add(itineraryId);
             return true;
-        }).map((s: any) => ({
-            id: s.itinerary.id,
-            title: s.itinerary.title,
-            destination: s.itinerary.destination,
-            country: s.itinerary.country,
-            image: s.itinerary.images[0]?.url || '',
-            purchaseDate: s.createdAt.toISOString().split('T')[0],
-            creatorName: s.itinerary.creator.traveler.name || 'Criador VAMO',
-            creatorAvatar: s.itinerary.creator.traveler.avatar || '',
-            price: s.price,
-            currency: s.itinerary.currency || 'AUD',
-            duration: s.itinerary.duration,
-        }));
+        }).map((s: any) => {
+            const snapshot = s.purchaseData?.routeSnapshot;
+            const images = Array.isArray(snapshot?.images) ? snapshot.images : [];
+            const highlightPhotos = Array.isArray(snapshot?.highlightPhotos) ? snapshot.highlightPhotos : [];
+            const image = images[0] || highlightPhotos[0] || s.itinerary?.images?.[0]?.url || '';
+            return {
+                id: snapshot?.id || s.itinerary.id,
+                purchaseId: s.id,
+                title: snapshot?.title || s.itinerary.title,
+                destination: snapshot?.destination || s.itinerary.destination,
+                country: snapshot?.country || s.itinerary.country,
+                image,
+                purchaseDate: s.createdAt.toISOString().split('T')[0],
+                creatorName: snapshot?.creator?.name || s.itinerary.creator.traveler.name || 'Criador VAMO',
+                creatorAvatar: snapshot?.creator?.avatar || s.itinerary.creator.traveler.avatar || '',
+                price: s.price,
+                currency: snapshot?.currency || s.itinerary.currency || 'AUD',
+                duration: snapshot?.duration || s.itinerary.duration,
+            };
+        });
 
         res.json({ purchasedItineraries });
     } catch (error) {

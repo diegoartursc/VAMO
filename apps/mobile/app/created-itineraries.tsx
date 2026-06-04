@@ -329,7 +329,7 @@ function ItineraryCard({
     // permitimos editar (atualiza a submissão), em active dispara aviso de
     // "vai pra nova análise" via onEdit.
     const canEdit = item.status !== 'archived';
-    // Excluir disponível em qualquer status menos arquivado (já está arquivado).
+    // Arquivar disponível em qualquer status menos arquivado (já está arquivado).
     const canDelete = item.status !== 'archived';
 
     return (
@@ -387,7 +387,7 @@ function ItineraryCard({
                         </View>
                     )}
 
-                    {/* Ações alinhadas à direita: Editar + Excluir + ação por status */}
+                    {/* Ações alinhadas à direita: Editar + Arquivar + ação por status */}
                     <View style={card.actionsRow}>
                         {canEdit && (
                             <TouchableOpacity
@@ -405,10 +405,10 @@ function ItineraryCard({
                                 style={[card.qaBtn, card.deleteBtn]}
                                 onPress={(e) => { e.stopPropagation?.(); onDelete(); }}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                accessibilityLabel="Excluir roteiro"
+                                accessibilityLabel="Arquivar roteiro"
                             >
-                                <Ionicons name="trash-outline" size={13} color={theme.colors.error} />
-                                <Text style={[card.qaBtnText, { color: theme.colors.error }]}>Excluir</Text>
+                                <Ionicons name="archive-outline" size={13} color={theme.colors.error} />
+                                <Text style={[card.qaBtnText, { color: theme.colors.error }]}>Arquivar</Text>
                             </TouchableOpacity>
                         )}
                         {qa && (
@@ -689,19 +689,19 @@ export default function CreatedItinerariesScreen() {
         openEditor(item.id);
     };
 
-    /** Exclui (arquiva) um roteiro do criador.
+    /** Arquiva comercialmente um roteiro do criador.
      *  - Soft delete por padrão: backend muda status para ARCHIVED.
      *  - confirm() cross-platform (no web, Alert é no-op).
      *  - Refetch da lista no sucesso pra UI ficar consistente. */
     const handleDelete = async (item: CreatorItinerary) => {
         if (!accessToken) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para excluir o roteiro.' });
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para arquivar o roteiro.' });
             return;
         }
         const ok = await confirm({
-            title: 'Excluir roteiro?',
-            message: `"${item.title || 'Sem título'}"\n\nEssa ação removerá o roteiro da sua área de criador. Se ele estiver publicado, deixará de aparecer na vitrine VAMO. Compradores anteriores mantêm acesso ao conteúdo já adquirido.`,
-            confirmText: 'Excluir roteiro',
+            title: 'Arquivar roteiro?',
+            message: `"${item.title || 'Sem título'}"\n\nEste roteiro deixará de aparecer para novas compras, mas viajantes que já compraram continuarão tendo acesso ao conteúdo adquirido.`,
+            confirmText: 'Arquivar roteiro',
             cancelText: 'Cancelar',
             destructive: true,
         });
@@ -714,14 +714,14 @@ export default function CreatedItinerariesScreen() {
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({} as any));
-                throw new Error(err?.error || `Erro ${res.status} ao excluir o roteiro`);
+                throw new Error(err?.error || `Erro ${res.status} ao arquivar o roteiro`);
             }
             haptics.success();
             notify({ title: 'Roteiro arquivado', message: 'Ele não aparece mais na vitrine. Você pode revisar quando quiser na aba de arquivados.' });
             await fetchData(true);
         } catch (e: any) {
             haptics.error?.();
-            notify({ title: 'Não foi possível excluir', message: e?.message || 'Tente novamente em instantes.' });
+            notify({ title: 'Não foi possível arquivar', message: e?.message || 'Tente novamente em instantes.' });
         }
     };
 

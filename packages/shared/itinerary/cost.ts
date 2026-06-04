@@ -152,11 +152,16 @@ export function getAmountPerPerson(cost?: ModuleCostInfo | null): number {
 /** Formata número como moeda. Default: en-AU + AUD. */
 export function formatMoney(amount: number, currency: string = "AUD", locale: string = "en-AU"): string {
     try {
-        return new Intl.NumberFormat(locale, {
+        const formatted = new Intl.NumberFormat(locale, {
             style: "currency",
             currency: currency || "AUD",
             maximumFractionDigits: 2,
         }).format(amount);
+        if ((currency || "AUD").toUpperCase() === "AUD") {
+            if (formatted.startsWith("-$")) return `-A$ ${formatted.slice(2)}`;
+            if (formatted.startsWith("$")) return `A$ ${formatted.slice(1)}`;
+        }
+        return formatted;
     } catch {
         // Currency inválida — fallback simples
         return `${currency || ""} ${amount.toFixed(2)}`.trim();
