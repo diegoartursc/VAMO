@@ -26,6 +26,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3333;
 
+// Atrás de proxy (Render/Vercel/etc.): confia no primeiro hop para que o
+// express-rate-limit leia o IP real via X-Forwarded-For sem disparar o
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 // Rate limiting
 // Em desenvolvimento (NODE_ENV !== 'production') o limite é generoso e
 // pulamos requests de localhost — durante desenvolvimento é comum disparar
