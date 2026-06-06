@@ -147,7 +147,27 @@ export default function ItineraryPreviewScreen() {
         (async () => {
             try {
                 const raw = await AsyncStorage.getItem(PREVIEW_KEY);
-                if (raw) setForm(JSON.parse(raw));
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    // Normaliza arrays de mídia defensivamente. Se uma versão
+                    // antiga (ou um erro qualquer) salvou {url} em vez de
+                    // string, ainda assim CoverCarousel/MediaGallery recebem
+                    // string[] limpo. Também garante que NUNCA renderizamos
+                    // travelProofUrl (comprovante admin-only) por aqui.
+                    const normalizeUrls = (v: unknown): string[] =>
+                        Array.isArray(v)
+                            ? v.map((x: any) => (typeof x === 'string' ? x : (x?.url ?? '')))
+                                .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+                            : [];
+                    const safe: ItineraryFormState = {
+                        ...parsed,
+                        travelProofUrl: '', // nunca usar comprovante na prévia
+                        highlightPhotos: normalizeUrls(parsed?.highlightPhotos),
+                        images: normalizeUrls(parsed?.images),
+                        mediaUrls: normalizeUrls(parsed?.mediaUrls),
+                    };
+                    setForm(safe);
+                }
             } catch (e) {
                 console.warn('[preview] erro lendo form:', e);
             } finally {

@@ -22,6 +22,7 @@ import { useAuth } from '../src/contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import { notify } from '../src/utils/notify';
 import { uploadFile } from '../src/utils/uploadFile';
+import { validateUploadFile } from '../src/utils/uploadContexts';
 
 const STAR_LABELS = ['', 'Péssimo', 'Ruim', 'Bom', 'Muito bom', 'Excelente'];
 
@@ -127,8 +128,30 @@ export default function WriteReviewScreen() {
             });
 
             if (!result.canceled) {
-                const newPhotos = result.assets.map(a => a.uri).filter(Boolean);
-                setPhotos(prev => [...prev, ...newPhotos].slice(0, 5));
+                // Filtra assets que falham na validação do contexto
+                // reviewMedia (só imagens, até 25 MB). Avisa quando algo
+                // foi descartado, mas mantém os válidos.
+                const accepted: string[] = [];
+                const failures: string[] = [];
+                result.assets.forEach((a, i) => {
+                    const v = validateUploadFile(
+                        {
+                            uri: a.uri,
+                            filename: (a as any).fileName,
+                            mime: (a as any).mimeType,
+                            size: (a as any).fileSize,
+                        },
+                        'reviewMedia',
+                    );
+                    if (v.valid && a.uri) accepted.push(a.uri);
+                    else if (!v.valid) failures.push(`Foto ${i + 1}: ${v.reason}`);
+                });
+                if (failures.length) {
+                    notify({ title: 'Algumas fotos não foram adicionadas', message: failures.join('\n') });
+                }
+                if (accepted.length) {
+                    setPhotos(prev => [...prev, ...accepted].slice(0, 5));
+                }
             }
         } catch (err) {
             console.error('[write-review] erro selecionando fotos:', err);
@@ -171,7 +194,13 @@ export default function WriteReviewScreen() {
                     continue;
                 }
                 try {
-                    const url = await uploadFile(p, accessToken, `review-${Date.now()}-${i}.jpg`);
+                    // Preserva a extensão real do arquivo (heic/heif/png/jpg...)
+                    // — extrai do URI quando possível para o backend receber
+                    // o MIME correto e renderizar o preview certo.
+                    const cleaned = p.split('?')[0].split('#')[0];
+                    const ext = cleaned.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() || 'jpg';
+                    const name = `review-${Date.now()}-${i}.${ext}`;
+                    const url = await uploadFile(p, accessToken, name);
                     uploadedPhotos.push(url);
                 } catch (uploadErr: any) {
                     console.error('[write-review] erro no upload de foto:', uploadErr);

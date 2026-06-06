@@ -30,17 +30,27 @@ import {
     Landmark, ChefHat, Leaf, Dumbbell, Ship, Globe, Sparkles,
     Sun, BookOpen, Music, Backpack, Users, Heart, Mountain,
     CalendarDays, Plane, Building2, Ticket, Bus, Lightbulb, Utensils, ListChecks, CreditCard,
-    Camera, Star, Clock, X,
+    Camera, Star,
     Wifi, Shield, FileText, Shirt, Package, Coins, ShoppingBag, Luggage, Wrench, Pill, Car,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import {
+    acceptAttributeFor,
+    validateUploadFile,
+    uploadHint,
+} from '../src/utils/uploadContexts';
+import { uploadFile as uploadFileUrl } from '../src/utils/uploadFile';
+import { isVideoUrl } from '../src/utils/itineraryMedia';
 import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
 import { notify } from '../src/utils/notify';
 import FormInput from '../src/components/dashboard/FormInput';
+import MoneyInput from '../src/components/dashboard/MoneyInput';
+import VamoTimePicker from '../src/components/dashboard/VamoTimePicker';
 import EditableList from '../src/components/dashboard/EditableList';
 import CostBlock, { costToLegacySpending } from '../src/components/dashboard/CostBlock';
 import { CurrencyPicker } from '../src/components/common/CurrencyPicker';
@@ -74,6 +84,7 @@ import {
     calcQuality,
     calcQualityBlocks,
     validateForSubmission,
+    dayIsComplete,
 } from '@vamo/shared/itinerary';
 
 const DRAFT_KEY = '@vamo_draft_itinerary_v2';
@@ -129,7 +140,13 @@ const ISSUE_SECTION_TO_STEP: Record<string, StepKey> = {
     proof:         'proof',
     commerce:      'commerce',
     modules:       'modules',
+    // 'itinerary' (em inglês) é usado pelas pendências legadas
+    // ("Cadastre pelo menos 1 dia…", "link do mapa inválido…").
+    // 'itinerario' (ModuleKey, em pt-BR) é o que validateForSubmission
+    // emite no caminho granular novo (Complete o Dia X…). Ambos
+    // levam para o mesmo step.
     itinerary:     'days',
+    itinerario:    'days',
     voo:           'voo',
     hospedagem:    'hospedagem',
     passeios:      'passeios',
@@ -274,11 +291,25 @@ export default function NewItineraryScreen() {
     }, [step, form, router, saveDraftLocal]);
 
     // ── Envio para análise ──────────────────────────────────────
+    function hasPendingLocalUpload(f: ItineraryFormState): boolean {
+        const urls = [
+            f.travelProofUrl,
+            ...f.highlightPhotos,
+            ...f.images,
+            ...f.mediaUrls,
+            ...[f.flightCost, ...f.accommodations.map(a => a.cost), ...f.attractions.map(a => a.cost),
+                ...f.transports.map(t => t.cost), ...f.restaurants.map(r => r.cost), ...f.extraSpendingItems.map(e => e.cost)]
+                .flatMap(cost => cost?.proofFiles?.map(file => file.url) ?? []),
+        ].filter(Boolean) as string[];
+        return urls.some(url => /^(file|blob|content):/i.test(url));
+    }
+
     async function submit() {
         if (!accessToken) {
             notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar o roteiro.' });
             return;
         }
+        if (submitting) return;
         const issues = validateForSubmission(form);
         if (issues.length) {
             // Na etapa Revisão (última), o card de pendências já está visível.
@@ -287,6 +318,10 @@ export default function NewItineraryScreen() {
             if (isLastStep) {
                 haptics.error?.();
                 const firstIssue = issues[0];
+                notify({
+                    title: 'Corrija as pendências antes de enviar',
+                    message: firstIssue.message,
+                });
                 const targetKey = ISSUE_SECTION_TO_STEP[firstIssue.section];
                 if (targetKey) {
                     const targetIndex = steps.indexOf(targetKey);
@@ -305,6 +340,13 @@ export default function NewItineraryScreen() {
             }
             return;
         }
+        if (hasPendingLocalUpload(form)) {
+            notify({
+                title: 'Upload em andamento',
+                message: 'Aguarde o envio dos arquivos terminar antes de enviar para análise.',
+            });
+            return;
+        }
         setSubmitting(true);
         try {
             const payload = { ...buildPayload(form), status: 'PENDING_REVIEW' };
@@ -317,7 +359,12 @@ export default function NewItineraryScreen() {
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({} as any));
-                throw new Error(err?.error || 'Falha ao enviar o roteiro');
+                const fallback = res.status === 401
+                    ? 'Você precisa estar logado para enviar o roteiro.'
+                    : res.status === 400
+                        ? 'Há informações inválidas no roteiro. Revise os campos destacados.'
+                        : 'Não foi possível enviar o roteiro para análise agora. Tente novamente.';
+                throw new Error(err?.error || fallback);
             }
             haptics.success();
             await AsyncStorage.removeItem(DRAFT_KEY);
@@ -337,7 +384,27 @@ export default function NewItineraryScreen() {
             // Salva o estado atual do form numa chave dedicada (PREVIEW_KEY).
             // A tela /itinerary-preview lê dali. Isso evita passar o form
             // gigante por router params.
-            await AsyncStorage.setItem('@vamo_preview_itinerary', JSON.stringify(form));
+            //
+            // PRIVACIDADE: travelProofUrl é o comprovante de viagem (admin-only).
+            // Removemos do payload da prévia para garantir que nenhum render
+            // futuro vaze por acidente. proofFiles dentro dos módulos seguem
+            // o mesmo princípio — só usamos os 3 campos públicos de mídia.
+            const { travelProofUrl: _omitProof, ...publicForm } = form;
+            // Normaliza arrays de mídia: garante string[] mesmo se o estado
+            // legado ou erros vierem com itens não-string. Isto blinda o
+            // CoverCarousel/MediaGallery contra entradas {url}, null, etc.
+            const normalizeUrls = (v: unknown): string[] =>
+                Array.isArray(v)
+                    ? v.map((x: any) => (typeof x === 'string' ? x : (x?.url ?? '')))
+                        .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+                    : [];
+            const payload = {
+                ...publicForm,
+                highlightPhotos: normalizeUrls(form.highlightPhotos),
+                images: normalizeUrls(form.images),
+                mediaUrls: normalizeUrls(form.mediaUrls),
+            };
+            await AsyncStorage.setItem('@vamo_preview_itinerary', JSON.stringify(payload));
             router.push('/itinerary-preview');
         } catch (e: any) {
             Alert.alert('Erro', e?.message || 'Não foi possível abrir a prévia.');
@@ -587,6 +654,53 @@ function parseHHMM(hhmm: string): { h: number; m: number } | null {
     return { h, m };
 }
 
+/**
+ * Normaliza um link informado pelo usuário:
+ *   "www.example.com"     → "https://www.example.com"
+ *   "example.com/x"       → "https://example.com/x"
+ *   "http://example.com"  → mantido
+ *   "https://example.com" → mantido
+ *   ""                    → ""
+ * Não valida estrutura — só garante esquema. Para validação real,
+ * use validateOptionalUrl().
+ */
+function normalizeUrl(raw: string): string {
+    const s = (raw || '').trim();
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s)) return s;
+    return `https://${s}`;
+}
+
+function validateOptionalUrl(raw: string): boolean {
+    const s = (raw || '').trim();
+    if (!s) return true; // campo opcional
+    try {
+        const normalized = normalizeUrl(s);
+        const u = new URL(normalized);
+        return !!u.hostname && u.hostname.includes('.');
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Quando o usuário escolhe uma "data de fim" anterior à "data de início",
+ * empurramos a data de fim para igualar a de início e notificamos. Mantém
+ * o setter genérico — basta passar a key correta (ex: 'endDate').
+ *
+ * Retorna o ISO efetivamente aplicado (igual a startDate se houve clamp).
+ */
+function clampEndAfterStart(startIso: string, endIso: string): { iso: string; clamped: boolean } {
+    if (!startIso || !endIso) return { iso: endIso, clamped: false };
+    const start = parseISODate(startIso);
+    const end = parseISODate(endIso);
+    if (!start || !end) return { iso: endIso, clamped: false };
+    if (end.getTime() < start.getTime()) {
+        return { iso: startIso, clamped: true };
+    }
+    return { iso: endIso, clamped: false };
+}
+
 function DatePickerField({
     label, value, onChange, required, placeholder = 'Selecionar data',
 }: {
@@ -599,6 +713,7 @@ function DatePickerField({
     const [open, setOpen] = useState(false);
     // Estado temporário do picker iOS — só commita no "Confirmar".
     const [tempDate, setTempDate] = useState<Date>(() => parseISODate(value) || new Date());
+    const webInputRef = useRef<any>(null);
     const display = value ? formatDateBR(value) : '';
 
     function openPicker() {
@@ -619,6 +734,67 @@ function DatePickerField({
             // o estado temporário; commit no botão "Confirmar".
             if (selected) setTempDate(selected);
         }
+    }
+
+    // Web: input nativo HTML invisível sobreposto à área tocável. O clique
+    // cai no <input>, que tenta showPicker() (Chrome/Edge modernos) e, como
+    // fallback, abre o picker via foco/clique normal. Sem Modal.
+    if (Platform.OS === 'web') {
+        return (
+            <View style={s.pickerFieldWrap}>
+                <Text style={s.label}>
+                    {label}
+                    {required && <Text style={s.requiredAsterisk}> *</Text>}
+                </Text>
+                <View style={{ position: 'relative', flexDirection: 'row', alignItems: 'stretch', gap: 6 }}>
+                    {/* @ts-ignore — div nativo com :focus-within ring para a11y de teclado */}
+                    <div
+                        style={{
+                            flex: 1,
+                            position: 'relative',
+                            borderRadius: 12,
+                        }}
+                        className="vamo-picker-focus-ring"
+                    >
+                        <View style={[s.pickerFieldTouchable, { flex: 1, position: 'relative' }]}>
+                            <Ionicons name="calendar-outline" size={16} color={theme.colors.primary} />
+                            <Text style={[s.pickerFieldText, !value && s.pickerFieldPlaceholder]}>
+                                {display || placeholder}
+                            </Text>
+                            {/* @ts-ignore — input HTML nativo no Expo Web */}
+                            <input
+                                ref={webInputRef}
+                                type="date"
+                                aria-label={label}
+                                value={value || ''}
+                                onChange={(e: any) => onChange(e?.target?.value || '')}
+                                onClick={() => { try { webInputRef.current?.showPicker?.(); } catch {} }}
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    opacity: 0,
+                                    cursor: 'pointer',
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    background: 'transparent',
+                                }}
+                            />
+                        </View>
+                    {/* @ts-ignore */}
+                    </div>
+                    {!!value && (
+                        <TouchableOpacity
+                            style={s.pickerClearBtn}
+                            onPress={() => onChange('')}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="close" size={16} color={theme.colors.text.tertiary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+        );
     }
 
     return (
@@ -696,220 +872,18 @@ function DatePickerField({
                     onChange={onPickerChange}
                 />
             )}
-
-            {/* Web — modal com input nativo type="date" (DateTimePicker não funciona em web) */}
-            {open && Platform.OS === 'web' && (
-                <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
-                    <TouchableOpacity
-                        style={s.pickerModalBg}
-                        activeOpacity={1}
-                        onPress={() => setOpen(false)}
-                    >
-                        <TouchableOpacity activeOpacity={1} style={s.pickerModalCard}>
-                            <Text style={s.pickerModalTitle}>{label}</Text>
-                            {/* @ts-ignore — input HTML nativo no Expo Web */}
-                            <input
-                                type="date"
-                                value={value || toISODate(tempDate)}
-                                onChange={(e: any) => {
-                                    const iso = e?.target?.value || '';
-                                    if (iso) {
-                                        const d = parseISODate(iso);
-                                        if (d) setTempDate(d);
-                                    }
-                                }}
-                                style={{
-                                    fontSize: 16,
-                                    padding: 12,
-                                    borderRadius: 10,
-                                    border: `1.5px solid ${theme.colors.borderLight}`,
-                                    width: '100%',
-                                    marginBottom: 12,
-                                }}
-                            />
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
-                                <TouchableOpacity style={s.modalBtnGhost} onPress={() => setOpen(false)}>
-                                    <Text style={s.modalBtnGhostText}>Cancelar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={s.modalBtnPrimary}
-                                    onPress={() => {
-                                        onChange(toISODate(tempDate));
-                                        setOpen(false);
-                                    }}
-                                >
-                                    <Text style={s.modalBtnPrimaryText}>Confirmar</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableOpacity>
-                    </TouchableOpacity>
-                </Modal>
-            )}
         </View>
     );
 }
 
-function TimePickerField({
-    label, value, onChange, required, placeholder = 'Selecionar horário',
-}: {
+function TimePickerField(props: {
     label: string;
     value: string; // HH:MM
     onChange: (hhmm: string) => void;
     required?: boolean;
     placeholder?: string;
 }) {
-    const [open, setOpen] = useState(false);
-    const [tempTime, setTempTime] = useState<Date>(() => {
-        const d = new Date();
-        const parsed = parseHHMM(value);
-        if (parsed) { d.setHours(parsed.h, parsed.m, 0, 0); }
-        else { d.setHours(9, 0, 0, 0); }
-        return d;
-    });
-
-    function openPicker() {
-        const d = new Date();
-        const parsed = parseHHMM(value);
-        if (parsed) { d.setHours(parsed.h, parsed.m, 0, 0); }
-        else { d.setHours(9, 0, 0, 0); }
-        setTempTime(d);
-        setOpen(true);
-    }
-
-    function onPickerChange(event: DateTimePickerEvent, selected?: Date) {
-        if (Platform.OS === 'android') {
-            setOpen(false);
-            if (event.type === 'set' && selected) {
-                const hh = String(selected.getHours()).padStart(2, '0');
-                const mm = String(selected.getMinutes()).padStart(2, '0');
-                onChange(`${hh}:${mm}`);
-            }
-        } else {
-            if (selected) setTempTime(selected);
-        }
-    }
-
-    function commitTime() {
-        const hh = String(tempTime.getHours()).padStart(2, '0');
-        const mm = String(tempTime.getMinutes()).padStart(2, '0');
-        onChange(`${hh}:${mm}`);
-        setOpen(false);
-    }
-
-    return (
-        <View style={s.pickerFieldWrap}>
-            <Text style={s.label}>
-                {label}
-                {required && <Text style={s.requiredAsterisk}> *</Text>}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <TouchableOpacity
-                    style={[s.pickerFieldTouchable, { minWidth: 120, alignSelf: 'flex-start', flex: 1 }]}
-                    onPress={openPicker}
-                    activeOpacity={0.75}
-                >
-                    <Clock size={16} color={theme.colors.primary} />
-                    <Text style={[s.pickerFieldText, !value && s.pickerFieldPlaceholder]}>
-                        {value || placeholder}
-                    </Text>
-                </TouchableOpacity>
-                {!!value && (
-                    <TouchableOpacity onPress={() => onChange('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <X size={16} color={theme.colors.text.tertiary} />
-                    </TouchableOpacity>
-                )}
-            </View>
-
-            {/* iOS — spinner em modal com botão Confirmar */}
-            {open && Platform.OS === 'ios' && (
-                <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
-                    <TouchableOpacity
-                        style={s.pickerModalBg}
-                        activeOpacity={1}
-                        onPress={() => setOpen(false)}
-                    >
-                        <TouchableOpacity activeOpacity={1} style={s.pickerModalCard}>
-                            <Text style={s.pickerModalTitle}>{label}</Text>
-                            <DateTimePicker
-                                value={tempTime}
-                                mode="time"
-                                display="spinner"
-                                onChange={onPickerChange}
-                                themeVariant="light"
-                                is24Hour
-                            />
-                            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                                <TouchableOpacity style={s.modalBtnGhost} onPress={() => setOpen(false)}>
-                                    <Text style={s.modalBtnGhostText}>Cancelar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={s.modalBtnPrimary} onPress={commitTime}>
-                                    <Text style={s.modalBtnPrimaryText}>Confirmar</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableOpacity>
-                    </TouchableOpacity>
-                </Modal>
-            )}
-
-            {/* Android — dialog nativo padrão */}
-            {open && Platform.OS === 'android' && (
-                <DateTimePicker
-                    value={tempTime}
-                    mode="time"
-                    display="default"
-                    onChange={onPickerChange}
-                    is24Hour
-                />
-            )}
-
-            {/* Web — modal com input nativo type="time" */}
-            {open && Platform.OS === 'web' && (
-                <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
-                    <TouchableOpacity
-                        style={s.pickerModalBg}
-                        activeOpacity={1}
-                        onPress={() => setOpen(false)}
-                    >
-                        <TouchableOpacity activeOpacity={1} style={s.pickerModalCard}>
-                            <Text style={s.pickerModalTitle}>{label}</Text>
-                            {/* @ts-ignore — input HTML nativo no Expo Web */}
-                            <input
-                                type="time"
-                                value={value || `${String(tempTime.getHours()).padStart(2,'0')}:${String(tempTime.getMinutes()).padStart(2,'0')}`}
-                                onChange={(e: any) => {
-                                    const hhmm = e?.target?.value || '';
-                                    if (hhmm) {
-                                        const parsed = parseHHMM(hhmm);
-                                        if (parsed) {
-                                            const d = new Date();
-                                            d.setHours(parsed.h, parsed.m, 0, 0);
-                                            setTempTime(d);
-                                        }
-                                    }
-                                }}
-                                style={{
-                                    fontSize: 16,
-                                    padding: 12,
-                                    borderRadius: 10,
-                                    border: `1.5px solid ${theme.colors.borderLight}`,
-                                    width: '100%',
-                                    marginBottom: 12,
-                                }}
-                            />
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
-                                <TouchableOpacity style={s.modalBtnGhost} onPress={() => setOpen(false)}>
-                                    <Text style={s.modalBtnGhostText}>Cancelar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={s.modalBtnPrimary} onPress={commitTime}>
-                                    <Text style={s.modalBtnPrimaryText}>Confirmar</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableOpacity>
-                    </TouchableOpacity>
-                </Modal>
-            )}
-        </View>
-    );
+    return <VamoTimePicker {...props} minuteStep={5} />;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1273,47 +1247,47 @@ function StepIdentity({ form, update }: StepProps) {
 
 function StepProof({ form, update, token }: StepProps & { token: string | null | undefined }) {
     const [uploading, setUploading] = useState(false);
+    const [uploadStage, setUploadStage] = useState<'idle' | 'preparing' | 'uploading'>('idle');
     const [error, setError] = useState<string | null>(null);
     const [meta, setMeta] = useState<{ name: string; size?: number } | null>(null);
 
     async function pickProof() {
         setError(null);
         try {
-            if (Platform.OS !== 'web') {
-                const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (!perm.granted) {
-                    setError('Precisamos de acesso à sua galeria para anexar o comprovante.');
-                    return;
-                }
-            }
-            const res = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                quality: 0.85,
-                allowsEditing: false,
+            const res = await DocumentPicker.getDocumentAsync({
+                type: acceptAttributeFor('travelProof'),
+                multiple: false,
+                copyToCacheDirectory: true,
             });
             if (res.canceled || !res.assets?.[0]) return;
             const asset = res.assets[0];
-            const name = (asset as any).fileName || asset.uri.split('/').pop()?.split('?')[0] || `comprovante-${Date.now()}.jpg`;
-            const size = (asset as any).fileSize as number | undefined;
-            const mime = (asset as any).mimeType as string | undefined;
+            const name = asset.name || asset.uri.split('/').pop()?.split('?')[0] || `comprovante-${Date.now()}`;
+            const size = asset.size;
+            const mime = asset.mimeType;
 
-            // Validação de tamanho (limite 25MB do backend)
-            if (size && size > 25 * 1024 * 1024) {
-                setError(`Arquivo muito grande (${(size / (1024 * 1024)).toFixed(1)} MB). Máximo: 25 MB.`);
-                return;
-            }
+            // Valida formato + tamanho no contexto travelProof
+            // (aceita imagens incl. HEIC, ou PDF; até 25 MB).
+            setUploading(true);
+            setUploadStage('preparing');
+            const validation = validateUploadFile(
+                { uri: asset.uri, filename: name, mime, size },
+                'travelProof',
+            );
+            if (!validation.valid) { setError(validation.reason); return; }
+
             console.log('[proof] arquivo selecionado', { name, size, mime, uri: asset.uri.slice(0, 80) });
             setMeta({ name, size });
-            setUploading(true);
-            const url = await uploadOne(asset.uri, token, name, mime);
+            setUploadStage('uploading');
+            const url = await uploadOne(asset.uri, token, name, mime, 'travelProof');
             update('travelProofUrl', url);
         } catch (e: any) {
-            const msg = e?.message || 'Não foi possível enviar o comprovante. Tente novamente.';
+            const msg = e?.message || 'Não foi possível enviar o arquivo. Verifique sua conexão e tente novamente.';
             console.warn('[proof] erro:', msg);
             setError(msg);
             setMeta(null);
         } finally {
             setUploading(false);
+            setUploadStage('idle');
         }
     }
 
@@ -1325,7 +1299,9 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
 
     const hasProof = !!form.travelProofUrl;
     // Detecta se é PDF a partir da URL salva
-    const isPdf = hasProof && /\.pdf(\?|$)/i.test(form.travelProofUrl);
+    const proofLower = form.travelProofUrl.split('?')[0].toLowerCase();
+    const isPdf = hasProof && proofLower.endsWith('.pdf');
+    const isHeic = hasProof && /\.(heic|heif)$/i.test(proofLower);
 
     return (
         <View>
@@ -1359,9 +1335,9 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
 
             {hasProof ? (
                 <View style={s.proofCard}>
-                    {isPdf ? (
+                    {isPdf || isHeic ? (
                         <View style={[s.proofImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#fef3c7' }]}>
-                            <Ionicons name="document-text" size={28} color="#92400e" />
+                            <Ionicons name={isPdf ? 'document-text' : 'image-outline'} size={28} color="#92400e" />
                         </View>
                     ) : (
                         <Image source={{ uri: form.travelProofUrl }} style={s.proofImg} resizeMode="cover" />
@@ -1389,7 +1365,9 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                     {uploading ? (
                         <>
                             <ActivityIndicator color={theme.colors.primary} />
-                            <Text style={s.uploadText}>Enviando…</Text>
+                            <Text style={s.uploadText}>
+                                {uploadStage === 'preparing' ? 'Preparando arquivo...' : 'Enviando...'}
+                            </Text>
                             {meta?.name && (
                                 <Text style={s.uploadHint} numberOfLines={1}>{meta.name}</Text>
                             )}
@@ -1398,7 +1376,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                         <>
                             <Ionicons name="cloud-upload-outline" size={36} color={theme.colors.primary} />
                             <Text style={s.uploadText}>Selecionar Arquivo</Text>
-                            <Text style={s.uploadHint}>JPG, PNG, WEBP · até 25 MB</Text>
+                            <Text style={s.uploadHint}>{uploadHint('travelProof')}</Text>
                         </>
                     )}
                 </TouchableOpacity>
@@ -1423,13 +1401,12 @@ function StepCommerce({ form, update }: StepProps) {
         <View>
             <SectionHeader title="Estrutura Comercial" subtitle="Defina o preço do seu roteiro." />
 
-            <FormInput
+            <MoneyInput
                 label="Preço"
                 required
-                keyboardType="decimal-pad"
                 placeholder="Ex: 89,90"
-                value={form.price ? String(form.price) : ''}
-                onChangeText={v => update('price', Math.max(0, parseFloat(v.replace(',', '.')) || 0))}
+                value={form.price > 0 ? form.price : ''}
+                onChangeNumber={n => update('price', Math.max(0, n))}
             />
 
             {/* Aviso automático — produto digital */}
@@ -1529,12 +1506,8 @@ function emptyDay(n: number): Day {
 function dayHasContent(d: Day): boolean {
     return !!(d.description?.trim() || d.title?.trim() || (d.activities && d.activities.length > 0));
 }
-
-function dayIsComplete(d: Day): boolean {
-    return !!d.description?.trim()
-        && Array.isArray(d.activities) && d.activities.length > 0
-        && d.activities.every(a => !!a.title?.trim());
-}
+// `dayIsComplete` agora vem de `@vamo/shared/itinerary` — fonte única
+// de verdade entre o form (UI) e a validação de envio.
 
 function parseActivityDuration(raw: string): { num: number; unit: 'min' | 'h' | 'd' } {
     const m = (raw || '').match(/^(\d+)\s*(min|h|d)?$/i);
@@ -1861,10 +1834,43 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             style={{ minHeight: 60, textAlignVertical: 'top' }}
                         />
                         <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                            <DatePickerField label="Check-in"  value={item.startDate} onChange={v => set({ startDate: v })} />
-                            <DatePickerField label="Check-out" value={item.endDate}   onChange={v => set({ endDate: v })} />
+                            <DatePickerField label="Check-in"  value={item.startDate} onChange={v => {
+                                const next: Partial<Accommodation> = { startDate: v };
+                                // Se já existe um check-out anterior à nova data de início, ajusta.
+                                if (item.endDate && v) {
+                                    const r = clampEndAfterStart(v, item.endDate);
+                                    if (r.clamped) {
+                                        next.endDate = r.iso;
+                                        notify({ title: 'Data ajustada', message: 'A data de fim não pode ser anterior à data de início.' });
+                                    }
+                                }
+                                set(next);
+                            }} />
+                            <DatePickerField label="Check-out" value={item.endDate}   onChange={v => {
+                                const r = clampEndAfterStart(item.startDate, v);
+                                if (r.clamped) {
+                                    notify({ title: 'Data ajustada', message: 'A data de fim não pode ser anterior à data de início.' });
+                                }
+                                set({ endDate: r.iso });
+                            }} />
                         </View>
-                        <FormInput label="Link externo (Booking, Hostelworld...)" placeholder="Ex: https://booking.com/hotel/..." autoCapitalize="none" value={item.externalLink} onChangeText={v => set({ externalLink: v })} />
+                        <FormInput
+                            label="Link da hospedagem"
+                            placeholder="Ex: Booking, site do hotel, Airbnb"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            keyboardType="url"
+                            value={item.externalLink}
+                            onChangeText={v => set({ externalLink: v })}
+                            onBlur={() => {
+                                if (item.externalLink && !validateOptionalUrl(item.externalLink)) {
+                                    notify({ title: 'Link inválido', message: 'Informe um link válido ou deixe o campo em branco.' });
+                                } else if (item.externalLink) {
+                                    const normalized = normalizeUrl(item.externalLink);
+                                    if (normalized !== item.externalLink) set({ externalLink: normalized });
+                                }
+                            }}
+                        />
                         <FormInput
                             label="Dica extra"
                             placeholder="Ex: Peça o quarto no último andar para ter vista..."
@@ -1879,7 +1885,7 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             defaultCurrency={form.currency || 'AUD'}
                             helperShort="Valor por pessoa da estadia. Comprovante (reserva, recibo) aumenta a confiança."
                             encourageProof
-                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                         />
                     </>
                 )}
@@ -1925,8 +1931,24 @@ function StepAttractions({ form, update, token }: StepProps) {
                             <FormInput label="Nome do local ou endereço" placeholder="Ex: Champ de Mars, 5 Ave..." value={item.location} onChangeText={v => set({ location: v })} />
                             <FormInput label="Link do Google Maps" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
                             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                                <DatePickerField label="Data de Início" value={item.startDate} onChange={v => set({ startDate: v })} />
-                                <DatePickerField label="Data de Fim"    value={item.endDate}   onChange={v => set({ endDate: v })} />
+                                <DatePickerField label="Data de Início" value={item.startDate} onChange={v => {
+                                    const next: Partial<AttractionItem> = { startDate: v };
+                                    if (item.endDate && v) {
+                                        const r = clampEndAfterStart(v, item.endDate);
+                                        if (r.clamped) {
+                                            next.endDate = r.iso;
+                                            notify({ title: 'Data ajustada', message: 'A data de fim não pode ser anterior à data de início.' });
+                                        }
+                                    }
+                                    set(next);
+                                }} />
+                                <DatePickerField label="Data de Fim"    value={item.endDate}   onChange={v => {
+                                    const r = clampEndAfterStart(item.startDate, v);
+                                    if (r.clamped) {
+                                        notify({ title: 'Data ajustada', message: 'A data de fim não pode ser anterior à data de início.' });
+                                    }
+                                    set({ endDate: r.iso });
+                                }} />
                             </View>
                             <Text style={s.label}>Duração</Text>
                             <QuantityStepper
@@ -1947,7 +1969,24 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 onChangeText={v => set({ description: v })}
                                 style={{ minHeight: 60, textAlignVertical: 'top' }}
                             />
-                            <FormInput label="Link externo" placeholder="Ex: www.toureiffel.paris" autoCapitalize="none" value={item.externalLink} onChangeText={v => set({ externalLink: v })} />
+                            <FormInput
+                                label="Link de compra ou reserva"
+                                placeholder="Ex: site oficial, ingresso ou reserva"
+                                hint="Onde você comprou, reservou ou recomenda consultar a atração."
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                keyboardType="url"
+                                value={item.externalLink}
+                                onChangeText={v => set({ externalLink: v })}
+                                onBlur={() => {
+                                    if (item.externalLink && !validateOptionalUrl(item.externalLink)) {
+                                        notify({ title: 'Link inválido', message: 'Informe um link válido ou deixe o campo em branco.' });
+                                    } else if (item.externalLink) {
+                                        const normalized = normalizeUrl(item.externalLink);
+                                        if (normalized !== item.externalLink) set({ externalLink: normalized });
+                                    }
+                                }}
+                            />
                             {/* Horário recomendado: apenas o horário inicial.
                                 Mantemos o formato "HH:MM" em item.hours para preservar o payload. */}
                             {(() => {
@@ -1980,7 +2019,7 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 defaultCurrency={form.currency || 'AUD'}
                                 helperShort="Valor por pessoa do ingresso/passeio. Para passeios caros, comprovante aumenta a confiança."
                                 encourageProof
-                                uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                                uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                             />
                         </>
                     );
@@ -2041,7 +2080,7 @@ function StepTransport({ form, update, token }: StepProps) {
                             defaultCurrency={form.currency || 'AUD'}
                             helperShort="Valor por pessoa do passe/transporte — opcional. Use estimativa para transporte local."
                             encourageProof
-                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                         />
                     </>
                 )}
@@ -2094,7 +2133,23 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             <TimePickerField label="Horário" value={item.hoursStart} onChange={v => set({ hoursStart: v })} placeholder="11:00" />
                             <DatePickerField label="Data"    value={item.startDate}  onChange={v => set({ startDate: v })} />
                         </View>
-                        <FormInput label="Link externo (Google Maps, reserva)" placeholder="Ex: https://..." autoCapitalize="none" value={item.externalLink} onChangeText={v => set({ externalLink: v })} />
+                        <FormInput
+                            label="Link do restaurante"
+                            placeholder="Ex: site, cardápio ou reserva"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            keyboardType="url"
+                            value={item.externalLink}
+                            onChangeText={v => set({ externalLink: v })}
+                            onBlur={() => {
+                                if (item.externalLink && !validateOptionalUrl(item.externalLink)) {
+                                    notify({ title: 'Link inválido', message: 'Informe um link válido ou deixe o campo em branco.' });
+                                } else if (item.externalLink) {
+                                    const normalized = normalizeUrl(item.externalLink);
+                                    if (normalized !== item.externalLink) set({ externalLink: normalized });
+                                }
+                            }}
+                        />
                         <FormInput
                             label="Dicas de experiência"
                             placeholder="Ex: Chegue cedo ou faça reserva, o local lota rápido..."
@@ -2109,7 +2164,7 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             defaultCurrency={form.currency || 'AUD'}
                             helperShort="Valor por pessoa da refeição — opcional. Use estimativa quando o preço varia."
                             encourageProof
-                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                            uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                         />
                     </>
                 )}
@@ -2184,7 +2239,7 @@ function StepFlight({ form, update, token }: StepProps) {
                 defaultCurrency={form.currency || 'AUD'}
                 helperShort="Valor da passagem por pessoa — opcional. Reserva/recibo aumenta a confiança."
                 encourageProof
-                uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
             />
         </View>
     );
@@ -2405,7 +2460,7 @@ function StepExtraSpending({ form, update, token }: StepProps) {
                         defaultCurrency={form.currency || 'AUD'}
                         helperShort="Gastos variáveis (chip, taxas, gorjetas) costumam ser estimativas."
                         encourageProof
-                        uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime)}
+                        uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                     />
                 </View>
             ))}
@@ -2422,9 +2477,7 @@ function StepExtraSpending({ form, update, token }: StepProps) {
 // STEP 8 — MÍDIA
 // ═══════════════════════════════════════════════════════════════════
 
-const MAX_IMAGE_UPLOAD_BYTES = 25 * 1024 * 1024;
-const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-const ALLOWED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
+// Allow-lists, limites e mensagens vêm de uploadContexts.ts.
 
 function getPickedAssetFileInfo(asset: ImagePicker.ImagePickerAsset, fallbackPrefix: string) {
     const filename = (asset as any).fileName
@@ -2436,24 +2489,29 @@ function getPickedAssetFileInfo(asset: ImagePicker.ImagePickerAsset, fallbackPre
     return { filename, size, mime, ext };
 }
 
-function validatePickedImage(asset: ImagePicker.ImagePickerAsset, index: number): string | null {
-    const { filename, size, mime, ext } = getPickedAssetFileInfo(asset, `foto-${index + 1}`);
-    if (size && size > MAX_IMAGE_UPLOAD_BYTES) {
-        return `${filename}: arquivo muito grande (${(size / (1024 * 1024)).toFixed(1)} MB). Máximo: 25 MB.`;
-    }
-
-    const hasKnownType = Boolean(mime || ext);
-    const allowed = (mime && ALLOWED_IMAGE_MIME_TYPES.has(mime)) || (ext && ALLOWED_IMAGE_EXTENSIONS.has(ext));
-    if (hasKnownType && !allowed) {
-        return `${filename}: formato não suportado. Use JPG, PNG, WEBP ou GIF.`;
-    }
-
-    return null;
+/**
+ * Valida um asset do ImagePicker contra o contexto da galeria/capa.
+ * Cover só aceita imagens; gallery aceita imagens + vídeos.
+ */
+function validatePickedAsset(
+    asset: ImagePicker.ImagePickerAsset,
+    index: number,
+    slot: 'cover' | 'gallery',
+): string | null {
+    const { filename, size, mime } = getPickedAssetFileInfo(asset, `foto-${index + 1}`);
+    const context = slot === 'cover' ? 'routeCoverMedia' : 'routeGalleryMedia';
+    const result = validateUploadFile({ uri: asset.uri, filename, mime, size }, context);
+    if (result.valid) return null;
+    return `${filename}: ${result.reason}`;
 }
 
 function StepMedia({ form, update, token }: StepProps & { token: string | null | undefined }) {
     const [uploadingCover, setUploadingCover] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
+    const galleryItems = [
+        ...form.images.map(url => ({ url, source: 'images' as const })),
+        ...form.mediaUrls.map(url => ({ url, source: 'mediaUrls' as const })),
+    ].slice(0, 10);
 
     async function pickAndUpload(slot: 'cover' | 'gallery') {
         if (Platform.OS !== 'web') {
@@ -2462,20 +2520,42 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
                 Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.'); return;
             }
         }
+        // Capa só aceita imagens; galeria aceita imagens + vídeos
+        // (MP4/MOV do iPhone, WEBM do Android/Web).
         const res = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: slot === 'cover'
+                ? ImagePicker.MediaTypeOptions.Images
+                : ImagePicker.MediaTypeOptions.All,
             quality: 0.85, allowsMultipleSelection: true, selectionLimit: 5,
         });
         if (res.canceled || !res.assets) return;
-        const validAssets: ImagePicker.ImagePickerAsset[] = [];
+        const validAssets: Array<{
+            asset: ImagePicker.ImagePickerAsset;
+            filename: string;
+            mime?: string;
+            mediaType: 'image' | 'video' | 'document';
+        }> = [];
         const validationFailures: string[] = [];
         res.assets.forEach((asset, index) => {
-            const error = validatePickedImage(asset, index);
-            if (error) validationFailures.push(error);
-            else validAssets.push(asset);
+            const info = getPickedAssetFileInfo(asset, `foto-${index + 1}`);
+            const context = slot === 'cover' ? 'routeCoverMedia' : 'routeGalleryMedia';
+            const validation = validateUploadFile(
+                { uri: asset.uri, filename: info.filename, mime: info.mime, size: info.size },
+                context,
+            );
+            if (!validation.valid) {
+                validationFailures.push(`${info.filename}: ${validation.reason}`);
+                return;
+            }
+            validAssets.push({
+                asset,
+                filename: validation.filename,
+                mime: validation.mimeType,
+                mediaType: validation.mediaType,
+            });
         });
         if (validationFailures.length > 0) {
-            Alert.alert('Algumas fotos não podem ser enviadas', validationFailures.join('\n'));
+            Alert.alert('Alguns arquivos não podem ser enviados', validationFailures.join('\n'));
         }
         if (validAssets.length === 0) return;
 
@@ -2484,27 +2564,41 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
         try {
             // Upload em paralelo, mas com tolerância a falhas individuais
             const settled = await Promise.allSettled(
-                validAssets.map((a, index) => {
-                    const info = getPickedAssetFileInfo(a, `foto-${index + 1}`);
+                validAssets.map(item => {
                     return uploadOne(
-                        a.uri,
+                        item.asset.uri,
                         token,
-                        info.filename,
-                        info.mime || undefined,
+                        item.filename,
+                        item.mime || undefined,
+                        slot === 'cover' ? 'routeCoverMedia' : 'routeGalleryMedia',
                     );
                 })
             );
-            const fresh: string[] = [];
+            const freshImages: string[] = [];
+            const freshVideos: string[] = [];
             const failures: string[] = [];
             settled.forEach((r, i) => {
-                if (r.status === 'fulfilled') fresh.push(r.value);
-                else failures.push(`Foto ${i + 1}: ${r.reason?.message || 'erro desconhecido'}`);
+                if (r.status === 'fulfilled') {
+                    if (validAssets[i]?.mediaType === 'video') freshVideos.push(r.value);
+                    else freshImages.push(r.value);
+                } else {
+                    failures.push(`Arquivo ${i + 1}: ${r.reason?.message || 'erro desconhecido'}`);
+                }
             });
-            if (slot === 'cover') update('highlightPhotos', [...form.highlightPhotos, ...fresh].slice(0, 3));
-            else update('images', [...form.images, ...fresh].slice(0, 10));
+            if (slot === 'cover') {
+                update('highlightPhotos', [...form.highlightPhotos, ...freshImages].slice(0, 3));
+            } else {
+                const currentCount = galleryItems.length;
+                const remaining = Math.max(0, 10 - currentCount);
+                const accepted = [...freshImages, ...freshVideos].slice(0, remaining);
+                const acceptedImages = accepted.filter(url => !isVideoUrl(url));
+                const acceptedVideos = accepted.filter(url => isVideoUrl(url));
+                if (acceptedImages.length) update('images', [...form.images, ...acceptedImages].slice(0, 10));
+                if (acceptedVideos.length) update('mediaUrls', [...form.mediaUrls, ...acceptedVideos].slice(0, 10));
+            }
             if (failures.length > 0) {
                 Alert.alert(
-                    `${failures.length} foto(s) não enviada(s)`,
+                    `${failures.length} arquivo(s) não enviado(s)`,
                     failures.join('\n'),
                 );
             }
@@ -2517,7 +2611,12 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
 
     function removeImg(slot: 'cover' | 'gallery', idx: number) {
         if (slot === 'cover') update('highlightPhotos', form.highlightPhotos.filter((_, i) => i !== idx));
-        else update('images', form.images.filter((_, i) => i !== idx));
+        else {
+            const item = galleryItems[idx];
+            if (!item) return;
+            if (item.source === 'images') update('images', form.images.filter(url => url !== item.url));
+            else update('mediaUrls', form.mediaUrls.filter(url => url !== item.url));
+        }
     }
 
     return (
@@ -2549,15 +2648,25 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
 
             <Text style={[s.repeaterTitle, { marginTop: 20 }]}>Galeria (até 10 fotos)</Text>
             <View style={s.imgGrid}>
-                {form.images.map((url, i) => (
+                {galleryItems.map((item, i) => (
                     <View key={i} style={s.imgThumbWrap}>
-                        <Image source={{ uri: url }} style={s.imgThumb} resizeMode="cover" />
+                        {isVideoUrl(item.url) ? (
+                            <View style={[s.imgThumb, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }]}>
+                                <Ionicons name="play-circle" size={32} color="#fff" />
+                            </View>
+                        ) : /\.(heic|heif)(\?|$)/i.test(item.url) ? (
+                            <View style={[s.imgThumb, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff' }]}>
+                                <Ionicons name="image-outline" size={28} color={theme.colors.primary} />
+                            </View>
+                        ) : (
+                            <Image source={{ uri: item.url }} style={s.imgThumb} resizeMode="cover" />
+                        )}
                         <TouchableOpacity style={s.imgRemove} onPress={() => removeImg('gallery', i)}>
                             <Ionicons name="close" size={14} color="#fff" />
                         </TouchableOpacity>
                     </View>
                 ))}
-                {form.images.length < 10 && (
+                {galleryItems.length < 10 && (
                     <TouchableOpacity style={s.imgAdd} onPress={() => pickAndUpload('gallery')} disabled={uploadingGallery}>
                         {uploadingGallery ? <ActivityIndicator color={theme.colors.primary} /> : <Ionicons name="add" size={32} color={theme.colors.primary} />}
                     </TouchableOpacity>
@@ -2780,80 +2889,9 @@ async function uploadOne(
     token: string | null | undefined,
     filenameHint?: string,
     mimeHint?: string,
+    context: Parameters<typeof uploadFileUrl>[4] = 'adminAttachment',
 ): Promise<string> {
-    const startedAt = Date.now();
-    const filename = filenameHint || uri.split('/').pop()?.split('?')[0] || `upload-${Date.now()}.jpg`;
-    const ext = (filename.match(/\.(\w+)$/)?.[1] || 'jpg').toLowerCase();
-    const inferredMime = mimeHint
-        || (ext === 'pdf' ? 'application/pdf'
-            : ext === 'png' ? 'image/png'
-            : ext === 'webp' ? 'image/webp'
-            : ext === 'gif' ? 'image/gif'
-            : 'image/jpeg');
-
-    console.log('[upload] iniciando', { filename, mime: inferredMime, platform: Platform.OS });
-
-    // Constrói o FormData (factory para podermos reconstruir no retry —
-    // alguns FormData em RN não são reutilizáveis após uma falha).
-    const buildFormData = async (): Promise<FormData> => {
-        const fd = new FormData();
-        if (Platform.OS === 'web') {
-            const blobRes = await fetch(uri);
-            if (!blobRes.ok) {
-                throw new Error(`Não foi possível ler o arquivo selecionado (HTTP ${blobRes.status}).`);
-            }
-            const blob = await blobRes.blob();
-            console.log('[upload] blob criado', { size: blob.size, type: blob.type });
-            fd.append('file', blob, filename);
-        } else {
-            // @ts-ignore RN-specific form data shape
-            fd.append('file', { uri, name: filename, type: inferredMime });
-        }
-        return fd;
-    };
-
-    // Tentativa principal. Em caso de 401, refresh + 1 retry.
-    let currentToken = token;
-    let res: Response;
-    for (let attempt = 0; attempt < 2; attempt++) {
-        const headers: Record<string, string> = {};
-        if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
-        const formData = await buildFormData();
-        res = await fetch(`${API_BASE}/uploads`, {
-            method: 'POST',
-            headers,
-            body: formData,
-        });
-        if (res.status !== 401 || attempt === 1) break;
-        // 401 na primeira tentativa: tenta refresh
-        console.log('[upload] 401 — tentando refresh do token...');
-        const newToken = await tryRefreshSession();
-        if (!newToken) {
-            console.warn('[upload] refresh falhou — sessão expirada');
-            throw new Error('Sua sessão expirou. Faça login novamente.');
-        }
-        currentToken = newToken;
-        console.log('[upload] token renovado, retentando upload...');
-    }
-
-    const elapsed = Date.now() - startedAt;
-    if (!res!.ok) {
-        let detail = '';
-        try { detail = await res!.text(); } catch {}
-        console.warn('[upload] falhou', { status: res!.status, detail, elapsed });
-        if (res!.status === 401) throw new Error('Sua sessão expirou. Faça login novamente.');
-        if (res!.status === 413) throw new Error('Arquivo muito grande (máx 25 MB).');
-        if (res!.status === 415) throw new Error('Formato de arquivo não suportado.');
-        throw new Error(`Upload falhou (HTTP ${res!.status}). Verifique sua conexão.`);
-    }
-    const data = await res!.json();
-    const url = data.url || data.urls?.[0];
-    if (!url) {
-        console.warn('[upload] resposta sem URL:', data);
-        throw new Error('Servidor não retornou a URL do arquivo.');
-    }
-    console.log('[upload] sucesso', { url, elapsed });
-    return url;
+    return uploadFileUrl(uri, token, filenameHint, mimeHint, context);
 }
 
 // ── Hidratação a partir da API (modo edição) ───────────────────────

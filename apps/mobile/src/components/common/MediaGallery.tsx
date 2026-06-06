@@ -12,7 +12,7 @@
 import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, Image, Modal,
-    FlatList, Dimensions, Platform,
+    FlatList, Dimensions, Platform, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
@@ -80,12 +80,27 @@ export default function MediaGallery({
                         activeOpacity={0.85}
                         onPress={() => setLightboxIndex(idx)}
                     >
-                        <Image
-                            source={{ uri: item.url }}
-                            style={styles.tileImage}
-                            resizeMode="cover"
-                            onError={() => handleError(item.url)}
-                        />
+                        {item.type === 'video' ? (
+                            <View style={[styles.tileImage, styles.videoTile]}>
+                                {Platform.OS === 'web' ? (
+                                    // @ts-ignore video tag is available on React Native Web.
+                                    <video
+                                        src={item.url}
+                                        muted
+                                        playsInline
+                                        preload="metadata"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                ) : null}
+                            </View>
+                        ) : (
+                            <Image
+                                source={{ uri: item.url }}
+                                style={styles.tileImage}
+                                resizeMode="cover"
+                                onError={() => handleError(item.url)}
+                            />
+                        )}
                         {item.type === 'video' && (
                             <View style={styles.videoOverlay}>
                                 <View style={styles.playButton}>
@@ -166,16 +181,26 @@ function Lightbox({
                                     style={[{ width, height: height * 0.85 }, webImageStyle]}
                                     resizeMode="contain"
                                 />
+                            ) : Platform.OS === 'web' ? (
+                                // @ts-ignore video tag is available on React Native Web.
+                                <video
+                                    src={item.url}
+                                    controls
+                                    playsInline
+                                    style={{ width: '100%', maxHeight: height * 0.75, objectFit: 'contain' }}
+                                />
                             ) : (
-                                // Vídeo: por enquanto exibimos placeholder com link externo.
-                                // Player real fica para iteração futura (expo-av).
-                                <View style={styles.videoPlaceholder}>
+                                <TouchableOpacity
+                                    style={styles.videoPlaceholder}
+                                    activeOpacity={0.85}
+                                    onPress={() => Linking.openURL(item.url).catch(() => undefined)}
+                                >
                                     <Ionicons name="play-circle" size={64} color="rgba(255,255,255,0.85)" />
                                     <Text style={styles.videoPlaceholderText}>Vídeo enviado pelo criador</Text>
                                     <Text style={styles.videoPlaceholderHint}>
-                                        Toque novamente para abrir
+                                        Toque para abrir
                                     </Text>
-                                </View>
+                                </TouchableOpacity>
                             )}
                         </View>
                     )}
@@ -247,6 +272,11 @@ const styles = StyleSheet.create({
     tileImage: {
         width: '100%',
         height: '100%',
+    },
+    videoTile: {
+        backgroundColor: '#0f172a',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     videoOverlay: {
         position: 'absolute',

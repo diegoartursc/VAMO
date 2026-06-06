@@ -29,6 +29,14 @@ import PeopleSimulator from '../../src/components/dashboard/PeopleSimulator';
 import MediaGallery from '../../src/components/common/MediaGallery';
 import { getCostReferences, calculateBudgetSummary, formatMoney, type CostReferencesGroup } from '@vamo/shared/itinerary';
 import { openExternalUrl as openSafeExternalUrl } from '../../src/utils/externalLinks';
+import TripCenter from '../../src/features/trip-center/TripCenter';
+import {
+    RouteVersioning,
+    PdfExportSheet,
+    exportRoutePdf,
+    type MergedItinerary,
+} from '../../src/features/route-versioning';
+import { notify } from '../../src/utils/notify';
 
 // AttractionInfo type (inline — no longer from mock)
 type AttractionInfo = {
@@ -94,6 +102,16 @@ export default function PurchasedItineraryScreen() {
      *  `null` = ainda não carregou; `undefined` = carregou e usuário ainda
      *  não avaliou; objeto = review existente. */
     const [userReview, setUserReview] = useState<any | null | undefined>(null);
+
+    // ─── PDF export ────────────────────────────────────────
+    // O botão "Exportar PDF" no header abre o sheet. O sheet escolhe a variante
+    // e usamos snapshot/merged populados pelo RouteVersioning (via onExportPdf)
+    // como fonte de verdade para evitar redownload. Fallback: liveItinerary.
+    const [pdfSheetVisible, setPdfSheetVisible] = useState(false);
+    const pdfDataRef = useRef<{ snapshot: any; merged: MergedItinerary | null }>({
+        snapshot: null,
+        merged: null,
+    });
 
     // Carrega review do usuário a partir da API (substitui o mock antigo)
     useEffect(() => {
@@ -300,6 +318,25 @@ export default function PurchasedItineraryScreen() {
         } catch { }
     };
 
+    const handlePdfSelect = async (variant: 'original' | 'personalized') => {
+        haptics.light();
+        try {
+            const generatedAtISO = new Date().toISOString();
+            const { snapshot, merged } = pdfDataRef.current;
+            await exportRoutePdf({
+                itinerary: snapshot || itinerary,
+                merged: variant === 'personalized' ? merged ?? undefined : undefined,
+                variant,
+                generatedAtISO,
+            });
+        } catch (e: any) {
+            notify({
+                title: 'Não foi possível exportar',
+                message: e?.message || 'Tente novamente em instantes.',
+            });
+        }
+    };
+
     const adjustTravelers = (delta: number) => {
         haptics.light();
         setTravelers(prev => Math.max(1, Math.min(10, prev + delta)));
@@ -342,9 +379,22 @@ export default function PurchasedItineraryScreen() {
                             <Ionicons name="checkmark-circle" size={14} color="#fff" />
                             <Text style={styles.purchasedBadgeText}>ROTEIRO COMPRADO</Text>
                         </Animated.View>
-                        <TouchableOpacity style={styles.navBtn} onPress={handleShare}>
-                            <Ionicons name="share-outline" size={22} color="#fff" />
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TouchableOpacity
+                                style={styles.navBtn}
+                                onPress={() => {
+                                    haptics.light();
+                                    setPdfSheetVisible(true);
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Exportar PDF"
+                            >
+                                <Ionicons name="document-text-outline" size={22} color="#fff" />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.navBtn} onPress={handleShare}>
+                                <Ionicons name="share-outline" size={22} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* Hero info */}
@@ -397,6 +447,29 @@ export default function PurchasedItineraryScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.body}>
+
+                    {/* ══════════ MEU ROTEIRO (Original / Minha versão) ══════════ */}
+                    <RouteVersioning
+                        itineraryId={id as string}
+                        liveItinerary={itinerary}
+                        canEdit={isAuthenticated && !!accessToken}
+                        onExportPdf={({ variant, snapshot, merged }) => {
+                            // Cache snapshot/merged para o sheet do header reusar
+                            // sem disparar fetch redundante.
+                            pdfDataRef.current = { snapshot, merged };
+                            // O botão interno do RouteVersioning escolhe a variante
+                            // direto da aba ativa — exporta imediatamente.
+                            void handlePdfSelect(variant);
+                        }}
+                    />
+
+                    {/* ══════════ MINHA CENTRAL DA VIAGEM ══════════ */}
+                    <TripCenter
+                        purchaseId={undefined}
+                        itineraryId={id as string}
+                        creatorChecklist={checklist}
+                        canEdit={isAuthenticated && !!accessToken}
+                    />
 
                     {/* ══════════ COMECE POR AQUI — central da viagem ══════════ */}
                     {(() => {
@@ -612,466 +685,10 @@ export default function PurchasedItineraryScreen() {
                         <MediaGallery itinerary={itinerary} />
                     </View>
 
-                    {/* ══════════ ESTIMATIVA DE GASTO (legado — perfil de gastos por dia) ══════════ */}
-                    {itinerary.spendingProfile && (
-                        <View style={styles.block}>
-                            <SectionTitle icon="wallet-outline" label="Estimativa de Gasto" />
-
-                            <View style={styles.adjustersRow}>
-                                <AdjusterCard
-                                    label="Viajantes"
-                                    value={travelers}
-                                    onDecrement={() => adjustTravelers(-1)}
-                                    onIncrement={() => adjustTravelers(1)}
-                                />
-                                <AdjusterCard
-                                    label="Dias"
-                                    value={customDays}
-                                    onDecrement={() => adjustDays(-1)}
-                                    onIncrement={() => adjustDays(1)}
-                                />
-                            </View>
-
-                            <LinearGradient
-                                colors={theme.colors.gradients.aurora as unknown as [string, string, string]}
-                                style={styles.totalGradientCard}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Text style={styles.totalCardLabel}>Estimativa total</Text>
-                                <Text style={styles.totalCardAmount}>
-                                    {formatMoney(totalEstimate)}
-                                </Text>
-                                <Text style={styles.totalCardDetail}>
-                                    {travelers} viajante{travelers > 1 ? 's' : ''} × {customDays} dias × {formatMoney(currentProfile?.dailyCost ?? 0)}/dia
-                                </Text>
-                            </LinearGradient>
-
-                            {currentProfile && (
-                                <View style={styles.breakdownCard}>
-                                    <Text style={styles.breakdownTitle}>Custo médio diário por pessoa</Text>
-                                    {currentProfile.breakdown.map((item: { category: string; amount: number }, i: number) => (
-                                        <View
-                                            key={i}
-                                            style={[
-                                                styles.breakdownRow,
-                                                i < currentProfile.breakdown.length - 1 && styles.breakdownRowBorder,
-                                            ]}
-                                        >
-                                            <Text style={styles.breakdownCat}>{item.category}</Text>
-                                            <Text style={styles.breakdownVal}>{formatMoney(item.amount)}</Text>
-                                        </View>
-                                    ))}
-                                    <View style={styles.breakdownTotalRow}>
-                                        <Text style={styles.breakdownTotalLabel}>Total/dia</Text>
-                                        <Text style={styles.breakdownTotalVal}>{formatMoney(currentProfile.dailyCost)}</Text>
-                                    </View>
-                                </View>
-                            )}
-                        </View>
-                    )}
-
-                    {/* ══════════ MEU VOO ══════════ */}
-                    {itinerary.flightInfo && (
-                        <View style={styles.block}>
-                            <SectionTitle icon="airplane-outline" label="Meu Voo" />
-
-                            {itinerary.flightInfo.totalPrice && (
-                                <View style={styles.flightTotalBadge}>
-                                    <Ionicons name="cash-outline" size={15} color={theme.colors.success} />
-                                    <Text style={styles.flightTotalText}>
-                                        Ida + volta: {itinerary.flightInfo.totalPrice}
-                                        {itinerary.flightInfo.priceCurrency ? ` ${itinerary.flightInfo.priceCurrency}` : ''}
-                                    </Text>
-                                </View>
-                            )}
-
-                            <Text style={styles.flightLegLabel}>✈ Ida</Text>
-                            <FlightCard flight={itinerary.flightInfo.outbound} />
-
-                            <Text style={styles.flightLegLabel}>✈ Volta</Text>
-                            <FlightCard flight={itinerary.flightInfo.return} />
-
-                            {Array.isArray(itinerary.flightInfo.tips) && itinerary.flightInfo.tips.length > 0 && (
-                                <>
-                                    <Text style={styles.flightLegLabel}>💡 Dicas do viajante</Text>
-                                    <View style={styles.tipsBox}>
-                                        {itinerary.flightInfo.tips.map((tip: string, i: number) => (
-                                            <View key={i} style={styles.tipRow}>
-                                                <View style={styles.tipDot} />
-                                                <Text style={styles.tipText}>{tip}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                </>
-                            )}
-                        </View>
-                    )}
-
-                    {/* ══════════ ITINERÁRIO POR DIA ══════════ */}
-                    <View style={styles.block} onLayout={trackSection('itinerary')}>
-                        <SectionTitle icon="map-outline" label="Itinerário por Dia" />
-                        {days.map((day: ItineraryDay) => (
-                            <View key={day.dayNumber} style={styles.dayCard}>
-                                <TouchableOpacity
-                                    style={styles.dayHeader}
-                                    onPress={() => toggleDay(day.dayNumber)}
-                                    activeOpacity={0.75}
-                                >
-                                    <LinearGradient
-                                        colors={theme.colors.gradients.action as unknown as [string, string]}
-                                        style={styles.dayNumberBadge}
-                                    >
-                                        <Text style={styles.dayNumberText}>{day.dayNumber}</Text>
-                                        <Text style={styles.dayNumberLabel}>DIA</Text>
-                                    </LinearGradient>
-                                    <View style={styles.dayHeaderInfo}>
-                                        <Text style={styles.dayTitle} numberOfLines={1}>{day.title}</Text>
-                                        <Text style={styles.daySummary} numberOfLines={1}>{day.summary}</Text>
-                                    </View>
-                                    <View style={[
-                                        styles.chevronCircle,
-                                        expandedDays.has(day.dayNumber) && styles.chevronCircleActive,
-                                    ]}>
-                                        <Ionicons
-                                            name={expandedDays.has(day.dayNumber) ? 'chevron-up' : 'chevron-down'}
-                                            size={16}
-                                            color={expandedDays.has(day.dayNumber) ? '#fff' : theme.colors.text.tertiary}
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-
-                                {expandedDays.has(day.dayNumber) && (
-                                    <View style={styles.dayContent}>
-                                        {(day.activities || []).map((activity: ItineraryActivity, idx: number) => (
-                                            <View key={activity.id} style={styles.activityRow}>
-                                                <View style={styles.timelineCol}>
-                                                    <View style={styles.timelineDot} />
-                                                    {idx < (day.activities || []).length - 1 && (
-                                                        <View style={styles.timelineLine} />
-                                                    )}
-                                                </View>
-                                                <View style={styles.activityContent}>
-                                                    <View style={styles.activityHeader}>
-                                                        <Text style={styles.activityIcon}>{activity.icon}</Text>
-                                                        <Text style={styles.activityTime}>{activity.time}</Text>
-                                                        {activity.duration ? (
-                                                            <View style={styles.durationChip}>
-                                                                <Text style={styles.durationText}>{activity.duration}</Text>
-                                                            </View>
-                                                        ) : null}
-                                                    </View>
-                                                    <Text style={styles.activityTitle}>{activity.title}</Text>
-                                                    <View style={styles.locRow}>
-                                                        <Text style={styles.activityLocation}>{activity.location}</Text>
-                                                    </View>
-                                                    <Text style={styles.activityDesc} numberOfLines={3}>
-                                                        {activity.description}
-                                                    </Text>
-
-                                                    {(() => {
-                                                        const tipsArr = Array.isArray(activity.tips)
-                                                            ? activity.tips
-                                                            : activity.tips ? [activity.tips] : [];
-                                                        return tipsArr.length > 0 ? (
-                                                            <View style={styles.activityTipBox}>
-                                                                <Text style={styles.activityTipTitle}>💡 Dicas</Text>
-                                                                {tipsArr.map((tip: string, ti: number) => (
-                                                                    <Text key={ti} style={styles.activityTipText}>• {tip}</Text>
-                                                                ))}
-                                                            </View>
-                                                        ) : null;
-                                                    })()}
-
-                                                    {activity.mapLink && (
-                                                        <TouchableOpacity
-                                                            style={styles.mapBtn}
-                                                            onPress={() => openExternalUrl(activity.mapLink)}
-                                                        >
-                                                            <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
-                                                            <Text style={styles.mapBtnText}>Ver no mapa</Text>
-                                                        </TouchableOpacity>
-                                                    )}
-                                                </View>
-                                            </View>
-                                        ))}
-
-                                        {day.estimatedCost && (
-                                            <View style={styles.dayCostBadge}>
-                                                <Ionicons name="wallet-outline" size={14} color={theme.colors.primary} />
-                                                <Text style={styles.dayCostText}>
-                                                    Estimativa: {formatMoney(day.estimatedCost.min ?? 0)} — {formatMoney(day.estimatedCost.max ?? 0)}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                )}
-                            </View>
-                        ))}
-                    </View>
-
-                    {/* ══════════ ONDE FIQUEI ══════════ */}
-                    {itinerary.accommodationOptions && itinerary.accommodationOptions.length > 0 && (
-                        <View style={styles.block}>
-                            <SectionTitle icon="home-outline" label="Onde Fiquei" />
-                            {itinerary.accommodationOptions.map((acc: AccommodationInfo) => (
-                                <View key={acc.id} style={[styles.card, { marginBottom: 12 }]}>
-                                    <View style={styles.accHeader}>
-                                        <Text style={styles.accName}>{acc.name}</Text>
-                                        <View style={styles.accPriceBadge}>
-                                            <Text style={styles.accPrice}>{acc.priceRange}</Text>
-                                        </View>
-                                    </View>
-                                    {(acc.address || acc.location) && (
-                                        <View style={styles.locRow}>
-                                            <Icon name="location" size={11} color={theme.colors.text.tertiary} />
-                                            <Text style={styles.accLocation}>{acc.address || acc.location}</Text>
-                                        </View>
-                                    )}
-                                    <Text style={styles.accDesc}>{acc.description}</Text>
-                                    {acc.rating && (
-                                        <View style={styles.accRating}>
-                                            <Ionicons name="star" size={13} color="#FFC107" />
-                                            <Text style={styles.accRatingText}>{acc.rating}</Text>
-                                        </View>
-                                    )}
-                                    {acc.tips ? (
-                                        <View style={styles.activityTipBox}>
-                                            <Text style={styles.activityTipText}>💡 {acc.tips}</Text>
-                                        </View>
-                                    ) : null}
-                                    {acc.mapLink ? (
-                                        <TouchableOpacity
-                                            style={styles.mapBtn}
-                                            onPress={() => openExternalUrl(acc.mapLink)}
-                                        >
-                                            <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
-                                            <Text style={styles.mapBtnText}>Ver no mapa</Text>
-                                        </TouchableOpacity>
-                                    ) : null}
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    {/* ══════════ PASSEIOS & ATRAÇÕES ══════════ */}
-                    {itinerary.attractions && itinerary.attractions.length > 0 && (
-                        <View style={styles.block}>
-                            <SectionTitle icon="camera-outline" label="Passeios & Atrações" />
-                            <Text style={styles.blockSubtitle}>
-                                {itinerary.attractions.length} atrações selecionadas pelo criador
-                            </Text>
-                            {itinerary.attractions.map((att: AttractionInfo, i: number) => (
-                                <View key={i} style={[styles.card, { marginBottom: 12 }]}>
-                                    <View style={styles.attractionTop}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.attractionName}>{att.name}</Text>
-                                            <View style={styles.attractionMetaRow}>
-                                                {att.type ? (
-                                                    <View style={styles.typeBadge}>
-                                                        <Text style={styles.typeBadgeText}>{att.type}</Text>
-                                                    </View>
-                                                ) : null}
-                                                {att.location ? (
-                                                    <View style={styles.locRow}>
-                                                        <Icon name="location" size={11} color={theme.colors.text.tertiary} />
-                                                        <Text style={styles.attractionLocation} numberOfLines={1}>{att.location}</Text>
-                                                    </View>
-                                                ) : null}
-                                            </View>
-                                        </View>
-                                        {att.ticketPrice ? (
-                                            <View style={styles.priceBadge}>
-                                                <Icon name="card" size={12} color={theme.colors.primary} />
-                                                <Text style={styles.priceBadgeText}>{att.ticketPrice}</Text>
-                                            </View>
-                                        ) : null}
-                                    </View>
-
-                                    {(att.hours || att.duration) ? (
-                                        <View style={styles.chipsRow}>
-                                            {att.hours ? (
-                                                <View style={styles.infoChip}>
-                                                    <Icon name="clock" size={12} color={theme.colors.text.secondary} />
-                                                    <Text style={styles.infoChipText}>{att.hours}</Text>
-                                                </View>
-                                            ) : null}
-                                            {att.duration ? (
-                                                <View style={styles.infoChip}>
-                                                    <Icon name="compass" size={12} color={theme.colors.text.secondary} />
-                                                    <Text style={styles.infoChipText}>{att.duration}</Text>
-                                                </View>
-                                            ) : null}
-                                        </View>
-                                    ) : null}
-
-                                    {att.description ? (
-                                        <Text style={styles.attractionDesc}>{att.description}</Text>
-                                    ) : null}
-                                    {att.tips ? (
-                                        <View style={[styles.activityTipBox, { flexDirection: 'row', alignItems: 'flex-start', gap: 6 }]}>
-                                            <Icon name="lightbulb" size={13} color="#F59E0B" />
-                                            <Text style={[styles.activityTipText, { flex: 1 }]}>{att.tips}</Text>
-                                        </View>
-                                    ) : null}
-
-                                    <View style={styles.actionsRow}>
-                                        {att.externalLink ? (
-                                            <TouchableOpacity
-                                                style={styles.outlineBtn}
-                                                onPress={() => openExternalUrl(att.externalLink)}
-                                            >
-                                                <Icon name="globe" size={14} color={theme.colors.primary} />
-                                                <Text style={styles.outlineBtnText}>Site oficial</Text>
-                                            </TouchableOpacity>
-                                        ) : null}
-                                        {att.mapLink ? (
-                                            <TouchableOpacity
-                                                style={styles.mapBtn}
-                                                onPress={() => openExternalUrl(att.mapLink)}
-                                            >
-                                                <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
-                                                <Text style={styles.mapBtnText}>Ver no mapa</Text>
-                                            </TouchableOpacity>
-                                        ) : null}
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    {/* ══════════ TRANSPORTE ══════════ */}
-                    {itinerary.transport && itinerary.transport.items.length > 0 && (
-                        <View style={styles.block}>
-                            <SectionTitle icon="navigate-outline" label="Transporte" />
-                            {itinerary.transport.items.map((item: TransportInfo, i: number) => (
-                                <View key={i} style={styles.transportCard}>
-                                    <View style={styles.transportHeader}>
-                                        <Text style={styles.transportName}>{item.description}</Text>
-                                        {item.priceValue && (
-                                            <View style={styles.priceBadge}>
-                                                <Text style={styles.priceBadgeText}>
-                                                    {item.priceValue}{item.priceCurrency ? ` ${item.priceCurrency}` : ''}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    {item.passTypes ? (
-                                        <Text style={styles.transportPassTypes}>{item.passTypes}</Text>
-                                    ) : null}
-                                    {item.notes ? (
-                                        <Text style={styles.transportNotes}>{item.notes}</Text>
-                                    ) : null}
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    {/* ══════════ RESTAURANTES & GASTRONOMIA ══════════ */}
-                    {itinerary.restaurants && itinerary.restaurants.length > 0 && (
-                        <View style={styles.block}>
-                            <SectionTitle icon="restaurant-outline" label="Restaurantes & Gastronomia" />
-                            {itinerary.restaurants.map((rest: RestaurantInfo, i: number) => (
-                                <View key={i} style={[styles.card, { marginBottom: 12 }]}>
-                                    <View style={styles.restaurantTop}>
-                                        <View style={{ flex: 1 }}>
-                                            <View style={styles.restaurantNameRow}>
-                                                <Text style={styles.restaurantName}>{rest.name}</Text>
-                                                {rest.cuisine ? (
-                                                    <View style={styles.cuisineTag}>
-                                                        <Text style={styles.cuisineTagText}>{rest.cuisine}</Text>
-                                                    </View>
-                                                ) : null}
-                                            </View>
-                                            <View style={styles.locRow}>
-                                                <Icon name="location" size={11} color={theme.colors.text.tertiary} />
-                                                <Text style={styles.restaurantLocation}>{rest.location}</Text>
-                                            </View>
-                                        </View>
-                                        {rest.priceRange && (
-                                            <View style={styles.greenPriceBadge}>
-                                                <Text style={styles.greenPriceText}>{rest.priceRange}</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    {rest.description ? (
-                                        <Text style={styles.restaurantDesc}>{rest.description}</Text>
-                                    ) : null}
-                                    {rest.hours ? (
-                                        <Text style={styles.restaurantHours}>🕐 {rest.hours}</Text>
-                                    ) : null}
-                                    {rest.tips ? (
-                                        <View style={styles.activityTipBox}>
-                                            <Text style={styles.activityTipText}>💡 {rest.tips}</Text>
-                                        </View>
-                                    ) : null}
-                                    {rest.externalLink ? (
-                                        <TouchableOpacity
-                                            style={styles.outlineBtn}
-                                            onPress={() => openExternalUrl(rest.externalLink)}
-                                        >
-                                            <Icon name="globe" size={14} color={theme.colors.primary} />
-                                            <Text style={styles.outlineBtnText}>Ver reservas</Text>
-                                        </TouchableOpacity>
-                                    ) : null}
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    {/* ══════════ GASTOS EXTRAS ══════════ */}
-                    {Array.isArray(itinerary.extraSpendingItems) && itinerary.extraSpendingItems.length > 0 && (
-                        <View style={styles.block}>
-                            <SectionTitle icon="wallet-outline" label="Gastos Extras" />
-                            <Text style={styles.blockSubtitle}>
-                                Outros gastos informados pela criadora ({itinerary.extraSpendingItems.length})
-                            </Text>
-                            {itinerary.extraSpendingItems.map((e: any, i: number) => {
-                                const cost = e.cost;
-                                const amount = parseFloat(e.value || cost?.amount || '0') || 0;
-                                const currency = e.currency || cost?.currency || 'AUD';
-                                const informed = !!cost && cost.disclosureType !== 'not_informed' && amount > 0;
-                                return (
-                                    <View key={i} style={styles.spendingItemCard}>
-                                        <Text style={styles.spendingItemTitle}>{e.title || 'Gasto extra'}</Text>
-                                        {e.description ? <Text style={styles.spendingItemDesc}>{e.description}</Text> : null}
-                                        {informed && (
-                                            <Text style={styles.spendingItemValue}>
-                                                {formatMoney(amount, currency)}
-                                                {currency !== 'AUD' && (
-                                                    <Text style={styles.costRefItemConverted}> ≈ {toBRL(amount, currency)}</Text>
-                                                )}
-                                            </Text>
-                                        )}
-                                    </View>
-                                );
-                            })}
-                        </View>
-                    )}
-
-                    {/* ══════════ DICAS DO VIAJANTE ══════════ */}
-                    {itinerary.generalTips && itinerary.generalTips.length > 0 && (
-                        <View style={styles.block}>
-                            <SectionTitle icon="bulb-outline" label="Dicas do Viajante" />
-                            <Text style={styles.tipsAuthor}>
-                                Recomendações de {itinerary.creator.name}
-                            </Text>
-                            <View style={styles.generalTipsCard}>
-                                {itinerary.generalTips.map((tip: string, i: number) => (
-                                    <View
-                                        key={i}
-                                        style={[
-                                            styles.generalTipRow,
-                                            i < itinerary.generalTips!.length - 1 && styles.generalTipRowBorder,
-                                        ]}
-                                    >
-                                        <View style={styles.tipBulletDot} />
-                                        <Text style={styles.generalTipText}>{tip}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-                    )}
+                    {/* ══════════ Seções do roteiro (Estimativa, Voo, Itinerário, Onde Fiquei,
+                        Passeios, Transporte, Restaurantes, Gastos Extras, Dicas) ══════════
+                        Renderizadas agora dentro de <RouteVersioning /> (aba "Original" via
+                        OriginalView; aba "Minha versão" via MyRouteView). */}
 
                     {/* ══════════ CHECKLIST DE PLANEJAMENTO ══════════ */}
                     <View style={styles.block} onLayout={trackSection('checklist')}>
@@ -1255,6 +872,14 @@ export default function PurchasedItineraryScreen() {
                     <View style={{ height: 48 }} />
                 </View>
             </ScrollView>
+
+            {/* ══════════ Sheet de exportação de PDF ══════════ */}
+            <PdfExportSheet
+                visible={pdfSheetVisible}
+                onClose={() => setPdfSheetVisible(false)}
+                onSelect={(variant) => { void handlePdfSelect(variant); }}
+                personalizedDisabled={!pdfDataRef.current.merged}
+            />
         </View>
     );
 }

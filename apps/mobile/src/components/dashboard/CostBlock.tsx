@@ -15,10 +15,10 @@
 
 import React, { useState } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform, Image,
+    View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import {
     COST_DISCLOSURE_COPY,
     type CostDisclosureType,
@@ -34,7 +34,9 @@ import {
 } from '@vamo/shared/itinerary';
 import { theme } from '../../theme/theme';
 import FormInput from './FormInput';
+import MoneyInput from './MoneyInput';
 import { CurrencyPicker } from '../common/CurrencyPicker';
+import { acceptAttributeFor, uploadHint, validateUploadFile } from '../../utils/uploadContexts';
 
 export interface CostBlockProps {
     /** Valor atual do bloco de custo. Pode ser null/undefined em itens novos. */
@@ -141,33 +143,40 @@ export default function CostBlock({
 
     async function handlePickProof() {
         if (!uploadProof) return;
-        // Solicita permissão (no native)
-        if (Platform.OS !== 'web') {
-            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!perm.granted) {
-                Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria para anexar o comprovante.');
-                return;
-            }
-        }
-        const res = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.85,
-            allowsMultipleSelection: false,
+        const res = await DocumentPicker.getDocumentAsync({
+            type: acceptAttributeFor('costProof'),
+            multiple: false,
+            copyToCacheDirectory: true,
         });
         if (res.canceled || !res.assets?.length) return;
         const asset = res.assets[0];
+        // Valida formato + tamanho no contexto costProof
+        // (imagens incl. HEIC ou PDF, até 25 MB).
+        const validation = validateUploadFile(
+            {
+                uri: asset.uri,
+                filename: asset.name,
+                mime: asset.mimeType,
+                size: asset.size,
+            },
+            'costProof',
+        );
+        if (!validation.valid) {
+            Alert.alert('Comprovante inválido', validation.reason);
+            return;
+        }
         setUploading(true);
         try {
             const url = await uploadProof(
                 asset.uri,
-                (asset as any).fileName,
-                (asset as any).mimeType,
+                asset.name,
+                asset.mimeType,
             );
             const file: CostProofFile = {
                 url,
-                name: (asset as any).fileName || undefined,
-                mimeType: (asset as any).mimeType || undefined,
-                size: (asset as any).fileSize || undefined,
+                name: asset.name || undefined,
+                mimeType: asset.mimeType || validation.mimeType || undefined,
+                size: asset.size || undefined,
                 uploadedAt: new Date().toISOString(),
             };
             const nextFiles = [...(resolved.proofFiles ?? []), file];
@@ -240,10 +249,9 @@ export default function CostBlock({
                 <View style={styles.inputsBlock}>
                     <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
                         <View style={{ flex: 2 }}>
-                            <FormInput
+                            <MoneyInput
                                 label="Valor total pago"
-                                keyboardType="decimal-pad"
-                                placeholder="Ex: 3000"
+                                placeholder="Ex: 3000,00"
                                 value={amount || ''}
                                 onChangeText={v => patch({ amount: v })}
                             />
@@ -337,7 +345,9 @@ export default function CostBlock({
                         <Ionicons name="document-attach-outline" size={14} color={theme.colors.primary} />
                         <Text style={styles.proofTitle}>Comprovante</Text>
                     </View>
-                    <Text style={styles.helper}>{COST_DISCLOSURE_COPY.proofUploadHelp}</Text>
+                    <Text style={styles.helper}>
+                        {COST_DISCLOSURE_COPY.proofUploadHelp} {uploadHint('costProof')}.
+                    </Text>
                     <Text style={styles.privacyTip}>{COST_DISCLOSURE_COPY.proofPrivacyTip}</Text>
 
                     {(resolved.proofFiles ?? []).map((file, i) => (

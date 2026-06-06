@@ -1,14 +1,15 @@
 /**
- * VAMO Mobile — Tela de Onboarding "Torne-se um Roteirista"
- * 4 slides swipáveis (Airbnb-style), sem obrigação de preencher nada.
- * Ao concluir, navega para /new-itinerary.
+ * VAMO Mobile — Onboarding "Torne-se um Roteirista"
+ * 4 steps premium com design refinado, animações e ícones consistentes.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    Dimensions, Platform, StatusBar, ActivityIndicator,
+    Platform, StatusBar, ActivityIndicator,
+    Animated, ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,353 +17,606 @@ import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-// ─── Slides ────────────────────────────────────────────────────
+// ─── Slide data ────────────────────────────────────────────────
 const SLIDES = [
     {
-        key: 'hero',
-        emoji: '🌍',
-        title: 'Ganhe viajando',
-        subtitle: 'Transforme suas experiências reais em roteiros vendáveis para viajantes do mundo todo.',
-        bg: 'gradient',
+        key: 'earn',
+        bg: 'gradient' as const,
+        icon: 'earth' as IoniconName,
+        title: 'Ganhe dinheiro\ncom suas viagens',
+        subtitle: 'Transforme experiências reais em roteiros digitais que outros viajantes podem comprar.',
+        checks: [
+            'Venda roteiros de viagens que você já fez',
+            'Compartilhe dicas, custos e atalhos reais',
+            'Ajude viajantes a planejar com mais confiança',
+        ],
         cta: 'Começar',
     },
     {
         key: 'why',
-        emoji: '✈️',
+        bg: 'white' as const,
+        icon: 'star' as IoniconName,
         title: 'Por que ser Roteirista VAMO?',
-        bullets: [
-            { icon: '💰', text: 'Renda passiva: seu roteiro vende enquanto você viaja' },
-            { icon: '🌐', text: 'Alcance global: viajantes de todo o Brasil' },
-            { icon: '🛡️', text: 'Suporte: nossa equipe analisa e aprova cada roteiro' },
-            { icon: '⭐', text: 'Reputação: avaliações constroem sua marca pessoal' },
+        subtitle: 'Use sua experiência para gerar renda, reputação e impacto.',
+        benefits: [
+            { icon: 'wallet-outline' as IoniconName, title: 'Renda com conteúdo', text: 'Seu roteiro pode continuar vendendo mesmo depois da viagem.' },
+            { icon: 'globe-outline' as IoniconName, title: 'Alcance viajantes', text: 'Seu conhecimento ajuda pessoas a escolherem melhor.' },
+            { icon: 'star-outline' as IoniconName, title: 'Credibilidade', text: 'Roteiros bem avaliados fortalecem sua reputação.' },
+            { icon: 'shield-checkmark-outline' as IoniconName, title: 'Apoio da VAMO', text: 'Nossa equipe analisa os roteiros antes da publicação.' },
         ],
-        bg: 'white',
         cta: 'Continuar',
     },
     {
         key: 'how',
-        emoji: '🗺️',
+        bg: 'white' as const,
+        icon: 'map' as IoniconName,
         title: 'Como funciona?',
+        subtitle: 'Você cria, a VAMO revisa e os viajantes compram.',
         steps: [
-            { num: '1', text: 'Crie seu roteiro no app, passo a passo' },
-            { num: '2', text: 'Nossa equipe analisa em até 48h' },
-            { num: '3', text: 'Aprovado, seu roteiro vai ao marketplace' },
-            { num: '4', text: 'Cada compra cai direto na sua conta' },
+            { icon: 'create-outline' as IoniconName, num: 1, title: 'Criar roteiro', text: 'Preencha destino, módulos, fotos, custos e dicas reais.' },
+            { icon: 'search-outline' as IoniconName, num: 2, title: 'Enviar para análise', text: 'A VAMO revisa a qualidade e a autenticidade do conteúdo.' },
+            { icon: 'storefront-outline' as IoniconName, num: 3, title: 'Publicar e vender', text: 'Após aprovado, seu roteiro aparece para viajantes comprarem.' },
         ],
-        bg: 'white',
         cta: 'Continuar',
     },
     {
         key: 'ready',
-        emoji: '🚀',
-        title: 'Tudo pronto!',
-        subtitle: 'Você está a um passo de publicar seu primeiro roteiro. É rápido, gratuito e sem burocracia.',
-        bg: 'gradient',
+        bg: 'gradient' as const,
+        icon: 'rocket' as IoniconName,
+        title: 'Pronto para criar\nseu primeiro roteiro?',
+        subtitle: 'Capriche nas informações, fotos e custos. Roteiros completos têm mais chance de aprovação e destaque.',
+        tip: 'Roteiros com score acima de 80% tendem a ter mais destaque no app.',
         cta: 'Criar meu primeiro roteiro',
+        ctaSecondary: 'Agora não',
     },
 ];
 
-// ─── Dots indicator ────────────────────────────────────────────
-function Dots({ current, total }: { current: number; total: number }) {
+// ─── Progress Dots ─────────────────────────────────────────────
+function ProgressDots({ current, total, bg }: { current: number; total: number; bg: 'gradient' | 'white' }) {
+    const activeColor = bg === 'gradient' ? '#fff' : theme.colors.primary;
+    const inactiveColor = bg === 'gradient' ? 'rgba(255,255,255,0.28)' : theme.colors.border;
+    const labelColor = bg === 'gradient' ? 'rgba(255,255,255,0.55)' : theme.colors.text.tertiary;
+
     return (
-        <View style={dots.row}>
+        <View style={pd.row}>
             {Array.from({ length: total }).map((_, i) => (
                 <View
                     key={i}
-                    style={[dots.dot, i === current && dots.dotActive]}
+                    style={[
+                        pd.dot,
+                        { backgroundColor: i === current ? activeColor : inactiveColor },
+                        i === current && pd.dotActive,
+                    ]}
                 />
             ))}
+            <Text style={[pd.label, { color: labelColor }]}>{current + 1} de {total}</Text>
         </View>
     );
 }
 
-const dots = StyleSheet.create({
-    row: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginBottom: 12 },
-    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
-    dotActive: { width: 18, backgroundColor: '#fff' },
+const pd = StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', marginBottom: 14 },
+    dot: { height: 6, borderRadius: 3, width: 6 },
+    dotActive: { width: 22 },
+    label: { marginLeft: 2, fontSize: 12, fontWeight: '500' },
 });
 
-// ─── Slide content ─────────────────────────────────────────────
-function SlideContent({ slide, isLast, onNext, onSkip }: {
-    slide: typeof SLIDES[number];
-    isLast: boolean;
-    onNext: () => void;
-    onSkip: () => void;
-}) {
-    const isGradient = slide.bg === 'gradient';
-
-    const inner = (
-        <View style={[slide_s.inner, !isGradient && slide_s.innerWhite]}>
-            {/* Skip */}
-            {!isLast && (
-                <TouchableOpacity style={slide_s.skipBtn} onPress={onSkip}>
-                    <Text style={[slide_s.skipText, !isGradient && slide_s.skipTextDark]}>
-                        Pular
-                    </Text>
-                </TouchableOpacity>
-            )}
-
-            {/* Emoji */}
-            <Text style={slide_s.emoji}>{slide.emoji}</Text>
-
-            {/* Title */}
-            <Text style={[slide_s.title, !isGradient && slide_s.titleDark]}>
-                {slide.title}
-            </Text>
-
-            {/* Subtitle */}
-            {'subtitle' in slide && (
-                <Text style={[slide_s.subtitle, !isGradient && slide_s.subtitleDark]}>
-                    {slide.subtitle}
-                </Text>
-            )}
-
-            {/* Bullets */}
-            {'bullets' in slide && Array.isArray((slide as any).bullets) && (
-                <View style={slide_s.list}>
-                    {((slide as any).bullets as Array<{ icon: string; text: string }>).map((b, i) => (
-                        <View key={i} style={slide_s.listRow}>
-                            <Text style={slide_s.listIcon}>{b.icon}</Text>
-                            <Text style={slide_s.listText}>{b.text}</Text>
-                        </View>
-                    ))}
-                </View>
-            )}
-
-            {/* Steps */}
-            {'steps' in slide && Array.isArray((slide as any).steps) && (
-                <View style={slide_s.list}>
-                    {((slide as any).steps as Array<{ num: string; text: string }>).map((st, i) => (
-                        <View key={i} style={slide_s.listRow}>
-                            <View style={slide_s.stepNum}>
-                                <Text style={slide_s.stepNumText}>{st.num}</Text>
-                            </View>
-                            <Text style={slide_s.listText}>{st.text}</Text>
-                        </View>
-                    ))}
-                </View>
-            )}
-
-            {/* CTA */}
-            <TouchableOpacity
-                style={[slide_s.cta, isGradient && slide_s.ctaWhite]}
-                onPress={onNext}
-                activeOpacity={0.85}
-            >
-                <Text style={[slide_s.ctaText, isGradient && slide_s.ctaTextDark]}>
-                    {slide.cta}
-                </Text>
-                {isLast && (
-                    <Ionicons
-                        name="arrow-forward"
-                        size={18}
-                        color={isGradient ? theme.colors.primary : '#fff'}
-                        style={{ marginLeft: 6 }}
-                    />
-                )}
-            </TouchableOpacity>
+// ─── Benefit Card ──────────────────────────────────────────────
+function BenefitCard({ icon, title, text }: { icon: IoniconName; title: string; text: string }) {
+    return (
+        <View style={bc.card}>
+            <View style={bc.iconWrap}>
+                <Ionicons name={icon} size={22} color={theme.colors.primary} />
+            </View>
+            <View style={bc.body}>
+                <Text style={bc.title}>{title}</Text>
+                <Text style={bc.text}>{text}</Text>
+            </View>
         </View>
     );
-
-    if (isGradient) {
-        return (
-            <LinearGradient
-                colors={['#1A3263', '#28C9BF']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={slide_s.container}
-            >
-                {inner}
-            </LinearGradient>
-        );
-    }
-
-    return <View style={[slide_s.container, { backgroundColor: theme.colors.background }]}>{inner}</View>;
 }
 
-const slide_s = StyleSheet.create({
-    container: { flex: 1, width: '100%' },
-    inner: {
-        flex: 1,
-        paddingTop: Platform.OS === 'ios' ? 80 : 60,
-        paddingBottom: 48,
-        paddingHorizontal: 32,
+const bc = StyleSheet.create({
+    card: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: theme.colors.surface,
+        borderRadius: 14,
+        padding: 14,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+        ...theme.shadows.xs,
+    },
+    iconWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: 'rgba(40,201,191,0.10)',
         alignItems: 'center',
         justifyContent: 'center',
+        flexShrink: 0,
     },
-    innerWhite: { alignItems: 'flex-start', justifyContent: 'center' },
-    skipBtn: { position: 'absolute', top: Platform.OS === 'ios' ? 60 : 40, right: 24, padding: 8 },
-    skipText: { fontSize: 14, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
-    skipTextDark: { color: theme.colors.text.tertiary },
-    emoji: { fontSize: 72, marginBottom: 24 },
-    title: { fontSize: 28, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 16, lineHeight: 34 },
-    titleDark: { color: theme.colors.text.primary, textAlign: 'left' },
-    subtitle: { fontSize: 16, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 24, marginBottom: 40 },
-    subtitleDark: { color: theme.colors.text.secondary, textAlign: 'left' },
-    list: { width: '100%', gap: 16, marginBottom: 40, marginTop: 8 },
-    listRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
-    listIcon: { fontSize: 22, width: 28, textAlign: 'center' },
-    listText: { flex: 1, fontSize: 15, color: theme.colors.text.primary, lineHeight: 22 },
-    stepNum: {
-        width: 28, height: 28, borderRadius: 14,
+    body: { flex: 1 },
+    title: { fontSize: 14, fontWeight: '700', color: theme.colors.text.primary, marginBottom: 3 },
+    text: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 18 },
+});
+
+// ─── Step Row ──────────────────────────────────────────────────
+function StepRow({ icon, num, title, text, isLast }: {
+    icon: IoniconName; num: number; title: string; text: string; isLast: boolean;
+}) {
+    return (
+        <View style={st.row}>
+            {/* Timeline column */}
+            <View style={st.timeline}>
+                <View style={st.circle}>
+                    <Text style={st.num}>{num}</Text>
+                </View>
+                {!isLast && <View style={st.line} />}
+            </View>
+            {/* Content */}
+            <View style={[st.content, !isLast && { paddingBottom: 20 }]}>
+                <View style={st.titleRow}>
+                    <Ionicons name={icon} size={16} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={st.title}>{title}</Text>
+                </View>
+                <Text style={st.text}>{text}</Text>
+            </View>
+        </View>
+    );
+}
+
+const st = StyleSheet.create({
+    row: { flexDirection: 'row', gap: 14 },
+    timeline: { alignItems: 'center', width: 32 },
+    circle: {
+        width: 32, height: 32, borderRadius: 16,
         backgroundColor: theme.colors.primary,
         alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
     },
-    stepNumText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+    num: { fontSize: 14, fontWeight: '800', color: '#fff' },
+    line: { flex: 1, width: 2, backgroundColor: 'rgba(40,201,191,0.20)', marginTop: 4, minHeight: 20 },
+    content: { flex: 1, paddingTop: 6 },
+    titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+    title: { fontSize: 15, fontWeight: '700', color: theme.colors.text.primary },
+    text: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19 },
+});
+
+// ─── Tip Card (último slide) ───────────────────────────────────
+function TipCard({ text }: { text: string }) {
+    return (
+        <View style={tip.card}>
+            <View style={tip.badge}>
+                <Ionicons name="sparkles" size={13} color={theme.colors.primary} />
+                <Text style={tip.badgeText}>Dica PRO</Text>
+            </View>
+            <Text style={tip.text}>{text}</Text>
+        </View>
+    );
+}
+
+const tip = StyleSheet.create({
+    card: {
+        backgroundColor: 'rgba(255,255,255,0.13)',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.20)',
+        marginTop: 20,
+        width: '100%',
+    },
+    badge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: '#fff',
+        alignSelf: 'flex-start',
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        marginBottom: 10,
+    },
+    badgeText: { fontSize: 11, fontWeight: '800', color: theme.colors.primary },
+    text: { fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 20 },
+});
+
+// ─── Slide: Gradient ───────────────────────────────────────────
+function GradientSlide({ slide, onNext, onSkip, isLast, current, total, insets }: {
+    slide: typeof SLIDES[number];
+    onNext: () => void;
+    onSkip: () => void;
+    isLast: boolean;
+    current: number;
+    total: number;
+    insets: { top: number; bottom: number };
+}) {
+    const hasTip = 'tip' in slide;
+    const hasChecks = 'checks' in slide;
+    const hasSecondary = 'ctaSecondary' in slide;
+
+    return (
+        <LinearGradient
+            colors={['#1A3263', '#1E4D8C', '#28C9BF']}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={gs.fill}
+        >
+            <ScrollView
+                contentContainerStyle={[gs.content, { paddingTop: insets.top + 72, paddingBottom: 8 }]}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Icon */}
+                <View style={gs.iconCircle}>
+                    <Ionicons name={slide.icon} size={42} color="#fff" />
+                </View>
+
+                {/* Title */}
+                <Text style={gs.title}>{slide.title}</Text>
+
+                {/* Subtitle */}
+                {'subtitle' in slide && (
+                    <Text style={gs.subtitle}>{(slide as any).subtitle}</Text>
+                )}
+
+                {/* Checks */}
+                {hasChecks && (
+                    <View style={gs.checks}>
+                        {(slide as any).checks.map((c: string, i: number) => (
+                            <View key={i} style={gs.checkRow}>
+                                <View style={gs.checkCircle}>
+                                    <Ionicons name="checkmark" size={13} color="#fff" />
+                                </View>
+                                <Text style={gs.checkText}>{c}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+
+                {/* Tip card */}
+                {hasTip && <TipCard text={(slide as any).tip} />}
+            </ScrollView>
+
+            {/* Footer */}
+            <View style={[gs.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+                <ProgressDots current={current} total={total} bg="gradient" />
+                <TouchableOpacity style={gs.cta} onPress={onNext} activeOpacity={0.85}>
+                    <Text style={gs.ctaText}>{slide.cta}</Text>
+                    {isLast && <Ionicons name="arrow-forward" size={17} color={theme.colors.primary} style={{ marginLeft: 6 }} />}
+                </TouchableOpacity>
+                {hasSecondary && (
+                    <TouchableOpacity onPress={onSkip} style={gs.secondaryBtn} activeOpacity={0.7}>
+                        <Text style={gs.secondaryText}>{(slide as any).ctaSecondary}</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        </LinearGradient>
+    );
+}
+
+const gs = StyleSheet.create({
+    fill: { flex: 1 },
+    content: { alignItems: 'center', paddingHorizontal: 28 },
+    iconCircle: {
+        width: 80, height: 80, borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center', justifyContent: 'center',
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.20)',
+    },
+    title: {
+        fontSize: 32, fontWeight: '800', color: '#fff',
+        textAlign: 'center', lineHeight: 38, marginBottom: 12,
+    },
+    subtitle: {
+        fontSize: 16, color: 'rgba(255,255,255,0.80)',
+        textAlign: 'center', lineHeight: 24, marginBottom: 28,
+    },
+    checks: { width: '100%', gap: 12 },
+    checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    checkCircle: {
+        width: 22, height: 22, borderRadius: 11,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, marginTop: 1,
+    },
+    checkText: { flex: 1, fontSize: 15, color: 'rgba(255,255,255,0.90)', lineHeight: 22 },
+    footer: { paddingHorizontal: 24, paddingTop: 16 },
     cta: {
-        backgroundColor: theme.colors.primary,
-        borderRadius: 14, height: 54,
-        paddingHorizontal: 32,
+        backgroundColor: '#fff',
+        borderRadius: 16, height: 54,
         alignItems: 'center', justifyContent: 'center',
         flexDirection: 'row',
-        alignSelf: 'stretch',
-        marginTop: 8,
         ...theme.shadows.button,
     },
-    ctaWhite: { backgroundColor: '#fff' },
-    ctaText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    ctaTextDark: { color: theme.colors.primary },
+    ctaText: { fontSize: 16, fontWeight: '800', color: theme.colors.primary },
+    secondaryBtn: { alignItems: 'center', paddingVertical: 14 },
+    secondaryText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.65)' },
+});
+
+// ─── Slide: White ──────────────────────────────────────────────
+function WhiteSlide({ slide, onNext, onSkip, isLast, current, total, insets }: {
+    slide: typeof SLIDES[number];
+    onNext: () => void;
+    onSkip: () => void;
+    isLast: boolean;
+    current: number;
+    total: number;
+    insets: { top: number; bottom: number };
+}) {
+    const hasBenefits = 'benefits' in slide;
+    const hasSteps = 'steps' in slide;
+
+    return (
+        <View style={ws.fill}>
+            {/* Accent strip */}
+            <LinearGradient
+                colors={['#1A3263', '#1E4D8C']}
+                style={[ws.strip, { paddingTop: insets.top + 56, paddingBottom: 24 }]}
+            >
+                <View style={ws.iconRow}>
+                    <View style={ws.iconWrap}>
+                        <Ionicons name={slide.icon} size={20} color="#fff" />
+                    </View>
+                </View>
+                <Text style={ws.title}>{slide.title}</Text>
+                {'subtitle' in slide && (
+                    <Text style={ws.subtitle}>{(slide as any).subtitle}</Text>
+                )}
+            </LinearGradient>
+
+            {/* Scrollable content */}
+            <ScrollView
+                style={ws.scroll}
+                contentContainerStyle={ws.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                {hasBenefits && (
+                    <View style={ws.list}>
+                        {(slide as any).benefits.map((b: any, i: number) => (
+                            <BenefitCard key={i} {...b} />
+                        ))}
+                    </View>
+                )}
+
+                {hasSteps && (
+                    <View style={ws.list}>
+                        {(slide as any).steps.map((s: any, i: number, arr: any[]) => (
+                            <StepRow key={i} {...s} isLast={i === arr.length - 1} />
+                        ))}
+                    </View>
+                )}
+            </ScrollView>
+
+            {/* Footer */}
+            <View style={[ws.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+                <ProgressDots current={current} total={total} bg="white" />
+                <TouchableOpacity
+                    style={ws.cta}
+                    onPress={onNext}
+                    activeOpacity={0.85}
+                >
+                    <LinearGradient
+                        colors={[theme.colors.primary, theme.colors.primaryDark]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={ws.ctaGradient}
+                    >
+                        <Text style={ws.ctaText}>{slide.cta}</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+}
+
+const ws = StyleSheet.create({
+    fill: { flex: 1, backgroundColor: theme.colors.surfaceLight },
+    strip: {
+        paddingHorizontal: 24,
+    },
+    iconRow: { marginBottom: 12 },
+    iconWrap: {
+        width: 40, height: 40, borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center', justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.20)',
+    },
+    title: { fontSize: 26, fontWeight: '800', color: '#fff', lineHeight: 32, marginBottom: 6 },
+    subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.75)', lineHeight: 20 },
+    scroll: { flex: 1 },
+    scrollContent: { padding: 20, paddingTop: 16, paddingBottom: 8 },
+    list: { gap: 10 },
+    footer: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderLight,
+    },
+    cta: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        height: 52,
+        ...theme.shadows.button,
+    },
+    ctaGradient: { flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
+    ctaText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 });
 
 // ─── Main screen ───────────────────────────────────────────────
 export default function BecomeCreatorScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const { isAuthenticated, isLoading } = useAuth();
     const [currentIndex, setCurrentIndex] = useState(0);
+
+    const fadeAnim = useRef(new Animated.Value(1)).current;
+    const slideYAnim = useRef(new Animated.Value(0)).current;
+
+    const animateTransition = useCallback((toIndex: number) => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, { toValue: 0, duration: 140, useNativeDriver: true }),
+            Animated.timing(slideYAnim, { toValue: -12, duration: 140, useNativeDriver: true }),
+        ]).start(() => {
+            setCurrentIndex(toIndex);
+            slideYAnim.setValue(16);
+            Animated.parallel([
+                Animated.timing(fadeAnim, { toValue: 1, duration: 260, useNativeDriver: true }),
+                Animated.timing(slideYAnim, { toValue: 0, duration: 260, useNativeDriver: true }),
+            ]).start();
+        });
+    }, [fadeAnim, slideYAnim]);
 
     const goToNext = useCallback(() => {
         haptics.light();
         if (currentIndex < SLIDES.length - 1) {
-            setCurrentIndex(i => i + 1);
+            animateTransition(currentIndex + 1);
         } else {
-            // Último slide → ir para criação
             router.replace('/new-itinerary');
         }
-    }, [currentIndex, router]);
+    }, [currentIndex, animateTransition, router]);
 
     const handleSkip = useCallback(() => {
         haptics.light();
-        router.replace('/new-itinerary');
+        router.back();
     }, [router]);
 
-    const currentSlide = SLIDES[currentIndex];
-    const isLast = currentIndex === SLIDES.length - 1;
+    const handleClose = useCallback(() => {
+        haptics.light();
+        router.back();
+    }, [router]);
 
+    // ── Loading ─────────────────────────────────────────────────
     if (isLoading) {
         return (
-            <View style={styles.authRoot}>
+            <View style={s.loadRoot}>
                 <ActivityIndicator size="large" color="#fff" />
             </View>
         );
     }
 
+    // ── Não autenticado ─────────────────────────────────────────
     if (!isAuthenticated) {
         return (
-            <View style={styles.authRoot}>
+            <LinearGradient colors={['#1A3263', '#28C9BF']} style={s.loadRoot}>
                 <StatusBar barStyle="light-content" />
-                <TouchableOpacity
-                    style={styles.closeBtn}
-                    onPress={() => { haptics.light(); router.back(); }}
-                >
-                    <Ionicons name="close" size={22} color="#fff" />
+                <TouchableOpacity style={[s.closeBtn, { top: insets.top + 12 }]} onPress={handleClose}>
+                    <Ionicons name="close" size={20} color="#fff" />
                 </TouchableOpacity>
-                <Ionicons name="lock-closed-outline" size={48} color="#fff" />
-                <Text style={styles.authTitle}>Entre para criar roteiros</Text>
-                <Text style={styles.authText}>
+                <View style={s.authIconWrap}>
+                    <Ionicons name="lock-closed-outline" size={36} color="#fff" />
+                </View>
+                <Text style={s.authTitle}>Entre para criar roteiros</Text>
+                <Text style={s.authText}>
                     Sua conta protege seus rascunhos, envios para análise, vendas e receita de criador.
                 </Text>
                 <TouchableOpacity
-                    style={styles.authButton}
+                    style={s.authBtn}
                     onPress={() => router.replace({ pathname: '/login' as any, params: { next: '/become-creator' } })}
                     activeOpacity={0.85}
                 >
-                    <Text style={styles.authButtonText}>Entrar na conta</Text>
+                    <Text style={s.authBtnText}>Entrar na conta</Text>
                 </TouchableOpacity>
-            </View>
+            </LinearGradient>
         );
     }
 
+    const currentSlide = SLIDES[currentIndex];
+    const isLast = currentIndex === SLIDES.length - 1;
+    const isGradient = currentSlide.bg === 'gradient';
+
     return (
-        <View style={styles.root}>
+        <View style={s.root}>
             <StatusBar barStyle="light-content" />
 
-            {/* Close button */}
+            {/* Slide com animação */}
+            <Animated.View style={[s.slideWrap, { opacity: fadeAnim, transform: [{ translateY: slideYAnim }] }]}>
+                {isGradient ? (
+                    <GradientSlide
+                        slide={currentSlide}
+                        onNext={goToNext}
+                        onSkip={handleSkip}
+                        isLast={isLast}
+                        current={currentIndex}
+                        total={SLIDES.length}
+                        insets={insets}
+                    />
+                ) : (
+                    <WhiteSlide
+                        slide={currentSlide}
+                        onNext={goToNext}
+                        onSkip={handleSkip}
+                        isLast={isLast}
+                        current={currentIndex}
+                        total={SLIDES.length}
+                        insets={insets}
+                    />
+                )}
+            </Animated.View>
+
+            {/* Close button — sempre visível */}
             <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={() => { haptics.light(); router.back(); }}
+                style={[s.closeBtn, { top: insets.top + 12 }]}
+                onPress={handleClose}
+                activeOpacity={0.75}
             >
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={20} color="#fff" />
             </TouchableOpacity>
 
-            {/* Slide ativo */}
-            <View style={{ flex: 1 }}>
-                <SlideContent
-                    slide={currentSlide}
-                    isLast={isLast}
-                    onNext={goToNext}
-                    onSkip={handleSkip}
-                />
-            </View>
-
-            {/* Dots */}
-            <View style={styles.footer}>
-                <Dots current={currentIndex} total={SLIDES.length} />
-            </View>
+            {/* Pular — só aparece se não for último slide e não for slide final com secondary */}
+            {!isLast && (
+                <TouchableOpacity
+                    style={[s.skipBtn, { top: insets.top + 12 }]}
+                    onPress={handleSkip}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[s.skipText, !isGradient && s.skipTextDark]}>Pular</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: '#1A3263' },
-    authRoot: {
-        flex: 1,
-        backgroundColor: '#1A3263',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 32,
-    },
-    authTitle: {
-        marginTop: 18,
-        fontSize: 24,
-        fontWeight: '800',
-        color: '#fff',
-        textAlign: 'center',
-    },
-    authText: {
-        marginTop: 10,
-        marginBottom: 28,
-        fontSize: 15,
-        lineHeight: 22,
-        color: 'rgba(255,255,255,0.82)',
-        textAlign: 'center',
-    },
-    authButton: {
-        backgroundColor: '#fff',
-        borderRadius: 14,
-        paddingHorizontal: 28,
-        paddingVertical: 15,
-        ...theme.shadows.button,
-    },
-    authButtonText: { fontSize: 15, fontWeight: '800', color: theme.colors.primary },
+    loadRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+    slideWrap: { flex: 1 },
     closeBtn: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 56 : 36,
-        left: 20,
-        zIndex: 99,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(0,0,0,0.25)',
-        alignItems: 'center',
-        justifyContent: 'center',
+        left: 18,
+        zIndex: 100,
+        width: 36, height: 36, borderRadius: 18,
+        backgroundColor: 'rgba(0,0,0,0.28)',
+        alignItems: 'center', justifyContent: 'center',
     },
-    footer: {
-        paddingBottom: Platform.OS === 'ios' ? 48 : 28,
-        paddingTop: 16,
-        backgroundColor: '#1A3263',
-        alignItems: 'center',
+    skipBtn: {
+        position: 'absolute',
+        right: 18,
+        zIndex: 100,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
     },
+    skipText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.75)' },
+    skipTextDark: { color: theme.colors.text.tertiary },
+    authIconWrap: {
+        width: 72, height: 72, borderRadius: 36,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center', justifyContent: 'center',
+        marginBottom: 20,
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    },
+    authTitle: { fontSize: 24, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 10 },
+    authText: { fontSize: 15, lineHeight: 22, color: 'rgba(255,255,255,0.80)', textAlign: 'center', marginBottom: 28 },
+    authBtn: {
+        backgroundColor: '#fff',
+        borderRadius: 16, paddingHorizontal: 28, paddingVertical: 15,
+        ...theme.shadows.button,
+    },
+    authBtnText: { fontSize: 15, fontWeight: '800', color: theme.colors.primary },
 });

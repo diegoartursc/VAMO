@@ -1,7 +1,46 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { inferMimeFromExtension } from './heicSupport';
+import {
+    detectMediaType,
+    validateUploadFile,
+    type MediaKind,
+    type UploadContext,
+} from './uploadContexts';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
+
+export interface PreparedUploadFile {
+    uri: string;
+    fileName: string;
+    originalFileName: string;
+    mimeType: string;
+    fileType: MediaKind;
+    size?: number;
+    context: UploadContext;
+    previewUri: string;
+    convertedFrom?: string;
+}
+
+export interface UploadedFileMetadata {
+    url: string;
+    storagePath: string;
+    fileName: string;
+    originalFileName: string;
+    mimeType: string;
+    fileType: MediaKind;
+    size?: number;
+    context: UploadContext;
+    thumbnailUrl?: string;
+    convertedFrom?: string;
+}
+
+export interface UploadInput {
+    uri: string;
+    filename?: string | null;
+    mime?: string | null;
+    size?: number | null;
+}
 
 /**
  * Tenta renovar o accessToken usando o refreshToken salvo no AsyncStorage.
@@ -35,54 +74,82 @@ async function tryRefreshSession(): Promise<string | null> {
     }
 }
 
-/**
- * Upload cross-platform de um arquivo (imagem/PDF) para POST /api/uploads.
- *
- *  - Native (iOS/Android): usa o shape RN `{ uri, name, type }` no FormData.
- *  - Web (Expo Web): converte a URI (`blob:`, `data:`, `http:`) num Blob real
- *    antes de anexar — caso contrário o backend recebe campo vazio.
- *
- * Em caso de 401, tenta refresh do token uma vez e refaz a requisição.
- * Lança Error com mensagem descritiva ao falhar (em vez de retornar null
- * silenciosamente) — permite mostrar o erro real ao usuário.
- *
- * Retorna a URL pública (https://...) salva pelo backend.
- */
-export async function uploadFile(
-    uri: string,
-    token: string | null | undefined,
-    filenameHint?: string,
-    mimeHint?: string,
-): Promise<string> {
-    const startedAt = Date.now();
-    const filename = filenameHint || uri.split('/').pop()?.split('?')[0] || `upload-${Date.now()}.jpg`;
-    const ext = (filename.match(/\.(\w+)$/)?.[1] || 'jpg').toLowerCase();
-    const inferredMime = mimeHint
-        || (ext === 'pdf' ? 'application/pdf'
-            : ext === 'png' ? 'image/png'
-            : ext === 'webp' ? 'image/webp'
-            : ext === 'gif' ? 'image/gif'
-            : 'image/jpeg');
+function filenameFromUri(uri: string, fallbackExt = 'jpg'): string {
+    return uri.split('/').pop()?.split('?')[0]?.split('#')[0] || `upload-${Date.now()}.${fallbackExt}`;
+}
 
-    // Constrói o FormData (factory para podermos reconstruir no retry —
-    // alguns FormData em RN não são reutilizáveis após uma falha.)
+function storagePathFromUrl(url: string): string {
+    try {
+        return new URL(url).pathname;
+    } catch {
+        return url;
+    }
+}
+
+function friendlyUploadError(status: number): string {
+    if (status === 401) return 'Sua sessão expirou. Faça login novamente.';
+    if (status === 403) return 'Você não tem permissão para enviar este arquivo.';
+    if (status === 413) return 'Esse arquivo é muito grande. Tente enviar uma versão menor.';
+    if (status === 415) return 'Esse formato não é aceito neste campo.';
+    return 'Não foi possível enviar o arquivo. Verifique sua conexão e tente novamente.';
+}
+
+export async function prepareUploadFile(
+    input: UploadInput,
+    context: UploadContext,
+): Promise<PreparedUploadFile> {
+    const fallbackName = filenameFromUri(input.uri);
+    const filename = input.filename || fallbackName;
+    const mime = (input.mime || inferMimeFromExtension(filename, '')).toLowerCase();
+    const validation = validateUploadFile(
+        { uri: input.uri, filename, mime, size: input.size },
+        context,
+    );
+
+    if (!validation.valid) {
+        throw new Error(validation.reason);
+    }
+
+    return {
+        uri: input.uri,
+        fileName: validation.filename,
+        originalFileName: filename,
+        mimeType: validation.mimeType || mime || inferMimeFromExtension(filename),
+        fileType: validation.mediaType,
+        size: validation.size,
+        context,
+        previewUri: input.uri,
+    };
+}
+
+export async function uploadPreparedFile(
+    prepared: PreparedUploadFile,
+    token: string | null | undefined,
+): Promise<UploadedFileMetadata> {
+    const startedAt = Date.now();
     const buildFormData = async (): Promise<FormData> => {
         const fd = new FormData();
         if (Platform.OS === 'web') {
-            const blobRes = await fetch(uri);
+            const blobRes = await fetch(prepared.uri);
             if (!blobRes.ok) {
-                throw new Error(`Não foi possível ler o arquivo selecionado (HTTP ${blobRes.status}).`);
+                throw new Error('Não foi possível ler o arquivo selecionado.');
             }
             const blob = await blobRes.blob();
-            fd.append('file', blob, filename);
+            const blobToSend = blob.type
+                ? blob
+                : new Blob([blob], { type: prepared.mimeType });
+            fd.append('file', blobToSend, prepared.fileName);
         } else {
             // @ts-ignore RN-specific form data shape
-            fd.append('file', { uri, name: filename, type: inferredMime });
+            fd.append('file', {
+                uri: prepared.uri,
+                name: prepared.fileName,
+                type: prepared.mimeType,
+            });
         }
         return fd;
     };
 
-    // Tentativa principal. Em caso de 401, refresh + 1 retry.
     let currentToken = token;
     let res: Response;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -105,15 +172,55 @@ export async function uploadFile(
         let detail = '';
         try { detail = await res!.text(); } catch {}
         console.warn('[upload] falhou', { status: res!.status, detail, elapsed });
-        if (res!.status === 401) throw new Error('Sua sessão expirou. Faça login novamente.');
-        if (res!.status === 413) throw new Error('Arquivo muito grande (máx 25 MB).');
-        if (res!.status === 415) throw new Error('Formato de arquivo não suportado.');
-        throw new Error(`Upload falhou (HTTP ${res!.status}). Verifique sua conexão.`);
+        throw new Error(friendlyUploadError(res!.status));
     }
+
     const data = await res!.json();
     const url = data.url || data.urls?.[0];
     if (!url) throw new Error('Servidor não retornou a URL do arquivo.');
-    return url;
+    const returnedMime = data.mimetype || prepared.mimeType;
+    const returnedName = data.filename || prepared.fileName;
+
+    return {
+        url,
+        storagePath: storagePathFromUrl(url),
+        fileName: returnedName,
+        originalFileName: data.originalName || prepared.originalFileName,
+        mimeType: returnedMime,
+        fileType: data.mediaType || detectMediaType({ filename: returnedName, mime: returnedMime }) || prepared.fileType,
+        size: data.size || prepared.size,
+        context: prepared.context,
+        thumbnailUrl: data.thumbnailUrl,
+        convertedFrom: prepared.convertedFrom,
+    };
+}
+
+/**
+ * Upload cross-platform de um arquivo (imagem/PDF) para POST /api/uploads.
+ *
+ *  - Native (iOS/Android): usa o shape RN `{ uri, name, type }` no FormData.
+ *  - Web (Expo Web): converte a URI (`blob:`, `data:`, `http:`) num Blob real
+ *    antes de anexar — caso contrário o backend recebe campo vazio.
+ *
+ * Em caso de 401, tenta refresh do token uma vez e refaz a requisição.
+ * Lança Error com mensagem descritiva ao falhar (em vez de retornar null
+ * silenciosamente) — permite mostrar o erro real ao usuário.
+ *
+ * Retorna a URL pública (https://...) salva pelo backend.
+ */
+export async function uploadFile(
+    uri: string,
+    token: string | null | undefined,
+    filenameHint?: string,
+    mimeHint?: string,
+    context: UploadContext = 'adminAttachment',
+): Promise<string> {
+    const prepared = await prepareUploadFile(
+        { uri, filename: filenameHint, mime: mimeHint },
+        context,
+    );
+    const uploaded = await uploadPreparedFile(prepared, token);
+    return uploaded.url;
 }
 
 export default uploadFile;
