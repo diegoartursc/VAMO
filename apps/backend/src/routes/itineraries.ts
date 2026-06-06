@@ -163,7 +163,10 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
 
         const itineraries = await prisma.itinerary.findMany({
             where,
-            include: { sales: true, reviews: true },
+            include: {
+                sales: { select: { id: true, price: true } },
+                reviews: { select: { id: true, rating: true } },
+            },
         });
 
         const totalSales = itineraries.reduce((sum, it) => sum + it.sales.length, 0);
@@ -221,7 +224,7 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
     }
 });
 
-const PURCHASED_ITINERARY_INCLUDE = {
+export const PURCHASED_ITINERARY_INCLUDE = {
     creator: { include: { traveler: { select: { name: true, avatar: true, id: true } } } },
     images: { orderBy: { order: 'asc' as const }, select: { url: true } },
     days: { orderBy: { dayNumber: 'asc' as const }, include: { activities: { orderBy: { order: 'asc' as const } } } },
@@ -232,19 +235,19 @@ const PURCHASED_ITINERARY_INCLUDE = {
     reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' as const }, take: 10 },
 };
 
-function serializeDate(value: any): string | null {
+export function serializeDate(value: any): string | null {
     if (!value) return null;
     if (value instanceof Date) return value.toISOString();
     if (typeof value === 'string') return value;
     return null;
 }
 
-function getRouteSnapshot(purchaseData: any): any | null {
+export function getRouteSnapshot(purchaseData: any): any | null {
     const snapshot = purchaseData?.routeSnapshot;
     return snapshot && typeof snapshot === 'object' ? snapshot : null;
 }
 
-function toJsonSafe(value: any): any {
+export function toJsonSafe(value: any): any {
     if (value === undefined) return undefined;
     if (value === null) return null;
     if (value instanceof Date) return value.toISOString();
@@ -259,7 +262,7 @@ function toJsonSafe(value: any): any {
     return value;
 }
 
-function buildPurchasedItineraryPayload(it: any, sale?: { id?: string; price?: number; createdAt?: Date | string }) {
+export function buildPurchasedItineraryPayload(it: any, sale?: { id?: string; price?: number; createdAt?: Date | string }) {
     const accommodationList = (it.accommodations || []).map((a: any) => ({
         id: a.id, name: a.name, neighborhood: a.neighborhood,
         description: a.description, priceRange: a.priceRange, rating: a.rating,
@@ -349,6 +352,32 @@ function buildPurchasedItineraryPayload(it: any, sale?: { id?: string; price?: n
             })),
         })),
     };
+}
+
+/**
+ * Carrega o itinerário completo do banco (mesmo `include` do GET
+ * /:id/purchased) e devolve o payload já serializado e "json-safe" pronto
+ * para ser persistido em `ItinerarySale.purchaseData.routeSnapshot`.
+ *
+ * Usado tanto no momento da venda — para congelar a versão "Original"
+ * do roteiro que o viajante comprou — quanto sob demanda pela rota
+ * `POST /api/route-customization/:itineraryId/purchased-snapshot`,
+ * que reconstrói o snapshot para vendas antigas que ainda não o têm.
+ *
+ * Retorna `null` quando o roteiro não existe (caller decide se loga ou
+ * 404).
+ */
+export async function buildItinerarySnapshot(
+    prismaClient: typeof prisma,
+    itineraryId: string,
+    sale?: { id?: string; price?: number; createdAt?: Date | string },
+): Promise<any | null> {
+    const it = await prismaClient.itinerary.findUnique({
+        where: { id: itineraryId },
+        include: PURCHASED_ITINERARY_INCLUDE,
+    });
+    if (!it) return null;
+    return toJsonSafe(buildPurchasedItineraryPayload(it, sale));
 }
 
 // GET /api/itineraries/:id
@@ -727,6 +756,47 @@ function hasContentUpdate(body: any): boolean {
     return keys.some(key => Object.prototype.hasOwnProperty.call(body || {}, key));
 }
 
+function parseDecimalInput(value: unknown): number {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+    if (typeof value !== 'string') return NaN;
+    const trimmed = value.trim();
+    if (!trimmed) return NaN;
+    const normalized = trimmed
+        .replace(/\s/g, '')
+        .replace(/\.(?=\d{3}(?:\D|$))/g, '')
+        .replace(',', '.');
+    return Number(normalized);
+}
+
+function parseIntegerInput(value: unknown): number {
+    if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : NaN;
+    if (typeof value !== 'string') return NaN;
+    const parsed = parseInt(value.trim(), 10);
+    return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function activityHasContent(activity: any): boolean {
+    return !!(
+        String(activity?.title || '').trim()
+        || String(activity?.description || '').trim()
+        || String(activity?.location || '').trim()
+        || String(activity?.mapLink || '').trim()
+    );
+}
+
+function dayIsCompleteForSubmission(day: any): boolean {
+    if (!String(day?.description || '').trim()) return false;
+    const activities = Array.isArray(day?.activities) ? day.activities : [];
+    const realActivities = activities.filter(activityHasContent);
+    return realActivities.length > 0
+        && realActivities.every((activity: any) => String(activity?.title || '').trim());
+}
+
+function normalizeActivitiesForPersistence(activities: any[] | undefined): any[] {
+    if (!Array.isArray(activities)) return [];
+    return activities.filter(activityHasContent);
+}
+
 function validateItinerarySubmission(data: any): string[] {
     const issues: string[] = [];
     const activeModules = Array.isArray(data.activeModules) ? data.activeModules : [];
@@ -736,8 +806,8 @@ function validateItinerarySubmission(data: any): string[] {
     if (!String(data.destination || '').trim() || !String(data.country || '').trim()) issues.push('Informe cidade e país de destino.');
     if (!String(data.description || '').trim()) issues.push('Escreva uma descrição para o roteiro.');
     if (!Array.isArray(data.categories) || data.categories.filter(Boolean).length < 1) issues.push('Selecione pelo menos 1 categoria.');
-    if (!Number.isFinite(Number(data.price)) || Number(data.price) <= 0) issues.push('Defina um preço de venda válido.');
-    if (!Number.isFinite(Number(data.duration)) || Number(data.duration) < 1) issues.push('A duração precisa ter pelo menos 1 dia.');
+    if (!Number.isFinite(parseDecimalInput(data.price)) || parseDecimalInput(data.price) <= 0) issues.push('Defina um preço de venda válido.');
+    if (!Number.isFinite(parseIntegerInput(data.duration)) || parseIntegerInput(data.duration) < 1) issues.push('A duração precisa ter pelo menos 1 dia.');
     if (!String(data.travelProofUrl || '').trim()) issues.push('Anexe o comprovante de viagem.');
     if (activeModules.length < 1) issues.push('Ative pelo menos 1 módulo.');
     if (days.length < 1) issues.push('Cadastre pelo menos 1 dia de roteiro.');
@@ -750,11 +820,7 @@ function validateItinerarySubmission(data: any): string[] {
 
     const moduleIncomplete = (key: string): string | null => {
         if (key === 'itinerario') {
-            const ok = days.length > 0 && days.every((d: any) =>
-                String(d.description || '').trim()
-                && Array.isArray(d.activities)
-                && d.activities.length > 0
-                && d.activities.every((a: any) => String(a.title || '').trim()));
+            const ok = days.length > 0 && days.every(dayIsCompleteForSubmission);
             return ok ? null : 'Preencha o itinerário por dia com descrição e atividades.';
         }
         if (key === 'voo') {
@@ -930,9 +996,9 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 destination,
                 country,
                 description: description || '',
-                price: parseFloat(price),
+                price: parseDecimalInput(price),
                 currency: currency || 'AUD',
-                duration: parseInt(duration),
+                duration: parseIntegerInput(duration),
                 highlights: highlights || [],
                 inclusions: inclusions || [],
                 estimatedSpending: estimatedSpending || undefined,
@@ -942,8 +1008,8 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 categories: categories || [],
                 productType: productType || 'DIGITAL',
                 activeModules: activeModules || [],
-                promoPrice: promoPrice ? parseFloat(promoPrice) : undefined,
-                installments: installments ? parseInt(installments) : undefined,
+                promoPrice: promoPrice ? parseDecimalInput(promoPrice) : undefined,
+                installments: installments ? parseIntegerInput(installments) : undefined,
                 immediateAccess: immediateAccess ?? true,
                 lifetimeAccess: lifetimeAccess ?? true,
                 offlineDownload: offlineDownload ?? true,
@@ -979,8 +1045,8 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                         title: day.title,
                         summary: day.summary || '',
                         description: day.description || '',
-                        activities: day.activities?.length ? {
-                            create: day.activities.map((act: any, i: number) => ({
+                        activities: normalizeActivitiesForPersistence(day.activities).length ? {
+                            create: normalizeActivitiesForPersistence(day.activities).map((act: any, i: number) => ({
                                 order: i,
                                 title: act.title,
                                 description: act.description || '',
@@ -1126,9 +1192,9 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (destination !== undefined) updateData.destination = destination;
         if (country !== undefined) updateData.country = country;
         if (description !== undefined) updateData.description = description;
-        if (price !== undefined) updateData.price = parseFloat(price);
+        if (price !== undefined) updateData.price = parseDecimalInput(price);
         if (currency !== undefined) updateData.currency = currency;
-        if (duration !== undefined) updateData.duration = parseInt(duration);
+        if (duration !== undefined) updateData.duration = parseIntegerInput(duration);
         if (highlights !== undefined) updateData.highlights = highlights;
         if (inclusions !== undefined) updateData.inclusions = inclusions;
         if (estimatedSpending !== undefined) updateData.estimatedSpending = estimatedSpending;
@@ -1150,8 +1216,8 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (categories !== undefined) updateData.categories = categories;
         if (productType !== undefined) updateData.productType = productType;
         if (activeModules !== undefined) updateData.activeModules = activeModules;
-        if (promoPrice !== undefined) updateData.promoPrice = promoPrice ? parseFloat(promoPrice) : null;
-        if (installments !== undefined) updateData.installments = installments ? parseInt(installments) : null;
+        if (promoPrice !== undefined) updateData.promoPrice = promoPrice ? parseDecimalInput(promoPrice) : null;
+        if (installments !== undefined) updateData.installments = installments ? parseIntegerInput(installments) : null;
         if (immediateAccess !== undefined) updateData.immediateAccess = immediateAccess;
         if (lifetimeAccess !== undefined) updateData.lifetimeAccess = lifetimeAccess;
         if (offlineDownload !== undefined) updateData.offlineDownload = offlineDownload;
@@ -1233,8 +1299,8 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
                             title: day.title,
                             summary: day.summary || '',
                             description: day.description || '',
-                            activities: day.activities?.length ? {
-                                create: day.activities.map((act: any, i: number) => ({
+                            activities: normalizeActivitiesForPersistence(day.activities).length ? {
+                                create: normalizeActivitiesForPersistence(day.activities).map((act: any, i: number) => ({
                                     order: i,
                                     title: act.title,
                                     description: act.description || '',
@@ -1421,6 +1487,7 @@ router.post('/:id/purchase', async (req: Request, res: Response) => {
         // Idempotent: if a sale already exists for this traveler+itinerary, return it.
         const existing = await prisma.itinerarySale.findFirst({
             where: { itineraryId, travelerId },
+            select: { id: true },
         });
         if (existing) {
             res.json({ id: existing.id, itineraryId, travelerId, alreadyPurchased: true });
@@ -1432,6 +1499,14 @@ router.post('/:id/purchase', async (req: Request, res: Response) => {
             return;
         }
 
+        // Congelamos o snapshot UMA VEZ em `purchaseData.routeSnapshot`.
+        // Esse é o formato compatível com o banco em produção e é lido pelo
+        // /purchased, Meus Roteiros e customizações pós-compra.
+        const snapshotPayload = toJsonSafe(buildPurchasedItineraryPayload(itinerary, {
+            price: itinerary.price,
+            createdAt: new Date(),
+        }));
+
         const sale = await prisma.itinerarySale.create({
             data: {
                 itineraryId,
@@ -1439,12 +1514,10 @@ router.post('/:id/purchase', async (req: Request, res: Response) => {
                 price: itinerary.price,
                 commission: itinerary.price * 0.15, // 15% platform commission
                 purchaseData: {
-                    routeSnapshot: toJsonSafe(buildPurchasedItineraryPayload(itinerary, {
-                        price: itinerary.price,
-                        createdAt: new Date(),
-                    })),
+                    routeSnapshot: snapshotPayload,
                 },
             },
+            select: { id: true },
         });
 
         res.json({ id: sale.id, itineraryId, travelerId, paymentMethod: paymentMethod || 'unknown', alreadyPurchased: false });

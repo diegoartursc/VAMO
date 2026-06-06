@@ -6,6 +6,8 @@
  */
 
 import type {
+    Activity,
+    Day,
     ItineraryFormState,
     ModuleCostInfo,
     ModuleKey,
@@ -40,6 +42,34 @@ export interface ValidationIssue {
 }
 
 /**
+ * Considera uma atividade "vazia" quando nenhum dos campos textuais
+ * principais tem conteúdo. Atividades vazias são placeholders criados
+ * pelo botão "+ atividade" e não devem invalidar o dia.
+ */
+function activityHasContent(a: Activity | null | undefined): boolean {
+    if (!a) return false;
+    return !!(a.title?.trim() || a.description?.trim());
+}
+
+/**
+ * Predicado canônico — espelha `dayIsComplete` do StepDays do mobile.
+ * Fonte única de verdade entre o form (UI) e a validação de envio.
+ *
+ * Um dia é completo quando:
+ *  - possui descrição (após trim);
+ *  - possui pelo menos 1 atividade com conteúdo (title OU description);
+ *  - todas as atividades com conteúdo possuem título preenchido.
+ */
+export function dayIsComplete(d: Day | null | undefined): boolean {
+    if (!d) return false;
+    if (!d.description?.trim()) return false;
+    const activities = Array.isArray(d.activities) ? d.activities : [];
+    const real = activities.filter(activityHasContent);
+    if (real.length === 0) return false;
+    return real.every(a => !!a.title?.trim());
+}
+
+/**
  * Gasto por módulo é 100% opcional. Tanto o valor quanto o comprovante
  * não são obrigatórios. Esta função sempre retorna `true` — mantida
  * apenas como hook para validações futuras (ex.: detectar formato
@@ -71,11 +101,10 @@ export function isModuleComplete(
 ): boolean {
     switch (moduleKey) {
         case "itinerario":
-            return form.days.length > 0
-                && form.days.every(d =>
-                    d.description?.trim() !== ""
-                    && d.activities?.length > 0
-                    && d.activities.every(a => a.title?.trim() !== ""));
+            // Valida apenas os dias que existem em `form.days` (não em
+            // `form.duration`). Dias excedentes/órfãos de uma duração
+            // antiga não invalidam o envio enquanto estiverem completos.
+            return form.days.length > 0 && form.days.every(dayIsComplete);
         case "voo": {
             const { flightOutbound: out, flightReturn: ret } = form;
             const baseOk = !!(out.originCity && out.departureDate && out.arrivalDate
@@ -170,12 +199,18 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
     // (travelProofUrl) continua sendo obrigatório no bloco acima.
 
     for (const m of form.activeModules) {
-        if (!isModuleComplete(m, form)) {
+        if (isModuleComplete(m, form)) continue;
+        if (m === "itinerario") {
             issues.push({
                 section: m,
-                message: moduleIncompleteMessage(m),
+                message: itinerarioIncompleteMessage(form),
             });
+            continue;
         }
+        issues.push({
+            section: m,
+            message: moduleIncompleteMessage(m),
+        });
     }
 
     // ── Consistência de "Valor comprovado" sem comprovante ──
@@ -244,6 +279,39 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
     }
 
     return issues;
+}
+
+/**
+ * Mensagem granular para o módulo "itinerário": lista exatamente
+ * quais dias (pelo índice em `form.days`) estão incompletos.
+ *
+ *  - 1 dia incompleto  → "Complete o Dia X do itinerário."
+ *  - 2+ dias           → "Complete os dias 2, 4 e 5 do itinerário."
+ *  - todos incompletos → fallback genérico.
+ */
+function itinerarioIncompleteMessage(form: ItineraryFormState): string {
+    const days = form.days ?? [];
+    if (days.length === 0) {
+        return "Cadastre pelo menos 1 dia de roteiro.";
+    }
+    const missing: number[] = [];
+    for (let i = 0; i < days.length; i++) {
+        if (!dayIsComplete(days[i])) missing.push(i + 1);
+    }
+    if (missing.length === 0) {
+        // Não deveria ocorrer (módulo só entra aqui se incompleto),
+        // mas mantemos fallback defensivo.
+        return moduleIncompleteMessage("itinerario");
+    }
+    if (missing.length === days.length) {
+        return "Preencha todos os dias com descrição e ao menos uma atividade.";
+    }
+    if (missing.length === 1) {
+        return `Complete o Dia ${missing[0]} do itinerário.`;
+    }
+    const head = missing.slice(0, -1).join(", ");
+    const tail = missing[missing.length - 1];
+    return `Complete os dias ${head} e ${tail} do itinerário.`;
 }
 
 function moduleIncompleteMessage(key: ModuleKey): string {

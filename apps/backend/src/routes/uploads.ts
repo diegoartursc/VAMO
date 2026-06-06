@@ -19,14 +19,35 @@ const storage = multer.diskStorage({
     },
 });
 
-const ALLOWED_UPLOAD_MIME = /^(image\/(jpeg|png|webp|gif)|application\/pdf)$/;
+// Conjunto canônico de formatos aceitos no upload bruto. A matriz
+// fina de "que formato vale em qual contexto" mora no client
+// (apps/{mobile,site}/src/.../uploadContexts.ts). O backend aplica
+// apenas o teto: imagens, vídeos e PDF são aceitos; a discriminação
+// por contexto é responsabilidade do client.
+//
+// Variantes "-sequence" cobrem Live Photos HEIC do iPhone.
+const ALLOWED_UPLOAD_MIME =
+    /^(image\/(jpeg|png|webp|heic|heif|heic-sequence|heif-sequence)|video\/(mp4|quicktime|webm)|application\/pdf)$/;
 
-// 25MB máximo, aceita imagem e PDF
+// Extensões aceitas — fallback quando o cliente envia o arquivo com
+// MIME genérico (alguns browsers usam application/octet-stream para
+// HEIC e MOV). Confiar na extensão preserva a experiência do usuário
+// sem abrir a porta para arquivos arbitrários: o sistema continua
+// gravando exatamente o que veio.
+const ALLOWED_UPLOAD_EXT = /\.(jpe?g|png|webp|heic|heif|mp4|mov|webm|pdf)$/i;
+
+// Teto único de 100 MB cobre o maior caso (vídeo da galeria). Limites
+// menores por contexto (25 MB para imagens, etc.) são aplicados pelo
+// client antes do upload.
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
 const upload = multer({
     storage,
-    limits: { fileSize: 25 * 1024 * 1024 },
+    limits: { fileSize: MAX_UPLOAD_BYTES },
     fileFilter: (_req, file, cb) => {
-        if (!ALLOWED_UPLOAD_MIME.test(file.mimetype)) {
+        const mimeOk = ALLOWED_UPLOAD_MIME.test(file.mimetype);
+        const extOk  = ALLOWED_UPLOAD_EXT.test(file.originalname || '');
+        if (!mimeOk && !extOk) {
             cb(new Error('UNSUPPORTED_FILE_TYPE'));
             return;
         }
@@ -34,15 +55,30 @@ const upload = multer({
     },
 });
 
+/**
+ * Categoriza o arquivo recebido como `image`, `video` ou `document`
+ * para o client poder distinguir o tratamento (preview de imagem,
+ * ícone de PDF, player de vídeo) sem reinspecionar o MIME.
+ */
+function inferMediaType(mime: string, filename: string): 'image' | 'video' | 'document' {
+    if (/^image\//i.test(mime)) return 'image';
+    if (/^video\//i.test(mime)) return 'video';
+    if (mime === 'application/pdf') return 'document';
+    if (/\.(jpe?g|png|webp|heic|heif)$/i.test(filename)) return 'image';
+    if (/\.(mp4|mov|webm)$/i.test(filename)) return 'video';
+    if (/\.pdf$/i.test(filename)) return 'document';
+    return 'document';
+}
+
 function sendUploadError(res: express.Response, err: unknown): boolean {
     if (!err) return false;
     const error = err as Error & { code?: string };
     if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-        res.status(413).json({ error: 'Arquivo muito grande (máx 25 MB).' });
+        res.status(413).json({ error: 'Arquivo muito grande (máx 100 MB).' });
         return true;
     }
     if (error.message === 'UNSUPPORTED_FILE_TYPE') {
-        res.status(415).json({ error: 'Formato de arquivo não suportado. Use JPG, PNG, WEBP, GIF ou PDF.' });
+        res.status(415).json({ error: 'Formato não suportado. Use JPG, PNG, WEBP, HEIC, MP4, MOV ou PDF.' });
         return true;
     }
     res.status(400).json({ error: error.message || 'Não foi possível processar o upload.' });
@@ -69,6 +105,7 @@ router.post('/', optionalAuthMiddleware, (req: AuthRequest, res) => {
             originalName: req.file.originalname,
             size: req.file.size,
             mimetype: req.file.mimetype,
+            mediaType: inferMediaType(req.file.mimetype, req.file.originalname),
         });
     });
 });
@@ -89,6 +126,14 @@ router.post('/multiple', optionalAuthMiddleware, (req: AuthRequest, res) => {
         const host = `${req.protocol}://${req.get('host')}`;
         res.json({
             urls: files.map(f => `${host}/uploads/itineraries/${f.filename}`),
+            items: files.map(f => ({
+                url: `${host}/uploads/itineraries/${f.filename}`,
+                filename: f.filename,
+                originalName: f.originalname,
+                size: f.size,
+                mimetype: f.mimetype,
+                mediaType: inferMediaType(f.mimetype, f.originalname),
+            })),
         });
     });
 });

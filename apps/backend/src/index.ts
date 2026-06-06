@@ -1,6 +1,6 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth';
 import travelerAuthRoutes from './routes/traveler-auth';
@@ -19,9 +19,8 @@ import auditLogsRoutes from './routes/audit-logs';
 import ratesRoutes from './routes/rates';
 import uploadsRoutes from './routes/uploads';
 import questionRoutes from './routes/questions';
-
-// Load environment variables
-dotenv.config();
+import travelerTripCenterRoutes from './routes/traveler-trip-center';
+import travelerRouteCustomizationRoutes from './routes/traveler-route-customization';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -108,6 +107,8 @@ app.use('/api/creators', creatorRoutes);
 app.use('/api/destinations', destinationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/my-trips', myTripsRoutes);
+app.use('/api/trip-center', travelerTripCenterRoutes);
+app.use('/api/route-customization', travelerRouteCustomizationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/departures', departureRoutes);
 app.use('/api/sales', salesRoutes);

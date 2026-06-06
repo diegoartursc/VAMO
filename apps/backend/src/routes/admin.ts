@@ -5,6 +5,7 @@ import prisma from '../lib/prisma';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'vamo-admin-secret-2024';
+let devAdminCache: any = null;
 
 // ─── Auth Middleware ────────────────────────────────────────────────────────
 async function verifyAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -19,6 +20,12 @@ async function verifyAdmin(req: Request, res: Response, next: NextFunction): Pro
     // em dev. Resolve (ou cria) um admin real no banco para que aprovações/rejeições
     // tenham um approvedBy válido (FK).
     if (process.env.NODE_ENV !== 'production' && token === 'mock-admin-token') {
+        if (devAdminCache) {
+            (req as any).admin = devAdminCache;
+            next();
+            return;
+        }
+
         let admin = await prisma.admin.findFirst({ where: { active: true } }).catch(() => null);
         if (!admin) {
             admin = await prisma.admin.create({
@@ -32,6 +39,7 @@ async function verifyAdmin(req: Request, res: Response, next: NextFunction): Pro
             }).catch(() => null);
         }
         if (!admin) { res.status(500).json({ error: 'Falha ao resolver admin dev' }); return; }
+        devAdminCache = admin;
         (req as any).admin = admin;
         next();
         return;
@@ -93,48 +101,52 @@ router.post('/seed', async (req: Request, res: Response) => {
 
 // GET /api/admin/stats
 router.get('/stats', verifyAdmin, async (_req: Request, res: Response) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-    const [pendingPackages, pendingItineraries, approvedPackagesToday, approvedItinerariesToday, rejectedPackages, rejectedItineraries] = await Promise.all([
-        prisma.package.count({ where: { status: 'PENDING_REVIEW' } }),
-        prisma.itinerary.count({ where: { status: 'PENDING_REVIEW' } }),
-        prisma.package.count({ where: { status: 'APPROVED', approvedAt: { gte: today } } }),
-        prisma.itinerary.count({ where: { status: 'ACTIVE', approvedAt: { gte: today } } }),
-        prisma.package.count({ where: { status: 'REJECTED' } }),
-        prisma.itinerary.count({ where: { status: 'REJECTED' } }),
-    ]);
+        const pendingPackages = await prisma.package.count({ where: { status: 'PENDING_REVIEW' } });
+        const pendingItineraries = await prisma.itinerary.count({ where: { status: 'PENDING_REVIEW' } });
+        const approvedPackagesToday = await prisma.package.count({ where: { status: 'APPROVED', approvedAt: { gte: today } } });
+        const approvedItinerariesToday = await prisma.itinerary.count({ where: { status: 'ACTIVE', approvedAt: { gte: today } } });
+        const rejectedPackages = await prisma.package.count({ where: { status: 'REJECTED' } });
+        const rejectedItineraries = await prisma.itinerary.count({ where: { status: 'REJECTED' } });
 
-    res.json({
-        pendingPackages,
-        pendingItineraries,
-        totalPending: pendingPackages + pendingItineraries,
-        approvedToday: approvedPackagesToday + approvedItinerariesToday,
-        rejectedTotal: rejectedPackages + rejectedItineraries,
-    });
+        res.json({
+            pendingPackages,
+            pendingItineraries,
+            totalPending: pendingPackages + pendingItineraries,
+            approvedToday: approvedPackagesToday + approvedItinerariesToday,
+            rejectedTotal: rejectedPackages + rejectedItineraries,
+        });
+    } catch (error) {
+        console.error('[admin stats] error:', error);
+        res.status(500).json({ error: 'Failed to fetch admin stats' });
+    }
 });
 
 // GET /api/admin/pending
 router.get('/pending', verifyAdmin, async (req: Request, res: Response) => {
-    const { type } = req.query as { type?: string };
+    try {
+        const { type } = req.query as { type?: string };
 
-    const [packages, itineraries] = await Promise.all([
-        type === 'itinerary' ? Promise.resolve([]) : prisma.package.findMany({
+        const packages = type === 'itinerary' ? [] : await prisma.package.findMany({
             where: { status: 'PENDING_REVIEW' },
             orderBy: { createdAt: 'asc' },
             include: {
                 agency: { select: { id: true, name: true, logo: true } },
                 images: { take: 1, orderBy: { order: 'asc' }, select: { url: true } },
             },
-        }),
-        type === 'package' ? Promise.resolve([]) : prisma.itinerary.findMany({
+        });
+        const itineraryRows = type === 'package' ? [] : await prisma.itinerary.findMany({
             where: { status: 'PENDING_REVIEW' },
             orderBy: { createdAt: 'asc' },
             include: {
                 creator: { select: { id: true, traveler: { select: { name: true, avatar: true } } } },
                 images: { take: 1, orderBy: { order: 'asc' }, select: { url: true } },
             },
-        }).then(rows => rows.map((r: any) => ({
+        });
+        const itineraries = itineraryRows.map((r: any) => ({
             // Resolve thumbnail server-side: prefere ItineraryImage[0], depois
             // highlightPhotos[0], depois mediaUrls[0]. Admin sempre vê algo.
             ...r,
@@ -145,21 +157,24 @@ router.get('/pending', verifyAdmin, async (req: Request, res: Response) => {
                     : r.mediaUrls?.[0]
                         ? [{ url: r.mediaUrls[0] }]
                         : [],
-        }))),
-    ]);
+        }));
 
-    res.json({ packages, itineraries });
+        res.json({ packages, itineraries });
+    } catch (error) {
+        console.error('[admin pending] error:', error);
+        res.status(500).json({ error: 'Failed to fetch pending admin items' });
+    }
 });
 
 // GET /api/admin/all
 router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
-    const { status, type } = req.query as { status?: string; type?: string };
+    try {
+        const { status, type } = req.query as { status?: string; type?: string };
 
-    const pkgWhere: any = status ? { status } : {};
-    const itWhere: any = status ? { status } : {};
+        const pkgWhere: any = status ? { status } : {};
+        const itWhere: any = status ? { status } : {};
 
-    const [packages, itineraries] = await Promise.all([
-        type === 'itinerary' ? Promise.resolve([]) : prisma.package.findMany({
+        const packages = type === 'itinerary' ? [] : await prisma.package.findMany({
             where: pkgWhere,
             orderBy: { updatedAt: 'desc' },
             take: 50,
@@ -168,8 +183,8 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
                 approvalNote: true, approvedAt: true, createdAt: true, qualityScore: true,
                 agency: { select: { name: true } },
             },
-        }),
-        type === 'package' ? Promise.resolve([]) : prisma.itinerary.findMany({
+        });
+        const itineraryRows = type === 'package' ? [] : await prisma.itinerary.findMany({
             where: itWhere,
             orderBy: { updatedAt: 'desc' },
             take: 50,
@@ -184,7 +199,8 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
                 mediaUrls: true,
                 creator: { select: { traveler: { select: { name: true } } } },
             },
-        }).then(rows => rows.map((r: any) => ({
+        });
+        const itineraries = itineraryRows.map((r: any) => ({
             ...r,
             images: r.images?.length
                 ? r.images
@@ -193,10 +209,13 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
                     : r.mediaUrls?.[0]
                         ? [{ url: r.mediaUrls[0] }]
                         : [],
-        }))),
-    ]);
+        }));
 
-    res.json({ packages, itineraries });
+        res.json({ packages, itineraries });
+    } catch (error) {
+        console.error('[admin all] error:', error);
+        res.status(500).json({ error: 'Failed to fetch admin items' });
+    }
 });
 
 // GET /api/admin/itineraries/:id

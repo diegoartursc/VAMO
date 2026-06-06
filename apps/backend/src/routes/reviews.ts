@@ -164,6 +164,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
         // ItinerarySale; sem registro de compra, recusamos a submissão.
         const purchase = await prisma.itinerarySale.findFirst({
             where: { travelerId, itineraryId },
+            select: { id: true },
         });
         if (!purchase) {
             return res.status(403).json({ error: 'Apenas quem comprou este roteiro pode avaliá-lo.' });

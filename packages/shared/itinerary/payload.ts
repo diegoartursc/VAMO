@@ -46,6 +46,26 @@ export interface ItineraryPayload {
     highlightPhotos: string[];
 }
 
+function hasActivityContent(activity: any): boolean {
+    return !!(
+        String(activity?.title || "").trim()
+        || String(activity?.description || "").trim()
+        || String(activity?.location || "").trim()
+        || String(activity?.mapLink || "").trim()
+    );
+}
+
+function normalizeDayForPayload(day: any, index: number): any {
+    const activities = Array.isArray(day?.activities)
+        ? day.activities.filter(hasActivityContent)
+        : [];
+    return {
+        ...day,
+        dayNumber: index + 1,
+        activities,
+    };
+}
+
 export function buildPayload(form: ItineraryFormState): ItineraryPayload {
     const validEntries = form.spendingEntries.filter(e => parseFloat(e.priceValue) > 0);
     const mainCountry     = form.locations[0]?.country   || form.country     || "";
@@ -80,7 +100,7 @@ export function buildPayload(form: ItineraryFormState): ItineraryPayload {
         estimatedSpending: { manualEntries: validEntries },
         images: form.images.filter(Boolean),
         travelProofUrl: form.travelProofUrl,
-        days: form.days.map((d, i) => ({ ...d, dayNumber: i + 1 })),
+        days: form.days.map(normalizeDayForPayload),
         accommodations: form.accommodations,
         transports: form.transports,
         checklists: form.checklistItems,

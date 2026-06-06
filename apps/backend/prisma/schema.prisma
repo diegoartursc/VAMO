@@ -213,6 +213,9 @@ model Traveler {
   savedItems     SavedItem[]
   notifications  Notification[]
   faqQuestions   FaqQuestion[]
+  checklistItems TravelerChecklistItem[]
+  tripFiles      TravelerFile[]
+  routeCustomizations TravelerItineraryCustomization[]
 
   @@map("travelers")
 }
@@ -490,6 +493,9 @@ model Itinerary {
   accommodations   ItineraryAccommodation[]
   transports       ItineraryTransport[]
   checklists       ItineraryChecklist[]
+  travelerChecklistItems TravelerChecklistItem[]
+  travelerFiles    TravelerFile[]
+  travelerCustomizations TravelerItineraryCustomization[]
 
   @@map("itineraries")
 }
@@ -638,13 +644,61 @@ model ItinerarySale {
   price       Float
   commission  Float
   // Rich purchase data for the purchased itinerary experience
-  purchaseData Json?    // { checklist, weather, accommodation, emergencyContacts, spendingProfile, transport, flightInfo, accommodationOptions, receiveList }
+  // NOTE: `purchaseData.routeSnapshot` (snapshotVersion: 1) é o snapshot
+  // canônico da venda — congelado no momento da compra via
+  // `buildPurchasedItineraryPayload(...)`. Reusamos esse campo para a
+  // feature de Roteiro Editável Pós-Compra (Original vs. Minha versão);
+  // não há `purchasedSnapshot` separado.
+  purchaseData Json?    // { routeSnapshot, checklist, weather, accommodation, emergencyContacts, spendingProfile, transport, flightInfo, accommodationOptions, receiveList }
   createdAt   DateTime  @default(now())
 
   itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
   traveler    Traveler  @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  customizations TravelerItineraryCustomization[]
 
   @@map("itinerary_sales")
+}
+
+// ─────────────────────────────────────────────
+// TRAVELER ITINERARY CUSTOMIZATION
+// ─────────────────────────────────────────────
+//
+// Armazena as personalizações que um viajante faz sobre seu roteiro
+// COMPRADO — sem nunca tocar no roteiro original do criador. Cada
+// registro é a "camada de overlay" privada do viajante por roteiro:
+//  - `addedItems`: novos itens criados pelo viajante, agrupados por kind
+//     (accommodations, transports, attractions, restaurants, generalTips,
+//     checklistItems, extraSpendingItems, flightOutbound, flightReturn,
+//     dayActivities).
+//  - `hiddenOriginalIds`: tokens `originalId` (do snapshot) que o
+//     viajante escolheu ocultar — não apaga do snapshot, apenas marca.
+//  - `editedOriginalItems`: mapa { [originalId]: Partial<data> } com
+//     patches sobre itens originais. Campo com valor `null` significa
+//     "remover esse campo" no merge.
+//  - `notes`: anotações livres do viajante para essa viagem.
+//
+// O merge "snapshot + customization → roteiro personalizado" acontece
+// inteiramente no mobile (`mergeItineraryWithCustomization`). O backend
+// só armazena/valida o shape.
+model TravelerItineraryCustomization {
+  id                    String    @id @default(cuid())
+  travelerId            String
+  itineraryId           String
+  saleId                String?
+  notes                 String?   @db.Text
+  addedItems            Json      @default("[]")
+  hiddenOriginalIds     Json      @default("[]")
+  editedOriginalItems   Json      @default("{}")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  traveler  Traveler       @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  itinerary Itinerary      @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  sale      ItinerarySale? @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@unique([travelerId, itineraryId])
+  @@index([saleId])
+  @@map("traveler_itinerary_customizations")
 }
 
 // ─────────────────────────────────────────────
@@ -745,6 +799,8 @@ model PurchaseHistory {
   bookingInclusions BookingInclusion[]
   flightQuote     FlightQuote?
   agencyDocuments AgencyDocument[]
+  checklistItems  TravelerChecklistItem[]
+  files           TravelerFile[]
 
   @@map("purchase_history")
 }
@@ -955,4 +1011,54 @@ model AuditLog {
   @@index([timestamp])
   @@index([action])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────
+// TRAVELER TRIP CENTER (Minha Central da Viagem)
+// ─────────────────────────────────────────────
+// Itens de checklist e arquivos pessoais do viajante para uma viagem
+// específica (roteiro comprado). Diferente do `ItineraryChecklist`, que
+// pertence ao criador e vale para todo mundo que comprar, estes registros
+// são privados do viajante e não vazam de volta para o criador.
+
+model TravelerChecklistItem {
+  id          String   @id @default(cuid())
+  travelerId  String
+  itineraryId String
+  purchaseId  String?
+  category    String   // 'documentos' | 'mala' | 'pre-viagem' | 'finanças' | 'apps úteis' | 'outros' | 'custom'
+  item        String
+  completed   Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  traveler    Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  itinerary   Itinerary        @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  purchase    PurchaseHistory? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  @@index([travelerId, itineraryId])
+  @@index([purchaseId])
+  @@map("traveler_checklist_items")
+}
+
+model TravelerFile {
+  id          String   @id @default(cuid())
+  travelerId  String
+  itineraryId String
+  purchaseId  String?
+  category    String   // 'voos' | 'hospedagem' | 'passeios' | 'documentos' | 'seguro' | 'recibos' | 'transporte' | 'outros'
+  title       String
+  url         String
+  mimeType    String?
+  sizeBytes   Int?
+  createdAt   DateTime @default(now())
+
+  traveler    Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  itinerary   Itinerary        @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  purchase    PurchaseHistory? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  @@index([travelerId, itineraryId])
+  @@index([purchaseId])
+  @@map("traveler_files")
 }

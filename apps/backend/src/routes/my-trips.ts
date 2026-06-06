@@ -10,7 +10,11 @@ router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Re
         const travelerId = req.traveler!.travelerId;
         const itinerarySales = await prisma.itinerarySale.findMany({
             where: { travelerId },
-            include: {
+            select: {
+                id: true,
+                price: true,
+                createdAt: true,
+                purchaseData: true,
                 itinerary: {
                     include: {
                         creator: { include: { traveler: { select: { name: true, avatar: true } } } },
