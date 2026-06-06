@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getPackageById, createPackage, updatePackage } from "@/lib/api";
 import { getSession, isAgencySession } from "@/lib/auth";
 import StepperNav, { StepperActions } from "../../../../components/dashboard/StepperNav";
+import MoneyInput from "../../../../components/MoneyInput";
 import PhonePreview from "../../../../components/dashboard/PhonePreview";
 import QualityCoach from "../../../../components/dashboard/QualityCoach";
 import { Target, DollarSign, Compass, Tag, Package, CheckSquare, FileText, MapPin, Trash2, X, HelpCircle } from "lucide-react";
@@ -447,11 +448,11 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                 <div className="form-row">
                     <div className="form-group">
                         <label className="form-label">Preço base por pessoa *</label>
-                        <input className="form-input" type="number" min={0} value={form.priceMin || ""} onChange={e => upd("priceMin", parseFloat(e.target.value) || 0)} />
+                        <MoneyInput className="form-input" value={form.priceMin || ""} onChangeNumber={n => upd("priceMin", Math.max(0, n))} />
                     </div>
                     <div className="form-group">
                         <label className="form-label">Promoção (opcional)</label>
-                        <input className="form-input" type="number" min={0} value={form.promoPrice ?? ""} onChange={e => upd("promoPrice", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Deixe vazio se não houver" />
+                        <MoneyInput className="form-input" value={form.promoPrice ?? ""} onChangeNumber={n => upd("promoPrice", n > 0 ? n : null)} placeholder="Deixe vazio se não houver" />
                     </div>
                     <div className="form-group">
                         <label className="form-label">Moeda</label>
@@ -463,7 +464,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                 <div className="form-row">
                     <div className="form-group">
                         <label className="form-label">Preço máximo estimado</label>
-                        <input className="form-input" type="number" min={0} value={form.priceMax || ""} onChange={e => upd("priceMax", parseFloat(e.target.value) || 0)} />
+                        <MoneyInput className="form-input" value={form.priceMax || ""} onChangeNumber={n => upd("priceMax", Math.max(0, n))} />
                     </div>
                     <div className="form-group">
                         <label className="form-label">Parcelas (máx)</label>
@@ -724,7 +725,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label" style={{ fontSize: 11 }}>Preço (A$)</label>
-                                        <input type="number" className="form-input" value={dep.price} onChange={e => updateDeparture(i, "price", parseFloat(e.target.value))} />
+                                        <MoneyInput className="form-input" value={dep.price ?? ""} onChangeNumber={n => updateDeparture(i, "price", n)} />
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label" style={{ fontSize: 11 }}>Vagas VAMO</label>

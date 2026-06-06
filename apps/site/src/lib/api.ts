@@ -4,8 +4,17 @@
  */
 
 import { getAuthHeaders } from './auth';
+import { convertHeicIfNeeded } from './heicSupport';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333/api';
+
+function friendlyUploadError(status: number, fallback?: string): string {
+    if (status === 401) return 'Sua sessão expirou. Faça login novamente.';
+    if (status === 403) return 'Você não tem permissão para enviar este arquivo.';
+    if (status === 413) return 'Esse arquivo é muito grande. Tente enviar uma versão menor.';
+    if (status === 415) return 'Esse formato não é aceito neste campo.';
+    return fallback || 'Não foi possível enviar o arquivo. Verifique sua conexão e tente novamente.';
+}
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -24,9 +33,14 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 }
 
 // ─── Uploads ───
+// HEIC/HEIF (formato de fotos do iPhone) é convertido para JPEG no client
+// antes do envio sempre que possível — previews e admin funcionam em
+// qualquer navegador. Se a conversão falhar, o HEIC bruto é enviado e
+// o backend aceita (ver allow-list em apps/backend/src/routes/uploads.ts).
 export async function uploadFile(file: File): Promise<string> {
+    const prepared = await convertHeicIfNeeded(file);
     const fd = new FormData();
-    fd.append('file', file);
+    fd.append('file', prepared);
     const res = await fetch(`${API_BASE_URL}/uploads`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -34,15 +48,16 @@ export async function uploadFile(file: File): Promise<string> {
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Falha no upload' }));
-        throw new Error(err.error || `Upload error: ${res.status}`);
+        throw new Error(friendlyUploadError(res.status, err.error));
     }
     const data = await res.json();
     return data.url as string;
 }
 
 export async function uploadFiles(files: File[]): Promise<string[]> {
+    const prepared = await Promise.all(files.map(f => convertHeicIfNeeded(f)));
     const fd = new FormData();
-    files.forEach(f => fd.append('files', f));
+    prepared.forEach(f => fd.append('files', f));
     const res = await fetch(`${API_BASE_URL}/uploads/multiple`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -50,7 +65,7 @@ export async function uploadFiles(files: File[]): Promise<string[]> {
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Falha no upload' }));
-        throw new Error(err.error || `Upload error: ${res.status}`);
+        throw new Error(friendlyUploadError(res.status, err.error));
     }
     const data = await res.json();
     return (data.urls || []) as string[];

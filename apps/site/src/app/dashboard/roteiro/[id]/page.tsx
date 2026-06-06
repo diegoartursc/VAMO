@@ -12,8 +12,38 @@ import {
     ChevronDown, ChevronUp, TrendingUp, MapPin, Clock, ExternalLink, Receipt, Wifi,
 } from "lucide-react";
 import { getItineraryById, createItinerary, updateItinerary, uploadFile, uploadFiles } from "../../../../lib/api";
+import {
+    acceptAttributeFor,
+    validateUploadFile,
+    prepareUploadFile,
+    uploadHint,
+} from "../../../../lib/uploadContexts";
+import MoneyInput from "../../../../components/MoneyInput";
 import { useDollarRate } from "../../../../hooks/useDollarRate";
 import ItineraryPreview from "../../../../components/ItineraryPreview";
+
+function isVideoUploadUrl(url: string): boolean {
+    return /\.(mp4|mov|webm|m4v)(\?|#|$)/i.test(url || "");
+}
+
+function hasActivityContent(activity: any): boolean {
+    return !!(
+        String(activity?.title || "").trim()
+        || String(activity?.description || "").trim()
+        || String(activity?.location || "").trim()
+        || String(activity?.mapLink || "").trim()
+    );
+}
+
+function normalizeDayForSubmit(day: any, index: number) {
+    return {
+        ...day,
+        dayNumber: index + 1,
+        activities: Array.isArray(day?.activities)
+            ? day.activities.filter(hasActivityContent)
+            : [],
+    };
+}
 
 /* ─── Constants ─── */
 const CITIES_BY_COUNTRY: Record<string, string[]> = {
@@ -807,7 +837,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             rating: rating.toString(), reviewCount: reviewCount.toString(),
             images: images.filter(Boolean),
             travelProofUrl,
-            days: days.map((d, i) => ({ ...d, dayNumber: i + 1 })),
+            days: days.map(normalizeDayForSubmit),
             accommodations, transports, checklists: checklistItems,
             flightInfo: (flightOutbound.airline || flightReturn.airline) ? {
                 outbound: flightOutbound,
@@ -844,7 +874,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         if (price <= 0) { setToast({ msg: "Defina um preço válido", type: "error" }); return; }
         if (categories.length < 1) { setToast({ msg: "Selecione pelo menos 1 categoria", type: "error" }); return; }
         if (!travelProofUrl) { setToast({ msg: "Anexe o arquivo de Comprovação de Viagem", type: "error" }); return; }
-        if (days.length < 3) { setToast({ msg: "Cadastre pelo menos 3 dias", type: "error" }); return; }
+        if (days.length < Math.max(1, duration)) { setToast({ msg: `Cadastre ${Math.max(1, duration)} dia${duration > 1 ? "s" : ""} de roteiro`, type: "error" }); return; }
         if (activeModules.length < 1) { setToast({ msg: "Ative pelo menos 1 módulo", type: "error" }); return; }
 
         // Módulos ativos devem ter conteúdo preenchido
@@ -890,7 +920,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
         setSaving(true);
         try {
-            const payload = buildPayload();
+            const payload = { ...buildPayload(), status: "PENDING_REVIEW" };
             // Help debugging in dev — surface the exact body we send
             // eslint-disable-next-line no-console
             console.log("[Save] Submitting itinerary payload:", payload);
@@ -1153,13 +1183,19 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                 : <><Upload size={14} strokeWidth={2} /> Selecionar Arquivo</>}
                             <input
                                 type="file"
-                                accept="image/*,.pdf"
+                                accept={acceptAttributeFor('travelProof')}
                                 style={{ display: "none" }}
                                 onChange={async e => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
                                     try {
-                                        const url = await uploadFile(file);
+                                        const v = validateUploadFile(file, 'travelProof');
+                                        if (!v.valid) {
+                                            setToast({ msg: v.reason, type: "error" });
+                                            return;
+                                        }
+                                        const prepared = await prepareUploadFile(file, 'travelProof');
+                                        const url = await uploadFile(prepared);
                                         setTravelProofUrl(url); markDirty();
                                     } catch (err: any) {
                                         setToast({ msg: `Erro no upload: ${err.message}`, type: "error" });
@@ -1190,7 +1226,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 <div className="form-row">
                     <div className="form-group" style={{ flex: 1 }}>
                         <label className="form-label">Preço *</label>
-                        <input className="form-input" type="number" value={price || ""} onChange={e => { setPrice(parseFloat(e.target.value) || 0); markDirty(); }} step={0.01} min={0} />
+                        <MoneyInput className="form-input" value={price || ""} onChangeNumber={n => { setPrice(Math.max(0, n)); markDirty(); }} />
                     </div>
                 </div>
                 <div className="editor-legal-notice" style={{ display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={13} strokeWidth={2} /> Aviso automático: &quot;Produto digital. Não inclui serviços turísticos.&quot;</div>
@@ -1512,7 +1548,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             </div>
                             <div className="form-group" style={{ margin: 0, width: 140 }}>
                                 <label className="form-label" style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}><DollarSign size={11} strokeWidth={2} /> Preço (opcional — mesma moeda da estimativa de gastos)</label>
-                                <input className="form-input" type="number" min={0} step={0.01} value={att.price || ""} onChange={e => { const u = [...attractions]; u[i].price = e.target.value; setAttractions(u); markDirty(); }} placeholder="Ex: 35" />
+                                <MoneyInput className="form-input" value={att.price || ""} onChangeText={s => { const u = [...attractions]; u[i].price = s; setAttractions(u); markDirty(); }} placeholder="Ex: 35,00" />
                             </div>
                         </div>
                         <div className="editor-activity-row">
@@ -1679,13 +1715,19 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                 <input
                                     id={`highlight-upload-${i}`}
                                     type="file"
-                                    accept="image/*"
+                                    accept={acceptAttributeFor('routeCoverMedia')}
                                     style={{ display: "none" }}
                                     onChange={async e => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
                                         try {
-                                            const url = await uploadFile(file);
+                                            const v = validateUploadFile(file, 'routeCoverMedia');
+                                            if (!v.valid) {
+                                                setToast({ msg: v.reason, type: "error" });
+                                                return;
+                                            }
+                                            const prepared = await prepareUploadFile(file, 'routeCoverMedia');
+                                            const url = await uploadFile(prepared);
                                             const u = [...highlightPhotos];
                                             u[i] = url;
                                             setHighlightPhotos(u);
@@ -1711,14 +1753,27 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 {/* Galeria da Viagem */}
                 <div className="editor-subsection">
                     <h4 style={{ margin: "0 0 4px", fontSize: 14, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 6 }}><ImageIcon size={14} strokeWidth={2} /> Galeria da Viagem (máx. 10)</h4>
-                    <span className="form-helper" style={{ marginBottom: 12, display: "block" }}>Faça upload das fotos e vídeos adicionais da sua experiência.</span>
+                    <span className="form-helper" style={{ marginBottom: 12, display: "block" }}>Faça upload das fotos e vídeos adicionais da sua experiência. {uploadHint('routeGalleryMedia')}.</span>
                     
                     {mediaUrls.length > 0 && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
                             {mediaUrls.map((url, i) => (
                                 <div key={i} style={{ position: "relative", width: 80, height: 80 }}>
-                                    {/* Exibe imagem ou um placeholder para vídeo de forma simplificada */}
-                                    <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} onError={e => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>'; (e.target as HTMLImageElement).style.padding = "20px"; }} />
+                                    {isVideoUploadUrl(url) ? (
+                                        <div style={{
+                                            width: "100%", height: "100%", borderRadius: 8, border: "1px solid var(--border)",
+                                            background: "#0f172a", color: "#fff", display: "flex", alignItems: "center",
+                                            justifyContent: "center", position: "relative", overflow: "hidden",
+                                        }}>
+                                            <video src={url} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            <span style={{
+                                                position: "absolute", inset: 0, display: "flex", alignItems: "center",
+                                                justifyContent: "center", background: "rgba(0,0,0,0.28)", fontSize: 22,
+                                            }}>▶</span>
+                                        </div>
+                                    ) : (
+                                        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
+                                    )}
                                     <button 
                                         onClick={() => { setMediaUrls(mediaUrls.filter((_, idx) => idx !== i)); markDirty(); }}
                                         style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "var(--warning)", border: "none", color: "#fff", cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -1730,17 +1785,32 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     
                     {mediaUrls.length < 10 && (
                         <div>
-                            <input 
-                                type="file" 
-                                id="gallery-upload" 
-                                multiple 
-                                accept="image/*,video/*" 
+                            <input
+                                type="file"
+                                id="gallery-upload"
+                                multiple
+                                accept={acceptAttributeFor('routeGalleryMedia')}
                                 style={{ display: "none" }}
                                 onChange={async e => {
                                     const files = Array.from(e.target.files || []);
                                     if (!files.length) return;
+                                    // Valida cada arquivo no contexto routeGalleryMedia (imagens + vídeos, até 100 MB).
+                                    const failures: string[] = [];
+                                    const accepted: File[] = [];
+                                    for (const f of files) {
+                                        const v = validateUploadFile(f, 'routeGalleryMedia');
+                                        if (v.valid) accepted.push(f);
+                                        else failures.push(`${f.name}: ${v.reason}`);
+                                    }
+                                    if (failures.length) {
+                                        setToast({ msg: failures.join(' · '), type: "error" });
+                                    }
+                                    if (!accepted.length) { e.target.value = ''; return; }
                                     try {
-                                        const newUrls = await uploadFiles(files);
+                                        const prepared = await Promise.all(
+                                            accepted.map(f => prepareUploadFile(f, 'routeGalleryMedia'))
+                                        );
+                                        const newUrls = await uploadFiles(prepared);
                                         const combined = [...mediaUrls, ...newUrls].slice(0, 10);
                                         setMediaUrls(combined);
                                         markDirty();
@@ -1817,15 +1887,13 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                     <div className="editor-activity-row" style={{ gap: 6 }}>
                                         <div className="form-group" style={{ flex: 1, margin: 0 }}>
                                             <label className="form-label" style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}><DollarSign size={11} strokeWidth={2} /> Valor Gasto *</label>
-                                            <input
+                                            <MoneyInput
                                                 className="form-input"
-                                                type="number"
-                                                min={0}
                                                 value={entry.priceValue}
-                                                placeholder="Ex: 1500"
-                                                onChange={e => {
+                                                placeholder="Ex: 1500,00"
+                                                onChangeText={s => {
                                                     const u = [...spendingEntries];
-                                                    u[i].priceValue = e.target.value;
+                                                    u[i].priceValue = s;
                                                     setSpendingEntries(u); markDirty();
                                                 }}
                                             />
@@ -1880,13 +1948,19 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                                 <input
                                                     id={`receipt-upload-${entry.moduleKey}`}
                                                     type="file"
-                                                    accept="image/*,.pdf"
+                                                    accept={acceptAttributeFor('costProof')}
                                                     style={{ display: "none" }}
                                                     onChange={async e => {
                                                         const file = e.target.files?.[0];
                                                         if (!file) return;
                                                         try {
-                                                            const url = await uploadFile(file);
+                                                            const v = validateUploadFile(file, 'costProof');
+                                                            if (!v.valid) {
+                                                                setToast({ msg: v.reason, type: "error" });
+                                                                return;
+                                                            }
+                                                            const prepared = await prepareUploadFile(file, 'costProof');
+                                                            const url = await uploadFile(prepared);
                                                             const u = [...spendingEntries];
                                                             u[i].receiptUrl = url;
                                                             setSpendingEntries(u); markDirty();

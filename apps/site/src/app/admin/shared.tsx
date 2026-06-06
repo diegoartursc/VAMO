@@ -112,6 +112,32 @@ export const useAdmin = () => {
     return ctx;
 };
 
+async function readJsonResponse<T>(res: Response): Promise<T | null> {
+    if (!res.ok) return null;
+    try {
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+function listFromPayload<T>(payload: unknown, key: "packages" | "itineraries"): T[] {
+    if (!payload || typeof payload !== "object") return [];
+    const value = (payload as Record<string, unknown>)[key];
+    return Array.isArray(value) ? value as T[] : [];
+}
+
+function mergeAdminItems<T extends { id: string }>(preferred: T[], fallback: T[]): T[] {
+    const seen = new Set<string>();
+    const merged: T[] = [];
+    for (const item of [...preferred, ...fallback]) {
+        if (!item?.id || seen.has(item.id)) continue;
+        seen.add(item.id);
+        merged.push(item);
+    }
+    return merged;
+}
+
 export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [packages, setPackages] = useState<PendingPackage[]>([]);
@@ -135,43 +161,61 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
         try {
             const headers = { Authorization: `Bearer ${token}` };
             const fetchOpts = { headers, cache: 'no-store' as RequestCache };
-            const [pendingRes, statsRes] = await Promise.all([
-                fetch(`${API}/admin/pending`, fetchOpts),
-                fetch(`${API}/admin/stats`, fetchOpts),
-            ]);
-            if (pendingRes.status === 401) { localStorage.removeItem("adminToken"); router.push("/admin/login"); return; }
+            const fetchAdmin = async (path: string) => {
+                const res = await fetch(`${API}${path}`, fetchOpts);
+                if (res.status === 401) {
+                    localStorage.removeItem("adminToken");
+                    router.push("/admin/login");
+                    return null;
+                }
+                return res;
+            };
 
-            let pkgs: PendingPackage[] = [], its: PendingItinerary[] = [], allPkgs: PendingPackage[] = [], allIts: PendingItinerary[] = [];
-            if (pendingRes.ok) {
-                const pendingData = await pendingRes.json();
-                pkgs = pendingData.packages || [];
-                its = pendingData.itineraries || [];
-                console.log('[admin/shared] /pending returned', { packages: pkgs.length, itineraries: its.length, items: its.map(i => i.title) });
+            const pendingPackagesRes = await fetchAdmin("/admin/pending?type=package");
+            const pendingItinerariesRes = await fetchAdmin("/admin/pending?type=itinerary");
+            const allPackagesRes = await fetchAdmin("/admin/all?type=package");
+            const allItinerariesRes = await fetchAdmin("/admin/all?type=itinerary");
+            const statsRes = await fetchAdmin("/admin/stats");
+
+            if (!pendingPackagesRes || !pendingItinerariesRes || !allPackagesRes || !allItinerariesRes || !statsRes) {
+                localStorage.removeItem("adminToken");
+                return;
             }
 
-            try {
-                const allRes = await fetch(`${API}/admin/all`, fetchOpts);
-                if (allRes.ok) {
-                    const allData = await allRes.json();
-                    allPkgs = allData.packages || [];
-                    allIts = allData.itineraries || [];
-                    console.log('[admin/shared] /all returned', { packages: allPkgs.length, itineraries: allIts.length, items: allIts.map(i => i.title) });
-                }
-            } catch { /* backend unavailable, keep empty */ }
+            let pkgs: PendingPackage[] = [], its: PendingItinerary[] = [], allPkgs: PendingPackage[] = [], allIts: PendingItinerary[] = [];
+            const [pendingPackagesData, pendingItinerariesData, allPackagesData, allItinerariesData] = await Promise.all([
+                readJsonResponse<unknown>(pendingPackagesRes),
+                readJsonResponse<unknown>(pendingItinerariesRes),
+                readJsonResponse<unknown>(allPackagesRes),
+                readJsonResponse<unknown>(allItinerariesRes),
+            ]);
 
-            setPackages(pkgs); setItineraries(its);
-            setAllPackages(allPkgs); setAllItineraries(allIts);
+            pkgs = listFromPayload<PendingPackage>(pendingPackagesData, "packages");
+            its = listFromPayload<PendingItinerary>(pendingItinerariesData, "itineraries");
+            allPkgs = mergeAdminItems(pkgs, listFromPayload<PendingPackage>(allPackagesData, "packages"));
+            allIts = mergeAdminItems(its, listFromPayload<PendingItinerary>(allItinerariesData, "itineraries"));
+
+            setPackages(pkgs);
+            setItineraries(its);
+            setAllPackages(allPkgs);
+            setAllItineraries(allIts);
 
             let s: Stats = { pendingPackages: pkgs.length, pendingItineraries: its.length, totalPending: pkgs.length + its.length, approvedToday: 0, rejectedTotal: allPkgs.filter(p => p.status === "REJECTED").length + allIts.filter(i => i.status === "REJECTED").length };
-            if (statsRes.ok) { try { s = await statsRes.json(); } catch { } }
+            const statsData = await readJsonResponse<Stats>(statsRes);
+            if (statsData) s = statsData;
             setStats(s);
 
             const creatorsRes = await fetch(`${API}/admin/creators/pending`, fetchOpts);
-            if (creatorsRes.ok) { const cd = await creatorsRes.json(); setCreators(cd || []); }
-        } catch {
+            if (creatorsRes.ok) {
+                const cd = await readJsonResponse<PendingCreator[]>(creatorsRes);
+                setCreators(Array.isArray(cd) ? cd : []);
+            }
+        } catch (error) {
+            console.error("[admin/shared] failed to load admin data", error);
             setPackages([]); setItineraries([]);
             setAllPackages([]); setAllItineraries([]);
             setStats({ pendingPackages: 0, pendingItineraries: 0, totalPending: 0, approvedToday: 0, rejectedTotal: 0 });
+            showToast("Não foi possível carregar os roteiros do admin agora.", "error");
         } finally { setLoading(false); }
     }, [router]);
 

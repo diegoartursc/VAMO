@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { acceptAttributeFor, validateUploadFile } from "../../../lib/uploadContexts";
 
 /* ─── Types ─── */
 type QuoteStatus = "AWAITING_QUOTE" | "QUOTED" | "ACCEPTED" | "EXPIRED" | "REJECTED";
@@ -542,18 +543,35 @@ export default function VendasPage() {
                                         borderRadius: 8, padding: "20px", background: docFile ? "#f0fdfa" : "#f8fafc",
                                         cursor: "pointer", transition: "all 0.2s"
                                     }}>
-                                        <input 
-                                            type="file" 
-                                            accept=".pdf,image/png,image/jpeg,image/jpg" 
-                                            onChange={e => e.target.files && setDocFile(e.target.files[0])} 
-                                            style={{ display: "none" }} 
+                                        <input
+                                            type="file"
+                                            accept={acceptAttributeFor('costProof')}
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                // Limite local de 5 MB (regra do produto neste fluxo)
+                                                // sobrepõe o teto do contexto.
+                                                if (file.size > 5 * 1024 * 1024) {
+                                                    alert('Arquivo muito grande. Máximo: 5 MB.');
+                                                    e.target.value = '';
+                                                    return;
+                                                }
+                                                const v = validateUploadFile(file, 'costProof');
+                                                if (!v.valid) {
+                                                    alert(v.reason);
+                                                    e.target.value = '';
+                                                    return;
+                                                }
+                                                setDocFile(file);
+                                            }}
+                                            style={{ display: "none" }}
                                         />
                                         <div style={{ fontSize: 24, marginBottom: 8 }}>{docFile ? "📄" : "📤"}</div>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: docFile ? "#0f766e" : "#475569", textAlign: "center" }}>
                                             {docFile ? docFile.name : "Clique para anexar ou arraste o arquivo"}
                                         </div>
                                         <div style={{ fontSize: 11, color: docFile ? "#14b8a6" : "#94a3b8", marginTop: 4 }}>
-                                            {docFile ? `${(docFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF, PNG, JPG (Máx. 5MB)"}
+                                            {docFile ? `${(docFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF, PNG, JPG, WEBP ou HEIC (Máx. 5MB)"}
                                         </div>
                                     </label>
                                 </div>
