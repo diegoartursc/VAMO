@@ -33,6 +33,10 @@ Workspaces npm: `apps/*` definidos no `package.json` da raiz.
 
 Backend (`apps/backend`) é único e mora **apenas neste repo** — consumido pelos 3 fronts via `NEXT_PUBLIC_API_URL` / `EXPO_PUBLIC_API_URL`.
 
+> Regra atual do produto: o marketplace trabalha com viajantes e criadores
+> independentes. O módulo de agências/pacotes é legado e suas APIs não são
+> montadas pelo backend.
+
 ---
 
 ## Como rodar
@@ -47,8 +51,11 @@ Backend (`apps/backend`) é único e mora **apenas neste repo** — consumido pe
 npm install                                        # instala todos os workspaces
 cp apps/backend/.env.example apps/backend/.env     # configurar DATABASE_URL e JWT_SECRET
 npm run prisma:migrate --workspace=apps/backend
-npm run prisma:seed --workspace=apps/backend       # se existir seed
 ```
+
+O projeto não configura seed do Prisma. Usuários legítimos devem ser criados
+pelo cadastro de viajante; nenhuma conta, agência ou pacote fictício é criado
+automaticamente.
 
 ### Subir tudo
 ```bash
