@@ -78,6 +78,27 @@ Ou use `./start-all.sh` que sobe os três em paralelo.
 
 **Nunca commitar `.env*` reais.** O `.gitignore` já cobre.
 
+## Deploy
+
+### Backend no Render
+
+O [`render.yaml`](./render.yaml) define o backend com:
+
+- root directory `apps/backend`;
+- build `npm ci && npm run build`;
+- migration segura de produção via `npm run prisma:migrate:deploy`;
+- start `npm start`;
+- health check em `/health`;
+- Node 22.
+
+No painel do Render, configure `DATABASE_URL`, `JWT_SECRET`,
+`ADMIN_SEED_SECRET` e `ALLOWED_ORIGINS`. Mantenha
+`ALLOW_DEMO_PURCHASES=false` até existir um gateway de pagamento real.
+
+Uploads ainda usam o filesystem local do serviço e não são persistentes no
+Render. Não trate `/uploads` como storage de produção até integrar um serviço
+externo e migrar as URLs existentes.
+
 ---
 
 ## Scripts da raiz

@@ -1,7 +1,63 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 
 const router = Router();
+
+// GET /api/creators/me/earnings
+router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
+    try {
+        const creator = await prisma.creator.findUnique({
+            where: { travelerId: req.traveler!.travelerId },
+            include: {
+                balance: true,
+                itineraries: {
+                    select: {
+                        id: true,
+                        title: true,
+                        sales: {
+                            select: { id: true, price: true, commission: true, createdAt: true },
+                            orderBy: { createdAt: 'desc' },
+                        },
+                    },
+                },
+            },
+        });
+        if (!creator) {
+            res.status(404).json({ error: 'Perfil de roteirista não encontrado' });
+            return;
+        }
+
+        const transactions = creator.itineraries.flatMap((itinerary) =>
+            itinerary.sales.map((sale) => ({
+                id: sale.id,
+                itineraryId: itinerary.id,
+                itineraryTitle: itinerary.title,
+                saleDate: sale.createdAt.toISOString(),
+                grossAmount: sale.price,
+                platformFee: sale.commission,
+                estimatedPayout: Math.max(0, sale.price - sale.commission),
+                currency: 'AUD',
+                status: 'pending',
+            })),
+        ).sort((a, b) => b.saleDate.localeCompare(a.saleDate));
+
+        const pendingFromSales = transactions.reduce((sum, transaction) => sum + transaction.estimatedPayout, 0);
+        res.json({
+            summary: {
+                currency: 'AUD',
+                availableBalance: creator.balance?.availableBalance ?? 0,
+                pendingBalance: creator.balance?.pendingBalance ?? pendingFromSales,
+                totalEarned: pendingFromSales,
+                payoutAccountStatus: 'not_started',
+            },
+            transactions,
+        });
+    } catch (error) {
+        console.error('Error fetching creator earnings:', error);
+        res.status(500).json({ error: 'Falha ao carregar ganhos do roteirista' });
+    }
+});
 
 // GET /api/creators - List all creators (single query, no N+1)
 router.get('/', async (req: Request, res: Response) => {

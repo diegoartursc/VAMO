@@ -16,7 +16,6 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../src/theme/theme';
 import { getItineraryById, getCurrencyRates } from '../../../src/services/api';
-import { getReviewsByItineraryId } from '../../../src/data/mockReviews';
 import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
 import { VERIFICATION_CONFIGS, VerificationLevel } from '../../../src/types/creator';
 import CollapsibleSection from '../../../src/components/common/CollapsibleSection';
@@ -167,7 +166,7 @@ export default function ItineraryDetailScreen() {
         VERIFICATION_CONFIGS[(creator.verificationLevel || 'basic') as VerificationLevel]
         ?? VERIFICATION_CONFIGS.basic;
     const destinationLabel = [itinerary.destination, itinerary.country].filter(Boolean).join(', ') || 'Destino VAMO';
-    const reviews = Array.isArray(itinerary.reviews) ? itinerary.reviews : getReviewsByItineraryId(`itinerary-${itineraryId}`);
+    const reviews = Array.isArray(itinerary.reviews) ? itinerary.reviews : [];
     const averageReviewRating = reviews.length > 0
         ? Number((reviews.reduce((sum: number, review: any) => sum + (Number(review.rating) || 0), 0) / reviews.length).toFixed(1))
         : rating;

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     View,
     Text,
     StyleSheet,
@@ -12,14 +13,22 @@ import {
 import { useRouter } from 'expo-router';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
-import { getReviewsByUserId, Review } from '../src/data/mockReviews';
-import { getItineraryById } from '../src/data/mockItineraries';
+import { getMyReviews } from '../src/services/api';
+import { useAuth } from '../src/contexts/AuthContext';
 
-const TRAVELER_ID = 'trav-diego';
+type MyReview = Awaited<ReturnType<typeof getMyReviews>>['reviews'][number];
 
 export default function MyReviewsScreen() {
     const router = useRouter();
-    const reviews = getReviewsByUserId(TRAVELER_ID);
+    const { accessToken } = useAuth();
+    const [reviews, setReviews] = useState<MyReview[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getMyReviews(accessToken)
+            .then((data) => setReviews(data.reviews))
+            .finally(() => setLoading(false));
+    }, [accessToken]);
 
     return (
         <View style={styles.container}>
@@ -39,7 +48,12 @@ export default function MyReviewsScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            {reviews.length === 0 ? (
+            {loading ? (
+                <View style={styles.emptyState}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <Text style={styles.emptyText}>Carregando suas avaliações...</Text>
+                </View>
+            ) : reviews.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Icon name="star" size={48} color={theme.colors.text.tertiary} />
                     <Text style={styles.emptyTitle}>Nenhuma avaliação ainda</Text>
@@ -62,12 +76,9 @@ export default function MyReviewsScreen() {
     );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({ review }: { review: MyReview }) {
     const router = useRouter();
-
-    // Extract itinerary ID from packageId (format: "itinerary-1" → "1")
-    const itineraryId = review.packageId.replace('itinerary-', '').replace('pkg-', '');
-    const itinerary = getItineraryById(itineraryId);
+    const itinerary = review.itinerary;
 
     const renderStars = (rating: number) => (
         <View style={styles.starsRow}>
@@ -89,14 +100,18 @@ function ReviewCard({ review }: { review: Review }) {
             activeOpacity={0.7}
             onPress={() => {
                 if (itinerary) {
-                    router.push(`/itinerary/${itineraryId}`);
+                    router.push(`/itinerary/${itinerary.id}`);
                 }
             }}
         >
             {/* Itinerary info */}
             {itinerary && (
                 <View style={styles.cardItinerary}>
-                    <Image source={{ uri: itinerary.images[0] }} style={styles.cardItineraryImage} resizeMode="cover" />
+                    {itinerary.image ? (
+                        <Image source={{ uri: itinerary.image }} style={styles.cardItineraryImage} resizeMode="cover" />
+                    ) : (
+                        <View style={styles.cardItineraryImage} />
+                    )}
                     <View style={styles.cardItineraryInfo}>
                         <Text style={styles.cardItineraryTitle} numberOfLines={1}>
                             {itinerary.title}
@@ -115,7 +130,7 @@ function ReviewCard({ review }: { review: Review }) {
                     {renderStars(review.rating)}
                     <Text style={styles.cardDate}>{review.date}</Text>
                 </View>
-                <Text style={styles.cardText} numberOfLines={4}>{review.text}</Text>
+                <Text style={styles.cardText} numberOfLines={4}>{review.comment}</Text>
 
                 {/* Photos */}
                 {review.photos && review.photos.length > 0 && (
@@ -127,20 +142,6 @@ function ReviewCard({ review }: { review: Review }) {
                 )}
 
                 {/* Verified badge */}
-                {review.verified && (
-                    <View style={styles.verifiedRow}>
-                        <Icon name="verified" size={14} color={theme.colors.verified || theme.colors.primary} />
-                        <Text style={styles.verifiedText}>Compra verificada</Text>
-                    </View>
-                )}
-
-                {/* Creator response */}
-                {review.response && (
-                    <View style={styles.responseBox}>
-                        <Text style={styles.responseTitle}>Resposta do criador</Text>
-                        <Text style={styles.responseText}>{review.response.text}</Text>
-                    </View>
-                )}
             </View>
         </TouchableOpacity>
     );

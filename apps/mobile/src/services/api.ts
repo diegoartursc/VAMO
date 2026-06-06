@@ -271,7 +271,7 @@ export async function updateItineraryReview(
     return data;
 }
 
-export async function getMyReviews(travelerId: string): Promise<{
+export async function getMyReviews(accessToken?: string | null): Promise<{
     reviews: Array<{
         id: string;
         itineraryId: string | null;
@@ -283,10 +283,28 @@ export async function getMyReviews(travelerId: string): Promise<{
     }>;
 }> {
     try {
-        return await fetchApi(`/reviews/my?travelerId=${encodeURIComponent(travelerId)}`);
+        const headers: Record<string, string> = {};
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+        const res = await fetch(`${API_BASE_URL}/reviews/my`, { headers });
+        if (!res.ok) return { reviews: [] };
+        return await res.json();
     } catch {
         return { reviews: [] };
     }
+}
+
+export async function getCreatorEarnings(
+    accessToken?: string | null,
+): Promise<{
+    summary: import('../features/creator/earnings/types').CreatorEarningsSummary;
+    transactions: import('../features/creator/earnings/types').CreatorEarningTransaction[];
+}> {
+    const headers: Record<string, string> = {};
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const res = await fetch(`${API_BASE_URL}/creators/me/earnings`, { headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
+    return data;
 }
 
 // ─── Questions (FAQ Q&A) ───

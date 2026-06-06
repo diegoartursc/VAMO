@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware, optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
-import { verifyToken } from '../lib/auth';
+import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 
 const router = Router();
 
@@ -1459,22 +1459,16 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
 // ─── PURCHASE ───
 // POST /api/itineraries/:id/purchase (traveler-auth required)
 // Records an ItinerarySale so the itinerary appears in the traveler's "Meus Roteiros".
-router.post('/:id/purchase', async (req: Request, res: Response) => {
+router.post('/:id/purchase', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
     try {
         const itineraryId = req.params.id as string;
         const { paymentMethod } = req.body || {};
+        const travelerId = req.traveler!.travelerId;
 
-        // Resolve traveler — prefer JWT, fall back to first traveler (demo / dev mode)
-        let travelerId: string | null = null;
-        const authHeader = req.headers.authorization;
-        if (authHeader?.startsWith('Bearer ')) {
-            try {
-                const decoded = verifyToken(authHeader.substring(7)) as any;
-                if (decoded?.travelerId) travelerId = decoded.travelerId;
-            } catch { /* ignore — fall through */ }
-        }
-        if (!travelerId) {
-            res.status(401).json({ error: 'Autenticação necessária para realizar a compra' });
+        if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_PURCHASES !== 'true') {
+            res.status(503).json({
+                error: 'Pagamento online ainda não está habilitado. Nenhuma cobrança ou liberação foi realizada.',
+            });
             return;
         }
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { DepartureStatus } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import prisma from '../lib/prisma';
 
 const router = Router();
@@ -228,13 +229,14 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────
 // POST /api/departures/:id/book - Book slots (with overbooking protection)
 // ─────────────────────────────────────────────
-router.post('/:id/book', authMiddleware, async (req: Request, res: Response) => {
+router.post('/:id/book', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
     try {
         const id = req.params.id as string;
-        const { travelerId, peopleCount, contactName, contactEmail, paymentMethod } = req.body;
+        const { peopleCount, contactName, contactEmail, paymentMethod } = req.body;
+        const travelerId = req.traveler!.travelerId;
 
-        if (!travelerId || !peopleCount) {
-            return res.status(400).json({ error: 'travelerId and peopleCount are required' });
+        if (!peopleCount) {
+            return res.status(400).json({ error: 'peopleCount is required' });
         }
 
         const count = parseInt(peopleCount);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AdminDataProvider, useAdmin, Icon, MOCK_AGENCIES, AGENCY_STATUS_LABEL, AGENCY_STATUS_COLOR, type AgencyStatus, type MockAgency } from "../shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
@@ -13,6 +13,21 @@ function AgenciesContent() {
     const [actionLoading, setActionLoading] = useState(false);
     const [newAgency, setNewAgency] = useState({ name: "", cnpj: "", employeeName: "", email: "", password: "" });
 
+    const loadAgencies = useCallback(async () => {
+        const token = localStorage.getItem("adminToken");
+        const res = await fetch(`${API}/admin/agencies`, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+        });
+        if (!res.ok) throw new Error("Falha ao carregar agências");
+        const data = await res.json();
+        setAgencies(Array.isArray(data) ? data : []);
+    }, []);
+
+    useEffect(() => {
+        loadAgencies().catch((error) => console.error("[admin/agencies]", error));
+    }, [loadAgencies]);
+
     const filteredAgencies = agencyFilter === "ALL" ? agencies : agencies.filter(a => a.status === agencyFilter);
     const counts: Record<AgencyStatus | "ALL", number> = {
         ALL: agencies.length, PENDING: agencies.filter(a => a.status === "PENDING").length,
@@ -21,9 +36,21 @@ function AgenciesContent() {
         SUSPENDED: agencies.filter(a => a.status === "SUSPENDED").length,
     };
 
-    const handleAction = (id: string, newStatus: AgencyStatus) => {
-        setAgencies(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
-        showToast(`Agência ${newStatus === "ACTIVE" ? "aprovada" : newStatus === "SUSPENDED" ? "suspensa" : "atualizada"}!`, "success");
+    const handleAction = async (id: string, newStatus: AgencyStatus) => {
+        if (newStatus === "REVIEW") return;
+        try {
+            const token = getToken();
+            const res = await fetch(`${API}/admin/agencies/${id}/status`, {
+                method: "PATCH",
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            if (!res.ok) throw new Error();
+            await loadAgencies();
+            showToast(`Agência ${newStatus === "ACTIVE" ? "aprovada" : newStatus === "SUSPENDED" ? "suspensa" : "atualizada"}!`, "success");
+        } catch {
+            showToast("Não foi possível atualizar a agência.", "error");
+        }
     };
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -40,8 +67,9 @@ function AgenciesContent() {
                 showToast("Agência criada!", "success");
                 setShowForm(false);
                 setNewAgency({ name: "", cnpj: "", employeeName: "", email: "", password: "" });
+                await loadAgencies();
             } else throw new Error();
-        } catch { showToast("Erro ao criar (usando mock)", "error"); }
+        } catch { showToast("Erro ao criar agência", "error"); }
         finally { setActionLoading(false); }
     };
 
@@ -121,9 +149,6 @@ function AgenciesContent() {
                                     <div style={{ display: "flex", gap: "6px" }}>
                                         {(ag.status === "PENDING" || ag.status === "REVIEW") && (
                                             <button onClick={() => handleAction(ag.id, "ACTIVE")} style={{ padding: "5px 10px", borderRadius: "6px", border: "none", background: "rgba(22,163,74,0.1)", color: "#16A34A", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>Aprovar</button>
-                                        )}
-                                        {ag.status === "PENDING" && (
-                                            <button onClick={() => handleAction(ag.id, "REVIEW")} style={{ padding: "5px 10px", borderRadius: "6px", border: "none", background: "rgba(99,102,241,0.1)", color: "#6366F1", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>Analisar</button>
                                         )}
                                         {ag.status === "ACTIVE" && (
                                             <button onClick={() => handleAction(ag.id, "SUSPENDED")} style={{ padding: "5px 10px", borderRadius: "6px", border: "none", background: "rgba(220,38,38,0.08)", color: "#DC2626", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>Suspender</button>

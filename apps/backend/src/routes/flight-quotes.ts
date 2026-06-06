@@ -1,13 +1,14 @@
 import express from 'express';
 import prisma from '../lib/prisma';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 
 const router = express.Router();
 
 // ─── POST /api/quotes — Create a quote request (App) ───
-router.post('/', async (req, res) => {
+router.post('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res) => {
     try {
         const {
-            travelerId,
             packageId,
             departureId,
             totalPrice,
@@ -20,9 +21,10 @@ router.post('/', async (req, res) => {
             paymentMethod,
             originCity,
         } = req.body;
+        const travelerId = req.traveler!.travelerId;
 
-        if (!travelerId || !packageId || !originCity) {
-            return res.status(400).json({ error: 'travelerId, packageId, and originCity are required' });
+        if (!packageId || !originCity) {
+            return res.status(400).json({ error: 'packageId and originCity are required' });
         }
 
         // Create PurchaseHistory with AWAITING_QUOTE status
@@ -62,9 +64,9 @@ router.post('/', async (req, res) => {
 });
 
 // ─── GET /api/quotes/:purchaseId — Get quote status (App) ───
-router.get('/:purchaseId', async (req, res) => {
+router.get('/:purchaseId', travelerAuthMiddleware, async (req: TravelerAuthRequest, res) => {
     try {
-        const { purchaseId } = req.params;
+        const purchaseId = String(req.params.purchaseId);
 
         const quote = await prisma.flightQuote.findUnique({
             where: { purchaseId },
@@ -85,6 +87,9 @@ router.get('/:purchaseId', async (req, res) => {
         if (!quote) {
             return res.status(404).json({ error: 'Quote not found' });
         }
+        if (quote.purchase.travelerId !== req.traveler!.travelerId) {
+            return res.status(403).json({ error: 'Acesso negado a esta cotação' });
+        }
 
         // Auto-expire if past expiresAt
         if (quote.status === 'QUOTED' && quote.expiresAt && new Date() > quote.expiresAt) {
@@ -103,9 +108,12 @@ router.get('/:purchaseId', async (req, res) => {
 });
 
 // ─── GET /api/quotes/agency/:agencyId — List quotes for agency (Dashboard) ───
-router.get('/agency/:agencyId', async (req, res) => {
+router.get('/agency/:agencyId', authMiddleware, async (req: AuthRequest, res) => {
     try {
-        const { agencyId } = req.params;
+        const agencyId = String(req.params.agencyId);
+        if (req.agency?.agencyId !== agencyId) {
+            return res.status(403).json({ error: 'Acesso negado a esta agência' });
+        }
 
         const quotes = await prisma.flightQuote.findMany({
             where: {
@@ -144,9 +152,9 @@ router.get('/agency/:agencyId', async (req, res) => {
 });
 
 // ─── PUT /api/quotes/:id/submit — Agency submits quote proposal (Dashboard) ───
-router.put('/:id/submit', async (req, res) => {
+router.put('/:id/submit', authMiddleware, async (req: AuthRequest, res) => {
     try {
-        const { id } = req.params;
+        const id = String(req.params.id);
         const {
             airline,
             flightDetails,
@@ -159,6 +167,14 @@ router.put('/:id/submit', async (req, res) => {
 
         if (!airfarePrice || !totalPrice) {
             return res.status(400).json({ error: 'airfarePrice and totalPrice are required' });
+        }
+        const existing = await prisma.flightQuote.findUnique({
+            where: { id },
+            select: { purchase: { select: { package: { select: { agencyId: true } } } } },
+        });
+        if (!existing) return res.status(404).json({ error: 'Quote not found' });
+        if (existing.purchase.package.agencyId !== req.agency?.agencyId) {
+            return res.status(403).json({ error: 'Acesso negado a esta cotação' });
         }
 
         const hours = expiresInHours || 6;
@@ -187,12 +203,18 @@ router.put('/:id/submit', async (req, res) => {
 });
 
 // ─── PUT /api/quotes/:id/accept — User accepts quote (App) ───
-router.put('/:id/accept', async (req, res) => {
+router.put('/:id/accept', travelerAuthMiddleware, async (req: TravelerAuthRequest, res) => {
     try {
-        const { id } = req.params;
+        const id = String(req.params.id);
 
-        const quote = await prisma.flightQuote.findUnique({ where: { id } });
+        const quote = await prisma.flightQuote.findUnique({
+            where: { id },
+            include: { purchase: { select: { travelerId: true } } },
+        });
         if (!quote) return res.status(404).json({ error: 'Quote not found' });
+        if (quote.purchase.travelerId !== req.traveler!.travelerId) {
+            return res.status(403).json({ error: 'Acesso negado a esta cotação' });
+        }
 
         // Check if expired
         if (quote.expiresAt && new Date() > quote.expiresAt) {
@@ -223,10 +245,19 @@ router.put('/:id/accept', async (req, res) => {
 });
 
 // ─── PUT /api/quotes/:id/reject — User rejects quote (App) ───
-router.put('/:id/reject', async (req, res) => {
+router.put('/:id/reject', travelerAuthMiddleware, async (req: TravelerAuthRequest, res) => {
     try {
-        const { id } = req.params;
+        const id = String(req.params.id);
         const { userNote } = req.body;
+
+        const existing = await prisma.flightQuote.findUnique({
+            where: { id },
+            select: { purchase: { select: { travelerId: true } } },
+        });
+        if (!existing) return res.status(404).json({ error: 'Quote not found' });
+        if (existing.purchase.travelerId !== req.traveler!.travelerId) {
+            return res.status(403).json({ error: 'Acesso negado a esta cotação' });
+        }
 
         const quote = await prisma.flightQuote.update({
             where: { id },

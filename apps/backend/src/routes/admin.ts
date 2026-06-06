@@ -4,7 +4,9 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'vamo-admin-secret-2024';
+const JWT_SECRET: string = process.env.JWT_SECRET || (() => {
+    throw new Error('FATAL: JWT_SECRET must be set for admin authentication.');
+})();
 let devAdminCache: any = null;
 
 // ─── Auth Middleware ────────────────────────────────────────────────────────
@@ -82,6 +84,14 @@ router.post('/login', async (req: Request, res: Response) => {
 
 // POST /api/admin/seed — create first super admin (only if none exist)
 router.post('/seed', async (req: Request, res: Response) => {
+    if (process.env.NODE_ENV === 'production') {
+        const configuredSecret = process.env.ADMIN_SEED_SECRET;
+        const providedSecret = req.header('x-admin-seed-secret');
+        if (!configuredSecret || providedSecret !== configuredSecret) {
+            res.status(403).json({ error: 'Bootstrap de admin não autorizado' });
+            return;
+        }
+    }
     const count = await prisma.admin.count();
     if (count > 0) {
         res.status(409).json({ error: 'Admin já existe. Use o endpoint de login.' });
@@ -97,6 +107,164 @@ router.post('/seed', async (req: Request, res: Response) => {
         data: { name, email, passwordHash, role: 'SUPER_ADMIN' },
     });
     res.status(201).json({ id: admin.id, email: admin.email, role: admin.role });
+});
+
+// GET /api/admin/creators/pending
+router.get('/creators/pending', verifyAdmin, async (_req: Request, res: Response) => {
+    try {
+        const creators = await prisma.creator.findMany({
+            where: { verificationLevel: 'BASIC' },
+            select: {
+                id: true,
+                bio: true,
+                createdAt: true,
+                traveler: { select: { name: true, email: true, avatar: true } },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+        res.json(creators);
+    } catch (error) {
+        console.error('Error fetching pending creators:', error);
+        res.status(500).json({ error: 'Falha ao carregar roteiristas pendentes' });
+    }
+});
+
+// POST /api/admin/creators/:id/approve
+router.post('/creators/:id/approve', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const id = String(req.params.id);
+        const existing = await prisma.creator.findUnique({ where: { id }, select: { id: true } });
+        if (!existing) {
+            res.status(404).json({ error: 'Roteirista não encontrado' });
+            return;
+        }
+        const creator = await prisma.creator.update({
+            where: { id },
+            data: { verificationLevel: 'TRUSTED' },
+            select: { id: true, verificationLevel: true },
+        });
+        res.json(creator);
+    } catch (error) {
+        console.error('Error approving creator:', error);
+        res.status(500).json({ error: 'Falha ao aprovar roteirista' });
+    }
+});
+
+// GET /api/admin/agencies
+router.get('/agencies', verifyAdmin, async (_req: Request, res: Response) => {
+    try {
+        const agencies = await prisma.agency.findMany({
+            include: {
+                employees: {
+                    select: { id: true, name: true, email: true, role: true, active: true },
+                    orderBy: { createdAt: 'asc' },
+                },
+                packages: {
+                    select: { qualityScore: true },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        res.json(agencies.map((agency) => {
+            const qualityScores = agency.packages
+                .map((pkg) => pkg.qualityScore)
+                .filter((score): score is number => score !== null);
+            return {
+                id: agency.id,
+                name: agency.name,
+                cnpj: agency.cnpj,
+                manager: agency.employees[0]?.name ?? '',
+                email: agency.employees[0]?.email ?? '',
+                packagesCount: agency.packages.length,
+                qualityAvg: qualityScores.length > 0
+                    ? Math.round(qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length)
+                    : 0,
+                status: agency.employees.length > 0 && agency.employees.every((employee) => !employee.active)
+                    ? 'SUSPENDED'
+                    : agency.verified ? 'ACTIVE' : 'PENDING',
+                verified: agency.verified,
+                createdAt: agency.createdAt,
+            };
+        }));
+    } catch (error) {
+        console.error('Error fetching agencies:', error);
+        res.status(500).json({ error: 'Falha ao carregar agências' });
+    }
+});
+
+// POST /api/admin/agencies
+router.post('/agencies', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const { name, cnpj, employeeName, email, password } = req.body || {};
+        if (!name || !employeeName || !email || !password) {
+            res.status(400).json({ error: 'name, employeeName, email e password são obrigatórios' });
+            return;
+        }
+        if (String(password).length < 8) {
+            res.status(400).json({ error: 'A senha deve ter pelo menos 8 caracteres' });
+            return;
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const existingEmployee = await prisma.agencyEmployee.findUnique({ where: { email: normalizedEmail } });
+        if (existingEmployee) {
+            res.status(409).json({ error: 'Já existe um gestor com este email' });
+            return;
+        }
+
+        const passwordHash = await bcrypt.hash(String(password), 10);
+        const agency = await prisma.agency.create({
+            data: {
+                name: String(name).trim(),
+                cnpj: cnpj ? String(cnpj).trim() : null,
+                verified: false,
+                employees: {
+                    create: {
+                        name: String(employeeName).trim(),
+                        email: normalizedEmail,
+                        passwordHash,
+                        role: 'MANAGER',
+                    },
+                },
+            },
+            select: { id: true, name: true, cnpj: true, verified: true, createdAt: true },
+        });
+        res.status(201).json(agency);
+    } catch (error) {
+        console.error('Error creating agency:', error);
+        res.status(500).json({ error: 'Falha ao criar agência' });
+    }
+});
+
+// PATCH /api/admin/agencies/:id/status
+router.patch('/agencies/:id/status', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const id = String(req.params.id);
+        const status = String(req.body?.status || '');
+        if (!['PENDING', 'ACTIVE', 'SUSPENDED'].includes(status)) {
+            res.status(400).json({ error: 'Status de agência inválido' });
+            return;
+        }
+        const existing = await prisma.agency.findUnique({ where: { id }, select: { id: true } });
+        if (!existing) {
+            res.status(404).json({ error: 'Agência não encontrada' });
+            return;
+        }
+        await prisma.$transaction([
+            prisma.agency.update({
+                where: { id },
+                data: { verified: status === 'ACTIVE' },
+            }),
+            prisma.agencyEmployee.updateMany({
+                where: { agencyId: id },
+                data: { active: status !== 'SUSPENDED' },
+            }),
+        ]);
+        res.json({ id, status });
+    } catch (error) {
+        console.error('Error updating agency status:', error);
+        res.status(500).json({ error: 'Falha ao atualizar status da agência' });
+    }
 });
 
 // GET /api/admin/stats

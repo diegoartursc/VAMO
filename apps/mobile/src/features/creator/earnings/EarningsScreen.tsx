@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme/theme';
 import { Icon } from '../../../components/common/Icons';
 import { haptics } from '../../../services/haptics';
+import { getCreatorEarnings } from '../../../services/api';
+import { useAuth } from '../../../contexts/AuthContext';
 import { notify } from '../../../utils/notify';
 import { EarningsBalanceCard } from './components/EarningsBalanceCard';
 import { EarningsMetricCard } from './components/EarningsMetricCard';
@@ -23,10 +25,6 @@ import { PayoutSetupCard } from './components/PayoutSetupCard';
 import { PayoutExplanationCard } from './components/PayoutExplanationCard';
 import { EarningsTransactionItem } from './components/EarningsTransactionItem';
 import { EarningsEmptyState } from './components/EarningsEmptyState';
-import {
-    mockCreatorEarningTransactions,
-    mockCreatorEarningsSummary,
-} from './mockData';
 import type {
     CreatorEarningTransaction,
     CreatorEarningsSummary,
@@ -53,25 +51,23 @@ function handleStartPayoutSetup() {
 
 export default function EarningsScreen() {
     const router = useRouter();
+    const { accessToken } = useAuth();
 
     const [state, setState] = useState<LoadState>('loading');
     const [summary, setSummary] = useState<CreatorEarningsSummary | null>(null);
     const [transactions, setTransactions] = useState<CreatorEarningTransaction[]>([]);
     const [refreshing, setRefreshing] = useState(false);
 
-    // Simulates async fetch. Swap this block for real API calls when ready:
-    //   GET /api/creator/earnings/summary
-    //   GET /api/creator/earnings/transactions
     const loadEarnings = useCallback(async () => {
         try {
-            await new Promise((resolve) => setTimeout(resolve, 350));
-            setSummary(mockCreatorEarningsSummary);
-            setTransactions(mockCreatorEarningTransactions);
+            const data = await getCreatorEarnings(accessToken);
+            setSummary(data.summary);
+            setTransactions(data.transactions);
             setState('ready');
         } catch {
             setState('error');
         }
-    }, []);
+    }, [accessToken]);
 
     useEffect(() => {
         loadEarnings();

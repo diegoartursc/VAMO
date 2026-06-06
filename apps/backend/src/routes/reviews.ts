@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
+import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 
 const router = Router();
 
@@ -84,17 +85,14 @@ router.get('/', async (req: Request, res: Response) => {
     }
 });
 
-// GET /api/reviews/my?travelerId=X
+// GET /api/reviews/my
 // Retorna todas as avaliações feitas pelo traveler
-router.get('/my', async (req: Request, res: Response) => {
+router.get('/my', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
     try {
-        const { travelerId } = req.query;
-        if (!travelerId) {
-            return res.status(400).json({ error: 'travelerId é obrigatório' });
-        }
+        const travelerId = req.traveler!.travelerId;
 
         const reviews = await prisma.review.findMany({
-            where: { travelerId: travelerId as string },
+            where: { travelerId },
             include: {
                 images: { select: { url: true } },
                 itinerary: { select: { id: true, title: true, destination: true, country: true, images: { select: { url: true }, take: 1, orderBy: { order: 'asc' } } } },

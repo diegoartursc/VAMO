@@ -239,8 +239,10 @@ export default function ItineraryPaymentScreen() {
                     <Text style={styles.sectionTitle}>Forma de pagamento</Text>
 
                     <View style={styles.securityBadge}>
-                        <Ionicons name="lock-closed" size={16} color={theme.colors.primary} />
-                        <Text style={styles.securityText}>Todos os pagamentos são criptografados e seguros</Text>
+                        <Ionicons name="information-circle" size={16} color={theme.colors.primary} />
+                        <Text style={styles.securityText}>
+                            Pagamento online ainda não habilitado. A liberação abaixo funciona apenas em ambiente autorizado de teste.
+                        </Text>
                     </View>
 
                     <Pressable
@@ -384,7 +386,7 @@ export default function ItineraryPaymentScreen() {
                         ) : (
                             <>
                                 <Ionicons name="logo-apple" size={24} color="#fff" />
-                                <Text style={styles.applePayText}>Pay</Text>
+                                <Text style={styles.applePayText}>Liberar teste</Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -403,7 +405,7 @@ export default function ItineraryPaymentScreen() {
                                 <Text style={styles.confirmButtonText}>Processando...</Text>
                             </View>
                         ) : (
-                            <Text style={styles.confirmButtonText}>Confirmar pagamento</Text>
+                            <Text style={styles.confirmButtonText}>Liberar acesso de teste</Text>
                         )}
                     </TouchableOpacity>
                 )}
