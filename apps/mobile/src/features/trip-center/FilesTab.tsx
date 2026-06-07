@@ -18,27 +18,21 @@ import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
 import { notify } from '../../utils/notify';
 import { confirm } from '../../utils/confirm';
-import { openExternalUrl } from '../../utils/externalLinks';
 import {
-    addTripFile,
+    uploadTripFile,
     deleteTripFile,
     type TravelerFile,
 } from '../../services/tripCenter';
 import FileCard from './FileCard';
 import AddFileModal from './AddFileModal';
 import EmptyState from './EmptyState';
-
-const CATEGORY_FILTERS = [
-    'Todos',
-    'Voos',
-    'Hospedagem',
-    'Passeios e ingressos',
-    'Documentos',
-    'Seguro',
-    'Recibos',
-    'Transporte',
-    'Outros',
-] as const;
+import FilePreviewModal from './FilePreviewModal';
+import {
+    FILE_FILTERS,
+    ALL_FILTER,
+    normalizeCategory,
+    type FileFilter,
+} from './fileCategories';
 
 export interface FilesTabProps {
     itineraryId: string;
@@ -55,12 +49,16 @@ export default function FilesTab({
     onFilesChange,
     canEdit,
 }: FilesTabProps) {
-    const [filter, setFilter] = useState<string>('Todos');
+    const [filter, setFilter] = useState<FileFilter>(ALL_FILTER);
     const [modalVisible, setModalVisible] = useState(false);
+    const [previewFile, setPreviewFile] = useState<TravelerFile | null>(null);
 
     const filtered = useMemo(() => {
-        if (filter === 'Todos') return files;
-        return files.filter(f => f.category === filter);
+        if (filter === ALL_FILTER) return files;
+        // Normaliza antes de comparar — protege contra arquivos antigos com
+        // categoria em formato legado ('voos' lowercase, etc) que ainda
+        // existem no Supabase prod.
+        return files.filter(f => normalizeCategory(f.category) === filter);
     }, [files, filter]);
 
     // Renderiza em duas colunas usando linhas de 2 itens — evita FlatList
@@ -73,12 +71,13 @@ export default function FilesTab({
         return out;
     }, [filtered]);
 
-    const handleOpen = async (file: TravelerFile) => {
+    // Clique no card = abrir PREVIEW (não baixar). Download fica como ação
+    // explícita dentro do FilePreviewModal. Decisão: nunca disparar
+    // openExternalUrl direto no toque do card — historicamente isso causava
+    // download silencioso conforme Content-Disposition do servidor.
+    const handleOpen = (file: TravelerFile) => {
         haptics.light();
-        await openExternalUrl(file.url, {
-            invalidMessage: 'Não foi possível abrir este arquivo.',
-            fallbackMessage: 'Não foi possível abrir este arquivo agora.',
-        });
+        setPreviewFile(file);
     };
 
     const handleDelete = async (file: TravelerFile) => {
@@ -111,14 +110,15 @@ export default function FilesTab({
     const handleSave = async (payload: {
         category: string;
         title: string;
-        url: string;
-        mimeType?: string;
-        sizeBytes?: number;
+        note?: string;
+        uri: string;
+        filename: string;
+        mimeType: string;
     }) => {
         if (!token) throw new Error('Sessão expirada.');
         const prev = files;
         try {
-            const saved = await addTripFile(itineraryId, payload, token);
+            const saved = await uploadTripFile(itineraryId, payload, token);
             onFilesChange([saved, ...prev]);
             haptics.success();
         } catch (e: any) {
@@ -137,7 +137,7 @@ export default function FilesTab({
                 contentContainerStyle={styles.filterRow}
                 style={styles.filterScroll}
             >
-                {CATEGORY_FILTERS.map(cat => {
+                {FILE_FILTERS.map(cat => {
                     const active = filter === cat;
                     return (
                         <TouchableOpacity
@@ -180,7 +180,8 @@ export default function FilesTab({
                                             key={file.id}
                                             file={file}
                                             onPress={() => handleOpen(file)}
-                                            onLongPress={() => handleDelete(file)}
+                                            onLongPress={canEdit ? () => handleDelete(file) : undefined}
+                                            onDelete={canEdit ? () => handleDelete(file) : undefined}
                                         />
                                     ))}
                                     {/* Espaço fantasma para alinhar última linha ímpar */}
@@ -208,6 +209,24 @@ export default function FilesTab({
                 onClose={() => setModalVisible(false)}
                 token={token}
                 onSave={handleSave}
+            />
+
+            <FilePreviewModal
+                visible={previewFile !== null}
+                file={previewFile}
+                onClose={() => setPreviewFile(null)}
+                onDelete={
+                    canEdit && previewFile
+                        ? async () => {
+                            // Fecha o modal ANTES de confirmar pra que o
+                            // confirm() apareça por cima da Central e não
+                            // do modal — UX mais clara.
+                            const target = previewFile;
+                            setPreviewFile(null);
+                            await handleDelete(target);
+                        }
+                        : undefined
+                }
             />
         </View>
     );

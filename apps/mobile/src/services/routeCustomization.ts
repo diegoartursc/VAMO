@@ -7,7 +7,7 @@
  *   - PUT    /:itineraryId/customization        → upsert do overlay
  *   - DELETE /:itineraryId/customization        → reset (idempotente)
  *   - GET    /:itineraryId/snapshot             → versão "Original" da venda
- *   - POST   /:itineraryId/purchased-snapshot   → força rebuild + persistência
+ *   - POST   /:itineraryId/purchased-snapshot   → recuperação somente se ausente
  *
  * Toda chamada exige JWT do viajante (Authorization: Bearer <token>).
  * Os erros do backend (`{ error: '...' }`) viram `throw new Error(error)`,
@@ -26,6 +26,13 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/a
  * viajante. `flightOutbound` / `flightReturn` são singletons (uma única
  * peça por venda). `dayActivity` é tratado à parte porque cada item
  * pertence a um dia específico (`dayNumber`).
+ *
+ * `day` é um kind especial — não representa um item dentro de um dia,
+ * representa o **próprio dia** (cabeçalho/título/resumo). Adicionar um
+ * `day` cria um novo dia editável; ocultá-lo remove o dia inteiro da
+ * Minha Versão; editá-lo altera título/resumo. Atividades dentro de um
+ * dia adicionado seguem usando `dayActivity` com `dayNumber` igual ao
+ * `data.dayNumber` do dia novo.
  */
 export type ItemKind =
     | 'accommodations'
@@ -37,7 +44,8 @@ export type ItemKind =
     | 'extraSpendingItems'
     | 'flightOutbound'
     | 'flightReturn'
-    | 'dayActivity';
+    | 'dayActivity'
+    | 'day';
 
 /**
  * Item adicionado pelo viajante. `addedId` é único dentro do overlay
@@ -65,7 +73,20 @@ export interface EditedPatchMap {
  * kind — os arrays guardam listas de `AddedItem`. Os singletons
  * (`flightOutbound`/`flightReturn`) podem ser `null` ou um único
  * `AddedItem`. `dayActivities` mistura todos os dias num único array
- * (cada item carrega `dayNumber`).
+ * (cada item carrega `dayNumber`). `days` guarda dias inteiros novos
+ * criados pelo viajante (cada item carrega `data.dayNumber`,
+ * `data.title`, `data.summary`, `data.description`).
+ *
+ * `dayOrder` é a ordem visual dos dias na Minha Versão. Cada elemento é
+ * uma chave estável: `"day:<dayNumber>"` para dias do snapshot original
+ * ou `"added:<addedId>"` para dias criados pelo viajante. Dias que não
+ * aparecem em `dayOrder` (recém-adicionados ou snapshot novo) caem pro
+ * fim na ordem natural por `dayNumber`. Quando `dayOrder` está ausente,
+ * mergeEngine usa a ordem por `dayNumber` (back-compat 100%).
+ *
+ * Decisão: viver dentro de `addedItems` (e não como campo top-level no
+ * customization) evita mudar o validador do backend — `addedItems` já é
+ * JSON livre tipado como `array | objeto`.
  */
 export interface AddedItemsMap {
     accommodations?: AddedItem[];
@@ -76,8 +97,30 @@ export interface AddedItemsMap {
     checklistItems?: AddedItem[];
     extraSpendingItems?: AddedItem[];
     dayActivities?: AddedItem[];
+    days?: AddedItem[];
     flightOutbound?: AddedItem | null;
     flightReturn?: AddedItem | null;
+    dayOrder?: string[];
+    creatorChecklistProgress?: Record<string, boolean>;
+    /**
+     * Overrides do viajante sobre o checklist do CRIADOR (vindo do snapshot
+     * do roteiro). NÃO confundir com `checklistItems` (itens adicionados
+     * pelo viajante via API trip-center).
+     *
+     *  - `hidden` — chaves de itens do criador que o viajante removeu da
+     *    sua versão (mesmo formato de `key` produzido pelo ChecklistTab:
+     *    `"id:<id>"` ou `"idx:<n>"`).
+     *  - `edits` — overrides de texto/categoria de itens do criador.
+     *    Item editado continua mostrado, mas com o texto/categoria
+     *    pessoais do viajante.
+     *
+     * Se um item tem entrada em `edits` E também em `hidden`, `hidden`
+     * ganha (o item some). O roteiro original do criador NUNCA é tocado.
+     */
+    checklistOverrides?: {
+        hidden?: string[];
+        edits?: { [key: string]: { item?: string; category?: string } };
+    };
 }
 
 /**
@@ -220,24 +263,6 @@ export async function getSnapshot(
     const data = await request<{ snapshot: RouteSnapshot }>(
         `/route-customization/${encodeURIComponent(itineraryId)}/snapshot`,
         token,
-    );
-    return data.snapshot;
-}
-
-/**
- * Força rebuild do snapshot a partir do estado atual do roteiro e
- * persiste. Útil para regenerar manualmente quando o snapshot está
- * obsoleto (ex.: criador atualizou conteúdo e o viajante quer "puxar"
- * a versão nova — UX a definir).
- */
-export async function rebuildSnapshot(
-    itineraryId: string,
-    token: string,
-): Promise<RouteSnapshot> {
-    const data = await request<{ snapshot: RouteSnapshot }>(
-        `/route-customization/${encodeURIComponent(itineraryId)}/purchased-snapshot`,
-        token,
-        { method: 'POST' },
     );
     return data.snapshot;
 }

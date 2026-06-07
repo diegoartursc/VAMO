@@ -58,8 +58,10 @@ import {
 import {
     mergeItineraryWithCustomization,
     generateAddedId,
+    dayKeyOf,
     type MergedItinerary,
     type MergedItem,
+    type MergedDay,
 } from './mergeEngine';
 
 import VersionTabs, { type RouteVersionTab } from './VersionTabs';
@@ -89,6 +91,42 @@ export interface RouteVersioningProps {
         snapshot: RouteSnapshot | null;
         merged: MergedItinerary;
     }) => void;
+    /**
+     * Slot opcional renderizado APENAS quando a aba ativa é "Minha versão",
+     * abaixo do MyRouteView. Usado por purchased-itinerary para encaixar a
+     * Central da Viagem (TripCenter) dentro do contexto da versão editável —
+     * mantendo a regra "checklist pessoal + arquivos vivem só na Minha Versão".
+     *
+     * Passe `undefined` (ou omita) se a tela não tem nada extra para a aba.
+     */
+    mineExtras?: React.ReactNode;
+    /**
+     * Permite ao caller FORÇAR uma aba específica de fora (ex.: usuário
+     * tocou no atalho "Abrir checklist" do "Comece por aqui" — queremos
+     * que a aba "Minha versão" seja exibida já, pois a Central só aparece
+     * lá). Cada mudança no `targetTab` (referência diferente, via
+     * `Date.now()` etc) sincroniza o state interno via useEffect.
+     *
+     * NÃO é uma prop "controlada" no sentido React clássico: o state
+     * interno continua autoritativo (usuário pode trocar de aba normalmente
+     * via UI). Use `targetTab` apenas como gatilho externo.
+     */
+    targetTab?: RouteVersionTab;
+    /**
+     * Expõe a versão MERGEADA (snapshot + customization) para componentes
+     * fora do RouteVersioning que precisem consumir o roteiro personalizado.
+     *
+     * Caso de uso atual: a seção "Custos e orçamento" / "Referência de
+     * Gastos por Pessoa" vive FORA do RouteVersioning, mas precisa
+     * recalcular usando os custos editados pelo viajante (que estão dentro
+     * de `merged.<kind>.data.cost`). Sem essa exposição, a seção sempre
+     * mostraria os custos originais do criador, ignorando edições.
+     *
+     * Dispara em todo recálculo do merge (mudança de snapshot ou
+     * customization). Caller deve usar `setState` direto — `merged` é
+     * memoizado e estável entre recálculos sem mudança.
+     */
+    onMergedChange?: (merged: MergedItinerary) => void;
 }
 
 // ─── Componente principal ────────────────────────────────────
@@ -98,12 +136,26 @@ export default function RouteVersioning({
     liveItinerary,
     canEdit,
     onExportPdf,
+    mineExtras,
+    targetTab,
+    onMergedChange,
 }: RouteVersioningProps) {
     const { accessToken, isAuthenticated } = useAuth();
     const hasAuth = !!accessToken && isAuthenticated;
     const effectiveCanEdit = canEdit && hasAuth;
 
     const [tab, setTab] = useState<RouteVersionTab>('original');
+
+    // Sincroniza com `targetTab` externo — só dispara quando o caller muda
+    // explicitamente (ref/valor diferente). NÃO bloqueia o usuário de trocar
+    // de aba: o state interno continua autoritativo.
+    useEffect(() => {
+        if (targetTab && targetTab !== tab) {
+            setTab(targetTab);
+        }
+        // Disable lint warning: o ponto é reagir apenas ao targetTab mudando.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [targetTab]);
     const [loading, setLoading] = useState(true);
     const [snapshot, setSnapshot] = useState<RouteSnapshot | null>(null);
     const [customization, setCustomization] = useState<TravelerItineraryCustomization | null>(null);
@@ -135,15 +187,14 @@ export default function RouteVersioning({
                 getCustomization(itineraryId, accessToken!),
             ]);
 
-            // Snapshot: prefer o do backend; fallback para liveItinerary.
+            // Nunca substitui o Original comprado pelos dados atuais.
             if (snapRes.status === 'fulfilled') {
                 setSnapshot(snapRes.value ?? null);
             } else {
-                setSnapshot((liveItinerary as RouteSnapshot) ?? null);
-                // Não bloqueia — só sinaliza no banner.
+                setSnapshot(null);
                 setLoadError(
                     snapRes.reason?.message ||
-                    'Não foi possível carregar a versão original — exibindo dados atuais.',
+                    'Não foi possível carregar a versão original comprada.',
                 );
             }
 
@@ -171,6 +222,15 @@ export default function RouteVersioning({
         () => mergeItineraryWithCustomization(snapshot, customization),
         [snapshot, customization],
     );
+
+    // Notifica o caller a cada recálculo do merged. Útil pra seções
+    // externas (custos, orçamento) que precisam ler a versão personalizada
+    // sem montar seu próprio RouteVersioning.
+    useEffect(() => {
+        if (typeof onMergedChange === 'function') {
+            onMergedChange(merged);
+        }
+    }, [merged, onMergedChange]);
 
     // ─── Mutação (optimistic + PUT + rollback) ────────────────
 
@@ -283,7 +343,9 @@ export default function RouteVersioning({
                 if (target.kind === 'flightOutbound' || target.kind === 'flightReturn') {
                     map[target.kind] = { addedId: target.addedId, kind: target.kind, data: nextData };
                 } else {
-                    const bucketKey = target.kind === 'dayActivity' ? 'dayActivities' : target.kind;
+                    // dayActivity → bucket 'dayActivities'; day → bucket 'days'.
+                    // Demais kinds usam o nome literal (já bate plural).
+                    const bucketKey = bucketKeyOfKind(target.kind);
                     const bucket = Array.isArray((map as any)[bucketKey])
                         ? [...((map as any)[bucketKey] as AddedItem[])]
                         : [];
@@ -322,12 +384,22 @@ export default function RouteVersioning({
             const base = buildBase();
             const map: AddedItemsMap = { ...(base.addedItems || {}) };
             const addedId = generateAddedId();
-            const dayNumber = defaults?.dayNumber as number | undefined;
-            const item: AddedItem = { addedId, kind, data, ...(dayNumber !== undefined ? { dayNumber } : {}) };
+            // Para `dayActivity`, o `dayNumber` vem dos defaults (qual dia
+            // o usuário tocou em "+ Adicionar atividade"). Para `day`, vem
+            // do próprio `data.dayNumber` informado no modal.
+            const dayNumber = kind === 'dayActivity'
+                ? (defaults?.dayNumber as number | undefined)
+                : undefined;
+            const item: AddedItem = {
+                addedId,
+                kind,
+                data,
+                ...(dayNumber !== undefined ? { dayNumber } : {}),
+            };
             if (kind === 'flightOutbound' || kind === 'flightReturn') {
                 map[kind] = item;
             } else {
-                const bucketKey = kind === 'dayActivity' ? 'dayActivities' : kind;
+                const bucketKey = bucketKeyOfKind(kind);
                 const bucket = Array.isArray((map as any)[bucketKey])
                     ? [...((map as any)[bucketKey] as AddedItem[])]
                     : [];
@@ -351,11 +423,21 @@ export default function RouteVersioning({
                 if (target.kind === 'flightOutbound' || target.kind === 'flightReturn') {
                     map[target.kind] = null;
                 } else {
-                    const bucketKey = target.kind === 'dayActivity' ? 'dayActivities' : target.kind;
+                    const bucketKey = bucketKeyOfKind(target.kind);
                     const bucket = Array.isArray((map as any)[bucketKey])
                         ? ((map as any)[bucketKey] as AddedItem[]).filter((a) => a.addedId !== target.addedId)
                         : [];
                     (map as any)[bucketKey] = bucket;
+                }
+                // Se o item é um dia adicionado: também removemos as
+                // atividades vinculadas a ele (mesmo dayNumber) — não
+                // adianta manter atividade órfã sem dia.
+                if (target.kind === 'day') {
+                    const dayNumber = (target.data as any)?.dayNumber;
+                    if (typeof dayNumber === 'number') {
+                        const acts = Array.isArray(map.dayActivities) ? map.dayActivities : [];
+                        map.dayActivities = acts.filter((a) => a.dayNumber !== dayNumber);
+                    }
                 }
                 base.addedItems = map;
                 await mutateCustomization(base, { addedItems: map });
@@ -368,6 +450,45 @@ export default function RouteVersioning({
             }
         },
         [buildBase, mutateCustomization],
+    );
+
+    /**
+     * Move um dia da Minha Versão para cima ou para baixo. O movimento é
+     * salvo na `addedItems.dayOrder` (array de chaves estáveis) — assim
+     * dia editado/oculto/adicionado mantém identidade entre reorders.
+     *
+     * Cobertura de casos:
+     *  - Se ainda NÃO existe dayOrder: inicializamos com a ordem visual
+     *    atual (baseada no `merged.days` recém-renderizado), aplicamos o
+     *    swap, e persistimos. Próximos moves apenas mutam esse array.
+     *  - Movimentar pra cima no topo / pra baixo no fim: no-op silencioso
+     *    (a UI já desabilita os botões, mas defendemos no handler).
+     *  - Dia que não está em `merged.days` (ex.: ocultado): rejeita o move,
+     *    mas em condições normais o caller não chega aqui.
+     */
+    const applyMoveDay = useCallback(
+        async (target: MergedDay, direction: 'up' | 'down') => {
+            // Ordem visual atual derivada do merged — fonte de verdade
+            // estável dentro deste tick.
+            const currentDays = merged.days;
+            const idx = currentDays.findIndex(d => d.key === target.key);
+            if (idx < 0) return;
+            const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+            if (newIdx < 0 || newIdx >= currentDays.length) return;
+
+            // Constroi novo dayOrder a partir da ordem atual + swap.
+            const nextKeys = currentDays.map(d => d.key);
+            const tmp = nextKeys[idx];
+            nextKeys[idx] = nextKeys[newIdx];
+            nextKeys[newIdx] = tmp;
+
+            const base = buildBase();
+            const map: AddedItemsMap = { ...(base.addedItems || {}) };
+            map.dayOrder = nextKeys;
+            base.addedItems = map;
+            await mutateCustomization(base, { addedItems: map });
+        },
+        [merged.days, buildBase, mutateCustomization],
     );
 
     const applyRestore = useCallback(
@@ -497,7 +618,9 @@ export default function RouteVersioning({
                 </View>
             ) : tab === 'original' ? (
                 <View style={styles.body}>
-                    <OriginalView snapshot={snapshot} />
+                    {/* itineraryId habilita o check/uncheck do checklist do
+                        roteiro, sincronizado com a Central via AsyncStorage. */}
+                    <OriginalView snapshot={snapshot} itineraryId={itineraryId} />
                 </View>
             ) : (
                 <View style={styles.body}>
@@ -509,7 +632,13 @@ export default function RouteVersioning({
                         onEditItem={(item) => setEditTarget(item)}
                         onHideItem={(item) => { void applyHide(item); }}
                         onRestoreHidden={(item) => { void applyRestore(item); }}
+                        onMoveDay={(day, dir) => { void applyMoveDay(day, dir); }}
                     />
+                    {/* Slot "Minha Versão" — vive SÓ aqui. Hoje é onde o
+                        purchased-itinerary encaixa a Central da Viagem
+                        (checklist pessoal + arquivos), seguindo a regra
+                        de produto: esses recursos não pertencem à Original. */}
+                    {mineExtras}
                 </View>
             )}
 
@@ -543,6 +672,21 @@ export default function RouteVersioning({
 
 // ─── Utilitários internos ───────────────────────────────────
 
+/**
+ * Mapeia um `ItemKind` para a chave correspondente em `AddedItemsMap`.
+ * A maioria dos kinds bate o nome literal; as exceções são:
+ *   - `dayActivity` → `dayActivities`
+ *   - `day`         → `days`
+ *
+ * Centralizar essa lógica num único lugar evita os "lookups inline" que
+ * já estavam espalhados antes e tinham bug latente (sem entrada pra `day`).
+ */
+function bucketKeyOfKind(kind: ItemKind): keyof AddedItemsMap {
+    if (kind === 'dayActivity') return 'dayActivities';
+    if (kind === 'day') return 'days';
+    return kind as keyof AddedItemsMap;
+}
+
 function shallowEqual(a: any, b: any): boolean {
     if (a === b) return true;
     if (typeof a !== typeof b) return false;
@@ -571,7 +715,26 @@ function findSnapshotItem(
     // Singletons de voo
     if (kind === 'flightOutbound') return snapshot?.flightInfo?.outbound ?? null;
     if (kind === 'flightReturn')  return snapshot?.flightInfo?.return ?? null;
-    // Dia: originalId = "<dayNumber>:<idx>"
+    // Dia inteiro: originalId = "day:<dayNumber>"
+    if (kind === 'day') {
+        // Aceita o formato "day:N" e fallback caso venha só "N".
+        const n = originalId.startsWith('day:')
+            ? Number(originalId.slice(4))
+            : Number(originalId);
+        if (!Number.isFinite(n)) return null;
+        const days = Array.isArray(snapshot.days) ? snapshot.days : [];
+        const day = days.find((d: any) => d?.dayNumber === n);
+        if (!day) return null;
+        // Devolvemos só os campos editáveis (não atividades) — o diff em
+        // computePatch compara contra esses 4 campos.
+        return {
+            dayNumber: day.dayNumber,
+            title: day.title ?? '',
+            summary: day.summary ?? '',
+            description: day.description ?? '',
+        };
+    }
+    // Atividade do dia: originalId = "<dayNumber>:<idx>"
     if (kind === 'dayActivity') {
         const [dayStr, idxStr] = originalId.split(':');
         const dayNumber = Number(dayStr);

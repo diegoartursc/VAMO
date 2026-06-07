@@ -15,6 +15,7 @@ import uploadsRoutes from './routes/uploads';
 import questionRoutes from './routes/questions';
 import travelerTripCenterRoutes from './routes/traveler-trip-center';
 import travelerRouteCustomizationRoutes from './routes/traveler-route-customization';
+import prisma from './lib/prisma';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -75,8 +76,27 @@ app.use(cors({
 app.use(express.json());
 app.use('/api', limiter);
 
-// Serve static files from public/uploads
+// Traveler files created by the legacy flow shared this public directory
+// with itinerary media. Block direct access when the filename belongs to a
+// private TravelerFile; the signed Trip Center endpoint remains available.
 import path from 'path';
+app.get('/uploads/itineraries/:filename', async (req, res, next) => {
+    try {
+        const filename = path.basename(req.params.filename);
+        const privateRecord = await prisma.travelerFile.findFirst({
+            where: { url: { endsWith: `/uploads/itineraries/${filename}` } },
+            select: { id: true },
+        });
+        if (privateRecord) {
+            res.status(404).json({ error: 'Arquivo não encontrado' });
+            return;
+        }
+        next();
+    } catch (error) {
+        console.error('Error checking private upload:', error);
+        res.status(500).json({ error: 'Falha ao validar arquivo' });
+    }
+});
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 // Health check

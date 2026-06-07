@@ -31,28 +31,17 @@ import {
     ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
 import { notify } from '../../utils/notify';
-import { uploadFile } from '../../utils/uploadFile';
 import {
     validateUploadFile,
     acceptAttributeFor,
     uploadHint,
 } from '../../utils/uploadContexts';
 import { kindFromMime, type FileKind } from './FileCard';
-
-const FILE_CATEGORIES = [
-    'Voos',
-    'Hospedagem',
-    'Passeios e ingressos',
-    'Documentos',
-    'Seguro',
-    'Recibos',
-    'Transporte',
-    'Outros',
-] as const;
+import { FILE_CATEGORIES, type FileCategory } from './fileCategories';
 
 interface PickedAsset {
     uri: string;
@@ -69,16 +58,21 @@ export interface AddFileModalProps {
     onSave: (payload: {
         category: string;
         title: string;
-        url: string;
-        mimeType?: string;
-        sizeBytes?: number;
+        note?: string;
+        uri: string;
+        filename: string;
+        mimeType: string;
     }) => Promise<void> | void;
 }
 
 export default function AddFileModal({ visible, onClose, token, onSave }: AddFileModalProps) {
     const [asset, setAsset] = useState<PickedAsset | null>(null);
     const [title, setTitle] = useState('');
-    const [category, setCategory] = useState<string>('Outros');
+    // Sem default: a Maria já enviou um arquivo com category="Outros" sem
+    // querer porque o default era "Outros" e ela esqueceu de trocar. Agora
+    // forçamos escolha explícita — o botão "Salvar" só habilita depois.
+    const [category, setCategory] = useState<FileCategory | null>(null);
+    const [note, setNote] = useState('');
     const [picking, setPicking] = useState(false);
     const [uploading, setUploading] = useState(false);
     const webInputRef = useRef<any>(null);
@@ -87,7 +81,8 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
         if (!visible) {
             setAsset(null);
             setTitle('');
-            setCategory('Outros');
+            setCategory(null);
+            setNote('');
             setPicking(false);
             setUploading(false);
         }
@@ -131,26 +126,21 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
         }
         try {
             setPicking(true);
-            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!perm.granted) {
-                notify({
-                    title: 'Permissão necessária',
-                    message: 'Precisamos de acesso à galeria para anexar arquivos.',
-                });
-                return;
-            }
-            const res = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.All,
-                quality: 0.9,
-                allowsMultipleSelection: false,
+            const res = await DocumentPicker.getDocumentAsync({
+                type: [
+                    'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
+                    'application/pdf', 'video/mp4', 'video/quicktime', 'video/webm',
+                ],
+                multiple: false,
+                copyToCacheDirectory: true,
             });
             if (res.canceled || !res.assets?.length) return;
-            const a: any = res.assets[0];
+            const a = res.assets[0];
             acceptAsset({
                 uri: a.uri,
-                filename: a.fileName,
+                filename: a.name,
                 mime: a.mimeType,
-                size: a.fileSize,
+                size: a.size,
             });
         } catch (e: any) {
             notify({ title: 'Falha ao escolher arquivo', message: e?.message || 'Tente novamente.' });
@@ -180,6 +170,13 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
             notify({ title: 'Dê um nome ao arquivo', message: 'O título ajuda você a encontrar depois.' });
             return;
         }
+        if (!category) {
+            notify({
+                title: 'Escolha uma categoria',
+                message: 'Categorize o arquivo para encontrá-lo depois (Voos, Hospedagem, etc).',
+            });
+            return;
+        }
         if (!token) {
             notify({ title: 'Sessão expirada', message: 'Entre na conta novamente para enviar arquivos.' });
             return;
@@ -187,13 +184,13 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
         try {
             setUploading(true);
             haptics.light();
-            const url = await uploadFile(asset.uri, token, asset.filename, asset.mimeType);
             await onSave({
                 category,
                 title: trimmedTitle,
-                url,
-                mimeType: asset.mimeType || undefined,
-                sizeBytes: asset.sizeBytes,
+                note: note.trim() || undefined,
+                uri: asset.uri,
+                filename: asset.filename,
+                mimeType: asset.mimeType,
             });
             haptics.success();
             onClose();
@@ -206,6 +203,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
     };
 
     const showPreview = !!asset;
+    const canSave = showPreview && !uploading && !!title.trim() && !!category;
 
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -250,7 +248,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                         ) : (
                             <>
                                 <View style={styles.previewWrap}>
-                                    {asset.kind === 'image' ? (
+                                    {asset.kind === 'image' && !/hei[cf]/i.test(asset.mimeType) ? (
                                         <Image source={{ uri: asset.uri }} style={styles.previewImage} resizeMode="cover" />
                                     ) : (
                                         <View style={styles.previewIcon}>
@@ -290,8 +288,18 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                                     maxLength={200}
                                 />
 
-                                <Text style={styles.label}>Categoria</Text>
-                                <View style={styles.chipsRow}>
+                                <View style={styles.labelRow}>
+                                    <Text style={styles.label}>Categoria</Text>
+                                    {!category && (
+                                        <Text style={styles.labelRequired}>obrigatória</Text>
+                                    )}
+                                </View>
+                                <View
+                                    style={[
+                                        styles.chipsRow,
+                                        !category && styles.chipsRowHint,
+                                    ]}
+                                >
                                     {FILE_CATEGORIES.map(cat => {
                                         const active = category === cat;
                                         return (
@@ -308,6 +316,17 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                                         );
                                     })}
                                 </View>
+
+                                <Text style={styles.label}>Observação (opcional)</Text>
+                                <TextInput
+                                    style={[styles.input, styles.noteInput]}
+                                    placeholder="Ex: apresentar no check-in"
+                                    placeholderTextColor={theme.colors.text.tertiary}
+                                    value={note}
+                                    onChangeText={setNote}
+                                    maxLength={2000}
+                                    multiline
+                                />
                             </>
                         )}
                     </ScrollView>
@@ -319,10 +338,10 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                         <TouchableOpacity
                             style={[
                                 styles.btnPrimary,
-                                (!showPreview || uploading || !title.trim()) && styles.btnDisabled,
+                                !canSave && styles.btnDisabled,
                             ]}
                             onPress={handleSave}
-                            disabled={!showPreview || uploading || !title.trim()}
+                            disabled={!canSave}
                             activeOpacity={0.85}
                         >
                             {uploading ? (
@@ -386,6 +405,25 @@ const styles = StyleSheet.create({
         marginTop: 12,
         marginBottom: 6,
     },
+    labelRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+    },
+    labelRequired: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.colors.warning,
+        marginTop: 12,
+    },
+    chipsRowHint: {
+        borderWidth: 1,
+        borderStyle: 'dashed',
+        borderColor: theme.colors.warning,
+        borderRadius: 12,
+        padding: 8,
+        marginHorizontal: -2,
+    },
     input: {
         borderWidth: 1,
         borderColor: theme.colors.border,
@@ -395,6 +433,10 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         fontSize: 15,
         color: theme.colors.text.primary,
+    },
+    noteInput: {
+        minHeight: 76,
+        textAlignVertical: 'top',
     },
     chipsRow: {
         flexDirection: 'row',

@@ -12,6 +12,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import type { TravelerFile } from '../../services/tripCenter';
+import { normalizeCategory } from './fileCategories';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -21,6 +22,13 @@ export interface FileCardProps {
     file: TravelerFile;
     onPress: () => void;
     onLongPress?: () => void;
+    /**
+     * Quando definido, renderiza um botão de lixeira sobre o thumb (canto
+     * superior direito). Long-press continua disparando o mesmo handler
+     * via `onLongPress` se o caller passar — mas o botão visível elimina
+     * a dependência do gesto escondido.
+     */
+    onDelete?: () => void;
     uploading?: boolean;
 }
 
@@ -45,44 +53,63 @@ function iconForKind(kind: FileKind): IconName {
     }
 }
 
-export default function FileCard({ file, onPress, onLongPress, uploading }: FileCardProps) {
+export default function FileCard({ file, onPress, onLongPress, onDelete, uploading }: FileCardProps) {
     const kind = kindFromMime(file.mimeType, file.url);
-    const showThumb = kind === 'image' && !!file.url;
+    const isHeic = /image\/hei[cf]/i.test(file.mimeType || '');
+    const showThumb = kind === 'image' && !isHeic && !!file.url;
 
     return (
-        <TouchableOpacity
-            style={styles.card}
-            onPress={onPress}
-            onLongPress={onLongPress}
-            activeOpacity={0.85}
-            disabled={uploading}
-        >
-            <View style={styles.thumb}>
-                {showThumb ? (
-                    <Image source={{ uri: file.url }} style={styles.thumbImage} resizeMode="cover" />
-                ) : (
-                    <View style={styles.thumbIconWrap}>
-                        <Ionicons name={iconForKind(kind)} size={36} color={theme.colors.primary} />
-                    </View>
-                )}
-                {kind === 'video' && (
-                    <View style={styles.playOverlay}>
-                        <Ionicons name="play" size={20} color="#fff" />
-                    </View>
-                )}
-                {uploading && (
-                    <View style={styles.uploadingOverlay}>
-                        <Text style={styles.uploadingText}>Enviando…</Text>
-                    </View>
-                )}
-            </View>
-            <View style={styles.meta}>
-                <Text style={styles.title} numberOfLines={2}>{file.title}</Text>
-                <View style={styles.categoryChip}>
-                    <Text style={styles.categoryLabel} numberOfLines={1}>{file.category}</Text>
+        <View style={styles.card}>
+            <TouchableOpacity
+                onPress={onPress}
+                onLongPress={onLongPress}
+                activeOpacity={0.85}
+                disabled={uploading}
+            >
+                <View style={styles.thumb}>
+                    {showThumb ? (
+                        <Image source={{ uri: file.url }} style={styles.thumbImage} resizeMode="cover" />
+                    ) : (
+                        <View style={styles.thumbIconWrap}>
+                            <Ionicons name={iconForKind(kind)} size={36} color={theme.colors.primary} />
+                        </View>
+                    )}
+                    {kind === 'video' && (
+                        <View style={styles.playOverlay}>
+                            <Ionicons name="play" size={20} color="#fff" />
+                        </View>
+                    )}
+                    {uploading && (
+                        <View style={styles.uploadingOverlay}>
+                            <Text style={styles.uploadingText}>Enviando…</Text>
+                        </View>
+                    )}
+                    {/* Lixeira sobre o thumb — descobrível sem long-press.
+                        stopPropagation pra não acionar o onPress do card. */}
+                    {onDelete && !uploading && (
+                        <TouchableOpacity
+                            style={styles.deleteBtn}
+                            onPress={(e) => {
+                                e.stopPropagation?.();
+                                onDelete();
+                            }}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            accessibilityLabel="Excluir arquivo"
+                        >
+                            <Ionicons name="trash-outline" size={14} color="#fff" />
+                        </TouchableOpacity>
+                    )}
                 </View>
-            </View>
-        </TouchableOpacity>
+                <View style={styles.meta}>
+                    <Text style={styles.title} numberOfLines={2}>{file.title}</Text>
+                    <View style={styles.categoryChip}>
+                        <Text style={styles.categoryLabel} numberOfLines={1}>
+                            {normalizeCategory(file.category)}
+                        </Text>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        </View>
     );
 }
 
@@ -136,6 +163,17 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         fontWeight: '700',
+    },
+    deleteBtn: {
+        position: 'absolute',
+        top: 6,
+        right: 6,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     meta: {
         padding: 10,

@@ -43,10 +43,16 @@ const KIND_LABEL: Record<string, string> = {
     flightOutbound: 'Voo de ida',
     flightReturn: 'Voo de volta',
     dayActivity: 'Atividade',
+    day: 'Dia',
 };
 
 function pickTitle(merged: MergedItem): string {
     const d = merged.data || {};
+    // Dia: monta "Dia N · título" — fica claro qual dia está ocultado.
+    if (merged.kind === 'day') {
+        const dayNumber = typeof d.dayNumber === 'number' ? d.dayNumber : '?';
+        return d.title ? `Dia ${dayNumber} · ${d.title}` : `Dia ${dayNumber}`;
+    }
     return (
         d.title ||
         d.name ||

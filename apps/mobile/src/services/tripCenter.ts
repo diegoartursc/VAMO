@@ -15,6 +15,8 @@
  * Express JSON).
  */
 
+import { Platform } from 'react-native';
+
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
 // ─── Tipos ──────────────────────────────────────────────────────────
@@ -24,6 +26,7 @@ export interface TravelerChecklistItem {
     travelerId: string;
     itineraryId: string;
     purchaseId: string | null;
+    saleId: string | null;
     category: string;
     item: string;
     completed: boolean;
@@ -37,11 +40,14 @@ export interface TravelerFile {
     travelerId: string;
     itineraryId: string;
     purchaseId: string | null;
+    saleId: string | null;
     category: string;
     title: string;
     url: string;
+    originalFileName: string | null;
     mimeType: string | null;
     sizeBytes: number | null;
+    note: string | null;
     createdAt: string;
 }
 
@@ -144,22 +150,39 @@ export async function getTripFiles(
     return Array.isArray(data?.files) ? data.files : [];
 }
 
-export async function addTripFile(
+export async function uploadTripFile(
     itineraryId: string,
     body: {
         category: string;
         title: string;
-        url: string;
-        mimeType?: string;
-        sizeBytes?: number;
+        note?: string;
+        uri: string;
+        filename: string;
+        mimeType: string;
     },
     token: string,
 ): Promise<TravelerFile> {
-    const data = await request<{ file: TravelerFile }>(
-        `/trip-center/${encodeURIComponent(itineraryId)}/files`,
-        token,
-        { method: 'POST', body },
+    const form = new FormData();
+    form.append('category', body.category);
+    form.append('title', body.title);
+    if (body.note?.trim()) form.append('note', body.note.trim());
+    if (Platform.OS === 'web') {
+        const source = await fetch(body.uri);
+        if (!source.ok) throw new Error('Não foi possível ler o arquivo selecionado.');
+        const blob = await source.blob();
+        form.append('file', blob.type ? blob : new Blob([blob], { type: body.mimeType }), body.filename);
+    } else {
+        // @ts-ignore React Native multipart file shape.
+        form.append('file', { uri: body.uri, name: body.filename, type: body.mimeType });
+    }
+
+    const response = await fetch(
+        `${API_BASE_URL}/trip-center/${encodeURIComponent(itineraryId)}/files/upload`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
     );
+    let data: any = null;
+    try { data = await response.json(); } catch {}
+    if (!response.ok) throw new Error(data?.error || `API Error: ${response.status}`);
     return data.file;
 }
 

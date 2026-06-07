@@ -25,14 +25,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { theme } from '../../theme/theme';
+import { haptics } from '../../services/haptics';
 import ItemCard from './ItemCard';
 import type { MergedItem, ItemKind } from './mergeEngine';
 import type { RouteSnapshot } from '../../services/routeCustomization';
 
 export interface OriginalViewProps {
     snapshot: RouteSnapshot | null | undefined;
+    /**
+     * Mantido por compatibilidade com o container. A versão Original é
+     * integralmente somente leitura; o progresso vive na Central da Viagem.
+     */
+    itineraryId?: string;
 }
 
+/**
+ * Mesma convenção de chave usada por `ChecklistTab` para itens do criador:
+ *  - se o item tem `id`, key = `id:<id>`
+ *  - senão, key = `idx:<idx>`
+ * Garante que o progresso marcado aqui sincroniza com a Central.
+ */
 // ─── Helpers de extração ─────────────────────────────────────
 
 function isPlainObject(v: unknown): v is Record<string, any> {
@@ -325,21 +337,47 @@ export default function OriginalView({ snapshot }: OriginalViewProps) {
                 </View>
             ) : null}
 
-            {/* ── Checklist ── */}
+            {/* ── Checklist do roteiro ──
+                Read-only ESTRUTURAL: o viajante NÃO pode editar texto,
+                adicionar nem remover itens — esse é o checklist do
+                criador, congelado pelo snapshot. Só o progresso pessoal
+                (check/uncheck) é interativo, e fica sincronizado com a
+                O progresso pessoal é controlado na Central da Viagem. */}
             {sections.checklistItems.length > 0 ? (
                 <View style={styles.block}>
                     <SectionTitle
                         icon="checkmark-circle-outline"
-                        label="Checklist de Planejamento"
+                        label="Checklist do roteiro"
+                        subtitle="Versão comprada do checklist, preservada em modo somente leitura."
                     />
                     <View style={styles.checklistCard}>
-                        {sections.checklistItems.map((c: any, i: number) => (
-                            <ItemCard
-                                key={c?.id ?? `chk-${i}`}
-                                merged={asOriginal('checklistItems', c)}
-                                showBadge={false}
-                            />
-                        ))}
+                        {sections.checklistItems.map((c: any, i: number) => {
+                            const text =
+                                (typeof c === 'string' ? c : (c?.item || c?.text || c?.label || '')).toString();
+                            const category = (typeof c === 'object' && c?.category) ? String(c.category) : '';
+                            return (
+                                <View
+                                    key={c?.id ?? `chk-${i}`}
+                                    style={[
+                                        styles.checkRow,
+                                        i < sections.checklistItems.length - 1 && styles.checkRowBorder,
+                                    ]}
+                                >
+                                    <View style={styles.checkBox} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text
+                                            style={styles.checkText}
+                                            numberOfLines={3}
+                                        >
+                                            {text}
+                                        </Text>
+                                        {category ? (
+                                            <Text style={styles.checkCategoryHint}>{category}</Text>
+                                        ) : null}
+                                    </View>
+                                </View>
+                            );
+                        })}
                     </View>
                 </View>
             ) : null}
@@ -491,8 +529,50 @@ const styles = StyleSheet.create({
     checklistCard: {
         backgroundColor: theme.colors.surface,
         borderRadius: 16,
-        padding: 12,
+        padding: 6,
         borderWidth: 1,
         borderColor: theme.colors.borderLight,
+    },
+    checkRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+    },
+    checkRowBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.borderLight,
+    },
+    checkBox: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 1.5,
+        borderColor: theme.colors.border,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkBoxActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    checkText: {
+        fontSize: 14,
+        color: theme.colors.text.primary,
+        lineHeight: 19,
+    },
+    checkTextDone: {
+        textDecorationLine: 'line-through',
+        color: theme.colors.text.tertiary,
+    },
+    checkCategoryHint: {
+        fontSize: 10.5,
+        fontWeight: '700',
+        color: theme.colors.primaryDark,
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+        marginTop: 4,
     },
 });

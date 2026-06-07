@@ -29,10 +29,17 @@ import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
 import FormInput from '../../components/dashboard/FormInput';
 import MoneyInput from '../../components/dashboard/MoneyInput';
+import { CurrencyPicker } from '../../components/common/CurrencyPicker';
 
 import { DatePickerField, TimePickerField } from './pickers';
 import { FIELDS_BY_KIND, KIND_TITLE, type FieldSpec } from './itemFields';
 import type { ItemKind } from '../../services/routeCustomization';
+
+/** Shape salva em `data[<key>]` para campos do tipo `cost`. */
+interface CostValue { value: string; currency: string; }
+
+/** Estado vazio padrão pra um campo cost. AUD por ser o mercado canônico. */
+const EMPTY_COST: CostValue = { value: '', currency: 'AUD' };
 
 export interface ItemFormModalProps {
     visible: boolean;
@@ -55,6 +62,35 @@ export interface ItemFormModalProps {
 // ─── Helpers ──────────────────────────────────────────────────
 
 function pickInitialValue(spec: FieldSpec, source: Record<string, any> | null | undefined): any {
+    if (spec.type === 'cost') {
+        // Tenta primeiro o shape canônico (`data.cost = { value, currency }`).
+        // Cai em fallback para os shapes legados que diferentes cards usavam
+        // (priceValue/priceCurrency, value/currency, cost.amount).
+        const raw = source?.[spec.key];
+        if (raw && typeof raw === 'object') {
+            return {
+                value: typeof raw.value === 'string'
+                    ? raw.value
+                    : (typeof raw.amount === 'string' ? raw.amount : ''),
+                currency: typeof raw.currency === 'string' && raw.currency.length > 0
+                    ? raw.currency
+                    : 'AUD',
+            };
+        }
+        if (source && typeof source === 'object') {
+            const legacyValue = source.priceValue ?? source.value;
+            const legacyCurrency = source.priceCurrency ?? source.currency;
+            if (legacyValue !== undefined && legacyValue !== null && legacyValue !== '') {
+                return {
+                    value: String(legacyValue),
+                    currency: typeof legacyCurrency === 'string' && legacyCurrency.length > 0
+                        ? legacyCurrency
+                        : 'AUD',
+                };
+            }
+        }
+        return { ...EMPTY_COST };
+    }
     if (!source) return spec.type === 'number' ? '' : '';
     const v = source[spec.key];
     if (v === undefined || v === null) return '';
@@ -62,6 +98,16 @@ function pickInitialValue(spec: FieldSpec, source: Record<string, any> | null | 
 }
 
 function normalizeForSave(spec: FieldSpec, raw: any): any {
+    if (spec.type === 'cost') {
+        // Só persiste se houver valor — currency sozinha é ruído.
+        if (!raw || typeof raw !== 'object') return null;
+        const value = typeof raw.value === 'string' ? raw.value.trim() : '';
+        if (!value) return null;
+        const currency = typeof raw.currency === 'string' && raw.currency.length > 0
+            ? raw.currency
+            : 'AUD';
+        return { value, currency };
+    }
     if (spec.type === 'number') {
         if (raw === '' || raw === null || raw === undefined) return null;
         const n = Number(raw);
@@ -235,6 +281,10 @@ interface FieldRendererProps {
 
 function FieldRenderer({ spec, value, onChange }: FieldRendererProps) {
     switch (spec.type) {
+        case 'cost':
+            return <CostField spec={spec} value={value} onChange={onChange} />;
+        case 'picker':
+            return <PickerField spec={spec} value={value} onChange={onChange} />;
         case 'multiline':
             return (
                 <FormInput
@@ -311,6 +361,194 @@ function FieldRenderer({ spec, value, onChange }: FieldRendererProps) {
             );
     }
 }
+
+/**
+ * Field do tipo `cost`: combina MoneyInput (valor) com CurrencyPicker
+ * (mesmo componente compacto usado pelo criador no CostBlock).
+ *
+ * State é um objeto `{ value, currency }`. Decisão deliberada: a moeda
+ * sempre vem default 'AUD' e nunca é apagada — o user pode trocar mas
+ * não esvaziar — porque "valor sem moeda" não tem sentido.
+ *
+ * Layout: MoneyInput em cima (largo), CurrencyPicker compacto embaixo.
+ * No web ambos renderizam side-by-side num row se houver espaço.
+ */
+function CostField({
+    spec,
+    value,
+    onChange,
+}: { spec: FieldSpec; value: any; onChange: (v: any) => void }) {
+    const current: CostValue = value && typeof value === 'object'
+        ? { value: value.value ?? '', currency: value.currency ?? 'AUD' }
+        : { ...EMPTY_COST };
+
+    return (
+        <View style={costStyles.wrap}>
+            <View style={costStyles.labelRow}>
+                <Text style={costStyles.label}>{spec.label}</Text>
+                {spec.required ? <Text style={costStyles.required}>*</Text> : null}
+            </View>
+            {spec.hint ? <Text style={costStyles.hint}>{spec.hint}</Text> : null}
+            <View style={costStyles.row}>
+                <View style={costStyles.moneyWrap}>
+                    <MoneyInput
+                        label="Valor"
+                        value={current.value}
+                        onChangeText={(v) => onChange({ ...current, value: v })}
+                        placeholder="0,00"
+                    />
+                </View>
+                <View style={costStyles.currencyWrap}>
+                    <CurrencyPicker
+                        value={current.currency}
+                        onChange={(c) => onChange({ ...current, currency: c })}
+                        label="Moeda"
+                        compact
+                    />
+                </View>
+            </View>
+        </View>
+    );
+}
+
+const costStyles = StyleSheet.create({
+    wrap: {
+        marginBottom: 14,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 6,
+    },
+    label: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    required: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.error,
+    },
+    hint: {
+        fontSize: 11.5,
+        color: theme.colors.text.tertiary,
+        marginBottom: 6,
+    },
+    row: {
+        flexDirection: 'row',
+        gap: 10,
+        alignItems: 'flex-start',
+    },
+    moneyWrap: {
+        flex: 1.6,
+    },
+    currencyWrap: {
+        flex: 1,
+        minWidth: 120,
+    },
+});
+
+/**
+ * Field do tipo `picker`: lista horizontal de chips com opções fixas.
+ * Selecionar é exclusivo (single-select). Tocar de novo na opção ativa
+ * limpa o campo — útil pra deixar opcional sem precisar de "Nenhuma".
+ */
+function PickerField({
+    spec,
+    value,
+    onChange,
+}: { spec: FieldSpec; value: any; onChange: (v: any) => void }) {
+    const options = spec.options ?? [];
+    const current = typeof value === 'string' ? value : '';
+    return (
+        <View style={pickerStyles.wrap}>
+            <View style={pickerStyles.labelRow}>
+                <Text style={pickerStyles.label}>{spec.label}</Text>
+                {spec.required ? <Text style={pickerStyles.required}>*</Text> : null}
+            </View>
+            {spec.hint ? <Text style={pickerStyles.hint}>{spec.hint}</Text> : null}
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={pickerStyles.chipsRow}
+            >
+                {options.map(opt => {
+                    const active = current === opt.value;
+                    return (
+                        <TouchableOpacity
+                            key={opt.value}
+                            style={[pickerStyles.chip, active && pickerStyles.chipActive]}
+                            onPress={() => {
+                                haptics.selection();
+                                onChange(active ? '' : opt.value);
+                            }}
+                            activeOpacity={0.85}
+                        >
+                            <Text
+                                style={[pickerStyles.chipLabel, active && pickerStyles.chipLabelActive]}
+                            >
+                                {opt.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        </View>
+    );
+}
+
+const pickerStyles = StyleSheet.create({
+    wrap: {
+        marginBottom: 14,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 6,
+    },
+    label: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    required: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.colors.error,
+    },
+    hint: {
+        fontSize: 11.5,
+        color: theme.colors.text.tertiary,
+        marginBottom: 6,
+    },
+    chipsRow: {
+        gap: 6,
+        paddingRight: 8,
+    },
+    chip: {
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        backgroundColor: '#fff',
+    },
+    chipActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    chipLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.colors.text.secondary,
+    },
+    chipLabelActive: {
+        color: '#fff',
+    },
+});
 
 // ─── Styles ──────────────────────────────────────────────────
 

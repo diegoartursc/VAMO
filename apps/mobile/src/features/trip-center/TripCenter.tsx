@@ -33,6 +33,12 @@ import {
     type TravelerChecklistItem,
     type TravelerFile,
 } from '../../services/tripCenter';
+import {
+    getCustomization,
+    putCustomization,
+    type TravelerItineraryCustomization,
+    type AddedItemsMap,
+} from '../../services/routeCustomization';
 
 import ChecklistTab from './ChecklistTab';
 import FilesTab from './FilesTab';
@@ -63,6 +69,7 @@ export default function TripCenter({
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState<TravelerChecklistItem[]>([]);
     const [files, setFiles] = useState<TravelerFile[]>([]);
+    const [customization, setCustomization] = useState<TravelerItineraryCustomization | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
@@ -75,12 +82,17 @@ export default function TripCenter({
         setLoading(true);
         setLoadError(null);
         try {
-            const [checklist, fileList] = await Promise.all([
+            // Três fetches paralelos: checklist pessoal, arquivos e a
+            // customization (de onde lemos os overrides do checklist do
+            // criador). Falha em qualquer um não derruba os outros.
+            const [checklist, fileList, custom] = await Promise.all([
                 getTripChecklist(itineraryId, accessToken),
                 getTripFiles(itineraryId, accessToken),
+                getCustomization(itineraryId, accessToken),
             ]);
             setItems(checklist);
             setFiles(fileList);
+            setCustomization(custom);
         } catch (e: any) {
             // Erro silencioso na UI principal (a Central é complementar).
             // Guardamos a mensagem para mostrar um banner discreto.
@@ -89,6 +101,36 @@ export default function TripCenter({
             setLoading(false);
         }
     }, [accessToken, itineraryId]);
+
+    const creatorProgress = customization?.addedItems?.creatorChecklistProgress ?? {};
+
+    const updateCreatorProgress = useCallback(
+        async (next: Record<string, boolean>) => {
+            if (!accessToken) throw new Error('Sessão expirada');
+            const prev = customization;
+            const nextAdded: AddedItemsMap = {
+                ...(prev?.addedItems ?? {}),
+                creatorChecklistProgress: next,
+            };
+            if (prev) setCustomization({ ...prev, addedItems: nextAdded });
+            try {
+                const saved = await putCustomization(
+                    itineraryId,
+                    { addedItems: nextAdded },
+                    accessToken,
+                );
+                setCustomization(saved);
+            } catch (error) {
+                setCustomization(prev);
+                notify({
+                    title: 'Não foi possível salvar',
+                    message: 'O progresso do checklist não foi atualizado. Tente novamente.',
+                });
+                throw error;
+            }
+        },
+        [accessToken, customization, itineraryId],
+    );
 
     useEffect(() => { void load(); }, [load]);
 
@@ -187,6 +229,8 @@ export default function TripCenter({
                     items={items}
                     onItemsChange={setItems}
                     canEdit={effectiveCanEdit}
+                    creatorProgress={creatorProgress}
+                    onUpdateCreatorProgress={updateCreatorProgress}
                 />
             ) : (
                 <FilesTab

@@ -36,3 +36,24 @@ export const verifyToken = (token: string) => {
         return null;
     }
 };
+
+export const generatePrivateFileToken = (payload: { fileId: string; travelerId: string }) => {
+    return jwt.sign({ ...payload, purpose: 'traveler-file' }, JWT_SECRET, { expiresIn: '1h' });
+};
+
+export const verifyPrivateFileToken = (token: string) => {
+    try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        if (
+            typeof payload === 'string'
+            || (payload as any).purpose !== 'traveler-file'
+            || typeof (payload as any).fileId !== 'string'
+            || typeof (payload as any).travelerId !== 'string'
+        ) {
+            return null;
+        }
+        return payload as { fileId: string; travelerId: string; purpose: 'traveler-file' };
+    } catch {
+        return null;
+    }
+};

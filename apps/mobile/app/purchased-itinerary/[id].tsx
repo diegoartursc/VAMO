@@ -13,6 +13,7 @@ import {
     StatusBar,
     Platform,
     ActivityIndicator,
+    findNodeHandle,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +38,9 @@ import {
     type MergedItinerary,
 } from '../../src/features/route-versioning';
 import { notify } from '../../src/utils/notify';
+import { getSnapshot, getCustomization } from '../../src/services/routeCustomization';
+import { mergeItineraryWithCustomization } from '../../src/features/route-versioning/mergeEngine';
+import { getTripChecklist, getTripFiles } from '../../src/services/tripCenter';
 
 // AttractionInfo type (inline — no longer from mock)
 type AttractionInfo = {
@@ -71,22 +75,75 @@ export default function PurchasedItineraryScreen() {
     // ─── Animations ────────────────────────────────────────
     const headerAnim = useRef(new Animated.Value(0)).current;
     const scrollViewRef = useRef<ScrollView>(null);
-    const [sectionPositions, setSectionPositions] = useState<Record<string, number>>({});
 
-    const trackSection = (key: string) => (e: any) => {
-        const y = e?.nativeEvent?.layout?.y;
-        if (typeof y === 'number') {
-            setSectionPositions(prev => prev[key] === y ? prev : { ...prev, [key]: y });
-        }
+    // ─── Scroll-to-section (Comece por aqui) ──────────────────────────
+    //
+    // Bug histórico: a versão anterior usava `onLayout` e salvava
+    // `e.nativeEvent.layout.y`. Mas esse `y` é RELATIVO ao View pai
+    // imediato — NÃO ao ScrollView. Como cada wrapper de `trackSection`
+    // está dentro de `<View style={styles.body}>` (que por sua vez está
+    // dentro do ScrollView), o `y` salvo era local (tipicamente 50-300px),
+    // muito menor que a posição absoluta de scroll. Resultado: clicar
+    // num card do "Seu roteiro está pronto" frequentemente parecia "não
+    // fazer nada" (scroll pra um y já visível).
+    //
+    // Solução: guardar uma ref ao componente da seção e, no momento do
+    // clique, usar `measureLayout(scrollHandle, …)` — que devolve a
+    // posição RELATIVA ao ScrollView. Funciona cross-platform (iOS,
+    // Android, Expo Web).
+    const sectionRefs = useRef<Record<string, View | null>>({});
+
+    const trackSection = (key: string) => (node: View | null) => {
+        sectionRefs.current[key] = node;
     };
 
     const scrollToSection = (key: string) => {
         haptics.light();
-        const y = sectionPositions[key];
-        if (y != null && scrollViewRef.current) {
-            scrollViewRef.current.scrollTo({ y: Math.max(0, y - 12), animated: true });
+        const sectionNode = sectionRefs.current[key];
+        const scrollView = scrollViewRef.current;
+        if (!sectionNode || !scrollView) {
+            if (__DEV__) {
+                console.warn(
+                    `[scrollToSection] alvo ausente: key="${key}". ` +
+                    `sectionNode=${!!sectionNode}, scrollView=${!!scrollView}`,
+                );
+            }
+            return;
         }
+        const scrollHandle = findNodeHandle(scrollView);
+        if (scrollHandle == null) return;
+        // `measureLayout(ancestor, onSuccess, onFail)` está disponível em
+        // todos os componentes que herdam de View no RN nativo e no RN Web.
+        (sectionNode as any).measureLayout?.(
+            scrollHandle,
+            (_x: number, y: number) => {
+                scrollView.scrollTo({ y: Math.max(0, y - 12), animated: true });
+            },
+            () => {
+                if (__DEV__) {
+                    console.warn(`[scrollToSection] measureLayout falhou para key="${key}"`);
+                }
+            },
+        );
     };
+
+    // ── Aba forçada no RouteVersioning ────────────────────────────────
+    // O atalho "Abrir checklist" do "Comece por aqui" precisa levar o
+    // usuário pra Minha Versão (a Central da Viagem só aparece lá).
+    // Quando o caller seta `routeTargetTab`, o RouteVersioning sincroniza
+    // via useEffect interno e o usuário continua livre pra trocar de aba
+    // depois. NÃO é "controlled" no sentido React clássico — só um
+    // gatilho one-shot quando o target string muda de valor.
+    const [routeTargetTab, setRouteTargetTab] = useState<'original' | 'mine' | undefined>(undefined);
+
+    // ─── Merged personalizado (vem do RouteVersioning) ─────────────────
+    // Quando o viajante edita custos/cards/dias na Minha Versão, o
+    // mergeEngine recomputa o roteiro mergeado (snapshot + customization).
+    // Expomos pra cá pra que a seção "Custos e orçamento" / "Referência
+    // de Gastos por Pessoa" possa refletir as edições do viajante em vez
+    // de ficar travada nos custos originais do criador. Fallback ao
+    // `itinerary` original enquanto o merged não chegou.
+    const [mergedItinerary, setMergedItinerary] = useState<MergedItinerary | null>(null);
 
     // ─── State ─────────────────────────────────────────────
     const [itinerary, setItinerary] = useState<any | null>(null);
@@ -95,7 +152,9 @@ export default function PurchasedItineraryScreen() {
     const [travelers, setTravelers] = useState(1);
     const [customDays, setCustomDays] = useState(7);
     const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
-    const [completedChecklist, setCompletedChecklist] = useState<Set<string>>(new Set());
+    // Removido `completedChecklist` (e respectivo AsyncStorage) — o checklist
+    // do roteiro agora é tratado dentro da Central da Viagem (ChecklistTab),
+    // que mantém o próprio progresso por itinerário.
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
     const [peopleCount, setPeopleCount] = useState<number>(1);
     /** Avaliação real (vinda da API) deste usuário pra este roteiro.
@@ -169,16 +228,6 @@ export default function PurchasedItineraryScreen() {
         return formatMoney(aud);
     };
 
-    /**
-     * Chave de persistência do progresso do checklist. Escopo:
-     * userId + itineraryId → cada comprador tem seu próprio progresso
-     * em cada roteiro adquirido, sem misturar com outros usuários ou
-     * outros roteiros.
-     */
-    const checklistStorageKey = user?.travelerId && id
-        ? `@vamo_checklist_progress:${user.travelerId}:${id}`
-        : null;
-
     /** Quantidade de pessoas escolhida pelo comprador pra este roteiro. */
     const peopleCountStorageKey = user?.travelerId && id
         ? `@vamo_people_count:${user.travelerId}:${id}`
@@ -201,25 +250,9 @@ export default function PurchasedItineraryScreen() {
         }
     };
 
-    // Carrega o progresso salvo quando o roteiro estiver hidratado.
-    useEffect(() => {
-        if (!itinerary || !checklistStorageKey) return;
-        AsyncStorage.getItem(checklistStorageKey).then(raw => {
-            if (raw) {
-                try {
-                    const arr: string[] = JSON.parse(raw);
-                    setCompletedChecklist(new Set(arr));
-                    return;
-                } catch { /* fallback abaixo */ }
-            }
-            // Sem progresso salvo: inicializa com `completed=true` vindo da API
-            // (compat com itens marcados por algum fluxo legado).
-            const initial = (itinerary.checklist || [])
-                .filter((c: ChecklistItem) => c.completed)
-                .map((c: ChecklistItem) => c.id);
-            if (initial.length > 0) setCompletedChecklist(new Set(initial));
-        }).catch(() => { /* ignora — UI continua funcional só em memória */ });
-    }, [itinerary, checklistStorageKey]);
+    // [Removido] useEffect que hidratava `completedChecklist` do AsyncStorage.
+    // O checklist do criador agora é controlado pela Central da Viagem
+    // (ChecklistTab) — não há mais estado de checklist nesta tela.
 
     if (authLoading || isLoading) {
         return (
@@ -278,22 +311,7 @@ export default function PurchasedItineraryScreen() {
         });
     };
 
-    const toggleChecklist = (itemId: string) => {
-        haptics.light();
-        setCompletedChecklist(prev => {
-            const next = new Set(prev);
-            if (next.has(itemId)) next.delete(itemId);
-            else next.add(itemId);
-            // Persiste imediatamente. Atualização otimista — falha de
-            // AsyncStorage não bloqueia a UI (estado fica em memória até
-            // o próximo retry).
-            if (checklistStorageKey) {
-                AsyncStorage.setItem(checklistStorageKey, JSON.stringify(Array.from(next)))
-                    .catch(err => console.warn('[checklist] falha ao salvar progresso:', err));
-            }
-            return next;
-        });
-    };
+    // [Removido] toggleChecklist — migrado para a Central da Viagem.
 
     const handleDownload = () => {
         haptics.light();
@@ -322,12 +340,31 @@ export default function PurchasedItineraryScreen() {
         haptics.light();
         try {
             const generatedAtISO = new Date().toISOString();
-            const { snapshot, merged } = pdfDataRef.current;
+            let { snapshot, merged } = pdfDataRef.current;
+            let travelerChecklist = undefined;
+            let travelerFiles = undefined;
+            if (accessToken && (!snapshot || (variant === 'personalized' && !merged))) {
+                const [freshSnapshot, customization] = await Promise.all([
+                    getSnapshot(id as string, accessToken),
+                    getCustomization(id as string, accessToken),
+                ]);
+                snapshot = freshSnapshot;
+                merged = mergeItineraryWithCustomization(freshSnapshot, customization);
+                pdfDataRef.current = { snapshot, merged };
+            }
+            if (variant === 'personalized' && accessToken) {
+                [travelerChecklist, travelerFiles] = await Promise.all([
+                    getTripChecklist(id as string, accessToken),
+                    getTripFiles(id as string, accessToken),
+                ]);
+            }
             await exportRoutePdf({
                 itinerary: snapshot || itinerary,
                 merged: variant === 'personalized' ? merged ?? undefined : undefined,
                 variant,
                 generatedAtISO,
+                travelerChecklist: variant === 'personalized' ? travelerChecklist : undefined,
+                travelerFiles: variant === 'personalized' ? travelerFiles : undefined,
             });
         } catch (e: any) {
             notify({
@@ -448,28 +485,47 @@ export default function PurchasedItineraryScreen() {
 
                 <View style={styles.body}>
 
-                    {/* ══════════ MEU ROTEIRO (Original / Minha versão) ══════════ */}
-                    <RouteVersioning
-                        itineraryId={id as string}
-                        liveItinerary={itinerary}
-                        canEdit={isAuthenticated && !!accessToken}
-                        onExportPdf={({ variant, snapshot, merged }) => {
-                            // Cache snapshot/merged para o sheet do header reusar
-                            // sem disparar fetch redundante.
-                            pdfDataRef.current = { snapshot, merged };
-                            // O botão interno do RouteVersioning escolhe a variante
-                            // direto da aba ativa — exporta imediatamente.
-                            void handlePdfSelect(variant);
-                        }}
-                    />
-
-                    {/* ══════════ MINHA CENTRAL DA VIAGEM ══════════ */}
-                    <TripCenter
-                        purchaseId={undefined}
-                        itineraryId={id as string}
-                        creatorChecklist={checklist}
-                        canEdit={isAuthenticated && !!accessToken}
-                    />
+                    {/* ══════════ MEU ROTEIRO (Original / Minha versão) ══════════
+                        A Central da Viagem (TripCenter) agora vive DENTRO do
+                        RouteVersioning, no slot `mineExtras` — ou seja, só
+                        aparece quando a aba ativa é "Minha versão". A Original
+                        é fiel e somente leitura. O `trackSection('checklist')`
+                        envolve todo o bloco; o atalho "Abrir checklist" do
+                        "Comece por aqui" rola até aqui, e o usuário escolhe
+                        a aba "Minha versão" para usar checklist/arquivos. */}
+                    {/* Dois wrappers aninhados: o externo trackeia 'itinerary'
+                        (atalho "Ver roteiro por dia"), o interno trackeia
+                        'checklist' (atalho "Abrir checklist"). Hoje ambos
+                        apontam pro mesmo y porque o RouteVersioning é o bloco
+                        único, mas separamos as keys pra clareza semântica e
+                        pra futuro evento "Ver custos" não conflitar. */}
+                    <View ref={trackSection('itinerary')} collapsable={false}>
+                        <View ref={trackSection('checklist')} collapsable={false}>
+                            <RouteVersioning
+                                itineraryId={id as string}
+                                liveItinerary={itinerary}
+                                canEdit={isAuthenticated && !!accessToken}
+                                targetTab={routeTargetTab}
+                                onMergedChange={setMergedItinerary}
+                                onExportPdf={({ variant, snapshot, merged }) => {
+                                    // Cache snapshot/merged para o sheet do header reusar
+                                    // sem disparar fetch redundante.
+                                    pdfDataRef.current = { snapshot, merged };
+                                    // O botão interno do RouteVersioning escolhe a variante
+                                    // direto da aba ativa — exporta imediatamente.
+                                    void handlePdfSelect(variant);
+                                }}
+                                mineExtras={
+                                    <TripCenter
+                                        purchaseId={undefined}
+                                        itineraryId={id as string}
+                                        creatorChecklist={checklist}
+                                        canEdit={isAuthenticated && !!accessToken}
+                                    />
+                                }
+                            />
+                        </View>
+                    </View>
 
                     {/* ══════════ COMECE POR AQUI — central da viagem ══════════ */}
                     {(() => {
@@ -511,7 +567,16 @@ export default function PurchasedItineraryScreen() {
                                             <TouchableOpacity
                                                 key={a.key}
                                                 style={styles.quickItem}
-                                                onPress={() => scrollToSection(a.sectionKey)}
+                                                onPress={() => {
+                                                    // "Abrir checklist" só faz sentido na Minha Versão
+                                                    // (Central da Viagem vive lá). Forçamos a aba antes
+                                                    // de rolar pra que o usuário veja o checklist no
+                                                    // destino, não a Original.
+                                                    if (a.key === 'checklist') {
+                                                        setRouteTargetTab('mine');
+                                                    }
+                                                    scrollToSection(a.sectionKey);
+                                                }}
                                                 activeOpacity={0.85}
                                             >
                                                 <View style={styles.quickItemIcon}>
@@ -569,16 +634,47 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     </View>
 
-                    {/* ══════════ CUSTOS E ORÇAMENTO (transparência graduada) ══════════ */}
-                    <View style={styles.block} onLayout={trackSection('costs')}>
+                    {/* ══════════ CUSTOS E ORÇAMENTO (transparência graduada) ══════════
+                        IMPORTANTE — fonte dos dados:
+                        Quando o `mergedItinerary` está disponível (vem do
+                        RouteVersioning via onMergedChange), usamos os dados
+                        do MERGED — assim valores editados pelo viajante
+                        (`data.cost = { value, currency }`), itens adicionados
+                        e itens ocultados via Minha Versão entram na
+                        Referência de Gastos. Fallback ao `itinerary`
+                        original enquanto o merge não chegou (primeiros
+                        ms da carga ou sessão sem auth). */}
+                    <View style={styles.block} ref={trackSection('costs')} collapsable={false}>
                         <SectionTitle icon="wallet-outline" label="Custos e orçamento do roteiro" />
                         {(() => {
+                            // Helper: extrai array do merged se houver, senão cai no itinerary original.
+                            // mergedItinerary tem shape MergedItinerary com arrays de MergedItem
+                            // onde cada MergedItem.data é o objeto que `getCostReferences` espera.
+                            const useMerged = mergedItinerary !== null;
+                            const accommodations = useMerged
+                                ? mergedItinerary!.accommodations.map(m => m.data)
+                                : itinerary.accommodations;
+                            const attractions = useMerged
+                                ? mergedItinerary!.attractions.map(m => m.data)
+                                : itinerary.attractions;
+                            const transports = useMerged
+                                ? mergedItinerary!.transports.map(m => m.data)
+                                : itinerary.transports;
+                            const restaurants = useMerged
+                                ? mergedItinerary!.restaurants.map(m => m.data)
+                                : itinerary.restaurants;
+                            const extraSpendingItems = useMerged
+                                ? mergedItinerary!.extraSpendingItems.map(m => m.data)
+                                : itinerary.extraSpendingItems;
+                            // Flight cost ainda vem do snapshot original — viajante hoje
+                            // não tem campo `cost` no FieldSpec FLIGHT (ver itemFields.ts).
+                            // Quando habilitarmos, basta ler de `mergedItinerary.flightOutbound?.data.cost`.
                             const costForm = {
-                                accommodations: itinerary.accommodations,
-                                attractions: itinerary.attractions,
-                                transports: itinerary.transports,
-                                restaurants: itinerary.restaurants,
-                                extraSpendingItems: itinerary.extraSpendingItems,
+                                accommodations,
+                                attractions,
+                                transports,
+                                restaurants,
+                                extraSpendingItems,
                                 flightCost: itinerary.flightInfo?.cost,
                                 flightSpending: itinerary.flightInfo?.spending,
                             };
@@ -601,14 +697,27 @@ export default function PurchasedItineraryScreen() {
                             );
                         })()}
 
-                        {/* Referência de Gastos por Pessoa — item-a-item (espelha Detalhes) */}
+                        {/* Referência de Gastos por Pessoa — item-a-item (espelha Detalhes).
+                            Reflete edições do viajante: lê do merged quando disponível
+                            (mesma lógica de fallback do BudgetSummaryCard acima). */}
                         {(() => {
+                            const useMerged = mergedItinerary !== null;
                             const costGroups = getCostReferences({
-                                accommodations: itinerary.accommodations,
-                                attractions: itinerary.attractions,
-                                transports: itinerary.transports,
-                                restaurants: itinerary.restaurants,
-                                extraSpendingItems: itinerary.extraSpendingItems,
+                                accommodations: useMerged
+                                    ? mergedItinerary!.accommodations.map(m => m.data)
+                                    : itinerary.accommodations,
+                                attractions: useMerged
+                                    ? mergedItinerary!.attractions.map(m => m.data)
+                                    : itinerary.attractions,
+                                transports: useMerged
+                                    ? mergedItinerary!.transports.map(m => m.data)
+                                    : itinerary.transports,
+                                restaurants: useMerged
+                                    ? mergedItinerary!.restaurants.map(m => m.data)
+                                    : itinerary.restaurants,
+                                extraSpendingItems: useMerged
+                                    ? mergedItinerary!.extraSpendingItems.map(m => m.data)
+                                    : itinerary.extraSpendingItems,
                                 flightCost: itinerary.flightInfo?.cost,
                                 flightSpending: itinerary.flightInfo?.spending,
                             } as any);
@@ -681,7 +790,7 @@ export default function PurchasedItineraryScreen() {
                     </View>
 
                     {/* ══════════ FOTOS E VÍDEOS DA VIAGEM ══════════ */}
-                    <View onLayout={trackSection('media')}>
+                    <View ref={trackSection('media')} collapsable={false}>
                         <MediaGallery itinerary={itinerary} />
                     </View>
 
@@ -690,91 +799,11 @@ export default function PurchasedItineraryScreen() {
                         Renderizadas agora dentro de <RouteVersioning /> (aba "Original" via
                         OriginalView; aba "Minha versão" via MyRouteView). */}
 
-                    {/* ══════════ CHECKLIST DE PLANEJAMENTO ══════════ */}
-                    <View style={styles.block} onLayout={trackSection('checklist')}>
-                        <SectionTitle icon="checkmark-circle-outline" label="Checklist de Planejamento" />
-                        <View style={styles.progressSection}>
-                            <Text style={styles.progressLabel}>
-                                {completedChecklist.size} de {checklist.length} concluídos
-                            </Text>
-                            <View style={styles.progressBarBg}>
-                                <LinearGradient
-                                    colors={theme.colors.gradients.action as unknown as [string, string]}
-                                    style={[
-                                        styles.progressBarFill,
-                                        {
-                                            width: checklist.length > 0
-                                                ? `${(completedChecklist.size / checklist.length) * 100}%`
-                                                : '0%',
-                                        },
-                                    ]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                />
-                            </View>
-                        </View>
-
-                        {Array.from(new Set(checklist.map((c: ChecklistItem) => c.category || 'outros'))).map((category: string) => {
-                            const items = checklist.filter((c: ChecklistItem) => (c.category || 'outros') === category);
-                            if (items.length === 0) return null;
-                            // Ionicons mapping — bullets removidos, ícones em circle teal claro.
-                            const categoryConfig: Record<string, { label: string; icon: any }> = {
-                                // English keys (legacy mock)
-                                documents:    { label: 'Documentos', icon: 'document-text-outline' },
-                                packing:      { label: 'Mala',       icon: 'briefcase-outline' },
-                                'pre-trip':   { label: 'Pré-viagem', icon: 'checkmark-done-outline' },
-                                // Portuguese keys (from DB)
-                                documentos:   { label: 'Documentos', icon: 'document-text-outline' },
-                                mala:         { label: 'Mala',       icon: 'briefcase-outline' },
-                                'pre-viagem': { label: 'Pré-viagem', icon: 'checkmark-done-outline' },
-                                'apps úteis': { label: 'Apps Úteis', icon: 'phone-portrait-outline' },
-                                finanças:     { label: 'Finanças',   icon: 'cash-outline' },
-                                financas:     { label: 'Finanças',   icon: 'cash-outline' },
-                                custom:       { label: 'Outros',     icon: 'ellipsis-horizontal-circle-outline' },
-                                outros:       { label: 'Outros',     icon: 'ellipsis-horizontal-circle-outline' },
-                            };
-                            const cfg = categoryConfig[String(category).toLowerCase()] ?? { label: String(category), icon: 'ellipsis-horizontal-circle-outline' };
-                            // Conta concluídos da categoria
-                            const doneInCat = items.filter((it: any) => completedChecklist.has(it.id)).length;
-                            return (
-                                <View key={category} style={styles.checkCategory}>
-                                    <View style={styles.checkCategoryHeader}>
-                                        <View style={styles.checkCategoryIconWrap}>
-                                            <Ionicons name={cfg.icon} size={14} color={theme.colors.primary} />
-                                        </View>
-                                        <Text style={styles.checkCategoryLabel}>{cfg.label}</Text>
-                                        <Text style={styles.checkCategoryCount}>{doneInCat}/{items.length}</Text>
-                                    </View>
-                                    <View style={styles.checkItemsCard}>
-                                        {items.map((item: ChecklistItem, itemIdx: number) => {
-                                            const isChecked = completedChecklist.has(item.id);
-                                            return (
-                                                <TouchableOpacity
-                                                    key={item.id}
-                                                    style={[
-                                                        styles.checkItem,
-                                                        itemIdx < items.length - 1 && styles.checkItemBorder,
-                                                    ]}
-                                                    onPress={() => toggleChecklist(item.id)}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-                                                        {isChecked && <Ionicons name="checkmark" size={13} color="#fff" />}
-                                                    </View>
-                                                    <Text style={[
-                                                        styles.checkItemText,
-                                                        isChecked && styles.checkItemTextDone,
-                                                    ]}>
-                                                        {item.text || item.item}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            );
-                                        })}
-                                    </View>
-                                </View>
-                            );
-                        })}
-                    </View>
+                    {/* ══════════ CHECKLIST DE PLANEJAMENTO — REMOVIDO
+                        O checklist agora vive APENAS dentro da "Minha Central
+                        da Viagem" (TripCenter ↑), via ChecklistTab. Mantemos
+                        este comentário como salvaguarda para evitar que a
+                        seção duplicada seja recriada por engano. ══════════ */}
 
                     {/* ══════════ O QUE VOCÊ RECEBEU ══════════ */}
                     {itinerary.receiveList && (
@@ -878,7 +907,7 @@ export default function PurchasedItineraryScreen() {
                 visible={pdfSheetVisible}
                 onClose={() => setPdfSheetVisible(false)}
                 onSelect={(variant) => { void handlePdfSelect(variant); }}
-                personalizedDisabled={!pdfDataRef.current.merged}
+                personalizedDisabled={!accessToken}
             />
         </View>
     );

@@ -147,11 +147,11 @@ model Admin {
 // ─────────────────────────────────────────────
 
 model Agency {
-  id              String    @id @default(cuid())
+  id              String     @id @default(cuid())
   name            String
   // CNPJ opcional: mercado australiano (AUD) não usa identificação fiscal BR.
   // Múltiplos NULL são permitidos sob índice @unique no Postgres.
-  cnpj            String?   @unique
+  cnpj            String?    @unique
   logo            String?
   contactUrl      String?
   whatsapp        String?
@@ -160,10 +160,10 @@ model Agency {
   state           String?
   zipCode         String?
   plan            AgencyPlan @default(FREE)
-  verified        Boolean   @default(false)
+  verified        Boolean    @default(false)
   verificationDoc String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   employees       AgencyEmployee[]
   packages        Package[]
@@ -183,8 +183,8 @@ model AgencyEmployee {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  agency       Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  faqAnswers   FaqAnswer[]
+  agency     Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  faqAnswers FaqAnswer[]
 
   @@map("agency_employees")
 }
@@ -205,16 +205,16 @@ model Traveler {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  personalData   TravelerPersonalData?
-  creator        Creator?
-  reviews        Review[]
-  purchases      PurchaseHistory[]
-  itinerarySales ItinerarySale[]
-  savedItems     SavedItem[]
-  notifications  Notification[]
-  faqQuestions   FaqQuestion[]
-  checklistItems TravelerChecklistItem[]
-  tripFiles      TravelerFile[]
+  personalData        TravelerPersonalData?
+  creator             Creator?
+  reviews             Review[]
+  purchases           PurchaseHistory[]
+  itinerarySales      ItinerarySale[]
+  savedItems          SavedItem[]
+  notifications       Notification[]
+  faqQuestions        FaqQuestion[]
+  checklistItems      TravelerChecklistItem[]
+  tripFiles           TravelerFile[]
   routeCustomizations TravelerItineraryCustomization[]
 
   @@map("travelers")
@@ -230,7 +230,7 @@ model TravelerPersonalData {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  traveler       Traveler  @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  traveler Traveler @relation(fields: [travelerId], references: [id], onDelete: Cascade)
 
   @@map("traveler_personal_data")
 }
@@ -258,10 +258,10 @@ model Creator {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  traveler          Traveler          @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  balance           CreatorBalance?
-  itineraries       Itinerary[]
-  reviewResponses   ReviewResponse[]
+  traveler        Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  balance         CreatorBalance?
+  itineraries     Itinerary[]
+  reviewResponses ReviewResponse[]
 
   @@map("creators")
 }
@@ -274,7 +274,7 @@ model CreatorBalance {
   currency         String   @default("AUD")
   updatedAt        DateTime @updatedAt
 
-  creator          Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@map("creator_balances")
 }
@@ -307,20 +307,20 @@ model Package {
   perfectFor          String[]
   categories          String[]
   // Registration system — Block 1 (Destination)
-  continent           String?       // auto-calculated from country
-  airport             String?       // main airport code (e.g. CDG, GRU)
+  continent           String? // auto-calculated from country
+  airport             String? // main airport code (e.g. CDG, GRU)
   multiDestination    Boolean       @default(false)
   additionalCities    String[]
   // Registration system — Block 2 (Duration)
-  nights              Int?          // auto: duration - 1
+  nights              Int? // auto: duration - 1
   // Registration system — Block 3 (Travel Style)
-  travelStyles        String[]      // max 3: Luxo, Econômico, Mochilão, Família, Romântico, Aventura
+  travelStyles        String[] // max 3: Luxo, Econômico, Mochilão, Família, Romântico, Aventura
   // Structured JSON fields
-  inclusions          Json?         // { flight, hotel: { stars, meals }, tours, extras }
-  routeDetails        Json?         // { mainStop, pickupLocations, transport, mainActivity, returnLocations, mapImageUrl }
+  inclusions          Json? // { flight, hotel: { stars, meals }, tours, extras }
+  routeDetails        Json? // { mainStop, pickupLocations, transport, mainActivity, returnLocations, mapImageUrl }
   // Registration system — Block 5 (Price extras)
-  promoPrice          Float?        // promotional price
-  installments        Int?          // max installments (e.g. 12x)
+  promoPrice          Float? // promotional price
+  installments        Int? // max installments (e.g. 12x)
   cancellationPolicy  String?       @db.Text
   // Registration system — Block 7 (Post-purchase docs)
   whatsappOfficial    String?
@@ -328,7 +328,7 @@ model Package {
   voucherUrl          String?
   eticketUrl          String?
   // Quality & trust
-  qualityScore        Int?          // 0-100 calculated
+  qualityScore        Int? // 0-100 calculated
   badge               PackageBadge?
   rating              Float?
   reviewCount         Int           @default(0)
@@ -336,23 +336,23 @@ model Package {
   hasFreeCancellation Boolean       @default(false)
   isAllInclusive      Boolean       @default(false)
   recentPurchases     Int           @default(0)
-  priceComparison     String?       // 'below' | 'average' | 'above'
+  priceComparison     String? // 'below' | 'average' | 'above'
   priceDiscount       Int           @default(0)
   status              PackageStatus @default(DRAFT)
   approvalNote        String?       @db.Text
   approvedAt          DateTime?
-  approvedBy          String?       // admin id
+  approvedBy          String? // admin id
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  agency              Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  images              PackageImage[]
-  pricingWindows      PackagePricingWindow[]
-  departures          PackageDeparture[]
-  reviews             Review[]
-  purchases           PurchaseHistory[]
-  savedItems          SavedItem[]
-  faqQuestions        FaqQuestion[]
+  agency         Agency                 @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  images         PackageImage[]
+  pricingWindows PackagePricingWindow[]
+  departures     PackageDeparture[]
+  reviews        Review[]
+  purchases      PurchaseHistory[]
+  savedItems     SavedItem[]
+  faqQuestions   FaqQuestion[]
 
   @@map("packages")
 }
@@ -365,7 +365,7 @@ model PackageImage {
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
-  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
 
   @@map("package_images")
 }
@@ -380,8 +380,8 @@ model PackagePricingWindow {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  package        Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  purchases      PurchaseHistory[]
+  package   Package           @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  purchases PurchaseHistory[]
 
   @@map("package_pricing_windows")
 }
@@ -391,16 +391,16 @@ model PackageDeparture {
   packageId             String
   startDate             DateTime
   price                 Float
-  capacityTotal         Int             // total group capacity
-  capacityVamo          Int             // slots allocated to VAMO
-  capacityVamoAvailable Int             // remaining VAMO slots
-  minPeople             Int?            // minimum to confirm departure
+  capacityTotal         Int // total group capacity
+  capacityVamo          Int // slots allocated to VAMO
+  capacityVamoAvailable Int // remaining VAMO slots
+  minPeople             Int? // minimum to confirm departure
   status                DepartureStatus @default(ABERTA)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
 
-  package               Package         @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  bookings              PurchaseHistory[] @relation("DepartureBookings")
+  package  Package           @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  bookings PurchaseHistory[] @relation("DepartureBookings")
 
   @@map("package_departures")
 }
@@ -410,203 +410,203 @@ model PackageDeparture {
 // ─────────────────────────────────────────────
 
 model Itinerary {
-  id               String   @id @default(cuid())
-  creatorId        String
-  title            String
-  destination      String
-  country          String
-  description      String   @db.Text
-  price            Float
-  currency         String   @default("AUD")
-  duration         Int
-  rating           Float?
-  reviewCount      Int      @default(0)
-  downloadCount    Int      @default(0)
-  featured         Boolean  @default(false)
+  id                 String          @id @default(cuid())
+  creatorId          String
+  title              String
+  destination        String
+  country            String
+  description        String          @db.Text
+  price              Float
+  currency           String          @default("AUD")
+  duration           Int
+  rating             Float?
+  reviewCount        Int             @default(0)
+  downloadCount      Int             @default(0)
+  featured           Boolean         @default(false)
   // Array fields
-  highlights       String[]
-  inclusions       String[]  // e.g. ["Planilha", "Mapa", "Guia de Frases"]
+  highlights         String[]
+  inclusions         String[] // e.g. ["Planilha", "Mapa", "Guia de Frases"]
   // Structured spending estimate
-  estimatedSpending Json?   // { min, max, currency, breakdown: [{ category, amount, description }] }
+  estimatedSpending  Json? // { min, max, currency, breakdown: [{ category, amount, description }] }
   // ─── Bloco 1: Identidade ───
-  subtitle         String?  @db.VarChar(160)
-  travelStyles     String[]  // max 3
-  categories       String[]  // min 1, max 5
-  productType      String   @default("DIGITAL") // DIGITAL | PRESENCIAL | HIBRIDO
+  subtitle           String?         @db.VarChar(160)
+  travelStyles       String[] // max 3
+  categories         String[] // min 1, max 5
+  productType        String          @default("DIGITAL") // DIGITAL | PRESENCIAL | HIBRIDO
   // ─── Bloco 3: Módulos ativos ───
-  activeModules    String[]  // itinerario, mapa, hospedagem, transporte, gasto, restaurantes, dicas, checklist, voo
+  activeModules      String[] // itinerario, mapa, hospedagem, transporte, gasto, restaurantes, dicas, checklist, voo
   // ─── Bloco 2: Estrutura Comercial ───
-  promoPrice       Float?
-  installments     Int?
-  immediateAccess  Boolean  @default(true)
-  lifetimeAccess   Boolean  @default(true)
-  offlineDownload  Boolean  @default(true)
+  promoPrice         Float?
+  installments       Int?
+  immediateAccess    Boolean         @default(true)
+  lifetimeAccess     Boolean         @default(true)
+  offlineDownload    Boolean         @default(true)
   // ─── Bloco 7: Configuração Pós-compra ───
-  allowPdf         Boolean  @default(false)
-  allowShare       Boolean  @default(true)
+  allowPdf           Boolean         @default(false)
+  allowShare         Boolean         @default(true)
   // ─── Comprovante de viagem ───
-  travelProofUrl   String?  @db.Text  // URL do documento enviado pelo criador
+  travelProofUrl     String?         @db.Text // URL do documento enviado pelo criador
   // ─── Destinos adicionais (multi-destino) ───
-  extraCities      String[]
-  extraCountries   String[]
+  extraCities        String[]
+  extraCountries     String[]
   // ─── Módulos como JSON (estrutura semi-livre) ───
-  flightInfo       Json?    // { outbound, return, totalPrice, priceCurrency, tips: [], spending, cost }
-  attractions      Json?    // [{ name, type, location, mapLink, description, hours, duration, externalLink, tips, startDate, endDate, ticketValue, ticketCurrency, spending?, cost? }]
-  restaurants      Json?    // [{ name, cuisine, location, description, hours, hoursStart, externalLink, tips, startDate, endDate, priceValue, priceCurrency, spending?, cost? }]
+  flightInfo         Json? // { outbound, return, totalPrice, priceCurrency, tips: [], spending, cost }
+  attractions        Json? // [{ name, type, location, mapLink, description, hours, duration, externalLink, tips, startDate, endDate, ticketValue, ticketCurrency, spending?, cost? }]
+  restaurants        Json? // [{ name, cuisine, location, description, hours, hoursStart, externalLink, tips, startDate, endDate, priceValue, priceCurrency, spending?, cost? }]
   // ─── Gastos Extras (módulo "Gastos Extras" — transparência graduada) ───
   // [{ id, category, title, description, value, currency, cost?: ModuleCostInfo }]
   // Persiste em JSON porque a estrutura é livre e gerenciada inteiramente
   // pelo cliente (mobile). Mantém retrocompatibilidade automática com
   // roteiros antigos (default null).
   extraSpendingItems Json?
-  generalTips      String[]
-  mediaUrls        String[] // Fotos/vídeos extras
-  highlightPhotos  String[] // 3 fotos de destaque do criador
+  generalTips        String[]
+  mediaUrls          String[] // Fotos/vídeos extras
+  highlightPhotos    String[] // 3 fotos de destaque do criador
   // Enquadramento da capa: { x: 0..1, y: 0..1 } — 0.5/0.5 = centro.
   // Permite ao criador ajustar qual parte da capa aparece no card/hero
   // sem precisar recortar a imagem. Aplicado via objectPosition (web) e
   // (futuro) transform translation (native). Default null = centralizado.
-  coverFocalPoint  Json?
+  coverFocalPoint    Json?
   // ─── Datas da viagem (para exibição pós-compra) ───
-  tripStartDate    DateTime?
-  tripEndDate      DateTime?
+  tripStartDate      DateTime?
+  tripEndDate        DateTime?
   // ─── Perfil de gasto (para pós-compra) ───
-  spendingProfile  Json?    // { icon, label }
-  receiveList      Json?    // [{ icon, label }]
+  spendingProfile    Json? // { icon, label }
+  receiveList        Json? // [{ icon, label }]
   // ─── Quality ───
-  qualityScore     Int      @default(0)
-  status           ItineraryStatus @default(DRAFT)
-  approvalNote     String?  @db.Text
-  approvedAt       DateTime?
-  approvedBy       String?  // admin id
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  qualityScore       Int             @default(0)
+  status             ItineraryStatus @default(DRAFT)
+  approvalNote       String?         @db.Text
+  approvedAt         DateTime?
+  approvedBy         String? // admin id
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
-  creator          Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  images           ItineraryImage[]
-  days             ItineraryDay[]
-  files            ItineraryFile[]
-  reviews          Review[]
-  sales            ItinerarySale[]
-  savedItems       SavedItem[]
-  faqQuestions     FaqQuestion[]
-  accommodations   ItineraryAccommodation[]
-  transports       ItineraryTransport[]
-  checklists       ItineraryChecklist[]
+  creator                Creator                          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  images                 ItineraryImage[]
+  days                   ItineraryDay[]
+  files                  ItineraryFile[]
+  reviews                Review[]
+  sales                  ItinerarySale[]
+  savedItems             SavedItem[]
+  faqQuestions           FaqQuestion[]
+  accommodations         ItineraryAccommodation[]
+  transports             ItineraryTransport[]
+  checklists             ItineraryChecklist[]
   travelerChecklistItems TravelerChecklistItem[]
-  travelerFiles    TravelerFile[]
+  travelerFiles          TravelerFile[]
   travelerCustomizations TravelerItineraryCustomization[]
 
   @@map("itineraries")
 }
 
 model ItineraryImage {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   itineraryId String
   url         String
   alt         String?
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
 
-  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@map("itinerary_images")
 }
 
 model ItineraryFile {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   itineraryId String
   name        String
-  type        String    // 'pdf' | 'spreadsheet' | 'document'
+  type        String // 'pdf' | 'spreadsheet' | 'document'
   url         String
-  size        Int       // bytes
-  createdAt   DateTime  @default(now())
+  size        Int // bytes
+  createdAt   DateTime @default(now())
 
-  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@map("itinerary_files")
 }
 
 model ItineraryDay {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   itineraryId String
   dayNumber   Int
   title       String
-  summary     String?   @db.Text
-  description String?   @db.Text
-  createdAt   DateTime  @default(now())
+  summary     String?  @db.Text
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
 
-  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  activities  ItineraryActivity[]
+  itinerary  Itinerary           @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  activities ItineraryActivity[]
 
   @@map("itinerary_days")
 }
 
 model ItineraryActivity {
-  id          String       @id @default(cuid())
+  id          String   @id @default(cuid())
   dayId       String
-  order       Int          @default(0)
+  order       Int      @default(0)
   title       String
-  description String?      @db.Text
+  description String?  @db.Text
   duration    String?
   location    String?
-  tips        String?      @db.Text
+  tips        String?  @db.Text
   time        String?
-  type        String?      // 'transport' | 'activity' | 'meal' | 'rest'
+  type        String? // 'transport' | 'activity' | 'meal' | 'rest'
   icon        String?
   images      String[]
   mapLink     String?
   latitude    Float?
   longitude   Float?
-  category    String?      // 'atração' | 'restaurante' | 'hotel'
-  completed   Boolean      @default(false)
-  notes       String?      @db.Text
-  createdAt   DateTime     @default(now())
+  category    String? // 'atração' | 'restaurante' | 'hotel'
+  completed   Boolean  @default(false)
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
 
-  day         ItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  day ItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
 
   @@map("itinerary_activities")
 }
 
 model ItineraryAccommodation {
-  id           String    @id @default(cuid())
-  itineraryId  String
-  name         String
-  neighborhood String?
-  description  String?   @db.Text
-  priceRange   String?
-  rating       Float?
-  externalLink String?
+  id            String   @id @default(cuid())
+  itineraryId   String
+  name          String
+  neighborhood  String?
+  description   String?  @db.Text
+  priceRange    String?
+  rating        Float?
+  externalLink  String?
   // ─── Campos extras do editor ───
-  address      String?
-  mapLink      String?
-  tips         String?   @db.Text
-  nights       Int?
-  startDate    String?   // ISO date string
-  endDate      String?
-  totalPrice   String?   // preço total da estadia
+  address       String?
+  mapLink       String?
+  tips          String?  @db.Text
+  nights        Int?
+  startDate     String? // ISO date string
+  endDate       String?
+  totalPrice    String? // preço total da estadia
   priceCurrency String?
   // ─── Transparência graduada de custos (opt-in) ───
   // `spending`: { value, currency } — formato legado de gasto por pessoa
   // `cost`: ModuleCostInfo { amount, currency, disclosureType, notes, proofFiles, proofStatus, updatedAt }
   // Ambos opcionais; null para roteiros antigos.
-  spending     Json?
-  cost         Json?
-  order        Int       @default(0)
-  createdAt    DateTime  @default(now())
+  spending      Json?
+  cost          Json?
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
 
-  itinerary    Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@map("itinerary_accommodations")
 }
 
 model ItineraryTransport {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   itineraryId    String
-  description    String?   @db.Text
+  description    String?  @db.Text
   passTypes      String?
   estimatedPrice String?
-  notes          String?   @db.Text
+  notes          String?  @db.Text
   // ─── Campos extras do editor ───
   startDate      String?
   endDate        String?
@@ -615,46 +615,48 @@ model ItineraryTransport {
   // ─── Transparência graduada de custos (opt-in) ───
   spending       Json?
   cost           Json?
-  order          Int       @default(0)
-  createdAt      DateTime  @default(now())
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
 
-  itinerary      Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@map("itinerary_transports")
 }
 
 model ItineraryChecklist {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   itineraryId String
-  category    String    // 'documentos' | 'mala' | 'pre-viagem' | 'custom'
+  category    String // 'documentos' | 'mala' | 'pre-viagem' | 'custom'
   item        String
-  isDefault   Boolean   @default(true)
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
+  isDefault   Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
 
-  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@map("itinerary_checklists")
 }
 
 model ItinerarySale {
-  id          String    @id @default(cuid())
-  itineraryId String
-  travelerId  String
-  price       Float
-  commission  Float
+  id           String   @id @default(cuid())
+  itineraryId  String
+  travelerId   String
+  price        Float
+  commission   Float
   // Rich purchase data for the purchased itinerary experience
   // NOTE: `purchaseData.routeSnapshot` (snapshotVersion: 1) é o snapshot
   // canônico da venda — congelado no momento da compra via
   // `buildPurchasedItineraryPayload(...)`. Reusamos esse campo para a
   // feature de Roteiro Editável Pós-Compra (Original vs. Minha versão);
   // não há `purchasedSnapshot` separado.
-  purchaseData Json?    // { routeSnapshot, checklist, weather, accommodation, emergencyContacts, spendingProfile, transport, flightInfo, accommodationOptions, receiveList }
-  createdAt   DateTime  @default(now())
+  purchaseData Json? // { routeSnapshot, checklist, weather, accommodation, emergencyContacts, spendingProfile, transport, flightInfo, accommodationOptions, receiveList }
+  createdAt    DateTime @default(now())
 
-  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  traveler    Traveler  @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  itinerary      Itinerary                        @relation(fields: [itineraryId], references: [id], onDelete: Restrict)
+  traveler       Traveler                         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
   customizations TravelerItineraryCustomization[]
+  checklistItems TravelerChecklistItem[]
+  travelerFiles  TravelerFile[]
 
   @@map("itinerary_sales")
 }
@@ -681,20 +683,20 @@ model ItinerarySale {
 // inteiramente no mobile (`mergeItineraryWithCustomization`). O backend
 // só armazena/valida o shape.
 model TravelerItineraryCustomization {
-  id                    String    @id @default(cuid())
-  travelerId            String
-  itineraryId           String
-  saleId                String?
-  notes                 String?   @db.Text
-  addedItems            Json      @default("[]")
-  hiddenOriginalIds     Json      @default("[]")
-  editedOriginalItems   Json      @default("{}")
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                  String   @id @default(cuid())
+  travelerId          String
+  itineraryId         String
+  saleId              String?
+  notes               String?  @db.Text
+  addedItems          Json     @default("[]")
+  hiddenOriginalIds   Json     @default("[]")
+  editedOriginalItems Json     @default("{}")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   traveler  Traveler       @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  itinerary Itinerary      @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  sale      ItinerarySale? @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  itinerary Itinerary      @relation(fields: [itineraryId], references: [id], onDelete: Restrict)
+  sale      ItinerarySale? @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@unique([travelerId, itineraryId])
   @@index([saleId])
@@ -706,27 +708,27 @@ model TravelerItineraryCustomization {
 // ─────────────────────────────────────────────
 
 model Review {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   travelerId   String
   packageId    String?
   itineraryId  String?
   rating       Float
-  comment      String    @db.Text
-  verified     Boolean   @default(false)
+  comment      String   @db.Text
+  verified     Boolean  @default(false)
   language     String?
   // Denormalized user info for fast display
   userName     String?
   userLocation String?
   userAvatar   String?
   userInitial  String?
-  helpful      Int       @default(0)
-  createdAt    DateTime  @default(now())
+  helpful      Int      @default(0)
+  createdAt    DateTime @default(now())
 
-  traveler     Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  package      Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  itinerary    Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  images       ReviewImage[]
-  responses    ReviewResponse[]
+  traveler  Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package   Package?         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  itinerary Itinerary?       @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  images    ReviewImage[]
+  responses ReviewResponse[]
 
   @@map("reviews")
 }
@@ -738,7 +740,7 @@ model ReviewImage {
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
-  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@map("review_images")
 }
@@ -751,9 +753,9 @@ model ReviewResponse {
   text      String   @db.Text
   createdAt DateTime @default(now())
 
-  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  agency    Agency?  @relation(fields: [agencyId], references: [id], onDelete: SetNull)
-  creator   Creator? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  review  Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  agency  Agency?  @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  creator Creator? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
 
   @@map("review_responses")
 }
@@ -767,7 +769,7 @@ model PurchaseHistory {
   travelerId      String
   packageId       String
   pricingWindowId String?
-  departureId     String?        // link to specific departure
+  departureId     String? // link to specific departure
   totalPrice      Float
   travelers       Int            @default(1)
   status          PurchaseStatus @default(PENDING)
@@ -780,7 +782,7 @@ model PurchaseHistory {
   childrenCount   Int            @default(0)
   travelDate      DateTime?
   travelEndDate   DateTime?
-  preparation     Json?          // preparation tips grouped by category
+  preparation     Json? // preparation tips grouped by category
   // Flight quote fields
   originCity      String?
   // Post-purchase documents (filled by agency per sale)
@@ -790,17 +792,17 @@ model PurchaseHistory {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  traveler        Traveler              @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  package         Package               @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  pricingWindow   PackagePricingWindow? @relation(fields: [pricingWindowId], references: [id], onDelete: SetNull)
-  departure       PackageDeparture?     @relation("DepartureBookings", fields: [departureId], references: [id], onDelete: SetNull)
-  timeline        BookingTimeline[]
-  documents       BookingDocument[]
+  traveler          Traveler                @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package           Package                 @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  pricingWindow     PackagePricingWindow?   @relation(fields: [pricingWindowId], references: [id], onDelete: SetNull)
+  departure         PackageDeparture?       @relation("DepartureBookings", fields: [departureId], references: [id], onDelete: SetNull)
+  timeline          BookingTimeline[]
+  documents         BookingDocument[]
   bookingInclusions BookingInclusion[]
-  flightQuote     FlightQuote?
-  agencyDocuments AgencyDocument[]
-  checklistItems  TravelerChecklistItem[]
-  files           TravelerFile[]
+  flightQuote       FlightQuote?
+  agencyDocuments   AgencyDocument[]
+  checklistItems    TravelerChecklistItem[]
+  files             TravelerFile[]
 
   @@map("purchase_history")
 }
@@ -816,7 +818,7 @@ model BookingTimeline {
   order         Int                   @default(0)
   createdAt     DateTime              @default(now())
 
-  purchase      PurchaseHistory       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchase PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@map("booking_timelines")
 }
@@ -832,21 +834,21 @@ model BookingDocument {
   order       Int                 @default(0)
   createdAt   DateTime            @default(now())
 
-  purchase    PurchaseHistory     @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchase PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@map("booking_documents")
 }
 
 model BookingInclusion {
-  id         String          @id @default(cuid())
+  id         String   @id @default(cuid())
   purchaseId String
   icon       String
   label      String
   detail     String
-  order      Int             @default(0)
-  createdAt  DateTime        @default(now())
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
 
-  purchase   PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchase PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@map("booking_inclusions")
 }
@@ -856,28 +858,28 @@ model BookingInclusion {
 // ─────────────────────────────────────────────
 
 model FlightQuote {
-  id               String      @id @default(cuid())
-  purchaseId       String      @unique
+  id             String      @id @default(cuid())
+  purchaseId     String      @unique
   // Dados do pedido do usuário
-  originCity       String
-  originAirport    String?
+  originCity     String
+  originAirport  String?
   // Dados preenchidos pela agência
-  airline          String?
-  flightDetails    String?     @db.Text
-  flightImageUrl   String?
-  airfarePrice     Float?
-  totalPrice       Float?
+  airline        String?
+  flightDetails  String?     @db.Text
+  flightImageUrl String?
+  airfarePrice   Float?
+  totalPrice     Float?
   // Controle
-  status           QuoteStatus @default(AWAITING_QUOTE)
-  expiresAt        DateTime?
-  quotedAt         DateTime?
-  acceptedAt       DateTime?
-  agencyNote       String?     @db.Text
-  userNote         String?     @db.Text
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  status         QuoteStatus @default(AWAITING_QUOTE)
+  expiresAt      DateTime?
+  quotedAt       DateTime?
+  acceptedAt     DateTime?
+  agencyNote     String?     @db.Text
+  userNote       String?     @db.Text
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  purchase         PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchase PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@map("flight_quotes")
 }
@@ -887,17 +889,17 @@ model FlightQuote {
 // ─────────────────────────────────────────────
 
 model AgencyDocument {
-  id           String        @id @default(cuid())
-  purchaseId   String
-  title        String
-  description  String?       @db.Text
-  type         AgencyDocType
-  fileUrl      String
-  fileName     String?
-  sentAt       DateTime      @default(now())
-  viewedAt     DateTime?
+  id          String        @id @default(cuid())
+  purchaseId  String
+  title       String
+  description String?       @db.Text
+  type        AgencyDocType
+  fileUrl     String
+  fileName    String?
+  sentAt      DateTime      @default(now())
+  viewedAt    DateTime?
 
-  purchase     PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchase PurchaseHistory @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@map("agency_documents")
 }
@@ -907,16 +909,16 @@ model AgencyDocument {
 // ─────────────────────────────────────────────
 
 model SavedItem {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   travelerId  String
   packageId   String?
   itineraryId String?
-  priceAlert  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  priceAlert  Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
-  traveler    Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  package     Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  traveler  Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package   Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  itinerary Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@unique([travelerId, packageId])
   @@unique([travelerId, itineraryId])
@@ -937,7 +939,7 @@ model Notification {
   data       Json?
   createdAt  DateTime         @default(now())
 
-  traveler   Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  traveler Traveler @relation(fields: [travelerId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
@@ -947,31 +949,31 @@ model Notification {
 // ─────────────────────────────────────────────
 
 model FaqQuestion {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   travelerId  String
   packageId   String?
   itineraryId String?
-  question    String    @db.Text
-  createdAt   DateTime  @default(now())
+  question    String   @db.Text
+  createdAt   DateTime @default(now())
 
-  traveler    Traveler   @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  package     Package?   @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  answers     FaqAnswer[]
+  traveler  Traveler    @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  package   Package?    @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  itinerary Itinerary?  @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  answers   FaqAnswer[]
 
   @@map("faq_questions")
 }
 
 model FaqAnswer {
-  id               String          @id @default(cuid())
+  id               String   @id @default(cuid())
   questionId       String
   agencyEmployeeId String?
   creatorId        String?
-  answer           String          @db.Text
-  createdAt        DateTime        @default(now())
+  answer           String   @db.Text
+  createdAt        DateTime @default(now())
 
-  question         FaqQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  agencyEmployee   AgencyEmployee? @relation(fields: [agencyEmployeeId], references: [id], onDelete: SetNull)
+  question       FaqQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  agencyEmployee AgencyEmployee? @relation(fields: [agencyEmployeeId], references: [id], onDelete: SetNull)
 
   @@map("faq_answers")
 }
@@ -998,12 +1000,12 @@ model Destination {
 
 model AuditLog {
   id        String   @id @default(cuid())
-  action    String   // 'CREATE' | 'UPDATE' | 'DELETE'
-  target    String   // 'packages/pkg-id', 'itineraries/itin-id', 'creators/creator-id'
-  who       String   // agencyId, employeeId, travelerId, or adminId
+  action    String // 'CREATE' | 'UPDATE' | 'DELETE'
+  target    String // 'packages/pkg-id', 'itineraries/itin-id', 'creators/creator-id'
+  who       String // agencyId, employeeId, travelerId, or adminId
   timestamp DateTime @default(now()) @db.Timestamp()
   ip        String?
-  changes   Json?    // { before: {...}, after: {...} } for UPDATE; {} for CREATE/DELETE
+  changes   Json? // { before: {...}, after: {...} } for UPDATE; {} for CREATE/DELETE
   createdAt DateTime @default(now())
 
   @@index([who])
@@ -1026,39 +1028,48 @@ model TravelerChecklistItem {
   travelerId  String
   itineraryId String
   purchaseId  String?
-  category    String   // 'documentos' | 'mala' | 'pre-viagem' | 'finanças' | 'apps úteis' | 'outros' | 'custom'
+  saleId      String?
+  category    String // 'documentos' | 'mala' | 'pre-viagem' | 'finanças' | 'apps úteis' | 'outros' | 'custom'
   item        String
   completed   Boolean  @default(false)
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  traveler    Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  itinerary   Itinerary        @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  purchase    PurchaseHistory? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  traveler  Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  itinerary Itinerary        @relation(fields: [itineraryId], references: [id], onDelete: Restrict)
+  purchase  PurchaseHistory? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  sale      ItinerarySale?   @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@index([travelerId, itineraryId])
   @@index([purchaseId])
+  @@index([saleId])
   @@map("traveler_checklist_items")
 }
 
 model TravelerFile {
-  id          String   @id @default(cuid())
-  travelerId  String
-  itineraryId String
-  purchaseId  String?
-  category    String   // 'voos' | 'hospedagem' | 'passeios' | 'documentos' | 'seguro' | 'recibos' | 'transporte' | 'outros'
-  title       String
-  url         String
-  mimeType    String?
-  sizeBytes   Int?
-  createdAt   DateTime @default(now())
+  id               String   @id @default(cuid())
+  travelerId       String
+  itineraryId      String
+  purchaseId       String?
+  saleId           String?
+  category         String // 'voos' | 'hospedagem' | 'passeios' | 'documentos' | 'seguro' | 'recibos' | 'transporte' | 'outros'
+  title            String
+  url              String
+  originalFileName String?
+  mimeType         String?
+  sizeBytes        Int?
+  note             String?  @db.Text
+  content          Bytes?
+  createdAt        DateTime @default(now())
 
-  traveler    Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
-  itinerary   Itinerary        @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  purchase    PurchaseHistory? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  traveler  Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  itinerary Itinerary        @relation(fields: [itineraryId], references: [id], onDelete: Restrict)
+  purchase  PurchaseHistory? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  sale      ItinerarySale?   @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@index([travelerId, itineraryId])
   @@index([purchaseId])
+  @@index([saleId])
   @@map("traveler_files")
 }

@@ -37,6 +37,72 @@ export interface ItemCardProps {
     showBadge?: boolean;
 }
 
+// ─── Helpers de exibição de custo ────────────────────────────
+//
+// O viajante salva custos via FieldType `cost` como `data.cost = { value,
+// currency }`. O snapshot do criador pode usar formatos legados diferentes
+// por categoria (priceRange string, ticketPrice string, priceValue/priceCurrency,
+// cost.amount). Esse helper aceita ambos e retorna uma string pronta pra
+// exibir tipo "A$ 200,00" ou null quando não há valor.
+//
+// Prioriza `data.cost.value` pra que edições do viajante sobreescrevam
+// silenciosamente o legacy do snapshot. Se o valor editado for limpo,
+// cai pra legacy original.
+
+import { CURRENCIES } from '@vamo/shared/itinerary';
+
+const CURRENCY_SYMBOL: Record<string, string> = CURRENCIES.reduce(
+    (acc, c) => { acc[c.code] = c.symbol; return acc; },
+    {} as Record<string, string>,
+);
+
+function pickDisplayCost(data: any): string | null {
+    if (!data || typeof data !== 'object') return null;
+
+    // 1. Shape canônico novo: data.cost = { value, currency }
+    const cost = data.cost;
+    if (cost && typeof cost === 'object') {
+        const rawValue = cost.value ?? cost.amount;
+        const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+        if (value !== null && value !== undefined && value !== '') {
+            const currency = typeof cost.currency === 'string' && cost.currency.length > 0
+                ? cost.currency
+                : 'AUD';
+            return formatCostString(value, currency);
+        }
+    }
+
+    // 2. Legacy plano: data.priceValue + data.priceCurrency (transport)
+    if (data.priceValue !== undefined && data.priceValue !== null && data.priceValue !== '') {
+        const currency = typeof data.priceCurrency === 'string' && data.priceCurrency.length > 0
+            ? data.priceCurrency
+            : 'AUD';
+        return formatCostString(data.priceValue, currency);
+    }
+
+    // 3. Legacy plano: data.value + data.currency (extra spending)
+    if (data.value !== undefined && data.value !== null && data.value !== '' && data.value !== '0') {
+        const currency = typeof data.currency === 'string' && data.currency.length > 0
+            ? data.currency
+            : 'AUD';
+        return formatCostString(data.value, currency);
+    }
+
+    // 4. Legacy strings só-texto (creator pre-CostBlock) — mantidos
+    //    pelos próprios cards (priceRange, ticketPrice) porque já têm
+    //    moeda embutida no texto.
+    return null;
+}
+
+/** Formata "200" / "200,00" + "AUD" → "A$ 200,00 AUD" (compacto). */
+function formatCostString(rawValue: string | number, currency: string): string {
+    const valueStr = typeof rawValue === 'number'
+        ? rawValue.toFixed(2).replace('.', ',')
+        : String(rawValue);
+    const symbol = CURRENCY_SYMBOL[currency] || '';
+    return symbol ? `${symbol} ${valueStr}` : `${valueStr} ${currency}`;
+}
+
 // ─── Badges de origem ────────────────────────────────────────
 
 function SourceBadge({ source }: { source: ItemSource }) {
@@ -84,13 +150,16 @@ function ExternalButton({ url, label = 'Site oficial' }: { url?: string | null; 
 }
 
 function AccommodationCard({ data }: { data: any }) {
+    // Prefer custo editado pelo viajante (data.cost); fallback ao
+    // priceRange (string legacy do snapshot do criador).
+    const cost = pickDisplayCost(data) ?? (data?.priceRange ? String(data.priceRange) : null);
     return (
         <>
             <View style={styles.row}>
                 <Text style={styles.title} numberOfLines={2}>{data?.name || 'Hospedagem'}</Text>
-                {data?.priceRange ? (
+                {cost ? (
                     <View style={styles.pricePill}>
-                        <Text style={styles.pricePillText}>{String(data.priceRange)}</Text>
+                        <Text style={styles.pricePillText}>{cost}</Text>
                     </View>
                 ) : null}
             </View>
@@ -141,12 +210,16 @@ function AttractionCard({ data }: { data: any }) {
                         ) : null}
                     </View>
                 </View>
-                {data?.ticketPrice ? (
-                    <View style={styles.pricePill}>
-                        <Ionicons name="card-outline" size={11} color={theme.colors.primary} />
-                        <Text style={styles.pricePillText}>{String(data.ticketPrice)}</Text>
-                    </View>
-                ) : null}
+                {(() => {
+                    const cost = pickDisplayCost(data) ?? (data?.ticketPrice ? String(data.ticketPrice) : null);
+                    if (!cost) return null;
+                    return (
+                        <View style={styles.pricePill}>
+                            <Ionicons name="card-outline" size={11} color={theme.colors.primary} />
+                            <Text style={styles.pricePillText}>{cost}</Text>
+                        </View>
+                    );
+                })()}
             </View>
             {(data?.hours || data?.duration) ? (
                 <View style={styles.chipsRow}>
@@ -200,17 +273,21 @@ function RestaurantCard({ data }: { data: any }) {
                         </View>
                     ) : null}
                 </View>
-                {data?.priceRange ? (
-                    <View style={styles.greenPill}>
-                        <Text style={styles.greenPillText}>{String(data.priceRange)}</Text>
-                    </View>
-                ) : null}
+                {(() => {
+                    const cost = pickDisplayCost(data) ?? (data?.priceRange ? String(data.priceRange) : null);
+                    if (!cost) return null;
+                    return (
+                        <View style={styles.greenPill}>
+                            <Text style={styles.greenPillText}>{cost}</Text>
+                        </View>
+                    );
+                })()}
             </View>
             {data?.description ? (
                 <Text style={styles.desc}>{String(data.description)}</Text>
             ) : null}
-            {data?.hours ? (
-                <Text style={styles.metaText}>🕐 {String(data.hours)}</Text>
+            {(data?.hoursStart || data?.hours) ? (
+                <Text style={styles.metaText}>🕐 {String(data.hoursStart || data.hours)}</Text>
             ) : null}
             {data?.tips ? (
                 <View style={styles.tipBox}>
@@ -223,9 +300,7 @@ function RestaurantCard({ data }: { data: any }) {
 }
 
 function TransportCard({ data }: { data: any }) {
-    const price = data?.priceValue
-        ? `${data.priceValue}${data.priceCurrency ? ` ${data.priceCurrency}` : ''}`
-        : null;
+    const price = pickDisplayCost(data);
     return (
         <>
             <View style={styles.row}>
@@ -276,20 +351,16 @@ function ChecklistItemCard({ data }: { data: any }) {
 }
 
 function ExtraSpendingCard({ data }: { data: any }) {
-    const cost = data?.cost;
-    const amount = parseFloat(String(data?.value ?? cost?.amount ?? '0')) || 0;
-    const currency = data?.currency || cost?.currency || 'AUD';
-    const informed = !!cost && cost?.disclosureType !== 'not_informed' && amount > 0;
+    // Unifica via pickDisplayCost — aceita cost.value/cost.amount/value+currency.
+    const display = pickDisplayCost(data);
     return (
         <>
             <Text style={styles.title}>{data?.title || 'Gasto extra'}</Text>
             {data?.description ? (
                 <Text style={styles.desc}>{String(data.description)}</Text>
             ) : null}
-            {informed ? (
-                <Text style={styles.spendingValue}>
-                    {amount.toFixed(2)} {currency}
-                </Text>
+            {display ? (
+                <Text style={styles.spendingValue}>{display}</Text>
             ) : null}
         </>
     );

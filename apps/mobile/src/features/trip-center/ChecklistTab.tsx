@@ -1,19 +1,12 @@
 /**
- * ChecklistTab — duas listas dentro da Central da Viagem:
- *   1. "Do roteiro" — itens definidos pelo criador (read-only no banco).
- *      O viajante pode marcar/desmarcar, e o progresso é guardado
- *      LOCALMENTE em AsyncStorage (chave por itinerário). Não bate
- *      no backend, porque mutar o checklist do criador afetaria outras
- *      compras desse mesmo roteiro.
- *   2. "Meu checklist" — itens criados pelo próprio viajante, full
- *      CRUD via API (otimista com rollback). Inclui um botão "Adicionar"
- *      no rodapé do grupo.
+ * ChecklistTab separa itens originais e pessoais. Itens do criador só
+ * podem ser marcados; itens do viajante têm CRUD completo.
  *
- * Padrão de UX usado em todas as ações:
- *   haptics.light() → atualização otimista → API → success/rollback.
+ * Padrão de UX usado em TODAS as ações:
+ *   haptics.light() → otimista → API → sucesso/rollback + notify.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     View,
     Text,
@@ -22,7 +15,6 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
@@ -52,17 +44,86 @@ export interface ChecklistTabProps {
     items: TravelerChecklistItem[];
     onItemsChange: (next: TravelerChecklistItem[]) => void;
     canEdit: boolean;
+    creatorProgress?: Record<string, boolean>;
+    onUpdateCreatorProgress?: (next: Record<string, boolean>) => Promise<void>;
 }
 
-interface DraftEditTarget {
+/**
+ * Alvo de edição abstrato. Origem decide como persistir:
+ *   - traveler → updateChecklistItem API
+ *   - creator  → onUpdateCreatorOverrides com edits[key]
+ */
+type EditTarget = { origin: 'traveler'; ref: TravelerChecklistItem };
+
+/**
+ * Item visualizado na lista unificada. Carrega origem internamente para
+ * decidir o caminho de persistência das ações.
+ */
+interface UnifiedItem {
+    /** Composite id estável usado como key React. */
     id: string;
-    category: string;
+    origin: 'creator' | 'traveler';
+    /** Para creator: chave estável pra usar em overrides ("id:..."/"idx:..."). */
+    creatorKey?: string;
+    /** Para traveler: referência ao TravelerChecklistItem original. */
+    travelerRef?: TravelerChecklistItem;
     item: string;
+    category: string;
+    completed: boolean;
+    /** Sinaliza visualmente que o item creator foi editado. */
+    edited?: boolean;
 }
 
 function normalizeCreatorText(it: CreatorChecklistItem): string {
     if (typeof it === 'string') return it;
     return (it.text || it.item || '').toString();
+}
+
+function normalizeCreatorCategory(it: CreatorChecklistItem): string {
+    if (typeof it === 'string') return '';
+    return (it.category || '').toString().trim();
+}
+
+/**
+ * Mapeia categorias (DB pt-BR ou legado en) para rótulos visíveis ao
+ * usuário, com fallback "Geral" para itens sem categoria.
+ *
+ * Critério: aceita ambos os formatos para não quebrar roteiros antigos
+ * cujos checklists ainda venham só como string[] (sem categoria) ou que
+ * usem as chaves em inglês do mock antigo.
+ */
+function formatCategoryLabel(rawCategory: string): string {
+    const cat = (rawCategory || '').toString().trim().toLowerCase();
+    if (!cat) return 'Geral';
+    const map: Record<string, string> = {
+        // pt-BR (formato canônico do banco)
+        documentos: 'Documentos',
+        mala: 'Mala',
+        'pre-viagem': 'Pré-viagem',
+        'pré-viagem': 'Pré-viagem',
+        saúde: 'Saúde',
+        saude: 'Saúde',
+        transporte: 'Transporte',
+        hospedagem: 'Hospedagem',
+        finanças: 'Finanças',
+        financas: 'Finanças',
+        dinheiro: 'Dinheiro',
+        segurança: 'Segurança',
+        seguranca: 'Segurança',
+        'apps úteis': 'Apps Úteis',
+        'apps uteis': 'Apps Úteis',
+        personalizado: 'Personalizado',
+        custom: 'Personalizado',
+        outros: 'Outros',
+        // legado en (mock antigo)
+        documents: 'Documentos',
+        packing: 'Mala',
+        'pre-trip': 'Pré-viagem',
+        general: 'Geral',
+    };
+    if (map[cat]) return map[cat];
+    // Sem mapeamento — capitaliza primeira letra como fallback elegante.
+    return cat.charAt(0).toUpperCase() + cat.slice(1);
 }
 
 function tmpId(): string {
@@ -76,41 +137,18 @@ export default function ChecklistTab({
     items,
     onItemsChange,
     canEdit,
+    creatorProgress = {},
+    onUpdateCreatorProgress,
 }: ChecklistTabProps) {
-    const [creatorProgress, setCreatorProgress] = useState<Record<string, boolean>>({});
-    const [hydratedProgress, setHydratedProgress] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
-    const [editing, setEditing] = useState<DraftEditTarget | null>(null);
+    const [editing, setEditing] = useState<EditTarget | null>(null);
     const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+    // Modo edição único — read-only por padrão, ações discretas só
+    // aparecem quando o usuário toca em "Editar". Mesmo padrão das Dicas.
+    const [editMode, setEditMode] = useState(false);
 
-    const storageKey = `@vamo_creator_checklist_progress:${itineraryId}`;
-
-    // Hidrata o progresso local do checklist do roteiro.
-    useEffect(() => {
-        let active = true;
-        (async () => {
-            try {
-                const raw = await AsyncStorage.getItem(storageKey);
-                if (active && raw) {
-                    setCreatorProgress(JSON.parse(raw));
-                }
-            } catch {
-                /* ignore — fresh state é OK */
-            } finally {
-                if (active) setHydratedProgress(true);
-            }
-        })();
-        return () => { active = false; };
-    }, [storageKey]);
-
-    const persistCreatorProgress = async (next: Record<string, boolean>) => {
-        try {
-            await AsyncStorage.setItem(storageKey, JSON.stringify(next));
-        } catch {
-            /* best-effort */
-        }
-    };
-
+    // Normaliza creator items uma vez. Aceita string pura (legado) ou
+    // objeto com { id, category, item/text }.
     const creatorRows = useMemo(() => {
         return creatorChecklist
             .map((raw, idx) => {
@@ -120,32 +158,58 @@ export default function ChecklistTab({
                     typeof raw === 'object' && raw?.id
                         ? `id:${raw.id}`
                         : `idx:${idx}`;
-                return { key, text };
+                const category = normalizeCreatorCategory(raw);
+                return { key, text, category };
             })
-            .filter(Boolean) as Array<{ key: string; text: string }>;
+            .filter(Boolean) as Array<{ key: string; text: string; category: string }>;
     }, [creatorChecklist]);
 
-    const grouped = useMemo(() => {
-        const map = new Map<string, TravelerChecklistItem[]>();
-        for (const it of items) {
-            const list = map.get(it.category) ?? [];
-            list.push(it);
-            map.set(it.category, list);
+    /** Lista de apresentação; a origem controla as ações permitidas. */
+    const unified = useMemo<UnifiedItem[]>(() => {
+        const out: UnifiedItem[] = [];
+
+        for (const row of creatorRows) {
+            out.push({
+                id: `creator:${row.key}`,
+                origin: 'creator',
+                creatorKey: row.key,
+                item: row.text,
+                category: row.category,
+                completed: !!creatorProgress[row.key],
+            });
         }
-        // Ordena por categoria alfabética só para estabilidade visual.
-        return [...map.entries()].sort(([a], [b]) => a.localeCompare(b, 'pt-BR'));
-    }, [items]);
 
-    // ── Ações no checklist do roteiro (local apenas) ──
-    const toggleCreator = (key: string) => {
-        if (!canEdit) return;
-        haptics.light();
-        const next = { ...creatorProgress, [key]: !creatorProgress[key] };
-        setCreatorProgress(next);
-        void persistCreatorProgress(next);
-    };
+        for (const it of items) {
+            out.push({
+                id: `traveler:${it.id}`,
+                origin: 'traveler',
+                travelerRef: it,
+                item: it.item,
+                category: it.category,
+                completed: it.completed,
+            });
+        }
 
-    // ── Ações no "Meu checklist" (API + otimista) ──
+        return out;
+    }, [creatorRows, items, creatorProgress]);
+
+    /**
+     * Lista unificada agrupada por categoria. "Geral" no fim, demais
+     * ordenadas alfabeticamente em pt-BR. Vazias somem.
+     */
+    const grouped = useMemo<Array<[string, UnifiedItem[]]>>(() => {
+        const map = new Map<string, UnifiedItem[]>();
+        for (const u of unified) {
+            const label = `${u.origin}|${formatCategoryLabel(u.category)}`;
+            const list = map.get(label) ?? [];
+            list.push(u);
+            map.set(label, list);
+        }
+        return [...map.entries()].sort(([a], [b]) => {
+            return a.localeCompare(b, 'pt-BR');
+        });
+    }, [unified]);
+
     const markPending = (id: string, on: boolean) => {
         setPendingIds(prev => {
             const next = new Set(prev);
@@ -154,55 +218,77 @@ export default function ChecklistTab({
         });
     };
 
-    const toggleTraveler = async (it: TravelerChecklistItem) => {
-        if (!canEdit || !token) return;
-        haptics.light();
-        const prev = items;
-        const next = items.map(x => x.id === it.id ? { ...x, completed: !x.completed } : x);
-        onItemsChange(next);
-        markPending(it.id, true);
-        try {
-            const saved = await updateChecklistItem(itineraryId, it.id, { completed: !it.completed }, token);
-            onItemsChange(next.map(x => x.id === it.id ? saved : x));
-            haptics.success();
-        } catch (e: any) {
-            onItemsChange(prev);
-            haptics.error();
-            notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.' });
-        } finally {
-            markPending(it.id, false);
-        }
-    };
-
-    const handleAdd = async (payload: { category: string; item: string }) => {
-        if (!token) throw new Error('Sessão expirada.');
-        if (editing) {
-            // Edição
-            const target = editing;
-            const prev = items;
-            const next = items.map(x =>
-                x.id === target.id ? { ...x, category: payload.category, item: payload.item } : x,
-            );
-            onItemsChange(next);
+    // ─── Toggle (marcar/desmarcar) — roteia pela origem ───
+    const handleToggle = async (u: UnifiedItem) => {
+        if (!canEdit) return;
+        if (u.origin === 'creator' && u.creatorKey) {
+            haptics.light();
+            const next = { ...creatorProgress, [u.creatorKey]: !creatorProgress[u.creatorKey] };
             try {
-                const saved = await updateChecklistItem(itineraryId, target.id, payload, token);
-                onItemsChange(next.map(x => x.id === target.id ? saved : x));
+                await onUpdateCreatorProgress?.(next);
                 haptics.success();
-                setEditing(null);
+            } catch {
+                haptics.error();
+            }
+            return;
+        }
+        if (u.origin === 'traveler' && u.travelerRef && token) {
+            const it = u.travelerRef;
+            haptics.light();
+            const prev = items;
+            const next = items.map(x => x.id === it.id ? { ...x, completed: !x.completed } : x);
+            onItemsChange(next);
+            markPending(it.id, true);
+            try {
+                const saved = await updateChecklistItem(itineraryId, it.id, { completed: !it.completed }, token);
+                onItemsChange(next.map(x => x.id === it.id ? saved : x));
+                haptics.success();
             } catch (e: any) {
                 onItemsChange(prev);
                 haptics.error();
                 notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.' });
-                throw e;
+            } finally {
+                markPending(it.id, false);
+            }
+        }
+    };
+
+    // ─── Add / Edit (modal compartilhado) ───
+    const handleAdd = async (payload: { category: string; item: string }) => {
+        if (editing) {
+            // Editando: rota depende da origem do alvo.
+            const target = editing;
+            if (target.origin === 'traveler' && token) {
+                const ref = target.ref;
+                const prev = items;
+                const next = items.map(x =>
+                    x.id === ref.id ? { ...x, category: payload.category, item: payload.item } : x,
+                );
+                onItemsChange(next);
+                try {
+                    const saved = await updateChecklistItem(itineraryId, ref.id, payload, token);
+                    onItemsChange(next.map(x => x.id === ref.id ? saved : x));
+                    haptics.success();
+                    setEditing(null);
+                } catch (e: any) {
+                    onItemsChange(prev);
+                    haptics.error();
+                    notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.' });
+                    throw e;
+                }
+                return;
             }
             return;
         }
-        // Criação
+
+        // Criação — sempre adiciona como traveler item via API.
+        if (!token) throw new Error('Sessão expirada.');
         const tmp: TravelerChecklistItem = {
             id: tmpId(),
             travelerId: '',
             itineraryId,
             purchaseId: null,
+            saleId: null,
             category: payload.category,
             item: payload.item,
             completed: false,
@@ -224,37 +310,45 @@ export default function ChecklistTab({
         }
     };
 
-    const handleEdit = (it: TravelerChecklistItem) => {
+    const handleEdit = (u: UnifiedItem) => {
         if (!canEdit) return;
-        setEditing({ id: it.id, category: it.category, item: it.item });
-        setModalVisible(true);
+        if (u.origin === 'traveler' && u.travelerRef) {
+            setEditing({ origin: 'traveler', ref: u.travelerRef });
+            setModalVisible(true);
+            return;
+        }
     };
 
-    const handleDelete = async (it: TravelerChecklistItem) => {
-        if (!canEdit || !token) return;
+    // ─── Delete — creator vira hidden override; traveler vira DELETE API ───
+    const handleDelete = async (u: UnifiedItem) => {
+        if (!canEdit) return;
+        if (u.origin !== 'traveler') return;
         const ok = await confirm({
-            title: 'Remover item?',
-            message: `"${it.item}" será removido do seu checklist.`,
-            confirmText: 'Remover',
+            title: 'Excluir item?',
+            message: 'Este item será removido do seu checklist pessoal da viagem.',
+            confirmText: 'Excluir',
             destructive: true,
         });
         if (!ok) return;
 
-        haptics.light();
-        const prev = items;
-        const idx = items.findIndex(x => x.id === it.id);
-        const next = items.filter(x => x.id !== it.id);
-        onItemsChange(next);
-        try {
-            await deleteChecklistItem(itineraryId, it.id, token);
-            haptics.success();
-        } catch (e: any) {
-            // Re-insere na posição original.
-            const restored = [...next];
-            restored.splice(Math.max(0, idx), 0, it);
-            onItemsChange(restored.length === next.length ? prev : restored);
-            haptics.error();
-            notify({ title: 'Não foi possível remover', message: e?.message || 'Tente novamente.' });
+        if (u.origin === 'traveler' && u.travelerRef && token) {
+            const it = u.travelerRef;
+            haptics.light();
+            const prev = items;
+            const idx = items.findIndex(x => x.id === it.id);
+            const next = items.filter(x => x.id !== it.id);
+            onItemsChange(next);
+            try {
+                await deleteChecklistItem(itineraryId, it.id, token);
+                haptics.success();
+            } catch (e: any) {
+                // Re-insere na posição original.
+                const restored = [...next];
+                restored.splice(Math.max(0, idx), 0, it);
+                onItemsChange(restored.length === next.length ? prev : restored);
+                haptics.error();
+                notify({ title: 'Não foi possível remover', message: e?.message || 'Tente novamente.' });
+            }
         }
     };
 
@@ -264,116 +358,138 @@ export default function ChecklistTab({
         setModalVisible(true);
     };
 
+    /** Initial values pro modal de add/edit. */
+    const editingInitial = editing
+        ? { category: editing.ref.category, item: editing.ref.item }
+        : null;
+
+    const hasAnyItem = unified.length > 0;
     return (
         <View>
-            {/* Do roteiro */}
-            {creatorRows.length > 0 && (
-                <View style={styles.group}>
-                    <Text style={styles.groupTitle}>Do roteiro</Text>
-                    <Text style={styles.groupHint}>
-                        Sugestões do(a) roteirista. Marque o que já está pronto.
-                    </Text>
-                    {!hydratedProgress ? (
-                        <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 10 }} />
-                    ) : (
-                        creatorRows.map(row => {
-                            const checked = !!creatorProgress[row.key];
-                            return (
-                                <TouchableOpacity
-                                    key={row.key}
-                                    style={styles.row}
-                                    onPress={() => toggleCreator(row.key)}
-                                    activeOpacity={0.7}
-                                    disabled={!canEdit}
-                                >
-                                    <View style={[styles.check, checked && styles.checkActive]}>
-                                        {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
-                                    </View>
-                                    <Text
-                                        style={[styles.rowText, checked && styles.rowTextChecked]}
-                                        numberOfLines={3}
-                                    >
-                                        {row.text}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })
-                    )}
-                </View>
-            )}
-
-            {/* Meu checklist */}
             <View style={styles.group}>
                 <View style={styles.groupHeaderRow}>
-                    <Text style={styles.groupTitle}>Meu checklist</Text>
-                    {canEdit && (
-                        <TouchableOpacity onPress={openAdd} style={styles.addBtn} activeOpacity={0.85}>
-                            <Ionicons name="add" size={16} color="#fff" />
-                            <Text style={styles.addBtnLabel}>Adicionar</Text>
-                        </TouchableOpacity>
-                    )}
+                    <Text style={styles.groupTitle}>Checklist da viagem</Text>
+                    <View style={styles.groupHeaderActions}>
+                        {canEdit && items.length > 0 ? (
+                            <TouchableOpacity
+                                style={[styles.editToggleBtn, editMode && styles.editToggleBtnActive]}
+                                onPress={() => {
+                                    haptics.selection();
+                                    setEditMode(prev => !prev);
+                                }}
+                                activeOpacity={0.85}
+                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                accessibilityLabel={editMode ? 'Concluir edição' : 'Editar itens'}
+                            >
+                                <Ionicons
+                                    name={editMode ? 'checkmark' : 'pencil'}
+                                    size={12}
+                                    color={editMode ? '#fff' : theme.colors.primary}
+                                />
+                                <Text
+                                    style={[
+                                        styles.editToggleLabel,
+                                        editMode && styles.editToggleLabelActive,
+                                    ]}
+                                >
+                                    {editMode ? 'Concluir' : 'Editar'}
+                                </Text>
+                            </TouchableOpacity>
+                        ) : null}
+                        {canEdit && (
+                            <TouchableOpacity onPress={openAdd} style={styles.addBtn} activeOpacity={0.85}>
+                                <Ionicons name="add" size={16} color="#fff" />
+                                <Text style={styles.addBtnLabel}>Adicionar</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
+                {editMode && hasAnyItem ? (
+                    <Text style={styles.editModeHint}>
+                        Toque no lápis para editar, na lixeira para remover.
+                    </Text>
+                ) : null}
 
-                {items.length === 0 ? (
+                {!hasAnyItem ? (
                     <EmptyState
                         icon="checkbox-outline"
-                        title="Comece sua lista pessoal"
+                        title="Comece seu checklist"
                         text="Anote o que importa pra você nesta viagem — documentos, mala, pequenas tarefas."
                         ctaLabel={canEdit ? 'Adicionar primeiro item' : undefined}
                         onCta={canEdit ? openAdd : undefined}
                         disabled={!canEdit}
                     />
                 ) : (
-                    grouped.map(([cat, list]) => (
+                    grouped.map(([cat, list]) => {
+                        const [origin, categoryLabel] = cat.split('|');
+                        return (
                         <View key={cat} style={styles.subgroup}>
-                            <Text style={styles.subgroupLabel}>{cat}</Text>
-                            {list.map(it => {
-                                const pending = pendingIds.has(it.id);
+                            <Text style={styles.subgroupLabel}>
+                                {origin === 'creator' ? 'DO ROTEIRO' : 'MEU CHECKLIST'} · {categoryLabel}
+                            </Text>
+                            {list.map(u => {
+                                // Pending só faz sentido pra traveler item.
+                                const pending = u.origin === 'traveler' && !!u.travelerRef
+                                    ? pendingIds.has(u.travelerRef.id)
+                                    : false;
+                                // ESTRUTURA ACHATADA OBRIGATÓRIA — TouchableOpacity
+                                // aninhado quebrava o tap da lixeira no Expo Web.
+                                // Toggle é UM sub-TouchableOpacity; ações são
+                                // SIBLINGS, não filhos.
                                 return (
-                                    <TouchableOpacity
-                                        key={it.id}
-                                        style={styles.row}
-                                        onPress={() => toggleTraveler(it)}
-                                        onLongPress={() => handleEdit(it)}
-                                        activeOpacity={0.7}
-                                        disabled={!canEdit}
-                                    >
-                                        <View style={[styles.check, it.completed && styles.checkActive]}>
-                                            {it.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
-                                        </View>
-                                        <Text
-                                            style={[styles.rowText, it.completed && styles.rowTextChecked]}
-                                            numberOfLines={3}
+                                    <View key={u.id} style={styles.row}>
+                                        <TouchableOpacity
+                                            style={styles.toggleArea}
+                                            onPress={() => { void handleToggle(u); }}
+                                            onLongPress={u.origin === 'traveler' ? () => handleEdit(u) : undefined}
+                                            activeOpacity={0.7}
+                                            disabled={!canEdit}
+                                            accessibilityLabel={
+                                                u.completed
+                                                    ? `Desmarcar ${u.item}`
+                                                    : `Marcar ${u.item}`
+                                            }
                                         >
-                                            {it.item}
-                                        </Text>
-                                        {canEdit && (
+                                            <View style={[styles.check, u.completed && styles.checkActive]}>
+                                                {u.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                            </View>
+                                            <Text
+                                                style={[styles.rowText, u.completed && styles.rowTextChecked]}
+                                                numberOfLines={3}
+                                            >
+                                                {u.item}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        {canEdit && pending && (
                                             <View style={styles.rowActions}>
-                                                {pending ? (
-                                                    <ActivityIndicator size="small" color={theme.colors.primary} />
-                                                ) : (
-                                                    <>
-                                                        <TouchableOpacity
-                                                            onPress={() => handleEdit(it)}
-                                                            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                                                        >
-                                                            <Ionicons name="pencil" size={16} color={theme.colors.text.tertiary} />
-                                                        </TouchableOpacity>
-                                                        <TouchableOpacity
-                                                            onPress={() => handleDelete(it)}
-                                                            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                                                        >
-                                                            <Ionicons name="trash-outline" size={16} color={theme.colors.text.tertiary} />
-                                                        </TouchableOpacity>
-                                                    </>
-                                                )}
+                                                <ActivityIndicator size="small" color={theme.colors.primary} />
                                             </View>
                                         )}
-                                    </TouchableOpacity>
+                                        {canEdit && u.origin === 'traveler' && !pending && editMode && (
+                                            <View style={styles.rowActions}>
+                                                <TouchableOpacity
+                                                    onPress={() => handleEdit(u)}
+                                                    hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                                                    style={styles.actionBtn}
+                                                    accessibilityLabel="Editar item"
+                                                >
+                                                    <Ionicons name="pencil" size={16} color={theme.colors.primary} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    onPress={() => { void handleDelete(u); }}
+                                                    hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                                                    style={[styles.actionBtn, styles.actionBtnDanger]}
+                                                    accessibilityLabel="Excluir item"
+                                                >
+                                                    <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                    </View>
                                 );
                             })}
                         </View>
-                    ))
+                    )})
                 )}
             </View>
 
@@ -381,7 +497,7 @@ export default function ChecklistTab({
                 visible={modalVisible}
                 onClose={() => { setModalVisible(false); setEditing(null); }}
                 onSave={handleAdd}
-                initial={editing ? { category: editing.category, item: editing.item } : null}
+                initial={editingInitial}
             />
         </View>
     );
@@ -421,6 +537,42 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#fff',
     },
+    groupHeaderActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    editToggleBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '38',
+        backgroundColor: theme.colors.primary + '10',
+    },
+    editToggleBtnActive: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    editToggleLabel: {
+        fontSize: 11.5,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
+    editToggleLabelActive: {
+        color: '#fff',
+    },
+    editModeHint: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginTop: 4,
+        marginBottom: 4,
+        marginLeft: 2,
+        fontStyle: 'italic',
+    },
     subgroup: {
         marginTop: 10,
     },
@@ -435,13 +587,25 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        paddingVertical: 10,
+        gap: 8,
+        paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 14,
         backgroundColor: theme.colors.surfaceLight,
         marginBottom: 6,
         minHeight: 44,
+    },
+    // Área tocável que dispara toggleTraveler (marcar/desmarcar). Fica
+    // dentro do row mas é SIBLING dos botões de ação — assim o tap nas
+    // ações não dispara o toggle. `flex: 1` ocupa o espaço sobrando após
+    // os botões de ação.
+    toggleArea: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 6,
+        minHeight: 32,
     },
     check: {
         width: 22,
@@ -469,7 +633,18 @@ const styles = StyleSheet.create({
     },
     rowActions: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 8,
         alignItems: 'center',
+    },
+    actionBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.glass.primary,
+    },
+    actionBtnDanger: {
+        backgroundColor: theme.colors.error + '14',
     },
 });

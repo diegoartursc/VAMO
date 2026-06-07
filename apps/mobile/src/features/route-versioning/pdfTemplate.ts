@@ -42,6 +42,8 @@ export interface PdfBuildOpts {
     /** Data/hora de geração em ISO; vem do caller para evitar drift de
      * timezone entre runs. Default: now no momento da chamada. */
     generatedAtISO?: string;
+    travelerChecklist?: Array<{ item: string; category?: string; completed?: boolean }>;
+    travelerFiles?: Array<{ title: string; category?: string; note?: string | null; originalFileName?: string | null }>;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -423,6 +425,28 @@ function renderChecklistSection(itinerary: any, merged: MergedItinerary | null |
     return sectionWrapper('Checklist', body);
 }
 
+function renderTravelerChecklist(items: PdfBuildOpts['travelerChecklist'], variant: PdfVariant): string {
+    if (variant !== 'personalized' || !items?.length) return '';
+    const body = `<ul class="checklist">${items.map(item => `
+        <li class="checklist-item">
+            ${item.completed ? '✓' : '○'} ${escapeHtml(item.item)}
+            ${item.category ? `<span class="field-label"> · ${escapeHtml(item.category)}</span>` : ''}
+        </li>`).join('')}</ul>`;
+    return sectionWrapper('Meu checklist', body);
+}
+
+function renderTravelerFiles(items: PdfBuildOpts['travelerFiles'], variant: PdfVariant): string {
+    if (variant !== 'personalized' || !items?.length) return '';
+    const body = items.map(file => `
+        <div class="card">
+            <div class="card-header"><h3>${escapeHtml(file.title)}</h3></div>
+            ${renderField('Categoria', file.category)}
+            ${renderField('Arquivo', file.originalFileName)}
+            ${renderParagraph(file.note)}
+        </div>`).join('');
+    return sectionWrapper('Arquivos da viagem', body);
+}
+
 function renderExtraSpendingSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
     if (ctx.variant === 'personalized') {
         const items = merged?.extraSpendingItems ?? [];
@@ -706,6 +730,8 @@ export function buildPdfHtml(opts: PdfBuildOpts): string {
         renderRestaurantsSection(itinerary, merged, ctx),
         renderTipsSection(itinerary, merged, ctx),
         renderChecklistSection(itinerary, merged, ctx),
+        renderTravelerChecklist(opts.travelerChecklist, variant),
+        renderTravelerFiles(opts.travelerFiles, variant),
         renderExtraSpendingSection(itinerary, merged, ctx),
     ].filter(Boolean).join('');
 

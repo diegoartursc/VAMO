@@ -59,6 +59,23 @@ export interface MergedItem {
  * Dia mesclado — atividades já passaram pelo merge com edições e
  * ocultações, e adições do viajante para aquele `dayNumber` foram
  * concatenadas.
+ *
+ * `source` indica de onde o cabeçalho do dia veio:
+ *   - 'original' — dia presente no snapshot, sem edições no overlay
+ *   - 'edited'   — dia presente no snapshot com `editedOriginalItems['day:N']`
+ *   - 'added'    — dia criado pelo viajante (não existe no snapshot)
+ *
+ * `originalId` aparece quando o dia tem raiz no snapshot (mesmo se editado).
+ * `addedId`    aparece quando o dia foi criado pelo viajante.
+ *
+ * `position` é a posição visual 1-based após aplicar `dayOrder`. Use
+ * SEMPRE `position` no badge "Dia N" da UI — `dayNumber` é a identidade
+ * interna do dia (preservada para edições e referências de atividades).
+ *
+ * `key` é a chave estável usada por `dayOrder` na customização. Formato:
+ *   - `"day:<dayNumber>"` para dias do snapshot original
+ *   - `"added:<addedId>"` para dias criados pelo viajante
+ * Útil pra UI mandar movimentos sem ter que reconstruir a key.
  */
 export interface MergedDay {
     dayNumber: number;
@@ -66,6 +83,22 @@ export interface MergedDay {
     summary?: string;
     description?: string;
     activities: MergedItem[];
+    source: ItemSource;
+    originalId?: string;
+    addedId?: string;
+    position: number;
+    key: string;
+}
+
+/**
+ * Chave estável de um dia para uso em `dayOrder`. Originais: `"day:N"`
+ * (idêntico ao `originalId`). Adicionados: `"added:<addedId>"`. Existe
+ * como função para uso compartilhado entre mergeEngine e RouteVersioning.
+ */
+export function dayKeyOf(day: { originalId?: string; addedId?: string; dayNumber?: number }): string {
+    if (day.originalId) return day.originalId;
+    if (day.addedId) return `added:${day.addedId}`;
+    return `day:${day.dayNumber ?? 0}`;
 }
 
 /**
@@ -103,6 +136,14 @@ function isPlainObject(value: unknown): value is Record<string, any> {
  * Para `dayActivity`, recebe `dayNumber` (a chave inclui o dia para
  * evitar colisão entre dias). Para singletons de voo, retorna a chave
  * literal `flightOutbound:0` / `flightReturn:0`.
+ *
+ * Para `day` (o dia inteiro), retorna `day:${dayNumber}` — prefixado
+ * deliberadamente para NÃO colidir com `dayActivity` (que usa o shape
+ * `<n>:<idx>`). Exemplo:
+ *   - `originalIdOf('day', _, _, 7)`         → `'day:7'`
+ *   - `originalIdOf('dayActivity', _, 0, 7)` → `'7:0'`
+ * Esses dois nunca casam, então `hiddenOriginalIds` pode conter ambos
+ * sem ambiguidade.
  */
 export function originalIdOf(
     kind: ItemKind,
@@ -110,6 +151,14 @@ export function originalIdOf(
     idx: number,
     dayNumber?: number,
 ): string {
+    if (kind === 'day') {
+        // Para um dia, idx é ignorado — a chave é puramente dayNumber.
+        // Aceita tanto o dayNumber passado quanto `item.dayNumber` direto.
+        const n = typeof dayNumber === 'number'
+            ? dayNumber
+            : (item && typeof item.dayNumber === 'number' ? item.dayNumber : 0);
+        return `day:${n}`;
+    }
     if (kind === 'dayActivity') {
         const day = typeof dayNumber === 'number' ? dayNumber : 0;
         return `${day}:${idx}`;
@@ -162,6 +211,11 @@ function normalizeAddedItems(raw: unknown): AddedItemsMap {
             }
             if (kind === 'dayActivity') {
                 (grouped.dayActivities ||= []).push(item);
+                continue;
+            }
+            if (kind === 'day') {
+                // 'day' usa bucket plural `days` (paralelo a `dayActivities`).
+                (grouped.days ||= []).push(item);
                 continue;
             }
             const bucket = (grouped[kind] ||= []) as AddedItem[];
@@ -344,14 +398,28 @@ export function mergeItineraryWithCustomization(
         edited, hiddenSet, added.flightReturn,
     );
 
-    // Dias: cada activity recebe originalId `<dayNumber>:<idx>` e
-    // pode receber patch/hide. Depois, adições do viajante com
-    // `dayNumber === day.dayNumber` entram no final.
+    // ─── Dias ──────────────────────────────────────────────────────
+    //
+    // Cada dia tem 4 facetas independentes no overlay:
+    //   1. `hiddenOriginalIds.includes('day:N')`        → dia some da Minha
+    //      Versão (vai pro bucket `hidden`); todas as suas atividades também
+    //      somem por consequência.
+    //   2. `editedOriginalItems['day:N']`               → patch sobre
+    //      title/summary/description do dia.
+    //   3. `editedOriginalItems['<N>:<idx>']` + ativ. → patch sobre cada
+    //      atividade individual (lógica antiga, intacta).
+    //   4. `addedItems.days`                            → dias novos criados
+    //      pelo viajante (não existiam no snapshot).
+    //
+    // Atividades de dias adicionados vivem em `addedItems.dayActivities` com
+    // `dayNumber` igual ao do dia novo — mesma estrutura usada pra adições
+    // em dias originais.
     const addedDayActivities = safeArray<AddedItem>(added.dayActivities);
-    const days: MergedDay[] = safeArray<any>(base?.days).map((d: any) => {
-        const dayNumber = typeof d?.dayNumber === 'number' ? d.dayNumber : 0;
-        const activities: MergedItem[] = [];
-        safeArray<any>(d?.activities).forEach((a: any, idx: number) => {
+    const addedDays = safeArray<AddedItem>(added.days);
+
+    function buildDayActivities(dayNumber: number, snapshotActivities: any[]): MergedItem[] {
+        const acts: MergedItem[] = [];
+        snapshotActivities.forEach((a: any, idx: number) => {
             const originalId = originalIdOf('dayActivity', a, idx, dayNumber);
             if (hiddenSet.has(originalId)) {
                 hidden.push({ kind: 'dayActivity', source: 'original', originalId, data: a });
@@ -360,7 +428,7 @@ export function mergeItineraryWithCustomization(
             const patch = edited[originalId];
             const hasPatch = isPlainObject(patch) && Object.keys(patch).length > 0;
             const data = hasPatch ? applyPatch(a, patch) : a;
-            activities.push({
+            acts.push({
                 kind: 'dayActivity',
                 source: hasPatch ? 'edited' : 'original',
                 originalId,
@@ -369,7 +437,7 @@ export function mergeItineraryWithCustomization(
         });
         for (const a of addedDayActivities) {
             if (a?.dayNumber === dayNumber) {
-                activities.push({
+                acts.push({
                     kind: 'dayActivity',
                     source: 'added',
                     addedId: a.addedId,
@@ -377,14 +445,127 @@ export function mergeItineraryWithCustomization(
                 });
             }
         }
-        return {
-            dayNumber,
-            title: d?.title,
-            summary: d?.summary,
-            description: d?.description,
-            activities,
-        };
+        return acts;
+    }
+
+    // Acumulamos os dias parciais (sem `position`/`key`) — aplicamos a
+    // ordenação por dayOrder/dayNumber DEPOIS, e só aí computamos position.
+    type PartialMergedDay = Omit<MergedDay, 'position' | 'key'>;
+    const partialDays: PartialMergedDay[] = [];
+
+    // 1. Dias do snapshot (com eventual edição/ocultação).
+    safeArray<any>(base?.days).forEach((d: any) => {
+        const dayNumber = typeof d?.dayNumber === 'number' ? d.dayNumber : 0;
+        const originalId = originalIdOf('day', d, 0, dayNumber);
+
+        if (hiddenSet.has(originalId)) {
+            // Dia inteiro escondido — vai pro bucket `hidden` com os campos
+            // suficientes pra HiddenItemsSection mostrar "Dia N · título".
+            hidden.push({
+                kind: 'day',
+                source: 'original',
+                originalId,
+                data: {
+                    dayNumber,
+                    title: d?.title,
+                    summary: d?.summary,
+                    description: d?.description,
+                },
+            });
+            return;
+        }
+
+        const dayPatch = edited[originalId];
+        const hasDayPatch = isPlainObject(dayPatch) && Object.keys(dayPatch).length > 0;
+        const dayData = hasDayPatch
+            ? applyPatch({
+                dayNumber,
+                title: d?.title,
+                summary: d?.summary,
+                description: d?.description,
+            }, dayPatch)
+            : { dayNumber, title: d?.title, summary: d?.summary, description: d?.description };
+
+        partialDays.push({
+            dayNumber: typeof dayData?.dayNumber === 'number' ? dayData.dayNumber : dayNumber,
+            title: dayData?.title,
+            summary: dayData?.summary,
+            description: dayData?.description,
+            activities: buildDayActivities(dayNumber, safeArray<any>(d?.activities)),
+            source: hasDayPatch ? 'edited' : 'original',
+            originalId,
+        });
     });
+
+    // 2. Dias adicionados pelo viajante. Cada `AddedItem` carrega `data`
+    //    com `{ dayNumber, title?, summary?, description? }`. Atividades
+    //    desse dia novo vêm de `addedItems.dayActivities` com o mesmo
+    //    `dayNumber`.
+    for (const a of addedDays) {
+        if (!a || typeof a !== 'object') continue;
+        const data = isPlainObject(a.data) ? a.data : {};
+        const dayNumber = typeof data.dayNumber === 'number'
+            ? data.dayNumber
+            : (typeof a.dayNumber === 'number' ? a.dayNumber : 0);
+        partialDays.push({
+            dayNumber,
+            title: data.title,
+            summary: data.summary,
+            description: data.description,
+            // Para dias adicionados, `snapshotActivities` é vazio — só
+            // atividades adicionadas pelo viajante entram (via dayNumber).
+            activities: buildDayActivities(dayNumber, []),
+            source: 'added',
+            addedId: a.addedId,
+        });
+    }
+
+    // 3. Ordenação final.
+    //    a) Se `customization.addedItems.dayOrder` existir, usa essa ordem
+    //       e dias não listados caem no fim na ordem por dayNumber.
+    //    b) Senão, sort estável por dayNumber.
+    //
+    //    Depois da ordenação atribuímos `position` (1-based) — é o que a
+    //    UI mostra no badge "Dia N".
+    const dayOrder = Array.isArray(added.dayOrder)
+        ? (added.dayOrder as string[])
+        : null;
+
+    let orderedPartial: PartialMergedDay[];
+    if (dayOrder && dayOrder.length > 0) {
+        const byKey = new Map<string, PartialMergedDay>();
+        for (const d of partialDays) {
+            byKey.set(dayKeyOf(d), d);
+        }
+        const ordered: PartialMergedDay[] = [];
+        const used = new Set<string>();
+        // Primeiro: dias que aparecem em `dayOrder`, na sequência salva.
+        for (const key of dayOrder) {
+            const d = byKey.get(key);
+            if (d) {
+                ordered.push(d);
+                used.add(key);
+            }
+            // Chave desconhecida (dia ocultado / dia ainda no snapshot
+            // de uma personalização antiga): ignora silenciosamente.
+        }
+        // Depois: dias não cobertos por `dayOrder` (recém-criados ou novos
+        // do snapshot), ordenados por dayNumber para previsibilidade.
+        const remaining = partialDays
+            .filter(d => !used.has(dayKeyOf(d)))
+            .sort((a, b) => a.dayNumber - b.dayNumber);
+        ordered.push(...remaining);
+        orderedPartial = ordered;
+    } else {
+        orderedPartial = [...partialDays].sort((a, b) => a.dayNumber - b.dayNumber);
+    }
+
+    // 4. Materializa o array final atribuindo position 1-based e key.
+    const days: MergedDay[] = orderedPartial.map((d, idx) => ({
+        ...d,
+        position: idx + 1,
+        key: dayKeyOf(d),
+    }));
 
     return {
         base,

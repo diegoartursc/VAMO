@@ -18,7 +18,7 @@
  *  - DELETE /:itineraryId/customization        → apaga (idempotente)
  *  - GET    /:itineraryId/snapshot             → retorna o snapshot da venda;
  *                                                 reconstrói on-the-fly se ausente
- *  - POST   /:itineraryId/purchased-snapshot   → força rebuild + persistência
+ *  - POST   /:itineraryId/purchased-snapshot   → recupera snapshot apenas se ausente
  *
  * Segurança:
  *  - Todas exigem `travelerAuthMiddleware`.
@@ -181,8 +181,8 @@ router.get(
             const ownership = await assertOwnership(travelerId, itineraryId);
             if (!ownership) return sendOwnershipError(res);
 
-            const customization = await prisma.travelerItineraryCustomization.findUnique({
-                where: { travelerId_itineraryId: { travelerId, itineraryId } },
+            const customization = await prisma.travelerItineraryCustomization.findFirst({
+                where: { travelerId, itineraryId, saleId: ownership.saleId },
             });
 
             res.json({ customization });
@@ -212,8 +212,8 @@ router.put(
             }
 
             // Defense in depth: se já existe linha, confirma travelerId.
-            const existing = await prisma.travelerItineraryCustomization.findUnique({
-                where: { travelerId_itineraryId: { travelerId, itineraryId } },
+            const existing = await prisma.travelerItineraryCustomization.findFirst({
+                where: { travelerId, itineraryId, saleId: ownership.saleId },
                 select: { id: true, travelerId: true },
             });
             if (existing && existing.travelerId !== travelerId) {
@@ -222,10 +222,13 @@ router.put(
                 return;
             }
 
-            const customization = await prisma.travelerItineraryCustomization.upsert({
-                where: { travelerId_itineraryId: { travelerId, itineraryId } },
-                update: validated.data,
-                create: {
+            const customization = existing
+                ? await prisma.travelerItineraryCustomization.update({
+                    where: { id: existing.id },
+                    data: validated.data,
+                })
+                : await prisma.travelerItineraryCustomization.create({
+                    data: {
                     travelerId,
                     itineraryId,
                     saleId: ownership.saleId,
@@ -233,8 +236,8 @@ router.put(
                     addedItems: validated.data.addedItems ?? [],
                     hiddenOriginalIds: validated.data.hiddenOriginalIds ?? [],
                     editedOriginalItems: validated.data.editedOriginalItems ?? {},
-                },
-            });
+                    },
+                });
 
             res.json({ customization });
         } catch (error) {
@@ -260,7 +263,7 @@ router.delete(
             // viajante autenticado. `deleteMany` é idempotente — se não
             // existir, count = 0 e seguimos OK.
             await prisma.travelerItineraryCustomization.deleteMany({
-                where: { travelerId, itineraryId },
+                where: { travelerId, itineraryId, saleId: ownership.saleId },
             });
 
             res.json({ ok: true });
@@ -337,9 +340,8 @@ router.get(
 );
 
 // POST /api/route-customization/:itineraryId/purchased-snapshot
-// Força rebuild do snapshot a partir do estado atual do roteiro e
-// persiste. Útil para regenerar manualmente caso o snapshot esteja
-// ausente ou conhecido como obsoleto.
+// Compatibilidade com clientes antigos: nunca substitui um snapshot já
+// adquirido. Só recupera vendas legadas que ainda não tinham snapshot.
 router.post(
     '/:itineraryId/purchased-snapshot',
     travelerAuthMiddleware,
@@ -353,6 +355,20 @@ router.post(
                 select: { id: true, price: true, createdAt: true, purchaseData: true },
             });
             if (!sale) return sendOwnershipError(res);
+
+            const existing = getRouteSnapshot(sale.purchaseData);
+            if (existing) {
+                res.json({
+                    snapshot: {
+                        ...(existing as any),
+                        purchaseId: sale.id,
+                        purchasedAt: serializeDate(sale.createdAt),
+                        pricePaid: sale.price,
+                    },
+                    unchanged: true,
+                });
+                return;
+            }
 
             const rebuilt = await buildItinerarySnapshot(prisma, itineraryId, {
                 id: sale.id,
