@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import travelerAuthRoutes from './routes/traveler-auth';
 import itineraryRoutes from './routes/itineraries';
@@ -24,6 +25,15 @@ const PORT = process.env.PORT || 3333;
 // express-rate-limit leia o IP real via X-Forwarded-For sem disparar o
 // ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
 app.set('trust proxy', 1);
+
+// Security headers. A API serve JSON e imagens de /uploads consumidas por
+// outras origens (Expo web em :8081, site dashboard), então liberamos
+// Cross-Origin-Resource-Policy para não bloquear o carregamento dessas mídias.
+// Não há HTML/app servido por aqui, então a CSP padrão do helmet é mantida
+// sem risco para os clientes.
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 // Rate limiting
 // Em desenvolvimento (NODE_ENV !== 'production') o limite é generoso e
