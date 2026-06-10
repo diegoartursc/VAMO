@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,6 +6,7 @@ import { theme } from '../../../src/theme/theme';
 import { getCreatorById } from '../../../src/services/api';
 import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
 import { Icon } from '../../../src/components/common/Icons';
+import { ErrorState } from '../../../src/components/common/ErrorState';
 import { Alert } from 'react-native';
 import { shareService } from '../../../src/services/sharing';
 import { haptics } from '../../../src/services/haptics';
@@ -14,11 +15,32 @@ export default function CreatorDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const [creator, setCreator] = useState<any>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
 
-    useEffect(() => {
-        getCreatorById(id as string).then(setCreator).catch(console.error);
+    const loadCreator = useCallback(() => {
+        setLoadError(null);
+        getCreatorById(id as string)
+            .then((data) => {
+                if (data) setCreator(data);
+                else setLoadError('Criador não encontrado ou indisponível.');
+            })
+            .catch((err: unknown) => {
+                setLoadError(err instanceof Error
+                    ? err.message
+                    : 'Não foi possível carregar o perfil do criador.');
+            });
     }, [id]);
+
+    useEffect(() => { loadCreator(); }, [loadCreator]);
+
+    if (loadError) {
+        return (
+            <View style={styles.container}>
+                <ErrorState message={loadError} onRetry={loadCreator} />
+            </View>
+        );
+    }
 
     if (!creator) {
         return (

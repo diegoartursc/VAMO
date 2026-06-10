@@ -25,6 +25,7 @@ import {
     setSession as setStoredSession,
     removeSession as removeStoredSession,
 } from '../utils/secureSession';
+import { setOnUnauthorized } from '../services/api';
 
 // ─── Types ─────────────────────────────────────────────────────
 export interface AuthUser {
@@ -158,6 +159,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setAccessToken(null);
     }, []);
+
+    // ── 401 global (token expirado/inválido) ─────────────────
+    // O client de API (services/api.ts) dispara este callback APENAS quando
+    // uma requisição que ENVIOU Authorization recebeu 401 — sessão morta.
+    // Desloga para o app voltar a um estado consistente.
+    useEffect(() => {
+        setOnUnauthorized(() => {
+            console.warn('[auth] 401 em chamada autenticada — sessão expirada, deslogando');
+            logout().catch((err) => console.error('[auth] erro ao deslogar após 401:', err));
+        });
+        return () => setOnUnauthorized(null);
+    }, [logout]);
 
     return (
         <AuthContext.Provider value={{

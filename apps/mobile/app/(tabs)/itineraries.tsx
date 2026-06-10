@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { CreatorCard } from '../../src/components/creator/CreatorCard';
 import { getFeaturedCreators as apiFeaturedCreators } from '../../src/services/api';
+import { ErrorState } from '../../src/components/common/ErrorState';
 import { CREATOR_REPUTATION_LEVELS } from '../../src/gamification';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
 import { SearchModal } from '../../src/components/search/SearchModal';
@@ -110,6 +111,7 @@ export default function ItinerariesScreen() {
         setTravelIntent,
         loading,
         error,
+        reload,
     } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [featuredCreators, setFeaturedCreators] = useState<any[]>([]);
@@ -264,9 +266,12 @@ export default function ItinerariesScreen() {
                         </View>
                     ) : error ? (
                         <View style={styles.listState}>
-                            <Icon name="info" size={32} color={theme.colors.text.tertiary} />
-                            <Text style={styles.listStateTitle}>Não foi possível carregar os roteiros.</Text>
-                            <Text style={styles.listStateText}>{error}</Text>
+                            <ErrorState
+                                compact
+                                title="Não foi possível carregar os roteiros"
+                                message={error}
+                                onRetry={reload}
+                            />
                         </View>
                     ) : itinerariesToShow.length === 0 ? (
                         <View style={styles.listState}>

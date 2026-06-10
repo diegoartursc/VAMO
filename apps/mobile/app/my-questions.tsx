@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
+import { ErrorState } from '../src/components/common/ErrorState';
 import { useAuth } from '../src/contexts/AuthContext';
 import { getMyQuestions, type ItineraryQuestion } from '../src/services/api';
 
@@ -28,13 +29,23 @@ export default function MyQuestionsScreen() {
     const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
     const [questions, setQuestions] = useState<ItineraryQuestion[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         if (!accessToken) { setQuestions([]); setLoading(false); return; }
         setLoading(true);
-        const { questions } = await getMyQuestions(accessToken);
-        setQuestions(questions);
-        setLoading(false);
+        setLoadError(null);
+        try {
+            const { questions } = await getMyQuestions(accessToken);
+            setQuestions(questions);
+        } catch (err: unknown) {
+            setQuestions([]);
+            setLoadError(err instanceof Error
+                ? err.message
+                : 'Não foi possível carregar suas perguntas.');
+        } finally {
+            setLoading(false);
+        }
     }, [accessToken]);
 
     useEffect(() => {
@@ -75,7 +86,9 @@ export default function MyQuestionsScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            {questions.length === 0 ? (
+            {loadError ? (
+                <ErrorState message={loadError} onRetry={load} />
+            ) : questions.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.text.tertiary} />
                     <Text style={styles.emptyTitle}>Nenhuma pergunta ainda</Text>

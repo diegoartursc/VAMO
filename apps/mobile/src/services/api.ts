@@ -1,87 +1,551 @@
 /**
  * VAMO API Service — Gateway to backend database.
  * Sem fallbacks de mock: retorna apenas dados reais do backend.
+ *
+ * Contrato de erro:
+ *  - Falha de rede / timeout / 5xx → lança `ApiError` (mensagem PT-BR amigável).
+ *  - 404 em buscas por id (`getById`) → retorna `null` (não é erro de sistema).
+ *  - 401 em requisição QUE ENVIOU Authorization → dispara o callback registrado
+ *    via `setOnUnauthorized` (AuthContext usa para deslogar) e lança `ApiError`.
+ *  - Listagens NÃO engolem mais erros: backend fora do ar = erro visível na UI.
  */
+
+import type {
+    AttractionItem,
+    BreakdownItem,
+    Currency,
+    ExtraSpendingItem,
+    FlightInfo,
+    ItineraryStatus,
+    ModuleCostInfo,
+    ModuleSpending,
+    ProductType,
+    RestaurantItem,
+    SpendingEntry,
+} from '@vamo/shared';
 
 // Em celular físico, localhost não aponta para o seu computador.
 // Defina EXPO_PUBLIC_API_URL no arquivo .env do mobile com o IP da sua máquina.
 // Exemplo: EXPO_PUBLIC_API_URL=http://192.168.1.100:3333/api
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
-// ─── Helper ───
-async function fetchApi<T>(endpoint: string): Promise<T> {
-    const res = await fetch(`${API_BASE_URL}${endpoint}`);
-    if (!res.ok) throw new Error(`API Error: ${res.status} ${res.statusText}`);
-    return res.json();
+// ─── Erro de API ─────────────────────────────────────────────────
+const MSG_TIMEOUT = 'O servidor demorou demais para responder. Verifique sua conexão e tente novamente.';
+const MSG_NETWORK = 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.';
+const MSG_SERVER = 'Nosso servidor está com problemas no momento. Tente novamente em instantes.';
+const MSG_UNAUTHORIZED = 'Sua sessão expirou. Faça login novamente.';
+const MSG_FORBIDDEN = 'Você não tem permissão para acessar este conteúdo.';
+const MSG_NOT_FOUND = 'Conteúdo não encontrado.';
+const MSG_GENERIC = 'Algo deu errado. Tente novamente.';
+
+export class ApiError extends Error {
+    /** Status HTTP da resposta. `null` quando a requisição nem chegou ao servidor. */
+    readonly status: number | null;
+    /** Endpoint relativo (ex: `/itineraries`). */
+    readonly endpoint: string;
+    /** true quando foi falha de rede/timeout (sem resposta HTTP). */
+    readonly isNetworkError: boolean;
+
+    constructor(
+        message: string,
+        opts: { endpoint: string; status?: number | null; isNetworkError?: boolean },
+    ) {
+        super(message);
+        this.name = 'ApiError';
+        this.status = opts.status ?? null;
+        this.endpoint = opts.endpoint;
+        this.isNetworkError = opts.isNetworkError ?? false;
+    }
+}
+
+function friendlyMessage(status: number, backendMessage: string | null): string {
+    if (status >= 500) return MSG_SERVER;
+    // 4xx: backend costuma mandar mensagens PT-BR úteis (ex: "Você já avaliou
+    // este roteiro") — preserva quando existir.
+    if (backendMessage) return backendMessage;
+    if (status === 401) return MSG_UNAUTHORIZED;
+    if (status === 403) return MSG_FORBIDDEN;
+    if (status === 404) return MSG_NOT_FOUND;
+    return MSG_GENERIC;
+}
+
+// ─── 401 global (token expirado) ─────────────────────────────────
+type UnauthorizedCallback = () => void;
+let onUnauthorized: UnauthorizedCallback | null = null;
+
+/**
+ * Registra um callback global disparado quando uma requisição AUTENTICADA
+ * (enviou header Authorization) recebe 401. Endpoints públicos que retornem
+ * 401 NÃO disparam o callback. Registrado pelo AuthContext (logout).
+ */
+export function setOnUnauthorized(cb: UnauthorizedCallback | null): void {
+    onUnauthorized = cb;
+}
+
+// ─── Core request ────────────────────────────────────────────────
+const REQUEST_TIMEOUT_MS = 15_000;
+
+interface RequestOptions {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    body?: object;
+    accessToken?: string | null;
+}
+
+async function request<T>(endpoint: string, opts: RequestOptions = {}): Promise<T> {
+    const headers: Record<string, string> = {};
+    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+    const sentAuth = !!opts.accessToken;
+    if (sentAuth) headers.Authorization = `Bearer ${opts.accessToken}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    let res: Response;
+    try {
+        res = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: opts.method ?? 'GET',
+            headers,
+            body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+            signal: controller.signal,
+        });
+    } catch (err) {
+        const aborted = err instanceof Error && err.name === 'AbortError';
+        throw new ApiError(aborted ? MSG_TIMEOUT : MSG_NETWORK, {
+            endpoint,
+            isNetworkError: true,
+        });
+    } finally {
+        clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+        // 401 em chamada autenticada = sessão inválida/expirada → logout global.
+        if (res.status === 401 && sentAuth && onUnauthorized) {
+            try { onUnauthorized(); } catch { /* callback não pode quebrar a request */ }
+        }
+        const data = await res.json().catch(() => null);
+        const backendMessage =
+            data && typeof (data as any).error === 'string' ? (data as any).error : null;
+        throw new ApiError(friendlyMessage(res.status, backendMessage), {
+            endpoint,
+            status: res.status,
+        });
+    }
+
+    try {
+        return (await res.json()) as T;
+    } catch {
+        throw new ApiError(MSG_SERVER, { endpoint, status: res.status });
+    }
+}
+
+/**
+ * Variante para buscas por id: status presentes em `nullStatuses` (default
+ * 404) retornam `null` em vez de lançar. Rede/5xx continuam lançando.
+ */
+async function requestOrNull<T>(
+    endpoint: string,
+    opts: RequestOptions = {},
+    nullStatuses: number[] = [404],
+): Promise<T | null> {
+    try {
+        return await request<T>(endpoint, opts);
+    } catch (err) {
+        if (err instanceof ApiError && err.status !== null && nullStatuses.includes(err.status)) {
+            return null;
+        }
+        throw err;
+    }
+}
+
+// ─── Tipos de resposta (shape REAL do backend) ───────────────────
+// Onde existe tipo no @vamo/shared (módulos JSON round-trip do form), usamos
+// o tipo compartilhado. O restante espelha os `res.json(...)` das rotas em
+// apps/backend/src/routes/*.ts.
+
+/** Bloco `creator` embutido em roteiros (listagem e detalhe). */
+export interface ItineraryCreatorSummary {
+    id: string;
+    name: string;
+    avatar: string;
+    verificationLevel: string;
+    rating: number | null;
+    salesCount: number;
+}
+
+/** estimatedSpending (Json no Prisma): { min, max, currency, breakdown, manualEntries } */
+export interface EstimatedSpending {
+    min?: number;
+    max?: number;
+    currency?: string;
+    breakdown?: BreakdownItem[];
+    manualEntries?: SpendingEntry[];
+}
+
+/** Item de GET /api/itineraries e GET /api/itineraries/featured. */
+export interface ItinerarySummary {
+    id: string;
+    title: string;
+    destination: string;
+    country: string;
+    creator: ItineraryCreatorSummary;
+    /** Vendas reais DESTE roteiro (diferente de creator.salesCount, acumulado do criador). */
+    salesCount: number;
+    description: string;
+    price: number;
+    currency: Currency;
+    images: string[];
+    rating: number | null;
+    highlightPhotos: string[];
+    mediaUrls: string[];
+    reviewCount: number;
+    inclusions: string[];
+    duration: number;
+    featured: boolean;
+    highlights: string[];
+    estimatedSpending: EstimatedSpending | null;
+    qualityScore: number;
+    categories: string[];
+    travelStyles: string[];
+    activeModules: string[];
+    attractions: AttractionItem[];
+    restaurants: RestaurantItem[];
+    extraSpendingItems: ExtraSpendingItem[];
+    flightInfo: FlightInfo | null;
+}
+
+// Módulos JSON usam os tipos do shared; relações (accommodations, transports,
+// checklists, days) têm shape próprio da API (id/order/priceRange etc.).
+
+/** Hospedagem como retornada por GET /api/itineraries/:id (relação + aliases). */
+export interface ApiAccommodation {
+    id: string;
+    name: string | null;
+    neighborhood: string | null;
+    description: string | null;
+    priceRange: string | null;
+    rating: string | null;
+    externalLink: string | null;
+    address: string | null;
+    mapLink: string | null;
+    tips: string | null;
+    nights: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    totalPrice: number | null;
+    priceCurrency: string | null;
+    order: number;
+    spending?: ModuleSpending;
+    cost?: ModuleCostInfo;
+}
+
+export interface ApiTransport {
+    id: string;
+    description: string | null;
+    passTypes: string | null;
+    estimatedPrice: string | null;
+    notes: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    priceValue: string | null;
+    priceCurrency: string | null;
+    order: number;
+    spending?: ModuleSpending;
+    cost?: ModuleCostInfo;
+}
+
+export interface ApiChecklistItem {
+    id: string;
+    category: string | null;
+    item: string;
+    isDefault: boolean;
+    order: number;
+    completed: boolean;
+    /** Presente apenas no payload de roteiro comprado (normalizado no client). */
+    text?: string;
+}
+
+export interface ApiActivity {
+    id: string;
+    title: string;
+    description: string | null;
+    duration: string | null;
+    location: string | null;
+    tips: string | null;
+    time: string | null;
+    type: string | null;
+    icon: string | null;
+    images: string[];
+    mapLink: string | null;
+    completed: boolean;
+    notes: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    category: string | null;
+}
+
+export interface ApiDay {
+    dayNumber: number;
+    title: string;
+    summary: string | null;
+    description: string | null;
+    activities: ApiActivity[];
+}
+
+export interface ApiFile {
+    id: string;
+    name: string;
+    type: string;
+    url: string;
+    size: number | null;
+}
+
+/** Review pública embutida no detalhe do roteiro / GET /api/reviews. */
+export interface PublicReview {
+    id: string;
+    rating: number;
+    text: string;
+    date: string;
+    verified: boolean;
+    helpful: number;
+    user: {
+        name: string | null;
+        location: string | null;
+        avatar: string | null;
+        initial: string | null;
+    };
+    photos: string[];
+}
+
+/** Item de GET /api/reviews (lista por roteiro/pacote). */
+export interface ReviewListItem extends PublicReview {
+    packageId: string | null;
+    itineraryId: string | null;
+    travelerId: string | null;
+    language: string | null;
+    response?: { date: string; text: string };
+}
+
+export interface ReviewsResponse {
+    reviews: ReviewListItem[];
+    stats: { total: number; averageRating: number };
+}
+
+/** Resposta de GET /api/itineraries/:id (detalhe completo). */
+export interface ItineraryDetail extends ItinerarySummary {
+    downloadCount: number;
+    subtitle: string | null;
+    productType: ProductType | string;
+    promoPrice: number | null;
+    installments: number | null;
+    immediateAccess: boolean;
+    lifetimeAccess: boolean;
+    offlineDownload: boolean;
+    allowPdf: boolean;
+    allowShare: boolean;
+    travelProofUrl: string | null;
+    status: ItineraryStatus | string;
+    approvalNote: string | null;
+    approvedAt: string | null;
+    extraCities: string[];
+    extraCountries: string[];
+    tripStartDate: string | null;
+    tripEndDate: string | null;
+    generalTips: string[];
+    spendingProfile: { icon?: string; label?: string } | null;
+    receiveList: Array<{ icon?: string; label?: string }> | null;
+    accommodations: ApiAccommodation[];
+    /** Alias de `accommodations` para a tela pós-compra. */
+    accommodationOptions: ApiAccommodation[];
+    transports: ApiTransport[];
+    /** Alias de `transports` para a tela pós-compra. */
+    transport: { items: ApiTransport[] };
+    checklists: ApiChecklistItem[];
+    /** Alias de `checklists` para a tela pós-compra. */
+    checklist: ApiChecklistItem[];
+    days: ApiDay[];
+    files: ApiFile[];
+    reviews: PublicReview[];
+}
+
+/** Resposta de GET /api/itineraries/:id/purchased (detalhe + dados da compra). */
+export interface PurchasedItineraryDetail extends ItineraryDetail {
+    purchaseId?: string;
+    purchasedAt?: string | null;
+    pricePaid?: number;
+    snapshotVersion?: number;
+    archivedAccessNotice?: string;
+}
+
+/** Item de GET /api/my-trips → purchasedItineraries. */
+export interface PurchasedTripSummary {
+    id: string;
+    purchaseId: string;
+    title: string;
+    destination: string;
+    country: string;
+    image: string;
+    purchaseDate: string;
+    creatorName: string;
+    creatorAvatar: string;
+    price: number;
+    currency: string;
+    duration: number;
+}
+
+export interface MyTripsResponse {
+    purchasedItineraries: PurchasedTripSummary[];
+}
+
+/** Item de GET /api/creators. */
+export interface CreatorProfile {
+    id: string;
+    name: string;
+    avatar: string;
+    verificationLevel: string;
+    stats: {
+        itinerariesCount: number;
+        totalSales: number;
+        averageRating: number | null;
+        responseTime: string | null;
+        tripsCompleted: number;
+    };
+    bio: string | null;
+    destinations: string[];
+    memberSince: string;
+    languages: string[];
+    socialLinks: { instagram: string | null; youtube: string | null; blog: string | null };
+}
+
+/** Resposta de GET /api/creators/:id (perfil + vitrine de roteiros). */
+export interface CreatorDetail extends CreatorProfile {
+    itineraries: Array<{
+        id: string;
+        title: string;
+        destination: string;
+        price: number;
+        rating: number | null;
+        reviewCount: number;
+        duration: number;
+        images: string[];
+    }>;
+}
+
+/** Item de GET /api/destinations. */
+export interface DestinationSummary {
+    id: string;
+    name: string;
+    country: string;
+    emoji: string | null;
+    popular: boolean;
 }
 
 // ─── Legacy Package APIs ───
 // Mantidos apenas para telas legadas ainda existentes. O fluxo principal do
-// VAMO usa roteiros digitais via Itineraries.
+// VAMO usa roteiros digitais via Itineraries. Shapes espelham
+// apps/backend/src/routes/packages.ts.
+
+export interface PackageAgency {
+    id: string;
+    name: string;
+    logo: string | null;
+    verified: boolean;
+    contactUrl: string | null;
+    whatsapp: string | null;
+}
+
+export interface PackageDeparture {
+    date: string;
+    price: number;
+    spotsLeft: number | null;
+}
+
+export interface PackageSummary {
+    id: string;
+    title: string;
+    destination: string;
+    country: string;
+    agency: PackageAgency;
+    price: { min: number; max: number; currency: string };
+    images: string[];
+    duration: number;
+    includes: string[];
+    rating: number | null;
+    reviewCount: number;
+    featured: boolean;
+    description: string;
+    highlights: string[];
+    badge?: string;
+    availableDates: PackageDeparture[];
+    inclusions: string[];
+    categories: string[];
+    hasFreeCancellation: boolean;
+    isAllInclusive: boolean;
+    recentPurchases: number | null;
+    priceComparison: unknown;
+    priceDiscount: number | null;
+    itinerary: unknown;
+    fullDescription?: string | null;
+    emotionalIntro?: string | null;
+    includedItems?: unknown;
+    notRecommendedFor?: string[] | null;
+    importantInfo?: unknown;
+    perfectFor?: string[] | null;
+    /** Presente apenas em GET /api/packages/:id. */
+    reviews?: PublicReview[];
+}
+
 export async function getPackages(params?: {
     destination?: string; featured?: boolean; category?: string;
     minPrice?: number; maxPrice?: number; sort?: string;
-}): Promise<any[]> {
-    try {
-        const query = new URLSearchParams();
-        if (params?.destination) query.set('destination', params.destination);
-        if (params?.featured) query.set('featured', 'true');
-        if (params?.category) query.set('category', params.category);
-        if (params?.minPrice) query.set('minPrice', params.minPrice.toString());
-        if (params?.maxPrice) query.set('maxPrice', params.maxPrice.toString());
-        if (params?.sort) query.set('sort', params.sort);
-        const qs = query.toString();
-        return await fetchApi(`/packages${qs ? `?${qs}` : ''}`);
-    } catch {
-        return [];
-    }
+}): Promise<PackageSummary[]> {
+    const query = new URLSearchParams();
+    if (params?.destination) query.set('destination', params.destination);
+    if (params?.featured) query.set('featured', 'true');
+    if (params?.category) query.set('category', params.category);
+    if (params?.minPrice) query.set('minPrice', params.minPrice.toString());
+    if (params?.maxPrice) query.set('maxPrice', params.maxPrice.toString());
+    if (params?.sort) query.set('sort', params.sort);
+    const qs = query.toString();
+    return request<PackageSummary[]>(`/packages${qs ? `?${qs}` : ''}`);
 }
 
-export async function getPackageById(id: string): Promise<any | null> {
-    try {
-        return await fetchApi(`/packages/${id}`);
-    } catch {
-        return null;
-    }
+export async function getPackageById(id: string): Promise<PackageSummary | null> {
+    return requestOrNull<PackageSummary>(`/packages/${id}`);
 }
 
-export async function getFeaturedPackages(): Promise<any[]> {
-    try { return await fetchApi('/packages/featured'); }
-    catch { return []; }
+export async function getFeaturedPackages(): Promise<PackageSummary[]> {
+    return request<PackageSummary[]>('/packages/featured');
 }
 
-export async function getRelatedPackages(id: string): Promise<any[]> {
-    try { return await fetchApi(`/packages/${id}/related`); }
-    catch { return []; }
+export async function getRelatedPackages(id: string): Promise<PackageSummary[]> {
+    return request<PackageSummary[]>(`/packages/${id}/related`);
 }
 
 // ─── Itineraries ───
 export async function getItineraries(params?: {
     destination?: string; featured?: boolean; sort?: string;
-}): Promise<any[]> {
+}): Promise<ItinerarySummary[]> {
     const query = new URLSearchParams();
     if (params?.destination) query.set('destination', params.destination);
     if (params?.featured) query.set('featured', 'true');
     if (params?.sort) query.set('sort', params.sort);
     const qs = query.toString();
-    return fetchApi(`/itineraries${qs ? `?${qs}` : ''}`);
+    return request<ItinerarySummary[]>(`/itineraries${qs ? `?${qs}` : ''}`);
 }
 
-export async function getItineraryById(id: string): Promise<any | null> {
-    try {
-        return await fetchApi(`/itineraries/${id}`);
-    } catch {
-        return null;
-    }
+/** Retorna `null` quando o roteiro não existe (404). Lança em rede/5xx. */
+export async function getItineraryById(id: string): Promise<ItineraryDetail | null> {
+    return requestOrNull<ItineraryDetail>(`/itineraries/${id}`);
 }
 
-export async function getItineraryByIdStrict(id: string): Promise<any> {
-    return fetchApi(`/itineraries/${id}`);
+/** Variante estrita: lança ApiError inclusive em 404 (caller decide). */
+export async function getItineraryByIdStrict(id: string): Promise<ItineraryDetail> {
+    return request<ItineraryDetail>(`/itineraries/${id}`);
 }
 
-export async function getFeaturedItineraries(): Promise<any[]> {
-    try { return await fetchApi('/itineraries/featured'); }
-    catch { return []; }
+export async function getFeaturedItineraries(): Promise<ItinerarySummary[]> {
+    return request<ItinerarySummary[]>('/itineraries/featured');
 }
 
 /**
@@ -93,16 +557,11 @@ export async function purchaseItinerary(
     paymentMethod: string,
     accessToken?: string | null,
 ): Promise<{ id: string; itineraryId: string; alreadyPurchased: boolean }> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-    const res = await fetch(`${API_BASE_URL}/itineraries/${itineraryId}/purchase`, {
+    return request(`/itineraries/${itineraryId}/purchase`, {
         method: 'POST',
-        headers,
-        body: JSON.stringify({ paymentMethod }),
+        body: { paymentMethod },
+        accessToken,
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
-    return data;
 }
 
 // ─── Currency Rates ───
@@ -119,126 +578,101 @@ const DEFAULT_CURRENCY_RATES: Record<string, number> = {
 
 /**
  * Busca as taxas de conversão atuais definidas pelo admin.
- * Mantém fallback de taxas padrão (não é mock de roteiro, é câmbio).
+ * Mantém fallback de taxas padrão (não é mock de roteiro, é câmbio) —
+ * exceção consciente à regra "sem engolir erro": sem taxas o app inteiro
+ * deixaria de formatar preços.
  */
 export async function getCurrencyRates(): Promise<Record<string, number>> {
     try {
-        return await fetchApi<Record<string, number>>('/rates');
+        return await request<Record<string, number>>('/rates');
     } catch {
         return DEFAULT_CURRENCY_RATES;
     }
 }
 
 // ─── Creators ───
-export async function getCreators(): Promise<any[]> {
-    try { return await fetchApi('/creators'); }
-    catch { return []; }
+export async function getCreators(): Promise<CreatorProfile[]> {
+    return request<CreatorProfile[]>('/creators');
 }
 
-export async function getCreatorById(id: string): Promise<any | null> {
-    try {
-        return await fetchApi(`/creators/${id}`);
-    } catch {
-        return null;
-    }
+/** Retorna `null` quando o criador não existe (404). Lança em rede/5xx. */
+export async function getCreatorById(id: string): Promise<CreatorDetail | null> {
+    return requestOrNull<CreatorDetail>(`/creators/${id}`);
 }
 
-export async function getFeaturedCreators(): Promise<any[]> {
-    try {
-        const creators = await getCreators();
-        return creators.slice(0, 5);
-    } catch {
-        return [];
-    }
+export async function getFeaturedCreators(): Promise<CreatorProfile[]> {
+    const creators = await getCreators();
+    return creators.slice(0, 5);
 }
 
 // ─── Destinations ───
 export async function getDestinations(params?: {
     search?: string; popular?: boolean;
-}): Promise<any[]> {
-    try {
-        const query = new URLSearchParams();
-        if (params?.search) query.set('search', params.search);
-        if (params?.popular) query.set('popular', 'true');
-        const qs = query.toString();
-        return await fetchApi(`/destinations${qs ? `?${qs}` : ''}`);
-    } catch {
-        return [];
-    }
+}): Promise<DestinationSummary[]> {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.popular) query.set('popular', 'true');
+    const qs = query.toString();
+    return request<DestinationSummary[]>(`/destinations${qs ? `?${qs}` : ''}`);
 }
 
 // ─── Reviews ───
 export async function getReviews(params: {
     packageId?: string; itineraryId?: string;
-}): Promise<{ reviews: any[]; stats: { total: number; averageRating: number } }> {
-    try {
-        const query = new URLSearchParams();
-        if (params.packageId) query.set('packageId', params.packageId);
-        if (params.itineraryId) query.set('itineraryId', params.itineraryId);
-        return await fetchApi(`/reviews?${query.toString()}`);
-    } catch {
-        return { reviews: [], stats: { total: 0, averageRating: 0 } };
-    }
+}): Promise<ReviewsResponse> {
+    const query = new URLSearchParams();
+    if (params.packageId) query.set('packageId', params.packageId);
+    if (params.itineraryId) query.set('itineraryId', params.itineraryId);
+    return request<ReviewsResponse>(`/reviews?${query.toString()}`);
 }
 
 // ─── Purchased Itinerary Detail ───
 /**
- * Busca o detalhe completo de um roteiro pelo id.
+ * Busca o detalhe completo de um roteiro comprado pelo id.
  * Usado na tela pós-compra — retorna todos os módulos (dias, checklist, etc).
+ * Retorna `null` quando o acesso não está liberado (401/403) ou o roteiro
+ * não existe (404); lança ApiError em falha de rede/5xx.
  */
 export async function getPurchasedItineraryDetail(
     id: string,
     accessToken?: string | null,
-): Promise<any | null> {
-    try {
-        const headers: Record<string, string> = {};
-        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE_URL}/itineraries/${id}/purchased`, { headers });
-        if (!res.ok) return null;
-        const data = await res.json();
-        // Normalizar checklist: a API retorna { item } mas a tela espera { text }
-        if (Array.isArray(data.checklist)) {
-            data.checklist = data.checklist.map((c: any) => ({ ...c, text: c.item ?? c.text ?? '' }));
-        }
-        return data;
-    } catch {
-        return null;
+): Promise<PurchasedItineraryDetail | null> {
+    const data = await requestOrNull<PurchasedItineraryDetail>(
+        `/itineraries/${id}/purchased`,
+        { accessToken },
+        [401, 403, 404],
+    );
+    if (!data) return null;
+    // Normalizar checklist: a API retorna { item } mas a tela espera { text }
+    if (Array.isArray(data.checklist)) {
+        data.checklist = data.checklist.map((c) => ({ ...c, text: c.item ?? c.text ?? '' }));
     }
+    return data;
 }
 
 // ─── My Trips ───
 /**
  * Lista compras do usuário autenticado. O backend resolve o traveler a partir
- * do JWT enviado no header. Token obrigatório — retorna 401 sem autenticação.
+ * do JWT enviado no header. Token obrigatório — lança ApiError 401 sem
+ * autenticação (e dispara o logout global se o token enviado expirou).
  */
-export interface MyTripsResponse {
-    purchasedItineraries: any[];
-}
-
 export async function getMyTrips(accessToken?: string | null): Promise<MyTripsResponse> {
-    const headers: Record<string, string> = {};
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-    const res = await fetch(`${API_BASE_URL}/my-trips`, { headers });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `API ${res.status}`);
+    const data = await request<MyTripsResponse>('/my-trips', { accessToken });
     return {
-        purchasedItineraries: Array.isArray(data.purchasedItineraries) ? data.purchasedItineraries : [],
+        purchasedItineraries: Array.isArray(data.purchasedItineraries)
+            ? data.purchasedItineraries
+            : [],
     };
 }
 
-// ─── Reviews ────────────────────────────────────────────
+// ─── Reviews (escrita + minhas avaliações) ───────────────────────
 
-async function postApi<T>(endpoint: string, body: object, accessToken?: string | null): Promise<T> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
-    return data;
+export interface SubmittedReview {
+    id: string;
+    itineraryId: string;
+    rating: number;
+    comment: string;
+    photos: string[];
 }
 
 export async function submitItineraryReview(params: {
@@ -246,8 +680,8 @@ export async function submitItineraryReview(params: {
     rating: number;
     comment: string;
     photos: string[];
-}, accessToken?: string | null): Promise<{ review: { id: string; itineraryId: string; rating: number; comment: string; photos: string[] } }> {
-    return postApi('/reviews', params, accessToken);
+}, accessToken?: string | null): Promise<{ review: SubmittedReview }> {
+    return request('/reviews', { method: 'POST', body: params, accessToken });
 }
 
 export async function updateItineraryReview(
@@ -258,39 +692,31 @@ export async function updateItineraryReview(
         photos: string[];
     },
     accessToken?: string | null,
-): Promise<{ review: { id: string; itineraryId: string; rating: number; comment: string; photos: string[] } }> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-    const res = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(params),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
-    return data;
+): Promise<{ review: SubmittedReview }> {
+    return request(`/reviews/${reviewId}`, { method: 'PUT', body: params, accessToken });
 }
 
-export async function getMyReviews(accessToken?: string | null): Promise<{
-    reviews: Array<{
+/** Item de GET /api/reviews/my. */
+export interface MyReview {
+    id: string;
+    itineraryId: string | null;
+    rating: number;
+    comment: string;
+    date: string;
+    photos: string[];
+    itinerary: {
         id: string;
-        itineraryId: string | null;
-        rating: number;
-        comment: string;
-        date: string;
-        photos: string[];
-        itinerary: { id: string; title: string; destination: string; country: string; image: string | null } | null;
-    }>;
-}> {
-    try {
-        const headers: Record<string, string> = {};
-        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE_URL}/reviews/my`, { headers });
-        if (!res.ok) return { reviews: [] };
-        return await res.json();
-    } catch {
-        return { reviews: [] };
-    }
+        title: string;
+        destination: string;
+        country: string;
+        image: string | null;
+    } | null;
+}
+
+export async function getMyReviews(
+    accessToken?: string | null,
+): Promise<{ reviews: MyReview[] }> {
+    return request<{ reviews: MyReview[] }>('/reviews/my', { accessToken });
 }
 
 export async function getCreatorEarnings(
@@ -299,12 +725,7 @@ export async function getCreatorEarnings(
     summary: import('../features/creator/earnings/types').CreatorEarningsSummary;
     transactions: import('../features/creator/earnings/types').CreatorEarningTransaction[];
 }> {
-    const headers: Record<string, string> = {};
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-    const res = await fetch(`${API_BASE_URL}/creators/me/earnings`, { headers });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
-    return data;
+    return request('/creators/me/earnings', { accessToken });
 }
 
 // ─── Questions (FAQ Q&A) ───
@@ -329,15 +750,7 @@ export async function getItineraryQuestions(
     itineraryId: string,
     accessToken?: string | null,
 ): Promise<{ questions: ItineraryQuestion[] }> {
-    try {
-        const headers: Record<string, string> = {};
-        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-        const res = await fetch(`${API_BASE_URL}/questions/itinerary/${encodeURIComponent(itineraryId)}`, { headers });
-        if (!res.ok) return { questions: [] };
-        return await res.json();
-    } catch {
-        return { questions: [] };
-    }
+    return request(`/questions/itinerary/${encodeURIComponent(itineraryId)}`, { accessToken });
 }
 
 /** Cria uma nova pergunta sobre o roteiro. Exige autenticação. */
@@ -346,44 +759,27 @@ export async function createItineraryQuestion(
     questionText: string,
     accessToken?: string | null,
 ): Promise<{ question: ItineraryQuestion }> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-    const res = await fetch(`${API_BASE_URL}/questions`, {
+    return request('/questions', {
         method: 'POST',
-        headers,
-        body: JSON.stringify({ itineraryId, questionText }),
+        body: { itineraryId, questionText },
+        accessToken,
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `Falha ao enviar pergunta (HTTP ${res.status})`);
-    return data;
 }
 
 /** Perguntas do usuário autenticado (para a tela "Minhas Perguntas"). */
-export async function getMyQuestions(accessToken?: string | null): Promise<{ questions: ItineraryQuestion[] }> {
+export async function getMyQuestions(
+    accessToken?: string | null,
+): Promise<{ questions: ItineraryQuestion[] }> {
     if (!accessToken) return { questions: [] };
-    try {
-        const res = await fetch(`${API_BASE_URL}/questions/mine`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (!res.ok) return { questions: [] };
-        return await res.json();
-    } catch {
-        return { questions: [] };
-    }
+    return request('/questions/mine', { accessToken });
 }
 
 /** Perguntas recebidas pelo criador autenticado (todos os seus roteiros). */
-export async function getCreatorQuestions(accessToken?: string | null): Promise<{ questions: ItineraryQuestion[] }> {
+export async function getCreatorQuestions(
+    accessToken?: string | null,
+): Promise<{ questions: ItineraryQuestion[] }> {
     if (!accessToken) return { questions: [] };
-    try {
-        const res = await fetch(`${API_BASE_URL}/questions/creator/mine`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (!res.ok) return { questions: [] };
-        return await res.json();
-    } catch {
-        return { questions: [] };
-    }
+    return request('/questions/creator/mine', { accessToken });
 }
 
 /** Criador responde a uma pergunta sua. */
@@ -392,14 +788,9 @@ export async function answerQuestion(
     answerText: string,
     accessToken?: string | null,
 ): Promise<{ answer: { id: string; text: string; createdAt: string } }> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-    const res = await fetch(`${API_BASE_URL}/questions/${encodeURIComponent(questionId)}/answer`, {
+    return request(`/questions/${encodeURIComponent(questionId)}/answer`, {
         method: 'POST',
-        headers,
-        body: JSON.stringify({ answerText }),
+        body: { answerText },
+        accessToken,
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `Falha ao enviar resposta (HTTP ${res.status})`);
-    return data;
 }

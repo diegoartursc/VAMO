@@ -12,6 +12,13 @@ export function useSearch() {
     const [allItineraries, setAllItineraries] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
+
+    /** Refaz o fetch da listagem (botão "Tentar novamente" nas telas). */
+    const reload = useCallback(() => {
+        setLoading(true);
+        setReloadKey((k) => k + 1);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -33,7 +40,7 @@ export function useSearch() {
         }
         loadData();
         return () => { cancelled = true; };
-    }, []);
+    }, [reloadKey]);
 
     /**
      * Filtra roteiros com base nos filtros atuais, categoria e intent de viagem
@@ -154,6 +161,7 @@ export function useSearch() {
         isSearching: context.isSearching,
         loading,
         error,
+        reload,
         activeTab: context.activeTab,
         setActiveTab: context.setActiveTab,
 

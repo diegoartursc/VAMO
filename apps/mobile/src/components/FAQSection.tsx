@@ -18,6 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme } from '../theme/theme';
+import { ErrorState } from './common/ErrorState';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '../utils/notify';
 import {
@@ -71,6 +72,7 @@ export default function FAQSection({
 
     const [questions, setQuestions] = useState<ItineraryQuestion[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [draft, setDraft] = useState('');
     const [sending, setSending] = useState(false);
@@ -81,9 +83,18 @@ export default function FAQSection({
     const loadQuestions = useCallback(async () => {
         if (!itineraryId) { setLoading(false); return; }
         setLoading(true);
-        const { questions } = await getItineraryQuestions(itineraryId, accessToken);
-        setQuestions(questions);
-        setLoading(false);
+        setLoadError(null);
+        try {
+            const { questions } = await getItineraryQuestions(itineraryId, accessToken);
+            setQuestions(questions);
+        } catch (err: unknown) {
+            setQuestions([]);
+            setLoadError(err instanceof Error
+                ? err.message
+                : 'Não foi possível carregar as perguntas deste roteiro.');
+        } finally {
+            setLoading(false);
+        }
     }, [itineraryId, accessToken]);
 
     useEffect(() => { loadQuestions(); }, [loadQuestions]);
@@ -200,6 +211,8 @@ export default function FAQSection({
                     <View style={styles.loadingBox}>
                         <ActivityIndicator color={theme.colors.primary} size="small" />
                     </View>
+                ) : loadError ? (
+                    <ErrorState compact message={loadError} onRetry={loadQuestions} />
                 ) : questions.length === 0 ? (
                     <View style={styles.emptyBox}>
                         <Text style={styles.emptyText}>Ainda não há perguntas de outros viajantes.</Text>

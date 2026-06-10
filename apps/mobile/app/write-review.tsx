@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
+import { ErrorState } from '../src/components/common/ErrorState';
 import { Ionicons } from '@expo/vector-icons';
 import { haptics } from '../src/services/haptics';
 import { getItineraryById, getReviews, submitItineraryReview, updateItineraryReview } from '../src/services/api';
@@ -34,6 +35,8 @@ export default function WriteReviewScreen() {
 
     const [itinerary, setItinerary] = useState<any | null>(null);
     const [loadingItinerary, setLoadingItinerary] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
     const [existingReview, setExistingReview] = useState<any | null>(null);
 
     const [rating, setRating] = useState(0);
@@ -61,6 +64,8 @@ export default function WriteReviewScreen() {
                 setLoadingItinerary(false);
                 return;
             }
+            setLoadingItinerary(true);
+            setLoadError(null);
             try {
                 const [itineraryData, reviewsResp] = await Promise.all([
                     getItineraryById(itineraryId),
@@ -74,19 +79,24 @@ export default function WriteReviewScreen() {
                     if (mine) {
                         setExistingReview(mine);
                         setRating(Number(mine.rating) || 0);
-                        setText(typeof mine.text === 'string' ? mine.text : (mine.comment ?? ''));
+                        setText(typeof mine.text === 'string' ? mine.text : ((mine as any).comment ?? ''));
                         setPhotos(Array.isArray(mine.photos) ? mine.photos : []);
                     }
                 }
             } catch (err) {
                 console.error('[write-review] erro carregando dados:', err);
+                if (mounted) {
+                    setLoadError(err instanceof Error
+                        ? err.message
+                        : 'Não foi possível carregar o roteiro para avaliação.');
+                }
             } finally {
                 if (mounted) setLoadingItinerary(false);
             }
         };
         load();
         return () => { mounted = false; };
-    }, [itineraryId, user?.travelerId]);
+    }, [itineraryId, user?.travelerId, reloadKey]);
 
     const handleStarPress = (star: number) => {
         haptics.light();
@@ -260,6 +270,14 @@ export default function WriteReviewScreen() {
         return (
             <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+        );
+    }
+
+    if (loadError) {
+        return (
+            <View style={styles.container}>
+                <ErrorState message={loadError} onRetry={() => setReloadKey((k) => k + 1)} />
             </View>
         );
     }

@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
+import { ErrorState } from '../src/components/common/ErrorState';
 import { useAuth } from '../src/contexts/AuthContext';
 import { notify } from '../src/utils/notify';
 import { haptics } from '../src/services/haptics';
@@ -34,14 +35,24 @@ export default function CreatorQuestionsScreen() {
     const [questions, setQuestions] = useState<ItineraryQuestion[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const load = useCallback(async (isRefresh = false) => {
         if (!accessToken) { setQuestions([]); setLoading(false); return; }
         if (!isRefresh) setLoading(true);
-        const { questions } = await getCreatorQuestions(accessToken);
-        setQuestions(questions);
-        setLoading(false);
-        setRefreshing(false);
+        setLoadError(null);
+        try {
+            const { questions } = await getCreatorQuestions(accessToken);
+            setQuestions(questions);
+        } catch (err: unknown) {
+            setQuestions([]);
+            setLoadError(err instanceof Error
+                ? err.message
+                : 'Não foi possível carregar as perguntas recebidas.');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
     }, [accessToken]);
 
     useEffect(() => {
@@ -82,7 +93,9 @@ export default function CreatorQuestionsScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            {questions.length === 0 ? (
+            {loadError ? (
+                <ErrorState message={loadError} onRetry={() => load()} />
+            ) : questions.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.text.tertiary} />
                     <Text style={styles.emptyTitle}>Nenhuma pergunta ainda</Text>
