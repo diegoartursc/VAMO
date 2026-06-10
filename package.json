@@ -10,11 +10,16 @@
     "dev:mobile": "npm run dev --workspace=apps/mobile",
     "dev:site": "npm run dev --workspace=apps/site",
     "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:all": "concurrently -n backend,mobile -c blue,magenta \"npm run dev:backend\" \"npm run dev:mobile\"",
+    "health": "bash scripts/health.sh",
     "build:mobile": "npm run build:web --workspace=apps/mobile",
     "build:site": "npm run build --workspace=apps/site"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }

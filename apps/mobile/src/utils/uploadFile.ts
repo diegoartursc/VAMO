@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getSession, setSession } from './secureSession';
 import { inferMimeFromExtension } from './heicSupport';
 import {
     detectMediaType,
@@ -43,16 +43,15 @@ export interface UploadInput {
 }
 
 /**
- * Tenta renovar o accessToken usando o refreshToken salvo no AsyncStorage.
+ * Tenta renovar o accessToken usando o refreshToken salvo na sessão
+ * (SecureStore no nativo, AsyncStorage no web — via secureSession).
  * Retorna o novo token ou null se o refresh falhou (sessão precisa de login).
  */
 async function tryRefreshSession(): Promise<string | null> {
     try {
-        const raw = await AsyncStorage.getItem('@vamo_session');
-        if (!raw) return null;
-        const session = JSON.parse(raw);
+        const session = await getSession();
         const refreshToken = session?.refreshToken;
-        if (!refreshToken) return null;
+        if (!session || !refreshToken) return null;
 
         const res = await fetch(`${API_BASE}/auth/traveler/refresh`, {
             method: 'POST',
@@ -64,10 +63,7 @@ async function tryRefreshSession(): Promise<string | null> {
         const newToken = data.accessToken;
         if (!newToken) return null;
 
-        await AsyncStorage.setItem(
-            '@vamo_session',
-            JSON.stringify({ ...session, accessToken: newToken }),
-        );
+        await setSession({ ...session, accessToken: newToken });
         return newToken;
     } catch {
         return null;

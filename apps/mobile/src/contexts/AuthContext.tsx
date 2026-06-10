@@ -1,6 +1,7 @@
 /**
  * VAMO Mobile — AuthContext
- * Gerencia sessão real do usuário via AsyncStorage.
+ * Gerencia sessão real do usuário via secureSession
+ * (SecureStore no nativo, AsyncStorage no web).
  * Sem mock, sem usuário fantasma.
  */
 
@@ -12,7 +13,6 @@ import React, {
     useCallback,
     ReactNode,
 } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     loginWithEmail,
     registerWithEmail,
@@ -20,11 +20,11 @@ import {
     fetchMe,
     type TravelerSession,
 } from '../services/auth';
-
-// ─── Storage keys ──────────────────────────────────────────────
-const STORAGE_KEYS = {
-    SESSION: '@vamo_session',
-} as const;
+import {
+    getSession as getStoredSession,
+    setSession as setStoredSession,
+    removeSession as removeStoredSession,
+} from '../utils/secureSession';
 
 // ─── Types ─────────────────────────────────────────────────────
 export interface AuthUser {
@@ -64,17 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // ── Hidratar sessão salva no AsyncStorage ────────────────
+    // ── Hidratar sessão salva no storage ─────────────────────
     useEffect(() => {
         (async () => {
             try {
-                const raw = await AsyncStorage.getItem(STORAGE_KEYS.SESSION);
-                if (!raw) {
+                const session = await getStoredSession();
+                if (!session) {
                     console.log('[auth] sem sessão salva — estado deslogado');
                     return;
                 }
 
-                const session: TravelerSession = JSON.parse(raw);
                 console.log('[auth] sessão encontrada, travelerId:', session.traveler?.id);
 
                 // Tenta usar o accessToken atual para validar com /me
@@ -91,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const newToken = await refreshAccessToken(session.refreshToken);
                 if (newToken) {
                     const updatedSession: TravelerSession = { ...session, accessToken: newToken };
-                    await AsyncStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(updatedSession));
+                    await setStoredSession(updatedSession);
                     const me2 = await fetchMe(newToken);
                     if (me2) {
                         console.log('[auth] sessão renovada — usuário:', me2.traveler.email);
@@ -101,8 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
 
                 // Sessão inválida — limpar
-                console.warn('[auth] sessão inválida — limpando AsyncStorage');
-                await AsyncStorage.removeItem(STORAGE_KEYS.SESSION);
+                console.warn('[auth] sessão inválida — limpando storage');
+                await removeStoredSession();
             } catch (err) {
                 console.error('[auth] erro ao hidratar sessão:', err);
             } finally {
@@ -139,8 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = useCallback(async (email: string, password: string) => {
         const session = await loginWithEmail(email, password);
 
-        // Persistir no AsyncStorage
-        await AsyncStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
+        // Persistir no storage (SecureStore no nativo, AsyncStorage no web)
+        await setStoredSession(session);
 
         applySession(session.accessToken, session.refreshToken, session.traveler, session.creator);
     }, []);
@@ -148,14 +147,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ── Registro ─────────────────────────────────────────────
     const register = useCallback(async (params: Parameters<AuthContextType['register']>[0]) => {
         const session = await registerWithEmail(params);
-        await AsyncStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
+        await setStoredSession(session);
         applySession(session.accessToken, session.refreshToken, session.traveler, session.creator);
     }, []);
 
     // ── Logout ───────────────────────────────────────────────
     const logout = useCallback(async () => {
         console.log('[auth] logout — limpando sessão');
-        await AsyncStorage.removeItem(STORAGE_KEYS.SESSION);
+        await removeStoredSession();
         setUser(null);
         setAccessToken(null);
     }, []);

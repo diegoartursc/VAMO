@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
+import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
 
 const router = express.Router();
 
@@ -10,14 +11,26 @@ const router = express.Router();
 const UPLOAD_DIR = path.join(process.cwd(), 'public/uploads/itineraries');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-    filename: (_req, file, cb) => {
-        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const safeExt = path.extname(file.originalname).toLowerCase().replace(/[^a-z0-9.]/g, '');
-        cb(null, `${file.fieldname}-${unique}${safeExt}`);
-    },
-});
+// Mesmo esquema de nome usado historicamente pelo diskStorage —
+// compartilhado com o modo cloud para que as URLs sigam o mesmo padrão.
+function generateFilename(fieldname: string, originalname: string): string {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const safeExt = path.extname(originalname).toLowerCase().replace(/[^a-z0-9.]/g, '');
+    return `${fieldname}-${unique}${safeExt}`;
+}
+
+// Com SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY no env, os uploads vão para o
+// Supabase Storage (bucket público "vamo-uploads") — necessário em produção,
+// onde o disco do Render é efêmero. Sem as env vars, o comportamento local
+// histórico (diskStorage em public/uploads) permanece intacto.
+const useCloudStorage = isCloudStorageEnabled();
+
+const storage = useCloudStorage
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+        destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+        filename: (_req, file, cb) => cb(null, generateFilename(file.fieldname, file.originalname)),
+    });
 
 // Conjunto canônico de formatos aceitos no upload bruto. A matriz
 // fina de "que formato vale em qual contexto" mora no client
@@ -85,28 +98,54 @@ function sendUploadError(res: express.Response, err: unknown): boolean {
     return true;
 }
 
+/**
+ * Resolve a URL pública final de um arquivo já validado pelo multer.
+ *
+ * - Disco (modo atual): o multer já gravou em public/uploads/itineraries e
+ *   preencheu `file.filename`; a URL aponta para o express.static do host.
+ * - Cloud: o arquivo está em `file.buffer` (memoryStorage); geramos o nome
+ *   com o mesmo esquema histórico e subimos para o Supabase Storage.
+ */
+async function persistUploadedFile(
+    req: express.Request,
+    file: Express.Multer.File,
+): Promise<{ url: string; filename: string }> {
+    if (!useCloudStorage) {
+        const host = `${req.protocol}://${req.get('host')}`;
+        return { url: `${host}/uploads/itineraries/${file.filename}`, filename: file.filename };
+    }
+    const filename = generateFilename(file.fieldname, file.originalname);
+    const contentType = contentTypeForFilename(file.originalname, file.mimetype);
+    const { url } = await uploadBufferToCloud(file.buffer, `itineraries/${filename}`, contentType);
+    return { url, filename };
+}
+
 // POST /api/uploads — upload de um único arquivo, retorna URL absoluta
 router.post('/', optionalAuthMiddleware, (req: AuthRequest, res) => {
     if (!req.traveler) {
         res.status(401).json({ error: 'Autenticação necessária para fazer upload' });
         return;
     }
-    upload.single('file')(req, res, (err) => {
+    upload.single('file')(req, res, async (err) => {
         if (sendUploadError(res, err)) return;
         if (!req.file) {
             res.status(400).json({ error: 'Arquivo ausente (campo "file")' });
             return;
         }
-        const host = `${req.protocol}://${req.get('host')}`;
-        const url = `${host}/uploads/itineraries/${req.file.filename}`;
-        res.json({
-            url,
-            filename: req.file.filename,
-            originalName: req.file.originalname,
-            size: req.file.size,
-            mimetype: req.file.mimetype,
-            mediaType: inferMediaType(req.file.mimetype, req.file.originalname),
-        });
+        try {
+            const { url, filename } = await persistUploadedFile(req, req.file);
+            res.json({
+                url,
+                filename,
+                originalName: req.file.originalname,
+                size: req.file.size,
+                mimetype: req.file.mimetype,
+                mediaType: inferMediaType(req.file.mimetype, req.file.originalname),
+            });
+        } catch (uploadErr) {
+            console.error('Error persisting upload:', uploadErr);
+            res.status(500).json({ error: 'Não foi possível salvar o arquivo. Tente novamente.' });
+        }
     });
 });
 
@@ -116,25 +155,34 @@ router.post('/multiple', optionalAuthMiddleware, (req: AuthRequest, res) => {
         res.status(401).json({ error: 'Autenticação necessária para fazer upload' });
         return;
     }
-    upload.array('files', 20)(req, res, (err) => {
+    upload.array('files', 20)(req, res, async (err) => {
         if (sendUploadError(res, err)) return;
         const files = (req.files as Express.Multer.File[] | undefined) || [];
         if (files.length === 0) {
             res.status(400).json({ error: 'Nenhum arquivo enviado (campo "files")' });
             return;
         }
-        const host = `${req.protocol}://${req.get('host')}`;
-        res.json({
-            urls: files.map(f => `${host}/uploads/itineraries/${f.filename}`),
-            items: files.map(f => ({
-                url: `${host}/uploads/itineraries/${f.filename}`,
-                filename: f.filename,
-                originalName: f.originalname,
-                size: f.size,
-                mimetype: f.mimetype,
-                mediaType: inferMediaType(f.mimetype, f.originalname),
-            })),
-        });
+        try {
+            const items = [];
+            for (const f of files) {
+                const { url, filename } = await persistUploadedFile(req, f);
+                items.push({
+                    url,
+                    filename,
+                    originalName: f.originalname,
+                    size: f.size,
+                    mimetype: f.mimetype,
+                    mediaType: inferMediaType(f.mimetype, f.originalname),
+                });
+            }
+            res.json({
+                urls: items.map(i => i.url),
+                items,
+            });
+        } catch (uploadErr) {
+            console.error('Error persisting uploads:', uploadErr);
+            res.status(500).json({ error: 'Não foi possível salvar os arquivos. Tente novamente.' });
+        }
     });
 });
 
