@@ -38,10 +38,18 @@ import FAQSection from '../../../src/components/FAQSection';
 import { PurchaseSuccessModal } from '../../../src/components/modals/PurchaseSuccessModal';
 import { useFavorites } from '../../../src/hooks/useFavorites';
 import { useCart } from '../../../src/hooks/useCart';
+import { evaluateItineraryAvailability } from '../../../src/utils/availability';
+import { notify } from '../../../src/utils/notify';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useSearchContext } from '../../../src/contexts/SearchContext';
 import BudgetSummaryCard from '../../../src/components/dashboard/BudgetSummaryCard';
 import PeopleSimulator from '../../../src/components/dashboard/PeopleSimulator';
+import {
+    InteractiveExperienceSection,
+    PostPurchaseConversionBox,
+    InteractiveRouteBadge,
+} from '../../../src/components/itinerary/InteractiveExperienceSection';
+import { features } from '../../../src/config/features';
 import { getCostReferences, calculateBudgetSummary, formatMoney, type CostReferencesGroup } from '@vamo/shared/itinerary';
 
 const { width, height } = Dimensions.get('window');
@@ -58,7 +66,7 @@ export default function ItineraryDetailScreen() {
     const [peopleCount, setPeopleCount] = useState<number>(1);
     const [cartToast, setCartToast] = useState(false);
     const { isFavorite, toggleFavorite } = useFavorites();
-    const { isInCart, addToCart } = useCart();
+    const { isInCart, addToCart, isOwned } = useCart();
     const { accessToken } = useAuth();
     const { recordSearchIntent } = useSearchContext();
 
@@ -161,7 +169,11 @@ export default function ItineraryDetailScreen() {
     const creatorId = creator.id;
     const creatorName = creator.name || 'Criador VAMO';
     const creatorRating = Number(creator.rating) || 0;
-    const creatorSales = Number(creator.salesCount) || 0;
+    // `creatorSales` agora representa as VENDAS REAIS DESTE ROTEIRO
+    // (top-level `itinerary.salesCount` = ItinerarySale.count no backend).
+    // Mantém fallback ao `creator.salesCount` (acumulado do criador) pra
+    // back-compat com rotas legadas que ainda não foram atualizadas.
+    const creatorSales = Number(itinerary.salesCount ?? creator.salesCount) || 0;
     const creatorReputation =
         VERIFICATION_CONFIGS[(creator.verificationLevel || 'basic') as VerificationLevel]
         ?? VERIFICATION_CONFIGS.basic;
@@ -180,11 +192,34 @@ export default function ItineraryDetailScreen() {
         setShowSuccessModal(false);
         router.replace(`/purchased-itinerary/${itineraryId}` as any);
     };
+    /** Gate central de compra/carrinho: itinerário precisa estar comprável E
+     *  o usuário não pode já ser dono. Quando bloqueia, devolve o motivo e
+     *  uma intenção sugerida pra UX (login, ir pra meus roteiros, etc.). */
+    const purchaseGate = (): { ok: true } | { ok: false; reason: string; intent?: 'view-purchased' } => {
+        if (isOwned(itineraryId)) {
+            return { ok: false, reason: 'Você já comprou este roteiro.', intent: 'view-purchased' };
+        }
+        const avail = evaluateItineraryAvailability(itinerary);
+        if (!avail.ok) return { ok: false, reason: avail.reason };
+        return { ok: true };
+    };
+
     const handleBuyNow = () => {
         // Login gate: usuário deslogado não pode comprar. Redireciona para
         // login com `next` apontando de volta pra esta tela de detalhe.
         if (!accessToken) {
             router.push({ pathname: '/login' as any, params: { next: `/itinerary/${itineraryId}` } });
+            return;
+        }
+        // Disponibilidade + ownership: já-dono vai pra Meus Roteiros, paused/archived
+        // mostra motivo. Mesmas regras que a tela do carrinho aplica.
+        const gate = purchaseGate();
+        if (!gate.ok) {
+            if (gate.intent === 'view-purchased') {
+                router.replace(`/purchased-itinerary/${itineraryId}` as any);
+                return;
+            }
+            notify({ title: 'Não foi possível comprar agora', message: gate.reason });
             return;
         }
         router.push({
@@ -203,13 +238,22 @@ export default function ItineraryDetailScreen() {
 
     const handleAddToCart = async () => {
         haptics.medium();
-        if (!isInCart(itineraryId)) {
-            await addToCart(itineraryId);
-            setCartToast(true);
-            setTimeout(() => setCartToast(false), 2500);
-        } else {
+        if (isInCart(itineraryId)) {
             router.push('/(tabs)/cart' as any);
+            return;
         }
+        const gate = purchaseGate();
+        if (!gate.ok) {
+            if (gate.intent === 'view-purchased') {
+                router.replace(`/purchased-itinerary/${itineraryId}` as any);
+                return;
+            }
+            notify({ title: 'Não pode entrar no carrinho', message: gate.reason });
+            return;
+        }
+        await addToCart(itineraryId);
+        setCartToast(true);
+        setTimeout(() => setCartToast(false), 2500);
     };
 
 
@@ -360,6 +404,13 @@ export default function ItineraryDetailScreen() {
                         </View>
                     </View>
 
+                    {/* Badge: roteiro interativo */}
+                    {features.interactivePurchasedRouteEnabled && (
+                        <View style={{ marginBottom: theme.spacing.md }}>
+                            <InteractiveRouteBadge />
+                        </View>
+                    )}
+
                     {/* Price & CTA — card de compra com 2 linhas claras
                         Linha 1: preço + parcelamento
                         Linha 2: [Adicionar ao carrinho] [Comprar agora] */}
@@ -423,6 +474,9 @@ export default function ItineraryDetailScreen() {
                             <Text style={styles.cartToastText}>Adicionado ao carrinho!</Text>
                         </View>
                     )}
+
+                    {/* Reforço de conversão perto do botão de compra */}
+                    {features.interactivePurchasedRouteEnabled && <PostPurchaseConversionBox />}
 
                     {/* Estilo da experiência + Categorias */}
                     {(() => {
@@ -647,6 +701,9 @@ export default function ItineraryDetailScreen() {
                             </View>
                         </CollapsibleSection>
                     )}
+
+                    {/* Depois da compra, este roteiro vira sua central de viagem */}
+                    {features.interactivePurchasedRouteEnabled && <InteractiveExperienceSection />}
 
                     {/* O que você vai receber — apenas módulos ativos E preenchidos no roteiro real */}
                     {(() => {

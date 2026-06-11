@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     View,
@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
+import { ErrorState } from '../src/components/common/ErrorState';
 import { getMyReviews } from '../src/services/api';
 import { useAuth } from '../src/contexts/AuthContext';
 
@@ -23,12 +24,23 @@ export default function MyReviewsScreen() {
     const { accessToken } = useAuth();
     const [reviews, setReviews] = useState<MyReview[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const load = useCallback(() => {
+        setLoading(true);
+        setLoadError(null);
         getMyReviews(accessToken)
             .then((data) => setReviews(data.reviews))
+            .catch((err: unknown) => {
+                setReviews([]);
+                setLoadError(err instanceof Error
+                    ? err.message
+                    : 'Não foi possível carregar suas avaliações.');
+            })
             .finally(() => setLoading(false));
     }, [accessToken]);
+
+    useEffect(() => { load(); }, [load]);
 
     return (
         <View style={styles.container}>
@@ -53,6 +65,8 @@ export default function MyReviewsScreen() {
                     <ActivityIndicator size="large" color={theme.colors.primary} />
                     <Text style={styles.emptyText}>Carregando suas avaliações...</Text>
                 </View>
+            ) : loadError ? (
+                <ErrorState message={loadError} onRetry={load} />
             ) : reviews.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Icon name="star" size={48} color={theme.colors.text.tertiary} />
@@ -82,15 +96,22 @@ function ReviewCard({ review }: { review: MyReview }) {
 
     const renderStars = (rating: number) => (
         <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map((star) => (
-                <Icon
-                    key={star}
-                    name="star"
-                    size={14}
-                    color={star <= rating ? '#FFD700' : theme.colors.borderLight}
-                    strokeWidth={star <= rating ? 0 : 1.5}
-                />
-            ))}
+            {[1, 2, 3, 4, 5].map((star) => {
+                const filled = star <= rating;
+                // `fill` é obrigatório aqui: o Icon default é fill='none', então
+                // estrela "cheia" sem fill + strokeWidth=0 renderiza vazia.
+                // (Mesmo fix já aplicado em PremiumReviewsSection.)
+                return (
+                    <Icon
+                        key={star}
+                        name="star"
+                        size={14}
+                        color={filled ? '#FFD700' : theme.colors.borderLight}
+                        fill={filled ? '#FFD700' : 'transparent'}
+                        strokeWidth={filled ? 0 : 1.5}
+                    />
+                );
+            })}
         </View>
     );
 

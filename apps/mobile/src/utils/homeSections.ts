@@ -158,7 +158,9 @@ export function calculateUnforgettableScore(it: any): number {
     const rating = Number(it?.rating);
     if (Number.isFinite(rating) && rating >= 4.5) score += 10;
 
-    const sales = Number(it?.creator?.salesCount);
+    // Vendas REAIS por roteiro (Itinerary._count.sales). Fallback no agregado
+    // do criador só pra não regredir quando o backend não devolve o top-level.
+    const sales = Number(it?.salesCount ?? it?.creator?.salesCount);
     if (Number.isFinite(sales) && sales > 0) score += 10; // vendas/popularidade
 
     if (hasCostReference(it)) score += 5;
@@ -178,7 +180,7 @@ export function selectUnforgettable(itineraries: any[], limit = 8): any[] {
         .sort((a, b) =>
             b.score - a.score ||
             (Number(b.it.rating) || 0) - (Number(a.it.rating) || 0) ||
-            (Number(b.it.creator?.salesCount) || 0) - (Number(a.it.creator?.salesCount) || 0),
+            (Number(b.it.salesCount ?? b.it.creator?.salesCount) || 0) - (Number(a.it.salesCount ?? a.it.creator?.salesCount) || 0),
         )
         .slice(0, limit)
         .map(({ it }) => it);
@@ -240,7 +242,7 @@ export function selectContinueSearch(
         .sort((a, b) =>
             b.rel - a.rel ||
             (Number(b.it.rating) || 0) - (Number(a.it.rating) || 0) ||
-            (Number(b.it.creator?.salesCount) || 0) - (Number(a.it.creator?.salesCount) || 0),
+            (Number(b.it.salesCount ?? b.it.creator?.salesCount) || 0) - (Number(a.it.salesCount ?? a.it.creator?.salesCount) || 0),
         )
         .slice(0, limit)
         .map(({ it }) => it);

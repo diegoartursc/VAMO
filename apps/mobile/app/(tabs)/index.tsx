@@ -22,6 +22,7 @@ import { analytics } from '../../src/services/analytics';
 
 // Components
 import { Icon } from '../../src/components/common/Icons';
+import { ErrorState } from '../../src/components/common/ErrorState';
 import VamoLogo from '../../src/components/common/VamoLogo';
 import { SearchModal } from '../../src/components/search/SearchModal';
 import DecisionAssistant from '../../src/components/home/DecisionAssistant';
@@ -123,7 +124,7 @@ const HeroHeader = ({
     return (
         <View style={styles.heroContainer}>
             <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop' }}
+                source={{ uri: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=2073&auto=format&fit=crop' }}
                 style={[StyleSheet.absoluteFillObject, Platform.OS === 'web' ? ({ objectFit: 'cover' as any }) : {}]}
                 resizeMode="cover"
             />
@@ -188,6 +189,8 @@ export default function HomeScreen() {
         filters,
         allItineraries,
         loading,
+        error,
+        reload,
         setSelectedCategory,
         setTravelIntent,
         searchIntent,
@@ -350,6 +353,8 @@ export default function HomeScreen() {
 
                     {loading ? (
                         <HomeLoading />
+                    ) : error ? (
+                        <ErrorState compact message={error} onRetry={reload} />
                     ) : publicItineraries.filter(i => i.featured).length === 0 ? (
                         <HomeEmptyState onPress={() => goToItineraries()} />
                     ) : (

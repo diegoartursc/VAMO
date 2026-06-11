@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -17,15 +17,17 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
-import { useCart } from '../../src/hooks/useCart';
+import { useCart, CartItemMeta } from '../../src/hooks/useCart';
 import { haptics } from '../../src/services/haptics';
 import { confirm } from '../../src/utils/confirm';
-import { getItineraryById } from '../../src/services/api';
 import { formatMoney } from '@vamo/shared/itinerary';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight ?? 24);
 // ─── Tipo mínimo usado pelo card do carrinho ─────────────────────
+// Derivado do CartItemMeta hidratado pelo CartProvider — uma única fonte de
+// verdade pra disponibilidade. Mantemos esse shape porque os subcomponentes
+// (CartItemCard, OrderSummary) já consomem essas chaves.
 interface CartItemData {
     id: string;
     title: string;
@@ -36,9 +38,11 @@ interface CartItemData {
     images: string[];          // URLs já normalizadas
     creator: { name: string; avatar: string };
     lifetimeAccess?: boolean;
-    /** false quando o roteiro não pode ser comprado agora (rascunho, em
-     *  análise, arquivado, removido, sem preço). */
+    /** true só quando o provider hidratou e classificou como 'available'.
+     *  'unavailable' E 'owned' renderizam estado restrito. */
     available: boolean;
+    /** Estado da hidratação — separa 'já comprou' de 'indisponível' pra UX. */
+    status: 'loading' | 'available' | 'unavailable' | 'owned';
     /** Motivo curto da indisponibilidade, exibido no card. */
     unavailableReason?: string;
 }
@@ -46,84 +50,68 @@ interface CartItemData {
 const PLACEHOLDER_IMG =
     'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop';
 
-/** Status do roteiro que permitem compra na vitrine. */
-const PURCHASABLE_STATUSES = new Set(['active', 'approved', 'published', 'ativo', 'aprovado', 'publicado']);
-
-/** Decide se o roteiro está comprável e devolve o motivo quando não. */
-function evaluateAvailability(d: any): { ok: true } | { ok: false; reason: string } {
-    const rawStatus = String(d?.status ?? d?.approvalStatus ?? 'active').toLowerCase();
-    if (!PURCHASABLE_STATUSES.has(rawStatus)) {
-        switch (rawStatus) {
-            case 'draft':           return { ok: false, reason: 'Rascunho — ainda não publicado' };
-            case 'pending_review':  return { ok: false, reason: 'Em análise pela VAMO' };
-            case 'rejected':        return { ok: false, reason: 'Não aprovado para a vitrine' };
-            case 'paused':          return { ok: false, reason: 'Temporariamente pausado pelo criador' };
-            case 'archived':        return { ok: false, reason: 'Arquivado' };
-            default:                return { ok: false, reason: 'Indisponível agora' };
-        }
-    }
-    const price = Number(d?.price);
-    if (!Number.isFinite(price) || price < 0) {
-        return { ok: false, reason: 'Sem preço definido' };
-    }
-    return { ok: true };
-}
-
-/** Busca um roteiro real da API e normaliza pro shape do card. Quando o
- *  roteiro foi removido (API devolve null) ou está em estado não-comprável,
- *  devolvemos um placeholder marcado como `available: false` em vez de
- *  filtrar — o usuário precisa ver no carrinho que aquilo virou indisponível. */
-async function fetchItinerary(id: string): Promise<CartItemData> {
-    try {
-        const d = await getItineraryById(id);
-        if (!d) {
-            return {
-                id, title: 'Roteiro indisponível', destination: '', country: '',
-                price: 0, duration: 0, images: [PLACEHOLDER_IMG],
-                creator: { name: '—', avatar: '👤' },
-                available: false, unavailableReason: 'Roteiro removido ou não encontrado',
-            };
-        }
-        const imgs: string[] = Array.isArray(d.images)
-            ? d.images.map((x: any) => (typeof x === 'string' ? x : x?.url)).filter(Boolean)
-            : [];
-        const availability = evaluateAvailability(d);
-        return {
-            id: d.id,
-            title: d.title || 'Roteiro',
-            destination: d.destination || '',
-            country: d.country || '',
-            price: Number(d.price) || 0,
-            duration: Number(d.duration) || 0,
-            images: imgs.length ? imgs : [PLACEHOLDER_IMG],
-            creator: {
-                name: d.creator?.traveler?.name || d.creator?.name || 'Criador VAMO',
-                avatar: d.creator?.traveler?.avatar || '👤',
-            },
-            lifetimeAccess: Boolean(d.lifetimeAccess),
-            available: availability.ok,
-            unavailableReason: availability.ok ? undefined : availability.reason,
-        };
-    } catch {
-        return {
-            id, title: 'Roteiro indisponível', destination: '', country: '',
-            price: 0, duration: 0, images: [PLACEHOLDER_IMG],
-            creator: { name: '—', avatar: '👤' },
-            available: false, unavailableReason: 'Não foi possível carregar este roteiro',
-        };
-    }
+/** Converte CartItemMeta (provider) → CartItemData (UI). */
+function metaToItem(meta: CartItemMeta): CartItemData {
+    const it = meta.itinerary;
+    const imgs: string[] = Array.isArray(it?.images)
+        ? it.images.map((x: any) => (typeof x === 'string' ? x : x?.url)).filter(Boolean)
+        : [];
+    return {
+        id: meta.id,
+        title: it?.title || (meta.status === 'unavailable' ? 'Roteiro indisponível' : 'Roteiro'),
+        destination: it?.destination || '',
+        country: it?.country || '',
+        price: Number(it?.price) || 0,
+        duration: Number(it?.duration) || 0,
+        images: imgs.length ? imgs : [PLACEHOLDER_IMG],
+        creator: {
+            name: it?.creator?.traveler?.name || it?.creator?.name || (meta.status === 'unavailable' ? '—' : 'Criador VAMO'),
+            avatar: it?.creator?.traveler?.avatar || '👤',
+        },
+        lifetimeAccess: Boolean(it?.lifetimeAccess),
+        available: meta.status === 'available',
+        status: meta.status,
+        unavailableReason: meta.unavailableReason,
+    };
 }
 
 // ─── Helpers ────────────────────────────────────────────────────
 const formatPrice = (price: number) =>
     price > 0 ? formatMoney(price) : 'Grátis';
 
+/** Mensagem do banner quando há itens indisponíveis/owned. Combina os dois
+ *  motivos numa única frase pra não poluir a tela. */
+function bannerCopy(unavailable: number, owned: number): string {
+    if (owned > 0 && unavailable > 0) {
+        return `${unavailable + owned} roteiros não entram no total: ${unavailable} indisponíveis e ${owned} já em Meus Roteiros.`;
+    }
+    if (owned === 1 && unavailable === 0) {
+        return '1 roteiro já está em Meus Roteiros e não pode ser comprado de novo.';
+    }
+    if (owned > 1 && unavailable === 0) {
+        return `${owned} roteiros já estão em Meus Roteiros e não podem ser comprados de novo.`;
+    }
+    if (unavailable === 1) {
+        return '1 roteiro do carrinho não está disponível agora e não entra no total.';
+    }
+    return `${unavailable} roteiros do carrinho não estão disponíveis agora e não entram no total.`;
+}
+
 // ════════════════════════════════════════════════════════════════
 //  SCREEN
 // ════════════════════════════════════════════════════════════════
 export default function CartScreen() {
     const router = useRouter();
-    const { cartItems, removeFromCart, clearCart } = useCart();
+    const {
+        cartItems,
+        itemsMeta,
+        removeFromCart,
+        clearCart,
+        clearUnavailable,
+        reloadAvailability,
+        isLoading,
+        isResolving,
+    } = useCart();
 
     // Entrance animation
     const headerAnim = useRef(new Animated.Value(0)).current;
@@ -135,36 +123,44 @@ export default function CartScreen() {
         ]).start();
     }, []);
 
-    // Carrega dados reais dos roteiros do carrinho via API
-    const [items, setItems]   = useState<CartItemData[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Derivado do provider — preserva a ordem do storage e respeita a
+    // hidratação. Nada de fetch em paralelo aqui: a tela e o badge da tab
+    // consomem A MESMA fonte (CartProvider).
+    const items: CartItemData[] = useMemo(
+        () => cartItems
+            .map((id) => itemsMeta[id])
+            .filter(Boolean)
+            .map(metaToItem),
+        [cartItems, itemsMeta],
+    );
+
     const [refreshing, setRefreshing] = useState(false);
 
-    const loadItems = useCallback(async (isRefresh = false) => {
-        if (cartItems.length === 0) {
-            setItems([]);
-            setLoading(false);
-            setRefreshing(false);
-            return;
-        }
-        if (!isRefresh) setLoading(true);
-        const results = await Promise.all(cartItems.map(fetchItinerary));
-        setItems(results);
-        setLoading(false);
-        setRefreshing(false);
-    }, [cartItems]);
-
-    useEffect(() => { loadItems(); }, [loadItems]);
-
-    const onRefresh = useCallback(() => {
+    const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        loadItems(true);
-    }, [loadItems]);
+        try { await reloadAvailability(); } finally { setRefreshing(false); }
+    }, [reloadAvailability]);
 
-    const availableItems = items.filter((it) => it.available);
-    const unavailableCount = items.length - availableItems.length;
+    // Estado de loading combinado: storage hidratando OU resolução pendente
+    // de itens já no carrinho (cartItems já presente mas itemsMeta vazio).
+    const loading =
+        isLoading ||
+        (cartItems.length > 0 && items.length < cartItems.length) ||
+        (cartItems.length > 0 && isResolving && items.every((it) => it.status === 'loading'));
+
+    const availableItems = items.filter((it) => it.status === 'available');
+    const unavailableItems = items.filter((it) => it.status === 'unavailable');
+    const ownedItems = items.filter((it) => it.status === 'owned');
+    const unavailableCount = unavailableItems.length;
+    const ownedCount = ownedItems.length;
     const isEmpty = !loading && cartItems.length === 0;
-    const onlyUnavailable = !loading && items.length > 0 && availableItems.length === 0;
+    // Só consideramos "onlyUnavailable" quando NÃO há disponíveis e NÃO há
+    // owned — owned tem CTA próprio ("Ver roteiro") e não é o estado vazio.
+    const onlyUnavailable =
+        !loading &&
+        items.length > 0 &&
+        availableItems.length === 0 &&
+        ownedItems.length === 0;
     const subtotal = availableItems.reduce((sum, it) => sum + it.price, 0);
     // MVP: backend só aceita 1 compra por requisição. O CTA mostra o total
     // de disponíveis e a quantidade real; ao tocar, abrimos checkout do
@@ -192,6 +188,29 @@ export default function CartScreen() {
             destructive: true,
         });
         if (ok) { haptics.light(); clearCart(); }
+    };
+
+    const handleClearUnavailable = async () => {
+        haptics.medium();
+        const count = unavailableCount + ownedCount;
+        const ok = await confirm({
+            title: 'Remover indisponíveis?',
+            message: count === 1
+                ? '1 roteiro não comprável agora será removido do carrinho.'
+                : `${count} roteiros não compráveis agora serão removidos do carrinho.`,
+            confirmText: 'Remover',
+            destructive: true,
+        });
+        if (!ok) return;
+        haptics.light();
+        // clearUnavailable() mantém só os 'available' — abrange tanto
+        // indisponíveis quanto owned, que é exatamente o que o usuário pediu.
+        await clearUnavailable();
+    };
+
+    const handleViewOwned = (item: CartItemData) => {
+        haptics.light();
+        router.push(`/purchased-itinerary/${item.id}` as any);
     };
 
     /**
@@ -299,14 +318,23 @@ export default function CartScreen() {
                     }
                 >
                     <Animated.View style={{ opacity: bodyAnim }}>
-                        {unavailableCount > 0 && (
+                        {(unavailableCount > 0 || ownedCount > 0) && (
                             <View style={styles.unavailableBanner}>
                                 <Ionicons name="information-circle-outline" size={17} color={theme.colors.primary} />
-                                <Text style={styles.unavailableBannerText}>
-                                    {unavailableCount === 1
-                                        ? '1 roteiro do carrinho não está disponível agora e não entra no total.'
-                                        : `${unavailableCount} roteiros do carrinho não estão disponíveis agora e não entram no total.`}
-                                </Text>
+                                <View style={{ flex: 1, gap: 8 }}>
+                                    <Text style={styles.unavailableBannerText}>
+                                        {bannerCopy(unavailableCount, ownedCount)}
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={handleClearUnavailable}
+                                        activeOpacity={0.7}
+                                        accessibilityLabel="Remover roteiros não compráveis do carrinho"
+                                    >
+                                        <Text style={styles.unavailableBannerAction}>
+                                            Remover indisponíveis
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         )}
 
@@ -316,11 +344,15 @@ export default function CartScreen() {
                                 key={item.id}
                                 item={item}
                                 index={index}
-                                onPress={() => item.available
-                                    ? router.push(`/(tabs)/itinerary/${item.id}` as any)
-                                    : undefined
-                                }
+                                onPress={() => {
+                                    if (item.status === 'available') {
+                                        router.push(`/(tabs)/itinerary/${item.id}` as any);
+                                    } else if (item.status === 'owned') {
+                                        handleViewOwned(item);
+                                    }
+                                }}
                                 onRemove={() => handleRemove(item)}
+                                onViewOwned={() => handleViewOwned(item)}
                             />
                         ))}
 
@@ -353,12 +385,16 @@ function CartItemCard({
     index,
     onPress,
     onRemove,
+    onViewOwned,
 }: {
     item: CartItemData;
     index: number;
     onPress: () => void;
     onRemove: () => void;
+    onViewOwned: () => void;
 }) {
+    const isOwned = item.status === 'owned';
+    const isInteractive = item.status === 'available' || isOwned;
     const cardAnim  = useRef(new Animated.Value(0)).current;
     const pressScale = useRef(new Animated.Value(1)).current;
     const [imageFailed, setImageFailed] = useState(false);
@@ -393,13 +429,13 @@ function CartItemCard({
             },
         ]}>
             <TouchableOpacity
-                activeOpacity={item.available ? 1 : 0.95}
+                activeOpacity={isInteractive ? 1 : 0.95}
                 onPress={onPress}
-                onPressIn={item.available ? onPressIn : undefined}
-                onPressOut={item.available ? onPressOut : undefined}
-                disabled={!item.available}
+                onPressIn={isInteractive ? onPressIn : undefined}
+                onPressOut={isInteractive ? onPressOut : undefined}
+                disabled={!isInteractive}
             >
-                <View style={[styles.card, !item.available && styles.cardDisabled]}>
+                <View style={[styles.card, !item.available && !isOwned && styles.cardDisabled]}>
                     {/* Thumbnail */}
                     <View style={styles.thumbWrapper}>
                         {imageFailed ? (
@@ -418,7 +454,12 @@ function CartItemCard({
                             colors={['transparent', 'rgba(26,50,99,0.45)']}
                             style={StyleSheet.absoluteFill}
                         />
-                        {!item.available && (
+                        {isOwned ? (
+                            <View style={[styles.unavailableBadge, styles.ownedBadge]}>
+                                <Ionicons name="checkmark-circle" size={11} color="#fff" />
+                                <Text style={styles.unavailableBadgeText}>Já comprado</Text>
+                            </View>
+                        ) : !item.available && (
                             <View style={styles.unavailableBadge}>
                                 <Ionicons name="lock-closed" size={11} color="#fff" />
                                 <Text style={styles.unavailableBadgeText}>Indisponível</Text>
@@ -454,7 +495,7 @@ function CartItemCard({
                             </View>
                         )}
 
-                        {/* Price row OR motivo da indisponibilidade */}
+                        {/* Price row OR estado restrito (indisponível / já comprado) */}
                         {item.available ? (
                             <View style={styles.priceRow}>
                                 <Text style={styles.priceLabel}>
@@ -462,6 +503,18 @@ function CartItemCard({
                                 </Text>
                                 <Text style={styles.priceValue}>{formatPrice(item.price)}</Text>
                             </View>
+                        ) : isOwned ? (
+                            <TouchableOpacity
+                                onPress={onViewOwned}
+                                activeOpacity={0.7}
+                                style={styles.ownedCtaRow}
+                            >
+                                <Ionicons name="book-outline" size={13} color={theme.colors.primaryDark} />
+                                <Text style={styles.ownedCtaText} numberOfLines={1}>
+                                    Você já comprou — Ver em Meus Roteiros
+                                </Text>
+                                <Ionicons name="chevron-forward" size={13} color={theme.colors.primaryDark} />
+                            </TouchableOpacity>
                         ) : (
                             <View style={styles.unavailableReasonRow}>
                                 <Ionicons name="alert-circle-outline" size={13} color={theme.colors.text.tertiary} />
@@ -829,6 +882,12 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
         fontWeight: '600',
     },
+    unavailableBannerAction: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: theme.colors.primaryDark,
+        textDecorationLine: 'underline',
+    },
 
     // ── Cart Item Card ───────────────────────────────
     cardWrapper: {
@@ -877,6 +936,27 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontStyle: 'italic',
         color: theme.colors.text.secondary,
+    },
+    ownedBadge: {
+        backgroundColor: theme.colors.primaryDark,
+    },
+    ownedCtaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 8,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        backgroundColor: theme.colors.primary + '15',
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '33',
+    },
+    ownedCtaText: {
+        flex: 1,
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.colors.primaryDark,
     },
     thumbWrapper: {
         width: 100,

@@ -35,7 +35,23 @@ import { DatePickerField, TimePickerField } from './pickers';
 import { FIELDS_BY_KIND, KIND_TITLE, type FieldSpec } from './itemFields';
 import type { ItemKind } from '../../services/routeCustomization';
 
-/** Shape salva em `data[<key>]` para campos do tipo `cost`. */
+/**
+ * Shape interno do estado UI para um campo `cost`. Note que ele é DIFERENTE
+ * do shape persistido em `data.cost` — internamente usamos `value` por
+ * conveniência (string editável no MoneyInput), mas no `normalizeForSave`
+ * convertemos pra `amount` (shape canônico do creator) ANTES de salvar.
+ *
+ * Por que isso importa: as utility shared (`resolveCostInfo`,
+ * `getCostReferences`, `calculateBudgetSummary`) leem EXCLUSIVAMENTE
+ * `cost.amount`. Se salvássemos com a chave `value`, o item editado pelo
+ * viajante NÃO entraria na agregação de "Referência de Gastos por Pessoa"
+ * (parseMoney(undefined) → 0 → toReferenceItem retorna null → item some).
+ *
+ * Bug histórico: até a rodada passada, salvávamos `{ value, currency }`
+ * direto. ItemCard funcionava (helper lia ambos) mas a Referência de
+ * Gastos pulava o item. Corrigido aqui — back-compat preservada via
+ * pickInitialValue.
+ */
 interface CostValue { value: string; currency: string; }
 
 /** Estado vazio padrão pra um campo cost. AUD por ser o mercado canônico. */
@@ -63,15 +79,21 @@ export interface ItemFormModalProps {
 
 function pickInitialValue(spec: FieldSpec, source: Record<string, any> | null | undefined): any {
     if (spec.type === 'cost') {
-        // Tenta primeiro o shape canônico (`data.cost = { value, currency }`).
-        // Cai em fallback para os shapes legados que diferentes cards usavam
-        // (priceValue/priceCurrency, value/currency, cost.amount).
+        // Aceita 3 fontes pra back-compat:
+        //   1. Shape canônico do creator: data.cost = { amount, currency, ... } (preferido)
+        //   2. Shape antigo da rodada passada: data.cost = { value, currency }
+        //   3. Shape legacy plano: data.priceValue/priceCurrency, data.value/currency
         const raw = source?.[spec.key];
         if (raw && typeof raw === 'object') {
+            // amount tem prioridade — é o shape canônico do creator + shared utils.
+            const amountStr = typeof raw.amount === 'string'
+                ? raw.amount
+                : (typeof raw.amount === 'number' ? String(raw.amount) : null);
+            const valueStr = typeof raw.value === 'string'
+                ? raw.value
+                : (typeof raw.value === 'number' ? String(raw.value) : null);
             return {
-                value: typeof raw.value === 'string'
-                    ? raw.value
-                    : (typeof raw.amount === 'string' ? raw.amount : ''),
+                value: amountStr ?? valueStr ?? '',
                 currency: typeof raw.currency === 'string' && raw.currency.length > 0
                     ? raw.currency
                     : 'AUD',
@@ -106,7 +128,23 @@ function normalizeForSave(spec: FieldSpec, raw: any): any {
         const currency = typeof raw.currency === 'string' && raw.currency.length > 0
             ? raw.currency
             : 'AUD';
-        return { value, currency };
+        // ⚠️ ATENÇÃO — salvamos como `{ amount, currency, disclosureType }`
+        // e NÃO como `{ value, currency }`. Motivo:
+        //   - `amount` é a chave que `resolveCostInfo` lê (shared util).
+        //   - `disclosureType: 'estimated'` faz `toReferenceItem` NÃO
+        //     filtrar o item da Referência de Gastos (filtra apenas
+        //     `'not_informed'`).
+        //   - `sharedByPeople: 1` mantém o comportamento "gasto individual"
+        //     por default — futura iteração pode tornar editável no modal.
+        // Mantemos `value` como alias por compat com leitores antigos
+        // (ItemCard.pickDisplayCost ainda tenta value como fallback).
+        return {
+            amount: value,
+            value, // alias temporário pra back-compat — pode ser removido depois
+            currency,
+            disclosureType: 'estimated',
+            sharedByPeople: 1,
+        };
     }
     if (spec.type === 'number') {
         if (raw === '' || raw === null || raw === undefined) return null;
