@@ -38,6 +38,7 @@ import {
     type MergedItinerary,
 } from '../../src/features/route-versioning';
 import { notify } from '../../src/utils/notify';
+import { features } from '../../src/config/features';
 import { getSnapshot, getCustomization } from '../../src/services/routeCustomization';
 import { mergeItineraryWithCustomization } from '../../src/features/route-versioning/mergeEngine';
 import { getTripChecklist, getTripFiles } from '../../src/services/tripCenter';
@@ -161,6 +162,30 @@ export default function PurchasedItineraryScreen() {
      *  `null` = ainda não carregou; `undefined` = carregou e usuário ainda
      *  não avaliou; objeto = review existente. */
     const [userReview, setUserReview] = useState<any | null | undefined>(null);
+
+    // ─── Onboarding pós-compra (mostra "roteiro interativo" só na 1ª vez) ──
+    // Chave namespada por travelerId+itineraryId — mesma convenção do
+    // peopleCountStorageKey logo abaixo. Sem o travelerId, o flag vazaria
+    // entre contas no mesmo dispositivo.
+    const interactiveOnboardingKey =
+        user?.travelerId && id
+            ? `vamo:interactiveOnboarding:${user.travelerId}:${id}`
+            : null;
+    const [showInteractiveOnboarding, setShowInteractiveOnboarding] = useState(false);
+    useEffect(() => {
+        if (!features.interactivePurchasedRouteEnabled || !interactiveOnboardingKey) return;
+        let mounted = true;
+        AsyncStorage.getItem(interactiveOnboardingKey)
+            .then((seen) => { if (mounted && !seen) setShowInteractiveOnboarding(true); })
+            .catch(() => {});
+        return () => { mounted = false; };
+    }, [interactiveOnboardingKey]);
+    const dismissInteractiveOnboarding = () => {
+        setShowInteractiveOnboarding(false);
+        if (interactiveOnboardingKey) {
+            AsyncStorage.setItem(interactiveOnboardingKey, '1').catch(() => {});
+        }
+    };
 
     // ─── PDF export ────────────────────────────────────────
     // O botão "Exportar PDF" no header abre o sheet. O sheet escolhe a variante
@@ -527,6 +552,32 @@ export default function PurchasedItineraryScreen() {
                         </View>
                     </View>
 
+                    {/* ══════════ ONBOARDING: roteiro interativo (1ª vez) ══════════ */}
+                    {showInteractiveOnboarding && (
+                        <View style={styles.block}>
+                            <View style={styles.onboardCard}>
+                                <View style={styles.onboardHeader}>
+                                    <View style={styles.onboardIconWrap}>
+                                        <Ionicons name="map-outline" size={18} color={theme.colors.primary} />
+                                    </View>
+                                    <Text style={styles.onboardTitle}>Este é seu roteiro interativo</Text>
+                                    <TouchableOpacity
+                                        onPress={dismissInteractiveOnboarding}
+                                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                        accessibilityLabel="Dispensar"
+                                    >
+                                        <Ionicons name="close" size={18} color={theme.colors.text.tertiary} />
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={styles.onboardText}>
+                                    Você pode consultar a versão original, personalizar sua viagem,
+                                    adicionar arquivos e acompanhar seu checklist. Suas alterações
+                                    ficam salvas apenas na sua versão.
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+
                     {/* ══════════ COMECE POR AQUI — central da viagem ══════════ */}
                     {(() => {
                         const daysCount = days.length;
@@ -679,17 +730,38 @@ export default function PurchasedItineraryScreen() {
                                 flightSpending: itinerary.flightInfo?.spending,
                             };
                             const summary = calculateBudgetSummary(costForm as any);
+                            // Total agregado À PROVA DE MULTI-MOEDA.
+                            // `calculateBudgetSummary` soma os valores BRUTOS e rotula
+                            // com a moeda dominante — o que gera totais absurdos quando
+                            // o roteiro mistura moedas (ex.: um item JPY 12.000 somado a
+                            // um item A$ 2.000 vira "A$ 14.000"). Aqui convertemos o
+                            // valor POR PESSOA de cada item para AUD (moeda de referência
+                            // do mercado) usando as MESMAS taxas do admin (`currencyRates`)
+                            // que alimentam a conversão "≈ A$" item-a-item, e somamos.
+                            // Itens já em AUD passam intactos; se as taxas ainda não
+                            // carregaram, o fallback (rate 1) degrada para o total bruto.
+                            const convertedInformedTotal = getCostReferences(costForm as any)
+                                .flatMap(g => g.items)
+                                .reduce((acc, it) => {
+                                    const rate = it.currency === 'AUD' ? 1 : (currencyRates[it.currency] ?? 1);
+                                    return acc + it.amountPerPerson * rate;
+                                }, 0);
+                            const summaryConverted = {
+                                ...summary,
+                                totalInformed: convertedInformedTotal,
+                                currency: 'AUD',
+                            };
                             return (
                                 <>
                                     <BudgetSummaryCard
                                         form={costForm as any}
-                                        summary={summary}
+                                        summary={summaryConverted}
                                         variant="purchased"
                                         hideWhenEmpty
                                     />
                                     <PeopleSimulator
-                                        totalPerPerson={summary.totalInformed}
-                                        currency={summary.currency}
+                                        totalPerPerson={summaryConverted.totalInformed}
+                                        currency={summaryConverted.currency}
                                         value={peopleCount}
                                         onChange={updatePeopleCount}
                                     />
@@ -1932,6 +2004,38 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.primary + '22',
         gap: 14,
+    },
+    onboardCard: {
+        backgroundColor: 'rgba(40, 201, 191, 0.08)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '33',
+        padding: 16,
+        gap: 8,
+    },
+    onboardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    onboardIconWrap: {
+        width: 34,
+        height: 34,
+        borderRadius: 8,
+        backgroundColor: theme.colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    onboardTitle: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '800',
+        color: theme.colors.secondary,
+    },
+    onboardText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
     },
     quickCardHeader: {
         flexDirection: 'row',
