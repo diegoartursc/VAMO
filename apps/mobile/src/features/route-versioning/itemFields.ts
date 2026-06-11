@@ -160,7 +160,7 @@ const ATTRACTIONS: FieldSpec[] = [
 const RESTAURANTS: FieldSpec[] = [
     { key: 'name', label: 'Nome do restaurante', type: 'text', placeholder: 'Ex: Le Jules Verne', required: true },
     { key: 'cuisine', label: 'Culinária', type: 'picker', options: CUISINE_OPTIONS },
-    { key: 'location', label: 'Localização / Bairro', type: 'text', placeholder: 'Ex: Montmartre', required: true },
+    { key: 'location', label: 'Cidade ou localização', type: 'text', placeholder: 'Ex: Tóquio, Shibuya, região central ou perto da estação', hint: 'Informe cidade, bairro, região ou ponto de referência.', required: true },
     { key: 'description', label: 'Descrição / Por que recomendar', type: 'multiline', placeholder: 'Ex: O melhor croque monsieur da cidade…' },
     { key: 'hoursStart', label: 'Horário', type: 'time' },
     { key: 'startDate', label: 'Data', type: 'date' },

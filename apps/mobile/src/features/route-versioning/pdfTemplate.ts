@@ -243,7 +243,13 @@ function renderChecklistItem(data: any, source?: MergedItem['source']): string {
 
 function renderExtraSpending(data: any, source?: MergedItem['source']): string {
     const title = data?.title ?? 'Gasto extra';
-    const value = data?.value ? `${data?.currency ?? 'A$'} ${data.value}` : '';
+    // Normaliza ambos os shapes: o canônico `data.cost = { amount/value, currency }`
+    // (criador + formulário do viajante) e o legado plano `data.value/currency`.
+    // Sem isso, gastos salvos em `cost` saíam sem valor no card individual.
+    const cost = data?.cost ?? null;
+    const rawValue = cost?.amount ?? cost?.value ?? data?.value ?? null;
+    const currency = cost?.currency ?? data?.currency ?? 'A$';
+    const value = rawValue ? `${currency} ${rawValue}` : '';
     return `
         <div class="card">
             <div class="card-header">
