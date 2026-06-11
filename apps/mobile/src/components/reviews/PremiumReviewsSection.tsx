@@ -46,17 +46,30 @@ export default function PremiumReviewsSection({
     const [showAllReviews, setShowAllReviews] = useState(false);
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
+    /**
+     * Renderiza 5 estrelas. Bug histórico: a versão anterior passava
+     * `color` (que vira o STROKE da estrela no Icon) e `strokeWidth=0` para
+     * estrelas preenchidas — mas NÃO passava `fill`. Como o Icon default
+     * `fill='none'`, as estrelas "cheias" ficavam invisíveis (zero stroke
+     * + nada de preenchimento = nada renderizado). Por isso o card do
+     * Diego mostrava só o nome e a data, sem estrelas amarelas.
+     * Fix: passar `fill='#F59E0B'` quando estrela <= rating.
+     */
     const renderStars = (rating: number, size = 16) => (
         <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map((star) => (
-                <Icon
-                    key={star}
-                    name="star"
-                    size={size}
-                    color={star <= rating ? '#F59E0B' : '#E2E8F0'}
-                    strokeWidth={star <= rating ? 0 : 1.5}
-                />
-            ))}
+            {[1, 2, 3, 4, 5].map((star) => {
+                const filled = star <= rating;
+                return (
+                    <Icon
+                        key={star}
+                        name="star"
+                        size={size}
+                        color={filled ? '#F59E0B' : '#E2E8F0'}
+                        fill={filled ? '#F59E0B' : 'transparent'}
+                        strokeWidth={filled ? 0 : 1.5}
+                    />
+                );
+            })}
         </View>
     );
 
@@ -140,6 +153,9 @@ export default function PremiumReviewsSection({
                                 </Text>
                                 <View style={styles.metaRow}>
                                     {renderStars(review.rating, 13)}
+                                    <Text style={styles.reviewRatingNumber}>
+                                        {Number(review.rating || 0).toFixed(1)}
+                                    </Text>
                                     <Text style={styles.reviewDate}>{review.date}</Text>
                                 </View>
                             </View>
@@ -405,6 +421,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+    },
+    reviewRatingNumber: {
+        fontSize: 12.5,
+        fontWeight: '700',
+        color: '#B45309',
     },
     reviewDate: {
         fontSize: 12,

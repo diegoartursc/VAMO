@@ -16,6 +16,7 @@ import { theme } from '../../src/theme/theme';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useCart } from '../../src/hooks/useCart';
 import { formatMoney } from '@vamo/shared/itinerary';
+import { features } from '../../src/config/features';
 
 type PaymentMethod = 'apple' | 'pix' | 'card';
 
@@ -342,6 +343,17 @@ export default function ItineraryPaymentScreen() {
                     </Pressable>
                 </View>
 
+                {/* Reforço discreto: experiência interativa pós-compra */}
+                {features.interactivePurchasedRouteEnabled && (
+                    <View style={styles.postPurchaseHint}>
+                        <Ionicons name="map-outline" size={18} color={theme.colors.primary} />
+                        <Text style={styles.postPurchaseHintText}>
+                            Depois da compra, o roteiro fica disponível em Meus Roteiros com sua
+                            central de viagem: documentos, checklist e versão personalizada.
+                        </Text>
+                    </View>
+                )}
+
                 <View style={{ height: 220 }} />
             </ScrollView>
 
@@ -538,6 +550,23 @@ const styles = StyleSheet.create({
     reviewText: { fontSize: 15, color: theme.colors.text.primary, fontWeight: '500' },
     reviewSubtext: { fontSize: 14, color: theme.colors.text.secondary, marginTop: 4 },
     editButton: { fontSize: 14, color: theme.colors.primary },
+    postPurchaseHint: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        backgroundColor: 'rgba(40, 201, 191, 0.08)',
+        borderRadius: 12,
+        padding: 14,
+        marginTop: 16,
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.primary,
+    },
+    postPurchaseHintText: {
+        flex: 1,
+        fontSize: 12.5,
+        color: theme.colors.text.primary,
+        lineHeight: 17,
+    },
     summaryExpandedContent: { marginTop: 16, gap: 12 },
     itineraryTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.text.primary },
     rating: { flexDirection: 'row', gap: 8, alignItems: 'center' },

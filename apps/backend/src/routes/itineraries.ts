@@ -41,6 +41,10 @@ router.get('/', async (req: Request, res: Response) => {
             include: {
                 creator: { include: { traveler: { select: { name: true, avatar: true } } } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
+                // Vendas reais POR ROTEIRO (contagem em ItinerarySale). Necessário
+                // porque `creator.totalSales` é um campo agregado historicamente
+                // não-incrementado a cada venda — virou 0 enquanto há compras reais.
+                _count: { select: { sales: true } },
             },
         });
 
@@ -52,6 +56,10 @@ router.get('/', async (req: Request, res: Response) => {
                 verificationLevel: it.creator.verificationLevel.toLowerCase(),
                 rating: it.creator.averageRating, salesCount: it.creator.totalSales,
             },
+            // salesCount no top-level = vendas REAIS deste roteiro
+            // (ItinerarySale.count). Diferente de creator.salesCount, que é
+            // o total acumulado do criador.
+            salesCount: it._count.sales,
             description: it.description, price: it.price, currency: it.currency,
             images: it.images.map(img => img.url), rating: it.rating,
             // Capa e galeria — sem estes, o card cai em fallback quando o criador
@@ -91,6 +99,7 @@ router.get('/featured', async (req: Request, res: Response) => {
             include: {
                 creator: { include: { traveler: { select: { name: true, avatar: true } } } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
+                _count: { select: { sales: true } },
             },
         });
 
@@ -102,6 +111,7 @@ router.get('/featured', async (req: Request, res: Response) => {
                 verificationLevel: it.creator.verificationLevel.toLowerCase(),
                 rating: it.creator.averageRating, salesCount: it.creator.totalSales,
             },
+            salesCount: it._count.sales,
             description: it.description, price: it.price, currency: it.currency,
             images: it.images.map(img => img.url), rating: it.rating,
             // Capa e galeria — espelha GET /api/itineraries pra cards manterem fidelidade.
@@ -233,6 +243,7 @@ export const PURCHASED_ITINERARY_INCLUDE = {
     transports: { orderBy: { order: 'asc' as const } },
     checklists: { orderBy: { order: 'asc' as const } },
     reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' as const }, take: 10 },
+    _count: { select: { sales: true } },
 };
 
 export function serializeDate(value: any): string | null {
@@ -298,6 +309,10 @@ export function buildPurchasedItineraryPayload(it: any, sale?: { id?: string; pr
             verificationLevel: it.creator.verificationLevel.toLowerCase(),
             rating: it.creator.averageRating, salesCount: it.creator.totalSales,
         },
+        // Vendas reais POR ROTEIRO (ItinerarySale.count). Fallback 0 se
+        // o include não trouxer `_count` (rotas que ainda não foram
+        // atualizadas).
+        salesCount: (it as any)._count?.sales ?? 0,
         description: it.description, price: it.price, currency: it.currency,
         images: (it.images || []).map((img: any) => img.url), rating: it.rating,
         reviewCount: it.reviewCount, inclusions: it.inclusions,
@@ -546,6 +561,7 @@ router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
                 transports:     { orderBy: { order: 'asc' } },
                 checklists:     { orderBy: { order: 'asc' } },
                 reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' }, take: 10 },
+                _count: { select: { sales: true } },
             },
         });
 
@@ -598,6 +614,9 @@ router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
                 verificationLevel: i.creator.verificationLevel.toLowerCase(),
                 rating: i.creator.averageRating, salesCount: i.creator.totalSales,
             },
+            // Vendas reais POR ROTEIRO. Top-level pra ser inequívoco vs
+            // o salesCount do creator (acumulado).
+            salesCount: (i as any)._count?.sales ?? 0,
             description: i.description, price: i.price, currency: i.currency,
             images: (i.images || []).map((img: any) => img.url), rating: i.rating,
             reviewCount: i.reviewCount, inclusions: i.inclusions,
@@ -1501,18 +1520,29 @@ router.post('/:id/purchase', travelerAuthMiddleware, async (req: TravelerAuthReq
             createdAt: new Date(),
         }));
 
-        const sale = await prisma.itinerarySale.create({
-            data: {
-                itineraryId,
-                travelerId,
-                price: itinerary.price,
-                commission: itinerary.price * 0.15, // 15% platform commission
-                purchaseData: {
-                    routeSnapshot: snapshotPayload,
+        // Cria a venda E incrementa `Creator.totalSales` na MESMA transação.
+        // Sem o increment, `creator.salesCount` no list endpoint ficava parado
+        // em 0 enquanto compras reais aconteciam — quebrava o "X vendas" nos
+        // cards, no perfil do criador e na ordenação por popularidade.
+        // Race-safe: o `increment` é atômico no SQL gerado pelo Prisma.
+        const [sale] = await prisma.$transaction([
+            prisma.itinerarySale.create({
+                data: {
+                    itineraryId,
+                    travelerId,
+                    price: itinerary.price,
+                    commission: itinerary.price * 0.15, // 15% platform commission
+                    purchaseData: {
+                        routeSnapshot: snapshotPayload,
+                    },
                 },
-            },
-            select: { id: true },
-        });
+                select: { id: true },
+            }),
+            prisma.creator.update({
+                where: { id: itinerary.creatorId },
+                data: { totalSales: { increment: 1 } },
+            }),
+        ]);
 
         res.json({ id: sale.id, itineraryId, travelerId, paymentMethod: paymentMethod || 'unknown', alreadyPurchased: false });
     } catch (error) {

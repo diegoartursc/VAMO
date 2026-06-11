@@ -46,7 +46,17 @@ import type {
 } from '@vamo/shared/itinerary';
 import { getCostReferences, calculateBudgetSummary, formatMoney } from '@vamo/shared/itinerary';
 
-export const PREVIEW_KEY = '@vamo_preview_itinerary';
+// Handoff one-shot: payload do form serializado em new-itinerary é lido aqui
+// e APAGADO no mesmo useEffect. Sem isso, dois usuários no mesmo dispositivo
+// herdavam o draft anterior. A chave usada é namespeada por travelerId
+// (consistente com new-itinerary), mas mantemos a legacy global como fallback
+// pra leituras de rascunhos não-migrados.
+const PREVIEW_KEY_PREFIX = '@vamo_preview_itinerary';
+const LEGACY_PREVIEW_KEY = '@vamo_preview_itinerary';
+const previewKeyFor = (travelerId: string | null | undefined) =>
+    travelerId ? `${PREVIEW_KEY_PREFIX}:${travelerId}` : null;
+/** @deprecated mantido apenas pra compat com imports externos; nada novo deve usar. */
+export const PREVIEW_KEY = LEGACY_PREVIEW_KEY;
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -146,7 +156,20 @@ export default function ItineraryPreviewScreen() {
     useEffect(() => {
         (async () => {
             try {
-                const raw = await AsyncStorage.getItem(PREVIEW_KEY);
+                // Lê do bucket DESTE usuário (new-itinerary escreveu lá). Como
+                // fallback, também tentamos o legacy global pra capturar previews
+                // criados antes do namespacing. Em qualquer caso, APAGAMOS após
+                // ler — handoff é one-shot, nunca sobreviver a logout.
+                const userKey = previewKeyFor(user?.travelerId);
+                let raw: string | null = null;
+                if (userKey) {
+                    raw = await AsyncStorage.getItem(userKey);
+                    if (raw) AsyncStorage.removeItem(userKey).catch(() => {});
+                }
+                if (!raw) {
+                    raw = await AsyncStorage.getItem(LEGACY_PREVIEW_KEY);
+                    if (raw) AsyncStorage.removeItem(LEGACY_PREVIEW_KEY).catch(() => {});
+                }
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     // Normaliza arrays de mídia defensivamente. Se uma versão
@@ -175,7 +198,7 @@ export default function ItineraryPreviewScreen() {
             }
         })();
         getCurrencyRates().then(setRates).catch(() => undefined);
-    }, []);
+    }, [user?.travelerId]);
 
     function showDisabledHint() {
         haptics.light();

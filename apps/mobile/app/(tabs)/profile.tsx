@@ -12,15 +12,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useFavorites } from '../../src/hooks/useFavorites';
-import { getMyTrips } from '../../src/services/api';
+import { getMyTrips, getMyReviews } from '../../src/services/api';
 import { openExternalUrl as openSafeExternalUrl } from '../../src/utils/externalLinks';
+import { confirm } from '../../src/utils/confirm';
+import { notify } from '../../src/utils/notify';
 import { calculateTravelerProgress } from '../../src/gamification';
 import { getCreatorQuestions } from '../../src/services/api';
 import { formatMoney } from '@vamo/shared/itinerary';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
-const VIEW_MODE_KEY = '@vamo_profile_view_mode';
-const PROFILE_PREFS_KEY = '@vamo_profile_preferences';
+// Chaves namespeadas por travelerId — sem isso, dois usuários no mesmo
+// dispositivo herdavam preferências/modo do anterior (mesma armadilha do
+// carrinho/favoritos). As constantes abaixo são as chaves globais legacy que
+// apagamos uma vez por mount via legacyWipe (defesa-em-profundidade).
+const VIEW_MODE_KEY_PREFIX = '@vamo_profile_view_mode';
+const PROFILE_PREFS_KEY_PREFIX = '@vamo_profile_preferences';
+const LEGACY_VIEW_MODE_KEY = '@vamo_profile_view_mode';
+const LEGACY_PROFILE_PREFS_KEY = '@vamo_profile_preferences';
+const viewModeKeyFor = (travelerId: string | null | undefined) =>
+    travelerId ? `${VIEW_MODE_KEY_PREFIX}:${travelerId}` : null;
+const prefsKeyFor = (travelerId: string | null | undefined) =>
+    travelerId ? `${PROFILE_PREFS_KEY_PREFIX}:${travelerId}` : null;
 type ViewMode = 'traveler' | 'creator';
 
 // ─── Creator dashboard stats (resumo) ─────────────────────────
@@ -90,6 +102,7 @@ export default function ProfileScreen() {
     const [viewMode, setViewMode] = useState<ViewMode>('traveler');
     const [creatorStats, setCreatorStats] = useState<CreatorStatsSummary | null>(null);
     const [statsLoaded, setStatsLoaded] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
 
     // ─── Detecção de roteirista ───────────────────────────────────
     // Fontes (em ordem de prioridade):
@@ -99,20 +112,33 @@ export default function ProfileScreen() {
     // A UI considera o usuário roteirista se QUALQUER uma das fontes confirmar.
     const isCreator = !!user?.creatorId || (creatorStats?.totalItineraries ?? 0) > 0;
 
-    // Hidratar modo salvo
+    // Migration one-shot: chaves globais legacy podem vazar entre usuários.
+    const legacyWiped = useRef(false);
     useEffect(() => {
-        AsyncStorage.getItem(VIEW_MODE_KEY).then((saved) => {
-            if (saved === 'creator' || saved === 'traveler') setViewMode(saved);
-        }).catch(() => { /* ignore */ });
+        if (legacyWiped.current) return;
+        legacyWiped.current = true;
+        AsyncStorage.removeItem(LEGACY_VIEW_MODE_KEY).catch(() => {});
+        AsyncStorage.removeItem(LEGACY_PROFILE_PREFS_KEY).catch(() => {});
     }, []);
+
+    // Hidrata modo salvo do bucket DESTE usuário. Se a conta mudar, recarrega.
+    useEffect(() => {
+        const key = viewModeKeyFor(user?.travelerId);
+        if (!key) { setViewMode('traveler'); return; }
+        AsyncStorage.getItem(key).then((saved) => {
+            if (saved === 'creator' || saved === 'traveler') setViewMode(saved);
+            else setViewMode('traveler');
+        }).catch(() => { /* ignore */ });
+    }, [user?.travelerId]);
 
     // Se o usuário não é criador, força modo viajante (e zera persistência)
     useEffect(() => {
         if (statsLoaded && !isCreator && viewMode !== 'traveler') {
             setViewMode('traveler');
-            AsyncStorage.setItem(VIEW_MODE_KEY, 'traveler').catch(() => {});
+            const key = viewModeKeyFor(user?.travelerId);
+            if (key) AsyncStorage.setItem(key, 'traveler').catch(() => {});
         }
-    }, [isCreator, viewMode, statsLoaded]);
+    }, [isCreator, viewMode, statsLoaded, user?.travelerId]);
 
     // ─── Buscar stats do criador (sempre, para detectar roteirista) ───
     // O backend resolve o creatorId a partir do travelerId do JWT,
@@ -185,7 +211,8 @@ export default function ProfileScreen() {
     const switchMode = async (mode: ViewMode) => {
         haptics.selection();
         setViewMode(mode);
-        try { await AsyncStorage.setItem(VIEW_MODE_KEY, mode); } catch { /* ignore */ }
+        const key = viewModeKeyFor(user?.travelerId);
+        if (key) { try { await AsyncStorage.setItem(key, mode); } catch { /* ignore */ } }
     };
 
     const [currency, setCurrency] = useState(DEFAULT_PROFILE_PREFERENCES.currency);
@@ -197,6 +224,7 @@ export default function ProfileScreen() {
     const [preferencesHydrated, setPreferencesHydrated] = useState(false);
     const [purchasedCount, setPurchasedCount] = useState<number | null>(null);
     const [pendingQuestionsCount, setPendingQuestionsCount] = useState<number>(0);
+    const [reviewsGivenCount, setReviewsGivenCount] = useState<number>(0);
 
     // Modal states
     const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -218,7 +246,18 @@ export default function ProfileScreen() {
     }, []);
 
     useEffect(() => {
-        AsyncStorage.getItem(PROFILE_PREFS_KEY)
+        // Sempre reseta antes de hidratar — assim trocar de conta zera as prefs
+        // do anterior em vez de "manter" enquanto o GET resolve.
+        setPreferencesHydrated(false);
+        setCurrency(DEFAULT_PROFILE_PREFERENCES.currency);
+        setLanguage(DEFAULT_PROFILE_PREFERENCES.language);
+        setAppearance(DEFAULT_PROFILE_PREFERENCES.appearance);
+        setTravelType(DEFAULT_PROFILE_PREFERENCES.travelType);
+        setBudget(DEFAULT_PROFILE_PREFERENCES.budget);
+        setSelectedInterests(DEFAULT_PROFILE_PREFERENCES.selectedInterests);
+        const key = prefsKeyFor(user?.travelerId);
+        if (!key) { setPreferencesHydrated(true); return; }
+        AsyncStorage.getItem(key)
             .then((raw) => {
                 if (!raw) return;
                 const prefs = JSON.parse(raw);
@@ -234,11 +273,13 @@ export default function ProfileScreen() {
             })
             .catch(() => {})
             .finally(() => setPreferencesHydrated(true));
-    }, []);
+    }, [user?.travelerId]);
 
     useEffect(() => {
         if (!preferencesHydrated) return;
-        AsyncStorage.setItem(PROFILE_PREFS_KEY, JSON.stringify({
+        const key = prefsKeyFor(user?.travelerId);
+        if (!key) return;
+        AsyncStorage.setItem(key, JSON.stringify({
             currency,
             language,
             appearance,
@@ -246,24 +287,27 @@ export default function ProfileScreen() {
             budget,
             selectedInterests,
         })).catch(() => {});
-    }, [appearance, budget, currency, language, preferencesHydrated, selectedInterests, travelType]);
+    }, [appearance, budget, currency, language, preferencesHydrated, selectedInterests, travelType, user?.travelerId]);
 
-    useEffect(() => {
+    // Reusa o fetch dos contadores do viajante. Roda em login/logout E sempre
+    // que a tela ganha foco — assim o "Meus Roteiros" e "Reviews" do header
+    // ficam fresh logo depois que o usuário compra/avalia em outra aba.
+    const fetchTravelerStats = React.useCallback(() => {
         if (!accessToken || !isAuthenticated) {
             setPurchasedCount(null);
+            setReviewsGivenCount(0);
             return;
         }
-        let mounted = true;
         getMyTrips(accessToken)
-            .then((result) => {
-                if (!mounted) return;
-                setPurchasedCount(result.purchasedItineraries.length);
-            })
-            .catch(() => {
-                if (mounted) setPurchasedCount(null);
-            });
-        return () => { mounted = false; };
+            .then((result) => setPurchasedCount(result.purchasedItineraries.length))
+            .catch(() => setPurchasedCount(null));
+        getMyReviews(accessToken)
+            .then(({ reviews }) => setReviewsGivenCount(Array.isArray(reviews) ? reviews.length : 0))
+            .catch(() => setReviewsGivenCount(0));
     }, [accessToken, isAuthenticated]);
+
+    useEffect(() => { fetchTravelerStats(); }, [fetchTravelerStats]);
+    useFocusEffect(React.useCallback(() => { fetchTravelerStats(); }, [fetchTravelerStats]));
 
     // Conta perguntas pendentes nos roteiros do criador (badge da Ação Rápida).
     // Refeita sempre que o accessToken muda; falha silenciosa para 0.
@@ -317,20 +361,43 @@ export default function ProfileScreen() {
         }
     };
 
-    const handleLogout = () => {
+    /**
+     * IMPORTANTE — bug histórico: a versão anterior usava `Alert.alert(...)`
+     * que é NO-OP no Expo Web. Como o app roda majoritariamente no navegador
+     * em dev/preview, o usuário tocava "Sign out" e nada acontecia: o Alert
+     * não abria, `logout()` nunca disparava, sessão permanecia.
+     * Fix: usar o helper `confirm()` do projeto, que delega pra Alert.alert
+     * no nativo e pra window.confirm no web.
+     */
+    const handleLogout = async () => {
+        if (loggingOut) return; // evita duplo clique
         haptics.warning();
-        Alert.alert('Sign out', 'Are you sure you want to sign out?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Sign out', style: 'destructive',
-                onPress: async () => {
-                    haptics.success();
-                    await logout();
-                    console.log('[profile] signed out');
-                    router.replace('/login');
-                },
-            },
-        ]);
+        const ok = await confirm({
+            title: 'Sair da conta?',
+            message: 'Você precisará entrar novamente para acessar seus roteiros e compras.',
+            confirmText: 'Sair',
+            cancelText: 'Cancelar',
+            destructive: true,
+        });
+        if (!ok) return;
+
+        setLoggingOut(true);
+        try {
+            haptics.success();
+            await logout();
+            // Navega pra tela de login (auth) — fora do grupo (tabs).
+            // `replace` evita que o usuário volte com gesto "back".
+            router.replace('/login');
+        } catch (e: any) {
+            console.error('[profile] logout failed', e);
+            haptics.error();
+            notify({
+                title: 'Não foi possível sair',
+                message: e?.message || 'Tente novamente em instantes.',
+            });
+        } finally {
+            setLoggingOut(false);
+        }
     };
 
     const handleStatPress = (type: 'itineraries' | 'saved') => {
@@ -350,9 +417,12 @@ export default function ProfileScreen() {
     const travelerProgress = calculateTravelerProgress({
         profileCompleted,
         savedCount,
-        // TODO: ligar contagem real de avaliações do viajante quando houver endpoint.
-        reviewsCount: 0,
+        // Reviews vem de getMyReviews (carregado em fetchTravelerStats).
+        reviewsCount: reviewsGivenCount,
         purchasesCount: purchasedCount ?? 0,
+        // FIXME: idealmente seria countDistinct(country) dos favoritos.
+        // Por ora reusamos o savedCount — viaja junto com o contador da UI
+        // pra evitar mais 1 fetch só pra missão de "5 destinos".
         destinationsCount: savedCount,
     });
 
@@ -761,10 +831,17 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* ══════════ SIGN OUT (less prominent than Delete) ══════════ */}
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                {/* ══════════ SAIR DA CONTA (less prominent than Delete) ══════════ */}
+                <TouchableOpacity
+                    style={[styles.logoutButton, loggingOut && { opacity: 0.55 }]}
+                    onPress={() => { void handleLogout(); }}
+                    disabled={loggingOut}
+                    accessibilityLabel="Sair da conta"
+                >
                     <Icon name="logout" size={18} color={theme.colors.text.tertiary} />
-                    <Text style={styles.logoutText}>Sign out</Text>
+                    <Text style={styles.logoutText}>
+                        {loggingOut ? 'Saindo…' : 'Sair da conta'}
+                    </Text>
                 </TouchableOpacity>
 
                 {/* Version */}

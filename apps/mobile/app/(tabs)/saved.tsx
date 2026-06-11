@@ -26,7 +26,7 @@ import { theme } from '../../src/theme/theme';
 import { Icon } from '../../src/components/common/Icons';
 import { useFavorites } from '../../src/hooks/useFavorites';
 import { haptics } from '../../src/services/haptics';
-import { getItineraryByIdStrict } from '../../src/services/api';
+import { ApiError, getItineraryByIdStrict } from '../../src/services/api';
 import { formatMoney } from '@vamo/shared/itinerary';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -53,10 +53,11 @@ type FavoriteFetchResult =
 async function fetchItinerary(id: string): Promise<FavoriteFetchResult> {
     try {
         const data = await getItineraryByIdStrict(id);
-        return { status: 'available', item: data as FavItem };
+        return { status: 'available', item: { ...data, rating: data.rating ?? 0 } };
     } catch (error) {
-        const message = error instanceof Error ? error.message : '';
-        if (message.includes('404')) return { status: 'unavailable' };
+        // 404 = roteiro removido/despublicado (estado esperado do card);
+        // rede/5xx continuam estourando para o loadError da tela.
+        if (error instanceof ApiError && error.status === 404) return { status: 'unavailable' };
         throw error;
     }
 }
@@ -167,7 +168,9 @@ export default function SavedScreen() {
                     <View style={styles.headerCountBadge}>
                         <Ionicons name="bookmark" size={13} color="rgba(255,255,255,0.85)" />
                         <Text style={styles.headerCountText}>
-                            {loading ? '...' : `${items.length} roteiro${items.length !== 1 ? 's' : ''} salvos`}
+                            {/* Mantemos paridade com o "Salvos" do perfil: total da lista, não só os disponíveis.
+                                Os indisponíveis aparecem como banner separado no corpo da tela. */}
+                            {loading ? '...' : `${favorites.length} roteiro${favorites.length !== 1 ? 's' : ''} salvos`}
                         </Text>
                     </View>
                 </Animated.View>

@@ -34,6 +34,7 @@ import {
     Wifi, Shield, FileText, Shirt, Package, Coins, ShoppingBag, Luggage, Wrench, Pill, Car,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getSession as getStoredSession, setSession as setStoredSession } from '../src/utils/secureSession';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -87,7 +88,18 @@ import {
     dayIsComplete,
 } from '@vamo/shared/itinerary';
 
-const DRAFT_KEY = '@vamo_draft_itinerary_v2';
+// Rascunho do roteiro é dado privado do criador (destino, datas, preços, fotos).
+// Chave por travelerId — sem isso, Maria deslogava e Diego pegava o rascunho dela.
+const DRAFT_KEY_PREFIX = '@vamo_draft_itinerary_v2';
+const LEGACY_DRAFT_KEY = '@vamo_draft_itinerary_v2';
+const draftKeyFor = (travelerId: string | null | undefined) =>
+    travelerId ? `${DRAFT_KEY_PREFIX}:${travelerId}` : null;
+// Preview handoff (form completo serializado entre new-itinerary → preview).
+// Também por travelerId. A tela de preview limpa após ler.
+const PREVIEW_KEY_PREFIX = '@vamo_preview_itinerary';
+const LEGACY_PREVIEW_KEY = '@vamo_preview_itinerary';
+const previewKeyFor = (travelerId: string | null | undefined) =>
+    travelerId ? `${PREVIEW_KEY_PREFIX}:${travelerId}` : null;
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
 // ── Sistema dinâmico de etapas ──────────────────────────────────────
@@ -174,8 +186,20 @@ function buildSteps(activeModules: ModuleKey[]): StepKey[] {
 export default function NewItineraryScreen() {
     const router = useRouter();
     const { id: editId } = useLocalSearchParams<{ id?: string }>();
-    const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
+    const { accessToken, isAuthenticated, isLoading: authLoading, user } = useAuth();
+    const travelerId = user?.travelerId ?? null;
+    const draftKey = draftKeyFor(travelerId);
+    const previewKey = previewKeyFor(travelerId);
     const isEdit = !!editId;
+
+    // Migration: chaves globais legacy apagadas uma vez por mount.
+    const legacyWiped = useRef(false);
+    useEffect(() => {
+        if (legacyWiped.current) return;
+        legacyWiped.current = true;
+        AsyncStorage.removeItem(LEGACY_DRAFT_KEY).catch(() => {});
+        AsyncStorage.removeItem(LEGACY_PREVIEW_KEY).catch(() => {});
+    }, []);
 
     const [step, setStep] = useState(1);
     const [form, setForm] = useState<ItineraryFormState>(createEmptyForm());
@@ -204,7 +228,8 @@ export default function NewItineraryScreen() {
     // ── Hidratar draft local ────────────────────────────────────
     useEffect(() => {
         if (isEdit) return;
-        AsyncStorage.getItem(DRAFT_KEY).then(raw => {
+        if (!draftKey) return; // anônimo: sem persistência
+        AsyncStorage.getItem(draftKey).then(raw => {
             if (!raw) return;
             try {
                 const saved = JSON.parse(raw);
@@ -214,7 +239,7 @@ export default function NewItineraryScreen() {
                 }
             } catch { /* ignore */ }
         });
-    }, [isEdit]);
+    }, [isEdit, draftKey]);
 
     // ── Carregar para edição ────────────────────────────────────
     useEffect(() => {
@@ -252,8 +277,9 @@ export default function NewItineraryScreen() {
     // ── Salvar draft local ──────────────────────────────────────
     const saveDraftLocal = useCallback((f: ItineraryFormState, s: number) => {
         if (isEdit) return;
-        AsyncStorage.setItem(DRAFT_KEY, JSON.stringify({ form: f, step: s })).catch(() => {});
-    }, [isEdit]);
+        if (!draftKey) return;
+        AsyncStorage.setItem(draftKey, JSON.stringify({ form: f, step: s })).catch(() => {});
+    }, [isEdit, draftKey]);
 
     const updateForm = useCallback(<K extends keyof ItineraryFormState>(key: K, value: ItineraryFormState[K]) => {
         setForm(prev => {
@@ -367,7 +393,7 @@ export default function NewItineraryScreen() {
                 throw new Error(err?.error || fallback);
             }
             haptics.success();
-            await AsyncStorage.removeItem(DRAFT_KEY);
+            if (draftKey) await AsyncStorage.removeItem(draftKey);
             router.replace('/await-review');
         } catch (e: any) {
             haptics.error?.();
@@ -404,7 +430,11 @@ export default function NewItineraryScreen() {
                 images: normalizeUrls(form.images),
                 mediaUrls: normalizeUrls(form.mediaUrls),
             };
-            await AsyncStorage.setItem('@vamo_preview_itinerary', JSON.stringify(payload));
+            if (!previewKey) {
+                notify({ title: 'Sessão expirada', message: 'Faça login para visualizar a prévia.' });
+                return;
+            }
+            await AsyncStorage.setItem(previewKey, JSON.stringify(payload));
             router.push('/itinerary-preview');
         } catch (e: any) {
             Alert.alert('Erro', e?.message || 'Não foi possível abrir a prévia.');
@@ -428,7 +458,7 @@ export default function NewItineraryScreen() {
                 const errBody = await draftRes.json().catch(() => ({}));
                 throw new Error(errBody?.error || `Erro ${draftRes.status} ao salvar rascunho`);
             }
-            await AsyncStorage.removeItem(DRAFT_KEY);
+            if (draftKey) await AsyncStorage.removeItem(draftKey);
             router.replace('/created-itineraries');
         } catch (e: any) {
             notify({ title: 'Erro', message: e?.message || 'Não foi possível salvar o rascunho.' });
@@ -478,7 +508,7 @@ export default function NewItineraryScreen() {
                             <TouchableOpacity
                                 style={s.modalBtnGhost}
                                 onPress={() => {
-                                    AsyncStorage.removeItem(DRAFT_KEY);
+                                    if (draftKey) AsyncStorage.removeItem(draftKey);
                                     setShowResume(false);
                                     setPendingDraft(null);
                                 }}>
@@ -2852,17 +2882,16 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
  * silenciosamente) — permite mostrar o erro real ao usuário.
  */
 /**
- * Renova o accessToken usando o refreshToken salvo no AsyncStorage.
+ * Renova o accessToken usando o refreshToken salvo na sessão
+ * (SecureStore no nativo, AsyncStorage no web — via secureSession).
  * Retorna o novo accessToken ou null se o refresh falhar (refreshToken
  * também expirado/inválido — usuário precisa fazer login de novo).
  */
 async function tryRefreshSession(): Promise<string | null> {
     try {
-        const raw = await AsyncStorage.getItem('@vamo_session');
-        if (!raw) return null;
-        const session = JSON.parse(raw);
+        const session = await getStoredSession();
         const refreshToken = session?.refreshToken;
-        if (!refreshToken) return null;
+        if (!session || !refreshToken) return null;
 
         const res = await fetch(`${API_BASE}/auth/traveler/refresh`, {
             method: 'POST',
@@ -2874,10 +2903,7 @@ async function tryRefreshSession(): Promise<string | null> {
         const newToken = data.accessToken;
         if (!newToken) return null;
 
-        await AsyncStorage.setItem(
-            '@vamo_session',
-            JSON.stringify({ ...session, accessToken: newToken }),
-        );
+        await setStoredSession({ ...session, accessToken: newToken });
         return newToken;
     } catch {
         return null;

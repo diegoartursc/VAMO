@@ -1,7 +1,15 @@
-import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../contexts/AuthContext';
 
-const FAVORITES_KEY = '@vamo_favorites';
+// Favoritos são por-usuário. A chave inclui o travelerId para evitar que a
+// lista vaze entre contas no mesmo dispositivo (ex.: Maria faz logout, Diego
+// faz login e herda os favoritos da Maria). Usuário não logado opera em
+// memória — nada persiste, e nada migra para a conta quando ele logar.
+const KEY_PREFIX = '@vamo_favorites';
+const LEGACY_GLOBAL_KEY = '@vamo_favorites';
+const keyFor = (travelerId: string | null | undefined) =>
+    travelerId ? `${KEY_PREFIX}:${travelerId}` : null;
 
 export const normalizeFavoriteIds = (value: unknown): string[] => {
     if (!Array.isArray(value)) return [];
@@ -37,42 +45,73 @@ interface FavoritesProviderProps {
 }
 
 export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }) => {
+    const { user } = useAuth();
+    const travelerId = user?.travelerId ?? null;
+
     const [favorites, setFavorites] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load favorites from storage on mount
+    // Migration one-shot: chave global pré-namespacing podia vazar entre usuários.
+    // Apagamos no primeiro mount para que ninguém herde a lista por engano.
+    const legacyWiped = useRef(false);
     useEffect(() => {
-        loadFavorites();
+        if (legacyWiped.current) return;
+        legacyWiped.current = true;
+        AsyncStorage.removeItem(LEGACY_GLOBAL_KEY).catch(() => {});
     }, []);
 
-    const loadFavorites = async () => {
-        try {
-            const stored = await AsyncStorage.getItem(FAVORITES_KEY);
-            if (stored) {
-                const normalized = normalizeFavoriteIds(JSON.parse(stored));
-                setFavorites(normalized);
-                if (stored !== JSON.stringify(normalized)) {
-                    await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(normalized));
+    // Carrega (ou esvazia) a lista sempre que o usuário muda. Logout -> []; login -> bucket dele.
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            setIsLoading(true);
+            const key = keyFor(travelerId);
+            if (!key) {
+                if (!cancelled) {
+                    setFavorites([]);
+                    setIsLoading(false);
                 }
+                return;
             }
-        } catch (error) {
-            console.error('Error loading favorites:', error);
-            await AsyncStorage.removeItem(FAVORITES_KEY);
-            setFavorites([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+            try {
+                const stored = await AsyncStorage.getItem(key);
+                if (cancelled) return;
+                if (stored) {
+                    const normalized = normalizeFavoriteIds(JSON.parse(stored));
+                    setFavorites(normalized);
+                    if (stored !== JSON.stringify(normalized)) {
+                        await AsyncStorage.setItem(key, JSON.stringify(normalized));
+                    }
+                } else {
+                    setFavorites([]);
+                }
+            } catch (error) {
+                console.error('Error loading favorites:', error);
+                if (!cancelled) setFavorites([]);
+                AsyncStorage.removeItem(key).catch(() => {});
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        };
+        load();
+        return () => { cancelled = true; };
+    }, [travelerId]);
 
-    const saveFavorites = async (newFavorites: string[]) => {
-        const normalized = normalizeFavoriteIds(newFavorites);
+    const persist = useCallback(async (next: string[]) => {
+        const key = keyFor(travelerId);
+        if (!key) return; // anônimo: só memória
         try {
-            setFavorites(normalized);
-            await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(normalized));
+            await AsyncStorage.setItem(key, JSON.stringify(next));
         } catch (error) {
             console.error('Error saving favorites:', error);
         }
-    };
+    }, [travelerId]);
+
+    const saveFavorites = useCallback(async (newFavorites: string[]) => {
+        const normalized = normalizeFavoriteIds(newFavorites);
+        setFavorites(normalized);
+        await persist(normalized);
+    }, [persist]);
 
     const isFavorite = useCallback((id: string) => {
         return typeof id === 'string' && favorites.includes(id.trim());
@@ -82,16 +121,14 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
         const normalizedId = typeof id === 'string' ? id.trim() : '';
         if (!normalizedId) return;
         if (!favorites.includes(normalizedId)) {
-            const updated = [...favorites, normalizedId];
-            await saveFavorites(updated);
+            await saveFavorites([...favorites, normalizedId]);
         }
-    }, [favorites]);
+    }, [favorites, saveFavorites]);
 
     const removeFavorite = useCallback(async (id: string) => {
         const normalizedId = typeof id === 'string' ? id.trim() : '';
-        const updated = favorites.filter(fav => fav !== normalizedId);
-        await saveFavorites(updated);
-    }, [favorites]);
+        await saveFavorites(favorites.filter(fav => fav !== normalizedId));
+    }, [favorites, saveFavorites]);
 
     const toggleFavorite = useCallback(async (id: string): Promise<boolean> => {
         const normalizedId = typeof id === 'string' ? id.trim() : '';
@@ -110,7 +147,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
 
     const clearFavorites = useCallback(async () => {
         await saveFavorites([]);
-    }, []);
+    }, [saveFavorites]);
 
     const value: FavoritesContextType = {
         favorites,

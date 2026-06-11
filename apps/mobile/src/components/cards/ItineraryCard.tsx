@@ -10,6 +10,7 @@ import { getModuleBadges, getCategoryChips } from '../../utils/itineraryCardBadg
 import { getCoverImages, getCoverFocalPoint } from '../../utils/itineraryMedia';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useCart } from '../../hooks/useCart';
+import { evaluateItineraryAvailability } from '../../utils/availability';
 import { calculateBudgetSummary, formatMoney } from '@vamo/shared/itinerary';
 
 const MAX_CATEGORY_CHIPS = 3;
@@ -31,12 +32,13 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     const moduleChips = allModuleBadges.slice(0, MAX_MODULE_CHIPS);
     const extraModules = allModuleBadges.length - moduleChips.length;
     const { isFavorite, toggleFavorite } = useFavorites();
-    const { isInCart, addToCart } = useCart();
+    const { isInCart, addToCart, isOwned } = useCart();
     const [cartAdded, setCartAdded] = useState(false);
 
     const itineraryId = typeof itinerary?.id === 'string' ? itinerary.id : '';
     const fav = itineraryId ? isFavorite(itineraryId) : false;
     const inCart = itineraryId ? isInCart(itineraryId) : false;
+    const owned = itineraryId ? isOwned(itineraryId) : false;
     const itineraryPrice = Number(itinerary.price);
     const priceLabel = Number.isFinite(itineraryPrice) && itineraryPrice > 0
         ? formatMoney(itineraryPrice, 'AUD')
@@ -46,7 +48,11 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     const creatorRatingLabel = Number.isFinite(creatorRating) && creatorRating > 0
         ? creatorRating.toFixed(1)
         : 'Novo';
-    const salesCount = Number(itinerary.creator?.salesCount);
+    // Vendas REAIS por roteiro (Itinerary._count.sales) — backend expõe esse
+    // valor no top-level. creator.salesCount vem do campo agregado
+    // Creator.totalSales que historicamente não é incrementado a cada venda,
+    // então só usamos como fallback se o top-level estiver ausente.
+    const salesCount = Number(itinerary.salesCount ?? itinerary.creator?.salesCount);
     const salesLabel = Number.isFinite(salesCount) && salesCount > 0
         ? `${salesCount.toLocaleString('pt-BR')} vendas`
         : 'Roteirista';
@@ -80,11 +86,16 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     const handleCart = async (e: any) => {
         e.stopPropagation?.();
         if (!itineraryId) return;
-        if (!inCart) {
-            await addToCart(itineraryId);
-            setCartAdded(true);
-            setTimeout(() => setCartAdded(false), 2000);
-        }
+        if (inCart) return;
+        // Mesmo gate do detalhe + cart screen: roteiro tem que estar comprável
+        // e usuário não pode já ser dono. Listings já pré-filtram o status, mas
+        // mantemos o check pra defender contra cache desatualizado.
+        if (owned) return;
+        const avail = evaluateItineraryAvailability(itinerary);
+        if (!avail.ok) return;
+        await addToCart(itineraryId);
+        setCartAdded(true);
+        setTimeout(() => setCartAdded(false), 2000);
     };
 
     return (

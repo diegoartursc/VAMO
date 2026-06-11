@@ -10,13 +10,13 @@
     {
       "name": "site",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:site"],
+      "runtimeArgs": ["run", "dev", "--workspace=apps/site", "--", "-p", "3033"],
       "port": 3033
     },
     {
       "name": "admin",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:site", "--", "-p", "3034"],
+      "runtimeArgs": ["run", "dev", "--workspace=apps/site", "--", "-p", "3034"],
       "port": 3034
     },
     {

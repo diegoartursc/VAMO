@@ -6,6 +6,8 @@ import { Icon, IconName } from '../../src/components/common/Icons';
 import { useCart } from '../../src/hooks/useCart';
 
 export default function TabsLayout() {
+    // `cartCount` = disponíveis + indisponíveis (já-comprados ficam fora).
+    // Fonte única em useCart, alinhada com o que a tela do carrinho renderiza.
     const { cartCount } = useCart();
     return (
         <SearchProvider>
