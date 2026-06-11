@@ -18,9 +18,17 @@ const ALLOWED_MIMES = new Set([
     'image/heic-sequence', 'image/heif-sequence', 'application/pdf',
     'video/mp4', 'video/quicktime', 'video/webm', 'application/octet-stream',
 ]);
+// Fonte de verdade das categorias = apps/mobile/src/features/trip-center/
+// fileCategories.ts (FILE_CATEGORIES). Mantenha esta lista SINCRONIZADA com
+// aquela (sempre em minúsculas — o handler compara com toLocaleLowerCase).
+// Os aliases extras (`passeios`, `seguro viagem`, `geral`) cobrem dados
+// legados/clientes antigos sem rejeitar uploads válidos.
 const ALLOWED_CATEGORIES = new Set([
-    'voos', 'hospedagem', 'passeios', 'passeios e ingressos', 'documentos',
-    'seguro', 'seguro viagem', 'recibos', 'transporte', 'outros',
+    // Canônicas (espelho de FILE_CATEGORIES, lowercase)
+    'voos', 'hospedagem', 'passeios e ingressos', 'documentos',
+    'seguro', 'recibos', 'transporte', 'outros',
+    // Aliases legados aceitos por compatibilidade
+    'passeios', 'seguro viagem', 'geral',
 ]);
 
 type OwnershipResult = { saleId: string };

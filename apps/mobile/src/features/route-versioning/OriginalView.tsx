@@ -32,11 +32,24 @@ import type { RouteSnapshot } from '../../services/routeCustomization';
 
 export interface OriginalViewProps {
     snapshot: RouteSnapshot | null | undefined;
-    /**
-     * Mantido por compatibilidade com o container. A versão Original é
-     * integralmente somente leitura; o progresso vive na Central da Viagem.
-     */
     itineraryId?: string;
+    /**
+     * Progresso pessoal do comprador sobre o checklist do criador
+     * (`creatorChecklistProgress` do customization). Chave por item =
+     * `id:<id>` ou `idx:<n>` (mesma convenção do ChecklistTab → o progresso
+     * é UM só, compartilhado entre Original e Minha Versão após reload).
+     */
+    checklistProgress?: Record<string, boolean>;
+    /** Habilita marcar/desmarcar (só comprador autenticado). Estrutura do
+     * checklist continua imutável — só o progresso é interativo. */
+    canToggleChecklist?: boolean;
+    /** Persiste o toggle de um item (recebe a key do item). */
+    onToggleChecklist?: (key: string) => void;
+}
+
+/** Key estável de um item do checklist do criador (espelha ChecklistTab). */
+function checklistKey(item: any, idx: number): string {
+    return item && typeof item === 'object' && item.id ? `id:${item.id}` : `idx:${idx}`;
 }
 
 /**
@@ -82,7 +95,12 @@ function SectionTitle({ icon, label, subtitle }: { icon: string; label: string; 
 
 // ─── Componente principal ────────────────────────────────────
 
-export default function OriginalView({ snapshot }: OriginalViewProps) {
+export default function OriginalView({
+    snapshot,
+    checklistProgress = {},
+    canToggleChecklist = false,
+    onToggleChecklist,
+}: OriginalViewProps) {
     const [expandedDays, setExpandedDays] = useState<Set<number>>(() => new Set([1]));
 
     const sections = useMemo(() => {
@@ -348,25 +366,44 @@ export default function OriginalView({ snapshot }: OriginalViewProps) {
                     <SectionTitle
                         icon="checkmark-circle-outline"
                         label="Checklist do roteiro"
-                        subtitle="Versão comprada do checklist, preservada em modo somente leitura."
+                        subtitle={canToggleChecklist
+                            ? 'Marque o que já resolveu. Seu progresso é privado e não altera o roteiro do criador.'
+                            : 'Versão comprada do checklist, preservada em modo somente leitura.'}
                     />
                     <View style={styles.checklistCard}>
                         {sections.checklistItems.map((c: any, i: number) => {
                             const text =
                                 (typeof c === 'string' ? c : (c?.item || c?.text || c?.label || '')).toString();
                             const category = (typeof c === 'object' && c?.category) ? String(c.category) : '';
+                            const key = checklistKey(c, i);
+                            const done = !!checklistProgress[key];
+                            // Estrutura imutável: o viajante NÃO edita/adiciona/remove
+                            // itens aqui — só marca/desmarca (progresso pessoal).
+                            const handlePress = () => {
+                                if (!canToggleChecklist || !onToggleChecklist) return;
+                                haptics.light();
+                                onToggleChecklist(key);
+                            };
                             return (
-                                <View
+                                <TouchableOpacity
                                     key={c?.id ?? `chk-${i}`}
                                     style={[
                                         styles.checkRow,
                                         i < sections.checklistItems.length - 1 && styles.checkRowBorder,
                                     ]}
+                                    onPress={handlePress}
+                                    disabled={!canToggleChecklist}
+                                    activeOpacity={0.7}
+                                    accessibilityRole="checkbox"
+                                    accessibilityState={{ checked: done, disabled: !canToggleChecklist }}
+                                    accessibilityLabel={`${done ? 'Desmarcar' : 'Marcar'}: ${text}`}
                                 >
-                                    <View style={styles.checkBox} />
+                                    <View style={[styles.checkBox, done && styles.checkBoxActive]}>
+                                        {done && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                    </View>
                                     <View style={{ flex: 1 }}>
                                         <Text
-                                            style={styles.checkText}
+                                            style={[styles.checkText, done && styles.checkTextDone]}
                                             numberOfLines={3}
                                         >
                                             {text}
@@ -375,7 +412,7 @@ export default function OriginalView({ snapshot }: OriginalViewProps) {
                                             <Text style={styles.checkCategoryHint}>{category}</Text>
                                         ) : null}
                                     </View>
-                                </View>
+                                </TouchableOpacity>
                             );
                         })}
                     </View>

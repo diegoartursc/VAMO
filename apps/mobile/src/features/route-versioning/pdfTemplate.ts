@@ -24,6 +24,7 @@
  */
 
 import type { MergedItem, MergedItinerary } from './mergeEngine';
+import { getCostReferences, formatMoney } from '@vamo/shared/itinerary';
 
 // ─── Tipos públicos ─────────────────────────────────────────────────
 
@@ -44,6 +45,10 @@ export interface PdfBuildOpts {
     generatedAtISO?: string;
     travelerChecklist?: Array<{ item: string; category?: string; completed?: boolean }>;
     travelerFiles?: Array<{ title: string; category?: string; note?: string | null; originalFileName?: string | null }>;
+    /** Taxas de câmbio (moeda → multiplicador p/ AUD) para a seção de custos
+     * converter cada item à moeda de referência. Sem isso, itens não-AUD
+     * entram sem conversão (multiplicador 1). Mesma fonte que a tela. */
+    rates?: Record<string, number>;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -289,6 +294,7 @@ function renderDayActivity(data: any, source?: MergedItem['source']): string {
 
 interface SectionContext {
     variant: PdfVariant;
+    rates?: Record<string, number>;
 }
 
 function sectionWrapper(title: string, body: string): string {
@@ -458,6 +464,79 @@ function renderExtraSpendingSection(itinerary: any, merged: MergedItinerary | nu
     return sectionWrapper('Gastos Extras', items.map((e: any) => renderExtraSpending(e)).join(''));
 }
 
+/**
+ * Seção de custos do PDF — USA A MESMA FONTE QUE A TELA (`getCostReferences`
+ * de @vamo/shared) sobre os MESMOS arrays:
+ *   - 'original'     → arrays do snapshot/itinerary;
+ *   - 'personalized' → arrays do merged (com edições/adições/ocultações).
+ *
+ * Cada item sai na moeda original informada + conversão "≈ A$" (taxas do
+ * caller). O total é multi-moeda-safe: soma o valor por pessoa de cada item
+ * convertido para AUD (nunca soma JPY+AUD cru). Espelha exatamente a
+ * "Referência de Gastos por Pessoa" da tela do roteiro comprado.
+ */
+function renderCostReferenceSection(
+    itinerary: any,
+    merged: MergedItinerary | null | undefined,
+    ctx: SectionContext,
+): string {
+    const useMerged = ctx.variant === 'personalized' && !!merged;
+    const pick = (mergedArr: MergedItem[] | undefined, itinArr: any): any[] =>
+        useMerged
+            ? (mergedArr ?? []).map(m => m.data)
+            : (Array.isArray(itinArr) ? itinArr : []);
+
+    const costForm = {
+        accommodations: pick(merged?.accommodations, itinerary?.accommodations),
+        attractions: pick(merged?.attractions, itinerary?.attractions),
+        transports: pick(merged?.transports, itinerary?.transports),
+        restaurants: pick(merged?.restaurants, itinerary?.restaurants),
+        extraSpendingItems: pick(merged?.extraSpendingItems, itinerary?.extraSpendingItems),
+        // Voo ainda vem do snapshot (viajante não edita custo de voo hoje).
+        flightCost: itinerary?.flightInfo?.cost,
+        flightSpending: itinerary?.flightInfo?.spending,
+    };
+
+    const groups = getCostReferences(costForm as any);
+    if (!groups.length) return '';
+
+    const rates = ctx.rates ?? {};
+    const toAud = (amount: number, currency: string): number =>
+        currency === 'AUD' ? amount : amount * (rates[currency] ?? 1);
+
+    let totalAud = 0;
+    const groupsHtml = groups.map(group => {
+        const itemsHtml = group.items.map(item => {
+            totalAud += toAud(item.amountPerPerson, item.currency);
+            const main = formatMoney(item.amountPerPerson, item.currency);
+            const conv = item.currency !== 'AUD'
+                ? ` <span class="cost-conv">≈ ${escapeHtml(formatMoney(toAud(item.amountPerPerson, item.currency), 'AUD'))}</span>`
+                : '';
+            const base = item.sharedByPeople > 1
+                ? `<div class="cost-base">Base: ${escapeHtml(formatMoney(item.amountTotal, item.currency))} ÷ ${item.sharedByPeople} pessoas</div>`
+                : '';
+            return `
+                <div class="cost-item">
+                    <div class="cost-item-head">
+                        <span class="cost-item-title">${escapeHtml(item.title)}</span>
+                        <span class="cost-item-value">${escapeHtml(main)} / pessoa${conv}</span>
+                    </div>
+                    ${base}
+                </div>`;
+        }).join('');
+        return `
+            <div class="cost-group">
+                <h3 class="cost-group-title">${escapeHtml(group.moduleLabel)}</h3>
+                ${itemsHtml}
+            </div>`;
+    }).join('');
+
+    const totalHtml = `<div class="cost-total">Total estimado por pessoa <strong>${escapeHtml(formatMoney(totalAud, 'AUD'))}</strong></div>`;
+    const disclaimer = `<p class="cost-disclaimer">Valores de referência por pessoa, informados pelo criador ou por você. Podem variar por época, câmbio e disponibilidade.</p>`;
+
+    return sectionWrapper('Custos e orçamento (referência por pessoa)', groupsHtml + totalHtml + disclaimer);
+}
+
 // ─── CSS ────────────────────────────────────────────────────────────
 //
 // Mantido inline para o PDF ser self-contained. Fonte usa system stack —
@@ -530,6 +609,23 @@ const PDF_CSS = `
         padding-bottom: 6px;
         border-bottom: 2px solid #E0EAF0;
     }
+    /* Custos */
+    .cost-group { margin-bottom: 14px; page-break-inside: avoid; }
+    .cost-group-title {
+        font-size: 12pt; color: #1FA89F; font-weight: 700;
+        margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .cost-item { padding: 6px 0; border-bottom: 1px solid #EEF3F7; }
+    .cost-item-head { display: flex; justify-content: space-between; gap: 12px; }
+    .cost-item-title { color: #1A3263; }
+    .cost-item-value { color: #1A3263; font-weight: 600; white-space: nowrap; }
+    .cost-conv { color: #64748B; font-weight: 400; }
+    .cost-base { font-size: 10pt; color: #64748B; margin-top: 2px; }
+    .cost-total {
+        margin-top: 12px; padding-top: 10px; border-top: 2px solid #28C9BF;
+        display: flex; justify-content: space-between; font-size: 13pt; color: #1A3263;
+    }
+    .cost-disclaimer { font-size: 9.5pt; color: #94A3B8; margin: 8px 0 0; }
     /* Cards */
     .card {
         border: 1px solid #E0EAF0;
@@ -706,7 +802,7 @@ const PDF_CSS = `
 export function buildPdfHtml(opts: PdfBuildOpts): string {
     const { itinerary, merged, variant } = opts;
     const generatedAtISO = opts.generatedAtISO ?? new Date().toISOString();
-    const ctx: SectionContext = { variant };
+    const ctx: SectionContext = { variant, rates: opts.rates };
 
     const meta = getMeta(itinerary);
 
@@ -733,6 +829,7 @@ export function buildPdfHtml(opts: PdfBuildOpts): string {
         renderTravelerChecklist(opts.travelerChecklist, variant),
         renderTravelerFiles(opts.travelerFiles, variant),
         renderExtraSpendingSection(itinerary, merged, ctx),
+        renderCostReferenceSection(itinerary, merged, ctx),
     ].filter(Boolean).join('');
 
     const generatedAt = formatDateBR(generatedAtISO);

@@ -569,17 +569,15 @@ export default function MyRouteView({
                 onRequestRemove={(item) => { void handleRequestRemove(item, pickItemTitle(item)); }}
             />
 
-            {/* ── Gastos Extras ── */}
-            <ListSection
-                kind="extraSpendingItems"
+            {/* ── Gastos Extras ── (read mode limpo + toggle de edição) ──
+                Mesmo padrão visual das Dicas: o "Editar"/"Remover" sob
+                cada item virava ruído num bloco com vários gastos curtos.
+                Modo edição centralizado por seção tira essa poluição. */}
+            <ExtraSpendingSection
                 items={sections.extraSpendingItems}
-                icon="wallet-outline"
-                label="Gastos Extras"
-                addLabel="Adicionar gasto extra"
                 canEdit={canEdit}
                 onAdd={() => onAddItem('extraSpendingItems')}
                 onTap={handleCardPress}
-                onLongPress={handleCardLongPress}
                 onRequestRemove={(item) => { void handleRequestRemove(item, pickItemTitle(item)); }}
             />
 
@@ -813,8 +811,134 @@ function TipsSection({
                 </View>
             ) : null}
 
+            {items.length === 0 ? (
+                <Text style={styles.emptySectionHint}>
+                    Você ainda não adicionou dicas. Guarde aqui lembretes e dicas pessoais desta viagem.
+                </Text>
+            ) : null}
+
             {canEdit ? (
                 <AddRowButton label="Adicionar dica" onPress={onAdd} />
+            ) : null}
+        </View>
+    );
+}
+
+/**
+ * Seção "Gastos Extras" com modo edição.
+ *
+ * Mesmo padrão do TipsSection: read mode limpo (cards puros, zero
+ * CardActions abaixo) + toggle "Editar"/"Concluir" no canto direito do
+ * header. Em edit mode aparece lixeira discreta à direita de cada card
+ * e tocar no card abre o EditItemModal.
+ *
+ * Por que não reusei o ListSection: ele renderiza CardActions abaixo de
+ * cada item ALWAYS. Pra Gastos Extras isso virava ruído visual igual ao
+ * das Dicas. Componente próprio mantém ListSection genérica e simples.
+ */
+function ExtraSpendingSection({
+    items,
+    canEdit,
+    onAdd,
+    onTap,
+    onRequestRemove,
+}: {
+    items: MergedItem[];
+    canEdit: boolean;
+    onAdd: () => void;
+    onTap: (item: MergedItem) => void;
+    onRequestRemove: (item: MergedItem) => void;
+}) {
+    const [editMode, setEditMode] = useState(false);
+
+    if (items.length === 0 && !canEdit) return null;
+    const canShowToggle = canEdit && items.length > 0;
+
+    return (
+        <View style={styles.block}>
+            <View style={styles.tipsHeader}>
+                <View style={styles.sectionRow}>
+                    <View style={styles.sectionIcon}>
+                        <Ionicons name="wallet-outline" size={16} color={theme.colors.primary} />
+                    </View>
+                    <Text style={styles.sectionTitle}>Gastos Extras</Text>
+                </View>
+                {canShowToggle ? (
+                    <TouchableOpacity
+                        style={[styles.tipsToggleBtn, editMode && styles.tipsToggleBtnActive]}
+                        onPress={() => {
+                            haptics.selection();
+                            setEditMode(prev => !prev);
+                        }}
+                        activeOpacity={0.85}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        accessibilityLabel={editMode ? 'Concluir edição dos gastos' : 'Editar seção'}
+                    >
+                        <Ionicons
+                            name={editMode ? 'checkmark' : 'pencil'}
+                            size={13}
+                            color={editMode ? '#fff' : theme.colors.primary}
+                        />
+                        <Text
+                            style={[
+                                styles.tipsToggleLabel,
+                                editMode && styles.tipsToggleLabelActive,
+                            ]}
+                        >
+                            {editMode ? 'Concluir' : 'Editar seção'}
+                        </Text>
+                    </TouchableOpacity>
+                ) : null}
+            </View>
+
+            {editMode && items.length > 0 ? (
+                <Text style={styles.tipsEditHint}>
+                    Toque num gasto para editar. Use a lixeira para remover.
+                </Text>
+            ) : null}
+
+            {items.length > 0 ? (
+                items.map((it, idx) => {
+                    const key = it.originalId || it.addedId || `extra-${idx}`;
+                    return (
+                        <View key={key} style={styles.tipRow}>
+                            <View style={{ flex: 1 }}>
+                                <TouchableOpacity
+                                    activeOpacity={editMode ? 0.85 : 1}
+                                    onPress={() => editMode && onTap(it)}
+                                    disabled={!editMode}
+                                >
+                                    <ItemCard merged={it} />
+                                </TouchableOpacity>
+                            </View>
+                            {editMode && canEdit ? (
+                                <TouchableOpacity
+                                    style={styles.tipDeleteBtn}
+                                    onPress={() => onRequestRemove(it)}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                    accessibilityLabel="Remover gasto"
+                                >
+                                    <Ionicons
+                                        name="trash-outline"
+                                        size={15}
+                                        color={theme.colors.text.tertiary}
+                                    />
+                                </TouchableOpacity>
+                            ) : null}
+                        </View>
+                    );
+                })
+            ) : null}
+
+            {canEdit ? (
+                <>
+                    {items.length === 0 ? (
+                        <Text style={styles.emptySectionHint}>
+                            Nenhum gasto extra adicionado. Inclua chip, seguro, bagagem e outros custos da viagem.
+                        </Text>
+                    ) : null}
+                    <AddRowButton label="Adicionar gasto extra" onPress={onAdd} />
+                </>
             ) : null}
         </View>
     );
@@ -1150,6 +1274,14 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         marginLeft: 2,
         fontStyle: 'italic',
+    },
+    // Texto explicativo quando a seção (Dicas/Gastos Extras) está vazia.
+    emptySectionHint: {
+        fontSize: 12.5,
+        color: theme.colors.text.tertiary,
+        lineHeight: 18,
+        marginBottom: 10,
+        marginTop: 2,
     },
     // Cada dica dentro do groupedCard em modo edição.
     tipRow: {

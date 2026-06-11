@@ -515,6 +515,28 @@ export default function RouteVersioning({
         [buildBase, mutateCustomization],
     );
 
+    // ─── Checklist do criador na aba Original (progresso pessoal) ──
+    // Mesmo campo `creatorChecklistProgress` que a Central da Viagem usa,
+    // com a mesma convenção de chave → marcar na Original reflete na Minha
+    // Versão (e vice-versa) após o próximo carregamento. Estrutura do
+    // checklist NUNCA muda; só o progresso (privado do comprador).
+    const creatorChecklistProgress = useMemo(
+        () => ((customization?.addedItems as any)?.creatorChecklistProgress ?? {}) as Record<string, boolean>,
+        [customization],
+    );
+
+    const toggleCreatorChecklist = useCallback(
+        async (key: string) => {
+            const currentAdded = (customization?.addedItems ?? {}) as Record<string, any>;
+            const currentProgress = (currentAdded.creatorChecklistProgress ?? {}) as Record<string, boolean>;
+            const nextProgress = { ...currentProgress, [key]: !currentProgress[key] };
+            await applyPatchOnly({
+                addedItems: { ...currentAdded, creatorChecklistProgress: nextProgress },
+            });
+        },
+        [customization, applyPatchOnly],
+    );
+
     // ─── Modais ────────────────────────────────────────────────
 
     const [editTarget, setEditTarget] = useState<MergedItem | null>(null);
@@ -618,9 +640,16 @@ export default function RouteVersioning({
                 </View>
             ) : tab === 'original' ? (
                 <View style={styles.body}>
-                    {/* itineraryId habilita o check/uncheck do checklist do
-                        roteiro, sincronizado com a Central via AsyncStorage. */}
-                    <OriginalView snapshot={snapshot} itineraryId={itineraryId} />
+                    {/* Checklist do criador interativo: progresso pessoal salvo
+                        no customization (creatorChecklistProgress), mesma fonte
+                        da Central da Viagem. Estrutura permanece somente-leitura. */}
+                    <OriginalView
+                        snapshot={snapshot}
+                        itineraryId={itineraryId}
+                        checklistProgress={creatorChecklistProgress}
+                        canToggleChecklist={effectiveCanEdit}
+                        onToggleChecklist={(key) => { void toggleCreatorChecklist(key); }}
+                    />
                 </View>
             ) : (
                 <View style={styles.body}>

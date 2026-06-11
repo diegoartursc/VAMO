@@ -388,6 +388,7 @@ export default function PurchasedItineraryScreen() {
                 merged: variant === 'personalized' ? merged ?? undefined : undefined,
                 variant,
                 generatedAtISO,
+                rates: currencyRates,
                 travelerChecklist: variant === 'personalized' ? travelerChecklist : undefined,
                 travelerFiles: variant === 'personalized' ? travelerFiles : undefined,
             });
@@ -518,38 +519,37 @@ export default function PurchasedItineraryScreen() {
                         envolve todo o bloco; o atalho "Abrir checklist" do
                         "Comece por aqui" rola até aqui, e o usuário escolhe
                         a aba "Minha versão" para usar checklist/arquivos. */}
-                    {/* Dois wrappers aninhados: o externo trackeia 'itinerary'
-                        (atalho "Ver roteiro por dia"), o interno trackeia
-                        'checklist' (atalho "Abrir checklist"). Hoje ambos
-                        apontam pro mesmo y porque o RouteVersioning é o bloco
-                        único, mas separamos as keys pra clareza semântica e
-                        pra futuro evento "Ver custos" não conflitar. */}
+                    {/* `trackSection('itinerary')` envolve o bloco "Meu roteiro"
+                        (atalho "Ver roteiro por dia"). O `trackSection('checklist')`
+                        agora envolve a PRÓPRIA Central da Viagem (TripCenter) dentro
+                        de `mineExtras` — o atalho "Abrir checklist" troca pra Minha
+                        Versão e rola até o checklist de verdade, não só ao topo do bloco. */}
                     <View ref={trackSection('itinerary')} collapsable={false}>
-                        <View ref={trackSection('checklist')} collapsable={false}>
-                            <RouteVersioning
-                                itineraryId={id as string}
-                                liveItinerary={itinerary}
-                                canEdit={isAuthenticated && !!accessToken}
-                                targetTab={routeTargetTab}
-                                onMergedChange={setMergedItinerary}
-                                onExportPdf={({ variant, snapshot, merged }) => {
-                                    // Cache snapshot/merged para o sheet do header reusar
-                                    // sem disparar fetch redundante.
-                                    pdfDataRef.current = { snapshot, merged };
-                                    // O botão interno do RouteVersioning escolhe a variante
-                                    // direto da aba ativa — exporta imediatamente.
-                                    void handlePdfSelect(variant);
-                                }}
-                                mineExtras={
+                        <RouteVersioning
+                            itineraryId={id as string}
+                            liveItinerary={itinerary}
+                            canEdit={isAuthenticated && !!accessToken}
+                            targetTab={routeTargetTab}
+                            onMergedChange={setMergedItinerary}
+                            onExportPdf={({ variant, snapshot, merged }) => {
+                                // Cache snapshot/merged para o sheet do header reusar
+                                // sem disparar fetch redundante.
+                                pdfDataRef.current = { snapshot, merged };
+                                // O botão interno do RouteVersioning escolhe a variante
+                                // direto da aba ativa — exporta imediatamente.
+                                void handlePdfSelect(variant);
+                            }}
+                            mineExtras={
+                                <View ref={trackSection('checklist')} collapsable={false}>
                                     <TripCenter
                                         purchaseId={undefined}
                                         itineraryId={id as string}
                                         creatorChecklist={checklist}
                                         canEdit={isAuthenticated && !!accessToken}
                                     />
-                                }
-                            />
-                        </View>
+                                </View>
+                            }
+                        />
                     </View>
 
                     {/* ══════════ ONBOARDING: roteiro interativo (1ª vez) ══════════ */}
@@ -624,9 +624,16 @@ export default function PurchasedItineraryScreen() {
                                                     // de rolar pra que o usuário veja o checklist no
                                                     // destino, não a Original.
                                                     if (a.key === 'checklist') {
+                                                        // A Central da Viagem (checklist) só monta quando
+                                                        // a aba "Minha versão" está ativa. Trocamos a aba e
+                                                        // adiamos o scroll para o componente montar/medir;
+                                                        // measureLayout falha graciosamente se ainda não
+                                                        // estiver pronto (só não rola, sem crash).
                                                         setRouteTargetTab('mine');
+                                                        setTimeout(() => scrollToSection(a.sectionKey), 350);
+                                                    } else {
+                                                        scrollToSection(a.sectionKey);
                                                     }
-                                                    scrollToSection(a.sectionKey);
                                                 }}
                                                 activeOpacity={0.85}
                                             >
