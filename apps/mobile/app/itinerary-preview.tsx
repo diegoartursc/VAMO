@@ -45,6 +45,7 @@ import type {
     CostReferencesGroup,
 } from '@vamo/shared/itinerary';
 import { getCostReferences, calculateBudgetSummary, formatMoney } from '@vamo/shared/itinerary';
+import { convertToAud } from '../src/utils/currencyConversion';
 
 // Handoff one-shot: payload do form serializado em new-itinerary é lido aqui
 // e APAGADO no mesmo useEffect. Sem isso, dois usuários no mesmo dispositivo
@@ -240,11 +241,14 @@ export default function ItineraryPreviewScreen() {
     const promoNumber = form.promoPrice && form.promoPrice > 0 ? form.promoPrice : 0;
     const effectivePrice = promoNumber || priceNumber;
 
-    const toBRL = (value: string | number, currency: string): string => {
+    // Converte um valor para a moeda de referência (AUD) usando as taxas do
+    // admin. Nome honesto: NÃO é BRL. Fallback: se faltar taxa, mostra o valor
+    // como está (mesma degradação do código anterior).
+    const formatInRefCurrency = (value: string | number, currency: string): string => {
         const n = typeof value === 'number' ? value : parseValue(String(value));
         if (n <= 0) return formatMoney(0);
-        const aud = currency === 'AUD' ? n : n * (rates[currency] ?? 1);
-        return formatMoney(aud);
+        const aud = convertToAud(n, currency, rates);
+        return formatMoney(aud ?? n);
     };
 
     const totalAUD = manualEntries.reduce((s, e) => {
@@ -520,7 +524,7 @@ export default function ItineraryPreviewScreen() {
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
                                                             {' por pessoa'}
                                                             {item.currency !== 'AUD' && (
-                                                                <Text> ≈ {toBRL(item.amountPerPerson, item.currency)}</Text>
+                                                                <Text> ≈ {formatInRefCurrency(item.amountPerPerson, item.currency)}</Text>
                                                             )}
                                                         </Text>
                                                         <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>

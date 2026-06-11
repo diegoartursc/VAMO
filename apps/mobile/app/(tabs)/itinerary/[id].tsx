@@ -51,6 +51,7 @@ import {
 } from '../../../src/components/itinerary/InteractiveExperienceSection';
 import { features } from '../../../src/config/features';
 import { getCostReferences, calculateBudgetSummary, formatMoney, type CostReferencesGroup } from '@vamo/shared/itinerary';
+import { convertToAud } from '../../../src/utils/currencyConversion';
 
 const { width, height } = Dimensions.get('window');
 
@@ -121,12 +122,13 @@ export default function ItineraryDetailScreen() {
         router.replace('/(tabs)/itineraries' as any);
     };
 
-    /** Converte valor em qualquer moeda para AUD formatado, usando taxas do admin */
-    const toBRL = (value: string | number, currency: string): string => {
+    /** Converte um valor para a moeda de referência (AUD) usando as taxas do
+     *  admin. Nome honesto: NÃO é BRL. Usa o util compartilhado. */
+    const formatInRefCurrency = (value: string | number, currency: string): string => {
         const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
         if (n <= 0) return formatMoney(0);
-        const aud = currency === 'AUD' ? n : n * (currencyRates[currency] ?? 1);
-        return formatMoney(aud);
+        const aud = convertToAud(n, currency, currencyRates);
+        return formatMoney(aud ?? n);
     };
 
     if (isLoading) {
@@ -610,7 +612,7 @@ export default function ItineraryDetailScreen() {
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
                                                             {' por pessoa'}
                                                             {item.currency !== 'AUD' && (
-                                                                <Text> ≈ {toBRL(item.amountPerPerson, item.currency)}</Text>
+                                                                <Text> ≈ {formatInRefCurrency(item.amountPerPerson, item.currency)}</Text>
                                                             )}
                                                         </Text>
                                                         {isShared && (
