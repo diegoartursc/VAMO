@@ -6,6 +6,7 @@ import { NotificationProvider } from '../src/components/providers/NotificationPr
 import { FavoritesProvider } from '../src/hooks/useFavorites';
 import { CartProvider } from '../src/hooks/useCart';
 import { AuthProvider } from '../src/contexts/AuthContext';
+import { VamoConfirmHost } from '../src/components/common/VamoConfirmHost';
 
 /**
  * CSS global injetado apenas no Web. Hoje cobre:
@@ -33,22 +34,24 @@ export default function RootLayout() {
                 <CartProvider>
                     <NotificationProvider>
                         <FavoriteAnimationProvider>
-                            {WebGlobalStyles}
-                            <StatusBar style="dark" />
-                            <Stack screenOptions={{ headerShown: false }}>
-                                <Stack.Screen name="(tabs)" />
-                                <Stack.Screen name="login" />
-                                <Stack.Screen name="register" />
-                                <Stack.Screen name="become-creator" />
-                                <Stack.Screen name="new-itinerary" />
-                                <Stack.Screen name="await-review" />
-                                <Stack.Screen name="creator-itinerary/[id]" />
-                                <Stack.Screen name="created-itineraries" />
-                                <Stack.Screen name="my-reviews" />
-                                <Stack.Screen name="my-questions" />
-                                <Stack.Screen name="creator-questions" />
-                                <Stack.Screen name="creator-earnings" />
-                            </Stack>
+                            <VamoConfirmHost>
+                                {WebGlobalStyles}
+                                <StatusBar style="dark" />
+                                <Stack screenOptions={{ headerShown: false }}>
+                                    <Stack.Screen name="(tabs)" />
+                                    <Stack.Screen name="login" />
+                                    <Stack.Screen name="register" />
+                                    <Stack.Screen name="become-creator" />
+                                    <Stack.Screen name="new-itinerary" />
+                                    <Stack.Screen name="await-review" />
+                                    <Stack.Screen name="creator-itinerary/[id]" />
+                                    <Stack.Screen name="created-itineraries" />
+                                    <Stack.Screen name="my-reviews" />
+                                    <Stack.Screen name="my-questions" />
+                                    <Stack.Screen name="creator-questions" />
+                                    <Stack.Screen name="creator-earnings" />
+                                </Stack>
+                            </VamoConfirmHost>
                         </FavoriteAnimationProvider>
                     </NotificationProvider>
                 </CartProvider>

@@ -1,26 +1,48 @@
 import { Alert, Platform } from 'react-native';
 
-interface NotifyOptions {
+export type NotifyVariant = 'info' | 'success' | 'error' | 'warning';
+
+export interface NotifyOptions {
     title: string;
     message?: string;
     onDismiss?: () => void;
+    /** Variante visual do modal VAMO (cor do ícone/realce). Default 'info'. */
+    variant?: NotifyVariant;
+    /** Ícone Ionicons custom. Se ausente, escolhido pela variante. */
+    icon?: string;
+    /** Rótulo do botão único. Default 'OK'. */
+    okText?: string;
 }
 
 /**
- * Alerta informativo cross-platform (info/sucesso/erro — botão único "OK").
- *
- * `Alert.alert` do react-native é um NO-OP no React Native Web — nenhum
- * diálogo aparece. Isso quebra silenciosamente toda mensagem de erro,
- * validação ou sucesso quando o app roda no navegador (Expo Web).
- *
- * No web usamos `window.alert` (síncrono e bloqueante, mas funcional);
- * no nativo, `Alert.alert` com um botão "OK". O callback `onDismiss`
- * dispara depois do usuário fechar o diálogo (web ou nativo).
- *
- * Use este helper para validações, mensagens de erro e confirmações de
- * sucesso. Para confirmações "sim/não", use `confirm()` em `./confirm.ts`.
+ * Implementação real injetada pelo `VamoConfirmHost`. Fallback nativo
+ * (`window.alert` / `Alert.alert`) só roda se o host ainda não montou.
  */
-export function notify({ title, message, onDismiss }: NotifyOptions): void {
+type NotifyImpl = (opts: NotifyOptions) => Promise<void>;
+let _impl: NotifyImpl | null = null;
+
+/** Chamado pelo VamoConfirmHost no mount/unmount. Uso interno. */
+export function _registerNotifyImpl(impl: NotifyImpl | null): void {
+    _impl = impl;
+}
+
+/**
+ * Alerta informativo (info/sucesso/erro — botão único) com identidade VAMO.
+ *
+ * Quando o `VamoConfirmHost` está montado, abre o modal premium da VAMO.
+ * Caso contrário, fallback nativo — nunca silencia validações/erros.
+ *
+ * Use para validações, mensagens de erro e confirmações de sucesso. Para
+ * confirmações "sim/não", use `confirm()` em `./confirm.ts`.
+ */
+export function notify(opts: NotifyOptions): void {
+    if (_impl) {
+        void _impl(opts).then(() => opts.onDismiss?.());
+        return;
+    }
+
+    // ── Fallback nativo (host ausente) ──
+    const { title, message, onDismiss } = opts;
     if (Platform.OS === 'web') {
         if (typeof window !== 'undefined' && typeof window.alert === 'function') {
             const text = message ? `${title}\n\n${message}` : title;
@@ -29,8 +51,7 @@ export function notify({ title, message, onDismiss }: NotifyOptions): void {
         onDismiss?.();
         return;
     }
-
-    Alert.alert(title, message, [{ text: 'OK', onPress: onDismiss }]);
+    Alert.alert(title, message, [{ text: opts.okText ?? 'OK', onPress: onDismiss }]);
 }
 
 export default notify;

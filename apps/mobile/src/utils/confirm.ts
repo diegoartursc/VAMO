@@ -1,35 +1,53 @@
 import { Alert, Platform } from 'react-native';
 
-interface ConfirmOptions {
+export type ConfirmVariant = 'danger' | 'warning' | 'info' | 'success';
+
+export interface ConfirmOptions {
     title: string;
     message?: string;
-    /** Rótulo do botão de confirmação (nativo). No web o navegador usa "OK". */
+    /** Rótulo do botão de confirmação. */
     confirmText?: string;
-    /** Rótulo do botão de cancelar (nativo). No web o navegador usa "Cancelar". */
+    /** Rótulo do botão de cancelar. */
     cancelText?: string;
-    /** Estiliza o botão de confirmação como destrutivo (vermelho) no iOS. */
+    /** Atalho histórico: `true` → variante 'danger'. Continua aceito. */
     destructive?: boolean;
+    /** Variante visual do modal VAMO. Default: 'danger' quando destructive, senão 'info'. */
+    variant?: ConfirmVariant;
+    /** Ícone Ionicons custom no topo. Se ausente, escolhido pela variante. */
+    icon?: string;
+    /** Permite fechar tocando no backdrop (cancela). Default true; passe false em ações críticas. */
+    closeOnBackdrop?: boolean;
 }
 
 /**
- * Confirmação cross-platform.
- *
- * `Alert.alert` do react-native é um NO-OP no React Native Web — nenhum
- * diálogo aparece e o `onPress` dos botões nunca dispara. Isso quebra
- * silenciosamente qualquer confirmação (remover do carrinho, limpar, etc.)
- * quando o app roda no navegador.
- *
- * Aqui usamos `window.confirm` no web (síncrono e bloqueante, mas funcional)
- * e o `Alert.alert` nativo nas plataformas mobile. Retorna `true` quando o
- * usuário confirma.
+ * Implementação real injetada pelo `VamoConfirmHost` (modal com identidade
+ * VAMO, montado uma vez na raiz do app). Enquanto o host não registra,
+ * caímos no fallback nativo — garante que confirmações nunca silenciem
+ * (render fora do app, testes, ou ordem de mount).
  */
-export function confirm({
-    title,
-    message,
-    confirmText = 'OK',
-    cancelText = 'Cancelar',
-    destructive = false,
-}: ConfirmOptions): Promise<boolean> {
+type ConfirmImpl = (opts: ConfirmOptions) => Promise<boolean>;
+let _impl: ConfirmImpl | null = null;
+
+/** Chamado pelo VamoConfirmHost no mount/unmount. Uso interno. */
+export function _registerConfirmImpl(impl: ConfirmImpl | null): void {
+    _impl = impl;
+}
+
+/**
+ * Confirmação sim/não com identidade visual VAMO.
+ *
+ * Quando o `VamoConfirmHost` está montado (sempre, em produção), abre o
+ * modal premium da VAMO. Fallback nativo (`window.confirm` no web,
+ * `Alert.alert` no nativo) só é usado se o host ainda não registrou —
+ * nunca deixa a confirmação virar no-op silencioso.
+ *
+ * Retorna `true` quando o usuário confirma.
+ */
+export function confirm(opts: ConfirmOptions): Promise<boolean> {
+    if (_impl) return _impl(opts);
+
+    // ── Fallback nativo (host ausente) ──
+    const { title, message, confirmText = 'OK', cancelText = 'Cancelar', destructive = false } = opts;
     if (Platform.OS === 'web') {
         if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
             return Promise.resolve(true);
@@ -37,7 +55,6 @@ export function confirm({
         const text = message ? `${title}\n\n${message}` : title;
         return Promise.resolve(window.confirm(text));
     }
-
     return new Promise((resolve) => {
         Alert.alert(title, message, [
             { text: cancelText, style: 'cancel', onPress: () => resolve(false) },
