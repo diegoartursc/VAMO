@@ -48,7 +48,19 @@ export interface ValidationIssue {
  */
 function activityHasContent(a: Activity | null | undefined): boolean {
     if (!a) return false;
-    return !!(a.title?.trim() || a.description?.trim());
+    return !!(
+        a.title?.trim()
+        || a.description?.trim()
+        || a.location?.trim()
+        || a.mapLink?.trim()
+    );
+}
+
+function submissionDays(form: ItineraryFormState): Day[] {
+    const duration = Number.isFinite(form.duration)
+        ? Math.max(0, Math.trunc(form.duration))
+        : 0;
+    return form.days.slice(0, duration);
 }
 
 /**
@@ -101,10 +113,11 @@ export function isModuleComplete(
 ): boolean {
     switch (moduleKey) {
         case "itinerario":
-            // Valida apenas os dias que existem em `form.days` (não em
-            // `form.duration`). Dias excedentes/órfãos de uma duração
-            // antiga não invalidam o envio enquanto estiverem completos.
-            return form.days.length > 0 && form.days.every(dayIsComplete);
+            // Valida exatamente os dias da duração atual. Dias órfãos de
+            // uma duração antiga não podem gerar pendência falsa.
+            return form.duration >= MIN_DAYS
+                && form.days.length >= form.duration
+                && submissionDays(form).every(dayIsComplete);
         case "voo": {
             const { flightOutbound: out, flightReturn: ret } = form;
             const baseOk = !!(out.originCity && out.departureDate && out.arrivalDate
@@ -187,8 +200,11 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
     if (form.activeModules.length < 1) {
         issues.push({ section: "modules", message: "Ative pelo menos 1 módulo" });
     }
-    if (form.days.length < MIN_DAYS) {
-        issues.push({ section: "itinerary", message: `Cadastre pelo menos ${MIN_DAYS} dias de roteiro` });
+    if (form.days.length < form.duration) {
+        issues.push({
+            section: "itinerary",
+            message: `Cadastre os ${form.duration} dias definidos na duração do roteiro`,
+        });
     }
     if (form.highlightPhotos.filter(Boolean).length < 1) {
         issues.push({ section: "media", message: "Adicione pelo menos 1 imagem de capa" });
@@ -244,7 +260,7 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
         }
     }
 
-    for (const [index, day] of form.days.entries()) {
+    for (const [index, day] of submissionDays(form).entries()) {
         for (const [activityIndex, activity] of (day.activities || []).entries()) {
             if (!isValidOptionalUrl(activity.mapLink)) {
                 issues.push({
@@ -290,7 +306,7 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
  *  - todos incompletos → fallback genérico.
  */
 function itinerarioIncompleteMessage(form: ItineraryFormState): string {
-    const days = form.days ?? [];
+    const days = submissionDays(form);
     if (days.length === 0) {
         return "Cadastre pelo menos 1 dia de roteiro.";
     }

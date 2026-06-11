@@ -565,15 +565,16 @@ export async function purchaseItinerary(
 }
 
 // ─── Currency Rates ───
-/** Taxas padrão usadas como fallback quando o backend não está disponível */
+/** Taxas padrão com base AUD: 1 unidade da moeda = X AUD. */
 const DEFAULT_CURRENCY_RATES: Record<string, number> = {
-    AED: 1.36, ARS: 0.005, AUD: 3.3, BOB: 0.72, BRL: 1.0,
-    CAD: 3.7, CHF: 5.6, CLP: 0.005, CNY: 0.7, COP: 0.001,
-    CRC: 0.01, CUP: 0.21, DOP: 0.085, EGP: 0.1, EUR: 5.4,
-    GBP: 6.3, GTQ: 0.65, IDR: 0.00031, INR: 0.06, JPY: 0.033,
-    KES: 0.038, MAD: 0.5, MXN: 0.3, MYR: 1.12, NOK: 0.47,
-    NZD: 3.0, PEN: 1.34, PHP: 0.089, PYG: 0.00068, SGD: 3.74,
-    THB: 0.15, TRY: 0.15, USD: 5.0, UYU: 0.13, VND: 0.0002, ZAR: 0.27,
+    AED: 0.41212, ARS: 0.0015152, AUD: 1, BOB: 0.21818, BRL: 0.30303,
+    CAD: 1.1212, CHF: 1.697, CLP: 0.0015152, CNY: 0.21212, COP: 0.000303,
+    CRC: 0.0030303, CUP: 0.06364, DOP: 0.02576, EGP: 0.0303, EUR: 1.6364,
+    GBP: 1.9091, GTQ: 0.19697, IDR: 0.0000939, INR: 0.01818, JPY: 0.01,
+    KES: 0.01152, MAD: 0.15152, MXN: 0.09091, MYR: 0.33939, NOK: 0.14242,
+    NZD: 0.90909, PEN: 0.40606, PHP: 0.02697, PYG: 0.0002061, SGD: 1.1333,
+    THB: 0.04545, TRY: 0.04545, USD: 1.5152, UYU: 0.03939,
+    VND: 0.0000606, ZAR: 0.08182,
 };
 
 /**
@@ -588,6 +589,26 @@ export async function getCurrencyRates(): Promise<Record<string, number>> {
     } catch {
         return DEFAULT_CURRENCY_RATES;
     }
+}
+
+// ─── Saved itineraries ───
+export async function getSavedItineraryIds(accessToken: string): Promise<string[]> {
+    const response = await request<{ itineraryIds: string[] }>('/saved-items', { accessToken });
+    return Array.isArray(response.itineraryIds) ? response.itineraryIds : [];
+}
+
+export async function saveItinerary(itineraryId: string, accessToken: string): Promise<void> {
+    await request(`/saved-items/${encodeURIComponent(itineraryId)}`, {
+        method: 'PUT',
+        accessToken,
+    });
+}
+
+export async function unsaveItinerary(itineraryId: string, accessToken: string): Promise<void> {
+    await request(`/saved-items/${encodeURIComponent(itineraryId)}`, {
+        method: 'DELETE',
+        accessToken,
+    });
 }
 
 // ─── Creators ───

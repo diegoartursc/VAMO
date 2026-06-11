@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { adminAuthMiddleware } from '../middleware/admin-auth';
 
 const router = Router();
 
@@ -72,7 +73,7 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 // PUT /api/rates — salva taxas atualizadas pelo admin
-router.put('/', (req: Request, res: Response) => {
+router.put('/', adminAuthMiddleware, (req: Request, res: Response) => {
     const { rates } = req.body;
 
     if (!rates || typeof rates !== 'object' || Array.isArray(rates)) {

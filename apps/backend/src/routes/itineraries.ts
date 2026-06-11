@@ -26,11 +26,10 @@ router.get('/', async (req: Request, res: Response) => {
         // Marketplace-oriented sorts (Parte C)
         if (sort === 'newest')      orderBy = [{ createdAt: 'desc' }];
         if (sort === 'popular')     orderBy = [{ featured: 'desc' }, { qualityScore: 'desc' }, { rating: 'desc' }];
-        // "sales" usa o totalSales do criador (a Itinerary não tem salesCount próprio
-        // ainda — proxy seguro até existir uma tabela de transações própria).
+        // Ordena pela contagem real de vendas do roteiro.
         if (sort === 'sales') {
             orderBy = [
-                { creator: { totalSales: 'desc' } },
+                { sales: { _count: 'desc' } },
                 { qualityScore: 'desc' },
                 { rating: 'desc' },
             ];
@@ -820,16 +819,22 @@ function validateItinerarySubmission(data: any): string[] {
     const issues: string[] = [];
     const activeModules = Array.isArray(data.activeModules) ? data.activeModules : [];
     const days = Array.isArray(data.days) ? data.days : [];
+    const duration = parseIntegerInput(data.duration);
+    const submissionDays = Number.isFinite(duration) && duration > 0
+        ? days.slice(0, duration)
+        : [];
 
     if (!String(data.title || '').trim()) issues.push('Defina um título para o roteiro.');
     if (!String(data.destination || '').trim() || !String(data.country || '').trim()) issues.push('Informe cidade e país de destino.');
     if (!String(data.description || '').trim()) issues.push('Escreva uma descrição para o roteiro.');
     if (!Array.isArray(data.categories) || data.categories.filter(Boolean).length < 1) issues.push('Selecione pelo menos 1 categoria.');
     if (!Number.isFinite(parseDecimalInput(data.price)) || parseDecimalInput(data.price) <= 0) issues.push('Defina um preço de venda válido.');
-    if (!Number.isFinite(parseIntegerInput(data.duration)) || parseIntegerInput(data.duration) < 1) issues.push('A duração precisa ter pelo menos 1 dia.');
+    if (!Number.isFinite(duration) || duration < 1) issues.push('A duração precisa ter pelo menos 1 dia.');
     if (!String(data.travelProofUrl || '').trim()) issues.push('Anexe o comprovante de viagem.');
     if (activeModules.length < 1) issues.push('Ative pelo menos 1 módulo.');
-    if (days.length < 1) issues.push('Cadastre pelo menos 1 dia de roteiro.');
+    if (Number.isFinite(duration) && duration > 0 && days.length < duration) {
+        issues.push(`Cadastre os ${duration} dias definidos na duração do roteiro.`);
+    }
 
     const coverCount = new Set([
         ...((data.highlightPhotos || []).filter(Boolean)),
@@ -839,7 +844,10 @@ function validateItinerarySubmission(data: any): string[] {
 
     const moduleIncomplete = (key: string): string | null => {
         if (key === 'itinerario') {
-            const ok = days.length > 0 && days.every(dayIsCompleteForSubmission);
+            const ok = Number.isFinite(duration)
+                && duration > 0
+                && days.length >= duration
+                && submissionDays.every(dayIsCompleteForSubmission);
             return ok ? null : 'Preencha o itinerário por dia com descrição e atividades.';
         }
         if (key === 'voo') {

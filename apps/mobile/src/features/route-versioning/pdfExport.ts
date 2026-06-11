@@ -17,8 +17,8 @@
  * Decisões:
  *  - `generatedAtISO` vem do CALLER (PdfExportSheet) — não geramos aqui.
  *    Garante consistência se o caller quiser logar/exibir a mesma data.
- *  - Arquivos do viajante NÃO entram no PDF (escopo): este wrapper só
- *    encaminha o HTML do template, que já omite uploads.
+ *  - Arquivos do viajante entram apenas como índice textual no template;
+ *    o conteúdo binário privado nunca é incorporado ao PDF.
  *  - Imports dinâmicos para `expo-print`/`expo-sharing`: evitam que o
  *    bundle web quebre se os módulos não estiverem instalados/expostos
  *    no ambiente web. No native, são `require` direto.

@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
+import { hasValidFileSignature } from '../lib/file-signature';
 
 const router = express.Router();
 
@@ -120,6 +121,29 @@ async function persistUploadedFile(
     return { url, filename };
 }
 
+async function readUploadedBuffer(file: Express.Multer.File): Promise<Buffer> {
+    if (file.buffer) return file.buffer;
+    if (file.path) return fs.promises.readFile(file.path);
+    throw new Error('UPLOAD_CONTENT_UNAVAILABLE');
+}
+
+async function cleanupLocalFiles(files: Express.Multer.File[]): Promise<void> {
+    if (useCloudStorage) return;
+    await Promise.all(files.map(async file => {
+        if (!file.path) return;
+        try {
+            await fs.promises.unlink(file.path);
+        } catch {
+            // O arquivo pode já ter sido removido; não mascara o erro original.
+        }
+    }));
+}
+
+async function validateUploadedContent(file: Express.Multer.File): Promise<boolean> {
+    const buffer = await readUploadedBuffer(file);
+    return hasValidFileSignature(buffer, file.originalname);
+}
+
 // POST /api/uploads — upload de um único arquivo, retorna URL absoluta
 router.post('/', optionalAuthMiddleware, (req: AuthRequest, res) => {
     if (!req.traveler) {
@@ -133,6 +157,11 @@ router.post('/', optionalAuthMiddleware, (req: AuthRequest, res) => {
             return;
         }
         try {
+            if (!await validateUploadedContent(req.file)) {
+                await cleanupLocalFiles([req.file]);
+                res.status(415).json({ error: 'O conteúdo do arquivo não corresponde ao formato informado.' });
+                return;
+            }
             const { url, filename } = await persistUploadedFile(req, req.file);
             res.json({
                 url,
@@ -163,6 +192,12 @@ router.post('/multiple', optionalAuthMiddleware, (req: AuthRequest, res) => {
             return;
         }
         try {
+            const validations = await Promise.all(files.map(validateUploadedContent));
+            if (validations.some(valid => !valid)) {
+                await cleanupLocalFiles(files);
+                res.status(415).json({ error: 'Um dos arquivos não corresponde ao formato informado.' });
+                return;
+            }
             const items = [];
             for (const f of files) {
                 const { url, filename } = await persistUploadedFile(req, f);

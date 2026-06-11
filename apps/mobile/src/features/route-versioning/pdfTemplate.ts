@@ -25,6 +25,7 @@
 
 import type { MergedItem, MergedItinerary } from './mergeEngine';
 import { getCostReferences, formatMoney } from '@vamo/shared/itinerary';
+import { convertToAud, summarizeInAud } from '../../utils/currencyConversion';
 
 // ─── Tipos públicos ─────────────────────────────────────────────────
 
@@ -46,8 +47,8 @@ export interface PdfBuildOpts {
     travelerChecklist?: Array<{ item: string; category?: string; completed?: boolean }>;
     travelerFiles?: Array<{ title: string; category?: string; note?: string | null; originalFileName?: string | null }>;
     /** Taxas de câmbio (moeda → multiplicador p/ AUD) para a seção de custos
-     * converter cada item à moeda de referência. Sem isso, itens não-AUD
-     * entram sem conversão (multiplicador 1). Mesma fonte que a tela. */
+     * converter cada item à moeda de referência. Sem uma taxa, o PDF mantém
+     * a moeda original e informa que o total AUD está indisponível. */
     rates?: Record<string, number>;
 }
 
@@ -501,16 +502,23 @@ function renderCostReferenceSection(
     if (!groups.length) return '';
 
     const rates = ctx.rates ?? {};
-    const toAud = (amount: number, currency: string): number =>
-        currency === 'AUD' ? amount : amount * (rates[currency] ?? 1);
+    const allItems = groups.flatMap(group => group.items);
+    const convertedSummary = summarizeInAud(
+        allItems.map(item => ({
+            amount: item.amountPerPerson,
+            currency: item.currency,
+        })),
+        rates,
+    );
 
-    let totalAud = 0;
     const groupsHtml = groups.map(group => {
         const itemsHtml = group.items.map(item => {
-            totalAud += toAud(item.amountPerPerson, item.currency);
             const main = formatMoney(item.amountPerPerson, item.currency);
+            const converted = convertToAud(item.amountPerPerson, item.currency, rates);
             const conv = item.currency !== 'AUD'
-                ? ` <span class="cost-conv">≈ ${escapeHtml(formatMoney(toAud(item.amountPerPerson, item.currency), 'AUD'))}</span>`
+                ? converted === null
+                    ? ' <span class="cost-conv">· cotação AUD indisponível</span>'
+                    : ` <span class="cost-conv">≈ ${escapeHtml(formatMoney(converted, 'AUD'))}</span>`
                 : '';
             const base = item.sharedByPeople > 1
                 ? `<div class="cost-base">Base: ${escapeHtml(formatMoney(item.amountTotal, item.currency))} ÷ ${item.sharedByPeople} pessoas</div>`
@@ -531,7 +539,9 @@ function renderCostReferenceSection(
             </div>`;
     }).join('');
 
-    const totalHtml = `<div class="cost-total">Total estimado por pessoa <strong>${escapeHtml(formatMoney(totalAud, 'AUD'))}</strong></div>`;
+    const totalHtml = convertedSummary.missingCurrencies.length === 0
+        ? `<div class="cost-total">Total estimado por pessoa <strong>${escapeHtml(formatMoney(convertedSummary.totalAud, 'AUD'))}</strong></div>`
+        : `<div class="cost-total">Total em AUD indisponível: falta cotação para <strong>${escapeHtml(convertedSummary.missingCurrencies.join(', '))}</strong>.</div>`;
     const disclaimer = `<p class="cost-disclaimer">Valores de referência por pessoa, informados pelo criador ou por você. Podem variar por época, câmbio e disponibilidade.</p>`;
 
     return sectionWrapper('Custos e orçamento (referência por pessoa)', groupsHtml + totalHtml + disclaimer);
@@ -793,9 +803,8 @@ const PDF_CSS = `
  *  - Footer recebe `generatedAtISO` do caller. Não fazemos `new Date()`
  *    aqui para não introduzir drift entre o `exportRoutePdf` e o
  *    template em testes/snapshots.
- *  - Arquivos do viajante (uploads de mídia) NÃO entram no PDF — está
- *    fora de escopo desta versão; quando precisar incluir, adicionar
- *    seção dedicada.
+ *  - Arquivos do viajante entram apenas como índice textual
+ *    (título/categoria/nome/nota), nunca como conteúdo binário.
  *  - Para 'personalized', `merged` ausente cai num PDF basicamente vazio
  *    (mas válido) — é responsabilidade do caller passar merged.
  */

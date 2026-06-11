@@ -65,26 +65,33 @@ router.get('/', async (req: Request, res: Response) => {
         const creators = await (prisma.creator as any).findMany({
             include: {
                 traveler: { select: { name: true, avatar: true } },
-                _count: { select: { itineraries: true } },
+                itineraries: {
+                    select: { _count: { select: { sales: true } } },
+                },
             },
-            orderBy: { totalSales: 'desc' },
         });
 
-        const result = creators.map((c: any) => ({
-            id: c.id, name: c.traveler.name, avatar: c.traveler.avatar || '👤',
-            verificationLevel: c.verificationLevel.toLowerCase(),
-            stats: {
-                itinerariesCount: c._count.itineraries,
-                totalSales: c.totalSales, averageRating: c.averageRating,
-                responseTime: c.responseTime, tripsCompleted: c.tripsCompleted,
-            },
-            bio: c.bio, destinations: c.destinations,
-            memberSince: c.memberSince.getFullYear().toString(),
-            languages: c.languages,
-            socialLinks: {
-                instagram: c.instagramUrl, youtube: c.youtubeUrl, blog: c.blogUrl,
-            },
-        }));
+        const result = creators.map((c: any) => {
+            const realTotalSales = c.itineraries.reduce(
+                (sum: number, itinerary: any) => sum + itinerary._count.sales,
+                0,
+            );
+            return {
+                id: c.id, name: c.traveler.name, avatar: c.traveler.avatar || '👤',
+                verificationLevel: c.verificationLevel.toLowerCase(),
+                stats: {
+                    itinerariesCount: c.itineraries.length,
+                    totalSales: realTotalSales, averageRating: c.averageRating,
+                    responseTime: c.responseTime, tripsCompleted: c.tripsCompleted,
+                },
+                bio: c.bio, destinations: c.destinations,
+                memberSince: c.memberSince.getFullYear().toString(),
+                languages: c.languages,
+                socialLinks: {
+                    instagram: c.instagramUrl, youtube: c.youtubeUrl, blog: c.blogUrl,
+                },
+            };
+        }).sort((a: any, b: any) => b.stats.totalSales - a.stats.totalSales);
 
         res.json(result);
     } catch (error) {
@@ -115,18 +122,26 @@ router.get('/:id', async (req: Request, res: Response) => {
                 traveler: { select: { name: true, avatar: true } },
                 itineraries: {
                     where: { status: { in: ['APPROVED', 'ACTIVE'] } },
-                    include: { images: { orderBy: { order: 'asc' }, take: 1, select: { url: true } } },
+                    include: {
+                        images: { orderBy: { order: 'asc' }, take: 1, select: { url: true } },
+                        _count: { select: { sales: true } },
+                    },
                 },
             },
         });
 
         if (!c) { res.status(404).json({ error: 'Creator not found' }); return; }
+        // O perfil público lista apenas roteiros ativos, mas o total de
+        // vendas deve preservar compras de roteiros arquivados.
+        const realTotalSales = await prisma.itinerarySale.count({
+            where: { itinerary: { creatorId: c.id } },
+        });
 
         const result = {
             id: c.id, name: c.traveler.name, avatar: c.traveler.avatar || '👤',
             verificationLevel: c.verificationLevel.toLowerCase(),
             stats: {
-                itinerariesCount: c.itineraries.length, totalSales: c.totalSales,
+                itinerariesCount: c.itineraries.length, totalSales: realTotalSales,
                 averageRating: c.averageRating, responseTime: c.responseTime,
                 tripsCompleted: c.tripsCompleted,
             },

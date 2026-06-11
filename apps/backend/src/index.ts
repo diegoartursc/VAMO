@@ -16,6 +16,7 @@ import uploadsRoutes from './routes/uploads';
 import questionRoutes from './routes/questions';
 import travelerTripCenterRoutes from './routes/traveler-trip-center';
 import travelerRouteCustomizationRoutes from './routes/traveler-route-customization';
+import savedItemsRoutes from './routes/saved-items';
 import prisma from './lib/prisma';
 
 const app = express();
@@ -136,6 +137,7 @@ app.use('/api/admin/audit-logs', auditLogsRoutes);
 app.use('/api/rates', ratesRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/saved-items', savedItemsRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

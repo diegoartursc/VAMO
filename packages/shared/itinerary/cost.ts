@@ -62,6 +62,11 @@ interface LegacyShape {
     /** ExtraSpendingItem usa value/currency direto. */
     value?: string | null;
     currency?: string | null;
+    /** Formatos planos usados por versões antigas dos modais. */
+    priceValue?: string | number | null;
+    priceCurrency?: string | null;
+    ticketValue?: string | number | null;
+    ticketCurrency?: string | null;
 }
 
 /**
@@ -81,10 +86,14 @@ export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
     }
     if (item.cost && typeof item.cost === "object") {
         const c = item.cost;
+        const legacyCostValue = (c as ModuleCostInfo & { value?: string | number }).value;
+        const rawAmount = c.amount ?? legacyCostValue ?? "";
+        const amount = typeof rawAmount === "number" ? String(rawAmount) : rawAmount;
         return {
-            amount: c.amount ?? "",
+            amount,
             currency: c.currency ?? "AUD",
-            disclosureType: c.disclosureType ?? "not_informed",
+            disclosureType: c.disclosureType
+                ?? (parseMoney(amount) > 0 ? "estimated" : "not_informed"),
             sharedByPeople: normalizeSharedBy(c.sharedByPeople),
             notes: c.notes ?? "",
             proofFiles: Array.isArray(c.proofFiles) ? c.proofFiles : [],
@@ -93,8 +102,19 @@ export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
         };
     }
     // Fallback legado
-    const legacyValue = item.spending?.value ?? item.price ?? item.value ?? "";
-    const legacyCurrency = item.spending?.currency ?? item.currency ?? "AUD";
+    const legacyValue =
+        item.spending?.value
+        ?? item.price
+        ?? item.value
+        ?? item.priceValue
+        ?? item.ticketValue
+        ?? "";
+    const legacyCurrency =
+        item.spending?.currency
+        ?? item.currency
+        ?? item.priceCurrency
+        ?? item.ticketCurrency
+        ?? "AUD";
     const hasValue = parseMoney(legacyValue) > 0;
     return {
         amount: hasValue ? String(legacyValue) : "",
@@ -654,10 +674,14 @@ function toReferenceItem(
     cost: ModuleCostInfo | null | undefined,
     legacy: ModuleSpending | null | undefined,
     title: string,
+    legacySource?: LegacyShape | null,
 ): CostReferenceItem | null {
     if (!title?.trim()) title = "Item sem título";
-    const info = cost ?? (legacy ? resolveCostInfo({ spending: legacy }) : null);
-    if (!info) return null;
+    const info = resolveCostInfo({
+        ...(legacySource ?? {}),
+        cost: cost ?? legacySource?.cost,
+        spending: legacy ?? legacySource?.spending,
+    });
     if (info.disclosureType === "not_informed") return null;
     const amountTotal = parseMoney(info.amount);
     if (amountTotal <= 0) return null;
@@ -710,19 +734,24 @@ export function getCostReferences(
     };
 
     pushGroup("hospedagem", ((form.accommodations as Accommodation[] | undefined) ?? [])
-        .map(a => toReferenceItem(a.cost, a.spending, a.name))
+        .map(a => toReferenceItem(a.cost, a.spending, a.name, a as LegacyShape))
         .filter((x): x is CostReferenceItem => x !== null));
 
     pushGroup("passeios", ((form.attractions as AttractionItem[] | undefined) ?? [])
-        .map(a => toReferenceItem(a.cost, a.spending, a.name))
+        .map(a => toReferenceItem(a.cost, a.spending, a.name, a as LegacyShape))
         .filter((x): x is CostReferenceItem => x !== null));
 
     pushGroup("transporte", ((form.transports as Transport[] | undefined) ?? [])
-        .map(t => toReferenceItem(t.cost, t.spending, t.description || t.passTypes || "Transporte"))
+        .map(t => toReferenceItem(
+            t.cost,
+            t.spending,
+            t.description || t.passTypes || "Transporte",
+            t as LegacyShape,
+        ))
         .filter((x): x is CostReferenceItem => x !== null));
 
     pushGroup("restaurantes", ((form.restaurants as RestaurantItem[] | undefined) ?? [])
-        .map(r => toReferenceItem(r.cost, r.spending, r.name))
+        .map(r => toReferenceItem(r.cost, r.spending, r.name, r as LegacyShape))
         .filter((x): x is CostReferenceItem => x !== null));
 
     pushGroup("gastos_extras", ((form.extraSpendingItems as ExtraSpendingItem[] | undefined) ?? [])

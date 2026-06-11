@@ -55,12 +55,19 @@ export interface TripCenterProps {
     >;
     /** Se false: card aparece em modo somente leitura (sem add/edit/delete). */
     canEdit: boolean;
+    /** Estado compartilhado com a aba Original, quando controlado pelo pai. */
+    creatorChecklistProgress?: Record<string, boolean>;
+    creatorChecklistPending?: boolean;
+    onUpdateCreatorChecklistProgress?: (next: Record<string, boolean>) => Promise<void>;
 }
 
 export default function TripCenter({
     itineraryId,
     creatorChecklist,
     canEdit,
+    creatorChecklistProgress,
+    creatorChecklistPending = false,
+    onUpdateCreatorChecklistProgress,
 }: TripCenterProps) {
     const { accessToken, isAuthenticated } = useAuth();
     const effectiveCanEdit = canEdit && isAuthenticated && !!accessToken;
@@ -82,17 +89,19 @@ export default function TripCenter({
         setLoading(true);
         setLoadError(null);
         try {
-            // Três fetches paralelos: checklist pessoal, arquivos e a
-            // customization (de onde lemos os overrides do checklist do
-            // criador). Falha em qualquer um não derruba os outros.
+            // O progresso do checklist pode ser controlado pelo
+            // RouteVersioning. Nesse caso, evitamos uma segunda cópia de
+            // customization que ficaria defasada ao trocar de aba.
             const [checklist, fileList, custom] = await Promise.all([
                 getTripChecklist(itineraryId, accessToken),
                 getTripFiles(itineraryId, accessToken),
-                getCustomization(itineraryId, accessToken),
+                onUpdateCreatorChecklistProgress
+                    ? Promise.resolve(null)
+                    : getCustomization(itineraryId, accessToken),
             ]);
             setItems(checklist);
             setFiles(fileList);
-            setCustomization(custom);
+            if (!onUpdateCreatorChecklistProgress) setCustomization(custom);
         } catch (e: any) {
             // Erro silencioso na UI principal (a Central é complementar).
             // Guardamos a mensagem para mostrar um banner discreto.
@@ -100,13 +109,20 @@ export default function TripCenter({
         } finally {
             setLoading(false);
         }
-    }, [accessToken, itineraryId]);
+    }, [accessToken, itineraryId, onUpdateCreatorChecklistProgress]);
 
-    const creatorProgress = customization?.addedItems?.creatorChecklistProgress ?? {};
+    const creatorProgress =
+        creatorChecklistProgress
+        ?? customization?.addedItems?.creatorChecklistProgress
+        ?? {};
 
     const updateCreatorProgress = useCallback(
         async (next: Record<string, boolean>) => {
             if (!accessToken) throw new Error('Sessão expirada');
+            if (onUpdateCreatorChecklistProgress) {
+                await onUpdateCreatorChecklistProgress(next);
+                return;
+            }
             const prev = customization;
             const nextAdded: AddedItemsMap = {
                 ...(prev?.addedItems ?? {}),
@@ -129,7 +145,12 @@ export default function TripCenter({
                 throw error;
             }
         },
-        [accessToken, customization, itineraryId],
+        [
+            accessToken,
+            customization,
+            itineraryId,
+            onUpdateCreatorChecklistProgress,
+        ],
     );
 
     useEffect(() => { void load(); }, [load]);
@@ -230,6 +251,7 @@ export default function TripCenter({
                     onItemsChange={setItems}
                     canEdit={effectiveCanEdit}
                     creatorProgress={creatorProgress}
+                    creatorProgressPending={creatorChecklistPending}
                     onUpdateCreatorProgress={updateCreatorProgress}
                 />
             ) : (

@@ -12,9 +12,8 @@
  *
  * Interações:
  *  - Toque curto no card → abre EditItemModal (Personalizar/Editar).
- *  - Long-press → menu "Editar / Ocultar" via Alert.alert (com fallback
- *    `confirm()` para web). Decisão: usamos Alert.alert + confirm()
- *    aqui pq RN não tem ActionSheet web e o menu é simples (2 opções).
+ *  - Long-press → confirma ocultação e, se cancelada, oferece edição
+ *    usando o modal global da VAMO em todas as plataformas.
  *
  * Não toca em IDs ou estado de overlay diretamente — emite callbacks:
  *  - `onPatch(patch)`        — qualquer patch parcial (ex.: notes).
@@ -32,8 +31,6 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    Alert,
-    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -90,14 +87,8 @@ function pickItemTitle(merged: MergedItem): string {
 }
 
 /**
- * Menu de ações para um card. Web → `confirm()` (sequência de 2 dialogs
- * é ruim, então fazemos um único confirm "Editar?" e fallback no botão
- * de ocultar via long-press secundário). Native → Alert.alert com 3 opções.
- *
- * Comportamento simplificado:
- *  - Tap curto → onEdit (sempre).
- *  - Long-press → menu "O que fazer com este item?" → escolhe ocultar
- *    (web/web nativos diferentes; usamos Alert quando disponível).
+ * Menu de ações para um card usando o confirm global da VAMO.
+ * Tap curto continua abrindo edição diretamente.
  */
 async function promptItemAction(
     merged: MergedItem,
@@ -107,40 +98,18 @@ async function promptItemAction(
     haptics.selection();
     const title = pickItemTitle(merged);
 
-    if (Platform.OS === 'web') {
-        // Web: Alert.alert é no-op. Usamos confirm() em duas etapas:
-        // primeiro perguntamos se quer ocultar; se não, oferecemos editar.
-        const hide = await confirm({
-            title: 'Ocultar item?',
-            message: `"${title}" sumirá da sua versão do roteiro. Você pode restaurar depois.`,
-            confirmText: 'Ocultar',
-            cancelText: 'Não',
-            destructive: true,
-        });
-        if (hide) {
-            onHide();
-            return;
-        }
-        const edit = await confirm({
-            title: 'Editar?',
-            message: 'Deseja personalizar este item?',
-            confirmText: 'Editar',
-            cancelText: 'Cancelar',
-        });
-        if (edit) onEdit();
+    const hide = await confirm({
+        title: 'Ocultar item?',
+        message: `"${title}" sumirá da sua versão do roteiro. Você pode restaurar depois.`,
+        confirmText: 'Ocultar',
+        cancelText: 'Editar',
+        destructive: true,
+    });
+    if (hide) {
+        onHide();
         return;
     }
-
-    Alert.alert(
-        title,
-        'O que você quer fazer?',
-        [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'Editar', onPress: () => onEdit() },
-            { text: 'Ocultar', style: 'destructive', onPress: () => onHide() },
-        ],
-        { cancelable: true },
-    );
+    onEdit();
 }
 
 // ─── Componente ───────────────────────────────────────────────

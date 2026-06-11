@@ -99,7 +99,11 @@ export interface RouteVersioningProps {
      *
      * Passe `undefined` (ou omita) se a tela não tem nada extra para a aba.
      */
-    mineExtras?: React.ReactNode;
+    mineExtras?: React.ReactNode | ((context: {
+        creatorChecklistProgress: Record<string, boolean>;
+        creatorChecklistPending: boolean;
+        onUpdateCreatorChecklistProgress: (next: Record<string, boolean>) => Promise<void>;
+    }) => React.ReactNode);
     /**
      * Permite ao caller FORÇAR uma aba específica de fora (ex.: usuário
      * tocou no atalho "Abrir checklist" do "Comece por aqui" — queremos
@@ -160,6 +164,7 @@ export default function RouteVersioning({
     const [snapshot, setSnapshot] = useState<RouteSnapshot | null>(null);
     const [customization, setCustomization] = useState<TravelerItineraryCustomization | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [creatorChecklistPending, setCreatorChecklistPending] = useState(false);
 
     // Mantém o último customization confirmado pelo backend, para rollback.
     const lastCommittedRef = useRef<TravelerItineraryCustomization | null>(null);
@@ -525,16 +530,40 @@ export default function RouteVersioning({
         [customization],
     );
 
+    const updateCreatorChecklistProgress = useCallback(
+        async (nextProgress: Record<string, boolean>) => {
+            if (creatorChecklistPending) return;
+            setCreatorChecklistPending(true);
+            try {
+                const base = buildBase();
+                const currentAdded = (base.addedItems ?? {}) as Record<string, any>;
+                base.addedItems = {
+                    ...currentAdded,
+                    creatorChecklistProgress: nextProgress,
+                };
+                const saved = await mutateCustomization(base, { addedItems: base.addedItems });
+                if (!saved) throw new Error('Não foi possível salvar o checklist.');
+            } finally {
+                setCreatorChecklistPending(false);
+            }
+        },
+        [buildBase, creatorChecklistPending, mutateCustomization],
+    );
+
     const toggleCreatorChecklist = useCallback(
         async (key: string) => {
-            const currentAdded = (customization?.addedItems ?? {}) as Record<string, any>;
-            const currentProgress = (currentAdded.creatorChecklistProgress ?? {}) as Record<string, boolean>;
-            const nextProgress = { ...currentProgress, [key]: !currentProgress[key] };
-            await applyPatchOnly({
-                addedItems: { ...currentAdded, creatorChecklistProgress: nextProgress },
-            });
+            if (creatorChecklistPending) return;
+            const nextProgress = {
+                ...creatorChecklistProgress,
+                [key]: !creatorChecklistProgress[key],
+            };
+            await updateCreatorChecklistProgress(nextProgress);
         },
-        [customization, applyPatchOnly],
+        [
+            creatorChecklistPending,
+            creatorChecklistProgress,
+            updateCreatorChecklistProgress,
+        ],
     );
 
     // ─── Modais ────────────────────────────────────────────────
@@ -648,6 +677,7 @@ export default function RouteVersioning({
                         itineraryId={itineraryId}
                         checklistProgress={creatorChecklistProgress}
                         canToggleChecklist={effectiveCanEdit}
+                        checklistPending={creatorChecklistPending}
                         onToggleChecklist={(key) => { void toggleCreatorChecklist(key); }}
                     />
                 </View>
@@ -667,7 +697,13 @@ export default function RouteVersioning({
                         purchased-itinerary encaixa a Central da Viagem
                         (checklist pessoal + arquivos), seguindo a regra
                         de produto: esses recursos não pertencem à Original. */}
-                    {mineExtras}
+                    {typeof mineExtras === 'function'
+                        ? mineExtras({
+                            creatorChecklistProgress,
+                            creatorChecklistPending,
+                            onUpdateCreatorChecklistProgress: updateCreatorChecklistProgress,
+                        })
+                        : mineExtras}
                 </View>
             )}
 

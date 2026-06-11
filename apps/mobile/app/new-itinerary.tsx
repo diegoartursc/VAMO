@@ -20,7 +20,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform,
-    StatusBar, ActivityIndicator, KeyboardAvoidingView, Alert, Animated,
+    StatusBar, ActivityIndicator, KeyboardAvoidingView, Animated,
     Modal, TextInput, Image, Switch,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -49,6 +49,7 @@ import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
 import { notify } from '../src/utils/notify';
+import { confirm } from '../src/utils/confirm';
 import FormInput from '../src/components/dashboard/FormInput';
 import MoneyInput from '../src/components/dashboard/MoneyInput';
 import VamoTimePicker from '../src/components/dashboard/VamoTimePicker';
@@ -296,11 +297,11 @@ export default function NewItineraryScreen() {
         // Bloqueia avanço da etapa Comprovante sem arquivo anexado
         if (stepKey === 'proof' && !form.travelProofUrl) {
             haptics.error?.();
-            Alert.alert(
-                'Comprovante obrigatório',
-                'Envie um arquivo que comprove que você esteve no destino (bilhete aéreo, recibo de hotel, passaporte carimbado, etc.) para continuar.',
-                [{ text: 'Entendi', style: 'default' }],
-            );
+            notify({
+                title: 'Comprovante obrigatório',
+                message: 'Envie um arquivo que comprove que você esteve no destino (bilhete aéreo, recibo de hotel, passaporte carimbado, etc.) para continuar.',
+                variant: 'warning',
+            });
             return;
         }
         const ns = Math.min(step + 1, totalSteps);
@@ -437,7 +438,7 @@ export default function NewItineraryScreen() {
             await AsyncStorage.setItem(previewKey, JSON.stringify(payload));
             router.push('/itinerary-preview');
         } catch (e: any) {
-            Alert.alert('Erro', e?.message || 'Não foi possível abrir a prévia.');
+            notify({ title: 'Erro', message: e?.message || 'Não foi possível abrir a prévia.', variant: 'error' });
         }
     }
 
@@ -1576,18 +1577,18 @@ function StepDays({ form, update }: StepProps) {
             update('days', form.days.slice(0, duration).map((d, i) => ({ ...d, dayNumber: i + 1 })));
             return;
         }
-        Alert.alert(
-            'Reduzir duração do roteiro?',
-            `Você reduziu a duração para ${duration} dia${duration > 1 ? 's' : ''}, mas ${toRemove.length === 1 ? 'o dia' : 'os dias'} ${toRemove.map((_, i) => duration + i + 1).join(', ')} ${toRemove.length === 1 ? 'já possui' : 'já possuem'} informações preenchidas. Deseja remover ${toRemove.length === 1 ? 'esse dia' : 'esses dias'}?`,
-            [
-                { text: 'Manter dias extras', style: 'cancel' },
-                {
-                    text: 'Remover',
-                    style: 'destructive',
-                    onPress: () => update('days', form.days.slice(0, duration).map((d, i) => ({ ...d, dayNumber: i + 1 }))),
-                },
-            ],
-        );
+        void (async () => {
+            const ok = await confirm({
+                title: 'Reduzir duração do roteiro?',
+                message: `Você reduziu a duração para ${duration} dia${duration > 1 ? 's' : ''}, mas ${toRemove.length === 1 ? 'o dia' : 'os dias'} ${toRemove.map((_, i) => duration + i + 1).join(', ')} ${toRemove.length === 1 ? 'já possui' : 'já possuem'} informações preenchidas.`,
+                confirmText: 'Remover dias',
+                cancelText: 'Manter dias extras',
+                destructive: true,
+            });
+            if (ok) {
+                update('days', form.days.slice(0, duration).map((d, i) => ({ ...d, dayNumber: i + 1 })));
+            }
+        })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [duration]);
 
@@ -2547,7 +2548,12 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
         if (Platform.OS !== 'web') {
             const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!perm.granted) {
-                Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.'); return;
+                notify({
+                    title: 'Permissão necessária',
+                    message: 'Permita acesso aos arquivos para continuar.',
+                    variant: 'warning',
+                });
+                return;
             }
         }
         // Capa só aceita imagens; galeria aceita imagens + vídeos
@@ -2585,7 +2591,11 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
             });
         });
         if (validationFailures.length > 0) {
-            Alert.alert('Alguns arquivos não podem ser enviados', validationFailures.join('\n'));
+            notify({
+                title: 'Alguns arquivos não podem ser enviados',
+                message: validationFailures.join('\n'),
+                variant: 'warning',
+            });
         }
         if (validAssets.length === 0) return;
 
@@ -2627,13 +2637,18 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
                 if (acceptedVideos.length) update('mediaUrls', [...form.mediaUrls, ...acceptedVideos].slice(0, 10));
             }
             if (failures.length > 0) {
-                Alert.alert(
-                    `${failures.length} arquivo(s) não enviado(s)`,
-                    failures.join('\n'),
-                );
+                notify({
+                    title: `${failures.length} arquivo(s) não enviado(s)`,
+                    message: failures.join('\n'),
+                    variant: 'warning',
+                });
             }
         } catch (e: any) {
-            Alert.alert('Falha no upload', e?.message || 'Tente novamente.');
+            notify({
+                title: 'Falha no upload',
+                message: e?.message || 'Tente novamente.',
+                variant: 'error',
+            });
         } finally {
             setter(false);
         }

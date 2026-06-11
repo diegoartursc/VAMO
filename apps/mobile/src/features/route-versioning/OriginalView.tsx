@@ -43,6 +43,8 @@ export interface OriginalViewProps {
     /** Habilita marcar/desmarcar (só comprador autenticado). Estrutura do
      * checklist continua imutável — só o progresso é interativo. */
     canToggleChecklist?: boolean;
+    /** Bloqueia toques concorrentes enquanto o progresso está sendo salvo. */
+    checklistPending?: boolean;
     /** Persiste o toggle de um item (recebe a key do item). */
     onToggleChecklist?: (key: string) => void;
 }
@@ -99,6 +101,7 @@ export default function OriginalView({
     snapshot,
     checklistProgress = {},
     canToggleChecklist = false,
+    checklistPending = false,
     onToggleChecklist,
 }: OriginalViewProps) {
     const [expandedDays, setExpandedDays] = useState<Set<number>>(() => new Set([1]));
@@ -380,7 +383,7 @@ export default function OriginalView({
                             // Estrutura imutável: o viajante NÃO edita/adiciona/remove
                             // itens aqui — só marca/desmarca (progresso pessoal).
                             const handlePress = () => {
-                                if (!canToggleChecklist || !onToggleChecklist) return;
+                                if (!canToggleChecklist || checklistPending || !onToggleChecklist) return;
                                 haptics.light();
                                 onToggleChecklist(key);
                             };
@@ -392,10 +395,13 @@ export default function OriginalView({
                                         i < sections.checklistItems.length - 1 && styles.checkRowBorder,
                                     ]}
                                     onPress={handlePress}
-                                    disabled={!canToggleChecklist}
+                                    disabled={!canToggleChecklist || checklistPending}
                                     activeOpacity={0.7}
                                     accessibilityRole="checkbox"
-                                    accessibilityState={{ checked: done, disabled: !canToggleChecklist }}
+                                    accessibilityState={{
+                                        checked: done,
+                                        disabled: !canToggleChecklist || checklistPending,
+                                    }}
                                     accessibilityLabel={`${done ? 'Desmarcar' : 'Marcar'}: ${text}`}
                                 >
                                     <View style={[styles.checkBox, done && styles.checkBoxActive]}>

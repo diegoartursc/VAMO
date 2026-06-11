@@ -42,6 +42,7 @@ import { features } from '../../src/config/features';
 import { getSnapshot, getCustomization } from '../../src/services/routeCustomization';
 import { mergeItineraryWithCustomization } from '../../src/features/route-versioning/mergeEngine';
 import { getTripChecklist, getTripFiles } from '../../src/services/tripCenter';
+import { convertToAud, summarizeInAud } from '../../src/utils/currencyConversion';
 
 // AttractionInfo type (inline — no longer from mock)
 type AttractionInfo = {
@@ -245,11 +246,12 @@ export default function PurchasedItineraryScreen() {
         return () => { mounted = false; };
     }, [authLoading, id, accessToken, isAuthenticated]);
 
-    /** Converte valor em qualquer moeda para AUD formatado, usando taxas do admin */
-    const toBRL = (value: string | number, currency: string): string => {
+    /** Converte valor em qualquer moeda para AUD sem inventar taxa ausente. */
+    const toAUD = (value: string | number, currency: string): string | null => {
         const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
         if (n <= 0) return formatMoney(0);
-        const aud = currency === 'AUD' ? n : n * (currencyRates[currency] ?? 1);
+        const aud = convertToAud(n, currency, currencyRates);
+        if (aud === null) return null;
         return formatMoney(aud);
     };
 
@@ -539,16 +541,23 @@ export default function PurchasedItineraryScreen() {
                                 // direto da aba ativa — exporta imediatamente.
                                 void handlePdfSelect(variant);
                             }}
-                            mineExtras={
+                            mineExtras={({
+                                creatorChecklistProgress,
+                                creatorChecklistPending,
+                                onUpdateCreatorChecklistProgress,
+                            }) => (
                                 <View ref={trackSection('checklist')} collapsable={false}>
                                     <TripCenter
                                         purchaseId={undefined}
                                         itineraryId={id as string}
                                         creatorChecklist={checklist}
                                         canEdit={isAuthenticated && !!accessToken}
+                                        creatorChecklistProgress={creatorChecklistProgress}
+                                        creatorChecklistPending={creatorChecklistPending}
+                                        onUpdateCreatorChecklistProgress={onUpdateCreatorChecklistProgress}
                                     />
                                 </View>
-                            }
+                            )}
                         />
                     </View>
 
@@ -745,33 +754,47 @@ export default function PurchasedItineraryScreen() {
                             // valor POR PESSOA de cada item para AUD (moeda de referência
                             // do mercado) usando as MESMAS taxas do admin (`currencyRates`)
                             // que alimentam a conversão "≈ A$" item-a-item, e somamos.
-                            // Itens já em AUD passam intactos; se as taxas ainda não
-                            // carregaram, o fallback (rate 1) degrada para o total bruto.
-                            const convertedInformedTotal = getCostReferences(costForm as any)
-                                .flatMap(g => g.items)
-                                .reduce((acc, it) => {
-                                    const rate = it.currency === 'AUD' ? 1 : (currencyRates[it.currency] ?? 1);
-                                    return acc + it.amountPerPerson * rate;
-                                }, 0);
+                            // Itens já em AUD passam intactos. Moeda sem taxa NÃO
+                            // entra no agregado como se tivesse paridade 1:1.
+                            const costItems = getCostReferences(costForm as any).flatMap(g => g.items);
+                            const converted = summarizeInAud(
+                                costItems.map(it => ({
+                                    amount: it.amountPerPerson,
+                                    currency: it.currency,
+                                })),
+                                currencyRates,
+                            );
                             const summaryConverted = {
                                 ...summary,
-                                totalInformed: convertedInformedTotal,
+                                totalInformed: converted.totalAud,
                                 currency: 'AUD',
                             };
                             return (
                                 <>
-                                    <BudgetSummaryCard
-                                        form={costForm as any}
-                                        summary={summaryConverted}
-                                        variant="purchased"
-                                        hideWhenEmpty
-                                    />
-                                    <PeopleSimulator
-                                        totalPerPerson={summaryConverted.totalInformed}
-                                        currency={summaryConverted.currency}
-                                        value={peopleCount}
-                                        onChange={updatePeopleCount}
-                                    />
+                                    {converted.missingCurrencies.length === 0 ? (
+                                        <>
+                                            <BudgetSummaryCard
+                                                form={costForm as any}
+                                                summary={summaryConverted}
+                                                variant="purchased"
+                                                hideWhenEmpty
+                                            />
+                                            <PeopleSimulator
+                                                totalPerPerson={summaryConverted.totalInformed}
+                                                currency={summaryConverted.currency}
+                                                value={peopleCount}
+                                                onChange={updatePeopleCount}
+                                            />
+                                        </>
+                                    ) : (
+                                        <View style={styles.currencyWarning}>
+                                            <Ionicons name="alert-circle-outline" size={16} color={theme.colors.warning} />
+                                            <Text style={styles.currencyWarningText}>
+                                                Total em AUD indisponível: falta cotação para {converted.missingCurrencies.join(', ')}.
+                                                Os valores originais continuam listados abaixo.
+                                            </Text>
+                                        </View>
+                                    )}
                                 </>
                             );
                         })()}
@@ -825,6 +848,9 @@ export default function PurchasedItineraryScreen() {
                                                 const proofOk = item.hasProof && (item.proofStatus === 'uploaded' || item.proofStatus === 'pending_review' || item.proofStatus === 'approved');
                                                 const showVerifiedBadge = isVerified && proofOk;
                                                 const isShared = item.sharedByPeople > 1;
+                                                const convertedLabel = item.currency !== 'AUD'
+                                                    ? toAUD(item.amountPerPerson, item.currency)
+                                                    : null;
                                                 return (
                                                     <View key={idx} style={styles.costRefItem}>
                                                         <Text style={styles.costRefItemTitle}>{item.title}</Text>
@@ -832,7 +858,11 @@ export default function PurchasedItineraryScreen() {
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
                                                             {' por pessoa'}
                                                             {item.currency !== 'AUD' && (
-                                                                <Text style={styles.costRefItemConverted}> ≈ {toBRL(item.amountPerPerson, item.currency)}</Text>
+                                                                <Text style={styles.costRefItemConverted}>
+                                                                    {convertedLabel
+                                                                        ? ` ≈ ${convertedLabel}`
+                                                                        : ' · cotação AUD indisponível'}
+                                                                </Text>
                                                             )}
                                                         </Text>
                                                         <Text style={[styles.costRefItemConverted, { marginTop: 2 }]}>
@@ -1919,6 +1949,23 @@ const styles = StyleSheet.create({
     reviewCTABtnText: { fontSize: 15, fontWeight: '700', color: theme.colors.primary },
 
     // ─── Referência de Gastos por Pessoa (item-a-item, espelha Detalhes) ───
+    currencyWarning: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        marginVertical: 12,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.colors.warning + '55',
+        backgroundColor: theme.colors.warning + '12',
+    },
+    currencyWarningText: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 17,
+        color: theme.colors.text.secondary,
+    },
     costRefTitle: {
         fontSize: 14,
         fontWeight: '700',

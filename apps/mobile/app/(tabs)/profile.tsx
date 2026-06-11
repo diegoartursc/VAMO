@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    Modal, Linking, Platform, Alert, Dimensions, Animated, Share,
+    Modal, Linking, Platform, Dimensions, Animated, Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -66,21 +66,49 @@ interface CreatorStatsSummary {
 
 const { width } = Dimensions.get('window');
 
+// Os valores abaixo são CHAVES persistidas (AsyncStorage) e validadas contra
+// estes arrays — não traduzir o valor armazenado. A tradução é feita só na
+// camada de exibição via os mapas *_LABELS abaixo.
 const CURRENCIES = ['(A$) AUD', '($) USD', '(€) EUR', '(£) GBP', '(NZ$) NZD'];
 const LANGUAGES = ['english', 'español'];
 const APPEARANCES = ['System default', 'Light', 'Dark'];
 
 const TRAVEL_TYPES = ['Luxury', 'Budget', 'Backpacking', 'Family', 'Romantic', 'Adventure'];
 const BUDGET_RANGES = ['Up to A$ 1,000', 'A$ 1,000 – 3,000', 'A$ 3,000 – 6,000', 'A$ 6,000+'];
+
+// ── Rótulos PT-BR para exibição (chaves acima permanecem inalteradas) ──
+const LANGUAGE_LABELS: Record<string, string> = {
+    english: 'Português',
+    español: 'Espanhol',
+};
+const APPEARANCE_LABELS: Record<string, string> = {
+    'System default': 'Padrão do sistema',
+    Light: 'Claro',
+    Dark: 'Escuro',
+};
+const TRAVEL_TYPE_LABELS: Record<string, string> = {
+    Luxury: 'Luxo',
+    Budget: 'Econômico',
+    Backpacking: 'Mochilão',
+    Family: 'Família',
+    Romantic: 'Romântico',
+    Adventure: 'Aventura',
+};
+const BUDGET_LABELS: Record<string, string> = {
+    'Up to A$ 1,000': 'Até A$ 1.000',
+    'A$ 1,000 – 3,000': 'A$ 1.000 – 3.000',
+    'A$ 3,000 – 6,000': 'A$ 3.000 – 6.000',
+    'A$ 6,000+': 'A$ 6.000+',
+};
 const INTEREST_OPTIONS = [
-    { id: 'nature', icon: 'trees' as IconName, label: 'Nature' },
-    { id: 'culture', icon: 'landmark' as IconName, label: 'Culture' },
-    { id: 'food', icon: 'utensils' as IconName, label: 'Food' },
-    { id: 'adventure', icon: 'mountain' as IconName, label: 'Adventure' },
-    { id: 'beaches', icon: 'compass' as IconName, label: 'Beaches' },
-    { id: 'shopping', icon: 'briefcase' as IconName, label: 'Shopping' },
-    { id: 'nightlife', icon: 'star' as IconName, label: 'Nightlife' },
-    { id: 'heritage', icon: 'landmark' as IconName, label: 'Heritage' },
+    { id: 'nature', icon: 'trees' as IconName, label: 'Natureza' },
+    { id: 'culture', icon: 'landmark' as IconName, label: 'Cultura' },
+    { id: 'food', icon: 'utensils' as IconName, label: 'Gastronomia' },
+    { id: 'adventure', icon: 'mountain' as IconName, label: 'Aventura' },
+    { id: 'beaches', icon: 'compass' as IconName, label: 'Praias' },
+    { id: 'shopping', icon: 'briefcase' as IconName, label: 'Compras' },
+    { id: 'nightlife', icon: 'star' as IconName, label: 'Vida noturna' },
+    { id: 'heritage', icon: 'landmark' as IconName, label: 'Patrimônio' },
 ];
 
 const DEFAULT_PROFILE_PREFERENCES = {
@@ -337,7 +365,7 @@ export default function ProfileScreen() {
         try {
             await Linking.openSettings();
         } catch {
-            Alert.alert('Settings', 'We could not open your device settings right now.');
+            notify({ title: 'Configurações', message: 'Não foi possível abrir as configurações do seu dispositivo agora.', variant: 'error' });
         }
     };
 
@@ -346,7 +374,7 @@ export default function ProfileScreen() {
         const storeUrl = Platform.OS === 'ios'
             ? 'https://apps.apple.com/app/id1234567890'
             : 'https://play.google.com/store/apps/details?id=com.vamo';
-        openExternalUrl(storeUrl, 'The app store is not available right now.');
+        openExternalUrl(storeUrl, 'A loja de aplicativos não está disponível agora.');
     };
 
     const handleShareApp = async () => {
@@ -354,10 +382,10 @@ export default function ProfileScreen() {
         try {
             await Share.share({
                 title: 'VAMO',
-                message: 'Meet VAMO: a marketplace for digital travel itineraries created by experienced travellers. https://vamo.app',
+                message: 'Conheça a VAMO: um marketplace de roteiros de viagem digitais criados por viajantes experientes. https://vamo.app',
             });
         } catch {
-            Alert.alert('Share', 'We could not open sharing right now.');
+            notify({ title: 'Compartilhar', message: 'Não foi possível abrir o compartilhamento agora.', variant: 'error' });
         }
     };
 
@@ -375,9 +403,10 @@ export default function ProfileScreen() {
         const ok = await confirm({
             title: 'Sair da conta?',
             message: 'Você precisará entrar novamente para acessar seus roteiros e compras.',
-            confirmText: 'Sair',
+            confirmText: 'Sair da conta',
             cancelText: 'Cancelar',
-            destructive: true,
+            variant: 'info',
+            icon: 'log-out-outline',
         });
         if (!ok) return;
 
@@ -432,19 +461,19 @@ export default function ProfileScreen() {
             <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
                 <Icon name="circle-user" size={64} color={theme.colors.primary} />
                 <Text style={{ fontSize: 22, fontWeight: '800', color: theme.colors.text.primary, marginTop: 20, marginBottom: 8, textAlign: 'center' }}>
-                    Welcome to VAMO
+                    Bem-vindo à VAMO
                 </Text>
                 <Text style={{ fontSize: 15, color: theme.colors.text.secondary, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
-                    Sign in to access your profile, saved itineraries, cart and trips.
+                    Entre para acessar seu perfil, roteiros salvos, carrinho e viagens.
                 </Text>
                 <TouchableOpacity
                     style={{ backgroundColor: theme.colors.primary, borderRadius: 14, paddingHorizontal: 32, paddingVertical: 14, marginBottom: 12 }}
                     onPress={() => router.push('/login')}
                 >
-                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Sign in</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Entrar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => router.push('/register')}>
-                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>Create a free account →</Text>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>Criar conta grátis →</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -467,7 +496,7 @@ export default function ProfileScreen() {
                         </View>
                         <TouchableOpacity style={styles.editAvatarButton} onPress={() => {
                             haptics.light();
-                            Alert.alert('📸 Foto de perfil', 'A personalização da foto de perfil estará disponível em breve!');
+                            notify({ title: '📸 Foto de perfil', message: 'A personalização da foto de perfil estará disponível em breve!' });
                         }}>
                             <Icon name="edit" size={12} color="#FFF" />
                         </TouchableOpacity>
@@ -489,7 +518,7 @@ export default function ProfileScreen() {
                  */}
                 {isCreator && (
                     <View style={modeStyles.wrap}>
-                        <Text style={modeStyles.label}>You are using VAMO as</Text>
+                        <Text style={modeStyles.label}>Você está usando a VAMO como</Text>
                         <View style={modeStyles.segmented}>
                             <TouchableOpacity
                                 style={[modeStyles.seg, viewMode === 'traveler' && modeStyles.segActive]}
@@ -500,7 +529,7 @@ export default function ProfileScreen() {
                             >
                                 <Icon name="book-open" size={16} color={viewMode === 'traveler' ? '#fff' : theme.colors.text.secondary} />
                                 <Text style={[modeStyles.segText, viewMode === 'traveler' && modeStyles.segTextActive]}>
-                                    Traveller
+                                    Viajante
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -512,7 +541,7 @@ export default function ProfileScreen() {
                             >
                                 <Icon name="edit" size={16} color={viewMode === 'creator' ? '#fff' : theme.colors.text.secondary} />
                                 <Text style={[modeStyles.segText, viewMode === 'creator' && modeStyles.segTextActive]}>
-                                    Creator
+                                    Roteirista
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -667,18 +696,18 @@ export default function ProfileScreen() {
                     <View style={styles.sectionCard}>
                         <SettingItem icon="circle-user" title="Dados pessoais" onPress={() => {
                             haptics.light();
-                            Alert.alert('Dados Pessoais', `Nome: ${user?.name || '—'}\nEmail: ${user?.email || '—'}\n\nA edição de dados pessoais estará disponível em breve.`, [{ text: 'OK' }]);
+                            notify({ title: 'Dados Pessoais', message: `Nome: ${user?.name || '—'}\nEmail: ${user?.email || '—'}\n\nA edição de dados pessoais estará disponível em breve.` });
                         }} />
                         <SettingItem icon="bell" title="Notificações" onPress={() => {
                             handleOpenSettings();
                         }} />
                         <SettingItem icon="shield-check" title="Segurança" onPress={() => {
                             haptics.light();
-                            Alert.alert('Segurança', 'Alteração de senha e autenticação em dois fatores estarão disponíveis em breve.', [{ text: 'OK' }]);
+                            notify({ title: 'Segurança', message: 'Alteração de senha e autenticação em dois fatores estarão disponíveis em breve.' });
                         }} />
                         <SettingItem icon="card" title="Métodos de pagamento" onPress={() => {
                             haptics.light();
-                            Alert.alert('Pagamento', 'Gerenciamento de métodos de pagamento estará disponível em breve.', [{ text: 'OK' }]);
+                            notify({ title: 'Pagamento', message: 'Gerenciamento de métodos de pagamento estará disponível em breve.' });
                         }} isLast />
                     </View>
                 </View>
@@ -696,9 +725,9 @@ export default function ProfileScreen() {
                             <View style={styles.creatorBannerLeft}>
                                 <Text style={styles.creatorBannerEmoji}>🚀</Text>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.creatorBannerTitle}>Become a Creator</Text>
+                                    <Text style={styles.creatorBannerTitle}>Torne-se um roteirista</Text>
                                     <Text style={styles.creatorBannerSub}>
-                                        Create itineraries, share your expertise and earn from your travel knowledge.
+                                        Crie roteiros, compartilhe sua experiência e ganhe com seu conhecimento de viagem.
                                     </Text>
                                 </View>
                             </View>
@@ -717,36 +746,36 @@ export default function ProfileScreen() {
                     <View style={styles.sectionSpaced}>
                         <View style={styles.sectionTitleRow}>
                             <Icon name="edit" size={16} color={theme.colors.primary} />
-                            <Text style={styles.sectionTitle}>Creator Tools</Text>
+                            <Text style={styles.sectionTitle}>Ferramentas do roteirista</Text>
                             <View style={styles.creatorBadge}>
-                                <Text style={styles.creatorBadgeText}>✓ Creator</Text>
+                                <Text style={styles.creatorBadgeText}>✓ Roteirista</Text>
                             </View>
                         </View>
                         <View style={styles.sectionCard}>
                             <SettingItem
                                 icon="edit"
-                                title="Create a new itinerary"
+                                title="Criar novo roteiro"
                                 onPress={() => { haptics.light(); router.push('/new-itinerary'); }}
                             />
                             <SettingItem
                                 icon="book-open"
-                                title="My created itineraries"
+                                title="Meus roteiros criados"
                                 onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
                             />
                             <SettingItem
                                 icon="message-circle"
-                                title="Received questions"
+                                title="Perguntas recebidas"
                                 onPress={() => { haptics.light(); router.push('/creator-questions'); }}
                             />
                             <SettingItem
                                 icon="wallet"
-                                title="Earnings"
-                                value="Track sales and payouts"
+                                title="Ganhos"
+                                value="Acompanhe vendas e repasses"
                                 onPress={() => { haptics.light(); router.push('/creator-earnings'); }}
                             />
                             <SettingItem
                                 icon="briefcase"
-                                title="Creator dashboard"
+                                title="Painel do roteirista"
                                 onPress={() => { haptics.light(); router.push('/created-itineraries'); }}
                                 isLast
                             />
@@ -761,16 +790,16 @@ export default function ProfileScreen() {
                         <SettingItem icon="wallet" title="Moeda" value={currency} onPress={() => {
                             haptics.selection(); setShowCurrencyPicker(true);
                         }} />
-                        <SettingItem icon="globe" title="Idioma" value={language} onPress={() => {
+                        <SettingItem icon="globe" title="Idioma" value={LANGUAGE_LABELS[language] ?? language} onPress={() => {
                             haptics.selection(); setShowLanguagePicker(true);
                         }} />
-                        <SettingItem icon="palette" title="Aparência" value={appearance} onPress={() => {
+                        <SettingItem icon="palette" title="Aparência" value={APPEARANCE_LABELS[appearance] ?? appearance} onPress={() => {
                             haptics.selection(); setShowAppearancePicker(true);
                         }} />
-                        <SettingItem icon="plane" title="Tipo de viagem preferido" value={travelType} onPress={() => {
+                        <SettingItem icon="plane" title="Tipo de viagem preferido" value={TRAVEL_TYPE_LABELS[travelType] ?? travelType} onPress={() => {
                             haptics.selection(); setShowTravelTypePicker(true);
                         }} />
-                        <SettingItem icon="wallet" title="Orçamento médio" value={budget} onPress={() => {
+                        <SettingItem icon="wallet" title="Orçamento médio" value={BUDGET_LABELS[budget] ?? budget} onPress={() => {
                             haptics.selection(); setShowBudgetPicker(true);
                         }} />
                         <SettingItem icon="star" title="Interesses" value={`${selectedInterests.length} selecionados`} onPress={() => {
@@ -781,52 +810,57 @@ export default function ProfileScreen() {
 
                 {/* ══════════ 6. ABOUT ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>About</Text>
+                    <Text style={styles.sectionTitle}>Sobre</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="help" title="How it works" onPress={() => {
+                        <SettingItem icon="help" title="Como funciona" onPress={() => {
                             haptics.light(); setShowHowItWorksModal(true);
                         }} />
-                        <SettingItem icon="info" title="About VAMO" onPress={() => {
+                        <SettingItem icon="info" title="Sobre a VAMO" onPress={() => {
                             haptics.light(); setShowAboutModal(true);
                         }} />
-                        <SettingItem icon="message-circle" title="Help Centre" onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/help', 'The Help Centre is not available right now.');
+                        <SettingItem icon="message-circle" title="Central de ajuda" onPress={() => {
+                            haptics.light(); openExternalUrl('https://vamo.app/help', 'A Central de ajuda não está disponível agora.');
                         }} />
-                        <SettingItem icon="phone" title="Contact support" iconColor={theme.colors.primary} onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/support', 'Support is not available right now.');
+                        <SettingItem icon="phone" title="Falar com o suporte" iconColor={theme.colors.primary} onPress={() => {
+                            haptics.light(); openExternalUrl('https://vamo.app/support', 'O suporte não está disponível agora.');
                         }} />
-                        <SettingItem icon="clipboard-list" title="My requests" onPress={() => {
+                        <SettingItem icon="clipboard-list" title="Minhas solicitações" onPress={() => {
                             haptics.light();
-                            Alert.alert('Requests', 'You do not have any open requests right now.', [{ text: 'OK' }]);
+                            notify({ title: 'Solicitações', message: 'Você não tem nenhuma solicitação em aberto no momento.' });
                         }} isLast />
                     </View>
                 </View>
 
                 {/* ══════════ RATING ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Rating</Text>
+                    <Text style={styles.sectionTitle}>Avaliação</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="star" title="Rate the app" onPress={handleRateApp} />
-                        <SettingItem icon="share" title="Share with friends" onPress={handleShareApp} isLast />
+                        <SettingItem icon="star" title="Avaliar o app" onPress={handleRateApp} />
+                        <SettingItem icon="share" title="Compartilhar com amigos" onPress={handleShareApp} isLast />
                     </View>
                 </View>
 
                 {/* ══════════ 7. LEGAL ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Legal</Text>
+                    <Text style={styles.sectionTitle}>Jurídico</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="file" title="Terms of Use" onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/terms', 'The Terms of Use are not available right now.');
+                        <SettingItem icon="file" title="Termos de Uso" onPress={() => {
+                            haptics.light(); openExternalUrl('https://vamo.app/terms', 'Os Termos de Uso não estão disponíveis agora.');
                         }} />
-                        <SettingItem icon="shield-check" title="Privacy Policy" onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/privacy', 'The Privacy Policy is not available right now.');
+                        <SettingItem icon="shield-check" title="Política de Privacidade" onPress={() => {
+                            haptics.light(); openExternalUrl('https://vamo.app/privacy', 'A Política de Privacidade não está disponível agora.');
                         }} />
-                        <SettingItem icon="trash" title="Delete my account" titleColor={theme.colors.error} onPress={() => {
+                        <SettingItem icon="trash" title="Excluir conta" titleColor={theme.colors.error} onPress={async () => {
                             haptics.warning();
-                            Alert.alert('Delete account', 'This action is permanent. All your data will be deleted.', [
-                                { text: 'Cancel', style: 'cancel' },
-                                { text: 'Delete', style: 'destructive', onPress: () => Alert.alert('Request sent', 'Your account deletion request has been received.') },
-                            ]);
+                            const ok = await confirm({
+                                title: 'Excluir conta?',
+                                message: 'Esta ação é permanente. Todos os seus dados serão apagados.',
+                                confirmText: 'Excluir conta',
+                                variant: 'danger',
+                                icon: 'trash-outline',
+                            });
+                            if (!ok) return;
+                            notify({ title: 'Solicitação enviada', message: 'Sua solicitação de exclusão de conta foi recebida.' });
                         }} isLast />
                     </View>
                 </View>
@@ -851,15 +885,19 @@ export default function ProfileScreen() {
             </Animated.ScrollView>
 
             {/* ══════════ MODALS ══════════ */}
-            <PickerModal visible={showCurrencyPicker} title="Select currency" options={CURRENCIES} selected={currency}
+            <PickerModal visible={showCurrencyPicker} title="Selecionar moeda" options={CURRENCIES} selected={currency}
                 onSelect={(v) => { setCurrency(v); haptics.success(); }} onClose={() => setShowCurrencyPicker(false)} />
-            <PickerModal visible={showLanguagePicker} title="Select language" options={LANGUAGES} selected={language}
+            <PickerModal visible={showLanguagePicker} title="Selecionar idioma" options={LANGUAGES} selected={language}
+                labels={LANGUAGE_LABELS}
                 onSelect={(v) => { setLanguage(v); haptics.success(); }} onClose={() => setShowLanguagePicker(false)} />
-            <PickerModal visible={showAppearancePicker} title="Select theme" options={APPEARANCES} selected={appearance}
+            <PickerModal visible={showAppearancePicker} title="Selecionar tema" options={APPEARANCES} selected={appearance}
+                labels={APPEARANCE_LABELS}
                 onSelect={(v) => { setAppearance(v); haptics.success(); }} onClose={() => setShowAppearancePicker(false)} />
-            <PickerModal visible={showTravelTypePicker} title="Trip style" options={TRAVEL_TYPES} selected={travelType}
+            <PickerModal visible={showTravelTypePicker} title="Estilo de viagem" options={TRAVEL_TYPES} selected={travelType}
+                labels={TRAVEL_TYPE_LABELS}
                 onSelect={(v) => { setTravelType(v); haptics.success(); }} onClose={() => setShowTravelTypePicker(false)} />
-            <PickerModal visible={showBudgetPicker} title="Average budget" options={BUDGET_RANGES} selected={budget}
+            <PickerModal visible={showBudgetPicker} title="Orçamento médio" options={BUDGET_RANGES} selected={budget}
+                labels={BUDGET_LABELS}
                 onSelect={(v) => { setBudget(v); haptics.success(); }} onClose={() => setShowBudgetPicker(false)} />
 
             {/* Interests Multi-Select Modal */}
@@ -868,13 +906,13 @@ export default function ProfileScreen() {
                     <View style={modalStyles.container}>
                         <View style={modalStyles.handle} />
                         <View style={modalStyles.header}>
-                            <Text style={modalStyles.title}>Your Interests</Text>
+                            <Text style={modalStyles.title}>Seus interesses</Text>
                             <TouchableOpacity onPress={() => setShowInterestsPicker(false)} style={modalStyles.closeButton}>
                                 <Icon name="close" size={20} color={theme.colors.text.secondary} />
                             </TouchableOpacity>
                         </View>
                         <Text style={modalStyles.interestsSubtitle}>
-                            Select your interests for personalised recommendations
+                            Selecione seus interesses para recomendações personalizadas
                         </Text>
                         <View style={modalStyles.interestsGrid}>
                             {INTEREST_OPTIONS.map((interest) => {
@@ -898,18 +936,18 @@ export default function ProfileScreen() {
                             style={modalStyles.doneButton}
                             onPress={() => { setShowInterestsPicker(false); haptics.success(); }}
                         >
-                            <Text style={modalStyles.doneButtonText}>Save ({selectedInterests.length})</Text>
+                            <Text style={modalStyles.doneButtonText}>Salvar ({selectedInterests.length})</Text>
                         </TouchableOpacity>
                         <View style={{ height: 16 }} />
                     </View>
                 </View>
             </Modal>
 
-            <InfoModal visible={showAboutModal} title="About VAMO"
-                content={`VAMO — Your marketplace for digital travel itineraries\n\nVersion 1.0.0\n\nDiscover detailed itineraries created by experienced travellers. Plan your trip with people who have been there.\n\n© 2026 VAMO. All rights reserved.`}
+            <InfoModal visible={showAboutModal} title="Sobre a VAMO"
+                content={`VAMO — Seu marketplace de roteiros de viagem digitais\n\nVersão 1.0.0\n\nDescubra roteiros detalhados criados por viajantes experientes. Planeje sua viagem com quem já esteve lá.\n\n© 2026 VAMO. Todos os direitos reservados.`}
                 onClose={() => setShowAboutModal(false)} />
-            <InfoModal visible={showHowItWorksModal} title="How it works"
-                content={`1. Explore\nBrowse itineraries created by experienced travellers.\n\n2. Choose\nSelect the right itinerary and review the details.\n\n3. Buy\nComplete your purchase securely.\n\n4. Travel\nAccess the itinerary and enjoy your trip.`}
+            <InfoModal visible={showHowItWorksModal} title="Como funciona"
+                content={`1. Explore\nNavegue por roteiros criados por viajantes experientes.\n\n2. Escolha\nSelecione o roteiro certo e revise os detalhes.\n\n3. Compre\nFinalize sua compra com segurança.\n\n4. Viaje\nAcesse o roteiro e aproveite sua viagem.`}
                 onClose={() => setShowHowItWorksModal(false)} />
         </View>
     );
@@ -946,10 +984,12 @@ function SettingItem({
 
 // ── Picker Modal ────────────────────────────────────────
 function PickerModal({
-    visible, title, options, selected, onSelect, onClose,
+    visible, title, options, selected, onSelect, onClose, labels,
 }: {
     visible: boolean; title: string; options: string[];
     selected: string; onSelect: (value: string) => void; onClose: () => void;
+    /** Mapa opcional valor→rótulo para exibir traduzido sem mudar a chave. */
+    labels?: Record<string, string>;
 }) {
     return (
         <Modal visible={visible} animationType="slide" transparent>
@@ -969,7 +1009,7 @@ function PickerModal({
                             onPress={() => { onSelect(option); onClose(); }}
                         >
                             <Text style={[modalStyles.optionText, selected === option && modalStyles.optionTextSelected]}>
-                                {option}
+                                {labels?.[option] ?? option}
                             </Text>
                             {selected === option && <Icon name="verified" size={22} color={theme.colors.primary} />}
                         </TouchableOpacity>
@@ -1503,12 +1543,12 @@ function CreatorDashboard({
                     end={{ x: 1, y: 1 }}
                     style={cdStyles.hero}
                 >
-                    <Text style={cdStyles.heroEyebrow}>CREATOR HUB</Text>
+                    <Text style={cdStyles.heroEyebrow}>CENTRAL DO ROTEIRISTA</Text>
                     <Text style={cdStyles.heroTitle}>
-                        {userName ? `Hi, ${userName}` : 'Creator'}
+                        {userName ? `Olá, ${userName}` : 'Roteirista'}
                     </Text>
                     <Text style={cdStyles.heroSubtitle}>
-                        Manage your itineraries, track sales and grow your reach.
+                        Gerencie seus roteiros, acompanhe vendas e amplie seu alcance.
                     </Text>
                     <View style={cdStyles.heroCtas}>
                         <TouchableOpacity
@@ -1517,14 +1557,14 @@ function CreatorDashboard({
                             activeOpacity={0.85}
                         >
                             <Icon name="edit" size={15} color="#fff" />
-                            <Text style={cdStyles.heroPrimaryText}>New itinerary</Text>
+                            <Text style={cdStyles.heroPrimaryText}>Novo roteiro</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={cdStyles.heroSecondary}
                             onPress={onSeeAll}
                             activeOpacity={0.85}
                         >
-                            <Text style={cdStyles.heroSecondaryText}>View itineraries</Text>
+                            <Text style={cdStyles.heroSecondaryText}>Ver roteiros</Text>
                             <Ionicons name="arrow-forward" size={15} color="#fff" />
                         </TouchableOpacity>
                     </View>
@@ -1537,40 +1577,40 @@ function CreatorDashboard({
                     icon="briefcase"
                     iconColor={theme.colors.primary}
                     iconBg={theme.colors.primary + '14'}
-                    label="Active itineraries"
+                    label="Roteiros ativos"
                     value={loading ? '—' : String(stats!.publishedItineraries)}
-                    subtext={loading ? '' : `${stats!.totalItineraries} total`}
+                    subtext={loading ? '' : `${stats!.totalItineraries} no total`}
                 />
                 <MetricCard
                     icon="briefcase"
                     iconColor="#6366F1"
                     iconBg="#6366F114"
-                    label="Total sales"
+                    label="Total de vendas"
                     value={loading ? '—' : String(stats!.totalSales)}
-                    subtext={loading ? '' : `${formatMoney(Math.round(stats!.totalRevenue))} revenue`}
+                    subtext={loading ? '' : `${formatMoney(Math.round(stats!.totalRevenue))} em receita`}
                 />
                 <MetricCard
                     icon="star"
                     iconColor="#F59E0B"
                     iconBg="#F59E0B14"
-                    label="Average rating"
+                    label="Avaliação média"
                     value={loading || stats!.averageRating <= 0 ? '—' : stats!.averageRating.toFixed(1)}
-                    subtext="out of 5.0"
+                    subtext="de 5.0"
                 />
                 <MetricCard
                     icon="verified"
                     iconColor={theme.colors.success}
                     iconBg={theme.colors.success + '14'}
-                    label="Average quality"
+                    label="Qualidade média"
                     value={loading || stats!.averageQualityScore == null ? '—' : `${stats!.averageQualityScore}%`}
-                    subtext={loading || stats!.averageQualityScore == null ? 'No active itineraries' : 'Average across active itineraries'}
+                    subtext={loading || stats!.averageQualityScore == null ? 'Sem roteiros ativos' : 'Média entre roteiros ativos'}
                 />
             </View>
 
             {/* ── Receita acumulada (card em destaque) ── */}
             <View style={cdStyles.revenueCard}>
                 <View style={cdStyles.revenueLeft}>
-                    <Text style={cdStyles.revenueLabel}>Total earned</Text>
+                    <Text style={cdStyles.revenueLabel}>Total recebido</Text>
                     <Text style={cdStyles.revenueValue}>
                         {loading ? '—' : formatMoney(Math.round(stats!.totalRevenue))}
                     </Text>
@@ -1578,8 +1618,8 @@ function CreatorDashboard({
                         {loading
                             ? ''
                             : stats!.totalSales > 0
-                                ? `${stats!.totalSales} completed sale${stats!.totalSales === 1 ? '' : 's'}`
-                                : 'Waiting for your first sale'}
+                                ? `${stats!.totalSales} venda${stats!.totalSales === 1 ? '' : 's'} concluída${stats!.totalSales === 1 ? '' : 's'}`
+                                : 'Aguardando sua primeira venda'}
                     </Text>
                 </View>
                 <View style={cdStyles.revenueIconWrap}>
@@ -1591,22 +1631,22 @@ function CreatorDashboard({
             <View style={cdStyles.proTipCard}>
                 <View style={cdStyles.proTipHeader}>
                     <Ionicons name="flash" size={18} color={theme.colors.primary} />
-                    <Text style={cdStyles.proTipTitle}>PRO TIP</Text>
+                    <Text style={cdStyles.proTipTitle}>DICA PRO</Text>
                 </View>
                 <Text style={cdStyles.proTipBody}>
-                    Itineraries with a score above{' '}
+                    Roteiros com pontuação acima de{' '}
                     <Text style={cdStyles.proTipHighlight}>80%</Text>
-                    {' '}are easier for reviewers to approve and can earn more visibility in the app.
+                    {' '}são aprovados mais facilmente pelos revisores e podem ganhar mais visibilidade no app.
                 </Text>
             </View>
 
             {/* ── Seção "Seus Roteiros" ── */}
             <View style={cdStyles.section}>
                 <View style={cdStyles.sectionHeader}>
-                    <Text style={cdStyles.sectionTitle}>Your Itineraries</Text>
+                    <Text style={cdStyles.sectionTitle}>Seus Roteiros</Text>
                     {itineraries.length > 0 && (
                         <TouchableOpacity onPress={onSeeAll}>
-                            <Text style={cdStyles.sectionLink}>See all</Text>
+                            <Text style={cdStyles.sectionLink}>Ver todos</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -1614,15 +1654,15 @@ function CreatorDashboard({
                 {itineraries.length === 0 ? (
                     <View style={cdStyles.emptyCard}>
                         <Ionicons name="map-outline" size={28} color={theme.colors.text.tertiary} />
-                        <Text style={cdStyles.emptyTitle}>No itineraries yet</Text>
-                        <Text style={cdStyles.emptyText}>Create your first itinerary.</Text>
+                        <Text style={cdStyles.emptyTitle}>Nenhum roteiro ainda</Text>
+                        <Text style={cdStyles.emptyText}>Crie seu primeiro roteiro.</Text>
                         <TouchableOpacity
                             style={cdStyles.emptyCta}
                             onPress={onCreate}
                             activeOpacity={0.85}
                         >
                             <Icon name="edit" size={14} color="#fff" />
-                            <Text style={cdStyles.emptyCtaText}>Create itinerary</Text>
+                            <Text style={cdStyles.emptyCtaText}>Criar roteiro</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -1652,10 +1692,10 @@ function CreatorDashboard({
                                         <MetaPill icon="card" label={formatMoney(it.price)} />
                                     )}
                                     {typeof it.qualityScore === 'number' && (
-                                        <MetaPill icon="star" label={`Score ${it.qualityScore}%`} />
+                                        <MetaPill icon="star" label={`Pontuação ${it.qualityScore}%`} />
                                     )}
                                     {it.sales > 0 && (
-                                        <MetaPill icon="briefcase" label={`${it.sales} sale${it.sales === 1 ? '' : 's'}`} />
+                                        <MetaPill icon="briefcase" label={`${it.sales} venda${it.sales === 1 ? '' : 's'}`} />
                                     )}
                                 </View>
                             </TouchableOpacity>
@@ -1667,7 +1707,7 @@ function CreatorDashboard({
                                 activeOpacity={0.85}
                             >
                                 <Text style={cdStyles.seeAllText}>
-                                    See all {itineraries.length} itineraries
+                                    Ver todos os {itineraries.length} roteiros
                                 </Text>
                                 <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
                             </TouchableOpacity>
@@ -1678,39 +1718,39 @@ function CreatorDashboard({
 
             {/* ── Quick Actions ── */}
             <View style={cdStyles.section}>
-                <Text style={cdStyles.sectionTitle}>Quick Actions</Text>
+                <Text style={cdStyles.sectionTitle}>Ações rápidas</Text>
                 <QuickAction
                     icon="edit"
                     iconBg={theme.colors.primary + '14'}
                     iconColor={theme.colors.primary}
-                    title="Create Itinerary"
-                    subtitle="New itinerary"
+                    title="Criar roteiro"
+                    subtitle="Novo roteiro"
                     onPress={onCreate}
                 />
                 <QuickAction
                     icon="book-open"
                     iconBg="#6366F114"
                     iconColor="#6366F1"
-                    title="My Itineraries"
-                    subtitle="Manage everything"
+                    title="Meus roteiros"
+                    subtitle="Gerencie tudo"
                     onPress={onSeeAll}
                 />
                 <QuickAction
                     icon="wallet"
                     iconBg="#16A34A14"
                     iconColor="#16A34A"
-                    title="Earnings"
-                    subtitle="Track sales and payouts"
+                    title="Ganhos"
+                    subtitle="Acompanhe vendas e repasses"
                     onPress={onSales}
                 />
                 <QuickAction
                     icon="message-circle"
                     iconBg={theme.colors.primary + '14'}
                     iconColor={theme.colors.primary}
-                    title="Questions"
+                    title="Perguntas"
                     subtitle={pendingQuestionsCount > 0
-                        ? `${pendingQuestionsCount} pending`
-                        : 'Traveller questions'}
+                        ? `${pendingQuestionsCount} pendente${pendingQuestionsCount === 1 ? '' : 's'}`
+                        : 'Perguntas de viajantes'}
                     badge={pendingQuestionsCount > 0 ? pendingQuestionsCount : undefined}
                     onPress={onQuestions}
                 />
@@ -1718,8 +1758,8 @@ function CreatorDashboard({
                     icon="star"
                     iconBg="#F59E0B14"
                     iconColor="#F59E0B"
-                    title="Reviews"
-                    subtitle="Traveller reviews"
+                    title="Avaliações"
+                    subtitle="Avaliações de viajantes"
                     onPress={onReviews}
                 />
             </View>
@@ -1744,13 +1784,13 @@ function MetricCard({ icon, iconColor, iconBg, label, value, subtext }: {
 }
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; fg: string }> = {
-    draft:          { label: 'Draft',  bg: '#94A3B81A', fg: '#475569' },
-    pending_review: { label: 'In review', bg: '#F59E0B1F', fg: '#A16207' },
-    approved:       { label: 'Approved',  bg: '#22C55E1F', fg: '#15803D' },
-    active:         { label: 'Published', bg: '#22C55E1F', fg: '#15803D' },
-    published:      { label: 'Published', bg: '#22C55E1F', fg: '#15803D' },
-    rejected:       { label: 'Rejected', bg: '#EF44441F', fg: '#B91C1C' },
-    archived:       { label: 'Archived', bg: '#94A3B81F', fg: '#475569' },
+    draft:          { label: 'Rascunho',  bg: '#94A3B81A', fg: '#475569' },
+    pending_review: { label: 'Em revisão', bg: '#F59E0B1F', fg: '#A16207' },
+    approved:       { label: 'Aprovado',  bg: '#22C55E1F', fg: '#15803D' },
+    active:         { label: 'Publicado', bg: '#22C55E1F', fg: '#15803D' },
+    published:      { label: 'Publicado', bg: '#22C55E1F', fg: '#15803D' },
+    rejected:       { label: 'Rejeitado', bg: '#EF44441F', fg: '#B91C1C' },
+    archived:       { label: 'Arquivado', bg: '#94A3B81F', fg: '#475569' },
 };
 function StatusBadge({ status }: { status: string }) {
     const key = (status || '').toLowerCase();

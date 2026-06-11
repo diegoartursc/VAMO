@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
+import {
+    getSavedItineraryIds,
+    saveItinerary,
+    unsaveItinerary,
+} from '../services/api';
 
 // Favoritos são por-usuário. A chave inclui o travelerId para evitar que a
 // lista vaze entre contas no mesmo dispositivo (ex.: Maria faz logout, Diego
@@ -45,7 +50,7 @@ interface FavoritesProviderProps {
 }
 
 export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }) => {
-    const { user } = useAuth();
+    const { user, accessToken } = useAuth();
     const travelerId = user?.travelerId ?? null;
 
     const [favorites, setFavorites] = useState<string[]>([]);
@@ -76,26 +81,42 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
             try {
                 const stored = await AsyncStorage.getItem(key);
                 if (cancelled) return;
-                if (stored) {
-                    const normalized = normalizeFavoriteIds(JSON.parse(stored));
-                    setFavorites(normalized);
-                    if (stored !== JSON.stringify(normalized)) {
-                        await AsyncStorage.setItem(key, JSON.stringify(normalized));
-                    }
-                } else {
-                    setFavorites([]);
+                const cached = stored
+                    ? normalizeFavoriteIds(JSON.parse(stored))
+                    : [];
+                if (!accessToken) {
+                    setFavorites(cached);
+                    return;
                 }
+
+                const remote = normalizeFavoriteIds(await getSavedItineraryIds(accessToken));
+                const missingRemote = cached.filter(id => !remote.includes(id));
+                const migrated = await Promise.allSettled(
+                    missingRemote.map(id => saveItinerary(id, accessToken)),
+                );
+                const acceptedMigrated = missingRemote.filter(
+                    (_id, index) => migrated[index]?.status === 'fulfilled',
+                );
+                const normalized = normalizeFavoriteIds([...remote, ...acceptedMigrated]);
+                setFavorites(normalized);
+                await AsyncStorage.setItem(key, JSON.stringify(normalized));
             } catch (error) {
                 console.error('Error loading favorites:', error);
-                if (!cancelled) setFavorites([]);
-                AsyncStorage.removeItem(key).catch(() => {});
+                if (!cancelled) {
+                    try {
+                        const cached = await AsyncStorage.getItem(key);
+                        setFavorites(cached ? normalizeFavoriteIds(JSON.parse(cached)) : []);
+                    } catch {
+                        setFavorites([]);
+                    }
+                }
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
         };
         load();
         return () => { cancelled = true; };
-    }, [travelerId]);
+    }, [travelerId, accessToken]);
 
     const persist = useCallback(async (next: string[]) => {
         const key = keyFor(travelerId);
@@ -121,14 +142,28 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
         const normalizedId = typeof id === 'string' ? id.trim() : '';
         if (!normalizedId) return;
         if (!favorites.includes(normalizedId)) {
-            await saveFavorites([...favorites, normalizedId]);
+            const previous = favorites;
+            await saveFavorites([...previous, normalizedId]);
+            try {
+                if (accessToken) await saveItinerary(normalizedId, accessToken);
+            } catch (error) {
+                await saveFavorites(previous);
+                throw error;
+            }
         }
-    }, [favorites, saveFavorites]);
+    }, [accessToken, favorites, saveFavorites]);
 
     const removeFavorite = useCallback(async (id: string) => {
         const normalizedId = typeof id === 'string' ? id.trim() : '';
-        await saveFavorites(favorites.filter(fav => fav !== normalizedId));
-    }, [favorites, saveFavorites]);
+        const previous = favorites;
+        await saveFavorites(previous.filter(fav => fav !== normalizedId));
+        try {
+            if (accessToken) await unsaveItinerary(normalizedId, accessToken);
+        } catch (error) {
+            await saveFavorites(previous);
+            throw error;
+        }
+    }, [accessToken, favorites, saveFavorites]);
 
     const toggleFavorite = useCallback(async (id: string): Promise<boolean> => {
         const normalizedId = typeof id === 'string' ? id.trim() : '';
@@ -146,8 +181,17 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     }, [favorites, addFavorite, removeFavorite]);
 
     const clearFavorites = useCallback(async () => {
+        const previous = favorites;
         await saveFavorites([]);
-    }, [saveFavorites]);
+        try {
+            if (accessToken) {
+                await Promise.all(previous.map(id => unsaveItinerary(id, accessToken)));
+            }
+        } catch (error) {
+            await saveFavorites(previous);
+            throw error;
+        }
+    }, [accessToken, favorites, saveFavorites]);
 
     const value: FavoritesContextType = {
         favorites,

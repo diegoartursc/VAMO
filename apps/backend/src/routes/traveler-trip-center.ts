@@ -5,6 +5,7 @@ import path from 'path';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import { generatePrivateFileToken, verifyPrivateFileToken } from '../lib/auth';
 import prisma from '../lib/prisma';
+import { hasValidFileSignature } from '../lib/file-signature';
 
 const router = Router();
 const MAX_ITEM_LEN = 240;
@@ -66,28 +67,6 @@ function validateString(value: unknown, maxLen: number, required = true): string
 
 function safeFilename(value: string): string {
     return value.replace(/[\r\n"]/g, '_').slice(0, 180) || 'arquivo';
-}
-
-export function hasValidFileSignature(buffer: Buffer, filename: string): boolean {
-    const extension = path.extname(filename).slice(1).toLowerCase();
-    const ascii = (start: number, end: number) => buffer.subarray(start, end).toString('ascii');
-    if (extension === 'pdf') return ascii(0, 5) === '%PDF-';
-    if (extension === 'jpg' || extension === 'jpeg') {
-        return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
-    }
-    if (extension === 'png') {
-        return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-    }
-    if (extension === 'webp') return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
-    if (extension === 'webm') {
-        return buffer.length >= 4 && buffer.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
-    }
-    if (['heic', 'heif'].includes(extension)) {
-        const brand = ascii(8, 12);
-        return ascii(4, 8) === 'ftyp' && ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(brand);
-    }
-    if (['mp4', 'mov'].includes(extension)) return ascii(4, 8) === 'ftyp';
-    return false;
 }
 
 function signedFileUrl(req: Request, fileId: string, travelerId: string): string {

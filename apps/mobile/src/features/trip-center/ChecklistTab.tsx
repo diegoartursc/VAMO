@@ -6,7 +6,7 @@
  *   haptics.light() → otimista → API → sucesso/rollback + notify.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -45,6 +45,7 @@ export interface ChecklistTabProps {
     onItemsChange: (next: TravelerChecklistItem[]) => void;
     canEdit: boolean;
     creatorProgress?: Record<string, boolean>;
+    creatorProgressPending?: boolean;
     onUpdateCreatorProgress?: (next: Record<string, boolean>) => Promise<void>;
 }
 
@@ -138,11 +139,13 @@ export default function ChecklistTab({
     onItemsChange,
     canEdit,
     creatorProgress = {},
+    creatorProgressPending = false,
     onUpdateCreatorProgress,
 }: ChecklistTabProps) {
     const [modalVisible, setModalVisible] = useState(false);
     const [editing, setEditing] = useState<EditTarget | null>(null);
     const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+    const pendingIdsRef = useRef<Set<string>>(new Set());
     // Modo edição único — read-only por padrão, ações discretas só
     // aparecem quando o usuário toca em "Editar". Mesmo padrão das Dicas.
     const [editMode, setEditMode] = useState(false);
@@ -211,6 +214,9 @@ export default function ChecklistTab({
     }, [unified]);
 
     const markPending = (id: string, on: boolean) => {
+        const immediate = new Set(pendingIdsRef.current);
+        if (on) immediate.add(id); else immediate.delete(id);
+        pendingIdsRef.current = immediate;
         setPendingIds(prev => {
             const next = new Set(prev);
             if (on) next.add(id); else next.delete(id);
@@ -222,23 +228,28 @@ export default function ChecklistTab({
     const handleToggle = async (u: UnifiedItem) => {
         if (!canEdit) return;
         if (u.origin === 'creator' && u.creatorKey) {
+            if (creatorProgressPending || pendingIdsRef.current.has(u.id)) return;
             haptics.light();
             const next = { ...creatorProgress, [u.creatorKey]: !creatorProgress[u.creatorKey] };
+            markPending(u.id, true);
             try {
                 await onUpdateCreatorProgress?.(next);
                 haptics.success();
             } catch {
                 haptics.error();
+            } finally {
+                markPending(u.id, false);
             }
             return;
         }
         if (u.origin === 'traveler' && u.travelerRef && token) {
             const it = u.travelerRef;
+            if (pendingIdsRef.current.has(u.id)) return;
             haptics.light();
             const prev = items;
             const next = items.map(x => x.id === it.id ? { ...x, completed: !x.completed } : x);
             onItemsChange(next);
-            markPending(it.id, true);
+            markPending(u.id, true);
             try {
                 const saved = await updateChecklistItem(itineraryId, it.id, { completed: !it.completed }, token);
                 onItemsChange(next.map(x => x.id === it.id ? saved : x));
@@ -248,7 +259,7 @@ export default function ChecklistTab({
                 haptics.error();
                 notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.' });
             } finally {
-                markPending(it.id, false);
+                markPending(u.id, false);
             }
         }
     };
@@ -429,9 +440,8 @@ export default function ChecklistTab({
                             </Text>
                             {list.map(u => {
                                 // Pending só faz sentido pra traveler item.
-                                const pending = u.origin === 'traveler' && !!u.travelerRef
-                                    ? pendingIds.has(u.travelerRef.id)
-                                    : false;
+                                const pending = pendingIds.has(u.id)
+                                    || (u.origin === 'creator' && creatorProgressPending);
                                 // ESTRUTURA ACHATADA OBRIGATÓRIA — TouchableOpacity
                                 // aninhado quebrava o tap da lixeira no Expo Web.
                                 // Toggle é UM sub-TouchableOpacity; ações são
@@ -443,7 +453,7 @@ export default function ChecklistTab({
                                             onPress={() => { void handleToggle(u); }}
                                             onLongPress={u.origin === 'traveler' ? () => handleEdit(u) : undefined}
                                             activeOpacity={0.7}
-                                            disabled={!canEdit}
+                                            disabled={!canEdit || pending}
                                             accessibilityLabel={
                                                 u.completed
                                                     ? `Desmarcar ${u.item}`

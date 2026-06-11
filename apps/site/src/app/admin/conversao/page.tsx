@@ -97,21 +97,34 @@ export default function ConversaoMoedasPage() {
             return;
         }
 
-        // 1. Salva no localStorage (uso imediato no site/dashboard)
-        localStorage.setItem(CURRENCY_RATES_KEY, JSON.stringify(newRates));
-        window.dispatchEvent(new CustomEvent("currencyRatesUpdated", { detail: { rates: newRates } }));
-
-        // 2. Persiste no backend (uso pelo app mobile via GET /api/rates)
+        // Persiste primeiro no backend, fonte compartilhada com o mobile.
         try {
-            await fetch(`${API}/rates`, {
+            const token = localStorage.getItem("adminToken");
+            if (!token) throw new Error("Sessão de administrador expirada.");
+            const response = await fetch(`${API}/rates`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
                 body: JSON.stringify({ rates: newRates }),
             });
+            if (!response.ok) {
+                const body = await response.json().catch(() => null);
+                throw new Error(body?.error || "Não foi possível sincronizar as taxas.");
+            }
         } catch (err) {
             console.warn("[conversao] Não foi possível sincronizar taxas com o backend:", err);
-            // Não bloqueia — localStorage já está atualizado
+            setToast({
+                msg: err instanceof Error ? err.message : "Não foi possível sincronizar as taxas.",
+                type: "error",
+            });
+            return;
         }
+
+        // Atualiza o cache do site somente depois da confirmação do backend.
+        localStorage.setItem(CURRENCY_RATES_KEY, JSON.stringify(newRates));
+        window.dispatchEvent(new CustomEvent("currencyRatesUpdated", { detail: { rates: newRates } }));
 
         setHasChanges(false);
         setToast({ msg: "Cotações atualizadas com sucesso!", type: "success" });
