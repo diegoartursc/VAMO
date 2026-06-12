@@ -564,6 +564,43 @@ export async function purchaseItinerary(
     });
 }
 
+// ─── Pagamento (Stripe Checkout) ───
+export interface CheckoutSessionResult {
+    itineraryId: string;
+    /** URL da página de checkout hospedada pelo Stripe (ausente se grátis/já comprado). */
+    url?: string;
+    sessionId?: string;
+    saleId?: string;
+    /** true quando o roteiro já pertencia ao traveler — nada foi cobrado. */
+    alreadyPurchased?: boolean;
+    /** true quando o roteiro é grátis e foi liberado direto, sem Stripe. */
+    freePurchase?: boolean;
+}
+
+/** Cria a sessão de pagamento no Stripe e devolve a URL do checkout hospedado. */
+export async function createCheckoutSession(
+    itineraryId: string,
+    opts: { source?: string; paymentMethod?: string } = {},
+    accessToken?: string | null,
+): Promise<CheckoutSessionResult> {
+    return request('/payments/checkout-session', {
+        method: 'POST',
+        body: { itineraryId, source: opts.source, paymentMethod: opts.paymentMethod },
+        accessToken,
+    });
+}
+
+/**
+ * Consulta o status do pagamento ao voltar do Stripe. Se pago, o backend
+ * libera o roteiro na hora (idempotente — convive com o webhook em prod).
+ */
+export async function getCheckoutSessionStatus(
+    sessionId: string,
+    accessToken?: string | null,
+): Promise<{ status: string; itineraryId: string; saleId?: string; alreadyPurchased?: boolean }> {
+    return request(`/payments/checkout-session/${encodeURIComponent(sessionId)}`, { accessToken });
+}
+
 // ─── Currency Rates ───
 /** Taxas padrão com base AUD: 1 unidade da moeda = X AUD. */
 const DEFAULT_CURRENCY_RATES: Record<string, number> = {

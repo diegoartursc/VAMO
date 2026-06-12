@@ -8,11 +8,13 @@ import {
     SafeAreaView,
     Pressable,
     ActivityIndicator,
+    Platform,
+    Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
-import { getItineraryById, purchaseItinerary } from '../../src/services/api';
+import { getItineraryById, createCheckoutSession } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useCart } from '../../src/hooks/useCart';
@@ -149,29 +151,44 @@ export default function ItineraryPaymentScreen() {
         setProcessing(true);
         setPaymentError(null);
         try {
-            console.log('[purchase] iniciando', { itineraryId, paymentMethod });
-            // Record the purchase. Sends JWT so the sale is attributed to the
-            // authenticated traveler (não cai no dev-fallback do backend).
-            const result = await purchaseItinerary(itineraryId, paymentMethod, accessToken);
-            console.log('[purchase] sucesso', result);
+            console.log('[checkout] criando sessão Stripe', { itineraryId, paymentMethod });
+            const result = await createCheckoutSession(
+                itineraryId,
+                { source, paymentMethod },
+                accessToken,
+            );
 
-            if (source === 'cart') {
-                await removeFromCart(itineraryId);
+            // Grátis ou já comprado: backend liberou direto, sem cobrança.
+            if (result.alreadyPurchased || result.freePurchase) {
+                if (source === 'cart') {
+                    await removeFromCart(itineraryId);
+                }
+                router.replace({
+                    pathname: `/itinerary/${itineraryId}` as any,
+                    params: { showSuccess: 'true' },
+                });
+                return;
             }
 
-            // Redireciona direto para a tela do roteiro com `showSuccess=true`.
-            // O PurchaseSuccessModal já existente na tela de detalhes captura
-            // o param e mostra a confirmação. Funciona pros dois casos:
-            // nova compra OU compra já existente.
-            router.replace({
-                pathname: `/itinerary/${itineraryId}` as any,
-                params: { showSuccess: 'true' },
-            });
+            if (!result.url) {
+                throw new Error('Não foi possível iniciar o pagamento. Tente novamente.');
+            }
+
+            // Redireciona para o checkout hospedado do Stripe. Ao concluir,
+            // o Stripe volta para /checkout/itinerary-confirm, que confirma o
+            // pagamento no backend e libera o roteiro.
+            console.log('[checkout] redirecionando para Stripe', result.sessionId);
+            if (Platform.OS === 'web') {
+                window.location.assign(result.url);
+                // Mantém o spinner ativo enquanto o navegador troca de página.
+                return;
+            }
+            await Linking.openURL(result.url);
+            setProcessing(false);
         } catch (err: any) {
             const msg = err?.message || 'Não foi possível concluir a compra agora. Tente novamente.';
-            console.warn('[purchase] erro:', msg);
+            console.warn('[checkout] erro:', msg);
             setPaymentError(msg);
-        } finally {
             setProcessing(false);
         }
     };
@@ -241,9 +258,9 @@ export default function ItineraryPaymentScreen() {
                     <Text style={styles.sectionTitle}>Forma de pagamento</Text>
 
                     <View style={styles.securityBadge}>
-                        <Ionicons name="information-circle" size={16} color={theme.colors.primary} />
+                        <Ionicons name="lock-closed" size={16} color={theme.colors.primary} />
                         <Text style={styles.securityText}>
-                            Pagamento online ainda não habilitado. A liberação abaixo funciona apenas em ambiente autorizado de teste.
+                            Pagamento seguro processado pela Stripe. Você será redirecionado para concluir a compra.
                         </Text>
                     </View>
 
@@ -399,7 +416,7 @@ export default function ItineraryPaymentScreen() {
                         ) : (
                             <>
                                 <Ionicons name="logo-apple" size={24} color="#fff" />
-                                <Text style={styles.applePayText}>Liberar teste</Text>
+                                <Text style={styles.applePayText}>Pagar com Apple Pay</Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -418,7 +435,9 @@ export default function ItineraryPaymentScreen() {
                                 <Text style={styles.confirmButtonText}>Processando...</Text>
                             </View>
                         ) : (
-                            <Text style={styles.confirmButtonText}>Liberar acesso de teste</Text>
+                            <Text style={styles.confirmButtonText}>
+                                {paymentAmount > 0 ? `Pagar ${formatPrice(paymentAmount)}` : 'Resgatar grátis'}
+                            </Text>
                         )}
                     </TouchableOpacity>
                 )}

@@ -27,6 +27,7 @@ export default function LoginScreen() {
         countryCode?: string;
         phone?: string;
         source?: string;
+        session_id?: string;
     }>();
     const nextRoute = Array.isArray(params.next) ? params.next[0] : params.next;
     const nextItineraryId = Array.isArray(params.itineraryId) ? params.itineraryId[0] : params.itineraryId;
@@ -36,6 +37,8 @@ export default function LoginScreen() {
     const nextCountryCode = Array.isArray(params.countryCode) ? params.countryCode[0] : params.countryCode;
     const nextPhone = Array.isArray(params.phone) ? params.phone[0] : params.phone;
     const nextSource = Array.isArray(params.source) ? params.source[0] : params.source;
+    // Retorno do Stripe Checkout (/checkout/itinerary-confirm) com sessão expirada
+    const nextSessionId = Array.isArray(params.session_id) ? params.session_id[0] : params.session_id;
     const { login } = useAuth();
 
     const [email, setEmail] = useState('');
@@ -70,6 +73,7 @@ export default function LoginScreen() {
                         ...(nextCountryCode ? { countryCode: nextCountryCode } : {}),
                         ...(nextPhone ? { phone: nextPhone } : {}),
                         ...(nextSource ? { source: nextSource } : {}),
+                        ...(nextSessionId ? { session_id: nextSessionId } : {}),
                     },
                 });
             } else {

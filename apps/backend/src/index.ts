@@ -17,6 +17,7 @@ import questionRoutes from './routes/questions';
 import travelerTripCenterRoutes from './routes/traveler-trip-center';
 import travelerRouteCustomizationRoutes from './routes/traveler-route-customization';
 import savedItemsRoutes from './routes/saved-items';
+import paymentRoutes, { stripeWebhookHandler } from './routes/payments';
 import prisma from './lib/prisma';
 
 const app = express();
@@ -85,6 +86,11 @@ app.use(cors({
     },
     credentials: true,
 }));
+// Webhook do Stripe: registrado ANTES do express.json (a assinatura é
+// verificada sobre o corpo BRUTO) e antes do rate limiter (Stripe reenvia
+// eventos e não pode ser bloqueado por limite de IP).
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), stripeWebhookHandler);
+
 app.use(express.json());
 app.use('/api', limiter);
 
@@ -139,6 +145,7 @@ app.use('/api/rates', ratesRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/saved-items', savedItemsRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
