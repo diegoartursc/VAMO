@@ -683,6 +683,7 @@ export default function CreatedItinerariesScreen() {
                 message: 'Alterações em roteiros publicados passam por nova análise antes de ficarem disponíveis na VAMO. O roteiro pode sair temporariamente da vitrine durante a revisão.',
                 confirmText: 'Continuar edição',
                 cancelText: 'Cancelar',
+                icon: 'create-outline',
             });
             if (!ok) return;
         }
@@ -695,7 +696,7 @@ export default function CreatedItinerariesScreen() {
      *  - Refetch da lista no sucesso pra UI ficar consistente. */
     const handleDelete = async (item: CreatorItinerary) => {
         if (!accessToken) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para arquivar o roteiro.' });
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para arquivar o roteiro.', variant: 'warning' });
             return;
         }
         const ok = await confirm({
@@ -704,6 +705,8 @@ export default function CreatedItinerariesScreen() {
             confirmText: 'Arquivar roteiro',
             cancelText: 'Cancelar',
             destructive: true,
+            // Arquivar não é excluir — lixeira comunicava perda de dados.
+            icon: 'archive-outline',
         });
         if (!ok) return;
         try {
@@ -717,11 +720,11 @@ export default function CreatedItinerariesScreen() {
                 throw new Error(err?.error || `Erro ${res.status} ao arquivar o roteiro`);
             }
             haptics.success();
-            notify({ title: 'Roteiro arquivado', message: 'Ele não aparece mais na vitrine. Você pode revisar quando quiser na aba de arquivados.' });
+            notify({ title: 'Roteiro arquivado', message: 'Ele não aparece mais na vitrine. Você pode revisar quando quiser na aba de arquivados.', variant: 'success', icon: 'archive-outline' });
             await fetchData(true);
         } catch (e: any) {
             haptics.error?.();
-            notify({ title: 'Não foi possível arquivar', message: e?.message || 'Tente novamente em instantes.' });
+            notify({ title: 'Não foi possível arquivar', message: e?.message || 'Tente novamente em instantes.', variant: 'error' });
         }
     };
 

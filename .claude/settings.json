@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"# VAMO — Boot obrigatorio\\n\\nANTES de qualquer outra acao nesta sessao (ler arquivo, responder mensagem, fazer plano), execute estas duas chamadas em paralelo:\\n\\n1. mcp__Claude_Preview__preview_start { name: \\\"backend\\\" }\\n2. mcp__Claude_Preview__preview_start { name: \\\"mobile\\\" }\\n\\nSe ja estiverem rodando, preview_start retorna {reused: true} — eh idempotente e seguro.\\n\\nMotivo: o app mobile chama o backend Express em localhost:3333. Sem o backend, o login da Maria (mariavamo@gmail.com / vamo123) e qualquer outra chamada autenticada falham silenciosamente com erro de rede — nao eh bug do codigo, eh processo faltando. Ja aconteceu 4 vezes. NAO permita uma quinta.\\n\\nDepois de subir os dois, rode 1x \\\"bash scripts/health.sh\\\" no raiz para confirmar backend OK + banco conectado em Supabase prod + Maria presente. So entao prossiga.\\n\\nReferencia completa: CLAUDE.md no raiz do repo.\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -143,7 +143,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                 size: a.size,
             });
         } catch (e: any) {
-            notify({ title: 'Falha ao escolher arquivo', message: e?.message || 'Tente novamente.' });
+            notify({ title: 'Falha ao escolher arquivo', message: e?.message || 'Tente novamente.', variant: 'error' });
         } finally {
             setPicking(false);
         }
@@ -178,7 +178,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
             return;
         }
         if (!token) {
-            notify({ title: 'Sessão expirada', message: 'Entre na conta novamente para enviar arquivos.' });
+            notify({ title: 'Sessão expirada', message: 'Entre na conta novamente para enviar arquivos.', variant: 'warning' });
             return;
         }
         try {
@@ -196,7 +196,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
             onClose();
         } catch (e: any) {
             haptics.error();
-            notify({ title: 'Falha ao enviar arquivo', message: e?.message || 'Tente novamente.' });
+            notify({ title: 'Falha ao enviar arquivo', message: e?.message || 'Tente novamente.', variant: 'error' });
         } finally {
             setUploading(false);
         }

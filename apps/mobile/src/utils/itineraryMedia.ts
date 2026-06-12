@@ -14,6 +14,35 @@
 const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'avif'];
 
+// ─────────────────────────────────────────────
+// Resolução de URL por ambiente
+// ─────────────────────────────────────────────
+//
+// Uploads feitos em modo disco gravam no banco a URL ABSOLUTA do host que
+// recebeu o upload (`http://localhost:3333/uploads/...` quando o criador
+// usou o ambiente local). Essa URL morta quebra a capa no deploy (Vercel),
+// onde o backend é outro host. Aqui normalizamos no momento da LEITURA:
+// qualquer URL de /uploads/ apontando para localhost é re-ancorada na
+// origem da API configurada (EXPO_PUBLIC_API_URL). URLs externas
+// (Supabase Storage, Unsplash, etc.) passam intocadas.
+const API_ORIGIN = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api')
+    .replace(/\/api\/?$/, '');
+
+const LOCALHOST_UPLOADS = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(\/uploads\/.+)$/i;
+
+/**
+ * Normaliza uma URL de mídia para o ambiente atual.
+ *  - `/uploads/...` relativo → prefixa a origem da API.
+ *  - `http://localhost:<porta>/uploads/...` → troca a origem pela da API.
+ *  - Qualquer outra URL → intocada.
+ */
+export function resolveMediaUrl(url: string): string {
+    if (url.startsWith('/uploads/')) return API_ORIGIN + url;
+    const m = url.match(LOCALHOST_UPLOADS);
+    if (m) return API_ORIGIN + m[1];
+    return url;
+}
+
 export type MediaType = 'image' | 'video';
 
 export interface MediaItem {
@@ -54,7 +83,8 @@ function extractUrls(field: unknown): string[] {
             if (item && typeof item === 'object' && typeof item.url === 'string') return item.url;
             return null;
         })
-        .filter(isValidMediaUrl);
+        .filter(isValidMediaUrl)
+        .map(resolveMediaUrl);
 }
 
 /** Máximo de imagens exibidas no carrossel de capa. Spec: 3 destaques. */

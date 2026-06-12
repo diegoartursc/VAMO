@@ -22,6 +22,9 @@ import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
 import { getReviews } from '../../src/services/api';
 import { Icon } from '../../src/components/common/Icons';
+import SectionHeader from '../../src/components/common/SectionHeader';
+import { inferSectionKey } from '../../src/theme/sectionTheme';
+import { getCoverImages } from '../../src/utils/itineraryMedia';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPurchasedItineraryDetail, getCurrencyRates } from '../../src/services/api';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -325,7 +328,10 @@ export default function PurchasedItineraryScreen() {
     const totalEstimate = (currentProfile?.dailyCost || 0) * travelers * customDays;
     const days: ItineraryDay[] = Array.isArray(itinerary.days) ? itinerary.days : [];
     const checklist: ChecklistItem[] = Array.isArray(itinerary.checklist) ? itinerary.checklist : [];
-    const heroImage = Array.isArray(itinerary.images) && itinerary.images[0] ? itinerary.images[0] : PLACEHOLDER_IMAGE;
+    // Capa pelo contrato central (highlightPhotos > images > mediaUrls, com
+    // URL resolvida pro ambiente) — antes lia só `images[0]`, que costuma
+    // estar vazio porque o fluxo de criação preenche highlightPhotos.
+    const heroImage = getCoverImages(itinerary)[0] ?? PLACEHOLDER_IMAGE;
 
     // ─── Handlers ──────────────────────────────────────────
     const toggleDay = (dayNumber: number) => {
@@ -398,6 +404,7 @@ export default function PurchasedItineraryScreen() {
             notify({
                 title: 'Não foi possível exportar',
                 message: e?.message || 'Tente novamente em instantes.',
+                variant: 'error',
             });
         }
     };
@@ -689,7 +696,7 @@ export default function PurchasedItineraryScreen() {
                                             <View style={styles.highlightChips}>
                                                 {itinerary.highlights.map((h: string, i: number) => (
                                                     <View key={i} style={styles.highlightChip}>
-                                                        <Ionicons name="checkmark" size={11} color={theme.colors.primary} />
+                                                        <Ionicons name="checkmark" size={12} color={theme.colors.primary} style={{ marginTop: 1 }} />
                                                         <Text style={styles.highlightChipText}>{h}</Text>
                                                     </View>
                                                 ))}
@@ -1025,17 +1032,20 @@ export default function PurchasedItineraryScreen() {
 // ─── Sub-components ─────────────────────────────────────────
 
 function SectionTitle({ icon, label }: { icon: string; label: string }) {
+    // Cabeçalho premium compartilhado — acento/ícone por seção quando a
+    // label é reconhecida; caso contrário, fallback teal institucional.
     return (
-        <View style={stStyles.row}>
-            <View style={stStyles.iconCircle}>
-                <Ionicons name={icon as any} size={16} color={theme.colors.primary} />
-            </View>
-            <Text style={stStyles.title}>{label}</Text>
-        </View>
+        <SectionHeader
+            sectionKey={inferSectionKey(label)}
+            icon={icon}
+            label={label}
+            style={stStyles.headerSpacing}
+        />
     );
 }
 
 const stStyles = StyleSheet.create({
+    headerSpacing: { marginBottom: 16 },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1390,19 +1400,28 @@ const styles = StyleSheet.create({
     },
     highlightChip: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
+        alignItems: 'flex-start',
+        gap: 5,
         paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 999,
+        paddingVertical: 6,
+        // borderRadius menor que 999: destaques são frases (várias linhas),
+        // não tags curtas — pílula "redonda" fica estranha em texto longo.
+        borderRadius: 12,
         backgroundColor: theme.colors.primary + '12',
         borderWidth: 1,
         borderColor: theme.colors.primary + '22',
+        // Cap em 100% + shrink: frase longa quebra DENTRO do chip em vez de
+        // vazar/ser cortada pela borda do card (overflow:hidden do pai).
+        flexShrink: 1,
+        maxWidth: '100%',
     },
     highlightChipText: {
         fontSize: 12,
         color: theme.colors.text.primary,
         fontWeight: '500',
+        flexShrink: 1,
+        minWidth: 0,
+        lineHeight: 16,
     },
 
     // ── Spending ──

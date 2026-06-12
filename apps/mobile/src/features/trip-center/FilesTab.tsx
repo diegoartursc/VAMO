@@ -103,7 +103,7 @@ export default function FilesTab({
             restored.splice(Math.max(0, idx), 0, file);
             onFilesChange(restored);
             haptics.error();
-            notify({ title: 'Não foi possível remover', message: e?.message || 'Tente novamente.' });
+            notify({ title: 'Não foi possível remover', message: e?.message || 'Tente novamente.', variant: 'error' });
         }
     };
 
@@ -123,7 +123,7 @@ export default function FilesTab({
             haptics.success();
         } catch (e: any) {
             haptics.error();
-            notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.' });
+            notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.', variant: 'error' });
             throw e;
         }
     };

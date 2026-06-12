@@ -165,7 +165,7 @@ function AccommodationCard({ data }: { data: any }) {
             </View>
             {(data?.address || data?.location || data?.neighborhood) ? (
                 <View style={styles.locRow}>
-                    <Ionicons name="location-outline" size={12} color={theme.colors.text.tertiary} />
+                    <Ionicons name="location-outline" size={12} color={theme.colors.text.tertiary} style={styles.locIcon} />
                     <Text style={styles.locText} numberOfLines={2}>
                         {String(data.address || data.location || data.neighborhood)}
                     </Text>
@@ -193,34 +193,35 @@ function AccommodationCard({ data }: { data: any }) {
 function AttractionCard({ data }: { data: any }) {
     return (
         <>
+            {/* Linha 1: título (largura quase total) + preço (recua/encolhe) */}
             <View style={styles.row}>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.title} numberOfLines={2}>{data?.name || 'Atração'}</Text>
-                    <View style={styles.metaRow}>
-                        {data?.type ? (
-                            <View style={styles.typeBadge}>
-                                <Text style={styles.typeBadgeText}>{String(data.type)}</Text>
-                            </View>
-                        ) : null}
-                        {data?.location ? (
-                            <View style={styles.locRow}>
-                                <Ionicons name="location-outline" size={11} color={theme.colors.text.tertiary} />
-                                <Text style={styles.locText} numberOfLines={1}>{String(data.location)}</Text>
-                            </View>
-                        ) : null}
-                    </View>
-                </View>
+                <Text style={styles.title} numberOfLines={2}>{data?.name || 'Atração'}</Text>
                 {(() => {
                     const cost = pickDisplayCost(data) ?? (data?.ticketPrice ? String(data.ticketPrice) : null);
                     if (!cost) return null;
                     return (
                         <View style={styles.pricePill}>
                             <Ionicons name="card-outline" size={11} color={theme.colors.primary} />
-                            <Text style={styles.pricePillText}>{cost}</Text>
+                            <Text style={styles.pricePillText} numberOfLines={1}>{cost}</Text>
                         </View>
                     );
                 })()}
             </View>
+            {/* Linha 2: categoria */}
+            {data?.type ? (
+                <View style={styles.metaRow}>
+                    <View style={styles.typeBadge}>
+                        <Text style={styles.typeBadgeText}>{String(data.type)}</Text>
+                    </View>
+                </View>
+            ) : null}
+            {/* Linha 3: localização em largura total, até 2 linhas, sem vazar */}
+            {data?.location ? (
+                <View style={styles.locRow}>
+                    <Ionicons name="location-outline" size={12} color={theme.colors.text.tertiary} style={styles.locIcon} />
+                    <Text style={styles.locText} numberOfLines={2}>{String(data.location)}</Text>
+                </View>
+            ) : null}
             {(data?.hours || data?.duration) ? (
                 <View style={styles.chipsRow}>
                     {data?.hours ? (
@@ -257,7 +258,7 @@ function RestaurantCard({ data }: { data: any }) {
     return (
         <>
             <View style={styles.row}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.flexCol}>
                     <View style={styles.titleRow}>
                         <Text style={styles.title} numberOfLines={2}>{data?.name || 'Restaurante'}</Text>
                         {data?.cuisine ? (
@@ -268,7 +269,7 @@ function RestaurantCard({ data }: { data: any }) {
                     </View>
                     {data?.location ? (
                         <View style={styles.locRow}>
-                            <Ionicons name="location-outline" size={11} color={theme.colors.text.tertiary} />
+                            <Ionicons name="location-outline" size={11} color={theme.colors.text.tertiary} style={styles.locIcon} />
                             <Text style={styles.locText} numberOfLines={2}>{String(data.location)}</Text>
                         </View>
                     ) : null}
@@ -414,8 +415,8 @@ function DayActivityCard({ data }: { data: any }) {
             <Text style={styles.title}>{data?.title || 'Atividade'}</Text>
             {data?.location ? (
                 <View style={styles.locRow}>
-                    <Ionicons name="location-outline" size={11} color={theme.colors.text.tertiary} />
-                    <Text style={styles.locText} numberOfLines={1}>{String(data.location)}</Text>
+                    <Ionicons name="location-outline" size={11} color={theme.colors.text.tertiary} style={styles.locIcon} />
+                    <Text style={styles.locText} numberOfLines={2}>{String(data.location)}</Text>
                 </View>
             ) : null}
             {data?.description ? (
@@ -465,9 +466,14 @@ export default function ItemCard({ merged, onLongPress, showBadge = true }: Item
         );
     }
 
+    const badgeVisible = showBadge && source !== 'original';
     return (
         <Wrapper {...wrapperProps} style={styles.card}>
-            {showBadge ? <SourceBadge source={source} /> : null}
+            {badgeVisible ? (
+                <View style={styles.cardBadgeWrap}>
+                    <SourceBadge source={source} />
+                </View>
+            ) : null}
             {content}
         </Wrapper>
     );
@@ -500,17 +506,16 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
 
+    // Badge agora no fluxo normal (não-absoluto) — some o overlap com o
+    // título/preço e elimina a necessidade do paddingRight:90 no `row`.
+    cardBadgeWrap: { alignSelf: 'flex-start', marginBottom: 8 },
     badge: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 999,
-        zIndex: 1,
     },
     badgeText: {
         fontSize: 10,
@@ -519,13 +524,21 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
 
-    row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8, paddingRight: 90 },
-    titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    // `row` não reserva mais 90px à direita: o badge "Editado/Adicionado"
+    // agora vive no fluxo normal (cardBadgeWrap), então o título usa toda a
+    // largura disponível. `flexWrap` deixa o pill de preço descer pra linha
+    // de baixo se não couber ao lado do título em telas estreitas.
+    row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8, flexWrap: 'wrap' },
+    flexCol: { flex: 1, minWidth: 0 },
+    titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', flexShrink: 1, minWidth: 0 },
     title: {
         fontSize: 15,
         fontWeight: '700',
         color: theme.colors.text.primary,
         flex: 1,
+        // minWidth:0 é essencial no RN Web: sem isso um filho flex com texto
+        // longo não encolhe e estoura o container (overflow horizontal).
+        minWidth: 0,
         lineHeight: 20,
     },
     subhead: { fontSize: 13, fontWeight: '600', color: theme.colors.primary, marginBottom: 6 },
@@ -533,8 +546,11 @@ const styles = StyleSheet.create({
     metaText: { fontSize: 12, color: theme.colors.text.secondary, marginBottom: 6 },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 },
 
-    locRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 6 },
-    locText: { fontSize: 12, color: theme.colors.text.tertiary, flex: 1 },
+    // alignItems flex-start para o ícone alinhar com a 1ª linha quando o
+    // endereço quebra em 2 linhas. flexShrink/minWidth impedem overflow.
+    locRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginBottom: 6, flexShrink: 1, minWidth: 0 },
+    locText: { fontSize: 12, color: theme.colors.text.tertiary, flex: 1, minWidth: 0, lineHeight: 16 },
+    locIcon: { marginTop: 1 },
 
     pricePill: {
         flexDirection: 'row',

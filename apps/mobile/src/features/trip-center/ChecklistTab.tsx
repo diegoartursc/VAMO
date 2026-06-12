@@ -257,7 +257,7 @@ export default function ChecklistTab({
             } catch (e: any) {
                 onItemsChange(prev);
                 haptics.error();
-                notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.' });
+                notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.', variant: 'error' });
             } finally {
                 markPending(u.id, false);
             }
@@ -284,7 +284,7 @@ export default function ChecklistTab({
                 } catch (e: any) {
                     onItemsChange(prev);
                     haptics.error();
-                    notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.' });
+                    notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.', variant: 'error' });
                     throw e;
                 }
                 return;
@@ -316,7 +316,7 @@ export default function ChecklistTab({
         } catch (e: any) {
             onItemsChange(prev);
             haptics.error();
-            notify({ title: 'Não foi possível adicionar', message: e?.message || 'Tente novamente.' });
+            notify({ title: 'Não foi possível adicionar', message: e?.message || 'Tente novamente.', variant: 'error' });
             throw e;
         }
     };
@@ -358,7 +358,7 @@ export default function ChecklistTab({
                 restored.splice(Math.max(0, idx), 0, it);
                 onItemsChange(restored.length === next.length ? prev : restored);
                 haptics.error();
-                notify({ title: 'Não foi possível remover', message: e?.message || 'Tente novamente.' });
+                notify({ title: 'Não foi possível remover', message: e?.message || 'Tente novamente.', variant: 'error' });
             }
         }
     };

@@ -141,6 +141,7 @@ export default function FAQSection({
             notify({
                 title: 'Pergunta enviada!',
                 message: 'O criador será notificado e poderá responder em breve.',
+                variant: 'success',
             });
             await loadQuestions();
         } catch (err: any) {
@@ -148,6 +149,7 @@ export default function FAQSection({
             notify({
                 title: 'Erro',
                 message: err?.message || 'Não foi possível enviar sua pergunta agora. Tente novamente.',
+                variant: 'error',
             });
         } finally {
             setSending(false);

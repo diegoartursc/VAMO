@@ -18,6 +18,7 @@ import { getPackageById } from '../src/services/api';
 import { haptics } from '../src/services/haptics';
 import { analytics } from '../src/services/analytics';
 import { formatMoney } from '@vamo/shared/itinerary';
+import { getCoverImages } from '../src/utils/itineraryMedia';
 
 const { width } = Dimensions.get('window');
 
@@ -90,7 +91,7 @@ export default function BookingConfirmedScreen() {
                 {/* Hero Image */}
                 <View style={styles.heroContainer}>
                     <Image
-                        source={{ uri: packageData.images[0] }}
+                        source={{ uri: getCoverImages(packageData)[0] }}
                         style={styles.heroImage}
                         resizeMode="cover"
                     />

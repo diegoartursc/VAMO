@@ -423,6 +423,7 @@ export default function ProfileScreen() {
             notify({
                 title: 'Não foi possível sair',
                 message: e?.message || 'Tente novamente em instantes.',
+                variant: 'error',
             });
         } finally {
             setLoggingOut(false);
@@ -860,7 +861,7 @@ export default function ProfileScreen() {
                                 icon: 'trash-outline',
                             });
                             if (!ok) return;
-                            notify({ title: 'Solicitação enviada', message: 'Sua solicitação de exclusão de conta foi recebida.' });
+                            notify({ title: 'Solicitação enviada', message: 'Sua solicitação de exclusão de conta foi recebida.', variant: 'success' });
                         }} isLast />
                     </View>
                 </View>

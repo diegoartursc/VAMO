@@ -24,6 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { notify } from '../src/utils/notify';
 import { uploadFile } from '../src/utils/uploadFile';
 import { validateUploadFile } from '../src/utils/uploadContexts';
+import { getCoverImages } from '../src/utils/itineraryMedia';
 
 const STAR_LABELS = ['', 'Péssimo', 'Ruim', 'Bom', 'Muito bom', 'Excelente'];
 
@@ -157,7 +158,7 @@ export default function WriteReviewScreen() {
                     else if (!v.valid) failures.push(`Foto ${i + 1}: ${v.reason}`);
                 });
                 if (failures.length) {
-                    notify({ title: 'Algumas fotos não foram adicionadas', message: failures.join('\n') });
+                    notify({ title: 'Algumas fotos não foram adicionadas', message: failures.join('\n'), variant: 'warning' });
                 }
                 if (accepted.length) {
                     setPhotos(prev => [...prev, ...accepted].slice(0, 5));
@@ -165,7 +166,7 @@ export default function WriteReviewScreen() {
             }
         } catch (err) {
             console.error('[write-review] erro selecionando fotos:', err);
-            notify({ title: 'Fotos', message: 'Não foi possível selecionar as fotos. Tente novamente.' });
+            notify({ title: 'Fotos', message: 'Não foi possível selecionar as fotos. Tente novamente.', variant: 'error' });
         }
     };
 
@@ -177,7 +178,7 @@ export default function WriteReviewScreen() {
     const handleSubmit = async () => {
         if (submitting) return;
         if (!isAuthenticated) {
-            notify({ title: 'Login necessário', message: 'Faça login para enviar sua avaliação.' });
+            notify({ title: 'Login necessário', message: 'Faça login para enviar sua avaliação.', variant: 'warning', icon: 'log-in-outline' });
             return;
         }
         if (rating === 0) {
@@ -185,7 +186,7 @@ export default function WriteReviewScreen() {
             return;
         }
         if (!user?.travelerId || !itineraryId) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar sua avaliação.' });
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar sua avaliação.', variant: 'warning' });
             return;
         }
 
@@ -238,6 +239,7 @@ export default function WriteReviewScreen() {
             setPhotos(savedReview.photos || uploadedPhotos);
             haptics.success?.();
             notify({
+                variant: 'success',
                 title: existingReview ? 'Avaliação atualizada com sucesso.' : 'Avaliação enviada com sucesso.',
                 message: existingReview
                     ? 'Suas mudanças foram salvas.'
@@ -259,7 +261,7 @@ export default function WriteReviewScreen() {
             } else if (msg.includes('próprios roteiros') || msg.includes('Criadores')) {
                 notify({ title: 'Avaliação indisponível', message: 'Criadores não podem avaliar seus próprios roteiros.' });
             } else {
-                notify({ title: 'Erro', message: msg });
+                notify({ title: 'Erro', message: msg, variant: 'error' });
             }
         } finally {
             setSubmitting(false);
@@ -295,7 +297,7 @@ export default function WriteReviewScreen() {
         );
     }
 
-    const coverImage = Array.isArray(itinerary.images) && itinerary.images[0] ? itinerary.images[0] : undefined;
+    const coverImage = getCoverImages(itinerary)[0];
     const creatorName = itinerary.creator?.name ?? 'Criador VAMO';
 
     return (

@@ -21,6 +21,7 @@ import { useCart, CartItemMeta } from '../../src/hooks/useCart';
 import { haptics } from '../../src/services/haptics';
 import { confirm } from '../../src/utils/confirm';
 import { formatMoney } from '@vamo/shared/itinerary';
+import { getCoverImages } from '../../src/utils/itineraryMedia';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight ?? 24);
@@ -233,6 +234,7 @@ export default function CartScreen() {
         if (availableItems.length === 1) { proceed(availableItems[0]); return; }
         const ok = await confirm({
             title: 'Checkout individual',
+            icon: 'cart-outline',
             message: `Você tem ${availableItems.length} roteiros disponíveis, mas o checkout atual libera uma compra por vez. Vamos começar por "${availableItems[0].title}" no valor de ${formatPrice(availableItems[0].price)}. Os demais continuam no carrinho.`,
             confirmText: 'Comprar primeiro',
         });
@@ -438,13 +440,13 @@ function CartItemCard({
                 <View style={[styles.card, !item.available && !isOwned && styles.cardDisabled]}>
                     {/* Thumbnail */}
                     <View style={styles.thumbWrapper}>
-                        {imageFailed ? (
+                        {(imageFailed || !getCoverImages(item)[0]) ? (
                             <View style={[styles.thumbImage, styles.thumbFallback]}>
                                 <Ionicons name="map-outline" size={28} color="rgba(255,255,255,0.55)" />
                             </View>
                         ) : (
                             <Image
-                                source={{ uri: item.images[0] }}
+                                source={{ uri: getCoverImages(item)[0] }}
                                 style={styles.thumbImage}
                                 resizeMode="cover"
                                 onError={() => setImageFailed(true)}

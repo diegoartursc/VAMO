@@ -267,6 +267,7 @@ export default function NewItineraryScreen() {
                 notify({
                     title: 'Erro ao carregar',
                     message: e?.message || 'Não foi possível abrir o roteiro.',
+                    variant: 'error',
                     onDismiss: () => router.back(),
                 });
             } finally {
@@ -333,7 +334,7 @@ export default function NewItineraryScreen() {
 
     async function submit() {
         if (!accessToken) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar o roteiro.' });
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar o roteiro.', variant: 'warning' });
             return;
         }
         if (submitting) return;
@@ -398,7 +399,7 @@ export default function NewItineraryScreen() {
             router.replace('/await-review');
         } catch (e: any) {
             haptics.error?.();
-            notify({ title: 'Erro ao enviar', message: e?.message || 'Não foi possível enviar.' });
+            notify({ title: 'Erro ao enviar', message: e?.message || 'Não foi possível enviar.', variant: 'error' });
         } finally {
             setSubmitting(false);
         }
@@ -432,7 +433,7 @@ export default function NewItineraryScreen() {
                 mediaUrls: normalizeUrls(form.mediaUrls),
             };
             if (!previewKey) {
-                notify({ title: 'Sessão expirada', message: 'Faça login para visualizar a prévia.' });
+                notify({ title: 'Sessão expirada', message: 'Faça login para visualizar a prévia.', variant: 'warning' });
                 return;
             }
             await AsyncStorage.setItem(previewKey, JSON.stringify(payload));
@@ -444,7 +445,7 @@ export default function NewItineraryScreen() {
 
     // ── Salvar rascunho (sai sem enviar) ────────────────────────
     async function saveDraft() {
-        if (!accessToken) { notify({ title: 'Sessão expirada', message: 'Faça login para salvar.' }); return; }
+        if (!accessToken) { notify({ title: 'Sessão expirada', message: 'Faça login para salvar.', variant: 'warning' }); return; }
         setSaving(true);
         try {
             const payload = { ...buildPayload(form), status: 'DRAFT' };
@@ -462,7 +463,7 @@ export default function NewItineraryScreen() {
             if (draftKey) await AsyncStorage.removeItem(draftKey);
             router.replace('/created-itineraries');
         } catch (e: any) {
-            notify({ title: 'Erro', message: e?.message || 'Não foi possível salvar o rascunho.' });
+            notify({ title: 'Erro', message: e?.message || 'Não foi possível salvar o rascunho.', variant: 'error' });
         } finally {
             setSaving(false);
         }
@@ -1584,6 +1585,9 @@ function StepDays({ form, update }: StepProps) {
                 confirmText: 'Remover dias',
                 cancelText: 'Manter dias extras',
                 destructive: true,
+                // Lixeira (default do danger) sugeria excluir o roteiro todo;
+                // o que se remove aqui são DIAS do calendário.
+                icon: 'calendar-outline',
             });
             if (ok) {
                 update('days', form.days.slice(0, duration).map((d, i) => ({ ...d, dayNumber: i + 1 })));

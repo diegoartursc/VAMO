@@ -36,6 +36,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { theme } from '../../theme/theme';
+import { inferSectionKey } from '../../theme/sectionTheme';
+import SectionHeader from '../../components/common/SectionHeader';
 import { haptics } from '../../services/haptics';
 import { confirm } from '../../utils/confirm';
 
@@ -103,7 +105,10 @@ async function promptItemAction(
         message: `"${title}" sumirá da sua versão do roteiro. Você pode restaurar depois.`,
         confirmText: 'Ocultar',
         cancelText: 'Editar',
-        destructive: true,
+        // Ocultar é reversível (HiddenItemsSection restaura) — warning + olho
+        // comunica isso; danger + lixeira sugeria exclusão definitiva.
+        variant: 'warning',
+        icon: 'eye-off-outline',
     });
     if (hide) {
         onHide();
@@ -570,16 +575,14 @@ export default function MyRouteView({
 // ─── Subcomponentes locais ────────────────────────────────────
 
 function SectionTitle({ icon, label, subtitle }: { icon: string; label: string; subtitle?: string }) {
+    // Mesmo header premium da Original — acento/ícone inferidos pela label.
     return (
-        <View style={styles.sectionHeader}>
-            <View style={styles.sectionRow}>
-                <View style={styles.sectionIcon}>
-                    <Ionicons name={icon as any} size={16} color={theme.colors.primary} />
-                </View>
-                <Text style={styles.sectionTitle}>{label}</Text>
-            </View>
-            {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
-        </View>
+        <SectionHeader
+            sectionKey={inferSectionKey(label)}
+            icon={icon}
+            label={label}
+            subtitle={subtitle}
+        />
     );
 }
 
@@ -702,14 +705,10 @@ function TipsSection({
     return (
         <View style={styles.block}>
             {/* Header: título + toggle de modo edição */}
-            <View style={styles.tipsHeader}>
-                <View style={styles.sectionRow}>
-                    <View style={styles.sectionIcon}>
-                        <Ionicons name="bulb-outline" size={16} color={theme.colors.primary} />
-                    </View>
-                    <Text style={styles.sectionTitle}>Dicas do Viajante</Text>
-                </View>
-                {canShowToggle ? (
+            <SectionHeader
+                sectionKey="tips"
+                label="Dicas do Viajante"
+                right={canShowToggle ? (
                     <TouchableOpacity
                         style={[styles.tipsToggleBtn, editMode && styles.tipsToggleBtnActive]}
                         onPress={() => {
@@ -735,7 +734,7 @@ function TipsSection({
                         </Text>
                     </TouchableOpacity>
                 ) : null}
-            </View>
+            />
 
             {/* Hint sutil mostrando que está em modo edição */}
             {editMode && items.length > 0 ? (
@@ -825,14 +824,10 @@ function ExtraSpendingSection({
 
     return (
         <View style={styles.block}>
-            <View style={styles.tipsHeader}>
-                <View style={styles.sectionRow}>
-                    <View style={styles.sectionIcon}>
-                        <Ionicons name="wallet-outline" size={16} color={theme.colors.primary} />
-                    </View>
-                    <Text style={styles.sectionTitle}>Gastos Extras</Text>
-                </View>
-                {canShowToggle ? (
+            <SectionHeader
+                sectionKey="costs"
+                label="Gastos Extras"
+                right={canShowToggle ? (
                     <TouchableOpacity
                         style={[styles.tipsToggleBtn, editMode && styles.tipsToggleBtnActive]}
                         onPress={() => {
@@ -858,7 +853,7 @@ function ExtraSpendingSection({
                         </Text>
                     </TouchableOpacity>
                 ) : null}
-            </View>
+            />
 
             {editMode && items.length > 0 ? (
                 <Text style={styles.tipsEditHint}>

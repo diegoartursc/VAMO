@@ -270,6 +270,7 @@ export default function RouteVersioning({
                 notify({
                     title: 'Não foi possível salvar',
                     message: e?.message || 'Tente novamente em instantes.',
+                    variant: 'error',
                 });
                 return false;
             }

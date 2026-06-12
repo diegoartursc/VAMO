@@ -141,6 +141,7 @@ export default function TripCenter({
                 notify({
                     title: 'Não foi possível salvar',
                     message: 'O progresso do checklist não foi atualizado. Tente novamente.',
+                    variant: 'error',
                 });
                 throw error;
             }

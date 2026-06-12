@@ -25,6 +25,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { theme } from '../../theme/theme';
+import { inferSectionKey } from '../../theme/sectionTheme';
+import SectionHeader from '../../components/common/SectionHeader';
 import { haptics } from '../../services/haptics';
 import ItemCard from './ItemCard';
 import type { MergedItem, ItemKind } from './mergeEngine';
@@ -82,16 +84,15 @@ function asOriginal(kind: ItemKind, data: any, originalId?: string): MergedItem 
 // ─── Section header ───────────────────────────────────────────
 
 function SectionTitle({ icon, label, subtitle }: { icon: string; label: string; subtitle?: string }) {
+    // Identidade visual por seção: a chave é inferida pela própria label,
+    // então todos os call sites existentes ganham acento/ícone sem mudança.
     return (
-        <View style={styles.sectionHeader}>
-            <View style={styles.sectionRow}>
-                <View style={styles.sectionIcon}>
-                    <Ionicons name={icon as any} size={16} color={theme.colors.primary} />
-                </View>
-                <Text style={styles.sectionTitle}>{label}</Text>
-            </View>
-            {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
-        </View>
+        <SectionHeader
+            sectionKey={inferSectionKey(label)}
+            icon={icon}
+            label={label}
+            subtitle={subtitle}
+        />
     );
 }
 
@@ -542,11 +543,13 @@ const styles = StyleSheet.create({
     flightTotalText: { fontSize: 13, fontWeight: '700', color: theme.colors.success },
 
     tipsBox: {
-        backgroundColor: theme.colors.surfaceLight,
+        backgroundColor: '#CA8A04' + '0D',
         borderRadius: 14,
         padding: 14,
         borderWidth: 1,
-        borderColor: theme.colors.borderLight,
+        borderColor: '#CA8A04' + '22',
+        borderLeftWidth: 3,
+        borderLeftColor: '#CA8A04',
         gap: 8,
         marginTop: 4,
     },
@@ -562,11 +565,13 @@ const styles = StyleSheet.create({
     tipText: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 20, flex: 1 },
 
     tipsListCard: {
-        backgroundColor: theme.colors.surfaceLight,
+        backgroundColor: '#CA8A04' + '0D',
         borderRadius: 14,
         padding: 12,
         borderWidth: 1,
-        borderColor: theme.colors.borderLight,
+        borderColor: '#CA8A04' + '22',
+        borderLeftWidth: 3,
+        borderLeftColor: '#CA8A04',
     },
 
     checklistCard: {

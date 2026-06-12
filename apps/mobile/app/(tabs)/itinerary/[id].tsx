@@ -221,7 +221,7 @@ export default function ItineraryDetailScreen() {
                 router.replace(`/purchased-itinerary/${itineraryId}` as any);
                 return;
             }
-            notify({ title: 'Não foi possível comprar agora', message: gate.reason });
+            notify({ title: 'Não foi possível comprar agora', message: gate.reason, variant: 'warning' });
             return;
         }
         router.push({
@@ -250,7 +250,7 @@ export default function ItineraryDetailScreen() {
                 router.replace(`/purchased-itinerary/${itineraryId}` as any);
                 return;
             }
-            notify({ title: 'Não pode entrar no carrinho', message: gate.reason });
+            notify({ title: 'Não pode entrar no carrinho', message: gate.reason, variant: 'warning' });
             return;
         }
         await addToCart(itineraryId);

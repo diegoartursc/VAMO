@@ -74,6 +74,18 @@ const DEFAULT_ICON: Record<Variant, string> = {
     success: 'checkmark-circle-outline',
 };
 
+/**
+ * `info` significa coisas diferentes por tipo de diálogo:
+ *  - confirm: é uma PERGUNTA ("Sair da conta?") → interrogação.
+ *  - notify: é um AVISO ("Data ajustada") → ícone de informação.
+ * Sem essa distinção, todo aviso informativo saía com "?" — semanticamente
+ * errado e a maior fonte de ícone inadequado nos popups.
+ */
+function defaultIconFor(req: Request, variant: Variant): string {
+    if (req.kind === 'notify' && variant === 'info') return 'information-circle-outline';
+    return DEFAULT_ICON[variant];
+}
+
 function resolveVariant(req: Request): Variant {
     if (req.kind === 'confirm') {
         return req.opts.variant ?? (req.opts.destructive ? 'danger' : 'info');
@@ -167,7 +179,7 @@ export function VamoConfirmHost({ children }: { children?: React.ReactNode }) {
     const accent = ACCENT[variant];
     const isConfirm = current?.kind === 'confirm';
     const opts = current?.opts as (ConfirmOptions & NotifyOptions) | undefined;
-    const iconName = (opts?.icon ?? DEFAULT_ICON[variant]) as any;
+    const iconName = (opts?.icon ?? (current ? defaultIconFor(current, variant) : DEFAULT_ICON[variant])) as any;
     const closeOnBackdrop = current?.kind === 'confirm' ? current.opts.closeOnBackdrop !== false : true;
 
     const backdropOpacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
