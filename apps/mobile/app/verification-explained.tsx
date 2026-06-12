@@ -8,6 +8,7 @@ import {
     StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { safeBack } from '../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 
@@ -39,7 +40,7 @@ export default function VerificationExplainedScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/profile')} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Verificação de Criadores</Text>

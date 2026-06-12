@@ -902,7 +902,7 @@ export default function ProfileScreen() {
                 onSelect={(v) => { setBudget(v); haptics.success(); }} onClose={() => setShowBudgetPicker(false)} />
 
             {/* Interests Multi-Select Modal */}
-            <Modal visible={showInterestsPicker} animationType="slide" transparent>
+            <Modal visible={showInterestsPicker} animationType="slide" transparent onRequestClose={() => setShowInterestsPicker(false)}>
                 <View style={modalStyles.overlay}>
                     <View style={modalStyles.container}>
                         <View style={modalStyles.handle} />
@@ -993,7 +993,7 @@ function PickerModal({
     labels?: Record<string, string>;
 }) {
     return (
-        <Modal visible={visible} animationType="slide" transparent>
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
             <View style={modalStyles.overlay}>
                 <View style={modalStyles.container}>
                     <View style={modalStyles.handle} />
@@ -1029,7 +1029,7 @@ function InfoModal({
     visible: boolean; title: string; content: string; onClose: () => void;
 }) {
     return (
-        <Modal visible={visible} animationType="fade" transparent>
+        <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
             <View style={modalStyles.overlay}>
                 <View style={modalStyles.container}>
                     <View style={modalStyles.handle} />

@@ -12,6 +12,7 @@ import {
     Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../../../src/utils/navigation';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../src/theme/theme';
@@ -116,7 +117,7 @@ export default function ItineraryDetailScreen() {
 
     const goBackOrExplore = () => {
         if (router.canGoBack()) {
-            router.back();
+            safeBack(router, '/(tabs)');
             return;
         }
         router.replace('/(tabs)/itineraries' as any);
@@ -281,7 +282,7 @@ export default function ItineraryDetailScreen() {
 
                     {/* Navigation Header with Blur */}
                     <BlurView intensity={80} tint="dark" style={styles.navBlur}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                        <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router, '/(tabs)')}>
                             <Ionicons name="arrow-back" size={24} color="#fff" />
                         </TouchableOpacity>
                         <View style={styles.navActions}>

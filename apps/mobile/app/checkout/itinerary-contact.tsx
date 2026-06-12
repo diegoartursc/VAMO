@@ -13,6 +13,7 @@ import {
     Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { getItineraryById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
@@ -270,7 +271,7 @@ export default function ItineraryContactScreen() {
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
+                <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')} style={styles.backButton} hitSlop={8}>
                     <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>

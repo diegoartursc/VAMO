@@ -76,7 +76,7 @@ export default function DecisionAssistant({ visible, onClose }: DecisionAssistan
     const progress = ((currentQuestion + 1) / QUESTIONS.length) * 100;
 
     return (
-        <Modal visible={visible} transparent animationType="fade">
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
             <BlurView intensity={40} tint="dark" style={styles.overlay}>
                 <View style={styles.container}>
                     {/* Close Button */}

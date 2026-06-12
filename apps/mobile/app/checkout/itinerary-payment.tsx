@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { getItineraryById, purchaseItinerary } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
@@ -210,7 +211,7 @@ export default function ItineraryPaymentScreen() {
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Pagamento</Text>
@@ -283,7 +284,7 @@ export default function ItineraryPaymentScreen() {
                                 <Text style={styles.reviewSubtext}>{email}</Text>
                                 <Text style={styles.reviewSubtext}>{countryCode} {phone}</Text>
                             </View>
-                            <TouchableOpacity onPress={() => router.back()}>
+                            <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')}>
                                 <Text style={styles.editButton}>✏️ Editar</Text>
                             </TouchableOpacity>
                         </View>

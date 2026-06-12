@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { safeBack } from '../src/utils/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
@@ -484,12 +485,12 @@ export default function BecomeCreatorScreen() {
 
     const handleSkip = useCallback(() => {
         haptics.light();
-        router.back();
+        safeBack(router, '/(tabs)/profile');
     }, [router]);
 
     const handleClose = useCallback(() => {
         haptics.light();
-        router.back();
+        safeBack(router, '/(tabs)/profile');
     }, [router]);
 
     // ── Loading ─────────────────────────────────────────────────

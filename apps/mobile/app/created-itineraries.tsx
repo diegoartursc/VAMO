@@ -11,6 +11,7 @@ import {
     Animated, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { safeBack } from '../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
@@ -582,7 +583,7 @@ export default function CreatedItinerariesScreen() {
         return (
             <View style={s.container}>
                 <Header
-                    onBack={() => router.back()}
+                    onBack={() => safeBack(router, '/(tabs)/profile')}
                     onNew={() => router.push({ pathname: '/login' as any, params: { next: '/become-creator' } })}
                     count={0}
                 />
@@ -602,7 +603,7 @@ export default function CreatedItinerariesScreen() {
     if (error) {
         return (
             <View style={s.container}>
-                <Header onBack={() => router.back()} onNew={() => router.push('/new-itinerary')} count={0} />
+                <Header onBack={() => safeBack(router, '/(tabs)/profile')} onNew={() => router.push('/new-itinerary')} count={0} />
                 <View style={s.emptyState}>
                     <Ionicons name="cloud-offline-outline" size={48} color={theme.colors.text.tertiary} />
                     <Text style={s.emptyTitle}>Erro ao carregar</Text>
@@ -619,7 +620,7 @@ export default function CreatedItinerariesScreen() {
         return (
             <View style={s.container}>
                 <Header
-                    onBack={() => router.back()}
+                    onBack={() => safeBack(router, '/(tabs)/profile')}
                     onNew={() => router.push('/become-creator')}
                     count={0}
                 />
@@ -749,7 +750,7 @@ export default function CreatedItinerariesScreen() {
         <View style={s.container}>
             <StatusBar barStyle="dark-content" />
             <Header
-                onBack={() => router.back()}
+                onBack={() => safeBack(router, '/(tabs)/profile')}
                 onNew={() => { haptics.medium(); router.push('/new-itinerary'); }}
                 count={allItineraries.length}
             />

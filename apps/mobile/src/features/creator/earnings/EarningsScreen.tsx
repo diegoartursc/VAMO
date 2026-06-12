@@ -11,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { safeBack } from '../../../utils/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme/theme';
@@ -108,7 +109,7 @@ export default function EarningsScreen() {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
-            <Header onBack={() => router.back()} />
+            <Header onBack={() => safeBack(router, '/(tabs)/profile')} />
 
             {state === 'error' ? (
                 <ErrorState onRetry={onRetry} />

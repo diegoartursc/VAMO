@@ -16,6 +16,7 @@ import {
     findNodeHandle,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
@@ -311,7 +312,7 @@ export default function PurchasedItineraryScreen() {
                                 } as any);
                                 return;
                             }
-                            router.back();
+                            safeBack(router, '/(tabs)/my-trips');
                         }}
                     >
                         <Text style={styles.errorButtonText}>
@@ -436,7 +437,7 @@ export default function PurchasedItineraryScreen() {
 
                     {/* Nav bar */}
                     <View style={styles.navBar}>
-                        <TouchableOpacity style={styles.navBtn} onPress={() => router.back()}>
+                        <TouchableOpacity style={styles.navBtn} onPress={() => safeBack(router, '/(tabs)/my-trips')}>
                             <Ionicons name="arrow-back" size={22} color="#fff" />
                         </TouchableOpacity>
 

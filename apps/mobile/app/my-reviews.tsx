@@ -11,6 +11,7 @@ import {
     StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { safeBack } from '../src/utils/navigation';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
 import { ErrorState } from '../src/components/common/ErrorState';
@@ -48,7 +49,7 @@ export default function MyReviewsScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router, '/(tabs)/profile')}>
                     <Icon name="chevron-left" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>

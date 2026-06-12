@@ -10,6 +10,7 @@ import {
     Platform, StatusBar, ActivityIndicator, Alert, Animated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
@@ -246,7 +247,7 @@ export default function CreatorItineraryScreen() {
                 end={{ x: 1, y: 1 }}
                 style={s.header}
             >
-                <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+                <TouchableOpacity style={s.backBtn} onPress={() => safeBack(router, '/created-itineraries')}>
                     <Ionicons name="arrow-back" size={22} color="#fff" />
                 </TouchableOpacity>
                 <View style={s.headerContent}>

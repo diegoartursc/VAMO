@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../../../src/utils/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../../src/theme/theme';
 import { getCreatorById } from '../../../src/services/api';
@@ -57,7 +58,7 @@ export default function CreatorDetailScreen() {
                 colors={theme.colors.gradients.institutional}
                 style={styles.header}
             >
-                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router, '/(tabs)')}>
                     <Text style={styles.backIcon}>‹</Text>
                     <Text style={styles.backText}>Voltar</Text>
                 </TouchableOpacity>

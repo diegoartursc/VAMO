@@ -9,6 +9,7 @@ import {
     Pressable,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
@@ -133,7 +134,7 @@ export default function AvailabilityScreen() {
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => safeBack(router, '/(tabs)')} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Disponibilidade</Text>

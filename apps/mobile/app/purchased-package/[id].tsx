@@ -11,6 +11,7 @@ import {
     Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
@@ -68,7 +69,7 @@ export default function PurchasedPackageScreen() {
                 <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle" size={48} color={theme.colors.text.tertiary} />
                     <Text style={styles.errorText}>Reserva não encontrada</Text>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.errorButton}>
+                    <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/my-trips')} style={styles.errorButton}>
                         <Text style={styles.errorButtonText}>Voltar</Text>
                     </TouchableOpacity>
                 </View>
@@ -115,7 +116,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* Nav */}
                     <View style={styles.navBar}>
-                        <TouchableOpacity style={styles.navButton} onPress={() => router.back()}>
+                        <TouchableOpacity style={styles.navButton} onPress={() => safeBack(router, '/(tabs)/my-trips')}>
                             <Ionicons name="arrow-back" size={22} color="#fff" />
                         </TouchableOpacity>
                         <Text style={styles.navTitle}>Central da Viagem</Text>

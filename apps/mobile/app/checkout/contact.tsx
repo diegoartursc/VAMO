@@ -10,6 +10,7 @@ import {
     Pressable,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
@@ -60,7 +61,7 @@ export default function CheckoutContactScreen() {
                 if (prev <= 0) {
                     clearInterval(interval);
                     alert('Tempo esgotado! Sua reserva expirou.');
-                    router.back();
+                    safeBack(router, '/(tabs)/cart');
                     return 0;
                 }
                 return prev - 1;
@@ -145,7 +146,7 @@ export default function CheckoutContactScreen() {
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Pedido</Text>

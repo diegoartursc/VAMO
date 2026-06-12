@@ -8,6 +8,7 @@ import {
     KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { safeBack } from '../src/utils/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme/theme';
@@ -74,7 +75,7 @@ export default function RegisterScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.header}
                 >
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <TouchableOpacity onPress={() => safeBack(router, '/login')} style={styles.backBtn}>
                         <Ionicons name="arrow-back" size={22} color="#fff" />
                     </TouchableOpacity>
                     <VamoLogo size={160} />

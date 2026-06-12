@@ -20,6 +20,7 @@ import {
     Dimensions, StatusBar, Platform, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { safeBack } from '../src/utils/navigation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -224,7 +225,7 @@ export default function ItineraryPreviewScreen() {
                 <Text style={{ marginTop: 12, fontSize: 16, color: theme.colors.text.secondary, textAlign: 'center' }}>
                     Não foi possível carregar a prévia. Volte para a criação e tente novamente.
                 </Text>
-                <TouchableOpacity onPress={() => router.back()} style={[styles.ghostBtn, { marginTop: 20 }]}>
+                <TouchableOpacity onPress={() => safeBack(router, '/created-itineraries')} style={[styles.ghostBtn, { marginTop: 20 }]}>
                     <Text style={styles.ghostBtnText}>Voltar</Text>
                 </TouchableOpacity>
             </View>
@@ -307,7 +308,7 @@ export default function ItineraryPreviewScreen() {
                     />
 
                     <BlurView intensity={80} tint="dark" style={styles.navBlur}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                        <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router, '/created-itineraries')}>
                             <Ionicons name="arrow-back" size={24} color="#fff" />
                         </TouchableOpacity>
                         <View style={styles.navActions}>
@@ -884,7 +885,7 @@ export default function ItineraryPreviewScreen() {
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.actionBtnPrimary}
-                    onPress={() => router.back()}
+                    onPress={() => safeBack(router, '/created-itineraries')}
                     activeOpacity={0.85}
                 >
                     <Ionicons name="arrow-back" size={18} color="#fff" />

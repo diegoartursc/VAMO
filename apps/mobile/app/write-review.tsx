@@ -13,6 +13,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '../src/utils/navigation';
 import { theme } from '../src/theme/theme';
 import { Icon } from '../src/components/common/Icons';
 import { ErrorState } from '../src/components/common/ErrorState';
@@ -254,7 +255,7 @@ export default function WriteReviewScreen() {
                 notify({
                     title: 'Avaliação',
                     message: 'Você já avaliou este roteiro.',
-                    onDismiss: () => router.back(),
+                    onDismiss: () => safeBack(router, '/(tabs)/my-trips'),
                 });
             } else if (msg.includes('Apenas quem comprou')) {
                 notify({ title: 'Avaliação indisponível', message: 'Apenas quem comprou este roteiro pode avaliá-lo.' });
@@ -289,7 +290,7 @@ export default function WriteReviewScreen() {
             <View style={styles.container}>
                 <View style={styles.errorState}>
                     <Text style={styles.errorText}>Roteiro não encontrado</Text>
-                    <TouchableOpacity style={styles.errorBtn} onPress={() => router.back()}>
+                    <TouchableOpacity style={styles.errorBtn} onPress={() => safeBack(router, '/(tabs)/my-trips')}>
                         <Text style={styles.errorBtnText}>Voltar</Text>
                     </TouchableOpacity>
                 </View>
@@ -306,7 +307,7 @@ export default function WriteReviewScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router, '/(tabs)/my-trips')}>
                     <Icon name="chevron-left" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>

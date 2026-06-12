@@ -24,6 +24,7 @@ import {
     Modal, TextInput, Image, Switch,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { safeBack } from '../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import {
     Wallet, BarChart3, Crown,
@@ -268,7 +269,7 @@ export default function NewItineraryScreen() {
                     title: 'Erro ao carregar',
                     message: e?.message || 'Não foi possível abrir o roteiro.',
                     variant: 'error',
-                    onDismiss: () => router.back(),
+                    onDismiss: () => safeBack(router, '/created-itineraries'),
                 });
             } finally {
                 setLoading(false);
@@ -312,7 +313,7 @@ export default function NewItineraryScreen() {
 
     const goBack = useCallback(() => {
         haptics.light();
-        if (step === 1) { router.back(); return; }
+        if (step === 1) { safeBack(router, '/created-itineraries'); return; }
         const ns = step - 1;
         setStep(ns);
         saveDraftLocal(form, ns);
@@ -499,7 +500,20 @@ export default function NewItineraryScreen() {
             <StatusBar barStyle="dark-content" />
 
             {/* Modal retomar rascunho */}
-            <Modal visible={showResume} transparent animationType="fade">
+            {/* onRequestClose = opção segura "Continuar" (preserva o rascunho) */}
+            <Modal
+                visible={showResume}
+                transparent
+                animationType="fade"
+                onRequestClose={() => {
+                    if (pendingDraft) {
+                        setForm(pendingDraft.form);
+                        setStep(pendingDraft.step);
+                    }
+                    setShowResume(false);
+                    setPendingDraft(null);
+                }}
+            >
                 <View style={s.modalBg}>
                     <View style={s.modalCard}>
                         <Text style={s.modalTitle}>Continuar rascunho?</Text>
