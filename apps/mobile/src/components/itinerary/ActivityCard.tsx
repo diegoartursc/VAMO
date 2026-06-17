@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { DayActivity } from '../../data/mockPurchasedItineraries';
+import { formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
 
 interface ActivityCardProps {
     activity: DayActivity;
@@ -78,7 +79,7 @@ export function ActivityCard({
                             <Text style={styles.icon}>{activity.icon}</Text>
                         </View>
                         <View style={styles.headerInfo}>
-                            <Text style={styles.time}>{activity.time}</Text>
+                            <Text style={styles.time}>{formatTimeForAustraliaDisplay(activity.time)}</Text>
                             <Text style={styles.duration}>{activity.duration}</Text>
                         </View>
                     </View>

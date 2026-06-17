@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { formatTimeForAustraliaDisplay } from "@vamo/shared/itinerary";
 
 interface PhonePreviewProps {
     title: string;
@@ -169,7 +170,7 @@ export default function PhonePreview({
                                                     <div className="phone-day-activities">
                                                         {day.activities.slice(0, 2).map((act, j) => (
                                                             <span key={j} className="phone-day-act">
-                                                                {act.time && <span className="phone-act-time">{act.time}</span>}
+                                                                {act.time && <span className="phone-act-time">{formatTimeForAustraliaDisplay(act.time)}</span>}
                                                                 {act.title}
                                                             </span>
                                                         ))}

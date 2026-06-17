@@ -338,7 +338,7 @@ export default function ChecklistTab({
             title: 'Excluir item?',
             message: 'Este item será removido do seu checklist pessoal da viagem.',
             confirmText: 'Excluir',
-            destructive: true,
+            action: 'checklistRemove',
         });
         if (!ok) return;
 

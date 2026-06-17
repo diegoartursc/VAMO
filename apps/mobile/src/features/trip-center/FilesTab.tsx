@@ -86,7 +86,7 @@ export default function FilesTab({
             title: 'Remover arquivo?',
             message: `"${file.title}" será removido da Central da Viagem.`,
             confirmText: 'Remover',
-            destructive: true,
+            action: 'removeFile',
         });
         if (!ok) return;
 

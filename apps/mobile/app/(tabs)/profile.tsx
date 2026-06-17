@@ -405,8 +405,7 @@ export default function ProfileScreen() {
             message: 'Você precisará entrar novamente para acessar seus roteiros e compras.',
             confirmText: 'Sair da conta',
             cancelText: 'Cancelar',
-            variant: 'info',
-            icon: 'log-out-outline',
+            action: 'logout',
         });
         if (!ok) return;
 
@@ -857,8 +856,7 @@ export default function ProfileScreen() {
                                 title: 'Excluir conta?',
                                 message: 'Esta ação é permanente. Todos os seus dados serão apagados.',
                                 confirmText: 'Excluir conta',
-                                variant: 'danger',
-                                icon: 'trash-outline',
+                                action: 'deleteAccount',
                             });
                             if (!ok) return;
                             notify({ title: 'Solicitação enviada', message: 'Sua solicitação de exclusão de conta foi recebida.', variant: 'success' });

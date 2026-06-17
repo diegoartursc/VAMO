@@ -32,8 +32,8 @@ import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
 import { getCoverImages } from '../../src/utils/itineraryMedia';
 import { useFavorites } from '../../src/hooks/useFavorites';
-import { selectContinueSearch, selectUnforgettable } from '../../src/utils/homeSections';
-import { formatMoney } from '@vamo/shared/itinerary';
+import { selectContinueSearch, selectFeatured, selectNew, selectUnforgettable } from '../../src/utils/homeSections';
+import { formatMoney, getRouteRatingDisplay } from '@vamo/shared/itinerary';
 
 
 const { width } = Dimensions.get('window');
@@ -92,12 +92,26 @@ function HomeMiniItineraryCard({ itinerary, width: cardWidth, onPress }: { itine
                     </Text>
                 </View>
                 <View style={styles.miniCardFooter}>
-                    <View style={styles.miniCardMetaRow}>
-                        <Icon name="star" size={12} color="#F59E0B" strokeWidth={2.5} />
-                        <Text style={styles.miniCardRating}>
-                            {Number(itinerary.rating || 0) > 0 ? Number(itinerary.rating).toFixed(1) : 'Novo'}
-                        </Text>
-                    </View>
+                    {(() => {
+                        const rd = getRouteRatingDisplay({
+                            averageRating: itinerary.averageRating ?? itinerary.rating,
+                            reviewCount: itinerary.reviewCount ?? itinerary.reviewsCount ?? itinerary.totalReviews,
+                        });
+                        const muted = rd.type === 'new';
+                        return (
+                            <View style={styles.miniCardMetaRow}>
+                                <Icon
+                                    name="star"
+                                    size={12}
+                                    color={muted ? theme.colors.text.tertiary : '#F59E0B'}
+                                    strokeWidth={2.5}
+                                />
+                                <Text style={[styles.miniCardRating, muted && { color: theme.colors.text.tertiary }]}>
+                                    {rd.label}
+                                </Text>
+                            </View>
+                        );
+                    })()}
                     <Text style={styles.miniCardPrice}>{formatPrice(itinerary.price)}</Text>
                 </View>
             </View>
@@ -201,8 +215,14 @@ export default function HomeScreen() {
         [allItineraries],
     );
 
-    // Roteiros recém-publicados (seção "Novos Roteiros").
-    const newItineraries = useMemo(() => publicItineraries.slice(0, 5), [publicItineraries]);
+    // Roteiros recém-publicados (seção "Novos Roteiros") — ordenados por
+    // approvedAt DESC (com fallback a createdAt) via selectNew.
+    const newItineraries = useMemo(() => selectNew(publicItineraries, 5), [publicItineraries]);
+
+    // "Roteiros em Destaque" — os mais bem avaliados pela comunidade. Critério:
+    // reviewCount >= 1 e rating >= 4.5 (sem isso é "Novo", não "Destaque").
+    // Lógica centralizada em selectFeatured para bater com a copy.
+    const featuredItineraries = useMemo(() => selectFeatured(publicItineraries, 5), [publicItineraries]);
 
     // "Continue sua busca": só ganha itens quando há histórico real de intenção
     // e existem roteiros relacionados a ele. Sem isso, devolve [] e a seção some.
@@ -355,11 +375,11 @@ export default function HomeScreen() {
                         <HomeLoading />
                     ) : error ? (
                         <ErrorState compact message={error} onRetry={reload} />
-                    ) : publicItineraries.filter(i => i.featured).length === 0 ? (
+                    ) : featuredItineraries.length === 0 ? (
                         <HomeEmptyState onPress={() => goToItineraries()} />
                     ) : (
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
-                            {publicItineraries.filter(i => i.featured).slice(0, 5).map((itinerary) => (
+                            {featuredItineraries.map((itinerary) => (
                                 <ItineraryCard
                                     key={itinerary.id}
                                     width={320}
@@ -528,7 +548,7 @@ function HomeEmptyState({ onPress }: { onPress: () => void }) {
         <View style={styles.homeStateContainer}>
             <Icon name="map" size={28} color={theme.colors.text.tertiary} />
             <Text style={styles.homeStateTitle}>Nenhum roteiro em destaque por enquanto</Text>
-            <Text style={styles.homeStateText}>Explore todos os roteiros digitais disponíveis.</Text>
+            <Text style={styles.homeStateText}>Os roteiros aparecerão aqui quando receberem avaliações reais da comunidade.</Text>
             <TouchableOpacity style={styles.homeStateButton} onPress={onPress} activeOpacity={0.85}>
                 <Text style={styles.homeStateButtonText}>Explorar roteiros</Text>
                 <Icon name="chevron-right" size={16} color="#FFF" />

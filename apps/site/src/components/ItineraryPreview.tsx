@@ -2,6 +2,7 @@
 
 import { useDollarRate } from "../hooks/useDollarRate";
 import BudgetSummaryCard from "./BudgetSummaryCard";
+import { getRouteRatingDisplay } from "@vamo/shared/itinerary";
 
 /**
  * Componente de Prévia do Roteiro
@@ -73,7 +74,7 @@ export default function ItineraryPreview({
     "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop";
   const priceNum = typeof price === "string" ? parseFloat(price) || 0 : price;
   const durationNum = typeof duration === "string" ? parseInt(duration) || 0 : duration;
-  const ratingNum = Math.min(5, Math.max(0, rating || 0));
+  const ratingDisplay = getRouteRatingDisplay({ averageRating: rating, reviewCount });
   const curSymbol = currency === "AUD" ? "A$" : currency === "BRL" ? "R$" : currency;
 
   /** Converte um valor em qualquer moeda para a moeda base do mercado (AUD) usando as taxas do admin */
@@ -326,8 +327,8 @@ export default function ItineraryPreview({
                   marginTop: 2,
                 }}
               >
-                <span style={{ color: COLORS.warning }}>★</span>
-                <span>{ratingNum.toFixed(1)} · novo criador</span>
+                <span style={{ color: ratingDisplay.type === 'rating' ? COLORS.warning : COLORS.textSecondary }}>★</span>
+                <span>{ratingDisplay.label} · novo criador</span>
               </div>
             </div>
           </div>
@@ -420,9 +421,11 @@ export default function ItineraryPreview({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, justifyContent: "center" }}>
-              <span style={{ color: COLORS.warning }}>★</span>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{ratingNum.toFixed(1)}</span>
-              <span style={{ fontSize: 11, color: COLORS.textSecondary }}>({reviewCount || 0})</span>
+              <span style={{ color: ratingDisplay.type === 'rating' ? COLORS.warning : COLORS.textSecondary }}>★</span>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{ratingDisplay.label}</span>
+              {ratingDisplay.type === 'rating' && (
+                <span style={{ fontSize: 11, color: COLORS.textSecondary }}>({ratingDisplay.reviewCount})</span>
+              )}
             </div>
             <div style={{ width: 1, height: 22, background: COLORS.border }} />
             <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, justifyContent: "center" }}>

@@ -49,7 +49,7 @@ export interface ItemCardProps {
 // silenciosamente o legacy do snapshot. Se o valor editado for limpo,
 // cai pra legacy original.
 
-import { CURRENCIES } from '@vamo/shared/itinerary';
+import { CURRENCIES, formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
 
 const CURRENCY_SYMBOL: Record<string, string> = CURRENCIES.reduce(
     (acc, c) => { acc[c.code] = c.symbol; return acc; },
@@ -227,7 +227,7 @@ function AttractionCard({ data }: { data: any }) {
                     {data?.hours ? (
                         <View style={styles.infoChip}>
                             <Ionicons name="time-outline" size={11} color={theme.colors.text.secondary} />
-                            <Text style={styles.infoChipText}>{String(data.hours)}</Text>
+                            <Text style={styles.infoChipText}>{formatTimeForAustraliaDisplay(data.hours)}</Text>
                         </View>
                     ) : null}
                     {data?.duration ? (
@@ -288,7 +288,7 @@ function RestaurantCard({ data }: { data: any }) {
                 <Text style={styles.desc}>{String(data.description)}</Text>
             ) : null}
             {(data?.hoursStart || data?.hours) ? (
-                <Text style={styles.metaText}>🕐 {String(data.hoursStart || data.hours)}</Text>
+                <Text style={styles.metaText}>🕐 {formatTimeForAustraliaDisplay(data.hoursStart || data.hours)}</Text>
             ) : null}
             {data?.tips ? (
                 <View style={styles.tipBox}>
@@ -405,7 +405,7 @@ function DayActivityCard({ data }: { data: any }) {
         <>
             <View style={styles.activityHeader}>
                 {data?.icon ? <Text style={styles.activityIcon}>{String(data.icon)}</Text> : null}
-                {data?.time ? <Text style={styles.activityTime}>{String(data.time)}</Text> : null}
+                {data?.time ? <Text style={styles.activityTime}>{formatTimeForAustraliaDisplay(data.time)}</Text> : null}
                 {data?.duration ? (
                     <View style={styles.durationChip}>
                         <Text style={styles.durationText}>{String(data.duration)}</Text>

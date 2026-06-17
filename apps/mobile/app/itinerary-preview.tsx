@@ -45,7 +45,7 @@ import type {
     RestaurantItem, AttractionItem, ChecklistItem,
     CostReferencesGroup,
 } from '@vamo/shared/itinerary';
-import { getCostReferences, calculateBudgetSummary, formatMoney } from '@vamo/shared/itinerary';
+import { getCostReferences, calculateBudgetSummary, formatMoney, formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
 import { convertToAud } from '../src/utils/currencyConversion';
 
 // Handoff one-shot: payload do form serializado em new-itinerary é lido aqui
@@ -699,7 +699,7 @@ export default function ItineraryPreviewScreen() {
                                                         <Text style={styles.activityTitle}>{a.title || 'Atividade'}</Text>
                                                         {a.time ? (
                                                             <Text style={styles.activityMeta}>
-                                                                {a.time}{a.duration ? ` · ${a.duration}` : ''}
+                                                                {formatTimeForAustraliaDisplay(a.time)}{a.duration ? ` · ${a.duration}` : ''}
                                                             </Text>
                                                         ) : null}
                                                         {a.location ? <Text style={styles.activityMeta}>📍 {a.location}</Text> : null}

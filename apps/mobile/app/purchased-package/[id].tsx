@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { Icon } from '../../src/components/common/Icons';
+import { formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
 import {
     getBookingById,
     getDaysUntilTrip,
@@ -348,7 +349,7 @@ export default function PurchasedPackageScreen() {
                                                             <View key={activity.id} style={styles.activityItem}>
                                                                 {/* Time Column */}
                                                                 <View style={styles.activityTimeCol}>
-                                                                    <Text style={styles.activityTime}>{activity.time}</Text>
+                                                                    <Text style={styles.activityTime}>{formatTimeForAustraliaDisplay(activity.time)}</Text>
                                                                     {!isLast && <View style={styles.activityLine} />}
                                                                 </View>
 

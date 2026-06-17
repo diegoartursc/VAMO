@@ -15,7 +15,6 @@ import {
     Platform,
     StatusBar,
     Dimensions,
-    Alert,
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
@@ -27,7 +26,8 @@ import { Icon } from '../../src/components/common/Icons';
 import { useFavorites } from '../../src/hooks/useFavorites';
 import { haptics } from '../../src/services/haptics';
 import { ApiError, getItineraryByIdStrict } from '../../src/services/api';
-import { formatMoney } from '@vamo/shared/itinerary';
+import { formatMoney, getRouteRatingDisplay } from '@vamo/shared/itinerary';
+import { confirm } from '../../src/utils/confirm';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // ─── Tipo mínimo que usamos para exibir o card ─────────────
@@ -118,20 +118,18 @@ export default function SavedScreen() {
         loadItems(true);
     }, [loadItems]);
 
-    const handleRemove = (item: FavItem) => {
+    const handleRemove = async (item: FavItem) => {
         haptics.medium();
-        Alert.alert(
-            'Remover dos favoritos?',
-            `"${item.title}" será removido da sua lista.`,
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Remover',
-                    style: 'destructive',
-                    onPress: () => { haptics.light(); removeFavorite(item.id); },
-                },
-            ]
-        );
+        const ok = await confirm({
+            title: 'Remover dos favoritos?',
+            message: `"${item.title}" será removido da sua lista.`,
+            confirmText: 'Remover',
+            cancelText: 'Cancelar',
+            action: 'removeFavorite',
+        });
+        if (!ok) return;
+        haptics.light();
+        removeFavorite(item.id);
     };
 
     const isEmpty = !loading && favorites.length === 0;
@@ -264,8 +262,10 @@ function SavedCard({
     const imageUri = !imageFailed ? item.images?.[0] ?? null : null;
     const price = Number(item.price) || 0;
     const duration = Number(item.duration) || 0;
-    const rating = Number(item.rating) || 0;
-    const reviewCount = Number(item.reviewCount) || 0;
+    const ratingDisplay = getRouteRatingDisplay({
+        averageRating: (item as any).averageRating ?? item.rating,
+        reviewCount: item.reviewCount,
+    });
     const priceFormatted = price > 0
         ? (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ','))
         : 'Grátis';
@@ -351,15 +351,17 @@ function SavedCard({
                                 </View>
                             ) : null}
 
-                            {rating > 0 && (
-                                <View style={styles.ratingPill}>
-                                    <Ionicons name="star" size={12} color="#FFC107" />
-                                    <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-                                    {reviewCount > 0 && (
-                                        <Text style={styles.ratingCount}>({reviewCount})</Text>
-                                    )}
-                                </View>
-                            )}
+                            <View style={styles.ratingPill}>
+                                <Ionicons
+                                    name="star"
+                                    size={12}
+                                    color={ratingDisplay.type === 'rating' ? '#FFC107' : theme.colors.text.tertiary}
+                                />
+                                <Text style={styles.ratingText}>{ratingDisplay.label}</Text>
+                                {ratingDisplay.type === 'rating' && (
+                                    <Text style={styles.ratingCount}>({ratingDisplay.reviewCount})</Text>
+                                )}
+                            </View>
                         </View>
                     </View>
                 </View>
