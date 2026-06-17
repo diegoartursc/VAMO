@@ -14,7 +14,7 @@ import { safeBack } from '../../src/utils/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { getPackageById } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
-import { formatMoney } from '@vamo/shared/itinerary';
+import { formatMoney, getRouteRatingDisplay } from '@vamo/shared/itinerary';
 
 export default function CheckoutPaymentScreen() {
     const router = useRouter();
@@ -220,7 +220,15 @@ export default function CheckoutPaymentScreen() {
                             <View style={styles.summaryExpandedContent}>
                                 <Text style={styles.packageTitle}>{packageData.title}</Text>
                                 <View style={styles.rating}>
-                                    <Text>⭐ {packageData.rating} ({packageData.reviewCount})</Text>
+                                    {(() => {
+                                        const rd = getRouteRatingDisplay({ averageRating: packageData.rating, reviewCount: packageData.reviewCount });
+                                        return (
+                                            <Text>
+                                                ⭐ {rd.label}
+                                                {rd.type === 'rating' ? ` (${rd.reviewCount})` : ''}
+                                            </Text>
+                                        );
+                                    })()}
                                     <Text style={styles.badge}>💗 Melhores avaliações</Text>
                                 </View>
 

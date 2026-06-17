@@ -2049,7 +2049,7 @@ function StepAttractions({ form, update, token }: StepProps) {
                                             label="Horário recomendado"
                                             value={start}
                                             onChange={v => set({ hours: v })}
-                                            placeholder="09:00"
+                                            placeholder="9:00 AM"
                                         />
                                     </View>
                                 );
@@ -2179,7 +2179,7 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             style={{ minHeight: 60, textAlignVertical: 'top' }}
                         />
                         <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                            <TimePickerField label="Horário" value={item.hoursStart} onChange={v => set({ hoursStart: v })} placeholder="11:00" />
+                            <TimePickerField label="Horário" value={item.hoursStart} onChange={v => set({ hoursStart: v })} placeholder="11:00 AM" />
                             <DatePickerField label="Data"    value={item.startDate}  onChange={v => set({ startDate: v })} />
                         </View>
                         <FormInput

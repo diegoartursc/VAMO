@@ -10,7 +10,7 @@ import { Package } from '../../types';
 import { Icon } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
 import { PackageBadge } from '../badges/PackageBadge';
-import { formatMoney } from '@vamo/shared/itinerary';
+import { formatMoney, getRouteRatingDisplay } from '@vamo/shared/itinerary';
 
 interface PackageCardProps {
     pkg: Package;
@@ -84,9 +84,19 @@ export const PackageCard: React.FC<PackageCardProps> = ({
                         </>
                     )}
                     <Text style={styles.separator}>•</Text>
-                    <Icon name="star" size={13} color="#F59E0B" strokeWidth={2} />
-                    <Text style={styles.compactText}>{pkg.rating}</Text>
-                    <Text style={styles.compactTextSecondary}>({pkg.reviewCount})</Text>
+                    {(() => {
+                        const rd = getRouteRatingDisplay({ averageRating: pkg.rating, reviewCount: pkg.reviewCount });
+                        const muted = rd.type === 'new';
+                        return (
+                            <>
+                                <Icon name="star" size={13} color={muted ? theme.colors.text.tertiary : '#F59E0B'} strokeWidth={2} />
+                                <Text style={styles.compactText}>{rd.label}</Text>
+                                {rd.type === 'rating' && (
+                                    <Text style={styles.compactTextSecondary}>({rd.reviewCount})</Text>
+                                )}
+                            </>
+                        );
+                    })()}
                 </View>
 
                 <Text style={styles.cardTitle} numberOfLines={2}>

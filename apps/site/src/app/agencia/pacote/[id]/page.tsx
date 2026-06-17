@@ -6,6 +6,7 @@ import { getPackageById, createPackage, updatePackage } from "@/lib/api";
 import { getSession, isAgencySession } from "@/lib/auth";
 import StepperNav, { StepperActions } from "../../../../components/dashboard/StepperNav";
 import MoneyInput from "../../../../components/MoneyInput";
+import TimeInput from "../../../../components/TimeInput";
 import PhonePreview from "../../../../components/dashboard/PhonePreview";
 import QualityCoach from "../../../../components/dashboard/QualityCoach";
 import { Target, DollarSign, Compass, Tag, Package, CheckSquare, FileText, MapPin, Trash2, X, HelpCircle } from "lucide-react";
@@ -633,7 +634,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                 <div style={{ marginTop: 12 }}>
                                     {day.activities.map((act, ai) => (
                                         <div key={ai} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                                            <input className="form-input" style={{ width: 80 }} value={act.time} onChange={e => updatePkgActivity(di, ai, "time", e.target.value)} placeholder="09:00" />
+                                            <TimeInput className="form-input" style={{ width: 110 }} value={act.time} onCommit={v => updatePkgActivity(di, ai, "time", v)} placeholder="9:00 AM" />
                                             <input className="form-input" style={{ flex: 1 }} value={act.title} onChange={e => updatePkgActivity(di, ai, "title", e.target.value)} placeholder="Atividade" />
                                             <button onClick={() => removePkgActivity(di, ai)} style={{ color: "#94a3b8" }}>×</button>
                                         </div>

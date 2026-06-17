@@ -41,6 +41,7 @@ import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
 import {
     _registerConfirmImpl,
+    type ConfirmAction,
     type ConfirmOptions,
     type ConfirmVariant,
 } from '../../utils/confirm';
@@ -75,6 +76,35 @@ const DEFAULT_ICON: Record<Variant, string> = {
 };
 
 /**
+ * Mapa central ícone+variante por AÇÃO semântica. Fonte única para garantir
+ * que a lixeira só apareça em exclusão/remoção REAL — não em logout,
+ * arquivar, ocultar, descartar, etc.
+ *
+ * Manter aqui (e não nas telas) para o tom visual continuar coerente quando
+ * mudar identidade. Cada telinha só declara `action: '...'`.
+ */
+export const CONFIRM_ACTION_CONFIG: Record<ConfirmAction, { icon: string; variant: ConfirmVariant }> = {
+    delete:          { icon: 'trash-outline',         variant: 'danger'  },
+    remove:          { icon: 'trash-outline',         variant: 'danger'  },
+    logout:          { icon: 'log-out-outline',       variant: 'info'    },
+    discard:         { icon: 'alert-circle-outline',  variant: 'warning' },
+    archive:         { icon: 'archive-outline',       variant: 'warning' },
+    submit:          { icon: 'paper-plane-outline',   variant: 'info'    },
+    publish:         { icon: 'rocket-outline',        variant: 'success' },
+    clearCart:       { icon: 'cart-outline',          variant: 'danger'  },
+    removeFromCart:  { icon: 'remove-circle-outline', variant: 'danger'  },
+    removeFile:      { icon: 'document-outline',      variant: 'danger'  },
+    removeFavorite:  { icon: 'heart-dislike-outline', variant: 'warning' },
+    restore:         { icon: 'refresh-outline',       variant: 'info'    },
+    hide:            { icon: 'eye-off-outline',       variant: 'warning' },
+    cancelUpload:    { icon: 'cloud-offline-outline', variant: 'warning' },
+    payment:         { icon: 'card-outline',          variant: 'success' },
+    purchase:        { icon: 'bag-check-outline',     variant: 'info'    },
+    deleteAccount:   { icon: 'person-remove-outline', variant: 'danger'  },
+    checklistRemove: { icon: 'trash-outline',         variant: 'danger'  },
+};
+
+/**
  * `info` significa coisas diferentes por tipo de diálogo:
  *  - confirm: é uma PERGUNTA ("Sair da conta?") → interrogação.
  *  - notify: é um AVISO ("Data ajustada") → ícone de informação.
@@ -88,9 +118,24 @@ function defaultIconFor(req: Request, variant: Variant): string {
 
 function resolveVariant(req: Request): Variant {
     if (req.kind === 'confirm') {
-        return req.opts.variant ?? (req.opts.destructive ? 'danger' : 'info');
+        // Precedência: variant explícito > destructive (legado) > action > 'info'.
+        // destructive vem antes de action porque é o atalho histórico e
+        // algumas telas passam ambos durante a migração; mantemos compat.
+        if (req.opts.variant) return req.opts.variant;
+        if (req.opts.destructive) return 'danger';
+        if (req.opts.action) return CONFIRM_ACTION_CONFIG[req.opts.action].variant;
+        return 'info';
     }
     return req.opts.variant ?? 'info';
+}
+
+/** Resolve ícone para um confirm/notify. Precedência: icon explícito > action > default da variante. */
+function resolveIcon(req: Request, variant: Variant): string {
+    if (req.opts.icon) return req.opts.icon;
+    if (req.kind === 'confirm' && req.opts.action) {
+        return CONFIRM_ACTION_CONFIG[req.opts.action].icon;
+    }
+    return defaultIconFor(req, variant);
 }
 
 const ConfirmContext = createContext<{ confirm: (o: ConfirmOptions) => Promise<boolean> } | null>(null);
@@ -179,7 +224,7 @@ export function VamoConfirmHost({ children }: { children?: React.ReactNode }) {
     const accent = ACCENT[variant];
     const isConfirm = current?.kind === 'confirm';
     const opts = current?.opts as (ConfirmOptions & NotifyOptions) | undefined;
-    const iconName = (opts?.icon ?? (current ? defaultIconFor(current, variant) : DEFAULT_ICON[variant])) as any;
+    const iconName = (current ? resolveIcon(current, variant) : DEFAULT_ICON[variant]) as any;
     const closeOnBackdrop = current?.kind === 'confirm' ? current.opts.closeOnBackdrop !== false : true;
 
     const backdropOpacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });

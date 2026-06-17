@@ -705,9 +705,7 @@ export default function CreatedItinerariesScreen() {
             message: `"${item.title || 'Sem título'}"\n\nEste roteiro deixará de aparecer para novas compras, mas viajantes que já compraram continuarão tendo acesso ao conteúdo adquirido.`,
             confirmText: 'Arquivar roteiro',
             cancelText: 'Cancelar',
-            destructive: true,
-            // Arquivar não é excluir — lixeira comunicava perda de dados.
-            icon: 'archive-outline',
+            action: 'archive',
         });
         if (!ok) return;
         try {

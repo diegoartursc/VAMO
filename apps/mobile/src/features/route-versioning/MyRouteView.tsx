@@ -105,10 +105,9 @@ async function promptItemAction(
         message: `"${title}" sumirá da sua versão do roteiro. Você pode restaurar depois.`,
         confirmText: 'Ocultar',
         cancelText: 'Editar',
-        // Ocultar é reversível (HiddenItemsSection restaura) — warning + olho
-        // comunica isso; danger + lixeira sugeria exclusão definitiva.
-        variant: 'warning',
-        icon: 'eye-off-outline',
+        // Ocultar é reversível (HiddenItemsSection restaura) — action 'hide'
+        // resolve warning + eye-off-outline a partir do mapa central.
+        action: 'hide',
     });
     if (hide) {
         onHide();
@@ -184,7 +183,7 @@ export default function MyRouteView({
                 : 'Esse item será removido apenas da sua versão. A versão original continua intacta.',
             confirmText: 'Remover',
             cancelText: 'Cancelar',
-            destructive: true,
+            action: 'remove',
         });
         if (ok) onHideItem(item);
     };
@@ -229,7 +228,7 @@ export default function MyRouteView({
             message: `${dayLabel} será removido apenas da sua versão. A versão original continua intacta.`,
             confirmText: 'Remover dia',
             cancelText: 'Cancelar',
-            destructive: true,
+            action: 'remove',
         });
         if (ok) onHideItem(dayToMergedItem(day));
     };

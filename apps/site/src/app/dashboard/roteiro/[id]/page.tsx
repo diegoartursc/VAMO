@@ -19,6 +19,7 @@ import {
     uploadHint,
 } from "../../../../lib/uploadContexts";
 import MoneyInput from "../../../../components/MoneyInput";
+import TimeInput from "../../../../components/TimeInput";
 import { useDollarRate } from "../../../../hooks/useDollarRate";
 import ItineraryPreview from "../../../../components/ItineraryPreview";
 
@@ -274,32 +275,6 @@ function getDurationLabel(d: number) {
     if (d <= 7) return "1 semana";
     if (d <= 15) return "15 dias";
     return "+20 dias";
-}
-
-/** Formata string de horário para HH:MM ao sair do campo */
-function formatTime(raw: string): string {
-    if (!raw) return "";
-    const cleaned = raw.replace(/[^\d:]/g, "");
-    if (!cleaned) return raw;
-    if (cleaned.includes(":")) {
-        const [h, m = "00"] = cleaned.split(":");
-        const hNum = Math.min(23, parseInt(h) || 0);
-        const mNum = Math.min(59, parseInt(m.padEnd(2, "0").slice(0, 2)) || 0);
-        return `${String(hNum).padStart(2, "0")}:${String(mNum).padStart(2, "0")}`;
-    }
-    const digits = cleaned.replace(/\D/g, "");
-    if (digits.length <= 2) {
-        const h = Math.min(23, parseInt(digits) || 0);
-        return `${String(h).padStart(2, "0")}:00`;
-    } else if (digits.length === 3) {
-        const h = Math.min(23, parseInt(digits[0]) || 0);
-        const m = Math.min(59, parseInt(digits.slice(1)) || 0);
-        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-    } else {
-        const h = Math.min(23, parseInt(digits.slice(0, 2)) || 0);
-        const m = Math.min(59, parseInt(digits.slice(2, 4)) || 0);
-        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-    }
 }
 
 /** Extrai número e unidade de uma string de duração ("2h", "30min", "1.5h" etc.) */
@@ -588,7 +563,9 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [highlightPhotos, setHighlightPhotos] = useState<string[]>(['', '', '']);
 
     /* ─── Preview Data ─── */
-    const [rating, setRating] = useState(5);
+    // Rating começa em 0 — não usar 5 como default. Roteiro sem avaliações
+    // exibe "Novo" no preview (via getRouteRatingDisplay), não nota falsa.
+    const [rating, setRating] = useState(0);
     const [reviewCount, setReviewCount] = useState(0);
 
     /* ─── Estimated Spending (computed from manual entries for preview) ─── */
@@ -661,7 +638,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             setFeatured(false); setActiveModules([]);
             setHighlightItems([]); setInclusionItems([]);
             setImages([""]); setAllowShare(true);
-            setRating(5); setReviewCount(0);
+            setRating(0); setReviewCount(0);
             setItineraryStatus("DRAFT"); setApprovalNote(null);
             setTravelProofUrl("");
             setDays([]); setAccommodations([]); setTransports([]);
@@ -699,7 +676,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 setHighlightItems(data.highlights || []); setInclusionItems(data.inclusions || []);
                 setImages(Array.isArray(data.images) ? data.images.map((img: any) => typeof img === "string" ? img : img.url) : [""]);
                 setAllowShare(data.allowShare ?? true);
-                setRating(data.rating || 5); setReviewCount(data.reviewCount || 0);
+                setRating(data.rating || 0); setReviewCount(data.reviewCount || 0);
                 setItineraryStatus((data.status || "DRAFT") as "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "ACTIVE");
                 setApprovalNote(data.approvalNote || null);
                 setTravelProofUrl(data.travelProofUrl || "");
@@ -1319,13 +1296,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                         <div className="editor-activity-row" style={{ width: '100%', display: 'flex' }}>
                                             <div className="form-group" style={{ margin: 0 }}>
                                                 <label className="form-label" style={{ fontSize: 11 }}>Horário</label>
-                                                <input
+                                                <TimeInput
                                                     className="editor-act-time"
                                                     value={act.time}
-                                                    onChange={e => updateActivity(di, ai, "time", e.target.value)}
-                                                    onBlur={e => { const fmt = formatTime(e.target.value); if (fmt !== e.target.value) updateActivity(di, ai, "time", fmt); }}
-                                                    placeholder="09:00"
-                                                    maxLength={5}
+                                                    onCommit={v => updateActivity(di, ai, "time", v)}
+                                                    placeholder="9:00 AM"
                                                 />
                                             </div>
                                             <div className="form-group" style={{ flex: 1, margin: 0 }}>
@@ -1652,13 +1627,11 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         <div className="editor-activity-row" style={{ gap: 6, alignItems: "flex-end" }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                                 <label style={{ fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 0.5 }}>Horário</label>
-                                <input
+                                <TimeInput
                                     className="editor-act-time"
                                     value={rest.hoursStart}
-                                    placeholder="11:00"
-                                    maxLength={5}
-                                    onChange={e => { const u = [...restaurants]; u[i].hoursStart = e.target.value; setRestaurants(u); markDirty(); }}
-                                    onBlur={e => { const fmt = formatTime(e.target.value); if (fmt !== e.target.value) { const u = [...restaurants]; u[i].hoursStart = fmt; setRestaurants(u); markDirty(); } }}
+                                    placeholder="11:00 AM"
+                                    onCommit={v => { const u = [...restaurants]; u[i].hoursStart = v; setRestaurants(u); markDirty(); }}
                                 />
                             </div>
                             <div className="form-group" style={{ flex: 1, margin: 0 }}>

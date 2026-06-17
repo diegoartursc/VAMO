@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, use, useCallback } from "react";
 import Link from "next/link";
 import { getPackageById, createPackage, updatePackage } from "@/lib/api";
 import { getSession, isAgencySession } from "@/lib/auth";
+import TimeInput from "@/components/TimeInput";
 
 /* ═══════════════════════════════════════════════════
    CONSTANTS & TYPES
@@ -983,7 +984,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                                 {day.activities.map((act, ai) => (
                                                     <div className="editor-activity-card" key={ai}>
                                                         <div className="editor-activity-row">
-                                                            <input className="editor-act-time" value={act.time} onChange={e => updatePkgActivity(di, ai, "time", e.target.value)} placeholder="09:00" />
+                                                            <TimeInput className="editor-act-time" value={act.time} onCommit={v => updatePkgActivity(di, ai, "time", v)} placeholder="9:00 AM" />
                                                             <input className="editor-act-title" value={act.title} onChange={e => updatePkgActivity(di, ai, "title", e.target.value)} placeholder="Ex: Visita à Torre Eiffel" style={{ flex: 2 }} />
                                                             <input className="editor-act-dur" value={act.duration} onChange={e => updatePkgActivity(di, ai, "duration", e.target.value)} placeholder="2h" />
                                                             <button className="btn-remove" onClick={() => removePkgActivity(di, ai)}>✕</button>

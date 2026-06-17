@@ -175,7 +175,7 @@ export default function CartScreen() {
             title: 'Remover do carrinho?',
             message: `"${item.title}" será removido.`,
             confirmText: 'Remover',
-            destructive: true,
+            action: 'removeFromCart',
         });
         if (ok) { haptics.light(); removeFromCart(item.id); }
     };
@@ -185,8 +185,8 @@ export default function CartScreen() {
         const ok = await confirm({
             title: 'Limpar carrinho?',
             message: 'Todos os roteiros serão removidos.',
-            confirmText: 'Limpar',
-            destructive: true,
+            confirmText: 'Limpar tudo',
+            action: 'clearCart',
         });
         if (ok) { haptics.light(); clearCart(); }
     };
@@ -200,7 +200,7 @@ export default function CartScreen() {
                 ? '1 roteiro não comprável agora será removido do carrinho.'
                 : `${count} roteiros não compráveis agora serão removidos do carrinho.`,
             confirmText: 'Remover',
-            destructive: true,
+            action: 'removeFromCart',
         });
         if (!ok) return;
         haptics.light();

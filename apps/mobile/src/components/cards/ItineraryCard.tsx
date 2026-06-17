@@ -11,7 +11,7 @@ import { getCoverImages, getCoverFocalPoint } from '../../utils/itineraryMedia';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useCart } from '../../hooks/useCart';
 import { evaluateItineraryAvailability } from '../../utils/availability';
-import { calculateBudgetSummary, formatMoney } from '@vamo/shared/itinerary';
+import { calculateBudgetSummary, formatMoney, getRouteRatingDisplay } from '@vamo/shared/itinerary';
 
 const MAX_CATEGORY_CHIPS = 3;
 const MAX_MODULE_CHIPS = 3;
@@ -44,10 +44,13 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
         ? formatMoney(itineraryPrice, 'AUD')
         : 'Grátis';
     const creatorName = itinerary.creator?.name || 'Criador VAMO';
-    const creatorRating = Number(itinerary.creator?.rating);
-    const creatorRatingLabel = Number.isFinite(creatorRating) && creatorRating > 0
-        ? creatorRating.toFixed(1)
-        : 'Novo';
+    // Nota exibida no card é a do ROTEIRO (averageRating + reviewCount), NÃO
+    // a do criador — herdar `creator.rating` mostrava 5.0 em roteiros novos
+    // só porque o criador tinha reputação. Sem reviews reais → 'Novo'.
+    const ratingDisplay = getRouteRatingDisplay({
+        averageRating: itinerary.averageRating ?? itinerary.rating,
+        reviewCount: itinerary.reviewCount ?? itinerary.reviewsCount ?? itinerary.totalReviews,
+    });
     // Vendas REAIS por roteiro (Itinerary._count.sales) — backend expõe esse
     // valor no top-level. creator.salesCount vem do campo agregado
     // Creator.totalSales que historicamente não é incrementado a cada venda,
@@ -179,9 +182,19 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                                 {creatorName}
                             </Text>
                             <View style={styles.ratingRow}>
-                                <Icon name="star" size={11} color="#F59E0B" strokeWidth={2.5} />
-                                <Text style={styles.ratingText}>
-                                    {creatorRatingLabel}
+                                <Icon
+                                    name="star"
+                                    size={11}
+                                    color={ratingDisplay.type === 'rating' ? '#F59E0B' : theme.colors.text.tertiary}
+                                    strokeWidth={2.5}
+                                />
+                                <Text
+                                    style={[
+                                        styles.ratingText,
+                                        ratingDisplay.type === 'new' && styles.ratingTextMuted,
+                                    ]}
+                                >
+                                    {ratingDisplay.label}
                                 </Text>
                                 <Text style={styles.ratingDivider}>·</Text>
                                 <Text style={styles.salesText}>
@@ -419,6 +432,10 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
         color: '#F59E0B',
+    },
+    ratingTextMuted: {
+        color: theme.colors.text.tertiary,
+        fontWeight: '600',
     },
     ratingDivider: {
         fontSize: 11,

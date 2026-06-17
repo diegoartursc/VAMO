@@ -12,6 +12,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Clock, X } from 'lucide-react-native';
 import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
+import {
+    to12HourParts,
+    to24HourTime,
+    to12HourTime,
+    type Meridiem,
+} from '@vamo/shared/itinerary';
 
 export interface VamoTimePickerProps {
     label: string;
@@ -23,36 +29,13 @@ export interface VamoTimePickerProps {
 }
 
 type Mode = 'hours' | 'minutes';
-type Period = 'AM' | 'PM';
+// Conversão 12h↔24h centralizada em @vamo/shared/itinerary (time.ts).
+type Period = Meridiem;
 
 const CLOCK_DIAMETER = 280;
 const NUMBER_SIZE = 40;
 const RADIUS = (CLOCK_DIAMETER - NUMBER_SIZE) / 2;
 const CENTER = CLOCK_DIAMETER / 2;
-
-// Convert "HH:mm" 24h -> { hour12, minute, period } | null
-function parse24hToParts(
-    hhmm: string,
-): { hour12: number; minute: number; period: Period } | null {
-    if (!hhmm) return null;
-    const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
-    if (!m) return null;
-    const h = parseInt(m[1], 10);
-    const min = parseInt(m[2], 10);
-    if (Number.isNaN(h) || Number.isNaN(min)) return null;
-    if (h < 0 || h > 23 || min < 0 || min > 59) return null;
-    const period: Period = h >= 12 ? 'PM' : 'AM';
-    let hour12 = h % 12;
-    if (hour12 === 0) hour12 = 12;
-    return { hour12, minute: min, period };
-}
-
-// Convert { hour12, minute, period } -> "HH:mm" 24h
-function partsTo24h(hour12: number, minute: number, period: Period): string {
-    let h24 = hour12 % 12;
-    if (period === 'PM') h24 += 12;
-    return `${String(h24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-}
 
 // Snap minute to nearest multiple of step
 function snapMinute(minute: number, step: number): number {
@@ -71,7 +54,7 @@ export default function VamoTimePicker({
     value,
     onChange,
     required,
-    placeholder = '09:00',
+    placeholder = '9:00 AM',
     minuteStep = 5,
 }: VamoTimePickerProps): React.ReactElement {
     const insets = useSafeAreaInsets();
@@ -93,7 +76,7 @@ export default function VamoTimePicker({
     }, []);
 
     const initFromValueOrNow = useCallback(() => {
-        const parsed = parse24hToParts(value);
+        const parsed = to12HourParts(value);
         if (parsed) {
             setHour12(parsed.hour12);
             setMinute(snapMinute(parsed.minute, minuteStep));
@@ -127,7 +110,7 @@ export default function VamoTimePicker({
     }, []);
 
     const handleConfirm = useCallback(() => {
-        const out = partsTo24h(hour12, minute, period);
+        const out = to24HourTime(hour12, minute, period);
         haptics.success();
         onChange(out);
         handleClose();
@@ -209,7 +192,8 @@ export default function VamoTimePicker({
     const handLength = RADIUS - NUMBER_SIZE / 2;
     const handAngleDeg = (handEndpoint.angle * 180) / Math.PI;
 
-    const hasValue = !!value && parse24hToParts(value) !== null;
+    const hasValue = !!value && to12HourParts(value) !== null;
+    const displayValue = hasValue ? to12HourTime(value) : placeholder;
 
     return (
         <View style={styles.wrap}>
@@ -221,11 +205,11 @@ export default function VamoTimePicker({
                 onPress={handleOpen}
                 style={({ pressed }) => [styles.field, pressed && styles.fieldPressed]}
                 accessibilityRole="button"
-                accessibilityLabel={`${label}, ${hasValue ? value : placeholder}`}
+                accessibilityLabel={`${label}, ${displayValue}`}
             >
                 <Clock size={18} color={theme.colors.text.secondary} />
                 <Text style={hasValue ? styles.fieldText : styles.fieldPlaceholder}>
-                    {hasValue ? value : placeholder}
+                    {displayValue}
                 </Text>
                 {hasValue ? (
                     <Pressable

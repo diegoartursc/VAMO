@@ -51,7 +51,7 @@ import {
     InteractiveRouteBadge,
 } from '../../../src/components/itinerary/InteractiveExperienceSection';
 import { features } from '../../../src/config/features';
-import { getCostReferences, calculateBudgetSummary, formatMoney, type CostReferencesGroup } from '@vamo/shared/itinerary';
+import { getCostReferences, calculateBudgetSummary, formatMoney, getRouteRatingDisplay, type CostReferencesGroup } from '@vamo/shared/itinerary';
 import { convertToAud } from '../../../src/utils/currencyConversion';
 
 const { width, height } = Dimensions.get('window');
@@ -396,9 +396,27 @@ export default function ItineraryDetailScreen() {
                     {/* Stats Row */}
                     <View style={styles.statsCard}>
                         <View style={styles.statItem}>
-                            <Icon name="star" size={16} color="#F59E0B" strokeWidth={2.5} />
-                            <Text style={styles.statText}>{rating.toFixed(1)}</Text>
-                            <Text style={styles.statLabel}>({reviewCount})</Text>
+                            {(() => {
+                                const rd = getRouteRatingDisplay({
+                                    averageRating: averageReviewRating ?? rating,
+                                    reviewCount,
+                                });
+                                const muted = rd.type === 'new';
+                                return (
+                                    <>
+                                        <Icon
+                                            name="star"
+                                            size={16}
+                                            color={muted ? theme.colors.text.tertiary : '#F59E0B'}
+                                            strokeWidth={2.5}
+                                        />
+                                        <Text style={styles.statText}>{rd.label}</Text>
+                                        {rd.type === 'rating' && (
+                                            <Text style={styles.statLabel}>({rd.reviewCount})</Text>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.statItem}>

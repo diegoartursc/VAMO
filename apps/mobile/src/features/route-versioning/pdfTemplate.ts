@@ -24,7 +24,7 @@
  */
 
 import type { MergedItem, MergedItinerary } from './mergeEngine';
-import { getCostReferences, formatMoney } from '@vamo/shared/itinerary';
+import { getCostReferences, formatMoney, formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
 import { convertToAud, summarizeInAud } from '../../utils/currencyConversion';
 
 // ─── Tipos públicos ─────────────────────────────────────────────────
@@ -194,7 +194,7 @@ function renderAttraction(data: any, source?: MergedItem['source']): string {
             ${renderField('Tipo', data?.type)}
             ${renderField('Localização', data?.location)}
             ${renderField('Ingresso', data?.ticketPrice)}
-            ${renderField('Horário', data?.hours)}
+            ${renderField('Horário', formatTimeForAustraliaDisplay(data?.hours))}
             ${renderField('Duração', data?.duration)}
             ${renderParagraph(data?.description)}
             ${data?.tips ? `<p class="tip"><strong>Dica:</strong> ${escapeHtml(data.tips)}</p>` : ''}
@@ -212,7 +212,7 @@ function renderRestaurant(data: any, source?: MergedItem['source']): string {
             ${renderField('Cozinha', data?.cuisine)}
             ${renderField('Localização', data?.location)}
             ${renderField('Faixa de preço', data?.priceRange)}
-            ${renderField('Horário', data?.hours)}
+            ${renderField('Horário', formatTimeForAustraliaDisplay(data?.hours))}
             ${renderParagraph(data?.description)}
             ${data?.tips ? `<p class="tip"><strong>Dica:</strong> ${escapeHtml(data.tips)}</p>` : ''}
         </div>`;
@@ -272,8 +272,8 @@ function renderFlight(data: any, label: string, source?: MergedItem['source']): 
             ${renderField('Voo', data?.flightNumber)}
             ${renderField('Origem', data?.originAirport)}
             ${renderField('Destino', data?.destinationAirport)}
-            ${renderField('Saída', [data?.departureDate, data?.departureTime].filter(Boolean).join(' '))}
-            ${renderField('Chegada', [data?.arrivalDate, data?.arrivalTime].filter(Boolean).join(' '))}
+            ${renderField('Saída', [data?.departureDate, formatTimeForAustraliaDisplay(data?.departureTime)].filter(Boolean).join(' '))}
+            ${renderField('Chegada', [data?.arrivalDate, formatTimeForAustraliaDisplay(data?.arrivalTime)].filter(Boolean).join(' '))}
             ${typeof data?.stops === 'number' ? renderField('Paradas', data.stops === 0 ? 'Direto' : String(data.stops)) : ''}
         </div>`;
 }
@@ -285,7 +285,7 @@ function renderDayActivity(data: any, source?: MergedItem['source']): string {
         <div class="activity">
             <div class="activity-header">
                 <span class="activity-title">${icon}${escapeHtml(title)}</span>
-                ${data?.time ? `<span class="activity-time">${escapeHtml(data.time)}</span>` : ''}
+                ${data?.time ? `<span class="activity-time">${escapeHtml(formatTimeForAustraliaDisplay(data.time))}</span>` : ''}
                 ${source ? badgeForSource(source) : ''}
             </div>
             ${renderField('Local', data?.location)}

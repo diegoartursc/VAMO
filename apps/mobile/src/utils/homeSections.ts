@@ -247,3 +247,74 @@ export function selectContinueSearch(
         .slice(0, limit)
         .map(({ it }) => it);
 }
+
+// ─── "Roteiros em Destaque" ─────────────────────────────────────
+/** Nota mínima para aparecer em Destaque (copy: "mais bem avaliados"). */
+export const FEATURED_MIN_RATING = 4.5;
+/** Mínimo de reviews REAIS — 1 review já basta enquanto o catálogo é pequeno. */
+export const FEATURED_MIN_REVIEWS = 1;
+
+/**
+ * "Roteiros em Destaque" = os mais bem avaliados pela comunidade.
+ *
+ * Promessa da copy = critério real:
+ *  - publicado/ativo (isShowcaseItinerary já cobre);
+ *  - reviewCount >= 1 (sem review, "Novo" — não vai pra Destaque);
+ *  - rating >= 4.5 (piso de qualidade do prompt);
+ *  - ordem: rating DESC, reviewCount DESC, salesCount DESC, qualityScore DESC,
+ *    approvedAt/createdAt DESC (desempate por recência).
+ *
+ * NÃO usa `creator.rating` em nenhum momento — reputação do criador é OUTRA
+ * métrica. `featured` (flag manual) deixa de ser gate; entra só como último
+ * desempate fraco, pra não sumir com curadoria humana eventual.
+ */
+export function selectFeatured(itineraries: any[], limit = 5): any[] {
+    if (!Array.isArray(itineraries)) return [];
+    return itineraries
+        .filter(isShowcaseItinerary)
+        .filter((it) => {
+            const reviews = Number(it.reviewCount) || 0;
+            const rating = Number(it.averageRating ?? it.rating) || 0;
+            return reviews >= FEATURED_MIN_REVIEWS && rating >= FEATURED_MIN_RATING;
+        })
+        .slice()
+        .sort((a, b) => {
+            const ra = Number(a.averageRating ?? a.rating) || 0;
+            const rb = Number(b.averageRating ?? b.rating) || 0;
+            if (rb !== ra) return rb - ra;
+            const na = Number(a.reviewCount) || 0;
+            const nb = Number(b.reviewCount) || 0;
+            if (nb !== na) return nb - na;
+            const sa = Number(a.salesCount ?? a.creator?.salesCount) || 0;
+            const sb = Number(b.salesCount ?? b.creator?.salesCount) || 0;
+            if (sb !== sa) return sb - sa;
+            const qa = Number(a.qualityScore) || 0;
+            const qb = Number(b.qualityScore) || 0;
+            if (qb !== qa) return qb - qa;
+            if (!!b.featured !== !!a.featured) return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+            return publishedTime(b) - publishedTime(a);
+        })
+        .slice(0, limit);
+}
+
+// ─── "Novos Roteiros" ───────────────────────────────────────────
+/**
+ * "Novos Roteiros" = recém-publicados. NÃO filtra por rating — roteiros sem
+ * review entram aqui (com badge "Novo" no card). Ordem: approvedAt DESC
+ * quando disponível; cai pra createdAt em legado/ACTIVE direto.
+ */
+export function selectNew(itineraries: any[], limit = 5): any[] {
+    if (!Array.isArray(itineraries)) return [];
+    return itineraries
+        .filter(isShowcaseItinerary)
+        .slice()
+        .sort((a, b) => publishedTime(b) - publishedTime(a))
+        .slice(0, limit);
+}
+
+function publishedTime(it: any): number {
+    const candidate = it?.approvedAt ?? it?.publishedAt ?? it?.createdAt;
+    if (!candidate) return 0;
+    const t = new Date(candidate).getTime();
+    return Number.isFinite(t) ? t : 0;
+}

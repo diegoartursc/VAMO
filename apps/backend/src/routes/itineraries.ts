@@ -69,6 +69,12 @@ router.get('/', async (req: Request, res: Response) => {
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
             qualityScore: it.qualityScore,
+            // Home usa pra selectFeatured (status público) e selectNew (ordena por
+            // approvedAt DESC, falling back a createdAt). Sem isso, "Novos Roteiros"
+            // não tem como saber a data real de publicação.
+            status: it.status,
+            createdAt: it.createdAt,
+            approvedAt: it.approvedAt,
             // Campos para badges do card (vitrines): categorias temáticas e módulos ativos
             categories: it.categories || [],
             travelStyles: it.travelStyles || [],
@@ -120,6 +126,12 @@ router.get('/featured', async (req: Request, res: Response) => {
             duration: it.duration, featured: it.featured,
             highlights: it.highlights, estimatedSpending: it.estimatedSpending,
             qualityScore: it.qualityScore,
+            // Home usa pra selectFeatured (status público) e selectNew (ordena por
+            // approvedAt DESC, falling back a createdAt). Sem isso, "Novos Roteiros"
+            // não tem como saber a data real de publicação.
+            status: it.status,
+            createdAt: it.createdAt,
+            approvedAt: it.approvedAt,
             // Campos para badges do card (vitrines): categorias temáticas e módulos ativos
             categories: it.categories || [],
             travelStyles: it.travelStyles || [],
