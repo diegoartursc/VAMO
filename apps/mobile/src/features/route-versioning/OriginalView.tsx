@@ -49,6 +49,12 @@ export interface OriginalViewProps {
     checklistPending?: boolean;
     /** Persiste o toggle de um item (recebe a key do item). */
     onToggleChecklist?: (key: string) => void;
+    /**
+     * Registra refs internos das seções para que o pai possa rolar pra elas
+     * pelos atalhos do "Comece por aqui" sem trocar de aba. As chaves só
+     * existem nesta view; outros blocos (custos/media) ficam fora.
+     */
+    onRegisterSectionRef?: (section: 'itinerary' | 'checklist', node: View | null) => void;
 }
 
 /** Key estável de um item do checklist do criador (espelha ChecklistTab). */
@@ -104,6 +110,7 @@ export default function OriginalView({
     canToggleChecklist = false,
     checklistPending = false,
     onToggleChecklist,
+    onRegisterSectionRef,
 }: OriginalViewProps) {
     const [expandedDays, setExpandedDays] = useState<Set<number>>(() => new Set([1]));
 
@@ -152,9 +159,89 @@ export default function OriginalView({
 
     return (
         <View>
+            {/* Ordem dos módulos = MODULE_ORDER em @vamo/shared/itinerary
+                (voo → hospedagem → passeios → itinerário → transporte →
+                restaurantes → dicas → gastos extras → checklist). Reorganizar
+                aqui sem reorganizar lá deixaria as telas desalinhadas. */}
+
+            {/* ── Voos ── */}
+            {(sections.flightOutbound || sections.flightReturn) ? (
+                <View style={styles.block}>
+                    <SectionTitle icon="airplane-outline" label="Meu Voo" />
+                    {sections.flightTotalPrice ? (
+                        <View style={styles.flightTotalPill}>
+                            <Ionicons name="cash-outline" size={14} color={theme.colors.success} />
+                            <Text style={styles.flightTotalText}>
+                                Ida + volta: {String(sections.flightTotalPrice)}
+                                {sections.flightCurrency ? ` ${sections.flightCurrency}` : ''}
+                            </Text>
+                        </View>
+                    ) : null}
+                    {sections.flightOutbound ? (
+                        <ItemCard
+                            merged={asOriginal('flightOutbound', sections.flightOutbound)}
+                            showBadge={false}
+                        />
+                    ) : null}
+                    {sections.flightReturn ? (
+                        <ItemCard
+                            merged={asOriginal('flightReturn', sections.flightReturn)}
+                            showBadge={false}
+                        />
+                    ) : null}
+                    {sections.flightTips.length > 0 ? (
+                        <View style={styles.tipsBox}>
+                            <Text style={styles.tipsTitle}>💡 Dicas do viajante</Text>
+                            {sections.flightTips.map((tip: string, i: number) => (
+                                <View key={i} style={styles.tipRow}>
+                                    <View style={styles.tipDot} />
+                                    <Text style={styles.tipText}>{String(tip)}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    ) : null}
+                </View>
+            ) : null}
+
+            {/* ── Hospedagens ── */}
+            {sections.accommodations.length > 0 ? (
+                <View style={styles.block}>
+                    <SectionTitle icon="home-outline" label="Onde Fiquei" />
+                    {sections.accommodations.map((acc: any, i: number) => (
+                        <ItemCard
+                            key={acc?.id ?? `acc-${i}`}
+                            merged={asOriginal('accommodations', acc)}
+                            showBadge={false}
+                        />
+                    ))}
+                </View>
+            ) : null}
+
+            {/* ── Passeios ── */}
+            {sections.attractions.length > 0 ? (
+                <View style={styles.block}>
+                    <SectionTitle
+                        icon="camera-outline"
+                        label="Passeios & Atrações"
+                        subtitle={`${sections.attractions.length} atrações selecionadas pelo criador`}
+                    />
+                    {sections.attractions.map((att: any, i: number) => (
+                        <ItemCard
+                            key={att?.id ?? `att-${i}`}
+                            merged={asOriginal('attractions', att)}
+                            showBadge={false}
+                        />
+                    ))}
+                </View>
+            ) : null}
+
             {/* ── Itinerário por Dia ── */}
             {sections.days.length > 0 ? (
-                <View style={styles.block}>
+                <View
+                    style={styles.block}
+                    ref={(node) => onRegisterSectionRef?.('itinerary', node)}
+                    collapsable={false}
+                >
                     <SectionTitle icon="map-outline" label="Itinerário por Dia" />
                     {sections.days.map((day: any) => {
                         const dayNumber = typeof day?.dayNumber === 'number' ? day.dayNumber : 0;
@@ -217,77 +304,6 @@ export default function OriginalView({
                             </View>
                         );
                     })}
-                </View>
-            ) : null}
-
-            {/* ── Hospedagens ── */}
-            {sections.accommodations.length > 0 ? (
-                <View style={styles.block}>
-                    <SectionTitle icon="home-outline" label="Onde Fiquei" />
-                    {sections.accommodations.map((acc: any, i: number) => (
-                        <ItemCard
-                            key={acc?.id ?? `acc-${i}`}
-                            merged={asOriginal('accommodations', acc)}
-                            showBadge={false}
-                        />
-                    ))}
-                </View>
-            ) : null}
-
-            {/* ── Voos ── */}
-            {(sections.flightOutbound || sections.flightReturn) ? (
-                <View style={styles.block}>
-                    <SectionTitle icon="airplane-outline" label="Meu Voo" />
-                    {sections.flightTotalPrice ? (
-                        <View style={styles.flightTotalPill}>
-                            <Ionicons name="cash-outline" size={14} color={theme.colors.success} />
-                            <Text style={styles.flightTotalText}>
-                                Ida + volta: {String(sections.flightTotalPrice)}
-                                {sections.flightCurrency ? ` ${sections.flightCurrency}` : ''}
-                            </Text>
-                        </View>
-                    ) : null}
-                    {sections.flightOutbound ? (
-                        <ItemCard
-                            merged={asOriginal('flightOutbound', sections.flightOutbound)}
-                            showBadge={false}
-                        />
-                    ) : null}
-                    {sections.flightReturn ? (
-                        <ItemCard
-                            merged={asOriginal('flightReturn', sections.flightReturn)}
-                            showBadge={false}
-                        />
-                    ) : null}
-                    {sections.flightTips.length > 0 ? (
-                        <View style={styles.tipsBox}>
-                            <Text style={styles.tipsTitle}>💡 Dicas do viajante</Text>
-                            {sections.flightTips.map((tip: string, i: number) => (
-                                <View key={i} style={styles.tipRow}>
-                                    <View style={styles.tipDot} />
-                                    <Text style={styles.tipText}>{String(tip)}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    ) : null}
-                </View>
-            ) : null}
-
-            {/* ── Passeios ── */}
-            {sections.attractions.length > 0 ? (
-                <View style={styles.block}>
-                    <SectionTitle
-                        icon="camera-outline"
-                        label="Passeios & Atrações"
-                        subtitle={`${sections.attractions.length} atrações selecionadas pelo criador`}
-                    />
-                    {sections.attractions.map((att: any, i: number) => (
-                        <ItemCard
-                            key={att?.id ?? `att-${i}`}
-                            merged={asOriginal('attractions', att)}
-                            showBadge={false}
-                        />
-                    ))}
                 </View>
             ) : null}
 
@@ -366,7 +382,11 @@ export default function OriginalView({
                 (check/uncheck) é interativo, e fica sincronizado com a
                 O progresso pessoal é controlado na Central da Viagem. */}
             {sections.checklistItems.length > 0 ? (
-                <View style={styles.block}>
+                <View
+                    style={styles.block}
+                    ref={(node) => onRegisterSectionRef?.('checklist', node)}
+                    collapsable={false}
+                >
                     <SectionTitle
                         icon="checkmark-circle-outline"
                         label="Checklist do roteiro"

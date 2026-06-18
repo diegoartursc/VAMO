@@ -39,6 +39,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
+import VamoButton from './VamoButton';
 import {
     _registerConfirmImpl,
     type ConfirmAction,
@@ -264,38 +265,29 @@ export function VamoConfirmHost({ children }: { children?: React.ReactNode }) {
 
                         <View style={[styles.actions, isWide && styles.actionsWide]}>
                             {isConfirm && (
-                                <TouchableOpacity
-                                    style={[styles.btn, styles.btnSecondary]}
+                                <VamoButton
+                                    label={(current as ConfirmRequest).opts.cancelText ?? 'Cancelar'}
+                                    variant="secondary"
+                                    size="md"
                                     onPress={() => { haptics.selection(); close(false); }}
-                                    activeOpacity={0.85}
-                                    accessibilityRole="button"
-                                    accessibilityLabel={(current as ConfirmRequest).opts.cancelText ?? 'Cancelar'}
-                                >
-                                    <Text style={styles.btnSecondaryLabel}>
-                                        {(current as ConfirmRequest).opts.cancelText ?? 'Cancelar'}
-                                    </Text>
-                                </TouchableOpacity>
+                                    style={styles.actionBtn}
+                                />
                             )}
-                            <TouchableOpacity
-                                style={[styles.btn, { backgroundColor: accent }]}
+                            <VamoButton
+                                label={isConfirm
+                                    ? ((current as ConfirmRequest).opts.confirmText ?? 'Confirmar')
+                                    : ((current as NotifyRequest).opts.okText ?? 'OK')}
+                                variant="primary"
+                                size="md"
                                 onPress={() => {
                                     if (isConfirm) { haptics.medium(); close(true); }
                                     else { haptics.light(); close(false); }
                                 }}
-                                activeOpacity={0.85}
-                                accessibilityRole="button"
-                                accessibilityLabel={
-                                    isConfirm
-                                        ? ((current as ConfirmRequest).opts.confirmText ?? 'Confirmar')
-                                        : ((current as NotifyRequest).opts.okText ?? 'OK')
-                                }
-                            >
-                                <Text style={styles.btnPrimaryLabel}>
-                                    {isConfirm
-                                        ? ((current as ConfirmRequest).opts.confirmText ?? 'Confirmar')
-                                        : ((current as NotifyRequest).opts.okText ?? 'OK')}
-                                </Text>
-                            </TouchableOpacity>
+                                // Cor dinâmica do botão principal vem da variant
+                                // semântica (danger/warning/info/success) — sobrescreve
+                                // o teal padrão do VamoButton.primary.
+                                style={[styles.actionBtn, { backgroundColor: accent }]}
+                            />
                         </View>
                     </Animated.View>
                 </View>
@@ -371,27 +363,9 @@ const styles = StyleSheet.create({
     actionsWide: {
         flexDirection: 'row',
     },
-    btn: {
+    // Padding/altura/centralização agora vêm do VamoButton; só ajustamos o
+    // flex pra dois botões dividirem a largura igualmente.
+    actionBtn: {
         flex: 1,
-        minHeight: 50,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 18,
-    },
-    btnSecondary: {
-        backgroundColor: theme.colors.surfaceLight,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    btnSecondaryLabel: {
-        fontSize: 15.5,
-        fontWeight: '700',
-        color: theme.colors.secondary,
-    },
-    btnPrimaryLabel: {
-        fontSize: 15.5,
-        fontWeight: '800',
-        color: '#fff',
     },
 });

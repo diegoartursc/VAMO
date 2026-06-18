@@ -1,8 +1,10 @@
 export interface ItineraryFilterInput {
     destination?: string;
     duration?: number;
-    priceMin: number;
-    priceMax: number;
+    // priceMin/priceMax mantidos opcionais só pra compat de spread de
+    // context.filters — NÃO são mais usados pra filtrar (filtro removido).
+    priceMin?: number;
+    priceMax?: number;
     ratingMin?: number;
     featured?: boolean;
     verifiedCreatorOnly?: boolean;
@@ -114,9 +116,9 @@ export function itineraryMatchesFilters<T extends Record<string, any>>(itinerary
         return false;
     }
 
-    if (filterItinerariesByPrice([itinerary], filters.priceMin, filters.priceMax).length === 0) {
-        return false;
-    }
+    // Filtro de faixa de preço REMOVIDO da UI — não aplicar aqui pra que
+    // nenhum parâmetro de preço continue ativo de forma invisível. O preço
+    // segue exibido nos cards/checkout normalmente; só não filtra mais.
 
     if (filters.ratingMin !== undefined && Number(itinerary?.rating || 0) < filters.ratingMin) {
         return false;

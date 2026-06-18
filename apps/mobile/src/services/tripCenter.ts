@@ -16,6 +16,8 @@
  */
 
 import { Platform } from 'react-native';
+import { refreshAccessToken } from './auth';
+import { getSession, setSession } from '../utils/secureSession';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
@@ -83,6 +85,44 @@ async function request<T>(
         throw new Error(message);
     }
     return data as T;
+}
+
+async function tryRefreshSession(): Promise<string | null> {
+    try {
+        const session = await getSession();
+        if (!session?.refreshToken) return null;
+        const newToken = await refreshAccessToken(session.refreshToken);
+        if (!newToken) return null;
+        await setSession({ ...session, accessToken: newToken });
+        return newToken;
+    } catch {
+        return null;
+    }
+}
+
+async function buildUploadFormData(body: {
+    category: string;
+    title: string;
+    note?: string;
+    uri: string;
+    filename: string;
+    mimeType: string;
+}): Promise<FormData> {
+    const form = new FormData();
+    form.append('category', body.category);
+    form.append('title', body.title);
+    if (body.note?.trim()) form.append('note', body.note.trim());
+    if (Platform.OS === 'web') {
+        const source = await fetch(body.uri);
+        if (!source.ok) throw new Error('Não foi possível ler o arquivo selecionado.');
+        const blob = await source.blob();
+        const typedBlob = blob.type ? blob : new Blob([blob], { type: body.mimeType });
+        form.append('file', typedBlob, body.filename);
+    } else {
+        // @ts-ignore React Native multipart file shape.
+        form.append('file', { uri: body.uri, name: body.filename, type: body.mimeType });
+    }
+    return form;
 }
 
 // ─── Checklist ──────────────────────────────────────────────────────
@@ -162,27 +202,22 @@ export async function uploadTripFile(
     },
     token: string,
 ): Promise<TravelerFile> {
-    const form = new FormData();
-    form.append('category', body.category);
-    form.append('title', body.title);
-    if (body.note?.trim()) form.append('note', body.note.trim());
-    if (Platform.OS === 'web') {
-        const source = await fetch(body.uri);
-        if (!source.ok) throw new Error('Não foi possível ler o arquivo selecionado.');
-        const blob = await source.blob();
-        form.append('file', blob.type ? blob : new Blob([blob], { type: body.mimeType }), body.filename);
-    } else {
-        // @ts-ignore React Native multipart file shape.
-        form.append('file', { uri: body.uri, name: body.filename, type: body.mimeType });
+    let currentToken = token;
+    let response: Response;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        const form = await buildUploadFormData(body);
+        response = await fetch(
+            `${API_BASE_URL}/trip-center/${encodeURIComponent(itineraryId)}/files/upload`,
+            { method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }, body: form },
+        );
+        if (response.status !== 401 || attempt === 1) break;
+        const refreshed = await tryRefreshSession();
+        if (!refreshed) break;
+        currentToken = refreshed;
     }
-
-    const response = await fetch(
-        `${API_BASE_URL}/trip-center/${encodeURIComponent(itineraryId)}/files/upload`,
-        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
-    );
     let data: any = null;
-    try { data = await response.json(); } catch {}
-    if (!response.ok) throw new Error(data?.error || `API Error: ${response.status}`);
+    try { data = await response!.json(); } catch {}
+    if (!response!.ok) throw new Error(data?.error || `API Error: ${response!.status}`);
     return data.file;
 }
 

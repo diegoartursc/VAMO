@@ -131,6 +131,27 @@ export interface RouteVersioningProps {
      * memoizado e estável entre recálculos sem mudança.
      */
     onMergedChange?: (merged: MergedItinerary) => void;
+    /**
+     * Notifica o caller quando a aba ATIVA muda (por troca interna do usuário
+     * ou por `targetTab` externo). Permite ao pai saber em qual versão estamos
+     * — útil pra direcionar atalhos ("Comece por aqui") sem chutar a aba.
+     */
+    onTabChange?: (tab: RouteVersionTab) => void;
+    /**
+     * Permite ao pai registrar refs dos blocos internos por aba+seção. Usado
+     * por atalhos do "Comece por aqui" pra rolar até o lugar certo SEM
+     * trocar de aba. Chave estável: scrollToSection(`${section}:${version}`).
+     *
+     * - section='itinerary' → bloco "Itinerário por Dia" da view ativa.
+     * - section='checklist' → bloco "Checklist do roteiro" (só na Original;
+     *   na Minha versão o checklist vive no mineExtras → TripCenter, e o pai
+     *   já registra esse ref direto).
+     */
+    onRegisterSectionRef?: (
+        section: 'itinerary' | 'checklist',
+        version: RouteVersionTab,
+        node: View | null,
+    ) => void;
 }
 
 // ─── Componente principal ────────────────────────────────────
@@ -143,6 +164,8 @@ export default function RouteVersioning({
     mineExtras,
     targetTab,
     onMergedChange,
+    onTabChange,
+    onRegisterSectionRef,
 }: RouteVersioningProps) {
     const { accessToken, isAuthenticated } = useAuth();
     const hasAuth = !!accessToken && isAuthenticated;
@@ -160,6 +183,13 @@ export default function RouteVersioning({
         // Disable lint warning: o ponto é reagir apenas ao targetTab mudando.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [targetTab]);
+
+    // Notifica o caller sempre que a aba muda — pais usam pra direcionar
+    // atalhos sem assumir a aba.
+    useEffect(() => {
+        onTabChange?.(tab);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tab]);
     const [loading, setLoading] = useState(true);
     const [snapshot, setSnapshot] = useState<RouteSnapshot | null>(null);
     const [customization, setCustomization] = useState<TravelerItineraryCustomization | null>(null);
@@ -680,6 +710,9 @@ export default function RouteVersioning({
                         canToggleChecklist={effectiveCanEdit}
                         checklistPending={creatorChecklistPending}
                         onToggleChecklist={(key) => { void toggleCreatorChecklist(key); }}
+                        onRegisterSectionRef={onRegisterSectionRef
+                            ? (section, node) => onRegisterSectionRef(section, 'original', node)
+                            : undefined}
                     />
                 </View>
             ) : (
@@ -693,6 +726,9 @@ export default function RouteVersioning({
                         onHideItem={(item) => { void applyHide(item); }}
                         onRestoreHidden={(item) => { void applyRestore(item); }}
                         onMoveDay={(day, dir) => { void applyMoveDay(day, dir); }}
+                        onRegisterSectionRef={onRegisterSectionRef
+                            ? (section, node) => onRegisterSectionRef(section, 'mine', node)
+                            : undefined}
                     />
                     {/* Slot "Minha Versão" — vive SÓ aqui. Hoje é onde o
                         purchased-itinerary encaixa a Central da Viagem
@@ -838,8 +874,12 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: '#fff',
         borderRadius: 20,
-        padding: 18,
-        marginHorizontal: 16,
+        // Padding interno reduzido (era 18) — o `[id].tsx` body já dá 16px
+        // de respiração lateral. Soma anterior (20+16+18 = 54/lado) cortava
+        // ~29% da largura no mobile 375px. Agora: 16 do body + 12 do card.
+        padding: 12,
+        // Sem margin horizontal — o body padding já separa o card das bordas.
+        // Antes: marginHorizontal:16 criava recuo duplicado.
         marginVertical: 12,
         ...theme.shadows.medium,
     },

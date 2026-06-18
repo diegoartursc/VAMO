@@ -128,11 +128,11 @@ const HeroHeader = ({
     onSearchPress: () => void;
     onShortcutPress: (params?: Record<string, string>) => void;
 }) => {
-    const shortcuts: Array<{ label: string; icon: 'star' | 'utensils' | 'backpack' | 'users'; params: Record<string, string> }> = [
+    const shortcuts: Array<{ label: string; icon: 'star' | 'utensils' | 'backpack' | 'heart'; params: Record<string, string> }> = [
         { label: 'Mais populares', icon: 'star' as const, params: { sort: 'popular' } },
         { label: 'Gastronômicos', icon: 'utensils' as const, params: { category: 'gastronomia' } },
         { label: 'Mochilão', icon: 'backpack' as const, params: { category: 'mochilao', intent: 'mochilao' } },
-        { label: 'Com crianças', icon: 'users' as const, params: { category: 'familia' } },
+        { label: 'Romântico', icon: 'heart' as const, params: { category: 'romantico' } },
     ];
 
     return (

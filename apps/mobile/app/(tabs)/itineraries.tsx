@@ -247,8 +247,6 @@ export default function ItinerariesScreen() {
                                     applyFilters({
                                         destination: '',
                                         duration: undefined,
-                                        priceMin: 0,
-                                        priceMax: 50000,
                                     });
                                 }}
                             >
@@ -296,8 +294,6 @@ export default function ItinerariesScreen() {
                                         applyFilters({
                                             destination: '',
                                             duration: undefined,
-                                            priceMin: 0,
-                                            priceMax: 50000,
                                         });
                                     }}
                                     activeOpacity={0.85}

@@ -30,6 +30,7 @@ import { haptics } from '../../services/haptics';
 import FormInput from '../../components/dashboard/FormInput';
 import MoneyInput from '../../components/dashboard/MoneyInput';
 import { CurrencyPicker } from '../../components/common/CurrencyPicker';
+import VamoButton from '../../components/common/VamoButton';
 
 import { DatePickerField, TimePickerField } from './pickers';
 import { FIELDS_BY_KIND, KIND_TITLE, type FieldSpec } from './itemFields';
@@ -274,26 +275,26 @@ export default function ItemFormModal({
                         ))}
                     </ScrollView>
 
-                    {/* Actions */}
+                    {/* Actions — usam VamoButton (texto centralizado mesmo
+                        em 2 linhas; minHeight confortável; sem ellipsize que
+                        cortaria "Adicionar ao meu roteiro" no meio). */}
                     <View style={styles.actions}>
-                        <TouchableOpacity
-                            style={styles.btnGhost}
+                        <VamoButton
+                            label="Cancelar"
+                            variant="secondary"
+                            size="md"
                             onPress={onClose}
                             disabled={saving}
-                            activeOpacity={0.85}
-                        >
-                            <Text style={styles.btnGhostText}>Cancelar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.btnPrimary, saving && styles.btnDisabled]}
+                            style={styles.actionBtn}
+                        />
+                        <VamoButton
+                            label={primaryLabel}
+                            variant="primary"
+                            size="md"
+                            loading={saving}
                             onPress={handleSave}
-                            disabled={saving}
-                            activeOpacity={0.85}
-                        >
-                            <Text style={styles.btnPrimaryText}>
-                                {saving ? 'Salvando…' : primaryLabel}
-                            </Text>
-                        </TouchableOpacity>
+                            style={styles.actionBtn}
+                        />
                     </View>
                 </View>
             </KeyboardAvoidingView>
@@ -648,29 +649,9 @@ const styles = StyleSheet.create({
         gap: 8,
         marginTop: 14,
     },
-    btnGhost: {
+    // VamoButton encapsula padding/altura/centralização — só damos o flex:1
+    // pra dois botões dividirem a linha igualmente.
+    actionBtn: {
         flex: 1,
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignItems: 'center',
-        backgroundColor: theme.colors.borderLight,
-    },
-    btnGhostText: {
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-    },
-    btnPrimary: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignItems: 'center',
-        backgroundColor: theme.colors.primary,
-    },
-    btnPrimaryText: {
-        fontWeight: '700',
-        color: '#fff',
-    },
-    btnDisabled: {
-        opacity: 0.55,
     },
 });

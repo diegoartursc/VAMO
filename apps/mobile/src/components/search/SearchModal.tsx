@@ -19,7 +19,6 @@ import { useSearch } from '../../hooks/useSearch';
 import { Icon, IconName } from '../common/Icons';
 
 const { height } = Dimensions.get('window');
-const MAX_PRICE = 50000;
 
 interface SearchModalProps {
     visible: boolean;
@@ -48,8 +47,6 @@ export function SearchModal({
     // Filtros locais (estado do modal)
     const [destination, setDestination] = useState(initialFilters?.destination || '');
     const [duration, setDuration] = useState<number | undefined>(initialFilters?.duration);
-    const [priceMin, setPriceMin] = useState<number>(initialFilters?.priceMin || 0);
-    const [priceMax, setPriceMax] = useState<number>(initialFilters?.priceMax || MAX_PRICE);
     const [activeDurationChip, setActiveDurationChip] = useState<number | null>(null);
 
     // Títulos por contexto
@@ -76,9 +73,8 @@ export function SearchModal({
         if (duration !== undefined) count++;
         if (travelIntent) count++;
         if (selectedCategories.length > 0) count++;
-        if (priceMin > 0 || priceMax < MAX_PRICE) count++;
         return count;
-    }, [destination, duration, travelIntent, selectedCategories, priceMin, priceMax]);
+    }, [destination, duration, travelIntent, selectedCategories]);
 
     useEffect(() => {
         if (visible) {
@@ -122,8 +118,6 @@ export function SearchModal({
     const handleClearFilters = () => {
         setDestination('');
         setDuration(undefined);
-        setPriceMin(0);
-        setPriceMax(MAX_PRICE);
         setActiveDurationChip(0); // Select 'Qualquer' by default when clearing
         setTravelIntent(null);
         setSelectedCategory(null);
@@ -133,8 +127,6 @@ export function SearchModal({
         const filters: SearchFilters = {
             destination,
             duration,
-            priceMin,
-            priceMax,
         };
         onSearch(filters);
         onClose();
@@ -159,12 +151,6 @@ export function SearchModal({
             setActiveDurationChip(index);
             setDuration(min === max ? min : Math.round((min + max) / 2));
         }
-    };
-
-    // Format price
-    const formatPrice = (value: number) => {
-        if (value >= MAX_PRICE) return 'A$ 10.000+';
-        return `A$ ${value.toLocaleString('pt-BR')}`;
     };
 
     return (
@@ -380,59 +366,8 @@ export function SearchModal({
                         </ScrollView>
                     </View>
 
-                    {/* ── 5. FAIXA DE PREÇO ── */}
-                    <View style={styles.filterSection}>
-                        <View style={styles.filterLabelRow}>
-                            <View style={styles.filterLabelWithIcon}>
-                                <Icon name="wallet" size={16} color={theme.colors.primary} />
-                                <Text style={styles.filterLabel}>Faixa de Preço</Text>
-                            </View>
-                            <Text style={styles.filterValue}>
-                                {priceMin === 0 && priceMax >= MAX_PRICE
-                                    ? 'Qualquer'
-                                    : `${formatPrice(priceMin)} – ${formatPrice(priceMax)}`
-                                }
-                            </Text>
-                        </View>
-
-                        {/* Min slider */}
-                        <Text style={styles.priceSliderLabel}>Mínimo: {formatPrice(priceMin)}</Text>
-                        <Slider
-                            style={styles.slider}
-                            minimumValue={0}
-                            maximumValue={MAX_PRICE}
-                            value={priceMin}
-                            onValueChange={(val: number) => {
-                                const rounded = Math.round(val / 500) * 500;
-                                if (rounded < priceMax) setPriceMin(rounded);
-                            }}
-                            minimumTrackTintColor={theme.colors.primary}
-                            maximumTrackTintColor={theme.colors.border}
-                            thumbTintColor={theme.colors.primary}
-                            step={500}
-                        />
-
-                        {/* Max slider */}
-                        <Text style={styles.priceSliderLabel}>Máximo: {formatPrice(priceMax)}</Text>
-                        <Slider
-                            style={styles.slider}
-                            minimumValue={0}
-                            maximumValue={MAX_PRICE}
-                            value={priceMax}
-                            onValueChange={(val: number) => {
-                                const rounded = Math.round(val / 500) * 500;
-                                if (rounded > priceMin) setPriceMax(rounded);
-                            }}
-                            minimumTrackTintColor={theme.colors.primary}
-                            maximumTrackTintColor={theme.colors.border}
-                            thumbTintColor={theme.colors.primary}
-                            step={500}
-                        />
-                        <View style={styles.sliderRange}>
-                            <Text style={styles.sliderRangeText}>A$ 0</Text>
-                            <Text style={styles.sliderRangeText}>A$ 10.000+</Text>
-                        </View>
-                    </View>
+                    {/* Filtro de Faixa de Preço REMOVIDO — preço segue exibido
+                        nos cards/checkout, mas não é mais critério de filtro. */}
                 </ScrollView>
 
                 {/* Result Counter + Actions */}
@@ -651,14 +586,6 @@ const styles = StyleSheet.create({
     sliderRangeText: {
         fontSize: 12,
         color: theme.colors.text.secondary,
-    },
-
-    // Price
-    priceSliderLabel: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginBottom: 2,
-        marginTop: 8,
     },
 
     // Intent / Travel Style
