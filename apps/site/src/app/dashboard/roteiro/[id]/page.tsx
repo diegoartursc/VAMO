@@ -10,7 +10,16 @@ import {
     PlaneTakeoff, PlaneLanding, MessageSquare, BarChart3, Tag, ImageIcon,
     CalendarCheck, Layers, ShieldCheck, Upload, FileCheck, RefreshCw, Check,
     ChevronDown, ChevronUp, TrendingUp, MapPin, Clock, ExternalLink, Receipt, Wifi,
+    HelpCircle,
 } from "lucide-react";
+import {
+    BUDGET_STYLE_GUIDE,
+    BUDGET_STYLE_KEYS,
+    BUDGET_STYLE_GENERAL_NOTE,
+    BUDGET_STYLE_CREATOR_SUBTITLE,
+    getBudgetStyleGuide,
+    getPrimaryBudgetStyle,
+} from "@vamo/shared/itinerary";
 import { getItineraryById, createItinerary, updateItinerary, uploadFile, uploadFiles } from "../../../../lib/api";
 import {
     acceptAttributeFor,
@@ -496,6 +505,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [duration, setDuration] = useState(1);
     const [description, setDescription] = useState("");
     const [travelStyles, setTravelStyles] = useState<string[]>([]);
+    const [budgetHelpOpen, setBudgetHelpOpen] = useState(false);
     const [categories, setCategories] = useState<string[]>([]);
     const [travelProofUrl, setTravelProofUrl] = useState("");
     const [productType, setProductType] = useState("DIGITAL");
@@ -1117,12 +1127,61 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     <span className="form-helper">{description.length} caracteres</span>
                 </div>
                 <div className="form-group">
-                    <label className="form-label">Estilo de Experiência (máx 3) — {travelStyles.length}/3</label>
-                    <div className="editor-chip-grid">{STYLE_OPTIONS.map(s => (
-                        <button key={s.key} className={`editor-chip ${travelStyles.includes(s.key) ? "active" : ""}`} onClick={() => toggleChip(travelStyles, setTravelStyles, s.key, 3)}>
-                            <s.Icon size={13} strokeWidth={2} /> {s.label}
+                    <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        Qual é o estilo de orçamento deste roteiro?
+                        <button
+                            type="button"
+                            onClick={() => setBudgetHelpOpen(v => !v)}
+                            aria-label="Ver critérios da VAMO"
+                            title="Ver critérios da VAMO"
+                            style={{ display: "inline-flex", background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--primary, #28C9BF)" }}
+                        >
+                            <HelpCircle size={16} strokeWidth={2} />
                         </button>
-                    ))}</div>
+                    </label>
+                    <span className="form-helper" style={{ display: "block", marginBottom: 8 }}>{BUDGET_STYLE_CREATOR_SUBTITLE}</span>
+
+                    {/* Escolha ÚNICA: selecionar uma opção substitui a anterior. */}
+                    <div className="editor-chip-grid">{STYLE_OPTIONS.map(s => {
+                        const active = getPrimaryBudgetStyle(travelStyles) === s.key;
+                        return (
+                            <button
+                                key={s.key}
+                                className={`editor-chip ${active ? "active" : ""}`}
+                                onClick={() => { setTravelStyles(active ? [] : [s.key]); markDirty(); }}
+                            >
+                                <s.Icon size={13} strokeWidth={2} /> {s.label}
+                            </button>
+                        );
+                    })}</div>
+
+                    {/* Painel de critérios (toggle pelo ícone de ajuda) */}
+                    {budgetHelpOpen && (
+                        <div style={{ marginTop: 12, padding: 14, background: "var(--surface-light, #F4FBFB)", border: "1px solid var(--border-light, #E0EAF0)", borderRadius: 12 }}>
+                            {BUDGET_STYLE_KEYS.map(k => {
+                                const g = BUDGET_STYLE_GUIDE[k];
+                                return (
+                                    <div key={k} style={{ marginBottom: 10 }}>
+                                        <strong style={{ fontSize: 13, color: "var(--text-primary, #1A3263)" }}>{g.label}</strong>
+                                        <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--text-secondary, #4A5876)", marginTop: 2 }}>{g.buyerDescription}</div>
+                                    </div>
+                                );
+                            })}
+                            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "var(--text-tertiary, #94A3B8)", marginTop: 6 }}>{BUDGET_STYLE_GENERAL_NOTE}</div>
+                        </div>
+                    )}
+
+                    {/* Dica contextual após selecionar */}
+                    {(() => {
+                        const guide = getBudgetStyleGuide(getPrimaryBudgetStyle(travelStyles));
+                        if (!guide) return null;
+                        return (
+                            <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", padding: "10px 12px", background: "rgba(40,201,191,0.08)", border: "1px solid rgba(40,201,191,0.22)", borderRadius: 10 }}>
+                                <Lightbulb size={15} style={{ color: "var(--primary, #28C9BF)", flexShrink: 0, marginTop: 1 }} />
+                                <span style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--text-secondary, #4A5876)" }}>{guide.creatorHint}</span>
+                            </div>
+                        );
+                    })()}
                 </div>
                 <div className="form-group">
                     <label className="form-label">Categorias Temáticas (mín 1, máx 5) — {categories.length}/5</label>

@@ -70,6 +70,12 @@ export interface MyRouteViewProps {
      * via PUT. Reativo: a UI re-renderiza com a nova `position` no badge.
      */
     onMoveDay: (day: MergedDay, direction: 'up' | 'down') => void;
+    /**
+     * Registra ref do bloco "Itinerário por Dia" da Minha versão pra atalhos
+     * do "Comece por aqui" do pai. (Checklist da Minha versão vive no
+     * mineExtras → TripCenter — o pai já registra esse ref direto.)
+     */
+    onRegisterSectionRef?: (section: 'itinerary', node: View | null) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -127,6 +133,7 @@ export default function MyRouteView({
     onHideItem,
     onRestoreHidden,
     onMoveDay,
+    onRegisterSectionRef,
 }: MyRouteViewProps) {
     const [expandedDays, setExpandedDays] = useState<Set<number>>(() => new Set([1]));
 
@@ -249,9 +256,57 @@ export default function MyRouteView({
                 readOnly={!canEdit}
             />
 
+            {/* Ordem dos módulos = MODULE_ORDER em @vamo/shared/itinerary
+                (voo → hospedagem → passeios → itinerário → transporte →
+                restaurantes → dicas → gastos extras → checklist). */}
+
+            {/* ── Voos ── */}
+            <FlightSection
+                outbound={sections.flightOutbound}
+                inbound={sections.flightReturn}
+                canEdit={canEdit}
+                onAddOutbound={() => onAddItem('flightOutbound')}
+                onAddInbound={() => onAddItem('flightReturn')}
+                onTap={handleCardPress}
+                onLongPress={handleCardLongPress}
+                onRequestRemove={(item) => { void handleRequestRemove(item, pickItemTitle(item)); }}
+            />
+
+            {/* ── Hospedagens ── */}
+            <ListSection
+                kind="accommodations"
+                items={sections.accommodations}
+                icon="home-outline"
+                label="Onde Fiquei"
+                addLabel="Adicionar hospedagem"
+                canEdit={canEdit}
+                onAdd={() => onAddItem('accommodations')}
+                onTap={handleCardPress}
+                onLongPress={handleCardLongPress}
+                onRequestRemove={(item) => { void handleRequestRemove(item, pickItemTitle(item)); }}
+            />
+
+            {/* ── Passeios ── */}
+            <ListSection
+                kind="attractions"
+                items={sections.attractions}
+                icon="camera-outline"
+                label="Passeios & Atrações"
+                addLabel="Adicionar passeio"
+                canEdit={canEdit}
+                onAdd={() => onAddItem('attractions')}
+                onTap={handleCardPress}
+                onLongPress={handleCardLongPress}
+                onRequestRemove={(item) => { void handleRequestRemove(item, pickItemTitle(item)); }}
+            />
+
             {/* ── Itinerário por Dia ── */}
             {(sections.days.length > 0 || canEdit) ? (
-                <View style={styles.block}>
+                <View
+                    style={styles.block}
+                    ref={(node) => onRegisterSectionRef?.('itinerary', node)}
+                    collapsable={false}
+                >
                     <SectionTitle
                         icon="map-outline"
                         label="Itinerário por Dia"
@@ -459,46 +514,6 @@ export default function MyRouteView({
                     ) : null}
                 </View>
             ) : null}
-
-            {/* ── Hospedagens ── */}
-            <ListSection
-                kind="accommodations"
-                items={sections.accommodations}
-                icon="home-outline"
-                label="Onde Fiquei"
-                addLabel="Adicionar hospedagem"
-                canEdit={canEdit}
-                onAdd={() => onAddItem('accommodations')}
-                onTap={handleCardPress}
-                onLongPress={handleCardLongPress}
-                onRequestRemove={(item) => { void handleRequestRemove(item, pickItemTitle(item)); }}
-            />
-
-            {/* ── Voos ── */}
-            <FlightSection
-                outbound={sections.flightOutbound}
-                inbound={sections.flightReturn}
-                canEdit={canEdit}
-                onAddOutbound={() => onAddItem('flightOutbound')}
-                onAddInbound={() => onAddItem('flightReturn')}
-                onTap={handleCardPress}
-                onLongPress={handleCardLongPress}
-                onRequestRemove={(item) => { void handleRequestRemove(item, pickItemTitle(item)); }}
-            />
-
-            {/* ── Passeios ── */}
-            <ListSection
-                kind="attractions"
-                items={sections.attractions}
-                icon="camera-outline"
-                label="Passeios & Atrações"
-                addLabel="Adicionar passeio"
-                canEdit={canEdit}
-                onAdd={() => onAddItem('attractions')}
-                onTap={handleCardPress}
-                onLongPress={handleCardLongPress}
-                onRequestRemove={(item) => { void handleRequestRemove(item, pickItemTitle(item)); }}
-            />
 
             {/* ── Transporte ── */}
             <ListSection

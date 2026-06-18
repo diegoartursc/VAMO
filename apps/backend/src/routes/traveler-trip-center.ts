@@ -17,6 +17,8 @@ const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'
 const ALLOWED_MIMES = new Set([
     'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
     'image/heic-sequence', 'image/heif-sequence', 'application/pdf',
+    'application/x-pdf', 'application/acrobat', 'applications/vnd.pdf',
+    'text/pdf', 'text/x-pdf',
     'video/mp4', 'video/quicktime', 'video/webm', 'application/octet-stream',
 ]);
 // Fonte de verdade das categorias = apps/mobile/src/features/trip-center/
@@ -67,6 +69,13 @@ function validateString(value: unknown, maxLen: number, required = true): string
 
 function safeFilename(value: string): string {
     return value.replace(/[\r\n"]/g, '_').slice(0, 180) || 'arquivo';
+}
+
+function normalizedMimeType(file: Express.Multer.File): string {
+    const extension = path.extname(file.originalname).slice(1).toLowerCase();
+    const mime = (file.mimetype || '').toLowerCase();
+    if (extension === 'pdf') return 'application/pdf';
+    return mime || 'application/octet-stream';
 }
 
 function signedFileUrl(req: Request, fileId: string, travelerId: string): string {
@@ -247,7 +256,7 @@ router.post(
                         title,
                         url: 'private://postgres',
                         originalFileName: req.file.originalname,
-                        mimeType: req.file.mimetype,
+                        mimeType: normalizedMimeType(req.file),
                         sizeBytes: req.file.size,
                         note: note || null,
                         content: req.file.buffer,

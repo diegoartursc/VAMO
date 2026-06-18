@@ -9,8 +9,11 @@ export interface SearchFilters {
     startDate?: Date;
     endDate?: Date;
     duration?: number; // Duração em dias (para roteiros)
-    priceMin: number;
-    priceMax: number;
+    // priceMin/priceMax: filtro de faixa de preço REMOVIDO da UI. Campos
+    // mantidos opcionais só por compat de quem ainda passa Partial; não
+    // afetam mais a busca.
+    priceMin?: number;
+    priceMax?: number;
 }
 
 export interface SearchResults {
@@ -48,8 +51,6 @@ const defaultFilters: SearchFilters = {
     startDate: undefined,
     endDate: undefined,
     duration: undefined,
-    priceMin: 0,
-    priceMax: 50000,
 };
 
 const defaultResults: SearchResults = {

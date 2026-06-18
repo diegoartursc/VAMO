@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { DayActivity } from '../../data/mockPurchasedItineraries';
 import { formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
+import { useMediaLightbox } from '../common/MediaLightbox';
 
 interface ActivityCardProps {
     activity: DayActivity;
@@ -32,6 +33,9 @@ export function ActivityCard({
     const [isExpanded, setIsExpanded] = useState(false);
     const [notes, setNotes] = useState(activity.notes || '');
     const [isEditingNotes, setIsEditingNotes] = useState(false);
+
+    // Permite tocar nas fotos da atividade pra abrir no lightbox compartilhado.
+    const lightbox = useMediaLightbox();
 
     const getTypeColor = () => {
         switch (activity.type) {
@@ -117,14 +121,23 @@ export function ActivityCard({
                                 showsHorizontalScrollIndicator={false}
                                 style={styles.imagesContainer}
                             >
-                                {activity.images.map((image, index) => (
-                                    <Image
-                                        key={index}
-                                        source={{ uri: image }}
-                                        style={styles.image}
-                                        resizeMode="cover"
-                                    />
-                                ))}
+                                {activity.images.map((image, index) => {
+                                    const items = activity.images!.map(url => ({ url, type: 'image' as const }));
+                                    return (
+                                        <TouchableOpacity
+                                            key={index}
+                                            activeOpacity={0.85}
+                                            accessibilityLabel={`Foto ${index + 1} de ${activity.title}`}
+                                            onPress={() => lightbox.open(items, index, activity.title)}
+                                        >
+                                            <Image
+                                                source={{ uri: image }}
+                                                style={styles.image}
+                                                resizeMode="cover"
+                                            />
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </ScrollView>
                         )}
 
@@ -209,6 +222,9 @@ export function ActivityCard({
                     />
                 </View>
             </TouchableOpacity>
+
+            {/* Lightbox compartilhado renderiza só quando uma foto é tocada. */}
+            {lightbox.element}
         </View>
     );
 }

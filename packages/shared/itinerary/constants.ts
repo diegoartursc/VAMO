@@ -5,12 +5,122 @@
 
 import type { ModuleKey, Currency } from "./types";
 
-/** Estilos de viagem — máximo 3. */
+/**
+ * Estilo de orçamento do roteiro — ESCOLHA ÚNICA entre Econômico, Moderado e
+ * Luxo (mutuamente excludentes). Armazenado em `travelStyles[]` por compat de
+ * schema, mas só UMA destas keys deve estar presente.
+ *
+ * NÃO confundir com categorias temáticas (cultura/gastronomia/...). As keys
+ * "economico"/"moderado"/"luxo" são imutáveis — não renomear.
+ */
 export const STYLE_OPTIONS: { key: string; label: string }[] = [
     { key: "economico", label: "Econômico" },
     { key: "moderado",  label: "Moderado" },
     { key: "luxo",      label: "Luxo" },
 ];
+
+/** Keys canônicas de estilo de orçamento (escolha única). */
+export const BUDGET_STYLE_KEYS = ["economico", "moderado", "luxo"] as const;
+export type BudgetStyleKey = (typeof BUDGET_STYLE_KEYS)[number];
+
+export interface BudgetStyleGuideEntry {
+    key: BudgetStyleKey;
+    label: string;
+    /** Resumo de 1 linha (chips/preview). */
+    shortDescription: string;
+    /** Texto oficial mostrado ao VIAJANTE no detalhe do roteiro. */
+    buyerDescription: string;
+    /** Dica curta mostrada ao ROTEIRISTA após selecionar a opção. */
+    creatorHint: string;
+    /** Critérios detalhados (lista do modal de ajuda). */
+    criteria: string[];
+}
+
+/**
+ * Critérios oficiais da VAMO para classificar o estilo de orçamento.
+ * Fonte única — criação (mobile/web), preview, detalhe e ajuda leem daqui.
+ */
+export const BUDGET_STYLE_GUIDE: Record<BudgetStyleKey, BudgetStyleGuideEntry> = {
+    economico: {
+        key: "economico",
+        label: "Econômico",
+        shortDescription: "Para gastar menos, com opções mais simples.",
+        buyerDescription:
+            "Roteiro pensado para gastar menos, usando hospedagens simples, transporte acessível e atrações com bom custo-benefício.",
+        creatorHint:
+            "Use Econômico quando o roteiro prioriza economia, hospedagens simples, transporte barato e atrações gratuitas ou acessíveis.",
+        criteria: [
+            "Hospedagens simples, hostel, pousada básica ou acomodação econômica",
+            "Transporte público, caminhada, ônibus ou trem comum",
+            "Alimentação simples, mercado, comida de rua ou restaurantes acessíveis",
+            "Muitos passeios gratuitos ou de baixo custo",
+            "Mais foco em economia do que em conveniência",
+        ],
+    },
+    moderado: {
+        key: "moderado",
+        label: "Moderado",
+        shortDescription: "Equilíbrio entre conforto, localização e custo-benefício.",
+        buyerDescription:
+            "Roteiro equilibrado, com bom conforto, localização conveniente e gastos controlados.",
+        creatorHint:
+            "Use Moderado quando o roteiro equilibra conforto, boa localização, passeios pagos e controle de gastos.",
+        criteria: [
+            "Hotéis 3 estrelas, apartamentos confortáveis ou boas pousadas",
+            "Mistura de transporte público, rideshare, táxi ou aluguel pontual",
+            "Restaurantes casuais e algumas experiências gastronômicas melhores",
+            "Passeios pagos relevantes, mas sem excesso de experiências caras",
+            "Boa experiência geral com equilíbrio entre preço e conforto",
+        ],
+    },
+    luxo: {
+        key: "luxo",
+        label: "Luxo",
+        shortDescription: "Alto conforto, conveniência e experiências premium.",
+        buyerDescription:
+            "Roteiro com alto padrão de conforto, hospedagens superiores, experiências premium e maior conveniência.",
+        creatorHint:
+            "Use Luxo quando o roteiro inclui alto conforto, experiências premium, transporte conveniente e menor foco em economia.",
+        criteria: [
+            "Hotéis 4 ou 5 estrelas, resorts, villas ou hospedagens boutique premium",
+            "Transfers privados, motorista, táxi frequente ou transporte superior",
+            "Restaurantes sofisticados, rooftops ou experiências gastronômicas marcantes",
+            "Passeios privativos, tours premium, spas, beach clubs ou experiências exclusivas",
+            "Mais foco em conforto, tempo e conveniência do que em economia",
+        ],
+    },
+};
+
+/** Nota geral mostrada nos modais de ajuda (criação e detalhe). */
+export const BUDGET_STYLE_GENERAL_NOTE =
+    "A categoria representa o padrão geral da experiência, não apenas o valor total. A VAMO considera hospedagem, transporte, alimentação, passeios e conveniência.";
+
+/** Texto curto para o ROTEIRISTA (subtítulo da etapa de criação). */
+export const BUDGET_STYLE_CREATOR_SUBTITLE =
+    "Escolha o padrão geral da viagem considerando hospedagem, transporte, alimentação, passeios e conveniência.";
+
+/** Texto de transparência para o VIAJANTE no detalhe do roteiro. */
+export const BUDGET_STYLE_BUYER_TRANSPARENCY =
+    "Essa classificação segue critérios da VAMO e é informada pelo roteirista com base no padrão geral da experiência.";
+
+/** Resolve o guia a partir de uma key (ou null se ausente/inválida). */
+export function getBudgetStyleGuide(key?: string | null): BudgetStyleGuideEntry | null {
+    if (!key) return null;
+    return BUDGET_STYLE_GUIDE[key as BudgetStyleKey] ?? null;
+}
+
+/**
+ * Normaliza `travelStyles` para ESCOLHA ÚNICA de orçamento. Roteiros legados
+ * que tenham mais de um estilo retornam o primeiro válido. Devolve a key ou
+ * null. NÃO altera dados salvos — só interpreta na leitura.
+ */
+export function getPrimaryBudgetStyle(travelStyles?: string[] | null): BudgetStyleKey | null {
+    if (!Array.isArray(travelStyles)) return null;
+    const found = travelStyles.find((s): s is BudgetStyleKey =>
+        (BUDGET_STYLE_KEYS as readonly string[]).includes(s),
+    );
+    return found ?? null;
+}
 
 /** Categorias temáticas — mínimo 1, máximo 5. */
 export const CATEGORY_OPTIONS: { key: string; label: string; emoji: string }[] = [
@@ -39,16 +149,20 @@ export const CATEGORY_OPTIONS: { key: string; label: string; emoji: string }[] =
  * restaurantes) e o restante via "gastos_extras". A key "gasto"
  * continua existindo em ModuleKey para roteiros legados.
  */
+// Ordem alinhada a MODULE_ORDER (sectionOrder.ts): a sequência aqui é a
+// MESMA que aparece no wizard de criação, nas views Original/Minha versão
+// do roteiro comprado e nas seções do PDF. Mudar a ordem aqui propaga
+// para tudo de uma vez — não reordenar nos consumidores.
 export const MODULE_OPTIONS: { key: ModuleKey; label: string; desc: string; emoji: string }[] = [
-    { key: "itinerario",    label: "Itinerário por dia",   emoji: "🗓️", desc: "Roteiro dia a dia completo" },
     { key: "voo",           label: "Meu voo",              emoji: "✈️", desc: "Sugestões de voo" },
     { key: "hospedagem",    label: "Hospedagens",          emoji: "🏨", desc: "Hotéis e hospedagens sugeridas" },
     { key: "passeios",      label: "Passeios & Atrações",  emoji: "🎫", desc: "Atrações e passeios imperdíveis" },
+    { key: "itinerario",    label: "Itinerário por dia",   emoji: "🗓️", desc: "Roteiro dia a dia completo" },
     { key: "transporte",    label: "Transporte",           emoji: "🚌", desc: "Dicas de locomoção" },
-    { key: "dicas",         label: "Dicas exclusivas",     emoji: "💡", desc: "Dicas do criador (mín. 2)" },
     { key: "restaurantes",  label: "Restaurantes",         emoji: "🍴", desc: "Onde comer" },
-    { key: "checklist",     label: "Checklist interativo", emoji: "✅", desc: "O que levar (mín. 5)" },
+    { key: "dicas",         label: "Dicas exclusivas",     emoji: "💡", desc: "Dicas do criador (mín. 2)" },
     { key: "gastos_extras", label: "Gastos Extras",        emoji: "💰", desc: "Chip, seguro, taxas, gorjetas, lavanderia e outros" },
+    { key: "checklist",     label: "Checklist interativo", emoji: "✅", desc: "O que levar (mín. 5)" },
 ];
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -116,10 +116,21 @@ export default function PurchasedItineraryScreen() {
             }
             return;
         }
+        // No RN Web o `node` do ref é o HTMLElement — usamos a API DOM nativa
+        // (scrollIntoView), que respeita o scroll container ancestral correto
+        // mesmo com vários ScrollViews aninhados. Isso evita o cálculo
+        // impreciso do `measureLayout` polyfill no RN Web.
+        if (Platform.OS === 'web' && (sectionNode as unknown as HTMLElement)?.scrollIntoView) {
+            (sectionNode as unknown as HTMLElement).scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+            return;
+        }
         const scrollHandle = findNodeHandle(scrollView);
         if (scrollHandle == null) return;
-        // `measureLayout(ancestor, onSuccess, onFail)` está disponível em
-        // todos os componentes que herdam de View no RN nativo e no RN Web.
+        // Nativo: measureLayout(ancestor, onSuccess, onFail) mede relativo
+        // ao ScrollView e funciona em iOS/Android.
         (sectionNode as any).measureLayout?.(
             scrollHandle,
             (_x: number, y: number) => {
@@ -141,6 +152,22 @@ export default function PurchasedItineraryScreen() {
     // depois. NÃO é "controlled" no sentido React clássico — só um
     // gatilho one-shot quando o target string muda de valor.
     const [routeTargetTab, setRouteTargetTab] = useState<'original' | 'mine' | undefined>(undefined);
+
+    // Aba ATUALMENTE ativa no RouteVersioning — alimentada via onTabChange.
+    // Os atalhos do "Comece por aqui" consultam isto pra rolar até a versão
+    // certa (itinerary:original vs itinerary:mine etc) SEM trocar de aba.
+    const [routeActiveTab, setRouteActiveTab] = useState<'original' | 'mine'>('original');
+
+    // Callback que o RouteVersioning chama pra registrar os refs internos das
+    // seções por versão. As keys ficam: 'itinerary:original', 'itinerary:mine',
+    // 'checklist:original' (o de Minha versão vem do `trackSection` direto,
+    // pois a TripCenter mora no slot `mineExtras` controlado por este caller).
+    const handleRegisterSectionRef = useCallback(
+        (section: 'itinerary' | 'checklist', version: 'original' | 'mine', node: View | null) => {
+            sectionRefs.current[`${section}:${version}`] = node;
+        },
+        [],
+    );
 
     // ─── Merged personalizado (vem do RouteVersioning) ─────────────────
     // Quando o viajante edita custos/cards/dias na Minha Versão, o
@@ -521,53 +548,17 @@ export default function PurchasedItineraryScreen() {
 
                 <View style={styles.body}>
 
-                    {/* ══════════ MEU ROTEIRO (Original / Minha versão) ══════════
-                        A Central da Viagem (TripCenter) agora vive DENTRO do
-                        RouteVersioning, no slot `mineExtras` — ou seja, só
-                        aparece quando a aba ativa é "Minha versão". A Original
-                        é fiel e somente leitura. O `trackSection('checklist')`
-                        envolve todo o bloco; o atalho "Abrir checklist" do
-                        "Comece por aqui" rola até aqui, e o usuário escolhe
-                        a aba "Minha versão" para usar checklist/arquivos. */}
-                    {/* `trackSection('itinerary')` envolve o bloco "Meu roteiro"
-                        (atalho "Ver roteiro por dia"). O `trackSection('checklist')`
-                        agora envolve a PRÓPRIA Central da Viagem (TripCenter) dentro
-                        de `mineExtras` — o atalho "Abrir checklist" troca pra Minha
-                        Versão e rola até o checklist de verdade, não só ao topo do bloco. */}
-                    <View ref={trackSection('itinerary')} collapsable={false}>
-                        <RouteVersioning
-                            itineraryId={id as string}
-                            liveItinerary={itinerary}
-                            canEdit={isAuthenticated && !!accessToken}
-                            targetTab={routeTargetTab}
-                            onMergedChange={setMergedItinerary}
-                            onExportPdf={({ variant, snapshot, merged }) => {
-                                // Cache snapshot/merged para o sheet do header reusar
-                                // sem disparar fetch redundante.
-                                pdfDataRef.current = { snapshot, merged };
-                                // O botão interno do RouteVersioning escolhe a variante
-                                // direto da aba ativa — exporta imediatamente.
-                                void handlePdfSelect(variant);
-                            }}
-                            mineExtras={({
-                                creatorChecklistProgress,
-                                creatorChecklistPending,
-                                onUpdateCreatorChecklistProgress,
-                            }) => (
-                                <View ref={trackSection('checklist')} collapsable={false}>
-                                    <TripCenter
-                                        purchaseId={undefined}
-                                        itineraryId={id as string}
-                                        creatorChecklist={checklist}
-                                        canEdit={isAuthenticated && !!accessToken}
-                                        creatorChecklistProgress={creatorChecklistProgress}
-                                        creatorChecklistPending={creatorChecklistPending}
-                                        onUpdateCreatorChecklistProgress={onUpdateCreatorChecklistProgress}
-                                    />
-                                </View>
-                            )}
-                        />
-                    </View>
+                    {/* Ordem da página (depois do hero):
+                        1. Onboarding (1ª vez)
+                        2. "Comece por aqui" — atalhos rápidos
+                        3. Sobre a Experiência
+                        4. Custos e orçamento
+                        5. Meu roteiro (Original / Minha versão) com módulos
+                        6. O que você recebeu
+                        7. Fotos e vídeos da viagem
+                        8. Avaliar este roteiro
+                        Antes, o RouteVersioning (5) vinha antes de 2-4 e empurrava
+                        os atalhos/custos para o fim da página. */}
 
                     {/* ══════════ ONBOARDING: roteiro interativo (1ª vez) ══════════ */}
                     {showInteractiveOnboarding && (
@@ -636,21 +627,13 @@ export default function PurchasedItineraryScreen() {
                                                 key={a.key}
                                                 style={styles.quickItem}
                                                 onPress={() => {
-                                                    // "Abrir checklist" só faz sentido na Minha Versão
-                                                    // (Central da Viagem vive lá). Forçamos a aba antes
-                                                    // de rolar pra que o usuário veja o checklist no
-                                                    // destino, não a Original.
-                                                    if (a.key === 'checklist') {
-                                                        // A Central da Viagem (checklist) só monta quando
-                                                        // a aba "Minha versão" está ativa. Trocamos a aba e
-                                                        // adiamos o scroll para o componente montar/medir;
-                                                        // measureLayout falha graciosamente se ainda não
-                                                        // estiver pronto (só não rola, sem crash).
-                                                        setRouteTargetTab('mine');
-                                                        setTimeout(() => scrollToSection(a.sectionKey), 350);
-                                                    } else {
-                                                        scrollToSection(a.sectionKey);
-                                                    }
+                                                    // Regra: NUNCA trocar de aba. Os atalhos rolam pra
+                                                    // versão ATUAL do usuário. `itinerary` e `checklist`
+                                                    // têm refs separados por versão; `costs` e `media`
+                                                    // são blocos únicos fora do RouteVersioning.
+                                                    const versioned = a.sectionKey === 'itinerary' || a.sectionKey === 'checklist';
+                                                    const key = versioned ? `${a.sectionKey}:${routeActiveTab}` : a.sectionKey;
+                                                    scrollToSection(key);
                                                 }}
                                                 activeOpacity={0.85}
                                             >
@@ -906,15 +889,58 @@ export default function PurchasedItineraryScreen() {
                         })()}
                     </View>
 
-                    {/* ══════════ FOTOS E VÍDEOS DA VIAGEM ══════════ */}
-                    <View ref={trackSection('media')} collapsable={false}>
-                        <MediaGallery itinerary={itinerary} />
-                    </View>
+                    {/* ══════════ MEU ROTEIRO (Original / Minha versão) ══════════
+                        A Central da Viagem (TripCenter) vive DENTRO do RouteVersioning,
+                        no slot `mineExtras` — só aparece quando a aba ativa é "Minha
+                        versão". A Original é fiel e somente leitura.
 
-                    {/* ══════════ Seções do roteiro (Estimativa, Voo, Itinerário, Onde Fiquei,
-                        Passeios, Transporte, Restaurantes, Gastos Extras, Dicas) ══════════
-                        Renderizadas agora dentro de <RouteVersioning /> (aba "Original" via
-                        OriginalView; aba "Minha versão" via MyRouteView). */}
+                        Refs internos:
+                        - 'itinerary:original' / 'itinerary:mine' → o RouteVersioning
+                          passa onRegisterSectionRef pra OriginalView/MyRouteView, que
+                          envolvem o bloco "Itinerário por Dia" da sua versão.
+                        - 'checklist:original' → bloco "Checklist do roteiro" da
+                          OriginalView (read-only com toggle de progresso).
+                        - 'checklist:mine' → TripCenter (Central da Viagem) montada
+                          no mineExtras abaixo, registrada via trackSection direto.
+
+                        Atalhos do "Comece por aqui" consultam routeActiveTab e rolam
+                        pra versão certa SEM trocar de aba. */}
+                    <View>
+                        <RouteVersioning
+                            itineraryId={id as string}
+                            liveItinerary={itinerary}
+                            canEdit={isAuthenticated && !!accessToken}
+                            targetTab={routeTargetTab}
+                            onTabChange={setRouteActiveTab}
+                            onRegisterSectionRef={handleRegisterSectionRef}
+                            onMergedChange={setMergedItinerary}
+                            onExportPdf={({ variant, snapshot, merged }) => {
+                                // Cache snapshot/merged para o sheet do header reusar
+                                // sem disparar fetch redundante.
+                                pdfDataRef.current = { snapshot, merged };
+                                // O botão interno do RouteVersioning escolhe a variante
+                                // direto da aba ativa — exporta imediatamente.
+                                void handlePdfSelect(variant);
+                            }}
+                            mineExtras={({
+                                creatorChecklistProgress,
+                                creatorChecklistPending,
+                                onUpdateCreatorChecklistProgress,
+                            }) => (
+                                <View ref={trackSection('checklist:mine')} collapsable={false}>
+                                    <TripCenter
+                                        purchaseId={undefined}
+                                        itineraryId={id as string}
+                                        creatorChecklist={checklist}
+                                        canEdit={isAuthenticated && !!accessToken}
+                                        creatorChecklistProgress={creatorChecklistProgress}
+                                        creatorChecklistPending={creatorChecklistPending}
+                                        onUpdateCreatorChecklistProgress={onUpdateCreatorChecklistProgress}
+                                    />
+                                </View>
+                            )}
+                        />
+                    </View>
 
                     {/* ══════════ CHECKLIST DE PLANEJAMENTO — REMOVIDO
                         O checklist agora vive APENAS dentro da "Minha Central
@@ -945,6 +971,13 @@ export default function PurchasedItineraryScreen() {
                             </View>
                         </View>
                     )}
+
+                    {/* ══════════ FOTOS E VÍDEOS DA VIAGEM ══════════
+                        Penúltima seção da página — antes era logo após Custos,
+                        empurrando o "O que você recebeu" e Avaliar pro pé. */}
+                    <View ref={trackSection('media')} collapsable={false}>
+                        <MediaGallery itinerary={itinerary} />
+                    </View>
 
                     {/* ══════════ AVALIAR ESTE ROTEIRO ══════════ */}
                     <View style={styles.block}>
@@ -1352,7 +1385,11 @@ const styles = StyleSheet.create({
     downloadBarSub: { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 1 },
 
     // ── Body ──
-    body: { padding: 20 },
+    // 20px lateral somavam com `marginHorizontal:16` + `padding:18` do
+    // RouteVersioning.card e consumiam 108px do viewport mobile (~29%
+    // perdido). Baixamos pra 16 — mesma "respiração" lateral dos cards
+    // padrão do app, sem encostar nas bordas.
+    body: { padding: 16 },
     block: { marginBottom: 32 },
     blockSubtitle: {
         fontSize: 13,

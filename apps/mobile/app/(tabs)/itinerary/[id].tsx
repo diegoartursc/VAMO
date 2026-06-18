@@ -51,7 +51,8 @@ import {
     InteractiveRouteBadge,
 } from '../../../src/components/itinerary/InteractiveExperienceSection';
 import { features } from '../../../src/config/features';
-import { getCostReferences, calculateBudgetSummary, formatMoney, getRouteRatingDisplay, type CostReferencesGroup } from '@vamo/shared/itinerary';
+import { getCostReferences, calculateBudgetSummary, formatMoney, getRouteRatingDisplay, getPrimaryBudgetStyle, BUDGET_STYLE_BUYER_TRANSPARENCY, type CostReferencesGroup } from '@vamo/shared/itinerary';
+import BudgetStyleGuideSheet from '../../../src/components/common/BudgetStyleGuideSheet';
 import { convertToAud } from '../../../src/utils/currencyConversion';
 
 const { width, height } = Dimensions.get('window');
@@ -61,6 +62,7 @@ export default function ItineraryDetailScreen() {
     const itineraryId = Array.isArray(id) ? id[0] : id;
     const router = useRouter();
     const [itinerary, setItinerary] = useState<any>(null);
+    const [budgetHelpOpen, setBudgetHelpOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [showSuccessModal, setShowSuccessModal] = useState(showSuccess === 'true');
@@ -516,6 +518,16 @@ export default function ItineraryDetailScreen() {
                                         {expStyle.blurb ? (
                                             <Text style={styles.styleBlurb}>{expStyle.blurb}</Text>
                                         ) : null}
+                                        <TouchableOpacity
+                                            onPress={() => setBudgetHelpOpen(true)}
+                                            hitSlop={6}
+                                            accessibilityLabel="Como a VAMO define isso?"
+                                            style={styles.styleHelpLink}
+                                        >
+                                            <Ionicons name="help-circle-outline" size={14} color={theme.colors.primary} />
+                                            <Text style={styles.styleHelpLinkText}>Como a VAMO define isso?</Text>
+                                        </TouchableOpacity>
+                                        <Text style={styles.styleTransparency}>{BUDGET_STYLE_BUYER_TRANSPARENCY}</Text>
                                     </View>
                                 )}
                                 {categoryChips.length > 0 && (
@@ -923,6 +935,13 @@ export default function ItineraryDetailScreen() {
                 onGoToMyTrips={handleGoToMyTrips}
                 onViewItinerary={handleViewPurchasedItinerary}
                 itineraryTitle={itinerary.title}
+            />
+
+            {/* Critérios da VAMO para o estilo de orçamento */}
+            <BudgetStyleGuideSheet
+                visible={budgetHelpOpen}
+                onClose={() => setBudgetHelpOpen(false)}
+                highlightKey={getPrimaryBudgetStyle(itinerary?.travelStyles)}
             />
         </View>
     );
@@ -1601,6 +1620,24 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: theme.colors.text.secondary,
         lineHeight: 18,
+    },
+    styleHelpLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 10,
+        alignSelf: 'flex-start',
+    },
+    styleHelpLinkText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.colors.primary,
+    },
+    styleTransparency: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        lineHeight: 15,
+        marginTop: 8,
     },
     categoriesContainer: {
         backgroundColor: theme.colors.surface,

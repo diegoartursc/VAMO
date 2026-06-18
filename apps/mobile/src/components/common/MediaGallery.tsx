@@ -11,12 +11,13 @@
 
 import React, { useState, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, Image, Modal,
-    FlatList, Dimensions, Platform, Linking,
+    View, Text, StyleSheet, TouchableOpacity, Image,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { getGalleryMedia, type MediaItem } from '../../utils/itineraryMedia';
+import MediaLightbox from './MediaLightbox';
 
 export interface MediaGalleryProps {
     /** Itinerário completo OU lista de mídias pré-computada. */
@@ -125,98 +126,17 @@ export default function MediaGallery({
                 </TouchableOpacity>
             )}
 
-            {/* Lightbox */}
+            {/* Lightbox compartilhado — mesma identidade visual em qualquer
+                tela do app (reviews, comunidade, atividades, etc). */}
             {lightboxIndex != null && (
-                <Lightbox
+                <MediaLightbox
                     media={validMedia}
                     initialIndex={lightboxIndex}
                     onClose={() => setLightboxIndex(null)}
+                    title={title}
                 />
             )}
         </View>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Lightbox modal
-// ─────────────────────────────────────────────────────────────────────
-
-function Lightbox({
-    media,
-    initialIndex,
-    onClose,
-}: {
-    media: MediaItem[];
-    initialIndex: number;
-    onClose: () => void;
-}) {
-    const { width, height } = Dimensions.get('window');
-    const [index, setIndex] = useState(initialIndex);
-
-    const onScroll = useCallback((e: any) => {
-        const x = e.nativeEvent.contentOffset.x;
-        const i = Math.round(x / width);
-        if (i !== index && i >= 0 && i < media.length) setIndex(i);
-    }, [index, media.length, width]);
-
-    const webImageStyle = Platform.OS === 'web' ? { objectFit: 'contain' as any } : {};
-
-    return (
-        <Modal visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-            <View style={styles.lightbox}>
-                <FlatList
-                    data={media}
-                    horizontal
-                    pagingEnabled
-                    initialScrollIndex={initialIndex}
-                    getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-                    onMomentumScrollEnd={onScroll}
-                    keyExtractor={(item, i) => `${item.url}-${i}`}
-                    showsHorizontalScrollIndicator={false}
-                    renderItem={({ item }) => (
-                        <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
-                            {item.type === 'image' ? (
-                                <Image
-                                    source={{ uri: item.url }}
-                                    style={[{ width, height: height * 0.85 }, webImageStyle]}
-                                    resizeMode="contain"
-                                />
-                            ) : Platform.OS === 'web' ? (
-                                // @ts-ignore video tag is available on React Native Web.
-                                <video
-                                    src={item.url}
-                                    controls
-                                    playsInline
-                                    style={{ width: '100%', maxHeight: height * 0.75, objectFit: 'contain' }}
-                                />
-                            ) : (
-                                <TouchableOpacity
-                                    style={styles.videoPlaceholder}
-                                    activeOpacity={0.85}
-                                    onPress={() => Linking.openURL(item.url).catch(() => undefined)}
-                                >
-                                    <Ionicons name="play-circle" size={64} color="rgba(255,255,255,0.85)" />
-                                    <Text style={styles.videoPlaceholderText}>Vídeo enviado pelo criador</Text>
-                                    <Text style={styles.videoPlaceholderHint}>
-                                        Toque para abrir
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    )}
-                />
-
-                <TouchableOpacity style={styles.closeBtn} onPress={onClose} accessibilityLabel="Fechar">
-                    <Ionicons name="close" size={28} color="#fff" />
-                </TouchableOpacity>
-
-                <View style={styles.lightboxCounter}>
-                    <Text style={styles.lightboxCounterText}>
-                        {index + 1} / {media.length}
-                    </Text>
-                </View>
-            </View>
-        </Modal>
     );
 }
 
@@ -311,48 +231,5 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '700',
         color: theme.colors.primary,
-    },
-    lightbox: {
-        flex: 1,
-        backgroundColor: '#000',
-        justifyContent: 'center',
-    },
-    closeBtn: {
-        position: 'absolute',
-        top: Platform.OS === 'ios' ? 56 : 28,
-        right: 16,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(0,0,0,0.55)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    lightboxCounter: {
-        position: 'absolute',
-        top: Platform.OS === 'ios' ? 60 : 32,
-        alignSelf: 'center',
-        backgroundColor: 'rgba(0,0,0,0.55)',
-        paddingHorizontal: 12,
-        paddingVertical: 5,
-        borderRadius: 14,
-    },
-    lightboxCounterText: {
-        color: '#fff',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    videoPlaceholder: {
-        alignItems: 'center',
-        gap: 10,
-    },
-    videoPlaceholderText: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#fff',
-    },
-    videoPlaceholderHint: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.7)',
     },
 });

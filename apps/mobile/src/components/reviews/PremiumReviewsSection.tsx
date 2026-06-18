@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { theme } from '../../theme/theme';
 import { Icon } from '../common/Icons';
+import { useMediaLightbox } from '../common/MediaLightbox';
 
 interface Review {
     id: string;
@@ -45,6 +46,16 @@ export default function PremiumReviewsSection({
 }: ReviewsSectionProps) {
     const [showAllReviews, setShowAllReviews] = useState(false);
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
+
+    // Lightbox compartilhado pra fotos da comunidade e por review. `open`
+    // aceita lista + index + título — o usuário sempre cai na foto tocada.
+    const lightbox = useMediaLightbox();
+
+    // Fotos da comunidade já vêm flat; mapeia pra shape do lightbox.
+    const communityItems = useMemo(
+        () => (communityPhotos ?? []).map(url => ({ url, type: 'image' as const })),
+        [communityPhotos],
+    );
 
     /**
      * Renderiza 5 estrelas. Bug histórico: a versão anterior passava
@@ -125,14 +136,20 @@ export default function PremiumReviewsSection({
                     <Text style={styles.photosTitle}>Fotos da comunidade</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                         {communityPhotos.map((photo, index) => (
-                            <View key={index} style={styles.photoWrapper}>
+                            <TouchableOpacity
+                                key={index}
+                                style={styles.photoWrapper}
+                                activeOpacity={0.85}
+                                accessibilityLabel={`Foto ${index + 1} da comunidade`}
+                                onPress={() => lightbox.open(communityItems, index, 'Fotos da comunidade')}
+                            >
                                 <Image source={{ uri: photo }} style={styles.communityPhoto} />
                                 {index === communityPhotos.length - 1 && communityPhotos.length > 3 && (
                                     <View style={styles.photoOverlay}>
                                         <Text style={styles.photoOverlayText}>+{communityPhotos.length - 3}</Text>
                                     </View>
                                 )}
-                            </View>
+                            </TouchableOpacity>
                         ))}
                     </ScrollView>
                 </View>
@@ -175,12 +192,23 @@ export default function PremiumReviewsSection({
                         {/* Review text */}
                         <Text style={styles.reviewText}>{review.text}</Text>
 
-                        {/* Photos */}
+                        {/* Photos — clicáveis: cada uma abre o lightbox na
+                            galeria desta review específica, no índice tocado. */}
                         {review.photos && review.photos.length > 0 && (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewPhotos} contentContainerStyle={{ gap: 8 }}>
-                                {review.photos.map((photo, index) => (
-                                    <Image key={index} source={{ uri: photo }} style={styles.reviewPhoto} />
-                                ))}
+                                {review.photos.map((photo, index) => {
+                                    const items = review.photos!.map(url => ({ url, type: 'image' as const }));
+                                    return (
+                                        <TouchableOpacity
+                                            key={index}
+                                            activeOpacity={0.85}
+                                            accessibilityLabel={`Foto ${index + 1} da avaliação de ${review.user.name}`}
+                                            onPress={() => lightbox.open(items, index, `Avaliação · ${review.user.name}`)}
+                                        >
+                                            <Image source={{ uri: photo }} style={styles.reviewPhoto} />
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </ScrollView>
                         )}
 
@@ -216,6 +244,9 @@ export default function PremiumReviewsSection({
                     />
                 </TouchableOpacity>
             )}
+
+            {/* Lightbox compartilhado — renderiza apenas quando uma foto é tocada. */}
+            {lightbox.element}
         </View>
     );
 }

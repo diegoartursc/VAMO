@@ -57,6 +57,7 @@ import VamoTimePicker from '../src/components/dashboard/VamoTimePicker';
 import EditableList from '../src/components/dashboard/EditableList';
 import CostBlock, { costToLegacySpending } from '../src/components/dashboard/CostBlock';
 import { CurrencyPicker } from '../src/components/common/CurrencyPicker';
+import BudgetStyleGuideSheet from '../src/components/common/BudgetStyleGuideSheet';
 import {
     createEmptyForm,
     ItineraryFormState,
@@ -73,6 +74,9 @@ import {
     FlightLeg,
     EMPTY_FLIGHT_LEG,
     STYLE_OPTIONS,
+    getBudgetStyleGuide,
+    getPrimaryBudgetStyle,
+    BUDGET_STYLE_CREATOR_SUBTITLE,
     CATEGORY_OPTIONS,
     MODULE_OPTIONS,
     CHECKLIST_CATS,
@@ -1071,6 +1075,11 @@ const MODULE_ICON_MAP: Record<string, LucideIcon> = {
 };
 
 function StepIdentity({ form, update }: StepProps) {
+    const [budgetHelpOpen, setBudgetHelpOpen] = useState(false);
+    // Estilo de orçamento é ESCOLHA ÚNICA — lê o primeiro válido (compat legado).
+    const selectedBudget = getPrimaryBudgetStyle(form.travelStyles);
+    const budgetGuide = getBudgetStyleGuide(selectedBudget);
+
     const toggleArray = (arr: string[], val: string, max?: number): string[] => {
         if (arr.includes(val)) return arr.filter(x => x !== val);
         if (max && arr.length >= max) return arr;
@@ -1199,10 +1208,24 @@ function StepIdentity({ form, update }: StepProps) {
                 <Text style={s.charCounter}>{form.description.length} caracteres</Text>
             </View>
 
-            <Text style={s.label}>Estilo de Experiência — {form.travelStyles.length}/1</Text>
+            <View style={s.budgetLabelRow}>
+                <Text style={[s.label, { marginBottom: 0, flexShrink: 1 }]}>
+                    Qual é o estilo de orçamento deste roteiro?
+                </Text>
+                <TouchableOpacity
+                    onPress={() => setBudgetHelpOpen(true)}
+                    hitSlop={8}
+                    accessibilityLabel="Ver critérios da VAMO para o estilo de orçamento"
+                    style={s.budgetHelpBtn}
+                >
+                    <Ionicons name="help-circle-outline" size={20} color={theme.colors.primary} />
+                </TouchableOpacity>
+            </View>
+            <Text style={s.budgetSubtitle}>{BUDGET_STYLE_CREATOR_SUBTITLE}</Text>
+            {/* Escolha ÚNICA — selecionar uma opção substitui a anterior. */}
             <View style={s.chipRow}>
                 {STYLE_OPTIONS.map(st => {
-                    const active = form.travelStyles.includes(st.key);
+                    const active = selectedBudget === st.key;
                     const IconComp = STYLE_ICON_MAP[st.key];
                     return (
                         <TouchableOpacity
@@ -1225,6 +1248,18 @@ function StepIdentity({ form, update }: StepProps) {
                     );
                 })}
             </View>
+            {budgetGuide ? (
+                <View style={s.budgetHint}>
+                    <Ionicons name="bulb-outline" size={14} color={theme.colors.primary} style={{ marginTop: 1 }} />
+                    <Text style={s.budgetHintText}>{budgetGuide.creatorHint}</Text>
+                </View>
+            ) : null}
+
+            <BudgetStyleGuideSheet
+                visible={budgetHelpOpen}
+                onClose={() => setBudgetHelpOpen(false)}
+                highlightKey={selectedBudget}
+            />
 
             <Text style={s.label}>Categorias Temáticas (mín 1, máx {MAX_CATEGORIES}) — {form.categories.length}/{MAX_CATEGORIES}</Text>
             <View style={s.chipRow}>
@@ -3073,6 +3108,22 @@ const s = StyleSheet.create({
     label: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary, marginTop: 14, marginBottom: 6 },
     requiredAsterisk: { color: theme.colors.error, fontWeight: '700' },
     helper: { fontSize: 12, color: theme.colors.text.tertiary, marginBottom: 10, lineHeight: 16 },
+
+    // Estilo de orçamento
+    budgetLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
+    budgetHelpBtn: { padding: 2 },
+    budgetSubtitle: { fontSize: 12, color: theme.colors.text.tertiary, lineHeight: 16, marginTop: 4, marginBottom: 8 },
+    budgetHint: {
+        flexDirection: 'row',
+        gap: 8,
+        backgroundColor: theme.colors.primary + '0E',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.primary + '22',
+        padding: 10,
+        marginTop: 10,
+    },
+    budgetHintText: { flex: 1, fontSize: 12, lineHeight: 17, color: theme.colors.text.secondary },
 
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: {

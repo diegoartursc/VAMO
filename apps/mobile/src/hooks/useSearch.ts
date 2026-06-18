@@ -103,13 +103,11 @@ export function useSearch() {
     }, [context]);
 
     const hasActiveFilters = useMemo(() => {
-        const { destination, startDate, endDate, priceMin, priceMax, duration } = context.filters;
+        const { destination, startDate, endDate, duration } = context.filters;
         return !!(
             destination ||
             startDate ||
             endDate ||
-            priceMin > 0 ||
-            priceMax < 50000 ||
             duration !== undefined ||
             context.travelIntent ||
             context.selectedCategories.length > 0
@@ -118,12 +116,11 @@ export function useSearch() {
 
     const activeFilterCount = useMemo(() => {
         let count = 0;
-        const { destination, priceMin, priceMax, duration } = context.filters;
+        const { destination, duration } = context.filters;
         if (destination) count++;
         if (duration !== undefined) count++;
         if (context.travelIntent) count++;
         if (context.selectedCategories.length > 0) count++;
-        if (priceMin > 0 || priceMax < 50000) count++;
         return count;
     }, [context.filters, context.travelIntent, context.selectedCategories]);
 

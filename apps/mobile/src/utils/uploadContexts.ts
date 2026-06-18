@@ -61,7 +61,14 @@ export const VIDEO_FORMATS: FormatGroup = {
 };
 
 export const DOCUMENT_FORMATS: FormatGroup = {
-    mimes: new Set<string>(['application/pdf']),
+    mimes: new Set<string>([
+        'application/pdf',
+        'application/x-pdf',
+        'application/acrobat',
+        'applications/vnd.pdf',
+        'text/pdf',
+        'text/x-pdf',
+    ]),
     extensions: new Set<string>(['pdf']),
     label: 'PDF',
 };
@@ -231,12 +238,18 @@ export function validateUploadFile(
     const filename = file.filename
         || (file.uri ? file.uri.split('/').pop()?.split('?')[0] : undefined)
         || `upload-${Date.now()}.${ext || 'bin'}`;
+    const normalizedMime =
+        match.kind === 'document'
+            ? 'application/pdf'
+            : match.group.mimes.has(mime)
+                ? mime
+                : inferMimeFromExtension(filename, 'application/octet-stream');
 
     return {
         valid: true,
         mediaType: match.kind,
         extension: ext || (mime.split('/')[1] ?? ''),
-        mimeType: mime || inferMimeFromExtension(filename),
+        mimeType: normalizedMime,
         filename,
         size: file.size ?? undefined,
     };

@@ -17,8 +17,9 @@
  *    (decisão explícita: arquivos pessoais ficam fora).
  *  - Escape sempre: todo texto vindo do snapshot/customização passa por
  *    `escapeHtml` antes de virar conteúdo.
- *  - Ordem fixa de seções: Itinerário, Hospedagens, Voos, Passeios,
- *    Transporte, Restaurantes, Dicas, Checklist, Gastos Extras.
+ *  - Ordem fixa de seções (alinhada a MODULE_ORDER de @vamo/shared):
+ *    Voos, Hospedagens, Passeios, Itinerário, Transporte, Restaurantes,
+ *    Dicas, Gastos Extras, Checklist, [Meu checklist], [Arquivos], Custos.
  *  - Data formatada no caller: `generatedAtISO` é recebido como string
  *    ISO e formatado para `DD/MM/AAAA` no rodapé.
  */
@@ -831,19 +832,23 @@ export function buildPdfHtml(opts: PdfBuildOpts): string {
 
     const metaLine = [meta.destination, meta.duration].filter(Boolean).join(' · ');
 
-    // Ordem fixa de seções — vai pra UI também, mantém consistência.
+    // Ordem alinhada a MODULE_ORDER (@vamo/shared/itinerary/sectionOrder):
+    // voo → hospedagem → passeios → itinerário → transporte → restaurantes →
+    // dicas → gastos extras → checklist. Meu checklist e Arquivos (só na
+    // versão personalized) ficam depois do checklist do criador. Custos
+    // fecha o documento como resumo final, como é tradicional em PDFs.
     const sections = [
-        renderItineraryDays(itinerary, merged, ctx),
-        renderAccommodationsSection(itinerary, merged, ctx),
         renderFlightsSection(itinerary, merged, ctx),
+        renderAccommodationsSection(itinerary, merged, ctx),
         renderAttractionsSection(itinerary, merged, ctx),
+        renderItineraryDays(itinerary, merged, ctx),
         renderTransportsSection(itinerary, merged, ctx),
         renderRestaurantsSection(itinerary, merged, ctx),
         renderTipsSection(itinerary, merged, ctx),
+        renderExtraSpendingSection(itinerary, merged, ctx),
         renderChecklistSection(itinerary, merged, ctx),
         renderTravelerChecklist(opts.travelerChecklist, variant),
         renderTravelerFiles(opts.travelerFiles, variant),
-        renderExtraSpendingSection(itinerary, merged, ctx),
         renderCostReferenceSection(itinerary, merged, ctx),
     ].filter(Boolean).join('');
 
