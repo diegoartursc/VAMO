@@ -32,7 +32,7 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
 
 ---
 
-## 🏗️ Topologia (estado atual em 2026-06-06)
+## 🏗️ Topologia (estado atual em 2026-06-18)
 
 ### Bancos
 - **Produção (único banco em uso):** Supabase Postgres
@@ -40,22 +40,27 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
   - Conexão: `apps/backend/.env` → `DATABASE_URL`
 - **Local:** Postgres em `localhost:5432/vamo` foi **wipado e abandonado** em 2026-06-06. Não usar. Não rodar seed. Se precisar testar destrutivo, descomente a URL de fallback no `.env` e isole.
 
-### Dados que devem existir em prod (estado canônico)
-- 1 traveler: `mariavamo@gmail.com` (Maria Beckenkamp) — senha `vamo123`
-- 1 admin: `admin@vamo.com` (SUPER_ADMIN) — senha `admin123`
+### Dados que devem existir em prod (estado canônico — 2026-06-18)
+- 2 travelers (1 real: `mariavamo@gmail.com` / Maria Beckenkamp — senha `vamo123`; +1 de teste, ex.: "Diego GOGO")
+- 1 admin: `admin@vamo.com` (SUPER_ADMIN)
 - 1 creator: Maria (BASIC)
-- 1 itinerário: "Japão Clássico: 10 Dias em Tóquio, Kyoto e Osaka..." (ACTIVE, by Maria)
-- 0 agências
-- 0 pacotes
-- 1+ venda de teste (Maria comprou pra validar pós-compra)
+- **2 itinerários (ambos ACTIVE, by Maria):**
+  - "Japão Clássico: 10 Dias em Tóquio, Kyoto e Osaka…" — 1 review real (5★), `travelStyles: ["moderado"]`
+  - "Japão Essencial: 10 dias por Tóquio, Kyoto e Osaka" — 0 reviews (aparece como "Novo")
+- 0 agências · 0 pacotes
+- 3 vendas de teste
 
-**Se a auditoria (`npx tsx scripts/audit-prod.ts` no `apps/backend`) mostrar números diferentes, INVESTIGUE antes de mexer em qualquer coisa.**
+**Se a auditoria (`npx tsx scripts/audit-prod.ts` no `apps/backend`) mostrar números muito diferentes, INVESTIGUE antes de mexer em qualquer coisa.**
 
 ### Apps
-- `apps/mobile` — Expo / React Native (também roda no navegador via Metro web)
-- `apps/site` — Next.js (landing pública, dashboards criador/agência, admin)
+- `apps/mobile` — Expo / React Native (também roda no navegador via Metro web). **É o app do VIAJANTE** (busca, compra, roteiro comprado).
+- `apps/site` — Next.js (landing pública, dashboards do criador/agência, admin). NÃO é a vitrine de compra do viajante.
 - `apps/backend` — Express + Prisma
-- `packages/shared` — tipos compartilhados
+- `packages/shared` — lógica + tipos compartilhados (single source of truth entre mobile/site/backend)
+
+### Deploy (produção)
+`vamo-ten.vercel.app` (Vercel, app mobile/Expo Web) → `vamo-699h.onrender.com/api` (Render, backend) → Supabase.
+⚠️ **Pendência conhecida:** o Render aponta para a branch antiga `fix/cta-carousel-mobile-2026-05-30`. Mudanças de **backend** (ex.: novos campos no payload como `status`/`createdAt`/`approvedAt`) só chegam em prod quando o Render for repontado para `main`. Mudanças de frontend chegam via Vercel automaticamente no push para `main`. Detalhes em [[supabase-database]].
 
 ---
 
@@ -91,6 +96,31 @@ cd apps/backend && npx tsx scripts/audit-prod.ts
 # Backup do prod (rodar antes de qualquer mudança arriscada)
 cd apps/backend && npx tsx scripts/backup-db.ts
 ```
+
+---
+
+## 🧱 Primitivas compartilhadas — REUSE, não reinvente
+
+Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 2026-06:
+
+### `packages/shared/itinerary/` (single source of truth)
+- **`time.ts`** — horários no padrão AU (12h AM/PM). `formatTimeForAustraliaDisplay()` (exibição, lida com ranges), `parseAustralianTimeInput()` (input → "HH:mm" 24h), `to12HourTime`/`to24HourTime`. Storage segue 24h.
+- **`rating.ts`** — `getRouteRatingDisplay({averageRating, reviewCount})`. Sem review → `{type:'new', label:'Novo'}`. NUNCA herdar `creator.rating` para o card do roteiro.
+- **`sectionOrder.ts`** — `MODULE_ORDER` (voo→hospedagem→passeios→itinerário→transporte→restaurantes→dicas→gastos→checklist). Ordem do wizard segue `MODULE_OPTIONS` em `constants.ts` (alinhado). Mudar a ordem = mudar num lugar.
+- **`constants.ts` → `BUDGET_STYLE_GUIDE`** — critérios oficiais Econômico/Moderado/Luxo. `getPrimaryBudgetStyle()` (escolha única, tolera legado), `getBudgetStyleGuide()`. `travelStyles[]` guarda só UMA key de orçamento.
+- **`cost.ts`** — `getCostReferences`, `calculateBudgetSummary`, `formatMoney`. Usado por tela E PDF (mesma fonte).
+
+### `apps/mobile/src/components/common/` (UI base)
+- **`VamoButton.tsx`** — botão padrão (variants primary/secondary/danger/ghost; sizes sm/md/lg; loading). Texto sempre centralizado, multiline sem corte. **Use em todo botão novo.**
+- **`VamoConfirmHost.tsx`** + `utils/confirm.ts` — modais de confirmação. Passe `action: 'logout'|'archive'|'delete'|…` (mapa `CONFIRM_ACTION_CONFIG`) em vez de `icon`/`variant` manual. **Lixeira só em exclusão real.** `confirm()`/`notify()` imperativos. Alert.alert do RN é no-op no web — sempre usar esses.
+- **`MediaLightbox.tsx`** + hook `useMediaLightbox()` — visualizador global de imagem/vídeo. Qualquer `<Image>` clicável deve abrir por aqui.
+- **`BudgetStyleGuideSheet.tsx`** — bottom-sheet de ajuda do estilo de orçamento.
+
+### Roteiro comprado (`apps/mobile/app/purchased-itinerary/[id].tsx` + `src/features/route-versioning/`)
+- Ordem da página: hero → "pronto pra usar" (atalhos) → experiência → custos → RouteVersioning (Original/Minha versão) → o que recebeu → mídia → avaliar.
+- Atalhos usam refs por versão (`itinerary:original`, `checklist:mine`, etc.) e **nunca trocam de aba**. `scrollToSection` usa `scrollIntoView` no web, `measureLayout` no nativo.
+
+> Memórias detalhadas por tópico em `~/.claude/.../memory/` — veja o índice `MEMORY.md`.
 
 ---
 
