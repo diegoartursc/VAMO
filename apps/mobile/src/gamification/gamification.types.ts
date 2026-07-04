@@ -67,23 +67,71 @@ export interface LevelConfig<L extends string> {
 }
 
 // ─── Entradas/saídas dos cálculos do viajante ───────────────────
+/**
+ * Stats do viajante logado que alimentam o Passaporte. TODOS os campos são
+ * contagens do PRÓPRIO usuário. Campos ausentes do backend devem ser tratados
+ * como 0/false pelo motor — NUNCA mockados. Ver TODOs em profile/backend.
+ */
 export interface TravelerStatsInput {
-    profileCompleted: boolean;
-    savedCount: number;
-    reviewsCount: number;
-    purchasesCount: number;
+    profileCompleted?: boolean;
+    /** Roteiros salvos/favoritados. */
+    savedCount?: number;
+    /** Roteiros no carrinho. */
+    cartCount?: number;
+    /** Perguntas que o usuário fez sobre roteiros. */
+    questionsCount?: number;
+    /** Vezes que o usuário compartilhou um roteiro (qualquer). */
+    sharedCount?: number;
+    /** Roteiros comprados. */
+    purchasesCount?: number;
+    /** Roteiros comprados que o usuário personalizou em "Meus Roteiros". */
+    customizedPurchasedItinerariesCount?: number;
+    /** Avaliações que o usuário publicou. */
+    reviewsCount?: number;
+    /** Avaliações publicadas que incluíram ao menos 1 foto. */
+    reviewsWithPhotoCount?: number;
+    /** Roteiros que o usuário publicou como criador. */
+    publishedItinerariesCount?: number;
+    /** Roteiros do usuário aprovados na análise. */
+    approvedItinerariesCount?: number;
+    /** Vezes que o usuário compartilhou um roteiro PRÓPRIO publicado. */
+    ownItinerarySharesCount?: number;
+    /** Vendas do usuário como criador. */
+    creatorSalesCount?: number;
+    /** Roteiros do usuário que entraram em "Roteiros em Destaque". */
+    featuredItinerariesCount?: number;
+    /** Maior qualityScore (0..100) entre os roteiros publicados do usuário. */
+    maxPublishedItineraryQualityScore?: number;
+    /** @deprecated mantido por compatibilidade; não gera missão. */
     usefulReviewsCount?: number;
+    /** @deprecated mantido por compatibilidade; use savedCount. */
     destinationsCount?: number;
-    /** XP já computado externamente; se ausente, é derivado das stats. */
+    /** XP já computado externamente (backend); se ausente, deriva das missões. */
     xp?: number;
 }
 
+/** Categoria temática da missão (para agrupar/ícones, opcional na UI). */
+export type MissionCategory =
+    | 'profile' | 'discovery' | 'cart' | 'engagement'
+    | 'purchase' | 'review' | 'creator' | 'milestone';
+
 export interface Mission {
     key: string;
+    /** Nível ao qual a missão pertence. */
+    level: TravelerLevel;
     label: string;
     hint?: string;
     xp: number;
     completed: boolean;
+    /** Progresso atual rumo à meta (ex.: 2). Ausente em missões booleanas. */
+    progress?: number;
+    /** Meta numérica (ex.: 3). Ausente em missões booleanas. */
+    target?: number;
+    category?: MissionCategory;
+    /** Prévia de um nível ainda não alcançado (exibição discreta). */
+    locked?: boolean;
+    /** Ordem global na jornada. */
+    order: number;
 }
 
 export interface TravelerProgress {
@@ -98,8 +146,13 @@ export interface TravelerProgress {
     xpForNextLevel: number | null;
     /** Progresso 0..1 até o próximo nível (1 quando no topo). */
     progressPct: number;
+    /** Subtítulo dinâmico do card conforme nível + fase do progresso. */
+    subtitle: string;
+    /** Missões visíveis: nível atual + prévia bloqueada do próximo. */
     missions: Mission[];
     completedMissions: number;
+    /** Total de missões desbloqueadas do nível atual (sempre 4). */
+    totalCurrentLevelMissions: number;
 }
 
 // ─── Entradas/saídas dos cálculos do roteirista ─────────────────

@@ -50,6 +50,16 @@ export default function RootLayout() {
                                     <Stack.Screen name="my-questions" />
                                     <Stack.Screen name="creator-questions" />
                                     <Stack.Screen name="creator-earnings" />
+                                    <Stack.Screen name="creator-sales" />
+                                    <Stack.Screen name="creator-reviews" />
+                                    <Stack.Screen name="creator-settings" />
+                                    <Stack.Screen name="account/personal-data" />
+                                    <Stack.Screen name="account/notifications" />
+                                    <Stack.Screen name="account/security" />
+                                    <Stack.Screen name="how-it-works" />
+                                    <Stack.Screen name="about-vamo" />
+                                    <Stack.Screen name="help/index" />
+                                    <Stack.Screen name="help/contact-support" />
                                 </Stack>
                             </VamoConfirmHost>
                         </FavoriteAnimationProvider>

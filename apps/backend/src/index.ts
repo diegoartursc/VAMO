@@ -18,6 +18,7 @@ import travelerTripCenterRoutes from './routes/traveler-trip-center';
 import travelerRouteCustomizationRoutes from './routes/traveler-route-customization';
 import savedItemsRoutes from './routes/saved-items';
 import paymentRoutes, { stripeWebhookHandler } from './routes/payments';
+import shareRoutes from './routes/shares';
 import prisma from './lib/prisma';
 
 const app = express();
@@ -146,6 +147,7 @@ app.use('/api/uploads', uploadsRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/saved-items', savedItemsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/share', shareRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

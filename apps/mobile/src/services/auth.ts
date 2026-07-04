@@ -11,6 +11,7 @@ export interface TravelerSession {
         name: string;
         email: string;
         avatar: string | null;
+        coverUrl: string | null;
         phone?: string | null;
         cpf?: string | null;
     };

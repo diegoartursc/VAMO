@@ -43,6 +43,13 @@ export interface BudgetSummaryCardProps {
     summary?: BudgetSummary;
     /** Esconde o bloco quando não há nenhum dado (default true). */
     hideWhenEmpty?: boolean;
+    /**
+     * Ênfase visual. 'default' mantém o layout compacto histórico (usado na
+     * prévia de criação e no roteiro comprado). 'premium' adiciona valor em
+     * destaque + barra de proporção comprovado/estimado — só na vitrine
+     * pública. A LÓGICA (calculateBudgetSummary) é a mesma nos dois.
+     */
+    emphasis?: 'default' | 'premium';
 }
 
 export default function BudgetSummaryCard({
@@ -50,6 +57,7 @@ export default function BudgetSummaryCard({
     variant = 'public',
     summary: summaryProp,
     hideWhenEmpty = false,
+    emphasis = 'default',
 }: BudgetSummaryCardProps) {
     const summary = summaryProp ?? calculateBudgetSummary(form);
     const confidence = formatBudgetConfidence(summary.confidenceLevel);
@@ -58,6 +66,62 @@ export default function BudgetSummaryCard({
     if (noData && hideWhenEmpty) return null;
 
     const toneStyles = TONE_STYLES[confidence.tone];
+    const isPremium = emphasis === 'premium' && !noData;
+
+    if (isPremium) {
+        const summaryParts: string[] = [];
+        if (summary.verifiedPercentage > 0) summaryParts.push(`${summary.verifiedPercentage}% comprovado`);
+        if (summary.estimatedPercentage > 0) summaryParts.push(`${summary.estimatedPercentage}% estimado`);
+        if (summary.notInformedItemsCount > 0) {
+            summaryParts.push(`${summary.notInformedItemsCount} ${summary.notInformedItemsCount === 1 ? 'item sem valor' : 'itens sem valor'}`);
+        }
+        const warning = variant === 'purchased'
+            ? COST_DISCLOSURE_COPY.purchasedPlanningTip
+            : COST_DISCLOSURE_COPY.variabilityWarning;
+
+        return (
+            <View style={premium.card}>
+                <View style={premium.headerRow}>
+                    <Text style={premium.title}>Referência de custos da viagem</Text>
+                    <View style={[styles.confidenceBadge, toneStyles.badge]}>
+                        <Text style={[styles.confidenceText, toneStyles.badgeText]}>{confidence.label}</Text>
+                    </View>
+                </View>
+
+                <View style={premium.valueRow}>
+                    <Text style={premium.value}>{formatMoney(summary.totalInformed, summary.currency)}</Text>
+                    <Text style={premium.valueSuffix}>estimados</Text>
+                </View>
+
+                {(summary.verifiedPercentage > 0 || summary.estimatedPercentage > 0) && (
+                    <View style={premium.barTrack}>
+                        {summary.verifiedPercentage > 0 && (
+                            <View style={[premium.barVerified, { flex: summary.verifiedPercentage }]} />
+                        )}
+                        {summary.estimatedPercentage > 0 && (
+                            <View style={[premium.barEstimated, { flex: summary.estimatedPercentage }]} />
+                        )}
+                    </View>
+                )}
+
+                {summaryParts.length > 0 && (
+                    <Text style={premium.summaryLine}>{summaryParts.join(' · ')}</Text>
+                )}
+
+                {summary.itemsApprovedByVamo > 0 && (
+                    <View style={styles.vamoBadgeRow}>
+                        <Ionicons name="shield-checkmark" size={14} color={theme.colors.verified} />
+                        <Text style={styles.vamoBadgeText}>
+                            Comprovantes aprovados pela VAMO em {summary.itemsApprovedByVamo}
+                            {summary.itemsApprovedByVamo === 1 ? ' item' : ' itens'}
+                        </Text>
+                    </View>
+                )}
+
+                <Text style={styles.warning}>{warning}</Text>
+            </View>
+        );
+    }
 
     // Texto principal
     let mainText: string;
@@ -204,6 +268,74 @@ const TONE_STYLES: Record<'info' | 'success' | 'warning' | 'muted', {
         badgeText: { color: theme.colors.text.secondary },
     },
 };
+
+const premium = StyleSheet.create({
+    card: {
+        marginVertical: 12,
+        padding: 18,
+        borderRadius: 16,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        gap: 12,
+        // Sombra um pouco mais forte que os demais blocos — é um card
+        // financeiro, deve "pesar" mais e ser escaneável.
+        shadowColor: theme.colors.secondary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.1,
+        shadowRadius: 16,
+        elevation: 3,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    title: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '800',
+        color: theme.colors.text.primary,
+    },
+    valueRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 8,
+    },
+    value: {
+        fontSize: 30,
+        fontWeight: '800',
+        color: theme.colors.secondary,
+        letterSpacing: -0.8,
+    },
+    valueSuffix: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: theme.colors.text.tertiary,
+    },
+    barTrack: {
+        flexDirection: 'row',
+        height: 8,
+        borderRadius: 999,
+        overflow: 'hidden',
+        backgroundColor: theme.colors.surfaceHighlight,
+        gap: 2,
+    },
+    barVerified: {
+        backgroundColor: theme.colors.verified,
+        borderRadius: 999,
+    },
+    barEstimated: {
+        backgroundColor: theme.colors.info,
+        borderRadius: 999,
+    },
+    summaryLine: {
+        fontSize: 12.5,
+        fontWeight: '600',
+        color: theme.colors.text.secondary,
+    },
+});
 
 const styles = StyleSheet.create({
     card: {

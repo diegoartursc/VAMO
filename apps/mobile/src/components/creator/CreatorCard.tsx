@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { Creator, VERIFICATION_CONFIGS } from '../../types/creator';
 import { VerifiedBadge } from './VerifiedBadge';
+import { CreatorAvatar } from '../common/CreatorAvatar';
 import { theme } from '../../theme/theme';
 
 interface CreatorCardProps {
@@ -14,7 +15,7 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
     if (compact) {
         return (
             <TouchableOpacity style={styles.compactCard} onPress={onPress}>
-                <Text style={styles.avatar}>{creator.avatar}</Text>
+                <CreatorAvatar creator={creator} name={creator.name} size={40} />
                 <View style={styles.compactInfo}>
                     <View style={styles.nameRow}>
                         <Text style={styles.compactName}>{creator.name}</Text>
@@ -31,7 +32,7 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
     return (
         <TouchableOpacity style={styles.card} onPress={onPress}>
             <View style={styles.header}>
-                <Text style={styles.avatarLarge}>{creator.avatar}</Text>
+                <CreatorAvatar creator={creator} name={creator.name} size={56} />
                 <View style={styles.headerInfo}>
                     <View style={styles.nameRow}>
                         <Text style={styles.name}>{creator.name}</Text>
@@ -40,10 +41,6 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
                     <Text style={styles.memberSince}>Membro desde {creator.memberSince}</Text>
                 </View>
             </View>
-
-            <Text style={styles.bio} numberOfLines={2}>
-                {creator.bio}
-            </Text>
 
             <View style={styles.statsRow}>
                 <View style={styles.stat}>
@@ -65,13 +62,6 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
                     <Text style={styles.statValue}>{creator.stats.responseTime}</Text>
                     <Text style={styles.statLabel}>Resposta</Text>
                 </View>
-            </View>
-
-            <View style={styles.destinations}>
-                <Text style={styles.destinationsLabel}>📍 Destinos:</Text>
-                <Text style={styles.destinationsList}>
-                    {creator.destinations.join(' • ')}
-                </Text>
             </View>
 
             <View style={styles.footer}>
@@ -143,12 +133,6 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
         marginTop: 4,
     },
-    bio: {
-        fontSize: 13, // Reduced from 14px
-        color: theme.colors.text.secondary,
-        lineHeight: 18, // Reduced from 20
-        marginBottom: 12, // Reduced from 16px
-    },
     statsRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -176,19 +160,6 @@ const styles = StyleSheet.create({
         width: 1,
         height: 30,
         backgroundColor: theme.colors.border,
-    },
-    destinations: {
-        marginBottom: theme.spacing.md,
-    },
-    destinationsLabel: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        marginBottom: 4,
-    },
-    destinationsList: {
-        fontSize: 14,
-        color: theme.colors.text.primary,
-        fontWeight: '500',
     },
     footer: {
         flexDirection: 'row',

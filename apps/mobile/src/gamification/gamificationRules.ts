@@ -7,7 +7,42 @@
 
 import type { GamificationEvent } from './gamification.types';
 
-/** XP por evento do VIAJANTE. */
+/**
+ * XP de cada missão do Passaporte VAMO (fonte única). É o que o motor de
+ * missões usa. Mantido separado de TRAVELER_XP (eventos legados) de propósito.
+ */
+export const TRAVELER_MISSION_XP = {
+    PROFILE_READY: 40,
+    FIRST_SAVED_ITINERARY: 15,
+    FIRST_CART_ITINERARY: 25,
+    FIRST_QUESTION_SENT: 20,
+    THREE_SAVED_ITINERARIES: 30,
+    TWO_CART_ITINERARIES: 40,
+    FIRST_ITINERARY_SHARED: 30,
+    FIRST_PURCHASE: 100,
+    FIRST_PURCHASED_ITINERARY_CUSTOMIZED: 50,
+    FIRST_REVIEW_CREATED: 80,
+    FIRST_REVIEW_WITH_PHOTO: 100,
+    SECOND_PURCHASE: 120,
+    FIRST_ITINERARY_PUBLISHED: 150,
+    FIRST_ITINERARY_APPROVED: 120,
+    ITINERARY_QUALITY_80: 50,
+    OWN_ITINERARY_SHARED: 80,
+    THREE_PURCHASES: 200,
+    THREE_REVIEWS: 180,
+    ITINERARY_QUALITY_90: 150,
+    FIRST_CREATOR_SALE: 250,
+    FIVE_PURCHASES: 300,
+    FIVE_REVIEWS: 250,
+    THREE_ITINERARIES_PUBLISHED: 300,
+    FIVE_CREATOR_SALES: 400,
+    TEN_PURCHASES: 600,
+    TEN_REVIEWS: 500,
+    TEN_CREATOR_SALES: 700,
+    FEATURED_ITINERARY: 500,
+} as const;
+
+/** XP por evento do VIAJANTE (legado — eventos genéricos). */
 export const TRAVELER_XP: Partial<Record<GamificationEvent, number>> = {
     PROFILE_COMPLETED: 50,
     ITINERARY_SAVED: 10,

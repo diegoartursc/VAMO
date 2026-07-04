@@ -6,6 +6,7 @@ import { theme } from '../../theme/theme';
 import { Icon } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
 import { VerifiedBadge } from '../creator/VerifiedBadge';
+import { CreatorAvatar } from '../common/CreatorAvatar';
 import { getModuleBadges, getCategoryChips } from '../../utils/itineraryCardBadges';
 import { getCoverImages, getCoverFocalPoint } from '../../utils/itineraryMedia';
 import { useFavorites } from '../../hooks/useFavorites';
@@ -174,9 +175,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                 {/* Linha do criador */}
                 <View style={styles.creatorRow}>
                     <View style={styles.creatorLeft}>
-                        <View style={styles.creatorAvatar}>
-                            <Icon name="circle-user" size={20} color={theme.colors.primary} />
-                        </View>
+                        <CreatorAvatar creator={itinerary.creator} size={36} />
                         <View>
                             <Text style={styles.creatorName} numberOfLines={1}>
                                 {creatorName}
@@ -408,14 +407,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         flex: 1,
-    },
-    creatorAvatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: theme.colors.primary + '15',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     creatorName: {
         fontSize: 13,

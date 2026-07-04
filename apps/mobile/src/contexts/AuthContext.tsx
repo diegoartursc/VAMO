@@ -34,6 +34,7 @@ export interface AuthUser {
     name: string;
     email: string;
     avatar: string | null;
+    coverUrl: string | null;
     verificationLevel: string | null;
     phone: string | null;
     cpf: string | null;
@@ -54,6 +55,10 @@ interface AuthContextType {
         phone?: string;
     }) => Promise<void>;
     logout: () => Promise<void>;
+    /** Atualiza o usuário localmente (ex.: após upload de avatar/cover).
+     *  Não toca no backend — chame o endpoint apropriado antes e passe o
+     *  retorno aqui para refletir na UI sem precisar de re-login. */
+    updateUser: (patch: Partial<AuthUser>) => void;
 }
 
 // ─── Context ───────────────────────────────────────────────────
@@ -124,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: traveler.name,
             email: traveler.email,
             avatar: traveler.avatar,
+            coverUrl: traveler.coverUrl ?? null,
             verificationLevel: creator?.verificationLevel ?? null,
             phone: traveler.phone ?? null,
             cpf: traveler.cpf ?? null,
@@ -150,6 +156,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const session = await registerWithEmail(params);
         await setStoredSession(session);
         applySession(session.accessToken, session.refreshToken, session.traveler, session.creator);
+    }, []);
+
+    // ── Update local user (avatar/cover post-upload, etc.) ──
+    const updateUser = useCallback((patch: Partial<AuthUser>) => {
+        setUser((current) => (current ? { ...current, ...patch } : current));
     }, []);
 
     // ── Logout ───────────────────────────────────────────────
@@ -181,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             login,
             register,
             logout,
+            updateUser,
         }}>
             {children}
         </AuthContext.Provider>

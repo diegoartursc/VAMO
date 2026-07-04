@@ -199,6 +199,7 @@ model Traveler {
   email          String       @unique
   passwordHash   String?
   avatar         String?
+  coverUrl       String?
   authProvider   AuthProvider @default(EMAIL)
   authProviderId String?
   bio            String?
@@ -496,8 +497,49 @@ model Itinerary {
   travelerChecklistItems TravelerChecklistItem[]
   travelerFiles          TravelerFile[]
   travelerCustomizations TravelerItineraryCustomization[]
+  shares                 ItineraryShare[]
 
   @@map("itineraries")
+}
+
+// ─────────────────────────────────────────────
+// ITINERARY SHARE (eventos de compartilhamento + rastreio de cliques)
+// ─────────────────────────────────────────────
+// Cada registro = uma intenção/conclusão de compartilhamento de um roteiro
+// (botão "Compartilhar" no app). Usado para gamificação (sharedCount) e para
+// medir viralidade real via shareCode (link rastreável).
+//
+// IMPORTANTE: nunca persistir conteúdo personalizado do comprador aqui — o
+// link sempre aponta para a página pública do roteiro original.
+model ItineraryShare {
+  id           String    @id @default(cuid())
+  itineraryId  String
+  travelerId   String?
+  // Vínculo opcional com Creator se o ator é dono do roteiro (analytics).
+  creatorId    String?
+  // Vínculo opcional com a venda quando o share veio da tela pós-compra.
+  saleId       String?
+  // 'traveler' | 'creator' (ator no momento do share)
+  actorRole    String
+  // 'detail' | 'card' | 'purchased_itinerary' | 'creator_dashboard'
+  surface      String
+  // 'native_share' | 'copy_link' | 'whatsapp' | 'telegram' | 'email' | 'unknown'
+  channel      String
+  // 'intent' | 'completed' | 'cancelled' | 'failed'
+  status       String
+  shareCode    String    @unique
+  clickedCount Int       @default(0)
+  lastClickAt  DateTime?
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Restrict)
+
+  @@index([itineraryId])
+  @@index([travelerId])
+  @@index([creatorId])
+  @@index([createdAt])
+  @@map("itinerary_shares")
 }
 
 model ItineraryImage {

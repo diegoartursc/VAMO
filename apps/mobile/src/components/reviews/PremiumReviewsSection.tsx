@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { theme } from '../../theme/theme';
 import { Icon } from '../common/Icons';
+import { CreatorAvatar } from '../common/CreatorAvatar';
+import { resolveAvatarUrl } from '../../utils/avatar';
 import { useMediaLightbox } from '../common/MediaLightbox';
 
 interface Review {
@@ -161,9 +163,15 @@ export default function PremiumReviewsSection({
                     <View key={review.id} style={styles.reviewCard}>
                         {/* Stars + header row */}
                         <View style={styles.reviewHeader}>
-                            <View style={[styles.avatar, { backgroundColor: review.user.avatar }]}>
-                                <Text style={styles.avatarText}>{review.user.initial}</Text>
-                            </View>
+                            {resolveAvatarUrl(review.user.avatar) ? (
+                                <CreatorAvatar avatar={review.user.avatar} name={review.user.name} size={40} style={styles.avatar} />
+                            ) : (
+                                // Sem foto real: mantém o design de inicial sobre cor
+                                // (review.user.avatar guarda uma COR, não URL, nos dados legados).
+                                <View style={[styles.avatar, { backgroundColor: review.user.avatar }]}>
+                                    <Text style={styles.avatarText}>{review.user.initial}</Text>
+                                </View>
+                            )}
                             <View style={styles.userInfo}>
                                 <Text style={styles.userName}>
                                     {review.user.name}{review.user.location ? ` · ${review.user.location}` : ''}

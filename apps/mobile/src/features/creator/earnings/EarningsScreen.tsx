@@ -10,16 +10,17 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { safeBack } from '../../../utils/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme/theme';
 import { Icon } from '../../../components/common/Icons';
 import { haptics } from '../../../services/haptics';
-import { getCreatorEarnings } from '../../../services/api';
+import { getCreatorEarnings, getCreatorPayoutStatus, createCreatorOnboardingLink } from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import { notify } from '../../../utils/notify';
+import { openExternalUrl } from '../../../utils/externalLinks';
 import { EarningsBalanceCard } from './components/EarningsBalanceCard';
 import { EarningsMetricCard } from './components/EarningsMetricCard';
 import { PayoutSetupCard } from './components/PayoutSetupCard';
@@ -29,26 +30,11 @@ import { EarningsEmptyState } from './components/EarningsEmptyState';
 import type {
     CreatorEarningTransaction,
     CreatorEarningsSummary,
+    PayoutAccountStatus,
 } from './types';
 import { formatCurrencyAUD, formatShortDate } from './utils';
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
-
-// Placeholder for future Stripe Connect Express onboarding.
-//
-// Future integration:
-// 1. Call backend endpoint to create or retrieve Stripe connected account
-//    POST /api/creator/stripe/onboarding-link
-// 2. Create Stripe onboarding link
-// 3. Redirect creator to Stripe-hosted onboarding (in-app browser)
-// 4. Refresh payout account status after return
-//    GET /api/creator/stripe/account-status
-function handleStartPayoutSetup() {
-    notify({
-        title: 'Payout setup',
-        message: 'Payout setup will be available soon.',
-    });
-}
 
 export default function EarningsScreen() {
     const router = useRouter();
@@ -58,6 +44,9 @@ export default function EarningsScreen() {
     const [summary, setSummary] = useState<CreatorEarningsSummary | null>(null);
     const [transactions, setTransactions] = useState<CreatorEarningTransaction[]>([]);
     const [refreshing, setRefreshing] = useState(false);
+    // Status REAL da conta Stripe Connect (sobrepõe o do summary, que é fallback).
+    const [payoutStatus, setPayoutStatus] = useState<PayoutAccountStatus | null>(null);
+    const [payoutBusy, setPayoutBusy] = useState(false);
 
     const loadEarnings = useCallback(async () => {
         try {
@@ -70,31 +59,63 @@ export default function EarningsScreen() {
         }
     }, [accessToken]);
 
+    // Status de recebimento — busca em paralelo, falha silenciosa (não quebra a tela).
+    const loadPayoutStatus = useCallback(async () => {
+        try {
+            const s = await getCreatorPayoutStatus(accessToken);
+            setPayoutStatus(s.status);
+        } catch {
+            /* mantém fallback do summary */
+        }
+    }, [accessToken]);
+
     useEffect(() => {
         loadEarnings();
-    }, [loadEarnings]);
+        loadPayoutStatus();
+    }, [loadEarnings, loadPayoutStatus]);
+
+    // Ao voltar do onboarding hospedado da Stripe (return_url → /creator-earnings),
+    // a tela reganha foco: re-checa o status para refletir "verificado/pendente".
+    useFocusEffect(
+        useCallback(() => { loadPayoutStatus(); }, [loadPayoutStatus]),
+    );
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         haptics.light();
-        await loadEarnings();
+        await Promise.all([loadEarnings(), loadPayoutStatus()]);
         setRefreshing(false);
-    }, [loadEarnings]);
+    }, [loadEarnings, loadPayoutStatus]);
 
     const onRetry = useCallback(() => {
         setState('loading');
         loadEarnings();
-    }, [loadEarnings]);
+        loadPayoutStatus();
+    }, [loadEarnings, loadPayoutStatus]);
 
-    const onPayoutSetup = useCallback(() => {
+    // Inicia (ou continua) o onboarding de recebimentos: pega o link hospedado
+    // da Stripe no backend e abre. No retorno, useFocusEffect atualiza o status.
+    const startPayoutSetup = useCallback(async () => {
+        if (payoutBusy) return;
+        setPayoutBusy(true);
         haptics.medium();
-        handleStartPayoutSetup();
-    }, []);
+        try {
+            const { url } = await createCreatorOnboardingLink(accessToken);
+            await openExternalUrl(url, { fallbackMessage: 'Não foi possível abrir a configuração de recebimentos agora.' });
+        } catch (e: any) {
+            haptics.error?.();
+            notify({
+                title: 'Configuração de recebimentos',
+                message: e?.message || 'Não foi possível iniciar agora. Tente novamente em instantes.',
+                variant: 'error',
+            });
+        } finally {
+            setPayoutBusy(false);
+        }
+    }, [accessToken, payoutBusy]);
 
-    const onManagePayouts = useCallback(() => {
-        haptics.light();
-        handleStartPayoutSetup();
-    }, []);
+    const onPayoutSetup = startPayoutSetup;
+    const onManagePayouts = startPayoutSetup;
 
     const sortedTransactions = useMemo(
         () =>
@@ -184,7 +205,7 @@ export default function EarningsScreen() {
                     {summary && (
                         <View style={styles.section}>
                             <PayoutSetupCard
-                                status={summary.payoutAccountStatus}
+                                status={payoutStatus ?? summary.payoutAccountStatus}
                                 onPress={onPayoutSetup}
                             />
                         </View>

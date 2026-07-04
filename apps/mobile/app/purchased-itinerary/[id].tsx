@@ -8,7 +8,6 @@ import {
     Animated,
     Image,
     Alert,
-    Share,
     Dimensions,
     StatusBar,
     Platform,
@@ -32,6 +31,7 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import BudgetSummaryCard from '../../src/components/dashboard/BudgetSummaryCard';
 import PeopleSimulator from '../../src/components/dashboard/PeopleSimulator';
 import MediaGallery from '../../src/components/common/MediaGallery';
+import { CreatorAvatar } from '../../src/components/common/CreatorAvatar';
 import { getCostReferences, calculateBudgetSummary, formatMoney, type CostReferencesGroup } from '@vamo/shared/itinerary';
 import { openExternalUrl as openSafeExternalUrl } from '../../src/utils/externalLinks';
 import TripCenter from '../../src/features/trip-center/TripCenter';
@@ -43,6 +43,7 @@ import {
 } from '../../src/features/route-versioning';
 import { notify } from '../../src/utils/notify';
 import { features } from '../../src/config/features';
+import { useShareItinerary } from '../../src/hooks/useShareItinerary';
 import { getSnapshot, getCustomization } from '../../src/services/routeCustomization';
 import { mergeItineraryWithCustomization } from '../../src/features/route-versioning/mergeEngine';
 import { getTripChecklist, getTripFiles } from '../../src/services/tripCenter';
@@ -190,6 +191,21 @@ export default function PurchasedItineraryScreen() {
     // que mantém o próprio progresso por itinerário.
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
     const [peopleCount, setPeopleCount] = useState<number>(1);
+    // ─── Share hook (chamado no topo — regra dos hooks) ──────
+    // O link rastreável aponta SEMPRE pra página pública do roteiro original.
+    // NUNCA expõe "Minha versão" / dados privados do comprador. O backend
+    // também recusa (403) quando allowShare=false ou status não-público.
+    const { share: shareItineraryAction, isSharing: isShareInProgress } = useShareItinerary({
+        itineraryId: (id as string) || '',
+        title: itinerary?.title || '',
+        destination: itinerary?.destination ?? null,
+        country: itinerary?.country ?? null,
+        allowShare: itinerary?.allowShare !== false,
+        isShareable: ['ACTIVE', 'APPROVED'].includes(String(itinerary?.status || '').toUpperCase()),
+        surface: 'purchased_itinerary',
+        actorRole: 'traveler',
+        saleId: (itinerary as any)?.purchaseId ?? null,
+    });
     /** Avaliação real (vinda da API) deste usuário pra este roteiro.
      *  `null` = ainda não carregou; `undefined` = carregou e usuário ainda
      *  não avaliou; objeto = review existente. */
@@ -387,14 +403,9 @@ export default function PurchasedItineraryScreen() {
         });
     };
 
-    const handleShare = async () => {
+    const handleShare = () => {
         haptics.light();
-        try {
-            await Share.share({
-                title: itinerary.title,
-                message: `🗺️ Confira meu roteiro!\n\n${itinerary.title}\n📍 ${itinerary.destination}, ${itinerary.country}\n📅 ${itinerary.duration} dias\n\nCriado por ${itinerary.creator.name} no VAMO`,
-            });
-        } catch { }
+        shareItineraryAction();
     };
 
     const handlePdfSelect = async (variant: 'original' | 'personalized') => {
@@ -491,9 +502,16 @@ export default function PurchasedItineraryScreen() {
                             >
                                 <Ionicons name="document-text-outline" size={22} color="#fff" />
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.navBtn} onPress={handleShare}>
-                                <Ionicons name="share-outline" size={22} color="#fff" />
-                            </TouchableOpacity>
+                            {itinerary.allowShare !== false && (
+                                <TouchableOpacity
+                                    style={styles.navBtn}
+                                    onPress={handleShare}
+                                    disabled={isShareInProgress}
+                                    accessibilityLabel="Compartilhar roteiro (página pública)"
+                                >
+                                    <Ionicons name="share-outline" size={22} color="#fff" />
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
 
@@ -515,7 +533,7 @@ export default function PurchasedItineraryScreen() {
                         </View>
                         <View style={styles.heroMeta}>
                             <View style={styles.creatorPill}>
-                                <Text style={styles.creatorAvatar}>{itinerary.creator.avatar}</Text>
+                                <CreatorAvatar creator={itinerary.creator} size={20} backgroundColor="rgba(255,255,255,0.25)" tint="#fff" />
                                 <Text style={styles.creatorName}>{itinerary.creator.name}</Text>
                             </View>
                             <View style={styles.ratingPill}>

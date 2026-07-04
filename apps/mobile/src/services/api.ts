@@ -23,6 +23,7 @@ import type {
     RestaurantItem,
     SpendingEntry,
 } from '@vamo/shared';
+import type { TravelerStatsInput } from '../gamification/gamification.types';
 
 // Em celular físico, localhost não aponta para o seu computador.
 // Defina EXPO_PUBLIC_API_URL no arquivo .env do mobile com o IP da sua máquina.
@@ -86,7 +87,7 @@ export function setOnUnauthorized(cb: UnauthorizedCallback | null): void {
 const REQUEST_TIMEOUT_MS = 15_000;
 
 interface RequestOptions {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     body?: object;
     accessToken?: string | null;
 }
@@ -402,6 +403,7 @@ export interface CreatorProfile {
     id: string;
     name: string;
     avatar: string;
+    coverUrl: string | null;
     verificationLevel: string;
     stats: {
         itinerariesCount: number;
@@ -423,13 +425,19 @@ export interface CreatorDetail extends CreatorProfile {
         id: string;
         title: string;
         destination: string;
+        country: string;
         price: number;
+        currency: string;
         rating: number | null;
         reviewCount: number;
         duration: number;
         images: string[];
+        salesCount: number;
+        categories: string[];
+        activeModules: string[];
     }>;
 }
+
 
 /** Item de GET /api/destinations. */
 export interface DestinationSummary {
@@ -777,6 +785,30 @@ export async function getMyReviews(
     return request<{ reviews: MyReview[] }>('/reviews/my', { accessToken });
 }
 
+export type TravelerPassportStats = Pick<
+    TravelerStatsInput,
+    | 'profileCompleted'
+    | 'savedCount'
+    | 'questionsCount'
+    | 'sharedCount'
+    | 'purchasesCount'
+    | 'customizedPurchasedItinerariesCount'
+    | 'reviewsCount'
+    | 'reviewsWithPhotoCount'
+    | 'publishedItinerariesCount'
+    | 'approvedItinerariesCount'
+    | 'ownItinerarySharesCount'
+    | 'creatorSalesCount'
+    | 'featuredItinerariesCount'
+    | 'maxPublishedItineraryQualityScore'
+>;
+
+export async function getTravelerPassportStats(
+    accessToken?: string | null,
+): Promise<TravelerPassportStats> {
+    return request<TravelerPassportStats>('/auth/traveler/passport-stats', { accessToken });
+}
+
 export async function getCreatorEarnings(
     accessToken?: string | null,
 ): Promise<{
@@ -784,6 +816,42 @@ export async function getCreatorEarnings(
     transactions: import('../features/creator/earnings/types').CreatorEarningTransaction[];
 }> {
     return request('/creators/me/earnings', { accessToken });
+}
+
+/** Dashboard de vendas do roteirista (GET /api/itineraries/dashboard/sales). */
+export async function getCreatorSalesDashboard(
+    accessToken?: string | null,
+): Promise<import('../features/creator/dashboard/types').CreatorSalesDashboard> {
+    return request('/itineraries/dashboard/sales', { accessToken });
+}
+
+/** Dashboard de avaliações do roteirista (GET /api/itineraries/dashboard/reviews). */
+export async function getCreatorReviewsDashboard(
+    accessToken?: string | null,
+): Promise<import('../features/creator/dashboard/types').CreatorReviewsDashboard> {
+    return request('/itineraries/dashboard/reviews', { accessToken });
+}
+
+// ─── Stripe Connect (payouts do roteirista) ───
+export interface CreatorPayoutStatus {
+    connected: boolean;
+    stripeConfigured?: boolean;
+    accountId?: string | null;
+    status: 'not_started' | 'pending' | 'verified' | 'restricted' | 'disabled';
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+    detailsSubmitted: boolean;
+    requirementsDue: string[];
+}
+
+/** Status da conta de recebimento do criador (GET /api/creators/me/stripe/account-status). */
+export async function getCreatorPayoutStatus(accessToken?: string | null): Promise<CreatorPayoutStatus> {
+    return request('/creators/me/stripe/account-status', { accessToken });
+}
+
+/** Cria/recupera a conta Connect e devolve o link de onboarding hospedado da Stripe. */
+export async function createCreatorOnboardingLink(accessToken?: string | null): Promise<{ url: string; accountId: string }> {
+    return request('/creators/me/stripe/onboarding-link', { method: 'POST', accessToken });
 }
 
 // ─── Questions (FAQ Q&A) ───
@@ -850,5 +918,152 @@ export async function answerQuestion(
         method: 'POST',
         body: { answerText },
         accessToken,
+    });
+}
+
+// ─── Foto de perfil e capa do viajante ───────────────────────────
+/**
+ * Envia uma imagem (URI local do expo-image-picker) para o endpoint do
+ * perfil. Funciona tanto no web (fetch → blob) quanto no nativo (RN
+ * formdata file descriptor). Retorna o traveler atualizado.
+ */
+export interface UpdateProfileImageResponse {
+    traveler: {
+        id: string;
+        name: string;
+        email: string;
+        avatar: string | null;
+        coverUrl: string | null;
+    };
+    url: string;
+}
+
+async function uploadProfileImage(
+    endpoint: '/auth/traveler/me/avatar' | '/auth/traveler/me/cover',
+    uri: string,
+    accessToken: string,
+    suggestedName: string,
+): Promise<UpdateProfileImageResponse> {
+    const formData = new FormData();
+
+    // No web o uri costuma ser blob: ou data: e fetch() resolve. No nativo
+    // o RN aceita objeto { uri, name, type } direto no FormData.
+    if (typeof document !== 'undefined') {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        formData.append('file', blob, suggestedName);
+    } else {
+        const ext = (uri.split('.').pop() || 'jpg').toLowerCase();
+        const mime = ext === 'png' ? 'image/png'
+            : ext === 'webp' ? 'image/webp'
+            : ext === 'heic' || ext === 'heif' ? `image/${ext}`
+            : 'image/jpeg';
+        // RN FormData aceita esse shape "non-standard" — não usar Blob.
+        formData.append('file', { uri, name: suggestedName, type: mime } as any);
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60_000);
+    let res: Response;
+    try {
+        res = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: formData as any,
+            signal: controller.signal,
+        });
+    } catch (err) {
+        const aborted = err instanceof Error && err.name === 'AbortError';
+        throw new ApiError(aborted ? MSG_TIMEOUT : MSG_NETWORK, { endpoint, isNetworkError: true });
+    } finally {
+        clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        const backend = data && typeof (data as any).error === 'string' ? (data as any).error : null;
+        throw new ApiError(friendlyMessage(res.status, backend), { endpoint, status: res.status });
+    }
+    return (await res.json()) as UpdateProfileImageResponse;
+}
+
+export function updateMyAvatar(uri: string, accessToken: string): Promise<UpdateProfileImageResponse> {
+    return uploadProfileImage('/auth/traveler/me/avatar', uri, accessToken, 'avatar.jpg');
+}
+export function updateMyCover(uri: string, accessToken: string): Promise<UpdateProfileImageResponse> {
+    return uploadProfileImage('/auth/traveler/me/cover', uri, accessToken, 'cover.jpg');
+}
+
+/** Dados básicos do usuário logado retornados por GET/PATCH /auth/traveler/me. */
+export interface MeProfile {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+    coverUrl: string | null;
+    bio: string | null;
+    phone: string | null;
+}
+
+/** Busca o perfil completo do usuário logado (inclui phone/bio). */
+export async function getMyProfile(accessToken: string): Promise<MeProfile> {
+    const data = await request<{ traveler: MeProfile }>('/auth/traveler/me', { accessToken });
+    return data.traveler;
+}
+
+/** Atualiza dados básicos editáveis do usuário logado (nome, telefone, bio). */
+export async function updateMyProfile(
+    patch: { name?: string; phone?: string | null; bio?: string | null },
+    accessToken: string,
+): Promise<MeProfile> {
+    const data = await request<{ traveler: MeProfile }>('/auth/traveler/me', {
+        method: 'PATCH',
+        body: patch,
+        accessToken,
+    });
+    return data.traveler;
+}
+
+// ─── Compartilhamento de roteiros ────────────────────────────────
+export type ShareSurface = 'detail' | 'card' | 'purchased_itinerary' | 'creator_dashboard';
+export type ShareChannel =
+    | 'native_share' | 'copy_link' | 'whatsapp' | 'telegram' | 'email'
+    | 'sms' | 'facebook' | 'instagram' | 'unknown';
+export type ShareStatus = 'intent' | 'completed' | 'cancelled' | 'failed';
+export type ShareActorRole = 'traveler' | 'creator';
+
+export interface ShareItineraryInput {
+    surface: ShareSurface;
+    channel: ShareChannel;
+    status: ShareStatus;
+    actorRole: ShareActorRole;
+    saleId?: string | null;
+}
+
+export interface ShareItineraryResponse {
+    shareId: string;
+    shareCode: string;
+    /** Link rastreável (passa pelo backend para contar clique antes do redirect). */
+    shareUrl: string;
+    /** Link direto da página pública do roteiro, sem rastreamento. */
+    publicUrl: string;
+    xpAwarded: number;
+    missionCompleted: boolean;
+    alreadyCompletedBefore: boolean;
+}
+
+/**
+ * Registra um evento de compartilhamento e devolve o link rastreável.
+ * Aceita chamada não autenticada (analytics-only) — XP só é concedido com token.
+ */
+export async function registerItineraryShare(
+    itineraryId: string,
+    input: ShareItineraryInput,
+    accessToken?: string | null,
+): Promise<ShareItineraryResponse> {
+    return request(`/itineraries/${encodeURIComponent(itineraryId)}/share`, {
+        method: 'POST',
+        body: input,
+        accessToken: accessToken ?? null,
     });
 }
