@@ -721,7 +721,7 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
 
             {/* Micro trust row */}
             <View style={styles.emptyTrustRow}>
-                {['Salvo na conta', 'Download offline em breve', 'Compra segura'].map((label, i) => (
+                {['Salvo na conta', 'Exporta em PDF', 'Compra segura'].map((label, i) => (
                     <View key={i} style={styles.emptyTrustItem}>
                         <Ionicons name="checkmark-circle" size={13} color={theme.colors.primary} />
                         <Text style={styles.emptyTrustText}>{label}</Text>

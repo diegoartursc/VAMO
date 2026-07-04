@@ -613,10 +613,11 @@ export default function RouteVersioning({
             if (typeof onExportPdf === 'function') {
                 onExportPdf({ variant, snapshot, merged });
             } else {
-                // Sem handler externo: feedback discreto para o usuário.
+                // Sem handler externo (componente usado fora da tela de
+                // roteiro comprado, que é quem conecta o exportRoutePdf).
                 notify({
                     title: 'Exportar PDF',
-                    message: 'Em breve você poderá baixar este roteiro em PDF.',
+                    message: 'Abra este roteiro em Meus Roteiros para exportar o PDF.',
                 });
             }
         },

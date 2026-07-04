@@ -795,11 +795,11 @@ export default function ItineraryDetailScreen() {
                             <View style={styles.howReceiveLine} />
                             <View style={styles.howReceiveStep}>
                                 <View style={styles.howReceiveIconBox}>
-                                    <Ionicons name="cloud-download-outline" size={22} color={theme.colors.primary} />
+                                    <Ionicons name="document-text-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>3. Download offline em breve</Text>
-                                    <Text style={styles.howReceiveStepDesc}>O roteiro fica salvo na sua conta; acesso sem internet será liberado em uma próxima versão</Text>
+                                    <Text style={styles.howReceiveStepTitle}>3. Salve em PDF</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Depois da compra, exporte o roteiro em PDF para consultar fora da VAMO</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
