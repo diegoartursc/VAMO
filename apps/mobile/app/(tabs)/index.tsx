@@ -219,9 +219,10 @@ export default function HomeScreen() {
     // approvedAt DESC (com fallback a createdAt) via selectNew.
     const newItineraries = useMemo(() => selectNew(publicItineraries, 5), [publicItineraries]);
 
-    // "Roteiros em Destaque" — os mais bem avaliados pela comunidade. Critério:
-    // reviewCount >= 1 e rating >= 4.5 (sem isso é "Novo", não "Destaque").
-    // Lógica centralizada em selectFeatured para bater com a copy.
+    // "Roteiros em Destaque" — mais bem avaliados E validados pela comunidade.
+    // Critério: reviewCount >= 1 e rating >= 4.5 (sem isso é "Novo"), ordenados
+    // por um ranking de CONFIANÇA (nota ponderada por volume de reviews + vendas
+    // reais + qualidade — não rating puro). Lógica central em selectFeatured.
     const featuredItineraries = useMemo(() => selectFeatured(publicItineraries, 5), [publicItineraries]);
 
     // "Continue sua busca": só ganha itens quando há histórico real de intenção
@@ -369,7 +370,7 @@ export default function HomeScreen() {
                             <Text style={styles.seeAllText}>Ver todos</Text>
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.sectionSubtitle}>Os mais bem avaliados pela comunidade VAMO.</Text>
+                    <Text style={styles.sectionSubtitle}>Os mais bem avaliados e validados pela comunidade VAMO.</Text>
 
                     {loading ? (
                         <HomeLoading />

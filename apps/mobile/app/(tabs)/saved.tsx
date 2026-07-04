@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { Icon } from '../../src/components/common/Icons';
+import { CreatorAvatar } from '../../src/components/common/CreatorAvatar';
 import { useFavorites } from '../../src/hooks/useFavorites';
 import { haptics } from '../../src/services/haptics';
 import { ApiError, getItineraryByIdStrict } from '../../src/services/api';
@@ -42,7 +43,7 @@ interface FavItem {
     rating: number;
     reviewCount: number;
     images: string[];
-    creator?: { name: string };
+    creator?: { name: string; avatar?: string | null };
 }
 
 type FavoriteFetchResult =
@@ -345,6 +346,7 @@ function SavedCard({
                         <View style={styles.metaRow}>
                             {item.creator?.name ? (
                                 <View style={styles.creatorPill}>
+                                    <CreatorAvatar creator={item.creator} size={16} />
                                     <Text style={styles.creatorName} numberOfLines={1}>
                                         {item.creator.name}
                                     </Text>

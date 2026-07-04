@@ -32,6 +32,7 @@ import { getCoverImages, getCoverFocalPoint } from '../src/utils/itineraryMedia'
 import CollapsibleSection from '../src/components/common/CollapsibleSection';
 import { Icon } from '../src/components/common/Icons';
 import { VerifiedBadge } from '../src/components/creator/VerifiedBadge';
+import { CreatorAvatar } from '../src/components/common/CreatorAvatar';
 import { VERIFICATION_CONFIGS } from '../src/types/creator';
 import FAQSection from '../src/components/FAQSection';
 import { getReceivedModules } from '../src/utils/itineraryCardBadges';
@@ -352,9 +353,7 @@ export default function ItineraryPreviewScreen() {
                     {/* Creator Badge */}
                     <View style={styles.creatorRow}>
                         <View style={styles.creatorBadge}>
-                            <View style={styles.creatorAvatarCircle}>
-                                <Icon name="circle-user" size={22} color={theme.colors.primary} />
-                            </View>
+                            <CreatorAvatar avatar={user?.avatar} name={creatorName} size={40} style={styles.creatorAvatarCircle} />
                             <View>
                                 <View style={styles.creatorNameRow}>
                                     <Text style={styles.creatorName}>{creatorName}</Text>

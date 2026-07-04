@@ -9,8 +9,8 @@ import {
     StatusBar,
     Platform,
     ActivityIndicator,
-    Share,
 } from 'react-native';
+import { useShareItinerary } from '../../../src/hooks/useShareItinerary';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { safeBack } from '../../../src/utils/navigation';
 import { BlurView } from 'expo-blur';
@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../src/theme/theme';
 import { getItineraryById, getCurrencyRates } from '../../../src/services/api';
 import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
+import { CreatorAvatar } from '../../../src/components/common/CreatorAvatar';
 import { VERIFICATION_CONFIGS, VerificationLevel } from '../../../src/types/creator';
 import CollapsibleSection from '../../../src/components/common/CollapsibleSection';
 import PremiumReviewsSection from '../../../src/components/reviews/PremiumReviewsSection';
@@ -50,8 +51,11 @@ import {
     PostPurchaseConversionBox,
     InteractiveRouteBadge,
 } from '../../../src/components/itinerary/InteractiveExperienceSection';
+import { PurchaseBenefitsCard } from '../../../src/components/itinerary/PurchaseBenefitsCard';
+import { ExperienceSummaryCard } from '../../../src/components/itinerary/ExperienceSummaryCard';
+import { TrustStrip, TrustSignal } from '../../../src/components/itinerary/TrustStrip';
 import { features } from '../../../src/config/features';
-import { getCostReferences, calculateBudgetSummary, formatMoney, getRouteRatingDisplay, getPrimaryBudgetStyle, BUDGET_STYLE_BUYER_TRANSPARENCY, type CostReferencesGroup } from '@vamo/shared/itinerary';
+import { getCostReferences, calculateBudgetSummary, formatMoney, getRouteRatingDisplay, getPrimaryBudgetStyle, type CostReferencesGroup } from '@vamo/shared/itinerary';
 import BudgetStyleGuideSheet from '../../../src/components/common/BudgetStyleGuideSheet';
 import { convertToAud } from '../../../src/utils/currencyConversion';
 
@@ -69,6 +73,22 @@ export default function ItineraryDetailScreen() {
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
     const [peopleCount, setPeopleCount] = useState<number>(1);
     const [cartToast, setCartToast] = useState(false);
+
+    // Compartilhamento: hook é chamado SEMPRE no topo (regra dos hooks); os
+    // params dependem de `itinerary` que pode estar nulo no primeiro render,
+    // por isso usamos optional chaining + fallback. O CTA só renderiza
+    // depois que `itinerary` carrega — não há risco de chamar shareItinerary
+    // com dados vazios.
+    const { share: shareItinerary, isSharing } = useShareItinerary({
+        itineraryId: itineraryId || '',
+        title: itinerary?.title || '',
+        destination: itinerary?.destination ?? null,
+        country: itinerary?.country ?? null,
+        allowShare: itinerary?.allowShare !== false,
+        isShareable: ['ACTIVE', 'APPROVED'].includes(String(itinerary?.status || '').toUpperCase()),
+        surface: 'detail',
+        actorRole: 'traveler',
+    });
     const { isFavorite, toggleFavorite } = useFavorites();
     const { isInCart, addToCart, isOwned } = useCart();
     const { accessToken } = useAuth();
@@ -298,22 +318,16 @@ export default function ItineraryDetailScreen() {
                                     color={isFavorite(itineraryId) ? '#EF4444' : '#fff'}
                                 />
                             </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.navIconButton}
-                                onPress={async () => {
-                                    haptics.light();
-                                    try {
-                                        await Share.share({
-                                            title: itinerary.title,
-                                            message: `Confira este roteiro digital no VAMO!\n\n${itinerary.title}\nDestino: ${destinationLabel}\nValor: ${formatMoney(price)}`,
-                                        });
-                                    } catch (error) {
-                                        // User cancelled
-                                    }
-                                }}
-                            >
-                                <Ionicons name="share-outline" size={22} color="#fff" />
-                            </TouchableOpacity>
+                            {itinerary.allowShare !== false && (
+                                <TouchableOpacity
+                                    style={styles.navIconButton}
+                                    onPress={() => { haptics.light(); shareItinerary(); }}
+                                    disabled={isSharing}
+                                    accessibilityLabel="Compartilhar roteiro"
+                                >
+                                    <Ionicons name="share-outline" size={22} color="#fff" />
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </BlurView>
                 </View>
@@ -329,9 +343,7 @@ export default function ItineraryDetailScreen() {
                             accessibilityLabel={`Ver perfil de ${creatorName}`}
                             onPress={() => creatorId && router.push(`/creator/${creatorId}` as any)}
                         >
-                            <View style={styles.creatorAvatarCircle}>
-                                <Icon name="circle-user" size={22} color={theme.colors.primary} />
-                            </View>
+                            <CreatorAvatar creator={creator} name={creatorName} size={40} style={styles.creatorAvatarCircle} />
                             <View>
                                 <View style={styles.creatorNameRow}>
                                     <Text style={styles.creatorName}>{creatorName}</Text>
@@ -501,74 +513,24 @@ export default function ItineraryDetailScreen() {
                     {/* Reforço de conversão perto do botão de compra */}
                     {features.interactivePurchasedRouteEnabled && <PostPurchaseConversionBox />}
 
-                    {/* Estilo da experiência + Categorias */}
+                    {/* O que você recebe — consolida produto digital + salvo na conta */}
+                    <PurchaseBenefitsCard lifetimeAccess={!!itinerary.lifetimeAccess} />
+
+                    {/* Resumo da experiência — estilo + categorias, compacto */}
                     {(() => {
                         const expStyle = getExperienceStyle(itinerary);
                         const categoryChips = getCategoryChips(itinerary);
-                        if (!expStyle && categoryChips.length === 0) return null;
                         return (
-                            <View style={styles.salesChipsBlock}>
-                                {expStyle && (
-                                    <View style={styles.styleCard}>
-                                        <View style={styles.styleBadge}>
-                                            <Ionicons name="sparkles-outline" size={12} color="#fff" />
-                                            <Text style={styles.styleBadgeText}>Estilo</Text>
-                                        </View>
-                                        <Text style={styles.styleLabel}>{expStyle.label}</Text>
-                                        {expStyle.blurb ? (
-                                            <Text style={styles.styleBlurb}>{expStyle.blurb}</Text>
-                                        ) : null}
-                                        <TouchableOpacity
-                                            onPress={() => setBudgetHelpOpen(true)}
-                                            hitSlop={6}
-                                            accessibilityLabel="Como a VAMO define isso?"
-                                            style={styles.styleHelpLink}
-                                        >
-                                            <Ionicons name="help-circle-outline" size={14} color={theme.colors.primary} />
-                                            <Text style={styles.styleHelpLinkText}>Como a VAMO define isso?</Text>
-                                        </TouchableOpacity>
-                                        <Text style={styles.styleTransparency}>{BUDGET_STYLE_BUYER_TRANSPARENCY}</Text>
-                                    </View>
-                                )}
-                                {categoryChips.length > 0 && (
-                                    <View style={styles.categoriesContainer}>
-                                        <Text style={styles.categoriesTitle}>Categorias deste roteiro</Text>
-                                        <View style={styles.categoryChipsRow}>
-                                            {categoryChips.map((chip) => (
-                                                <View key={chip.key} style={styles.categoryChip}>
-                                                    <Icon name={chip.icon} size={13} color={theme.colors.primaryDark} />
-                                                    <Text style={styles.categoryChipText}>{chip.label}</Text>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    </View>
-                                )}
-                            </View>
+                            <ExperienceSummaryCard
+                                styleLabel={expStyle?.label}
+                                styleBlurb={expStyle?.blurb}
+                                categories={categoryChips}
+                                onOpenStyleGuide={() => setBudgetHelpOpen(true)}
+                            />
                         );
                     })()}
 
-                    {/* Aviso: Produto Digital */}
-                    <View style={styles.productNotice}>
-                        <Ionicons name="information-circle" size={18} color={theme.colors.primary} />
-                        <Text style={styles.productNoticeText}>
-                            Este é um <Text style={styles.productNoticeBold}>produto digital</Text>. Ao comprar, você terá acesso a informações, dicas e planejamento de viagem. O pagamento é referente ao conteúdo informativo, não a serviços turísticos.
-                        </Text>
-                    </View>
-
-                    {/* Aviso: Acesso Offline */}
-                    <View style={{
-                        flexDirection: 'row', alignItems: 'center', gap: 10,
-                        backgroundColor: 'rgba(40, 201, 191, 0.08)', borderRadius: 12,
-                        padding: 14, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.colors.primary,
-                    }}>
-                        <Ionicons name="cloud-offline-outline" size={20} color={theme.colors.primary} />
-                        <Text style={{ flex: 1, fontSize: 13, color: theme.colors.text.primary, lineHeight: 18 }}>
-                            <Text style={{ fontWeight: '700', color: theme.colors.primary }}>Salvo na conta</Text>
-                            {' — '}Após a compra, o roteiro aparece em Meus Roteiros. Download offline será liberado em breve.
-                        </Text>
-                    </View>
-
-                    {/* Referência de custos da viagem (transparência graduada) */}
+                    {/* Referência de custos (premium) + simulador + faixa de confiança */}
                     {(() => {
                         const costForm = {
                             accommodations: itinerary.accommodations,
@@ -580,12 +542,20 @@ export default function ItineraryDetailScreen() {
                             flightSpending: itinerary.flightInfo?.spending,
                         };
                         const summary = calculateBudgetSummary(costForm as any);
+                        const trustItems: TrustSignal[] = [
+                            { icon: 'shield-checkmark', label: 'Roteirista verificado' },
+                            { icon: 'flash', label: 'Acesso imediato' },
+                        ];
+                        if (summary.informedItemsCount > 0) {
+                            trustItems.push({ icon: 'wallet-outline', label: 'Custos informados' });
+                        }
                         return (
                             <>
                                 <BudgetSummaryCard
                                     form={costForm as any}
                                     summary={summary}
                                     variant="public"
+                                    emphasis="premium"
                                     hideWhenEmpty
                                 />
                                 <PeopleSimulator
@@ -594,6 +564,7 @@ export default function ItineraryDetailScreen() {
                                     value={peopleCount}
                                     onChange={setPeopleCount}
                                 />
+                                <TrustStrip items={trustItems} />
                             </>
                         );
                     })()}
@@ -1496,29 +1467,6 @@ const styles = StyleSheet.create({
         color: theme.colors.primary,
     },
 
-    // Product Notice (inline compact)
-    productNotice: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
-        backgroundColor: `${theme.colors.primary}08`,
-        borderWidth: 1,
-        borderColor: `${theme.colors.primary}20`,
-        borderRadius: 10,
-        padding: 14,
-        marginTop: 12,
-    },
-    productNoticeText: {
-        flex: 1,
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        lineHeight: 19,
-    },
-    productNoticeBold: {
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-    },
-
     // Disclaimer Box (detailed section)
     disclaimerBox: {
         backgroundColor: theme.colors.surfaceLight,
@@ -1575,105 +1523,6 @@ const styles = StyleSheet.create({
     howReceiveStepDesc: { fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19 },
     howReceiveLine: { width: 2, height: 16, backgroundColor: theme.colors.primary + '25', marginLeft: 21 },
 
-    // ── Sales chips block (Estilo + Categorias)
-    salesChipsBlock: {
-        gap: 12,
-        marginBottom: 16,
-    },
-    styleCard: {
-        backgroundColor: theme.colors.surface,
-        borderRadius: 14,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        elevation: 1,
-    },
-    styleBadge: {
-        alignSelf: 'flex-start',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        backgroundColor: theme.colors.primary,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 999,
-        marginBottom: 8,
-    },
-    styleBadgeText: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: '#fff',
-        letterSpacing: 0.4,
-        textTransform: 'uppercase',
-    },
-    styleLabel: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: theme.colors.text.primary,
-        marginBottom: 4,
-    },
-    styleBlurb: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        lineHeight: 18,
-    },
-    styleHelpLink: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 10,
-        alignSelf: 'flex-start',
-    },
-    styleHelpLinkText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: theme.colors.primary,
-    },
-    styleTransparency: {
-        fontSize: 11,
-        color: theme.colors.text.tertiary,
-        lineHeight: 15,
-        marginTop: 8,
-    },
-    categoriesContainer: {
-        backgroundColor: theme.colors.surface,
-        borderRadius: 14,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-    },
-    categoriesTitle: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-        marginBottom: 10,
-    },
-    categoryChipsRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    categoryChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        backgroundColor: `${theme.colors.primary}12`,
-        borderWidth: 1,
-        borderColor: `${theme.colors.primary}33`,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
-    },
-    categoryChipText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: theme.colors.primaryDark,
-    },
-
     // ── Why buy
     whyBuyCard: {
         marginBottom: 16,
@@ -1722,10 +1571,10 @@ const styles = StyleSheet.create({
     unlockSection: {
         marginBottom: 16,
         padding: 16,
-        backgroundColor: `${theme.colors.primary}08`,
+        backgroundColor: theme.colors.surfaceLight,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: `${theme.colors.primary}22`,
+        borderColor: theme.colors.borderLight,
     },
     unlockHeader: {
         flexDirection: 'row',

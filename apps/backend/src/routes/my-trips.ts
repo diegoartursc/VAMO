@@ -45,8 +45,12 @@ router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Re
                 country: snapshot?.country || s.itinerary.country,
                 image,
                 purchaseDate: s.createdAt.toISOString().split('T')[0],
-                creatorName: snapshot?.creator?.name || s.itinerary.creator.traveler.name || 'Criador VAMO',
-                creatorAvatar: snapshot?.creator?.avatar || s.itinerary.creator.traveler.avatar || '',
+                // Identidade do criador = SEMPRE a atual (perfil ao vivo), não o
+                // snapshot congelado na compra. Assim a foto/nome atualizados do
+                // criador aparecem em "Meus Roteiros". O snapshot preserva o
+                // CONTEÚDO do roteiro, não a identidade visual da pessoa.
+                creatorName: s.itinerary.creator.traveler.name || snapshot?.creator?.name || 'Criador VAMO',
+                creatorAvatar: s.itinerary.creator.traveler.avatar || '',
                 price: s.price,
                 currency: snapshot?.currency || s.itinerary.currency || 'AUD',
                 duration: snapshot?.duration || s.itinerary.duration,

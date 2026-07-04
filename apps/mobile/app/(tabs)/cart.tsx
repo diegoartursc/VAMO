@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
+import { CreatorAvatar } from '../../src/components/common/CreatorAvatar';
 import { useCart, CartItemMeta } from '../../src/hooks/useCart';
 import { haptics } from '../../src/services/haptics';
 import { confirm } from '../../src/utils/confirm';
@@ -492,7 +493,7 @@ function CartItemCard({
                         {/* Creator pill */}
                         {item.creator.name && item.creator.name !== '—' && (
                             <View style={styles.creatorPill}>
-                                <Text style={styles.creatorAvatar}>{item.creator.avatar}</Text>
+                                <CreatorAvatar avatar={item.creator.avatar} name={item.creator.name} size={20} />
                                 <Text style={styles.creatorName} numberOfLines={1}>{item.creator.name}</Text>
                             </View>
                         )}

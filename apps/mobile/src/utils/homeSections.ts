@@ -255,18 +255,68 @@ export const FEATURED_MIN_RATING = 4.5;
 export const FEATURED_MIN_REVIEWS = 1;
 
 /**
- * "Roteiros em Destaque" = os mais bem avaliados pela comunidade.
+ * Volume de reviews a partir do qual confiamos na nota "como ela é". Abaixo
+ * disso a média bayesiana puxa a nota em direção à BASELINE_RATING — então
+ * 5.0 com 3 reviews vale menos que 4.9 com 300.
+ */
+export const MIN_CONFIDENCE_REVIEWS = 25;
+/** Nota-âncora usada pela média bayesiana quando há poucos reviews. */
+export const BASELINE_RATING = 4.5;
+
+/**
+ * Pontuação de CONFIANÇA para ranking de Destaque. Pura e determinística.
+ *
+ * ⚠️ Esta fórmula e suas constantes (MIN_CONFIDENCE_REVIEWS, BASELINE_RATING)
+ * DEVEM permanecer sincronizadas com a versão do backend em
+ * `apps/backend/src/utils/featuredRanking.ts`. Mobile e backend não
+ * compartilham pacote para essa regra hoje — qualquer ajuste aqui precisa
+ * ser replicado lá, e vice-versa.
+ *
+ * Intenção (não é rating puro):
+ *  - a nota continua importando (peso dominante);
+ *  - volume de reviews aumenta a confiança na nota (média bayesiana);
+ *  - vendas reais do roteiro são prova social;
+ *  - qualidade técnica ajuda no desempate de score.
+ */
+export function calculateFeaturedRankScore(it: any): number {
+    const rating = Number(it?.averageRating ?? it?.rating) || 0;
+    const reviewCount = Number(it?.reviewCount) || 0;
+    // Vendas REAIS DESTE roteiro (Itinerary._count.sales no payload). Fallback
+    // defensivo no agregado do criador SÓ pra não regredir quando o backend
+    // não devolve o salesCount top-level — `creator.salesCount` é o total
+    // acumulado do criador, NÃO as vendas deste roteiro específico.
+    const salesCount = Number(it?.salesCount ?? it?.creator?.salesCount) || 0;
+    const qualityScore = Number(it?.qualityScore) || 0;
+
+    // Média bayesiana: poucos reviews ⇒ nota puxada para BASELINE_RATING.
+    const weightedRating =
+        (reviewCount / (reviewCount + MIN_CONFIDENCE_REVIEWS)) * rating +
+        (MIN_CONFIDENCE_REVIEWS / (reviewCount + MIN_CONFIDENCE_REVIEWS)) * BASELINE_RATING;
+
+    // log1p dá peso a volume (reviews + vendas) sem deixar números enormes
+    // esmagarem totalmente a nota — diferença marginal decresce com a escala.
+    return (
+        weightedRating * 100 +
+        Math.log1p(reviewCount) * 12 +
+        Math.log1p(salesCount) * 10 +
+        qualityScore * 0.25
+    );
+}
+
+/**
+ * "Roteiros em Destaque" = os mais bem avaliados E validados pela comunidade.
  *
  * Promessa da copy = critério real:
  *  - publicado/ativo (isShowcaseItinerary já cobre);
  *  - reviewCount >= 1 (sem review, "Novo" — não vai pra Destaque);
  *  - rating >= 4.5 (piso de qualidade do prompt);
- *  - ordem: rating DESC, reviewCount DESC, salesCount DESC, qualityScore DESC,
- *    approvedAt/createdAt DESC (desempate por recência).
+ *  - ordem: featuredRankScore DESC (confiança ponderada, não rating puro);
+ *  - desempates: reviewCount DESC, salesCount DESC, rating DESC,
+ *    qualityScore DESC, featured (flag manual) DESC, recência DESC.
  *
  * NÃO usa `creator.rating` em nenhum momento — reputação do criador é OUTRA
- * métrica. `featured` (flag manual) deixa de ser gate; entra só como último
- * desempate fraco, pra não sumir com curadoria humana eventual.
+ * métrica. `featured` (flag manual) NÃO é gate; entra só como desempate fraco,
+ * pra não sumir com curadoria humana eventual.
  */
 export function selectFeatured(itineraries: any[], limit = 5): any[] {
     if (!Array.isArray(itineraries)) return [];
@@ -277,24 +327,27 @@ export function selectFeatured(itineraries: any[], limit = 5): any[] {
             const rating = Number(it.averageRating ?? it.rating) || 0;
             return reviews >= FEATURED_MIN_REVIEWS && rating >= FEATURED_MIN_RATING;
         })
-        .slice()
+        .map((it) => ({ it, score: calculateFeaturedRankScore(it) }))
         .sort((a, b) => {
-            const ra = Number(a.averageRating ?? a.rating) || 0;
-            const rb = Number(b.averageRating ?? b.rating) || 0;
-            if (rb !== ra) return rb - ra;
-            const na = Number(a.reviewCount) || 0;
-            const nb = Number(b.reviewCount) || 0;
+            // Critério principal: score de confiança ponderado.
+            if (b.score !== a.score) return b.score - a.score;
+            // Desempates explícitos (mesma ordem do backend).
+            const x = a.it, y = b.it;
+            const na = Number(x.reviewCount) || 0, nb = Number(y.reviewCount) || 0;
             if (nb !== na) return nb - na;
-            const sa = Number(a.salesCount ?? a.creator?.salesCount) || 0;
-            const sb = Number(b.salesCount ?? b.creator?.salesCount) || 0;
+            const sa = Number(x.salesCount ?? x.creator?.salesCount) || 0;
+            const sb = Number(y.salesCount ?? y.creator?.salesCount) || 0;
             if (sb !== sa) return sb - sa;
-            const qa = Number(a.qualityScore) || 0;
-            const qb = Number(b.qualityScore) || 0;
+            const ra = Number(x.averageRating ?? x.rating) || 0;
+            const rb = Number(y.averageRating ?? y.rating) || 0;
+            if (rb !== ra) return rb - ra;
+            const qa = Number(x.qualityScore) || 0, qb = Number(y.qualityScore) || 0;
             if (qb !== qa) return qb - qa;
-            if (!!b.featured !== !!a.featured) return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-            return publishedTime(b) - publishedTime(a);
+            if (!!y.featured !== !!x.featured) return (y.featured ? 1 : 0) - (x.featured ? 1 : 0);
+            return publishedTime(y) - publishedTime(x);
         })
-        .slice(0, limit);
+        .slice(0, limit)
+        .map(({ it }) => it);
 }
 
 // ─── "Novos Roteiros" ───────────────────────────────────────────

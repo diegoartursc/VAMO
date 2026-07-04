@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { getMyTrips } from '../../src/services/api';
 import { Icon } from '../../src/components/common/Icons';
+import { CreatorAvatar } from '../../src/components/common/CreatorAvatar';
 import { useAuth } from '../../src/contexts/AuthContext';
 
 const PLACEHOLDER_IMAGE =
@@ -259,9 +260,7 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
                 {/* Card Footer */}
                 <View style={styles.cardFooter}>
                     <View style={styles.creatorRow}>
-                        <View style={styles.creatorAvatar}>
-                            <Icon name="circle-user" size={16} color={theme.colors.primary} />
-                        </View>
+                        <CreatorAvatar avatar={itin.creatorAvatar} name={itin.creatorName} size={32} style={styles.creatorAvatar} />
                         <Text style={styles.creatorName} numberOfLines={1}>
                             {itin.creatorName}
                         </Text>

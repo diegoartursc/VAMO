@@ -3,6 +3,7 @@ import { authMiddleware, optionalAuthMiddleware, AuthRequest } from '../middlewa
 import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
+import { selectFeaturedRanked } from '../utils/featuredRanking';
 
 const router = Router();
 
@@ -96,11 +97,24 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // GET /api/itineraries/featured
+// Destaque = ranking de CONFIANÇA (não rating puro). Consistente com a Home:
+// usa a MESMA fórmula de selectFeaturedRanked (espelho de selectFeatured no
+// mobile) — nota ponderada por volume de reviews + vendas reais do roteiro +
+// qualidade, com `featured` (flag manual) apenas como desempate fraco.
 router.get('/featured', async (req: Request, res: Response) => {
     try {
-        const itineraries = await prisma.itinerary.findMany({
-            where: { featured: true, status: { in: ['APPROVED', 'ACTIVE'] } },
-            orderBy: [{ qualityScore: 'desc' }, { rating: 'desc' }],
+        // Limite opcional (?limit=N). Default generoso pra "Ver todos".
+        const parsedLimit = parseInt(String(req.query.limit ?? ''), 10);
+        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20;
+
+        // Buscamos uma faixa AMPLA de candidatos válidos (status público), NÃO
+        // só os com `featured: true`. O orderBy do banco aqui é só pra limitar
+        // candidatos de forma sã; o ranking final (média bayesiana) é
+        // recalculado em memória — o Prisma não expressa essa fórmula no orderBy.
+        const candidates = await prisma.itinerary.findMany({
+            where: { status: { in: ['APPROVED', 'ACTIVE'] } },
+            orderBy: [{ rating: 'desc' }, { reviewCount: 'desc' }, { qualityScore: 'desc' }],
+            take: 100,
             include: {
                 creator: { include: { traveler: { select: { name: true, avatar: true } } } },
                 images: { orderBy: { order: 'asc' }, select: { url: true } },
@@ -108,7 +122,7 @@ router.get('/featured', async (req: Request, res: Response) => {
             },
         });
 
-        const result = itineraries.map(it => ({
+        const mapped = candidates.map(it => ({
             id: it.id, title: it.title, destination: it.destination, country: it.country,
             creator: {
                 id: it.creator.id, name: it.creator.traveler.name,
@@ -116,6 +130,8 @@ router.get('/featured', async (req: Request, res: Response) => {
                 verificationLevel: it.creator.verificationLevel.toLowerCase(),
                 rating: it.creator.averageRating, salesCount: it.creator.totalSales,
             },
+            // salesCount top-level = vendas REAIS DESTE roteiro (ItinerarySale.count),
+            // que é o que o ranking usa — diferente de creator.salesCount (acumulado).
             salesCount: it._count.sales,
             description: it.description, price: it.price, currency: it.currency,
             images: it.images.map(img => img.url), rating: it.rating,
@@ -144,6 +160,9 @@ router.get('/featured', async (req: Request, res: Response) => {
             extraSpendingItems: (it as any).extraSpendingItems || [],
             flightInfo: it.flightInfo || null,
         }));
+
+        // Aplica pisos (reviews/rating) + ranking de confiança + limite final.
+        const result = selectFeaturedRanked(mapped, limit);
 
         res.json(result);
     } catch (error) {
@@ -242,6 +261,187 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
     } catch (error) {
         console.error('Error fetching dashboard stats:', error);
         res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+    }
+});
+
+/**
+ * Resolve o creatorId EXCLUSIVAMENTE pelo token do traveler logado.
+ * Sem fallback para "primeiro creator" (causa de bug histórico) — se o
+ * usuário não tem perfil de criador, retorna null e o caller responde vazio.
+ */
+async function resolveCreatorIdFromToken(req: AuthRequest): Promise<string | null> {
+    if (!req.traveler?.travelerId) return null;
+    const myCreator = await (prisma.creator as any).findUnique({
+        where: { travelerId: req.traveler.travelerId },
+        select: { id: true },
+    });
+    return myCreator?.id ?? null;
+}
+
+/**
+ * Nome do comprador com privacidade: primeiro nome + inicial do sobrenome
+ * ("Diego A."). Nunca expõe nome completo nem e-mail do viajante.
+ */
+function buyerDisplayName(name?: string | null): string {
+    const clean = String(name || '').trim();
+    if (!clean) return 'Viajante';
+    const parts = clean.split(/\s+/);
+    if (parts.length === 1) return parts[0];
+    return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+}
+
+// ─── DASHBOARD: VENDAS ──────────────────────────────────────────
+// GET /api/itineraries/dashboard/sales
+// Vendas do roteirista logado: totais, ticket médio, vendas por roteiro e
+// histórico recente. Auth por token; nunca expõe dados de outros criadores.
+// NOTE: registrar ANTES de /:id (catch-all de param).
+router.get('/dashboard/sales', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const creatorId = await resolveCreatorIdFromToken(req);
+        const empty = {
+            totalSales: 0, totalRevenue: 0, averageTicket: 0,
+            topItinerary: null, salesByItinerary: [], recentSales: [],
+        };
+        if (!creatorId) { res.json(empty); return; }
+
+        const itineraries = await prisma.itinerary.findMany({
+            where: { creatorId },
+            select: {
+                id: true, title: true, price: true, rating: true, reviewCount: true,
+                sales: {
+                    select: {
+                        id: true, price: true, createdAt: true,
+                        traveler: { select: { name: true, avatar: true } },
+                    },
+                    orderBy: { createdAt: 'desc' },
+                },
+            },
+        });
+
+        const salesByItinerary = itineraries
+            .map((it) => {
+                const salesCount = it.sales.length;
+                const revenue = it.sales.reduce((sum, s) => sum + s.price, 0);
+                return {
+                    itineraryId: it.id, title: it.title, salesCount, revenue,
+                    averagePrice: salesCount ? revenue / salesCount : it.price,
+                    rating: it.rating, reviewCount: it.reviewCount,
+                };
+            })
+            .filter((x) => x.salesCount > 0)
+            .sort((a, b) => b.revenue - a.revenue);
+
+        const allSales = itineraries.flatMap((it) =>
+            it.sales.map((s) => ({
+                id: s.id,
+                date: s.createdAt.toISOString(),
+                itineraryId: it.id,
+                itineraryTitle: it.title,
+                amount: s.price,
+                buyerName: buyerDisplayName(s.traveler?.name),
+                buyerAvatar: s.traveler?.avatar || '👤',
+            })),
+        ).sort((a, b) => b.date.localeCompare(a.date));
+
+        const totalSales = allSales.length;
+        const totalRevenue = allSales.reduce((sum, s) => sum + s.amount, 0);
+
+        res.json({
+            totalSales,
+            totalRevenue,
+            averageTicket: totalSales ? totalRevenue / totalSales : 0,
+            topItinerary: salesByItinerary[0]
+                ? { itineraryId: salesByItinerary[0].itineraryId, title: salesByItinerary[0].title, salesCount: salesByItinerary[0].salesCount }
+                : null,
+            salesByItinerary,
+            recentSales: allSales.slice(0, 30),
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard sales:', error);
+        res.status(500).json({ error: 'Failed to fetch dashboard sales' });
+    }
+});
+
+// ─── DASHBOARD: AVALIAÇÕES ──────────────────────────────────────
+// GET /api/itineraries/dashboard/reviews
+// Avaliações recebidas nos roteiros do roteirista logado: média, total,
+// distribuição de estrelas, por roteiro e recentes. Auth por token.
+// NOTE: registrar ANTES de /:id (catch-all de param).
+router.get('/dashboard/reviews', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const creatorId = await resolveCreatorIdFromToken(req);
+        const empty = {
+            averageRating: 0, totalReviews: 0, ratedItinerariesCount: 0,
+            ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+            topItinerary: null, reviewsByItinerary: [], recentReviews: [],
+        };
+        if (!creatorId) { res.json(empty); return; }
+
+        const itineraries = await prisma.itinerary.findMany({
+            where: { creatorId },
+            select: {
+                id: true, title: true, rating: true, reviewCount: true,
+                reviews: {
+                    select: {
+                        id: true, rating: true, comment: true, createdAt: true,
+                        userName: true, userLocation: true, userAvatar: true, userInitial: true,
+                        images: { select: { url: true } },
+                        responses: { select: { id: true, text: true, createdAt: true } },
+                    },
+                    orderBy: { createdAt: 'desc' },
+                },
+            },
+        });
+
+        const allReviews = itineraries.flatMap((it) =>
+            it.reviews.map((r) => ({
+                id: r.id,
+                rating: r.rating,
+                comment: r.comment,
+                date: r.createdAt.toISOString(),
+                itineraryId: it.id,
+                itineraryTitle: it.title,
+                // Nome anonimizado ("Julia B.") por privacidade, consistente com
+                // o histórico de vendas. Avatar/inicial mantidos.
+                user: { name: buyerDisplayName(r.userName), location: r.userLocation, avatar: r.userAvatar, initial: r.userInitial },
+                photos: (r.images || []).map((img) => img.url),
+                response: r.responses?.[0]
+                    ? { id: r.responses[0].id, text: r.responses[0].text, createdAt: r.responses[0].createdAt.toISOString() }
+                    : null,
+            })),
+        ).sort((a, b) => b.date.localeCompare(a.date));
+
+        const totalReviews = allReviews.length;
+        const sumRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+        const ratingDistribution: Record<string, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        for (const r of allReviews) {
+            const bucket = Math.min(5, Math.max(1, Math.round(r.rating)));
+            ratingDistribution[bucket] += 1;
+        }
+
+        const reviewsByItinerary = itineraries
+            .map((it) => {
+                const count = it.reviews.length;
+                const avg = count ? it.reviews.reduce((s, r) => s + r.rating, 0) / count : 0;
+                return { itineraryId: it.id, title: it.title, reviewCount: count, averageRating: avg };
+            })
+            .filter((x) => x.reviewCount > 0)
+            .sort((a, b) => b.averageRating - a.averageRating || b.reviewCount - a.reviewCount);
+
+        res.json({
+            averageRating: totalReviews ? sumRating / totalReviews : 0,
+            totalReviews,
+            ratedItinerariesCount: reviewsByItinerary.length,
+            ratingDistribution,
+            topItinerary: reviewsByItinerary[0]
+                ? { itineraryId: reviewsByItinerary[0].itineraryId, title: reviewsByItinerary[0].title, averageRating: reviewsByItinerary[0].averageRating }
+                : null,
+            reviewsByItinerary,
+            recentReviews: allReviews.slice(0, 30),
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard reviews:', error);
+        res.status(500).json({ error: 'Failed to fetch dashboard reviews' });
     }
 });
 
@@ -435,8 +635,33 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
 
         const snapshot = getRouteSnapshot(sale.purchaseData);
         if (snapshot) {
+            // Identidade do criador = perfil AO VIVO (foto/nome atuais), não o
+            // snapshot congelado. O snapshot preserva o CONTEÚDO do roteiro;
+            // a identidade visual do criador segue o perfil atual. Sem isso,
+            // a foto atualizada do criador não aparece no roteiro comprado.
+            const liveCreator = await prisma.itinerary.findUnique({
+                where: { id: itineraryId },
+                select: {
+                    creator: {
+                        select: {
+                            id: true, verificationLevel: true, averageRating: true, totalSales: true,
+                            traveler: { select: { name: true, avatar: true } },
+                        },
+                    },
+                },
+            });
+            const mergedCreator = liveCreator?.creator
+                ? {
+                    ...(snapshot.creator || {}),
+                    id: liveCreator.creator.id,
+                    name: liveCreator.creator.traveler.name,
+                    avatar: liveCreator.creator.traveler.avatar || '👤',
+                    verificationLevel: liveCreator.creator.verificationLevel.toLowerCase(),
+                }
+                : snapshot.creator;
             res.json({
                 ...snapshot,
+                creator: mergedCreator,
                 purchaseId: sale.id,
                 purchasedAt: serializeDate(sale.createdAt),
                 pricePaid: sale.price,
@@ -998,13 +1223,17 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
         if (!resolvedCreatorId) {
             const traveler = await prisma.traveler.findUnique({
                 where: { id: req.traveler.travelerId },
-                select: { id: true, name: true, bio: true },
+                select: { id: true },
             });
             if (traveler) {
+                // Bio pública começa vazia — nunca copiamos a bio geral do
+                // traveler nem inventamos uma frase genérica. O roteirista
+                // escreve a própria bio em /creator-profile-edit; até lá, a
+                // tela pública mostra o fallback honesto (ver creatorBio.ts).
                 const newCreator = await (prisma.creator as any).create({
                     data: {
                         travelerId: traveler.id,
-                        bio: traveler.bio || `Roteirista no VAMO — ${traveler.name}`,
+                        bio: '',
                         verificationLevel: 'BASIC',
                     },
                     select: { id: true },
@@ -1568,6 +1797,180 @@ router.post('/:id/purchase', travelerAuthMiddleware, async (req: TravelerAuthReq
     } catch (error) {
         console.error('Error creating itinerary purchase:', error);
         res.status(500).json({ error: 'Failed to record purchase' });
+    }
+});
+
+// ─── COMPARTILHAMENTO ─────────────────────────────────────────────
+// POST /api/itineraries/:id/share
+//
+// Registra um evento de compartilhamento (intent | completed | cancelled |
+// failed) e devolve um shareCode + shareUrl rastreável. O caller (mobile)
+// usa `shareUrl` na mensagem enviada ao share-sheet nativo.
+//
+// Política de gamificação:
+//   - XP por evento ITINERARY_SHARED é concedido APENAS uma vez por share
+//     único e respeita o teto mensal (MONTHLY_XP_CAPS.ITINERARY_SHARED=100).
+//   - A missão "first_itinerary_shared" só conta com sharedCount >= 1.
+//   - Não confiamos no SO para distinguir "compartilhou mesmo" vs "cancelou".
+//     Registramos `intent` ao abrir o sheet e `completed` quando o
+//     wrapper devolver sucesso. XP é dado APENAS em `completed`.
+//
+// Anti-abuso:
+//   - Múltiplos cliques rápidos em "compartilhar" no MESMO roteiro contam um
+//     evento por chamada (analytics), mas só pontuam até o cap mensal.
+//   - Anonymous (sem token) é aceito (alguém pode compartilhar sem login),
+//     mas não acumula XP — só serve para analytics.
+const SHARE_SURFACES = new Set(['detail', 'card', 'purchased_itinerary', 'creator_dashboard']);
+const SHARE_CHANNELS = new Set(['native_share', 'copy_link', 'whatsapp', 'telegram', 'email', 'sms', 'facebook', 'instagram', 'unknown']);
+const SHARE_STATUSES = new Set(['intent', 'completed', 'cancelled', 'failed']);
+const PUBLIC_WEB_URL = (process.env.PUBLIC_WEB_URL || 'https://vamo-ten.vercel.app').replace(/\/+$/, '');
+const PUBLIC_BACKEND_URL = (process.env.PUBLIC_BACKEND_URL || 'https://vamo-699h.onrender.com').replace(/\/+$/, '');
+const ITINERARY_SHARED_XP = 20;
+const ITINERARY_SHARED_MONTHLY_CAP = 100;
+
+/** Gera um shareCode curto, URL-safe e estatisticamente único (16 chars). */
+function generateShareCode(): string {
+    const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let out = '';
+    for (let i = 0; i < 16; i++) {
+        out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
+}
+
+router.post('/:id/share', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const itineraryId = req.params.id as string;
+        const body = (req.body || {}) as {
+            surface?: unknown; channel?: unknown; status?: unknown;
+            actorRole?: unknown; saleId?: unknown;
+        };
+
+        const surface = typeof body.surface === 'string' && SHARE_SURFACES.has(body.surface)
+            ? body.surface : 'detail';
+        const channel = typeof body.channel === 'string' && SHARE_CHANNELS.has(body.channel)
+            ? body.channel : 'unknown';
+        const status = typeof body.status === 'string' && SHARE_STATUSES.has(body.status)
+            ? body.status : 'intent';
+        const actorRoleInput = typeof body.actorRole === 'string' ? body.actorRole : null;
+        const saleId = typeof body.saleId === 'string' && body.saleId.trim()
+            ? body.saleId.trim() : null;
+
+        // Roteiro precisa existir e permitir compartilhamento.
+        const itinerary = await prisma.itinerary.findUnique({
+            where: { id: itineraryId },
+            select: {
+                id: true, status: true, allowShare: true, creatorId: true,
+                creator: { select: { travelerId: true } },
+            },
+        });
+        if (!itinerary) {
+            res.status(404).json({ error: 'Roteiro não encontrado' });
+            return;
+        }
+        if (!itinerary.allowShare) {
+            res.status(403).json({ error: 'Este roteiro não pode ser compartilhado.' });
+            return;
+        }
+        // Vitrine pública: ACTIVE/APPROVED são compartilháveis. Permitimos
+        // que o próprio criador compartilhe rascunhos/pausados internamente,
+        // mas para qualquer outro caller bloqueamos.
+        const isPublic = ['ACTIVE', 'APPROVED'].includes(String(itinerary.status || '').toUpperCase());
+        const isOwnerSharing = !!req.traveler?.travelerId
+            && req.traveler.travelerId === (itinerary.creator?.travelerId || null);
+        if (!isPublic && !isOwnerSharing) {
+            res.status(403).json({ error: 'Este roteiro ainda não está disponível para compartilhamento.' });
+            return;
+        }
+
+        const travelerId = req.traveler?.travelerId || null;
+        const actorRole = actorRoleInput === 'creator' || (isOwnerSharing && actorRoleInput !== 'traveler')
+            ? 'creator' : 'traveler';
+        // Vincula creatorId só quando o ator é o dono.
+        const creatorIdForRecord = isOwnerSharing ? itinerary.creatorId : null;
+
+        // Cria o registro. Re-tenta uma vez em colisão extremamente improvável de shareCode.
+        let shareCode = generateShareCode();
+        let share;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                share = await (prisma as any).itineraryShare.create({
+                    data: {
+                        itineraryId,
+                        travelerId,
+                        creatorId: creatorIdForRecord,
+                        saleId,
+                        actorRole,
+                        surface,
+                        channel,
+                        status,
+                        shareCode,
+                        completedAt: status === 'completed' ? new Date() : null,
+                    },
+                    select: { id: true, shareCode: true },
+                });
+                break;
+            } catch (err: any) {
+                if (err?.code === 'P2002' && attempt < 2) {
+                    shareCode = generateShareCode();
+                    continue;
+                }
+                throw err;
+            }
+        }
+        if (!share) {
+            res.status(500).json({ error: 'Falha ao registrar compartilhamento' });
+            return;
+        }
+
+        // XP / missão: só concedemos quando status === completed e há viajante logado.
+        // Aplica teto mensal: conta XP já ganho via ITINERARY_SHARED neste mês.
+        let xpAwarded = 0;
+        let alreadyCompletedBefore = false;
+        let missionCompleted = false;
+
+        if (status === 'completed' && travelerId) {
+            const now = new Date();
+            const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+            const previousCompleted = await (prisma as any).itineraryShare.count({
+                where: {
+                    travelerId,
+                    status: 'completed',
+                    id: { not: share.id },
+                },
+            });
+            alreadyCompletedBefore = previousCompleted > 0;
+            missionCompleted = !alreadyCompletedBefore;
+
+            const completedThisMonth = await (prisma as any).itineraryShare.count({
+                where: {
+                    travelerId,
+                    status: 'completed',
+                    completedAt: { gte: monthStart },
+                    id: { not: share.id },
+                },
+            });
+            const xpAlreadyThisMonth = completedThisMonth * ITINERARY_SHARED_XP;
+            const remaining = Math.max(0, ITINERARY_SHARED_MONTHLY_CAP - xpAlreadyThisMonth);
+            xpAwarded = Math.max(0, Math.min(ITINERARY_SHARED_XP, remaining));
+        }
+
+        const shareUrl = `${PUBLIC_BACKEND_URL}/api/share/${share.shareCode}/resolve`;
+
+        res.status(201).json({
+            shareId: share.id,
+            shareCode: share.shareCode,
+            shareUrl,
+            // URL de destino caso o cliente prefira pular o backend (sem trackeamento).
+            publicUrl: `${PUBLIC_WEB_URL}/itinerary/${itineraryId}`,
+            xpAwarded,
+            missionCompleted,
+            alreadyCompletedBefore,
+        });
+    } catch (error) {
+        console.error('[itineraries.share] Error:', error);
+        res.status(500).json({ error: 'Failed to register share' });
     }
 });
 
