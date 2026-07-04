@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
     useWindowDimensions,
+    LayoutChangeEvent,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -47,20 +48,46 @@ const slides: CTASlide[] = [
 ];
 
 export const CTACarousel: React.FC = () => {
-    // useWindowDimensions atualiza em resize/rotate — Dimensions.get no
-    // top-level cristalizava o valor do primeiro render e quebrava em web.
+    // useWindowDimensions é só o fallback ANTES do primeiro onLayout medir o
+    // container real. O carrossel pode estar dentro de uma section com
+    // padding próprio (itineraries.tsx) ou colado na tela (Home) — usar
+    // screenWidth como fonte de verdade da largura do card causa overflow
+    // sempre que o pai tiver padding lateral. containerWidth (medido) é a
+    // única fonte confiável.
     const { width: screenWidth } = useWindowDimensions();
-    const cardWidth = screenWidth - HORIZONTAL_PADDING * 2;
-    // O snap salta de slide em slide: cardWidth + gap.
-    const snapInterval = cardWidth + CARD_GAP;
+    const [containerWidth, setContainerWidth] = useState(0);
+    const hasMeasured = containerWidth > 0;
+    const availableWidth = hasMeasured ? containerWidth : screenWidth;
+    const cardWidth = Math.max(0, availableWidth - HORIZONTAL_PADDING * 2);
+    // O snap salta de slide em slide: cardWidth + gap. Nunca <= 0 (evita
+    // snapToInterval inválido / divisão por zero no cálculo do índice).
+    const snapInterval = cardWidth > 0 ? cardWidth + CARD_GAP : 0;
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollViewRef = useRef<ScrollView>(null);
     const router = useRouter();
     const isTouchingRef = useRef(false);
 
-    // Auto-scroll. Pausa quando o usuário tá tocando (caso esteja arrastando).
+    const handleContainerLayout = useCallback((e: LayoutChangeEvent) => {
+        const w = e.nativeEvent.layout.width;
+        setContainerWidth((prev) => (Math.abs(prev - w) > 0.5 ? w : prev));
+    }, []);
+
+    // Ao medir/remedir o container (ex.: rotação de tela, resize no web),
+    // realinha o scroll pro índice atual usando o snapInterval novo — sem
+    // isso o carrossel fica "preso" entre dois cards com a largura antiga.
     useEffect(() => {
+        if (snapInterval <= 0) return;
+        scrollViewRef.current?.scrollTo({ x: currentIndex * snapInterval, animated: false });
+        // Só quando o snapInterval muda (containerWidth mudou) — não a cada
+        // troca de currentIndex, que já tem seu próprio scroll no autoplay/touch.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [snapInterval]);
+
+    // Auto-scroll. Pausa quando o usuário tá tocando (caso esteja arrastando).
+    // Não roda com largura não-medida — evitaria scrollar para um x errado.
+    useEffect(() => {
+        if (snapInterval <= 0) return;
         const interval = setInterval(() => {
             if (isTouchingRef.current) return;
             const nextIndex = (currentIndex + 1) % slides.length;
@@ -75,6 +102,7 @@ export const CTACarousel: React.FC = () => {
     }, [currentIndex, snapInterval]);
 
     const handleScroll = (event: any) => {
+        if (snapInterval <= 0) return;
         const offsetX = event.nativeEvent.contentOffset.x;
         // Arredonda pelo passo de snap (não pela cardWidth), senão drift acumula.
         const index = Math.max(0, Math.min(slides.length - 1, Math.round(offsetX / snapInterval)));
@@ -90,7 +118,7 @@ export const CTACarousel: React.FC = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={styles.container} onLayout={handleContainerLayout}>
             <ScrollView
                 ref={scrollViewRef}
                 horizontal
@@ -101,11 +129,15 @@ export const CTACarousel: React.FC = () => {
                 // da viewport (screenWidth), não do cardWidth — causava drift e
                 // cortava o card. Usar snapToInterval=cardWidth+gap é o caminho.
                 decelerationRate="fast"
-                snapToInterval={snapInterval}
+                snapToInterval={snapInterval > 0 ? snapInterval : undefined}
                 snapToAlignment="start"
                 contentContainerStyle={{ paddingHorizontal: HORIZONTAL_PADDING }}
                 onTouchStart={() => { isTouchingRef.current = true; }}
                 onTouchEnd={() => { isTouchingRef.current = false; }}
+                // Enquanto o container ainda não foi medido, some (opacity) mas
+                // mantém a altura (minHeight do card) — evita "piscar" com o
+                // card no tamanho errado no primeiro frame.
+                style={{ opacity: hasMeasured ? 1 : 0 }}
             >
                 {slides.map((slide, idx) => (
                     <TouchableOpacity
@@ -164,6 +196,7 @@ const styles = StyleSheet.create({
         minHeight: 200,
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
