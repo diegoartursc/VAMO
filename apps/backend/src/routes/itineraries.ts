@@ -469,6 +469,24 @@ export function getRouteSnapshot(purchaseData: any): any | null {
     return snapshot && typeof snapshot === 'object' ? snapshot : null;
 }
 
+// Snapshots congelados ANTES da migração de uploads para o Supabase Storage
+// (2026-06-11) guardaram URLs absolutas do host que recebeu o upload em modo
+// disco — ex.: "http://localhost:3333/uploads/...". Essas URLs nunca
+// existiram fora daquele processo local e não sobrevivem a deploy/restart em
+// nenhum ambiente real. A migração corrigiu o registro VIVO do Itinerary,
+// mas nunca reescreveu snapshots já congelados (o snapshot é intencionalmente
+// imutável para o CONTEÚDO do roteiro). Mídia não é "conteúdo" no mesmo
+// sentido — é identidade visual, então aplicamos o mesmo princípio já usado
+// para foto/nome do criador: mídia morta no snapshot cai para a mídia ao
+// vivo do Itinerary atual.
+const DEAD_LOCAL_UPLOAD_URL = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/uploads\//i;
+function isDeadLocalUploadUrl(url: unknown): boolean {
+    return typeof url === 'string' && DEAD_LOCAL_UPLOAD_URL.test(url);
+}
+function hasAnyDeadLocalUrl(urls: unknown): boolean {
+    return Array.isArray(urls) && urls.some(isDeadLocalUploadUrl);
+}
+
 export function toJsonSafe(value: any): any {
     if (value === undefined) return undefined;
     if (value === null) return null;
@@ -639,17 +657,36 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
             // snapshot congelado. O snapshot preserva o CONTEÚDO do roteiro;
             // a identidade visual do criador segue o perfil atual. Sem isso,
             // a foto atualizada do criador não aparece no roteiro comprado.
-            const liveCreator = await prisma.itinerary.findUnique({
-                where: { id: itineraryId },
-                select: {
-                    creator: {
-                        select: {
-                            id: true, verificationLevel: true, averageRating: true, totalSales: true,
-                            traveler: { select: { name: true, avatar: true } },
+            //
+            // Mídia morta do snapshot (URLs localhost pré-migração Supabase,
+            // ver isDeadLocalUploadUrl acima) também cai para a mídia AO VIVO
+            // do roteiro — só busca se algum dos 3 campos tiver URL morta.
+            const needsLiveMedia =
+                hasAnyDeadLocalUrl(snapshot.images) ||
+                hasAnyDeadLocalUrl(snapshot.highlightPhotos) ||
+                hasAnyDeadLocalUrl(snapshot.mediaUrls);
+            const [liveCreator, liveMediaItinerary] = await Promise.all([
+                prisma.itinerary.findUnique({
+                    where: { id: itineraryId },
+                    select: {
+                        creator: {
+                            select: {
+                                id: true, verificationLevel: true, averageRating: true, totalSales: true,
+                                traveler: { select: { name: true, avatar: true } },
+                            },
                         },
                     },
-                },
-            });
+                }),
+                needsLiveMedia
+                    ? prisma.itinerary.findUnique({
+                        where: { id: itineraryId },
+                        select: {
+                            mediaUrls: true, highlightPhotos: true,
+                            images: { orderBy: { order: 'asc' }, select: { url: true } },
+                        },
+                    })
+                    : null,
+            ]);
             const mergedCreator = liveCreator?.creator
                 ? {
                     ...(snapshot.creator || {}),
@@ -659,8 +696,16 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
                     verificationLevel: liveCreator.creator.verificationLevel.toLowerCase(),
                 }
                 : snapshot.creator;
+            const mediaOverride = liveMediaItinerary
+                ? {
+                    images: liveMediaItinerary.images.map((img) => img.url),
+                    highlightPhotos: liveMediaItinerary.highlightPhotos || [],
+                    mediaUrls: liveMediaItinerary.mediaUrls || [],
+                }
+                : {};
             res.json({
                 ...snapshot,
+                ...mediaOverride,
                 creator: mergedCreator,
                 purchaseId: sale.id,
                 purchasedAt: serializeDate(sale.createdAt),

@@ -52,6 +52,10 @@ interface CoverCarouselProps {
      *                                as sobras. Usado pelos cards de vitrine.
      */
     coverMode?: 'cover' | 'contain' | 'containWithBlurredBg';
+    /** Mostra o badge "1/3" de contagem de fotos. Default true (mantém
+     *  compatibilidade). Cards que já têm outro badge no canto inferior
+     *  direito (ex.: duração) devem passar false para evitar sobreposição. */
+    showCounter?: boolean;
 }
 
 // ── Timing ──
@@ -239,6 +243,7 @@ const CoverCarouselInner = ({
     resizeMode = 'cover',
     panEnabled = true,
     coverMode = 'cover',
+    showCounter = true,
 }: CoverCarouselProps) => {
     const { width: windowWidth } = useWindowDimensions();
     const [activeIndex, setActiveIndex] = useState(0);
@@ -398,23 +403,25 @@ const CoverCarouselInner = ({
             {validImages.length > 1 && (
                 <>
                     {/* Photo Counter Badge */}
-                    <View style={styles.counterBadge}>
-                        <View style={styles.counterInner}>
-                            <Image
-                                source={{
-                                    uri:
-                                        'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTEwLjUgOC41YTIuNSAyLjUgMCAxIDEtNSAwIDIuNSAyLjUgMCAwIDEgNSAweiIvPjxwYXRoIGQ9Ik0yIDRhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY2YTIgMiAwIDAgMC0yLTJoLTEuMTcyYTIgMiAwIDAgMS0xLjQxNC0uNTg2bC0uODI4LS44MjhBMiAyIDAgMCAwIDkuMTcyIDJINi44MjhhMiAyIDAgMCAwLTEuNDE0LjU4NmwtLjgyOC44MjhBMiAyIDAgMCAxIDMuMTcyIDRIMnoiLz48L3N2Zz4=',
-                                }}
-                                style={styles.cameraIcon}
-                            />
-                            <View style={styles.counterTextContainer}>
-                                <CounterText
-                                    current={activeIndex + 1}
-                                    total={validImages.length}
+                    {showCounter && (
+                        <View style={styles.counterBadge}>
+                            <View style={styles.counterInner}>
+                                <Image
+                                    source={{
+                                        uri:
+                                            'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTEwLjUgOC41YTIuNSAyLjUgMCAxIDEtNSAwIDIuNSAyLjUgMCAwIDEgNSAweiIvPjxwYXRoIGQ9Ik0yIDRhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY2YTIgMiAwIDAgMC0yLTJoLTEuMTcyYTIgMiAwIDAgMS0xLjQxNC0uNTg2bC0uODI4LS44MjhBMiAyIDAgMCAwIDkuMTcyIDJINi44MjhhMiAyIDAgMCAwLTEuNDE0LjU4NmwtLjgyOC44MjhBMiAyIDAgMCAxIDMuMTcyIDRIMnoiLz48L3N2Zz4=',
+                                    }}
+                                    style={styles.cameraIcon}
                                 />
+                                <View style={styles.counterTextContainer}>
+                                    <CounterText
+                                        current={activeIndex + 1}
+                                        total={validImages.length}
+                                    />
+                                </View>
                             </View>
                         </View>
-                    </View>
+                    )}
 
                     {/* Pagination Dots */}
                     {validImages.length <= 6 && (

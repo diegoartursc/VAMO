@@ -4,6 +4,14 @@ import prisma from '../lib/prisma';
 
 const router = Router();
 
+// Snapshots congelados antes da migração de uploads para o Supabase Storage
+// (2026-06-11) guardam URLs mortas de disco local (localhost:<porta>). Ver
+// explicação completa em itineraries.ts (isDeadLocalUploadUrl).
+const DEAD_LOCAL_UPLOAD_URL = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/uploads\//i;
+function isLiveImage(url: unknown): url is string {
+    return typeof url === 'string' && url.length > 0 && !DEAD_LOCAL_UPLOAD_URL.test(url);
+}
+
 // GET /api/my-trips - Get current traveler's trips (requires auth)
 router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
     try {
@@ -36,7 +44,13 @@ router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Re
             const snapshot = s.purchaseData?.routeSnapshot;
             const images = Array.isArray(snapshot?.images) ? snapshot.images : [];
             const highlightPhotos = Array.isArray(snapshot?.highlightPhotos) ? snapshot.highlightPhotos : [];
-            const image = images[0] || highlightPhotos[0] || s.itinerary?.images?.[0]?.url || '';
+            // Ignora URLs mortas do snapshot (pré-migração Supabase) e cai
+            // para a capa AO VIVO do roteiro — mesmo princípio já aplicado à
+            // identidade do criador abaixo.
+            const image = images.find(isLiveImage)
+                || highlightPhotos.find(isLiveImage)
+                || s.itinerary?.images?.[0]?.url
+                || '';
             return {
                 id: snapshot?.id || s.itinerary.id,
                 purchaseId: s.id,
