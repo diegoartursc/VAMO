@@ -16,7 +16,7 @@ import { theme } from '../src/theme/theme';
 import { useAuth } from '../src/contexts/AuthContext';
 import { useMediaLightbox } from '../src/components/common/MediaLightbox';
 import { CreatorAvatar } from '../src/components/common/CreatorAvatar';
-import { getCreatorReviewsDashboard } from '../src/services/api';
+import { getCreatorReviewsDashboard, describeDashboardError } from '../src/services/api';
 import { CreatorSubHeader } from '../src/features/creator/dashboard/CreatorDashboardHeader';
 import { CreatorMetricCard, CreatorMetric } from '../src/features/creator/dashboard/CreatorMetricCard';
 import { CreatorEmptyState } from '../src/features/creator/dashboard/CreatorEmptyState';
@@ -112,7 +112,7 @@ export default function CreatorReviewsScreen() {
         try {
             setData(await getCreatorReviewsDashboard(accessToken));
         } catch (e: any) {
-            setError('Não foi possível carregar suas avaliações. Verifique sua conexão.');
+            setError(describeDashboardError(e));
         } finally {
             setLoading(false); setRefreshing(false);
         }
