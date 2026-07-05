@@ -155,7 +155,7 @@ export default function PdfExportSheet({
                     </View>
 
                     <Text style={styles.footnote}>
-                        Anexos pessoais (fotos e documentos) não são incluídos no PDF.
+                        Seus arquivos aparecem como lista de referência na sua versão. Os anexos (fotos e documentos) não são incorporados ao PDF.
                     </Text>
                 </Pressable>
             </Pressable>

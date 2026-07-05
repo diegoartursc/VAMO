@@ -459,12 +459,12 @@ export default function ItineraryPreviewScreen() {
                         </Text>
                     </View>
 
-                    {/* Aviso: Acesso Offline */}
+                    {/* Aviso: Exportação em PDF */}
                     <View style={styles.offlineNotice}>
-                        <Ionicons name="cloud-offline-outline" size={20} color={theme.colors.primary} />
+                        <Ionicons name="document-text-outline" size={20} color={theme.colors.primary} />
                         <Text style={styles.offlineNoticeText}>
-                            <Text style={styles.offlineNoticeBold}>100% Offline</Text>
-                            {' — '}Após a compra, o roteiro fica disponível para consulta mesmo sem conexão com a internet.
+                            <Text style={styles.offlineNoticeBold}>Exporta em PDF</Text>
+                            {' — '}Após a compra, o roteiro pode ser salvo em PDF para consultar fora da VAMO.
                         </Text>
                     </View>
 
@@ -635,11 +635,11 @@ export default function ItineraryPreviewScreen() {
                             <View style={styles.howReceiveLine} />
                             <View style={styles.howReceiveStep}>
                                 <View style={styles.howReceiveIconBox}>
-                                    <Ionicons name="cloud-download-outline" size={22} color={theme.colors.primary} />
+                                    <Ionicons name="document-text-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>3. Baixe offline</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Salve o roteiro completo para acessar sem internet durante a viagem</Text>
+                                    <Text style={styles.howReceiveStepTitle}>3. Salve em PDF</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Exporte o roteiro em PDF para consultar fora da VAMO durante a viagem</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />

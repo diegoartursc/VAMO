@@ -44,7 +44,7 @@ const DEFAULT_FAQ: ReadonlyArray<{ id: string; question: string; answer: string 
     {
         id: '__default_recebimento',
         question: 'Como recebo o roteiro após a compra?',
-        answer: 'Assim que o pagamento for confirmado, o roteiro fica disponível em "Meus Roteiros" no app, com acesso permanente. Download offline será liberado em uma próxima versão.',
+        answer: 'Assim que o pagamento for confirmado, o roteiro fica disponível em "Meus Roteiros" no app, com acesso permanente. Você também pode exportar o roteiro em PDF para consultar fora da VAMO.',
     },
     {
         id: '__default_atualizacoes',

@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     Animated,
     Image,
-    Alert,
     Dimensions,
     StatusBar,
     Platform,
@@ -390,9 +389,11 @@ export default function PurchasedItineraryScreen() {
 
     // [Removido] toggleChecklist — migrado para a Central da Viagem.
 
+    // Abre o mesmo bottom-sheet de exportação usado pelo botão do header —
+    // um único fluxo de PDF para toda a tela (sem caminho paralelo).
     const handleDownload = () => {
         haptics.light();
-        Alert.alert('Acesso offline em breve', 'Por enquanto, o roteiro fica salvo na sua conta e pode ser acessado em Meus Roteiros.');
+        setPdfSheetVisible(true);
     };
 
     const openExternalUrl = async (url?: string) => {
@@ -554,11 +555,11 @@ export default function PurchasedItineraryScreen() {
                         end={{ x: 1, y: 0 }}
                     >
                         <View style={styles.downloadIconCircle}>
-                            <Ionicons name="cloud-download-outline" size={18} color={theme.colors.primary} />
+                            <Ionicons name="document-text-outline" size={18} color={theme.colors.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.downloadBarTitle}>Acesso offline em breve</Text>
-                            <Text style={styles.downloadBarSub}>Disponível em breve</Text>
+                            <Text style={styles.downloadBarTitle}>Salvar roteiro em PDF</Text>
+                            <Text style={styles.downloadBarSub}>Exporte a versão original ou a sua para consultar fora da VAMO.</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={18} color={theme.colors.primary} />
                     </LinearGradient>
