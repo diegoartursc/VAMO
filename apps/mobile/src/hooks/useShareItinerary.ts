@@ -79,10 +79,25 @@ async function copyToClipboardWeb(text: string): Promise<void> {
     doc.body.appendChild(el);
     el.select();
     try {
-        doc.execCommand('copy');
+        const ok = doc.execCommand('copy');
+        if (!ok) throw new Error('execCommand copy retornou false.');
     } finally {
         doc.body.removeChild(el);
     }
+}
+
+/**
+ * Último recurso quando nem `navigator.share` nem o clipboard funcionam:
+ * abre o prompt nativo do navegador com o link pré-selecionável, para o
+ * usuário copiar manualmente (Cmd/Ctrl+C). Sem isso, o usuário fica sem
+ * nenhuma forma de recuperar o link — exatamente o "nada acontece" que
+ * este fluxo existe para evitar.
+ */
+function showManualLinkFallback(url: string): boolean {
+    const g = globalThis as any;
+    if (typeof g?.window?.prompt !== 'function') return false;
+    g.window.prompt('Copie o link deste roteiro:', url);
+    return true;
 }
 
 function buildMessage(params: { title: string; destination?: string | null; country?: string | null; url: string }): string {
@@ -149,6 +164,7 @@ export function useShareItinerary(params: UseShareItineraryParams): ShareItinera
         let nextStatus: 'completed' | 'cancelled' | 'failed' = 'failed';
         let nextChannel: ShareChannel = 'native_share';
         let didFallbackToClipboard = false;
+        let didFallbackToManualLink = false;
 
         try {
             if (Platform.OS === 'web') {
@@ -166,19 +182,34 @@ export function useShareItinerary(params: UseShareItineraryParams): ShareItinera
                         if (err?.name === 'AbortError') {
                             nextStatus = 'cancelled';
                         } else {
-                            // Falhou — caímos pro clipboard como fallback.
-                            await copyToClipboardWeb(intent.shareUrl);
-                            didFallbackToClipboard = true;
-                            nextStatus = 'completed';
-                            nextChannel = 'copy_link';
+                            // navigator.share falhou (indisponível de fato, bloqueado
+                            // pelo browser, etc.) — caímos pro clipboard.
+                            try {
+                                await copyToClipboardWeb(intent.shareUrl);
+                                didFallbackToClipboard = true;
+                                nextStatus = 'completed';
+                                nextChannel = 'copy_link';
+                            } catch {
+                                // Clipboard também falhou — último recurso: prompt
+                                // nativo com o link pra copiar manualmente.
+                                didFallbackToManualLink = showManualLinkFallback(intent.shareUrl);
+                                nextStatus = didFallbackToManualLink ? 'completed' : 'failed';
+                                nextChannel = 'copy_link';
+                            }
                         }
                     }
                 } else {
                     // Sem Web Share API: copia o link.
-                    await copyToClipboardWeb(intent.shareUrl);
-                    didFallbackToClipboard = true;
-                    nextStatus = 'completed';
-                    nextChannel = 'copy_link';
+                    try {
+                        await copyToClipboardWeb(intent.shareUrl);
+                        didFallbackToClipboard = true;
+                        nextStatus = 'completed';
+                        nextChannel = 'copy_link';
+                    } catch {
+                        didFallbackToManualLink = showManualLinkFallback(intent.shareUrl);
+                        nextStatus = didFallbackToManualLink ? 'completed' : 'failed';
+                        nextChannel = 'copy_link';
+                    }
                 }
             } else {
                 const result = await Share.share({
@@ -212,7 +243,13 @@ export function useShareItinerary(params: UseShareItineraryParams): ShareItinera
             );
 
             if (nextStatus === 'completed') {
-                if (didFallbackToClipboard) {
+                if (didFallbackToManualLink) {
+                    notify({
+                        title: 'Copie o link exibido',
+                        message: 'Não conseguimos copiar automaticamente — selecione e copie o link que aparece na tela.',
+                        variant: 'info',
+                    });
+                } else if (didFallbackToClipboard) {
                     notify({
                         title: 'Link copiado',
                         message: 'Cole onde quiser para compartilhar este roteiro.',
@@ -234,9 +271,26 @@ export function useShareItinerary(params: UseShareItineraryParams): ShareItinera
                     });
                 }
                 params.onShareCompleted?.(final);
+            } else if (nextStatus === 'failed') {
+                notify({
+                    title: 'Não foi possível compartilhar',
+                    message: 'Tente novamente em instantes.',
+                    variant: 'error',
+                });
             }
         } catch (err) {
             console.warn('[useShareItinerary] failed to report final status', err);
+            // Mesmo se o registro do desfecho falhar, o usuário já viu o
+            // resultado real da tentativa de compartilhar — mas se o próprio
+            // share/clipboard tinha falhado, garante o aviso de erro mesmo
+            // sem confirmação do backend.
+            if (nextStatus === 'failed') {
+                notify({
+                    title: 'Não foi possível compartilhar',
+                    message: 'Tente novamente em instantes.',
+                    variant: 'error',
+                });
+            }
         } finally {
             setIsSharing(false);
         }
@@ -296,6 +350,7 @@ export async function shareItineraryImperative(
     let nextStatus: 'completed' | 'cancelled' | 'failed' = 'failed';
     let nextChannel: ShareChannel = 'native_share';
     let didFallbackToClipboard = false;
+    let didFallbackToManualLink = false;
 
     try {
         if (Platform.OS === 'web') {
@@ -308,17 +363,29 @@ export async function shareItineraryImperative(
                     if (err?.name === 'AbortError') {
                         nextStatus = 'cancelled';
                     } else {
-                        await copyToClipboardWeb(intent.shareUrl);
-                        didFallbackToClipboard = true;
-                        nextStatus = 'completed';
-                        nextChannel = 'copy_link';
+                        try {
+                            await copyToClipboardWeb(intent.shareUrl);
+                            didFallbackToClipboard = true;
+                            nextStatus = 'completed';
+                            nextChannel = 'copy_link';
+                        } catch {
+                            didFallbackToManualLink = showManualLinkFallback(intent.shareUrl);
+                            nextStatus = didFallbackToManualLink ? 'completed' : 'failed';
+                            nextChannel = 'copy_link';
+                        }
                     }
                 }
             } else {
-                await copyToClipboardWeb(intent.shareUrl);
-                didFallbackToClipboard = true;
-                nextStatus = 'completed';
-                nextChannel = 'copy_link';
+                try {
+                    await copyToClipboardWeb(intent.shareUrl);
+                    didFallbackToClipboard = true;
+                    nextStatus = 'completed';
+                    nextChannel = 'copy_link';
+                } catch {
+                    didFallbackToManualLink = showManualLinkFallback(intent.shareUrl);
+                    nextStatus = didFallbackToManualLink ? 'completed' : 'failed';
+                    nextChannel = 'copy_link';
+                }
             }
         } else {
             const result = await Share.share({
@@ -343,7 +410,13 @@ export async function shareItineraryImperative(
             params.accessToken,
         );
         if (nextStatus === 'completed') {
-            if (didFallbackToClipboard) {
+            if (didFallbackToManualLink) {
+                notify({
+                    title: 'Copie o link exibido',
+                    message: 'Não conseguimos copiar automaticamente — selecione e copie o link que aparece na tela.',
+                    variant: 'info',
+                });
+            } else if (didFallbackToClipboard) {
                 notify({ title: 'Link copiado', message: 'Cole onde quiser para compartilhar este roteiro.', variant: 'success' });
             } else if (final.missionCompleted) {
                 notify({ title: 'Roteiro compartilhado!', message: 'Missão concluída no Passaporte VAMO.', variant: 'success' });
@@ -357,9 +430,14 @@ export async function shareItineraryImperative(
                 });
             }
             params.onShareCompleted?.(final);
+        } else if (nextStatus === 'failed') {
+            notify({ title: 'Não foi possível compartilhar', message: 'Tente novamente em instantes.', variant: 'error' });
         }
     } catch (err) {
         console.warn('[shareItineraryImperative] failed to report final status', err);
+        if (nextStatus === 'failed') {
+            notify({ title: 'Não foi possível compartilhar', message: 'Tente novamente em instantes.', variant: 'error' });
+        }
     }
 }
 

@@ -121,6 +121,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     focalPoint={getCoverFocalPoint(itinerary)}
                     coverMode="containWithBlurredBg"
                     dotsBottom={44}
+                    showCounter={false}
                 />
 
                 {/* Gradiente inferior na imagem para leitura */}
