@@ -70,6 +70,32 @@ function friendlyMessage(status: number, backendMessage: string | null): string 
     return MSG_GENERIC;
 }
 
+/**
+ * Mensagem de erro específica para telas do Portal do Roteirista
+ * (vendas/avaliações). Distingue os casos que o usuário precisa entender:
+ *  - 401 → sessão expirada;
+ *  - 404 → rota inexistente no backend (sintoma clássico de backend em
+ *    produção defasado em relação ao frontend — ver CLAUDE.md/Render);
+ *  - 5xx → erro de servidor;
+ *  - rede/timeout → conexão.
+ * Loga endpoint + status em dev para diagnóstico rápido, evitando o antigo
+ * "verifique sua conexão" genérico que mascarava um 404/500 real.
+ */
+export function describeDashboardError(err: unknown): string {
+    if (err instanceof ApiError) {
+        if (typeof __DEV__ !== 'undefined' && __DEV__) {
+            console.warn(`[dashboard] ${err.endpoint} falhou — status=${err.status ?? 'network'} msg="${err.message}"`);
+        }
+        if (err.status === 404) {
+            return 'Este recurso ainda não está disponível no servidor. Se o problema continuar, o backend pode precisar ser atualizado.';
+        }
+        // .message já é status-aware (401/403/5xx/rede/timeout).
+        return err.message;
+    }
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[dashboard] erro inesperado', err);
+    return MSG_GENERIC;
+}
+
 // ─── 401 global (token expirado) ─────────────────────────────────
 type UnauthorizedCallback = () => void;
 let onUnauthorized: UnauthorizedCallback | null = null;

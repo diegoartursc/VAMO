@@ -17,7 +17,7 @@ import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
 import { formatMoney } from '@vamo/shared/itinerary';
-import { getCreatorSalesDashboard } from '../src/services/api';
+import { getCreatorSalesDashboard, describeDashboardError } from '../src/services/api';
 import { CreatorAvatar } from '../src/components/common/CreatorAvatar';
 import { CreatorSubHeader } from '../src/features/creator/dashboard/CreatorDashboardHeader';
 import { CreatorMetricCard, CreatorMetric } from '../src/features/creator/dashboard/CreatorMetricCard';
@@ -51,7 +51,7 @@ export default function CreatorSalesScreen() {
         try {
             setData(await getCreatorSalesDashboard(accessToken));
         } catch (e: any) {
-            setError('Não foi possível carregar suas vendas. Verifique sua conexão.');
+            setError(describeDashboardError(e));
         } finally {
             setLoading(false); setRefreshing(false);
         }
