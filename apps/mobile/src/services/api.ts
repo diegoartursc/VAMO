@@ -401,6 +401,7 @@ export interface PurchasedItineraryDetail extends ItineraryDetail {
     purchasedAt?: string | null;
     pricePaid?: number;
     snapshotVersion?: number;
+    /** @deprecated Campo legado — pode existir em snapshots antigos, mas nunca é gerado/renderizado. Ignorar. */
     archivedAccessNotice?: string;
 }
 
@@ -430,11 +431,25 @@ export interface CreatorProfile {
     name: string;
     avatar: string;
     coverUrl: string | null;
+    /** @deprecated Prefira `reputation.level` (calculado) quando presente — mantido por compat. */
     verificationLevel: string;
+    /**
+     * Reputação REAL calculada (mesma fórmula de /creators/recommended).
+     * Presente em GET /creators/:id; ainda não retornado por GET /creators
+     * (lista) — ver limitação documentada na Parte 2 da auditoria.
+     */
+    reputation?: {
+        level: string;
+        label: string;
+        icon: string;
+        color: string;
+    };
     stats: {
         itinerariesCount: number;
         totalSales: number;
         averageRating: number | null;
+        /** Contagem real de avaliações — só em GET /creators/:id por ora. */
+        reviewCount?: number;
         responseTime: string | null;
         tripsCompleted: number;
     };
@@ -692,9 +707,77 @@ export async function getCreatorById(id: string): Promise<CreatorDetail | null> 
     return requestOrNull<CreatorDetail>(`/creators/${id}`);
 }
 
-export async function getFeaturedCreators(): Promise<CreatorProfile[]> {
-    const creators = await getCreators();
-    return creators.slice(0, 5);
+/** Item de GET /api/creators/recommended — ranking real calculado no backend. */
+export interface RecommendedItineraryThumbnail {
+    id: string;
+    title: string;
+    image: string | null;
+}
+
+export interface RecommendedCreator {
+    id: string;
+    name: string;
+    avatar: string | null;
+    coverUrl: string | null;
+    reputation: {
+        level: string;
+        label: string;
+        icon: string;
+        color: string;
+    };
+    stats: {
+        activeItineraries: number;
+        totalSales: number;
+        averageRating: number | null;
+        reviewCount: number;
+        averageQualityScore: number | null;
+    };
+    /** Até 3 roteiros ativos com imagem real, pra prévia visual do card. */
+    topItineraries: RecommendedItineraryThumbnail[];
+    recommendation: {
+        score: number;
+        contextualMatch: boolean;
+        matchingDestinations: string[];
+        matchingCategories: string[];
+        /** Evidência mais forte — sempre presente. */
+        primaryReason: string;
+        /** Segunda evidência, só quando existe uma segunda genuína. */
+        secondaryReason?: string;
+        /** @deprecated primaryReason + secondaryReason já cobrem o mesmo dado. */
+        reason: string;
+    };
+}
+
+/** `contextual` = pelo menos 1 criador tem afinidade real com o filtro aplicado.
+ *  `global_fallback` = sem filtro, ou nenhum criador batia — lista dos melhores globais. */
+export type RecommendedCreatorsResultType = 'contextual' | 'global_fallback';
+
+export interface RecommendedCreatorsResponse {
+    type: RecommendedCreatorsResultType;
+    creators: RecommendedCreator[];
+}
+
+/**
+ * Ranking de "Criadores recomendados" — SEMPRE calculado no backend
+ * (elegibilidade + score ponderado + afinidade contextual). Nunca fazer
+ * `getCreators().slice(...)` no cliente: isso ordenava por vendas cruas e
+ * podia recomendar perfis sem qualidade/reputação comprovada.
+ */
+export async function getRecommendedCreators(params?: {
+    destination?: string;
+    country?: string;
+    categories?: string[];
+    travelStyles?: string[];
+    limit?: number;
+}): Promise<RecommendedCreatorsResponse> {
+    const query = new URLSearchParams();
+    if (params?.destination) query.set('destination', params.destination);
+    if (params?.country) query.set('country', params.country);
+    if (params?.categories?.length) query.set('categories', params.categories.join(','));
+    if (params?.travelStyles?.length) query.set('travelStyles', params.travelStyles.join(','));
+    if (params?.limit) query.set('limit', String(params.limit));
+    const qs = query.toString();
+    return request<RecommendedCreatorsResponse>(`/creators/recommended${qs ? `?${qs}` : ''}`);
 }
 
 // ─── Destinations ───

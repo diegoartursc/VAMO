@@ -4,6 +4,16 @@ import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import { getStripe, APP_BASE_URL } from '../lib/stripe';
 import { isGenericCreatorBio } from '../utils/creatorBio';
+import { PUBLIC_ITINERARY_WHERE } from '../lib/itineraryStatus';
+import { calculateCreatorLevel, CREATOR_REPUTATION_BY_KEY } from '@vamo/shared';
+import {
+    buildRecommendationCandidate,
+    rankRecommendationCandidates,
+    classifyRecommendationResult,
+    splitCsv,
+    normalizeMatchText,
+    type RecommendationCandidate,
+} from '../utils/creatorRecommendation';
 
 const router = Router();
 
@@ -184,8 +194,11 @@ router.get('/', async (req: Request, res: Response) => {
         const creators = await (prisma.creator as any).findMany({
             include: {
                 traveler: { select: { name: true, avatar: true, coverUrl: true } },
+                // Vendas reais contam TODOS os status (histórico não some com
+                // pausa/arquivamento) — mas a contagem pública de "roteiros
+                // publicados" abaixo usa uma query separada só com ACTIVE.
                 itineraries: {
-                    select: { _count: { select: { sales: true } } },
+                    select: { status: true, _count: { select: { sales: true } } },
                 },
             },
         });
@@ -195,12 +208,15 @@ router.get('/', async (req: Request, res: Response) => {
                 (sum: number, itinerary: any) => sum + itinerary._count.sales,
                 0,
             );
+            const publicItinerariesCount = c.itineraries.filter(
+                (it: any) => it.status === PUBLIC_ITINERARY_WHERE.status,
+            ).length;
             return {
                 id: c.id, name: c.traveler.name, avatar: c.traveler.avatar || '👤',
                 coverUrl: c.traveler.coverUrl || null,
                 verificationLevel: c.verificationLevel.toLowerCase(),
                 stats: {
-                    itinerariesCount: c.itineraries.length,
+                    itinerariesCount: publicItinerariesCount,
                     totalSales: realTotalSales, averageRating: c.averageRating,
                     responseTime: c.responseTime, tripsCompleted: c.tripsCompleted,
                 },
@@ -233,6 +249,84 @@ router.get('/by-traveler/:travelerId', async (req: Request, res: Response) => {
     }
 });
 
+// ─── RECOMMENDED CREATORS ───────────────────────────────────────
+// GET /api/creators/recommended
+//
+// Ranking real de "Criadores recomendados" (seção da tela de exploração de
+// roteiros). NUNCA ordena só por vendas nem por média simples — ver
+// calculateCreatorLevel/confidenceRating em @vamo/shared. Regras:
+//
+//  1. Elegibilidade: precisa ter ao menos 1 roteiro ACTIVE (senão não há
+//     nada pra vender agora) E nível de reputação calculado >= "Roteirista
+//     Recomendado" (ver CREATOR_REPUTATION_ORDER). Um criador com só
+//     rascunhos/pendentes/pausados/arquivados nunca aparece aqui, mesmo
+//     com histórico de vendas antigo.
+//  2. Score de ranking pondera vendas reais (log1p, satura influência de
+//     volume bruto), nota com confiança estatística (confidenceRating —
+//     suaviza notas com poucas avaliações), o PRÓPRIO nível de reputação
+//     (peso adicional, não único critério) e qualidade média dos roteiros
+//     ATIVOS. `responseRatePct`/`complaintRatePct` ainda não têm dado real
+//     persistido no produto — entram como 0 (nem penalizam nem promovem
+//     por dado inexistente; documentado como limitação conhecida).
+//  3. Bônus contextual (destino/categoria/estilo do filtro ativo) é somado
+//     DEPOIS do score de reputação e é limitado (CONTEXT_BONUS_CAP) pra
+//     nunca superar a diferença típica entre dois níveis de reputação —
+//     um criador sem histórico nunca fica em primeiro só por ter 1 roteiro
+//     no destino pesquisado, porque ele nem passa da elegibilidade.
+//  4. Sem candidato elegível relacionado ao contexto → cai pros melhores
+//     elegíveis GLOBAIS (nunca perfis aleatórios, nunca afrouxa o piso de
+//     elegibilidade só pra preencher a seção).
+router.get('/recommended', async (req: Request, res: Response) => {
+    try {
+        const {
+            destination, country, categories, travelStyles, limit: limitParam,
+        } = req.query as Record<string, string | undefined>;
+
+        const parsedLimit = parseInt(String(limitParam ?? ''), 10);
+        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 20) : 4;
+
+        const wantedCategories = splitCsv(categories);
+        const wantedStyles = splitCsv(travelStyles);
+        const wantedDestination = normalizeMatchText(destination);
+        const wantedCountry = normalizeMatchText(country);
+        const hasContext = !!(wantedDestination || wantedCountry || wantedCategories.length || wantedStyles.length);
+
+        const creators = await (prisma.creator as any).findMany({
+            include: {
+                traveler: { select: { name: true, avatar: true, coverUrl: true } },
+                itineraries: {
+                    select: {
+                        id: true, title: true, status: true, destination: true, country: true,
+                        categories: true, travelStyles: true, qualityScore: true,
+                        reviews: { select: { rating: true } },
+                        _count: { select: { sales: true } },
+                        images: { orderBy: { order: 'asc' }, take: 1, select: { url: true } },
+                    },
+                },
+            },
+        });
+
+        const candidates: RecommendationCandidate[] = creators.map((c: any) => buildRecommendationCandidate(
+            { ...c, itineraries: c.itineraries.map((it: any) => ({ ...it, coverImage: it.images?.[0]?.url ?? null })) },
+            { wantedDestination, wantedCountry, wantedCategories, wantedStyles },
+        ));
+
+        // Fallback automático embutido no próprio score: o bônus contextual
+        // só existe quando há match real — sem nenhum match no pool
+        // elegível, o ranking cai naturalmente pros melhores critérios
+        // GLOBAIS (nunca afrouxa elegibilidade nem mostra perfil aleatório
+        // só pra preencher a seção).
+        const eligible = candidates.filter((c) => c.eligible);
+        const ranked = rankRecommendationCandidates(eligible, limit);
+        const type = classifyRecommendationResult(ranked, hasContext);
+
+        res.json({ type, creators: ranked.map((c) => c.payload) });
+    } catch (error) {
+        console.error('[creators.recommended] error:', error);
+        res.status(500).json({ error: 'Failed to fetch recommended creators' });
+    }
+});
+
 // GET /api/creators/:id
 router.get('/:id', async (req: Request, res: Response) => {
     try {
@@ -241,7 +335,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             include: {
                 traveler: { select: { name: true, avatar: true, coverUrl: true } },
                 itineraries: {
-                    where: { status: { in: ['APPROVED', 'ACTIVE'] } },
+                    where: { ...PUBLIC_ITINERARY_WHERE },
                     include: {
                         images: { orderBy: { order: 'asc' }, take: 1, select: { url: true } },
                         _count: { select: { sales: true } },
@@ -256,14 +350,50 @@ router.get('/:id', async (req: Request, res: Response) => {
         const realTotalSales = await prisma.itinerarySale.count({
             where: { itinerary: { creatorId: c.id } },
         });
+        // Avaliação REAL (agregado de Review, não o campo cacheado
+        // `Creator.averageRating`, que pode estar desatualizado) — mesma
+        // fonte usada pelo ranking de /recommended, pra nunca divergir.
+        const reviewAgg = await prisma.review.aggregate({
+            where: { itinerary: { creatorId: c.id } },
+            _avg: { rating: true },
+            _count: { rating: true },
+        });
+        const realReviewCount = reviewAgg._count.rating;
+        const realAverageRating = reviewAgg._avg.rating ?? 0;
+
+        // Reputação REAL calculada — a MESMA fórmula/config de
+        // /api/creators/recommended (@vamo/shared). O card de recomendado e
+        // o perfil público nunca podem mostrar níveis diferentes pro mesmo
+        // criador.
+        const reputationLevelResult = calculateCreatorLevel({
+            identityApproved: true,
+            activeItineraries: c.itineraries.length,
+            totalSales: realTotalSales,
+            averageRating: realAverageRating,
+            reviewCount: realReviewCount,
+            manualAmbassador: String(c.verificationLevel).toUpperCase() === 'AMBASSADOR',
+        });
+        const reputationConfig = CREATOR_REPUTATION_BY_KEY[reputationLevelResult.level];
 
         const result = {
             id: c.id, name: c.traveler.name, avatar: c.traveler.avatar || '👤',
             coverUrl: c.traveler.coverUrl || null,
             verificationLevel: c.verificationLevel.toLowerCase(),
+            // Reputação calculada (fonte de verdade). `verificationLevel`
+            // acima é mantido só por compatibilidade com badges antigos que
+            // ainda não migraram pra este campo — ver nota na ponte
+            // VERIFICATION_TO_REPUTATION no mobile.
+            reputation: {
+                level: reputationConfig.level,
+                label: reputationConfig.label,
+                icon: reputationConfig.icon,
+                color: reputationConfig.color,
+            },
             stats: {
                 itinerariesCount: c.itineraries.length, totalSales: realTotalSales,
-                averageRating: c.averageRating, responseTime: c.responseTime,
+                averageRating: realReviewCount > 0 ? Math.round(realAverageRating * 10) / 10 : null,
+                reviewCount: realReviewCount,
+                responseTime: c.responseTime,
                 tripsCompleted: c.tripsCompleted,
             },
             bio: isGenericCreatorBio(c.bio) ? null : c.bio, destinations: c.destinations,

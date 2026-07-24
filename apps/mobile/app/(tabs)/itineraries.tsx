@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
-import { CreatorCard } from '../../src/components/creator/CreatorCard';
-import { getFeaturedCreators as apiFeaturedCreators } from '../../src/services/api';
+import { RecommendedCreatorsSection } from '../../src/components/creator/RecommendedCreatorsSection';
 import { ErrorState } from '../../src/components/common/ErrorState';
 import { CREATOR_REPUTATION_LEVELS } from '../../src/gamification';
 import { IconicSearchBar } from '../../src/components/search/IconicSearchBar';
@@ -114,16 +113,11 @@ export default function ItinerariesScreen() {
         reload,
     } = useSearch();
     const [searchModalVisible, setSearchModalVisible] = useState(false);
-    const [featuredCreators, setFeaturedCreators] = useState<any[]>([]);
 
     // Estado local da ordenação ativa. Hidratado pelo query param "sort" da home.
     // Nunca null — sempre cai no DEFAULT_SORT pra deixar claro que ordenação é
     // independente dos filtros reais.
     const [activeSort, setActiveSort] = useState<string>(sortParam ?? DEFAULT_SORT);
-
-    useEffect(() => {
-        apiFeaturedCreators().then(setFeaturedCreators).catch(console.error);
-    }, []);
 
     // Sincroniza com o query param vindo da home (caso o usuário troque
     // de chip clicando em outro shortcut antes de voltar à home).
@@ -313,25 +307,16 @@ export default function ItinerariesScreen() {
                     )}
                 </View>
 
-                {/* 2️⃣ Featured Creators */}
-                <View style={styles.section}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Icon name="award" size={18} color={theme.colors.primary} strokeWidth={2} />
-                        <Text style={styles.sectionTitle}>Criadores recomendados</Text>
-                    </View>
-                    <Text style={styles.sectionSubtitle}>
-                        Viajantes verificados com histórico comprovado
-                    </Text>
-
-                    {featuredCreators.slice(0, 2).map((creator) => (
-                        <View key={creator.id} style={{ marginTop: theme.spacing.md }}>
-                            <CreatorCard
-                                creator={creator}
-                                onPress={() => router.push(`/creator/${creator.id}`)}
-                            />
-                        </View>
-                    ))}
-                </View>
+                {/* 2️⃣ Criadores recomendados — componente próprio (busca, estado,
+                    copy contextual e analytics isolados de itineraries.tsx). */}
+                <RecommendedCreatorsSection
+                    destination={filters.destination || undefined}
+                    categories={selectedCategories.length ? selectedCategories : undefined}
+                    hasResults={itinerariesToShow.length > 0}
+                    hasActiveFilters={hasActiveFilters}
+                    onOpenCreator={(creatorId) => router.push(`/creator/${creatorId}`)}
+                    onOpenItinerary={(itineraryId) => router.push(`/itinerary/${itineraryId}`)}
+                />
 
                 {/* 3️⃣ Reputação dos Roteiristas (Trilha do Roteirista) */}
                 <View style={styles.section}>
@@ -340,25 +325,51 @@ export default function ItinerariesScreen() {
                         <Text style={styles.sectionTitle}>Reputação dos Roteiristas</Text>
                     </View>
                     <Text style={styles.sectionSubtitle}>
-                        Entenda o nível de experiência e confiança por trás de cada roteiro.
+                        Entenda o nível de experiência e confiança por trás de cada roteiro — a mesma trilha usada no perfil de cada criador.
                     </Text>
 
+                    {/* Trilha vertical: passo numerado + linha conectando os níveis.
+                        Config vem 100% de CREATOR_REPUTATION_LEVELS (fonte única
+                        compartilhada com backend) — nada escrito manualmente aqui. */}
                     <View style={styles.badgesGrid}>
-                        {CREATOR_REPUTATION_LEVELS.map((config) => (
-                            <View key={config.level} style={styles.badgeExplanation}>
-                                <View style={[styles.reputationChip, { backgroundColor: config.bgColor }]}>
-                                    <Text style={{ fontSize: 20 }}>{config.icon}</Text>
+                        {CREATOR_REPUTATION_LEVELS.map((config, index) => {
+                            const isLast = index === CREATOR_REPUTATION_LEVELS.length - 1;
+                            const a11yLabel = `Nível ${index + 1} de ${CREATOR_REPUTATION_LEVELS.length}: ${config.label}. ${config.description}`
+                                + (config.manualOnly ? ' Atribuído manualmente pela equipe VAMO.' : '');
+                            return (
+                                <View key={config.level} style={styles.badgeExplanation} accessibilityRole="text" accessibilityLabel={a11yLabel}>
+                                    <View style={styles.trailIconColumn}>
+                                        <View style={[styles.reputationChip, { backgroundColor: config.bgColor }]}>
+                                            <Text style={{ fontSize: 20 }} accessibilityElementsHidden importantForAccessibility="no">
+                                                {config.icon}
+                                            </Text>
+                                        </View>
+                                        <View style={[styles.trailStepBadge, { backgroundColor: config.color }]}>
+                                            <Text style={styles.trailStepText}>{index + 1}</Text>
+                                        </View>
+                                        {!isLast && <View style={styles.trailConnector} />}
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                            <Text style={{ fontSize: 14, fontWeight: '700', color: config.color }}>
+                                                {config.label}
+                                            </Text>
+                                            {config.manualOnly && (
+                                                <View style={styles.manualBadge}>
+                                                    <Text style={styles.manualBadgeText}>Seleção VAMO</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        <Text style={styles.badgeDescription}>
+                                            {config.description}
+                                        </Text>
+                                        <Text style={styles.badgeCriteria}>
+                                            {config.criteriaSummary}
+                                        </Text>
+                                    </View>
                                 </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={{ fontSize: 14, fontWeight: '700', color: config.color, marginBottom: 2 }}>
-                                        {config.label}
-                                    </Text>
-                                    <Text style={styles.badgeDescription}>
-                                        {config.description}
-                                    </Text>
-                                </View>
-                            </View>
-                        ))}
+                            );
+                        })}
                     </View>
                 </View>
 
@@ -581,12 +592,59 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: theme.colors.text.secondary,
     },
+    badgeCriteria: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginTop: 3,
+        fontStyle: 'italic',
+    },
     reputationChip: {
         width: 44,
         height: 44,
         borderRadius: theme.borderRadius.md,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    trailIconColumn: {
+        alignItems: 'center',
+        position: 'relative',
+    },
+    trailStepBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: theme.colors.background,
+    },
+    trailStepText: {
+        fontSize: 9,
+        fontWeight: '800',
+        color: '#fff',
+    },
+    trailConnector: {
+        position: 'absolute',
+        top: 44,
+        width: 2,
+        height: theme.spacing.sm + 2,
+        backgroundColor: theme.colors.borderLight,
+    },
+    manualBadge: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.full,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderWidth: 1,
+        borderColor: theme.colors.borderLight,
+    },
+    manualBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: theme.colors.text.secondary,
     },
     toggleButton: {
         paddingVertical: theme.spacing.sm,

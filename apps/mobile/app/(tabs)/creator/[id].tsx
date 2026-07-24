@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { safeBack } from '../../../src/utils/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +24,7 @@ function formatAverageRating(value: number | null | undefined): string {
 export default function CreatorDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [creator, setCreator] = useState<CreatorDetail | null>(null);
     const [loadError, setLoadError] = useState<LoadErrorKind | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
@@ -65,45 +67,81 @@ export default function CreatorDetailScreen() {
         }
     };
 
+    // Header/Hero — mesma identidade visual do perfil interno: capa real
+    // (se o roteirista tiver cadastrado) + avatar centralizado. Sem capa,
+    // cai no gradient institucional (nunca uma capa genérica/aleatória).
+    // Renderizado dentro do ScrollView principal para que capa/avatar/nome
+    // rolem junto com o resto do conteúdo — só o botão de voltar é fixo.
+    const renderHeader = () => (
+        <View style={styles.header}>
+            {creator?.coverUrl ? (
+                <>
+                    <Image source={{ uri: creator.coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                    <LinearGradient
+                        colors={['rgba(15,32,67,0.35)', 'rgba(15,32,67,0.65)']}
+                        style={StyleSheet.absoluteFill}
+                    />
+                </>
+            ) : (
+                <LinearGradient colors={theme.colors.gradients.institutional as any} style={StyleSheet.absoluteFill} />
+            )}
+
+            {creator ? (
+                <View style={styles.heroContent}>
+                    <CreatorAvatar creator={creator} name={creator.name} size={80} style={styles.avatar} />
+                    <View style={styles.nameRow}>
+                        <Text style={styles.name} numberOfLines={2}>{creator.name}</Text>
+                        {/* Reputação REAL calculada (mesma fórmula/config do card
+                            "Criadores recomendados") — nunca o VerificationLevel
+                            técnico sozinho, pra não mostrar nível divergente entre
+                            telas. Fallback pro badge antigo só se o backend ainda
+                            não tiver enviado `reputation` (deploy defasado). */}
+                        {creator.reputation ? (
+                            <View
+                                style={styles.reputationPill}
+                                accessibilityRole="text"
+                                accessibilityLabel={`Nível de reputação: ${creator.reputation.label}`}
+                            >
+                                <Text style={{ fontSize: 13 }} accessibilityElementsHidden importantForAccessibility="no">
+                                    {creator.reputation.icon}
+                                </Text>
+                                <Text style={styles.reputationPillText} numberOfLines={1}>
+                                    {creator.reputation.label}
+                                </Text>
+                            </View>
+                        ) : (
+                            <VerifiedBadge level={creator.verificationLevel} size="medium" />
+                        )}
+                    </View>
+                    <View style={styles.sinceBadge}>
+                        <Text style={styles.sinceText}>Membro desde {creator.memberSince}</Text>
+                    </View>
+                </View>
+            ) : (
+                <View style={styles.heroContent}>
+                    <Skeleton width={80} height={80} borderRadius={40} style={styles.avatar} />
+                    <Skeleton width={160} height={22} style={{ marginBottom: 10 }} />
+                    <Skeleton width={130} height={24} borderRadius={20} />
+                </View>
+            )}
+        </View>
+    );
+
     return (
         <View style={styles.container}>
-            {/* Header/Hero — mesma identidade visual do perfil interno: capa real
-                (se o roteirista tiver cadastrado) + avatar centralizado. Sem capa,
-                cai no gradient institucional (nunca uma capa genérica/aleatória). */}
-            <View style={styles.header}>
-                {creator?.coverUrl ? (
-                    <>
-                        <Image source={{ uri: creator.coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                        <LinearGradient
-                            colors={['rgba(15,32,67,0.35)', 'rgba(15,32,67,0.65)']}
-                            style={StyleSheet.absoluteFill}
-                        />
-                    </>
-                ) : (
-                    <LinearGradient colors={theme.colors.gradients.institutional as any} style={StyleSheet.absoluteFill} />
-                )}
-
-                <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router, '/(tabs)')}>
-                    <Text style={styles.backIcon}>‹</Text>
-                    <Text style={styles.backText}>Voltar</Text>
-                </TouchableOpacity>
-
-                {creator && (
-                    <View style={styles.heroContent}>
-                        <CreatorAvatar creator={creator} name={creator.name} size={80} style={styles.avatar} />
-                        <View style={styles.nameRow}>
-                            <Text style={styles.name} numberOfLines={2}>{creator.name}</Text>
-                            <VerifiedBadge level={creator.verificationLevel} size="medium" />
-                        </View>
-                        <View style={styles.sinceBadge}>
-                            <Text style={styles.sinceText}>Membro desde {creator.memberSince}</Text>
-                        </View>
-                    </View>
-                )}
-            </View>
+            {/* Único controle de navegação fixo — capa/avatar/nome rolam
+                normalmente, então o botão precisa do próprio contraste
+                (fundo translúcido) para continuar legível em qualquer ponto. */}
+            <TouchableOpacity
+                style={[styles.backButtonFixed, { top: insets.top + 10 }]}
+                onPress={() => safeBack(router, '/(tabs)')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+                <Text style={styles.backIconFixed}>‹</Text>
+            </TouchableOpacity>
 
             {loadError && (
-                <View style={styles.errorWrap}>
+                <View style={[styles.errorWrap, { paddingTop: insets.top + 72 }]}>
                     <ErrorState
                         title={loadError === 'not_found' ? 'Perfil não encontrado' : 'Algo deu errado'}
                         message={loadError === 'not_found'
@@ -115,7 +153,8 @@ export default function CreatorDetailScreen() {
             )}
 
             {!creator && !loadError && (
-                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    {renderHeader()}
                     <View style={styles.statsContainer}>
                         <Skeleton width={70} height={40} />
                         <Skeleton width={70} height={40} />
@@ -130,7 +169,9 @@ export default function CreatorDetailScreen() {
             )}
 
             {creator && !loadError && (
-                <ScrollView ref={scrollRef} style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    {renderHeader()}
+
                     {/* CTAs — "Ver roteiros" é a ação principal, "Seguir" é secundário */}
                     <View style={styles.actionButtons}>
                         <TouchableOpacity style={styles.primaryButton} onPress={() => { haptics.light(); scrollToItineraries(); }}>
@@ -230,23 +271,22 @@ const styles = StyleSheet.create({
         // intrínseca por padding interno) — mesmo valor do perfil interno.
         minHeight: 260,
     },
-    backButton: {
+    backButtonFixed: {
         position: 'absolute',
-        top: 54,
-        left: 20,
-        flexDirection: 'row',
+        left: 16,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(15,32,67,0.55)',
         alignItems: 'center',
-        zIndex: 2,
+        justifyContent: 'center',
+        zIndex: 10,
     },
-    backIcon: {
-        fontSize: 32,
+    backIconFixed: {
+        fontSize: 26,
+        lineHeight: 28,
         color: theme.colors.text.inverse,
-        marginRight: 4,
-    },
-    backText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: theme.colors.text.inverse,
+        marginLeft: -2,
     },
     heroContent: {
         alignItems: 'center',
@@ -273,6 +313,22 @@ const styles = StyleSheet.create({
         color: theme.colors.text.inverse,
         textAlign: 'center',
     },
+    reputationPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 20,
+    },
+    reputationPillText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.colors.text.inverse,
+    },
     sinceBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -292,6 +348,9 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 24,
     },
     actionButtons: {
         flexDirection: 'row',

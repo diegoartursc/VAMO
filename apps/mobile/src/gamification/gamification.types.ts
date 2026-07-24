@@ -20,12 +20,14 @@ export type TravelerLevel =
     | 'ambassador';
 
 // ─── Roteirista (Trilha do Roteirista) ──────────────────────────
-export type CreatorReputationLevel =
-    | 'verified_creator'
-    | 'recommended_creator'
-    | 'travel_curator'
-    | 'top_creator'
-    | 'vamo_ambassador';
+// Fonte canônica em @vamo/shared/gamification/creatorReputation — backend e
+// mobile calculam/consomem a MESMA config e fórmula. Não redefinir aqui.
+export type {
+    CreatorReputationLevel,
+    CreatorReputationLevelConfig,
+    CreatorReputationStatsInput as CreatorStatsInput,
+    CreatorReputationResult as CreatorLevelResult,
+} from '@vamo/shared';
 
 // ─── Eventos que geram XP ───────────────────────────────────────
 export type GamificationEvent =
@@ -155,27 +157,5 @@ export interface TravelerProgress {
     totalCurrentLevelMissions: number;
 }
 
-// ─── Entradas/saídas dos cálculos do roteirista ─────────────────
-export interface CreatorStatsInput {
-    identityApproved: boolean;
-    approvedItineraries: number;
-    averageRating: number;
-    totalSales: number;
-    /** 0..100 — taxa de resposta a dúvidas. */
-    responseRatePct?: number;
-    /** 0..100 — taxa de reclamação/reembolso (quanto menor, melhor). */
-    complaintRatePct?: number;
-    /** Roteiros atualizados recentemente. */
-    routesUpdatedRecently?: boolean;
-    /** Seleção manual da equipe VAMO (sobrepõe critérios automáticos). */
-    manualAmbassador?: boolean;
-}
-
-export interface CreatorLevelResult {
-    level: CreatorReputationLevel;
-    config: LevelConfig<CreatorReputationLevel>;
-    nextLevel: CreatorReputationLevel | null;
-    nextConfig: LevelConfig<CreatorReputationLevel> | null;
-    /** Critérios ainda não atingidos para o próximo nível (texto p/ UI). */
-    unmetCriteria: string[];
-}
+// CreatorStatsInput / CreatorLevelResult: ver re-export de @vamo/shared no
+// topo deste arquivo — não duplicar aqui.

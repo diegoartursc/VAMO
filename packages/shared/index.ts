@@ -3,3 +3,4 @@
  * Consumido pelo app mobile (apps/mobile) e (futuramente) pelo backend.
  */
 export * from "./itinerary";
+export * from "./gamification";
