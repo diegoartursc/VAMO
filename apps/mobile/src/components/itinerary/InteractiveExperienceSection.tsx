@@ -223,40 +223,6 @@ export const InteractiveExperienceSection: React.FC = () => {
     );
 };
 
-/**
- * Box compacto de conversão para posicionar perto do botão "Comprar agora".
- * Reforça o valor sem ocupar espaço excessivo.
- */
-export const PostPurchaseConversionBox: React.FC = () => {
-    const bullets = [
-        'Roteiro original + sua versão personalizada',
-        'Documentos, bilhetes e reservas em um só lugar',
-        'Checklist próprio para não esquecer nada',
-    ];
-    return (
-        <View style={styles.box}>
-            <View style={styles.boxHeader}>
-                <View style={styles.boxIcon}>
-                    <Icon name="map" size={16} color={theme.colors.primaryDark} />
-                </View>
-                <Text style={styles.boxTitle}>Após a compra, organize tudo dentro da VAMO</Text>
-            </View>
-            <Text style={styles.boxSubtitle}>
-                Adapte o roteiro à sua viagem, salve documentos importantes e acompanhe seu
-                checklist em Meus Roteiros.
-            </Text>
-            <View style={styles.boxBullets}>
-                {bullets.map((b) => (
-                    <View key={b} style={styles.boxBulletRow}>
-                        <Icon name="check-square" size={14} color={theme.colors.primaryDark} />
-                        <Text style={styles.boxBulletText}>{b}</Text>
-                    </View>
-                ))}
-            </View>
-        </View>
-    );
-};
-
 /** Badge discreta "Roteiro interativo" para o topo de Detalhes do Roteiro. */
 export const InteractiveRouteBadge: React.FC = () => (
     <View style={styles.badge}>
@@ -512,55 +478,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '800',
         color: '#fff',
-    },
-    // Box de conversão compacto
-    box: {
-        backgroundColor: 'rgba(40, 201, 191, 0.08)',
-        borderRadius: theme.borderRadius.lg,
-        padding: theme.spacing.md,
-        marginBottom: theme.spacing.md,
-        borderWidth: 1,
-        borderColor: 'rgba(40, 201, 191, 0.25)',
-    },
-    boxHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 8,
-    },
-    boxIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: theme.borderRadius.sm,
-        backgroundColor: theme.colors.surface,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    boxTitle: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '800',
-        color: theme.colors.secondary,
-    },
-    boxSubtitle: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        lineHeight: 17,
-        marginBottom: 10,
-    },
-    boxBullets: {
-        gap: 6,
-    },
-    boxBulletRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    boxBulletText: {
-        flex: 1,
-        fontSize: 12.5,
-        color: theme.colors.text.primary,
-        fontWeight: '500',
     },
     // Badge
     badge: {

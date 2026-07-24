@@ -764,3 +764,213 @@ export function getCostReferences(
 
     return groups;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Resumo consolidado de custos por CATEGORIA (tela pública de Detalhes)
+//
+// Fonte ÚNICA da verdade pro card "Referência de custos da viagem": todo bloco
+// (total geral, percentuais, lista por categoria, simulador de grupo) consome
+// a MESMA `ConsolidatedTravelCostSummary` — nunca calcule o total numa função
+// e os percentuais em outra. Nunca exibe título/nome de item individual
+// (hotel, atração, fornecedor) — só a categoria agregada, preservando o valor
+// comercial do conteúdo pago.
+//
+// Diferença crítica vs. `calculateBudgetSummary`: aquela função soma valores
+// BRUTOS de moedas potencialmente diferentes e rotula com a "moeda
+// dominante" (por contagem de itens) — o que produz totais sem sentido
+// quando o roteiro mistura moedas (ex.: JPY 12.000 + A$ 2.000 vira "A$
+// 14.000"). Aqui cada item é convertido pra AUD (moeda de referência do
+// mercado) ANTES de somar, usando as mesmas taxas do admin já usadas pela
+// conversão "≈ A$" item-a-item em outras telas.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Converte um valor numa moeda pra AUD. Retorna `null` quando a taxa não
+ *  está disponível — nunca 0 silencioso (evita subestimar o total). */
+export type ConvertToAud = (amount: number, currency: string) => number | null;
+
+export type CategoryCostStatus = "verified" | "estimated" | "mixed";
+
+export interface ConsolidatedCostCategory {
+    moduleKey: CostReferencesGroup["moduleKey"];
+    moduleLabel: string;
+    /** Total da categoria em AUD (por pessoa), já convertido. */
+    perPersonAUD: number;
+    verifiedAUD: number;
+    estimatedAUD: number;
+    status: CategoryCostStatus;
+    /** Moeda original ÚNICA da categoria — null quando os itens misturam moedas
+     *  (nesse caso, mostrar só o total em AUD com nota de moedas originais). */
+    originalCurrency: string | null;
+    /** Soma na moeda original (por pessoa) — só quando `originalCurrency` != null. */
+    originalAmountPerPerson: number | null;
+    /** Lista de moedas originais distintas presentes na categoria (>1 = mista). */
+    originalCurrencies: string[];
+    /** Base "total ÷ pessoas" — só exibida quando a categoria tem EXATAMENTE
+     *  1 item e ele foi cadastrado como gasto compartilhado (sharedByPeople > 1).
+     *  Agregados de múltiplos itens não têm uma "base" única e coerente. */
+    sharedBase: { amountTotal: number; currency: string; people: number } | null;
+    /** true quando ao menos 1 item da categoria não pôde ser convertido pra
+     *  AUD (moeda sem taxa cadastrada) — o total da categoria fica subestimado. */
+    hasConversionGap: boolean;
+}
+
+export interface ConsolidatedTravelCostSummary {
+    /** Custo total estimado da viagem, por pessoa, em AUD. */
+    perPersonTotalAUD: number;
+    verifiedAmountAUD: number;
+    estimatedAmountAUD: number;
+    /** 0..100, sempre `verifiedPercentage + estimatedPercentage === 100`
+     *  quando houver algum valor informado (nunca 99/101 por arredondamento
+     *  independente — um dos dois é sempre `100 - o outro`). */
+    verifiedPercentage: number;
+    estimatedPercentage: number;
+    /** Categorias com custo informado, na ordem canônica dos módulos. */
+    categories: ConsolidatedCostCategory[];
+    /** Rótulos das categorias ATIVAS no roteiro (activeModules) sem NENHUM
+     *  custo informado ainda — nunca inclui módulo que o criador não ativou. */
+    missingCategories: string[];
+    /** false quando nenhuma categoria tem custo informado — UI deve mostrar
+     *  o estado "ainda não há estimativa" e ocultar barra/lista/simulador. */
+    hasAnyData: boolean;
+    /** true quando qualquer categoria tem `hasConversionGap` — some
+     *  ao menos 1 item não pôde ser convertido pra AUD. */
+    hasConversionFailure: boolean;
+}
+
+const MODULE_ORDER: CostReferencesGroup["moduleKey"][] = [
+    "voo", "hospedagem", "passeios", "transporte", "restaurantes", "gastos_extras",
+];
+
+/** Mapa activeModules (chaves do wizard) -> moduleKey de custo. Só os módulos
+ *  com conceito de custo próprio entram aqui — "itinerario"/"dicas"/
+ *  "checklist" não têm categoria de gasto equivalente. */
+const ACTIVE_MODULE_TO_COST_KEY: Record<string, CostReferencesGroup["moduleKey"]> = {
+    voo: "voo",
+    hospedagem: "hospedagem",
+    passeios: "passeios",
+    transporte: "transporte",
+    restaurantes: "restaurantes",
+    gastos_extras: "gastos_extras",
+};
+
+/**
+ * Agrega os grupos de `getCostReferences` em categorias consolidadas,
+ * convertendo cada item pra AUD antes de somar (nunca soma moedas
+ * diferentes cruas). Não expõe título/nome de item — só o agregado da
+ * categoria.
+ */
+export function aggregateCostsByCategory(
+    groups: CostReferencesGroup[],
+    convert: ConvertToAud,
+): ConsolidatedCostCategory[] {
+    const byKey = new Map(groups.map((g) => [g.moduleKey, g] as const));
+
+    return MODULE_ORDER
+        .map((moduleKey) => byKey.get(moduleKey))
+        .filter((g): g is CostReferencesGroup => !!g && g.items.length > 0)
+        .map((group) => {
+            let perPersonAUD = 0;
+            let verifiedAUD = 0;
+            let estimatedAUD = 0;
+            let hasConversionGap = false;
+            const currencies = new Set<string>();
+
+            for (const item of group.items) {
+                currencies.add(item.currency);
+                const converted = convert(item.amountPerPerson, item.currency);
+                if (converted === null) {
+                    hasConversionGap = true;
+                    continue; // não soma — evita subestimar silenciosamente com 0
+                }
+                perPersonAUD += converted;
+                if (item.disclosureType === "verified") verifiedAUD += converted;
+                else estimatedAUD += converted;
+            }
+
+            const originalCurrencies = Array.from(currencies);
+            const singleCurrency = originalCurrencies.length === 1 ? originalCurrencies[0] : null;
+            const originalAmountPerPerson = singleCurrency
+                ? group.items.reduce((sum, it) => sum + it.amountPerPerson, 0)
+                : null;
+
+            const status: CategoryCostStatus =
+                verifiedAUD > 0 && estimatedAUD > 0 ? "mixed"
+                    : verifiedAUD > 0 ? "verified"
+                        : "estimated";
+
+            const sharedBase = group.items.length === 1 && group.items[0].sharedByPeople > 1
+                ? {
+                    amountTotal: group.items[0].amountTotal,
+                    currency: group.items[0].currency,
+                    people: group.items[0].sharedByPeople,
+                }
+                : null;
+
+            const category: ConsolidatedCostCategory = {
+                moduleKey: group.moduleKey,
+                moduleLabel: group.moduleLabel,
+                perPersonAUD,
+                verifiedAUD,
+                estimatedAUD,
+                status,
+                originalCurrency: singleCurrency,
+                originalAmountPerPerson,
+                originalCurrencies,
+                sharedBase,
+                hasConversionGap,
+            };
+            return category;
+        });
+}
+
+/**
+ * Fonte única da verdade do resumo de custos da tela pública de Detalhes.
+ * `activeModules` vem de `itinerary.activeModules` — só entram como
+ * "categoria sem valor" módulos que o criador de fato ativou.
+ */
+export function buildConsolidatedCostSummary(
+    form: Partial<ItineraryFormState> | null | undefined,
+    activeModules: string[] | null | undefined,
+    convert: ConvertToAud,
+): ConsolidatedTravelCostSummary {
+    const groups = getCostReferences(form);
+    const categories = aggregateCostsByCategory(groups, convert);
+
+    let verifiedAmountAUD = 0;
+    let estimatedAmountAUD = 0;
+    let hasConversionFailure = false;
+    for (const cat of categories) {
+        verifiedAmountAUD += cat.verifiedAUD;
+        estimatedAmountAUD += cat.estimatedAUD;
+        if (cat.hasConversionGap) hasConversionFailure = true;
+    }
+    const perPersonTotalAUD = verifiedAmountAUD + estimatedAmountAUD;
+
+    // Arredondamento consistente: o percentual estimado é sempre o
+    // complemento do comprovado — nunca os dois arredondam
+    // independentemente (evita somar 99% ou 101%).
+    let verifiedPercentage = 0;
+    let estimatedPercentage = 0;
+    if (perPersonTotalAUD > 0) {
+        verifiedPercentage = Math.round((verifiedAmountAUD / perPersonTotalAUD) * 100);
+        estimatedPercentage = 100 - verifiedPercentage;
+    }
+
+    const presentKeys = new Set(categories.map((c) => c.moduleKey));
+    const missingCategories = Array.from(new Set(activeModules ?? []))
+        .map((m) => ACTIVE_MODULE_TO_COST_KEY[m])
+        .filter((key): key is CostReferencesGroup["moduleKey"] => !!key && !presentKeys.has(key))
+        .map((key) => MODULE_LABEL_PT[key]);
+
+    return {
+        perPersonTotalAUD,
+        verifiedAmountAUD,
+        estimatedAmountAUD,
+        verifiedPercentage,
+        estimatedPercentage,
+        categories,
+        missingCategories,
+        hasAnyData: categories.length > 0,
+        hasConversionFailure,
+    };
+}
