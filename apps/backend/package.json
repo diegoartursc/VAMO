@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "prisma generate && tsc",
-    "start": "node dist/index.js",
+    "start": "tsx src/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "echo 'BLOQUEADO: nunca rode prisma migrate dev (cria shadow DB direto no Supabase e quebra). Gere SQL offline com prisma migrate diff --script e aplique com npm run prisma:migrate:deploy. Ver CLAUDE.md.' && exit 1",
     "prisma:migrate:deploy": "prisma migrate deploy",
@@ -22,6 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@vamo/shared": "file:../../packages/shared",
     "@supabase/supabase-js": "^2.108.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",

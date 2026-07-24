@@ -3,9 +3,19 @@ services:
     runtime: node
     name: vamo-backend
     rootDir: apps/backend
-    buildCommand: npm ci && npm run build
+    # O backend importa @vamo/shared (packages/shared, workspace do
+    # monorepo). `npm ci` isolado dentro de apps/backend nunca resolve esse
+    # pacote (não é um projeto standalone) — precisa instalar a partir da
+    # raiz do monorepo pra hoistear os workspaces, igual ao ambiente local.
+    buildCommand: cd ../.. && npm ci && cd apps/backend && npm run build
     preDeployCommand: npm run prisma:migrate:deploy
-    startCommand: npm start
+    # `node dist/index.js` não consegue fazer require() de @vamo/shared em
+    # runtime puro (o pacote é distribuído como .ts fonte, sem etapa de
+    # build própria — assim ele funciona tanto no mobile/Metro quanto no
+    # backend sem duplicar build). `tsx` já é devDependency do backend e é
+    # exatamente o mesmo runtime usado em dev (`npm run dev`) a sessão
+    # inteira — troca o executor sem mudar nenhum código.
+    startCommand: npx tsx src/index.ts
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
