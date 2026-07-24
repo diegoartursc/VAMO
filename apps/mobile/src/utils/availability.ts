@@ -1,15 +1,17 @@
 // Single rule of "is this itinerary actually purchasable right now?"
 //
 // Shared by:
-// - useCart (hydrates each id in storage → marks owned/available/unavailable)
-// - Cart screen (renders the badge/banner)
+// - useCart (hydrates each id in storage → marks available, or purges the id)
+// - Cart screen (renders the badge)
 // - Itinerary detail + ItineraryCard (gates "Adicionar ao carrinho" / "Comprar agora")
 //
-// Backend equivalent: status ∈ {APPROVED, ACTIVE} (apps/backend/src/routes/itineraries.ts).
-// Keep this aligned with that list — when the product adds a new purchasable status,
-// update both sides (or move to packages/shared and consume there).
+// Backend equivalent: status === 'ACTIVE' (apps/backend/src/lib/itineraryStatus.ts).
+// ACTIVE is the ONLY public/purchasable status — APPROVED means "aprovado
+// pela VAMO mas o criador ainda não publicou", nunca compravel. Keep this
+// aligned with the backend — when the product adds a new purchasable
+// status, update both sides (or move to packages/shared and consume there).
 
-export const PURCHASABLE_STATUSES = ['APPROVED', 'ACTIVE'] as const;
+export const PURCHASABLE_STATUSES = ['ACTIVE'] as const;
 
 const normalizeStatus = (raw: unknown): string =>
     String(raw ?? '').trim().toUpperCase();
@@ -45,7 +47,7 @@ export const evaluateItineraryAvailability = (
         itinerary.status ?? itinerary.approvalStatus,
     );
 
-    if (status && status !== 'APPROVED' && status !== 'ACTIVE') {
+    if (status && status !== 'ACTIVE') {
         return { ok: false, reason: REASONS[status] ?? 'Roteiro indisponível para compra' };
     }
 

@@ -8,6 +8,7 @@ import React, {
     useContext,
     ReactNode,
 } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { getItineraryById, getMyTrips } from '../services/api';
@@ -35,14 +36,18 @@ export const normalizeCartItemIds = (value: unknown): string[] => {
     return ids;
 };
 
-export type CartItemStatus = 'loading' | 'available' | 'unavailable' | 'owned';
+// 'checking_error' é o ÚNICO estado "não disponível" que sobrevive no
+// estado do carrinho — e é transiente (falha de rede/5xx ao confirmar o
+// item). Roteiros que o backend confirma como não-públicos (404) e
+// roteiros já comprados são removidos do carrinho automaticamente, nunca
+// renderizados como card "indisponível"/"já comprado".
+export type CartItemStatus = 'loading' | 'available' | 'checking_error';
 
 export interface CartItemMeta {
     id: string;
     status: CartItemStatus;
     itinerary?: any;
     price?: number;
-    unavailableReason?: string;
 }
 
 interface CartContextType {
@@ -53,14 +58,11 @@ interface CartContextType {
     addToCart: (id: string) => Promise<void>;
     removeFromCart: (id: string) => Promise<void>;
     clearCart: () => Promise<void>;
-    clearUnavailable: () => Promise<void>;
     reloadAvailability: () => Promise<void>;
     totalCount: number;
     availableCount: number;
-    unavailableCount: number;
-    ownedCount: number;
-    /** Roteiros realmente compráveis agora. Fonte ÚNICA do badge da tab.
-     *  Indisponíveis e já-comprados ficam de fora — só conta o que dá pra fechar. */
+    checkingErrorCount: number;
+    /** Roteiros realmente compráveis agora. Fonte ÚNICA do badge da tab. */
     cartCount: number;
     isLoading: boolean;
     isResolving: boolean;
@@ -167,10 +169,25 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         await persist(normalized);
     }, [persist]);
 
-    // Resolve cada id contra a API e o set "owned" → única fonte da verdade
-    // de disponibilidade. Consumido pelo badge da tab E pela tela do carrinho.
+    // Refs para o reload sempre ler o estado mais recente sem precisar
+    // recriar a função (e sem disparar loops via dependências mutantes).
+    const cartItemsRef = useRef(cartItems);
+    cartItemsRef.current = cartItems;
+    const ownedIdsRef = useRef(ownedIds);
+    ownedIdsRef.current = ownedIds;
+    const itemsMetaRef = useRef(itemsMeta);
+    itemsMetaRef.current = itemsMeta;
+
+    // Resolve cada id contra a API. Três desfechos possíveis por item:
+    //  1. 404 confirmado (fulfilled com null) OU já comprado → o id é
+    //     REMOVIDO do carrinho (storage + estado) silenciosamente. Nunca
+    //     vira um card "indisponível"/"já comprado".
+    //  2. Falha de rede/5xx → o id É MANTIDO, status vira 'checking_error'
+    //     (preserva os últimos dados conhecidos do item, se houver).
+    //  3. Disponível → status 'available'.
     const reloadAvailability = useCallback(async () => {
-        if (cartItems.length === 0) {
+        const ids = cartItemsRef.current;
+        if (ids.length === 0) {
             setItemsMeta({});
             setIsResolving(false);
             return;
@@ -178,65 +195,73 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         setIsResolving(true);
         setItemsMeta((prev) => {
             const next: Record<string, CartItemMeta> = {};
-            cartItems.forEach((id) => {
+            ids.forEach((id) => {
                 next[id] = prev[id] && prev[id].status !== 'loading'
                     ? prev[id]
                     : { id, status: 'loading' };
             });
             return next;
         });
-        const results = await Promise.allSettled(
-            cartItems.map((id) => getItineraryById(id)),
-        );
+        const results = await Promise.allSettled(ids.map((id) => getItineraryById(id)));
+
+        const toRemove: string[] = [];
         const next: Record<string, CartItemMeta> = {};
-        cartItems.forEach((id, i) => {
+        ids.forEach((id, i) => {
+            if (ownedIdsRef.current.has(id)) {
+                // Já comprado: só pertence a "Meus Roteiros" a partir daqui.
+                toRemove.push(id);
+                return;
+            }
             const r = results[i];
-            const itinerary = r.status === 'fulfilled' ? r.value : null;
-            if (ownedIds.has(id)) {
-                next[id] = {
-                    id,
-                    status: 'owned',
-                    itinerary,
-                    unavailableReason: 'Você já comprou este roteiro',
-                };
+            const itinerary = r.status === 'fulfilled' ? r.value : undefined;
+            if (r.status === 'fulfilled' && !itinerary) {
+                // 404 confirmado pelo backend (não é mais público/existente).
+                toRemove.push(id);
                 return;
             }
-            if (r.status === 'rejected' || !itinerary) {
-                // 404 real (fulfilled com null) = removido. Rejeição agora é
-                // falha de rede/5xx — não afirmar que o roteiro sumiu.
-                next[id] = {
-                    id,
-                    status: 'unavailable',
-                    unavailableReason: r.status === 'rejected'
-                        ? 'Não foi possível verificar este roteiro agora. Tente novamente.'
-                        : 'Roteiro removido ou não encontrado',
-                };
+            if (r.status === 'fulfilled' && itinerary) {
+                const avail = evaluateItineraryAvailability(itinerary);
+                if (!avail.ok) {
+                    // Defensivo: o payload trouxe um status não-público
+                    // (não deveria acontecer, já que o backend só retorna
+                    // ACTIVE publicamente, mas não confiamos cegamente).
+                    toRemove.push(id);
+                    return;
+                }
+                next[id] = { id, status: 'available', itinerary, price: Number(itinerary.price) };
                 return;
             }
-            const avail = evaluateItineraryAvailability(itinerary);
-            if (avail.ok) {
-                next[id] = {
-                    id,
-                    status: 'available',
-                    itinerary,
-                    price: Number(itinerary.price),
-                };
-            } else {
-                next[id] = {
-                    id,
-                    status: 'unavailable',
-                    itinerary,
-                    unavailableReason: avail.reason,
-                };
-            }
+            // Rejeitado = falha de rede/timeout/5xx. Mantém o item, preserva
+            // o último payload conhecido (se houver) pra não "sumir" o card.
+            const previous = itemsMetaRef.current[id];
+            next[id] = previous && previous.status === 'available'
+                ? { ...previous, status: 'checking_error' }
+                : { id, status: 'checking_error' };
         });
+
         setItemsMeta(next);
         setIsResolving(false);
-    }, [cartItems, ownedIds]);
 
-    // Roda sempre que cartItems ou ownedIds mudam.
+        if (toRemove.length) {
+            const surviving = cartItemsRef.current.filter((id) => !toRemove.includes(id));
+            await saveCart(surviving);
+        }
+    }, [saveCart]);
+
+    // Roda sempre que cartItems ou ownedIds mudam (inclui a remoção automática acima).
     useEffect(() => {
         reloadAvailability();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cartItems, ownedIds]);
+
+    // Revalida ao app voltar para primeiro plano — cobre o caso do roteiro
+    // ser pausado enquanto o app estava em background.
+    useEffect(() => {
+        const onChange = (state: AppStateStatus) => {
+            if (state === 'active') reloadAvailability();
+        };
+        const sub = AppState.addEventListener('change', onChange);
+        return () => sub.remove();
     }, [reloadAvailability]);
 
     const isInCart = useCallback(
@@ -269,24 +294,16 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         await saveCart([]);
     }, [saveCart]);
 
-    const clearUnavailable = useCallback(async () => {
-        const surviving = cartItems.filter((id) => itemsMeta[id]?.status === 'available');
-        if (surviving.length === cartItems.length) return;
-        await saveCart(surviving);
-    }, [cartItems, itemsMeta, saveCart]);
-
     const counts = useMemo(() => {
         let available = 0;
-        let unavailable = 0;
-        let owned = 0;
+        let checkingError = 0;
         cartItems.forEach((id) => {
             const m = itemsMeta[id];
             if (!m) return;
             if (m.status === 'available') available += 1;
-            else if (m.status === 'unavailable') unavailable += 1;
-            else if (m.status === 'owned') owned += 1;
+            else if (m.status === 'checking_error') checkingError += 1;
         });
-        return { available, unavailable, owned };
+        return { available, checkingError };
     }, [cartItems, itemsMeta]);
 
     const value: CartContextType = {
@@ -297,15 +314,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         addToCart,
         removeFromCart,
         clearCart,
-        clearUnavailable,
         reloadAvailability,
         totalCount: cartItems.length,
         availableCount: counts.available,
-        unavailableCount: counts.unavailable,
-        ownedCount: counts.owned,
-        // Badge da tab: SÓ disponíveis. Já-comprados + indisponíveis ficam fora.
-        // Assim o número no menu sempre bate com o botão "Comprar X roteiros" da
-        // tela do carrinho — sem divergência.
+        checkingErrorCount: counts.checkingError,
+        // Badge da tab: SÓ disponíveis. Indisponíveis nunca ficam "presos"
+        // no carrinho (são removidos automaticamente), então não há
+        // divergência com o botão "Comprar X roteiros" da tela do carrinho.
         cartCount: counts.available,
         isLoading,
         isResolving,

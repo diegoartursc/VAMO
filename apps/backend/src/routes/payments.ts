@@ -3,8 +3,23 @@ import Stripe from 'stripe';
 import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import { PURCHASED_ITINERARY_INCLUDE, buildPurchasedItineraryPayload, toJsonSafe } from './itineraries';
+import { isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 
 const router = Router();
+
+/**
+ * Erro específico para quando o fulfillment é bloqueado porque o roteiro
+ * deixou de estar disponível ENTRE o início do checkout e a confirmação do
+ * pagamento (ver `fulfillItineraryPurchase`). Os callers (rota de retorno e
+ * webhook) tratam esse erro separado de uma falha genérica — não é um erro
+ * transiente pra retry, é uma decisão de produto definitiva.
+ */
+export class PurchaseBlockedError extends Error {
+    constructor(message: string, public readonly refunded: boolean) {
+        super(message);
+        this.name = 'PurchaseBlockedError';
+    }
+}
 
 // ─── Stripe client ───────────────────────────────────────────────
 // Lazy: o servidor sobe sem STRIPE_SECRET_KEY (endpoints de pagamento
@@ -21,11 +36,51 @@ function getStripe(): Stripe | null {
 // URL do app (Expo web) para onde o Stripe redireciona após o checkout.
 const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:8081';
 
+/**
+ * Estorna um PaymentIntent de forma idempotente: antes de criar o refund,
+ * checa se já existe um pra esse payment_intent (cobre retry do webhook —
+ * Stripe pode reenviar o mesmo evento várias vezes). Sem tabela dedicada de
+ * "checkout sessions" no banco (ver limitação documentada na entrega), a
+ * própria API do Stripe é a fonte da verdade de idempotência aqui: uma
+ * chamada extra de rede por tentativa de fulfillment bloqueado, mas nunca
+ * gera um segundo estorno pro mesmo pagamento.
+ */
+async function refundPaymentIntentIfNeeded(
+    stripe: Stripe,
+    paymentIntentId: string,
+    reason: string,
+): Promise<boolean> {
+    const existingRefunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 10 });
+    const alreadyRefunded = existingRefunds.data.some(
+        (r) => r.status === 'succeeded' || r.status === 'pending',
+    );
+    if (alreadyRefunded) return true;
+    try {
+        await stripe.refunds.create({
+            payment_intent: paymentIntentId,
+            reason: 'requested_by_customer',
+            metadata: { vamoReason: reason },
+        });
+        return true;
+    } catch (err: any) {
+        console.error('[payments] refund failed for', paymentIntentId, err?.message);
+        return false;
+    }
+}
+
 // ─── Fulfillment ─────────────────────────────────────────────────
 // Libera o roteiro comprado: cria a ItinerarySale com snapshot congelado e
 // incrementa Creator.totalSales — mesma semântica do POST /purchase legado.
 // Idempotente: chamado tanto pelo webhook quanto pela tela de retorno, e só
 // cria a venda uma vez por traveler+itinerary.
+//
+// Corrida do Stripe: o status ACTIVE é checado ao CRIAR a sessão (rota
+// abaixo), mas entre a criação da sessão e a confirmação do pagamento o
+// criador pode pausar o roteiro. Por isso revalidamos o status aqui, na
+// borda final antes de criar a venda — se não for mais ACTIVE, nenhuma
+// venda é criada e, se o pagamento Stripe já foi capturado, disparamos
+// estorno automático e idempotente (nunca deixamos o usuário cobrado sem
+// acesso e sem reembolso).
 async function fulfillItineraryPurchase(opts: {
     itineraryId: string;
     travelerId: string;
@@ -53,32 +108,69 @@ async function fulfillItineraryPurchase(opts: {
     });
     if (!itinerary) throw new Error(`Itinerary ${itineraryId} not found during fulfillment`);
 
+    if (!isPurchasableItineraryStatus(itinerary.status)) {
+        let refunded = false;
+        if (payment.provider === 'stripe' && payment.paymentIntentId) {
+            const stripe = getStripe();
+            if (stripe) {
+                refunded = await refundPaymentIntentIfNeeded(
+                    stripe,
+                    payment.paymentIntentId,
+                    'itinerary_paused_or_archived_during_checkout',
+                );
+            }
+        }
+        console.warn(
+            `[payments] blocked fulfillment: itinerary ${itineraryId} is ${itinerary.status} (not purchasable). refunded=${refunded}`,
+        );
+        throw new PurchaseBlockedError(
+            refunded
+                ? 'Este roteiro deixou de estar disponível antes da confirmação do pagamento. O valor pago foi estornado automaticamente.'
+                : 'Este roteiro deixou de estar disponível antes da confirmação do pagamento.',
+            refunded,
+        );
+    }
+
     const snapshotPayload = toJsonSafe(buildPurchasedItineraryPayload(itinerary, {
         price: itinerary.price,
         createdAt: new Date(),
     }));
 
-    const [sale] = await prisma.$transaction([
-        prisma.itinerarySale.create({
-            data: {
-                itineraryId,
-                travelerId,
-                price: itinerary.price,
-                commission: itinerary.price * 0.15, // 15% platform commission
-                purchaseData: {
-                    routeSnapshot: snapshotPayload,
-                    payment: toJsonSafe(payment),
+    try {
+        const [sale] = await prisma.$transaction([
+            prisma.itinerarySale.create({
+                data: {
+                    itineraryId,
+                    travelerId,
+                    price: itinerary.price,
+                    commission: itinerary.price * 0.15, // 15% platform commission
+                    purchaseData: {
+                        routeSnapshot: snapshotPayload,
+                        payment: toJsonSafe(payment),
+                    },
                 },
-            },
-            select: { id: true },
-        }),
-        prisma.creator.update({
-            where: { id: itinerary.creatorId },
-            data: { totalSales: { increment: 1 } },
-        }),
-    ]);
-
-    return { saleId: sale.id, alreadyPurchased: false };
+                select: { id: true },
+            }),
+            prisma.creator.update({
+                where: { id: itinerary.creatorId },
+                data: { totalSales: { increment: 1 } },
+            }),
+        ]);
+        return { saleId: sale.id, alreadyPurchased: false };
+    } catch (err: any) {
+        // Índice único (itineraryId, travelerId): duas chamadas concorrentes
+        // de fulfillment (ex.: webhook + tela de retorno acontecendo quase
+        // juntas) podem passar pelo check `existing` acima ao mesmo tempo.
+        // Quem perder a corrida trata como "já comprado", não como erro.
+        if (err?.code === 'P2002') {
+            const winner = await prisma.itinerarySale.findFirst({
+                where: { itineraryId, travelerId },
+                select: { id: true },
+            });
+            if (winner) return { saleId: winner.id, alreadyPurchased: true };
+        }
+        throw err;
+    }
 }
 
 // ─── POST /api/payments/checkout-session ─────────────────────────
@@ -100,7 +192,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
         });
         if (!itinerary) { res.status(404).json({ error: 'Itinerary not found' }); return; }
 
-        if (itinerary.status !== 'APPROVED' && itinerary.status !== 'ACTIVE') {
+        if (!isPurchasableItineraryStatus(itinerary.status)) {
             res.status(400).json({ error: 'Itinerary is not available for purchase' });
             return;
         }
@@ -192,20 +284,28 @@ router.get('/checkout-session/:sessionId', travelerAuthMiddleware, async (req: T
         }
 
         if (session.payment_status === 'paid') {
-            const result = await fulfillItineraryPurchase({
-                itineraryId,
-                travelerId,
-                payment: {
-                    provider: 'stripe',
-                    sessionId: session.id,
-                    paymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
-                    paymentStatus: session.payment_status,
-                    amountTotal: session.amount_total != null ? session.amount_total / 100 : null,
-                    currency: session.currency || null,
-                    paymentMethod: session.metadata?.paymentMethod || null,
-                },
-            });
-            res.json({ status: 'paid', itineraryId, saleId: result.saleId, alreadyPurchased: result.alreadyPurchased });
+            try {
+                const result = await fulfillItineraryPurchase({
+                    itineraryId,
+                    travelerId,
+                    payment: {
+                        provider: 'stripe',
+                        sessionId: session.id,
+                        paymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
+                        paymentStatus: session.payment_status,
+                        amountTotal: session.amount_total != null ? session.amount_total / 100 : null,
+                        currency: session.currency || null,
+                        paymentMethod: session.metadata?.paymentMethod || null,
+                    },
+                });
+                res.json({ status: 'paid', itineraryId, saleId: result.saleId, alreadyPurchased: result.alreadyPurchased });
+            } catch (err) {
+                if (err instanceof PurchaseBlockedError) {
+                    res.status(409).json({ status: 'blocked', itineraryId, error: err.message, refunded: err.refunded });
+                    return;
+                }
+                throw err;
+            }
             return;
         }
 
@@ -251,20 +351,32 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
             const travelerId = session.metadata?.travelerId;
 
             if (session.payment_status === 'paid' && itineraryId && travelerId) {
-                const result = await fulfillItineraryPurchase({
-                    itineraryId,
-                    travelerId,
-                    payment: {
-                        provider: 'stripe',
-                        sessionId: session.id,
-                        paymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-                        paymentStatus: session.payment_status,
-                        amountTotal: session.amount_total != null ? session.amount_total / 100 : null,
-                        currency: session.currency || null,
-                        paymentMethod: session.metadata?.paymentMethod || null,
-                    },
-                });
-                console.log(`[stripe webhook] ${event.type}: sale ${result.saleId} (alreadyPurchased=${result.alreadyPurchased})`);
+                try {
+                    const result = await fulfillItineraryPurchase({
+                        itineraryId,
+                        travelerId,
+                        payment: {
+                            provider: 'stripe',
+                            sessionId: session.id,
+                            paymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+                            paymentStatus: session.payment_status,
+                            amountTotal: session.amount_total != null ? session.amount_total / 100 : null,
+                            currency: session.currency || null,
+                            paymentMethod: session.metadata?.paymentMethod || null,
+                        },
+                    });
+                    console.log(`[stripe webhook] ${event.type}: sale ${result.saleId} (alreadyPurchased=${result.alreadyPurchased})`);
+                } catch (err) {
+                    if (err instanceof PurchaseBlockedError) {
+                        // Decisão de produto definitiva (roteiro não é mais
+                        // compravel), não falha transiente — não deixamos o
+                        // Stripe reenviar o evento pra sempre. O refund (se
+                        // aplicável) já foi tentado dentro do fulfillment.
+                        console.warn(`[stripe webhook] ${event.type}: blocked — ${err.message}`);
+                    } else {
+                        throw err;
+                    }
+                }
             }
         }
         res.json({ received: true });

@@ -700,6 +700,10 @@ model ItinerarySale {
   checklistItems TravelerChecklistItem[]
   travelerFiles  TravelerFile[]
 
+  // Um traveler só pode ter UMA venda por roteiro. Rede de segurança final
+  // contra corrida (checkout duplo, webhook + retorno quase simultâneos):
+  // sem isso, o findFirst preventivo antes do create não é atômico.
+  @@unique([itineraryId, travelerId])
   @@map("itinerary_sales")
 }
 

@@ -200,7 +200,7 @@ export default function PurchasedItineraryScreen() {
         destination: itinerary?.destination ?? null,
         country: itinerary?.country ?? null,
         allowShare: itinerary?.allowShare !== false,
-        isShareable: ['ACTIVE', 'APPROVED'].includes(String(itinerary?.status || '').toUpperCase()),
+        isShareable: String(itinerary?.status || '').toUpperCase() === 'ACTIVE',
         surface: 'purchased_itinerary',
         actorRole: 'traveler',
         saleId: (itinerary as any)?.purchaseId ?? null,

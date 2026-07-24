@@ -69,7 +69,6 @@ export default function SavedScreen() {
     const { favorites, removeFavorite, isLoading: favsLoading } = useFavorites();
 
     const [items, setItems] = useState<FavItem[]>([]);
-    const [unavailableCount, setUnavailableCount] = useState(0);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -80,34 +79,41 @@ export default function SavedScreen() {
         Animated.timing(headerAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     }, []);
 
-    // Carrega dados reais dos roteiros favoritados
+    // Carrega dados reais dos roteiros favoritados. IDs que voltarem 404
+    // (roteiro pausado/arquivado/removido) são removidos silenciosamente do
+    // favorito — local + backend — sem erro, sem banner, sem contagem
+    // residual. Falha de rede/5xx (Promise.all rejeitando) NUNCA apaga
+    // favoritos — só mostra o loadError de tentar novamente.
     const loadItems = useCallback(async (isRefresh = false) => {
         if (!isRefresh) setLoading(true);
         setLoadError(null);
         if (favorites.length === 0) {
             setItems([]);
-            setUnavailableCount(0);
             setLoading(false);
             setRefreshing(false);
             return;
         }
         try {
-            // Busca em paralelo todos os IDs
-            const results = await Promise.all(favorites.map(fetchItinerary));
+            const results = await Promise.all(
+                favorites.map(async (id) => ({ id, result: await fetchItinerary(id) })),
+            );
             const loadedItems = results
-                .filter((r): r is { status: 'available'; item: FavItem } => r.status === 'available')
-                .map((r) => r.item);
+                .filter((r): r is { id: string; result: { status: 'available'; item: FavItem } } => r.result.status === 'available')
+                .map((r) => r.result.item);
+            const staleIds = results
+                .filter((r) => r.result.status === 'unavailable')
+                .map((r) => r.id);
+
             setItems(loadedItems);
-            setUnavailableCount(favorites.length - loadedItems.length);
+            staleIds.forEach((id) => { removeFavorite(id).catch(() => {}); });
         } catch {
             setItems([]);
-            setUnavailableCount(0);
             setLoadError('Não foi possível carregar seus favoritos agora.');
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [favorites]);
+    }, [favorites, removeFavorite]);
 
     // Re-busca sempre que favorites mudar (add/remove) ou na montagem
     useEffect(() => {
@@ -133,8 +139,7 @@ export default function SavedScreen() {
         removeFavorite(item.id);
     };
 
-    const isEmpty = !loading && favorites.length === 0;
-    const onlyUnavailable = !loading && favorites.length > 0 && items.length === 0;
+    const isEmpty = !loading && items.length === 0 && !loadError;
 
     return (
         <View style={styles.container}>
@@ -167,9 +172,10 @@ export default function SavedScreen() {
                     <View style={styles.headerCountBadge}>
                         <Ionicons name="bookmark" size={13} color="rgba(255,255,255,0.85)" />
                         <Text style={styles.headerCountText}>
-                            {/* Mantemos paridade com o "Salvos" do perfil: total da lista, não só os disponíveis.
-                                Os indisponíveis aparecem como banner separado no corpo da tela. */}
-                            {loading ? '...' : `${favorites.length} roteiro${favorites.length !== 1 ? 's' : ''} salvos`}
+                            {/* Só conta favoritos confirmados como ACTIVE — nunca inclui
+                                IDs obsoletos (pausados/arquivados/removidos), que já
+                                foram podados de `favorites` antes de chegar aqui. */}
+                            {loading ? '...' : `${items.length} roteiro${items.length !== 1 ? 's' : ''} salvos`}
                         </Text>
                     </View>
                 </Animated.View>
@@ -189,11 +195,6 @@ export default function SavedScreen() {
                     onExplore={() => router.push('/(tabs)/index' as any)}
                     onRefresh={onRefresh}
                 />
-            ) : onlyUnavailable ? (
-                <UnavailableState
-                    onExplore={() => router.push('/(tabs)/index' as any)}
-                    onRefresh={onRefresh}
-                />
             ) : (
                 <ScrollView
                     showsVerticalScrollIndicator={false}
@@ -206,14 +207,6 @@ export default function SavedScreen() {
                         />
                     }
                 >
-                    {unavailableCount > 0 && (
-                        <View style={styles.unavailableBanner}>
-                            <Ionicons name="information-circle-outline" size={17} color={theme.colors.primary} />
-                            <Text style={styles.unavailableBannerText}>
-                                {unavailableCount} roteiro{unavailableCount !== 1 ? 's' : ''} salvo{unavailableCount !== 1 ? 's' : ''} não {unavailableCount !== 1 ? 'estão' : 'está'} disponível agora.
-                            </Text>
-                        </View>
-                    )}
                     {items.map((item, index) => (
                         <SavedCard
                             key={item.id}
@@ -412,46 +405,6 @@ function LoadErrorState({
     );
 }
 
-function UnavailableState({
-    onExplore,
-    onRefresh,
-}: {
-    onExplore: () => void;
-    onRefresh: () => void;
-}) {
-    return (
-        <View style={styles.emptyState}>
-            <LinearGradient
-                colors={theme.colors.gradients.action as unknown as [string, string]}
-                style={styles.emptyIconCircle}
-            >
-                <Ionicons name="cloud-offline-outline" size={40} color="#fff" />
-            </LinearGradient>
-            <Text style={styles.emptyTitle}>Seus favoritos não estão disponíveis agora</Text>
-            <Text style={styles.emptySubtitle}>
-                Eles podem ter sido pausados, removidos da vitrine ou não carregaram por falha de conexão.
-            </Text>
-            <View style={styles.emptyActionsRow}>
-                <TouchableOpacity style={styles.secondaryCTA} onPress={onRefresh} activeOpacity={0.85}>
-                    <Ionicons name="refresh" size={17} color={theme.colors.primary} />
-                    <Text style={styles.secondaryCTAText}>Tentar novamente</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={onExplore} activeOpacity={0.85}>
-                    <LinearGradient
-                        colors={theme.colors.gradients.aurora as unknown as [string, string, string]}
-                        style={styles.exploreCTA}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                    >
-                        <Icon name="compass" size={18} color="#fff" />
-                        <Text style={styles.exploreCTAText}>Explorar roteiros</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-}
-
 // ─── EmptyState ─────────────────────────────────────────────
 function EmptyState({ onExplore }: { onExplore: () => void }) {
     const anim = useRef(new Animated.Value(0)).current;
@@ -590,24 +543,6 @@ const styles = StyleSheet.create({
     listContent: {
         padding: 16,
         paddingTop: 20,
-    },
-    unavailableBanner: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 14,
-        backgroundColor: theme.colors.primary + '10',
-        borderWidth: 1,
-        borderColor: theme.colors.primary + '22',
-    },
-    unavailableBannerText: {
-        flex: 1,
-        fontSize: 12,
-        lineHeight: 17,
-        color: theme.colors.text.secondary,
-        fontWeight: '600',
     },
 
     // ── Card ──

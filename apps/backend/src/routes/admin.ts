@@ -194,7 +194,13 @@ router.get('/stats', verifyAdmin, async (_req: Request, res: Response) => {
         const pendingPackages = await prisma.package.count({ where: { status: 'PENDING_REVIEW' } });
         const pendingItineraries = await prisma.itinerary.count({ where: { status: 'PENDING_REVIEW' } });
         const approvedPackagesToday = await prisma.package.count({ where: { status: 'APPROVED', approvedAt: { gte: today } } });
-        const approvedItinerariesToday = await prisma.itinerary.count({ where: { status: 'ACTIVE', approvedAt: { gte: today } } });
+        // approvedAt é setado no momento da aprovação do admin (status vira
+        // APPROVED) e não é tocado quando o criador publica depois (ACTIVE)
+        // — por isso o filtro cobre os dois status pra "aprovado hoje" bater
+        // com o que o admin realmente decidiu hoje.
+        const approvedItinerariesToday = await prisma.itinerary.count({
+            where: { status: { in: ['APPROVED', 'ACTIVE'] }, approvedAt: { gte: today } },
+        });
         const rejectedPackages = await prisma.package.count({ where: { status: 'REJECTED' } });
         const rejectedItineraries = await prisma.itinerary.count({ where: { status: 'REJECTED' } });
 
@@ -370,9 +376,15 @@ router.post('/itineraries/:id/approve', verifyAdmin, async (req: Request, res: R
             res.status(400).json({ error: 'Apenas roteiros em análise podem ser aprovados.' });
             return;
         }
+        // Aprovação do admin NUNCA publica direto. Isso é intencional: o
+        // criador precisa tocar em "Publicar roteiro" (PATCH
+        // /:id/creator/status → ACTIVE) pra decidir quando o roteiro vira
+        // público/comprável. Setar ACTIVE aqui pulava esse passo e deixava
+        // o status APPROVED inalcançável na prática, apesar da UI do
+        // criador já esperar esse estado intermediário.
         const it = await prisma.itinerary.update({
             where: { id },
-            data: { status: 'ACTIVE', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
+            data: { status: 'APPROVED', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
         });
         res.json({ id: it.id, status: it.status, approvedAt: it.approvedAt });
     } catch (error) {

@@ -15,6 +15,7 @@
 import { Router, Request, Response } from 'express';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import prisma from '../lib/prisma';
+import { isPublicItineraryStatus } from '../lib/itineraryStatus';
 
 const router = Router();
 
@@ -63,7 +64,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
         if (!itinerary) {
             return res.status(404).json({ error: 'Roteiro não encontrado' });
         }
-        if (!['APPROVED', 'ACTIVE'].includes(itinerary.status)) {
+        if (!isPublicItineraryStatus(itinerary.status)) {
             return res.status(400).json({ error: 'Este roteiro ainda não está disponível para perguntas' });
         }
         // Criador não pode perguntar no próprio roteiro.

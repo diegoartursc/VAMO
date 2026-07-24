@@ -89,6 +89,13 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
                     return;
                 }
 
+                // `remote` já vem só com roteiros ACTIVE (backend filtra e
+                // poda favoritos obsoletos — ver GET /api/saved-items). IDs
+                // locais que sumiram do remote são migrados de volta via PUT,
+                // que também exige ACTIVE — se o roteiro foi pausado/arquivado
+                // nesse meio-tempo, o PUT falha (404) e o id cai fora de
+                // `acceptedMigrated`, então nunca "ressuscita" um favorito de
+                // roteiro que não é mais público.
                 const remote = normalizeFavoriteIds(await getSavedItineraryIds(accessToken));
                 const missingRemote = cached.filter(id => !remote.includes(id));
                 const migrated = await Promise.allSettled(

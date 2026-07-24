@@ -4,6 +4,7 @@ import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import { selectFeaturedRanked } from '../utils/featuredRanking';
+import { PUBLIC_ITINERARY_WHERE, isPublicItineraryStatus, isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 
 const router = Router();
 
@@ -11,10 +12,10 @@ const router = Router();
 router.get('/', async (req: Request, res: Response) => {
     try {
         const { destination, featured, sort } = req.query;
-        // Aceita roteiros em qualquer status público da vitrine. O frontend
-        // (mobile + site) já considera ACTIVE e APPROVED equivalentes; o filtro
-        // só rígido em APPROVED escondia roteiros legítimos que ficam ACTIVE.
-        const where: any = { status: { in: ['APPROVED', 'ACTIVE'] } };
+        // Vitrine pública: SOMENTE ACTIVE. APPROVED é "aprovado mas ainda não
+        // publicado pelo criador" — nunca deve aparecer aqui (ver
+        // lib/itineraryStatus.ts para a regra única).
+        const where: any = { ...PUBLIC_ITINERARY_WHERE };
         if (destination) where.destination = { contains: destination as string, mode: 'insensitive' };
         if (featured === 'true') where.featured = true;
 
@@ -112,7 +113,7 @@ router.get('/featured', async (req: Request, res: Response) => {
         // candidatos de forma sã; o ranking final (média bayesiana) é
         // recalculado em memória — o Prisma não expressa essa fórmula no orderBy.
         const candidates = await prisma.itinerary.findMany({
-            where: { status: { in: ['APPROVED', 'ACTIVE'] } },
+            where: { ...PUBLIC_ITINERARY_WHERE },
             orderBy: [{ rating: 'desc' }, { reviewCount: 'desc' }, { qualityScore: 'desc' }],
             take: 100,
             include: {
@@ -529,9 +530,9 @@ export function buildPurchasedItineraryPayload(it: any, sale?: { id?: string; pr
         purchasedAt: serializeDate(sale?.createdAt),
         pricePaid: typeof sale?.price === 'number' ? sale.price : undefined,
         snapshotVersion: 1,
-        archivedAccessNotice: ['ARCHIVED', 'PAUSED'].includes(String(it.status || '').toUpperCase())
-            ? 'Este roteiro não está mais disponível para novas compras, mas seu acesso permanece ativo.'
-            : undefined,
+        // Sem aviso de pausa/arquivamento aqui de propósito: para quem já
+        // comprou, a experiência deve ser idêntica a uma aquisição normal —
+        // a mudança de status do roteiro é invisível pro comprador.
         creator: {
             id: it.creator.id, name: it.creator.traveler.name,
             avatar: it.creator.traveler.avatar || '👤',
@@ -814,12 +815,23 @@ router.patch('/:id/creator/status', optionalAuthMiddleware, async (req: AuthRequ
             }
         }
 
-        const updated = await prisma.itinerary.update({
-            where: { id },
-            data: requestedStatus === 'PENDING_REVIEW'
-                ? { status: 'PENDING_REVIEW', approvalNote: null, approvedAt: null, approvedBy: null }
-                : { status: requestedStatus as any },
-            select: { id: true, status: true, approvalNote: true, approvedAt: true, updatedAt: true },
+        // Pausar precisa ser atômico com a limpeza de favoritos: ninguém que
+        // não comprou deve continuar vendo o roteiro em "Favoritos" depois
+        // que ele sai do ar. Vendas/snapshots/customizações NUNCA são
+        // tocadas aqui — só o SavedItem (favorito), que é puramente
+        // navegacional.
+        const updated = await prisma.$transaction(async (tx) => {
+            const result = await tx.itinerary.update({
+                where: { id },
+                data: requestedStatus === 'PENDING_REVIEW'
+                    ? { status: 'PENDING_REVIEW', approvalNote: null, approvedAt: null, approvedBy: null }
+                    : { status: requestedStatus as any },
+                select: { id: true, status: true, approvalNote: true, approvedAt: true, updatedAt: true },
+            });
+            if (requestedStatus === 'PAUSED') {
+                await tx.savedItem.deleteMany({ where: { itineraryId: id } });
+            }
+            return result;
         });
 
         res.json(updated);
@@ -848,8 +860,12 @@ router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
 
         if (!it) { res.status(404).json({ error: 'Itinerary not found' }); return; }
 
-        // Block access to non-public itineraries for non-owners
-        const isPublic = PUBLIC_STATUSES.includes(it.status as string);
+        // Endpoint público: SOMENTE ACTIVE é visível para quem não é o dono.
+        // PAUSED/ARCHIVED respondem como se o conteúdo não existisse — nunca
+        // revelam status interno. O dono sempre pode ver o próprio roteiro
+        // aqui (mas a rota dedicada /:id/creator é a canônica para isso).
+        // Compradores usam /:id/purchased, que ignora esse gate.
+        const isPublic = isPublicItineraryStatus(it.status);
         const isOwner  = req.traveler?.travelerId === (it as any).creator?.traveler?.id;
         if (!isPublic && !isOwner) {
             res.status(404).json({ error: 'Itinerary not found' });
@@ -1035,7 +1051,6 @@ function calcItineraryQuality(data: any): number {
 
 const CREATOR_WRITABLE_STATUSES = ['DRAFT', 'PENDING_REVIEW'] as const;
 const CREATOR_STATUS_ACTIONS = ['PENDING_REVIEW', 'ACTIVE', 'PAUSED'] as const;
-const PUBLIC_STATUSES = ['APPROVED', 'ACTIVE'];
 
 function normalizeStatus(value: unknown): string | null {
     if (typeof value !== 'string') return null;
@@ -1751,11 +1766,13 @@ router.delete('/:id', optionalAuthMiddleware, createAuditMiddleware('DELETE'), a
         const salesCount = await prisma.itinerarySale.count({ where: { itineraryId: id } });
 
         // Soft delete — archive. Removes from storefront/search/purchase
-        // while preserving content for existing buyers.
-        await prisma.itinerary.update({
-            where: { id },
-            data: { status: 'ARCHIVED' },
-        });
+        // while preserving content for existing buyers. Favoritos de quem
+        // não comprou somem junto (mesma regra da pausa); vendas, snapshots
+        // e customizações nunca são tocados.
+        await prisma.$transaction([
+            prisma.itinerary.update({ where: { id }, data: { status: 'ARCHIVED' } }),
+            prisma.savedItem.deleteMany({ where: { itineraryId: id } }),
+        ]);
         res.json({
             success: true,
             message: 'Itinerary archived',
@@ -1801,7 +1818,7 @@ router.post('/:id/purchase', travelerAuthMiddleware, async (req: TravelerAuthReq
             return;
         }
 
-        if (itinerary.status !== 'APPROVED' && itinerary.status !== 'ACTIVE') {
+        if (!isPurchasableItineraryStatus(itinerary.status)) {
             res.status(400).json({ error: 'Itinerary is not available for purchase' });
             return;
         }
@@ -1818,27 +1835,38 @@ router.post('/:id/purchase', travelerAuthMiddleware, async (req: TravelerAuthReq
         // Sem o increment, `creator.salesCount` no list endpoint ficava parado
         // em 0 enquanto compras reais aconteciam — quebrava o "X vendas" nos
         // cards, no perfil do criador e na ordenação por popularidade.
-        // Race-safe: o `increment` é atômico no SQL gerado pelo Prisma.
-        const [sale] = await prisma.$transaction([
-            prisma.itinerarySale.create({
-                data: {
-                    itineraryId,
-                    travelerId,
-                    price: itinerary.price,
-                    commission: itinerary.price * 0.15, // 15% platform commission
-                    purchaseData: {
-                        routeSnapshot: snapshotPayload,
+        // Race-safe: o `increment` é atômico no SQL gerado pelo Prisma. O
+        // índice único (itineraryId, travelerId) é a rede de segurança final
+        // contra duas requisições concorrentes passando pelo check acima ao
+        // mesmo tempo — tratamos P2002 como "já comprado", não como erro.
+        try {
+            const [sale] = await prisma.$transaction([
+                prisma.itinerarySale.create({
+                    data: {
+                        itineraryId,
+                        travelerId,
+                        price: itinerary.price,
+                        commission: itinerary.price * 0.15, // 15% platform commission
+                        purchaseData: {
+                            routeSnapshot: snapshotPayload,
+                        },
                     },
-                },
-                select: { id: true },
-            }),
-            prisma.creator.update({
-                where: { id: itinerary.creatorId },
-                data: { totalSales: { increment: 1 } },
-            }),
-        ]);
-
-        res.json({ id: sale.id, itineraryId, travelerId, paymentMethod: paymentMethod || 'unknown', alreadyPurchased: false });
+                    select: { id: true },
+                }),
+                prisma.creator.update({
+                    where: { id: itinerary.creatorId },
+                    data: { totalSales: { increment: 1 } },
+                }),
+            ]);
+            res.json({ id: sale.id, itineraryId, travelerId, paymentMethod: paymentMethod || 'unknown', alreadyPurchased: false });
+        } catch (err: any) {
+            if (err?.code === 'P2002') {
+                const winner = await prisma.itinerarySale.findFirst({ where: { itineraryId, travelerId }, select: { id: true } });
+                res.json({ id: winner?.id, itineraryId, travelerId, paymentMethod: paymentMethod || 'unknown', alreadyPurchased: true });
+                return;
+            }
+            throw err;
+        }
     } catch (error) {
         console.error('Error creating itinerary purchase:', error);
         res.status(500).json({ error: 'Failed to record purchase' });
@@ -1917,10 +1945,11 @@ router.post('/:id/share', optionalAuthMiddleware, async (req: AuthRequest, res: 
             res.status(403).json({ error: 'Este roteiro não pode ser compartilhado.' });
             return;
         }
-        // Vitrine pública: ACTIVE/APPROVED são compartilháveis. Permitimos
-        // que o próprio criador compartilhe rascunhos/pausados internamente,
-        // mas para qualquer outro caller bloqueamos.
-        const isPublic = ['ACTIVE', 'APPROVED'].includes(String(itinerary.status || '').toUpperCase());
+        // Vitrine pública: SOMENTE ACTIVE é compartilhável. Permitimos que o
+        // próprio criador compartilhe rascunhos/pausados internamente (link
+        // não é público de fato — só ele o recebe), mas qualquer outro
+        // caller é bloqueado.
+        const isPublic = isPublicItineraryStatus(itinerary.status);
         const isOwnerSharing = !!req.traveler?.travelerId
             && req.traveler.travelerId === (itinerary.creator?.travelerId || null);
         if (!isPublic && !isOwnerSharing) {
