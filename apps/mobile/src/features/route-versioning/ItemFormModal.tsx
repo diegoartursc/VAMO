@@ -79,6 +79,12 @@ export interface ItemFormModalProps {
 // ─── Helpers ──────────────────────────────────────────────────
 
 function pickInitialValue(spec: FieldSpec, source: Record<string, any> | null | undefined): any {
+    // `generalTips` do snapshot é `string[]` (não `{ text }`) — sem este
+    // guard, editar uma dica original abria o form com o campo vazio,
+    // porque `source['text']` numa string crua é sempre `undefined`.
+    if (typeof source === 'string') {
+        return spec.key === 'text' ? source : '';
+    }
     if (spec.type === 'cost') {
         // Aceita 3 fontes pra back-compat:
         //   1. Shape canônico do creator: data.cost = { amount, currency, ... } (preferido)

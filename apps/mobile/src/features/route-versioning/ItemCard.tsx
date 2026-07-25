@@ -28,6 +28,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { openExternalUrl } from '../../utils/externalLinks';
 import type { MergedItem, ItemSource } from './mergeEngine';
+import { resolveGeneralTipText } from './mergeEngine';
 
 export interface ItemCardProps {
     merged: MergedItem;
@@ -323,10 +324,9 @@ function TransportCard({ data }: { data: any }) {
 }
 
 function GeneralTipCard({ data }: { data: any }) {
-    // Tip pode ser string (legado) ou objeto.
-    const text = typeof data === 'string'
-        ? data
-        : (data?.text || data?.tip || data?.description || '');
+    // Tip pode ser string (formato canônico de generalTips) ou objeto
+    // { text } (overlay do viajante) — mesma regra usada no PDF.
+    const text = resolveGeneralTipText(data);
     return (
         <View style={styles.tipBulletRow}>
             <View style={styles.tipBullet} />

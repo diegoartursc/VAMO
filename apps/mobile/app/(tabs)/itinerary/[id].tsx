@@ -44,20 +44,17 @@ import { evaluateItineraryAvailability } from '../../../src/utils/availability';
 import { notify } from '../../../src/utils/notify';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useSearchContext } from '../../../src/contexts/SearchContext';
-import BudgetSummaryCard from '../../../src/components/dashboard/BudgetSummaryCard';
-import PeopleSimulator from '../../../src/components/dashboard/PeopleSimulator';
 import {
     InteractiveExperienceSection,
-    PostPurchaseConversionBox,
     InteractiveRouteBadge,
 } from '../../../src/components/itinerary/InteractiveExperienceSection';
 import { PurchaseBenefitsCard } from '../../../src/components/itinerary/PurchaseBenefitsCard';
+import { TravelCostSummarySection } from '../../../src/components/itinerary/TravelCostSummarySection';
 import { ExperienceSummaryCard } from '../../../src/components/itinerary/ExperienceSummaryCard';
 import { TrustStrip, TrustSignal } from '../../../src/components/itinerary/TrustStrip';
 import { features } from '../../../src/config/features';
-import { getCostReferences, calculateBudgetSummary, formatMoney, getRouteRatingDisplay, getPrimaryBudgetStyle, type CostReferencesGroup } from '@vamo/shared/itinerary';
+import { formatMoney, getRouteRatingDisplay, getPrimaryBudgetStyle, getCostReferences } from '@vamo/shared/itinerary';
 import BudgetStyleGuideSheet from '../../../src/components/common/BudgetStyleGuideSheet';
-import { convertToAud } from '../../../src/utils/currencyConversion';
 
 const { width, height } = Dimensions.get('window');
 
@@ -143,15 +140,6 @@ export default function ItineraryDetailScreen() {
             return;
         }
         router.replace('/(tabs)/itineraries' as any);
-    };
-
-    /** Converte um valor para a moeda de referência (AUD) usando as taxas do
-     *  admin. Nome honesto: NÃO é BRL. Usa o util compartilhado. */
-    const formatInRefCurrency = (value: string | number, currency: string): string => {
-        const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
-        if (n <= 0) return formatMoney(0);
-        const aud = convertToAud(n, currency, currencyRates);
-        return formatMoney(aud ?? n);
     };
 
     if (isLoading) {
@@ -510,11 +498,10 @@ export default function ItineraryDetailScreen() {
                         </View>
                     )}
 
-                    {/* Reforço de conversão perto do botão de compra */}
-                    {features.interactivePurchasedRouteEnabled && <PostPurchaseConversionBox />}
-
-                    {/* O que você recebe — consolida produto digital + salvo na conta */}
-                    <PurchaseBenefitsCard lifetimeAccess={!!itinerary.lifetimeAccess} />
+                    {/* O que você recebe — seção única (produto digital + entrega +
+                        organização pós-compra), substitui os dois cards antigos que
+                        repetiam a mesma mensagem. */}
+                    <PurchaseBenefitsCard />
 
                     {/* Resumo da experiência — estilo + categorias, compacto */}
                     {(() => {
@@ -530,7 +517,9 @@ export default function ItineraryDetailScreen() {
                         );
                     })()}
 
-                    {/* Referência de custos (premium) + simulador + faixa de confiança */}
+                    {/* Referência de custos da viagem — seção única (resumo geral +
+                        categorias agregadas + simulador de grupo + aviso), substitui
+                        as três áreas antigas que repetiam o mesmo assunto. */}
                     {(() => {
                         const costForm = {
                             accommodations: itinerary.accommodations,
@@ -541,120 +530,25 @@ export default function ItineraryDetailScreen() {
                             flightCost: itinerary.flightInfo?.cost,
                             flightSpending: itinerary.flightInfo?.spending,
                         };
-                        const summary = calculateBudgetSummary(costForm as any);
+                        const hasCostData = getCostReferences(costForm as any).length > 0;
                         const trustItems: TrustSignal[] = [
                             { icon: 'shield-checkmark', label: 'Roteirista verificado' },
                             { icon: 'flash', label: 'Acesso imediato' },
                         ];
-                        if (summary.informedItemsCount > 0) {
+                        if (hasCostData) {
                             trustItems.push({ icon: 'wallet-outline', label: 'Custos informados' });
                         }
                         return (
                             <>
-                                <BudgetSummaryCard
+                                <TravelCostSummarySection
                                     form={costForm as any}
-                                    summary={summary}
-                                    variant="public"
-                                    emphasis="premium"
-                                    hideWhenEmpty
-                                />
-                                <PeopleSimulator
-                                    totalPerPerson={summary.totalInformed}
-                                    currency={summary.currency}
-                                    value={peopleCount}
-                                    onChange={setPeopleCount}
+                                    activeModules={itinerary.activeModules}
+                                    currencyRates={currencyRates}
+                                    peopleCount={peopleCount}
+                                    onPeopleCountChange={setPeopleCount}
                                 />
                                 <TrustStrip items={trustItems} />
                             </>
-                        );
-                    })()}
-
-                    {/* Referência de Gastos por Pessoa — agregação por módulo */}
-                    {(() => {
-                        const costGroups = getCostReferences({
-                            accommodations: itinerary.accommodations,
-                            attractions: itinerary.attractions,
-                            transports: itinerary.transports,
-                            restaurants: itinerary.restaurants,
-                            extraSpendingItems: itinerary.extraSpendingItems,
-                            flightCost: itinerary.flightInfo?.cost,
-                            flightSpending: itinerary.flightInfo?.spending,
-                        } as any);
-                        if (costGroups.length === 0) return null;
-
-                        const MODULE_ICONS: Record<CostReferencesGroup['moduleKey'], any> = {
-                            voo: 'plane',
-                            hospedagem: 'hotel',
-                            passeios: 'compass',
-                            transporte: 'car',
-                            restaurantes: 'utensils',
-                            gastos_extras: 'star',
-                        };
-
-                        return (
-                            <CollapsibleSection title="Referência de Gastos por Pessoa" defaultExpanded={false}>
-                                {costGroups.map(group => (
-                                    <View key={group.moduleKey} style={{ marginBottom: 12 }}>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                                            <Icon name={MODULE_ICONS[group.moduleKey]} size={14} color={theme.colors.primary} />
-                                            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text.primary }}>
-                                                {group.moduleLabel}
-                                            </Text>
-                                        </View>
-                                        {group.items.map((item, idx) => {
-                                            const isVerified = item.disclosureType === 'verified';
-                                            const proofOk = item.hasProof && (item.proofStatus === 'uploaded' || item.proofStatus === 'pending_review' || item.proofStatus === 'approved');
-                                            const showVerifiedBadge = isVerified && proofOk;
-                                            const isShared = item.sharedByPeople > 1;
-                                            return (
-                                                <View key={idx} style={styles.breakdownItem}>
-                                                    <View style={styles.breakdownContent}>
-                                                        <Text style={styles.breakdownCategory}>{item.title}</Text>
-                                                        <Text style={styles.breakdownDescription}>
-                                                            <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
-                                                            {' por pessoa'}
-                                                            {item.currency !== 'AUD' && (
-                                                                <Text> ≈ {formatInRefCurrency(item.amountPerPerson, item.currency)}</Text>
-                                                            )}
-                                                        </Text>
-                                                        {isShared && (
-                                                            <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>
-                                                                Base: {formatMoney(item.amountTotal, item.currency)} total ÷ {item.sharedByPeople} pessoas
-                                                            </Text>
-                                                        )}
-                                                        {!isShared && (
-                                                            <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>
-                                                                Gasto individual
-                                                            </Text>
-                                                        )}
-                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                                                            <Ionicons
-                                                                name={showVerifiedBadge ? 'shield-checkmark' : 'pricetag-outline'}
-                                                                size={11}
-                                                                color={showVerifiedBadge ? theme.colors.verified : theme.colors.info}
-                                                            />
-                                                            <Text style={{ fontSize: 11, color: showVerifiedBadge ? theme.colors.verified : theme.colors.info, fontWeight: '600' }}>
-                                                                {showVerifiedBadge ? 'Valor comprovado' : 'Valor estimado'}
-                                                            </Text>
-                                                            {showVerifiedBadge && item.proofStatus === 'approved' && (
-                                                                <Text style={{ fontSize: 11, color: theme.colors.verified, fontWeight: '600' }}>
-                                                                    {' · '}Comprovante aprovado pela VAMO
-                                                                </Text>
-                                                            )}
-                                                        </View>
-                                                    </View>
-                                                </View>
-                                            );
-                                        })}
-                                    </View>
-                                ))}
-                                <View style={styles.spendingDisclaimer}>
-                                    <Icon name="info" size={15} color={theme.colors.text.tertiary} />
-                                    <Text style={styles.disclaimerText}>
-                                        Valores informados pelo criador como referência. Podem variar por época, câmbio e disponibilidade.
-                                    </Text>
-                                </View>
-                            </CollapsibleSection>
                         );
                     })()}
 
@@ -1275,69 +1169,6 @@ const styles = StyleSheet.create({
         marginTop: 10,
         fontStyle: 'italic',
     },
-    spendingBreakdown: {
-        gap: 10,
-        marginBottom: 16,
-    },
-    breakdownItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        backgroundColor: theme.colors.surfaceLight,
-        borderRadius: 12,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: theme.colors.borderLight,
-    },
-    breakdownIconWrap: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: theme.colors.primary + '12',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    breakdownContent: {
-        flex: 1,
-    },
-    breakdownCategory: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: theme.colors.text.primary,
-        marginBottom: 2,
-    },
-    breakdownDescription: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        lineHeight: 16,
-    },
-    breakdownAmountBadge: {
-        backgroundColor: theme.colors.primary + '15',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
-    },
-    breakdownAmount: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: theme.colors.primary,
-    },
-    spendingDisclaimer: {
-        flexDirection: 'row',
-        gap: 8,
-        alignItems: 'flex-start',
-        backgroundColor: theme.colors.surfaceLight,
-        padding: 12,
-        borderRadius: 10,
-        marginTop: 4,
-    },
-    disclaimerText: {
-        flex: 1,
-        fontSize: 12,
-        color: theme.colors.text.tertiary,
-        lineHeight: 17,
-    },
-
     // Highlights Styles
     highlightsContainer: {
         gap: 12,
