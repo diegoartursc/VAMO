@@ -175,13 +175,18 @@ export function originalIdOf(
  * outro valor sobrescreve.
  *
  * Não muta `data` original — retorna sempre um objeto novo.
+ *
+ * `data` primitivo (ex.: item legado de `generalTips`, que é uma string
+ * crua, não `{ text }`) não é espalhável — `{ ...'abc' }` produziria
+ * lixo indexado por caractere (`{0:'a',1:'b',2:'c'}`). Nesse caso o
+ * patch é a única fonte de verdade e a base começa vazia.
  */
 export function applyPatch(
     data: any,
     patch: Record<string, any | null> | undefined,
 ): any {
     if (!patch || !isPlainObject(patch)) return data;
-    const base = isPlainObject(data) ? { ...data } : { ...(data ?? {}) };
+    const base = isPlainObject(data) ? { ...data } : {};
     for (const key of Object.keys(patch)) {
         const value = patch[key];
         if (value === null) {
@@ -191,6 +196,27 @@ export function applyPatch(
         }
     }
     return base;
+}
+
+/**
+ * Resolve o texto de uma "dica geral" (`generalTips`), que existe em dois
+ * shapes no app:
+ *  - legado/canônico do criador: `string` crua (é como `itinerary.generalTips:
+ *    string[]` é persistido no backend e no form do criador);
+ *  - overlay do viajante: `{ text }` (todo item `added`/`edited` passa pelo
+ *    `ItemFormModal`, cujo `FieldSpec` para `generalTips` grava em `text`).
+ *
+ * Única fonte de verdade para essa regra — usada tanto pela UI
+ * (`GeneralTipCard`) quanto pelo template do PDF, para as duas nunca
+ * divergirem sobre o que conta como "dica preenchida".
+ */
+export function resolveGeneralTipText(data: unknown): string {
+    if (typeof data === 'string') return data.trim();
+    if (isPlainObject(data)) {
+        const raw = data.text ?? data.tip ?? data.description ?? '';
+        return typeof raw === 'string' ? raw.trim() : '';
+    }
+    return '';
 }
 
 /**

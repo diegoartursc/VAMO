@@ -25,6 +25,7 @@
  */
 
 import type { MergedItem, MergedItinerary } from './mergeEngine';
+import { resolveGeneralTipText } from './mergeEngine';
 import { getCostReferences, formatMoney, formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
 import { convertToAud, summarizeInAud } from '../../utils/currencyConversion';
 
@@ -219,8 +220,19 @@ function renderRestaurant(data: any, source?: MergedItem['source']): string {
         </div>`;
 }
 
+/**
+ * `generalTips` é persistido como `string[]` (ver @vamo/shared/itinerary
+ * types) mas o overlay do viajante grava adições/edições como `{ text }`
+ * (via `ItemFormModal`). `resolveGeneralTipText` (mergeEngine) é a única
+ * fonte de verdade para os dois shapes — sem ela, itens legados (a
+ * maioria dos roteiros existentes) caíam aqui como `data?.text` de uma
+ * string crua, que é sempre `undefined`, gerando cards vazios.
+ *
+ * Retorna '' (sem card) quando não há texto real — o caller filtra.
+ */
 function renderGeneralTip(data: any, source?: MergedItem['source']): string {
-    const text = data?.text ?? data?.title ?? '';
+    const text = resolveGeneralTipText(data);
+    if (!text) return '';
     return `
         <div class="card tip-card">
             <div class="card-header">
@@ -414,14 +426,17 @@ function renderRestaurantsSection(itinerary: any, merged: MergedItinerary | null
 }
 
 function renderTipsSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
+    // Filtra ANTES de decidir se a seção existe — um item com texto só de
+    // espaços (ou um patch que zerou o texto) não pode virar caixa vazia,
+    // e se todos os itens caírem, a seção inteira (título incluso) some.
     if (ctx.variant === 'personalized') {
         const items = merged?.generalTips ?? [];
-        if (!items.length) return '';
-        return sectionWrapper('Dicas', items.map(m => renderGeneralTip(m.data, m.source)).join(''));
+        const html = items.map(m => renderGeneralTip(m.data, m.source)).filter(Boolean).join('');
+        return sectionWrapper('Dicas', html);
     }
     const items = Array.isArray(itinerary?.generalTips) ? itinerary.generalTips : [];
-    if (!items.length) return '';
-    return sectionWrapper('Dicas', items.map((t: any) => renderGeneralTip(t)).join(''));
+    const html = items.map((t: any) => renderGeneralTip(t)).filter(Boolean).join('');
+    return sectionWrapper('Dicas', html);
 }
 
 function renderChecklistSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
