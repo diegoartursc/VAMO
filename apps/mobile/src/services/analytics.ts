@@ -249,6 +249,35 @@ class AnalyticsService {
         });
     }
 
+    /**
+     * Card de roteiro aberto a partir da Home.
+     * `section` diz de qual carrossel veio ('featured' | 'new' |
+     * 'continue_search' | 'unforgettable') — o card é o mesmo em todas, então
+     * a origem só existe aqui.
+     */
+    homeItineraryCardClicked(itineraryId: string, section: string) {
+        this.track('home_itinerary_card_click', {
+            itinerary_id: itineraryId,
+            source_section: section,
+        });
+    }
+
+    // =========================================
+    // Creator Profile Events
+    // =========================================
+
+    /**
+     * Usuário abriu o perfil público de um roteirista.
+     * `source` identifica de onde partiu (ex.: 'itinerary_details').
+     */
+    creatorProfileOpened(creatorId: string, params: { itineraryId?: string; source: string }) {
+        this.track('creator_profile_opened', {
+            creator_id: creatorId,
+            itinerary_id: params.itineraryId,
+            source: params.source,
+        });
+    }
+
     // =========================================
     // Internal
     // =========================================

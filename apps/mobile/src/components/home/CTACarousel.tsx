@@ -19,6 +19,14 @@ const HORIZONTAL_PADDING = 16;
 // Gap entre slides — sem isso os dois encostam.
 const CARD_GAP = 12;
 
+// Limites de texto. Ficam em constantes porque a área reservada do título é
+// derivada deles (lineHeight × nº de linhas) — mudar um sem o outro
+// desalinharia os cards.
+const TITLE_MAX_LINES = 2;
+const TITLE_LINE_HEIGHT = 28;
+const SUBTITLE_MAX_LINES = 3;
+const SUBTITLE_LINE_HEIGHT = 22;
+
 interface CTASlide {
     id: number;
     iconName: IconName;
@@ -131,7 +139,11 @@ export const CTACarousel: React.FC = () => {
                 decelerationRate="fast"
                 snapToInterval={snapInterval > 0 ? snapInterval : undefined}
                 snapToAlignment="start"
-                contentContainerStyle={{ paddingHorizontal: HORIZONTAL_PADDING }}
+                // alignItems:'stretch' explícito — é o que faz TODOS os slides
+                // receberem a altura do mais alto da linha. Não confiar no
+                // default do Yoga: qualquer alteração futura no estilo do
+                // contentContainer poderia sobrescrevê-lo em silêncio.
+                contentContainerStyle={styles.scrollContent}
                 onTouchStart={() => { isTouchingRef.current = true; }}
                 onTouchEnd={() => { isTouchingRef.current = false; }}
                 // Enquanto o container ainda não foi medido, some (opacity) mas
@@ -144,11 +156,16 @@ export const CTACarousel: React.FC = () => {
                         key={slide.id}
                         onPress={() => handleCardPress(slide.targetTab)}
                         activeOpacity={0.9}
-                        style={{
-                            width: cardWidth,
-                            // Gap só ENTRE slides — último não tem.
-                            marginRight: idx === slides.length - 1 ? 0 : CARD_GAP,
-                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${slide.title}. ${slide.subtitle}. Explorar.`}
+                        style={[
+                            styles.slideWrapper,
+                            {
+                                width: cardWidth,
+                                // Gap só ENTRE slides — último não tem.
+                                marginRight: idx === slides.length - 1 ? 0 : CARD_GAP,
+                            },
+                        ]}
                     >
                         <LinearGradient
                             colors={slide.gradientColors}
@@ -159,8 +176,16 @@ export const CTACarousel: React.FC = () => {
                             <View style={styles.iconContainer}>
                                 <Icon name={slide.iconName} size={28} color="#fff" strokeWidth={1.5} />
                             </View>
-                            <Text style={styles.title} numberOfLines={2}>{slide.title}</Text>
-                            <Text style={styles.subtitle} numberOfLines={3}>{slide.subtitle}</Text>
+                            {/* Área de texto flexível: absorve a folga de altura
+                                do slide mais alto, mantendo o CTA no rodapé. */}
+                            <View style={styles.textContent}>
+                                <Text style={styles.title} numberOfLines={TITLE_MAX_LINES} ellipsizeMode="tail">
+                                    {slide.title}
+                                </Text>
+                                <Text style={styles.subtitle} numberOfLines={SUBTITLE_MAX_LINES} ellipsizeMode="tail">
+                                    {slide.subtitle}
+                                </Text>
+                            </View>
                             <View style={styles.ctaRow}>
                                 <Text style={styles.ctaText}>Explorar</Text>
                                 <Icon name="chevron-right" size={16} color="rgba(255,255,255,0.9)" />
@@ -190,11 +215,32 @@ const styles = StyleSheet.create({
     container: {
         marginBottom: 24,
     },
+
+    // ── Equalização de altura ────────────────────────────────────────────
+    // Regra única para TODOS os slides (atuais e futuros), sem medição, sem
+    // estado e sem nada indexado por id: o contentContainer estica a linha
+    // (stretch), o wrapper aceita a altura da linha e o gradiente PREENCHE o
+    // wrapper (flex: 1).
+    //
+    // Era exatamente o elo que faltava: os wrappers já ficavam com a mesma
+    // altura, mas o LinearGradient — o card visível — parava no tamanho do
+    // próprio conteúdo (243px vs 269px), então o card com menos texto
+    // aparecia menor e com o "Explorar" mais alto.
+    scrollContent: {
+        paddingHorizontal: HORIZONTAL_PADDING,
+        alignItems: 'stretch',
+    },
+    slideWrapper: {
+        alignSelf: 'stretch',
+    },
     card: {
+        // Preenche a altura que o wrapper recebeu do slide mais alto.
+        flex: 1,
         borderRadius: 20,
         padding: 28,
+        // Piso de segurança: se algum ambiente não esticar a linha, o card
+        // ainda tem altura utilizável em vez de colapsar com flex: 1.
         minHeight: 200,
-        justifyContent: 'center',
         alignItems: 'center',
         overflow: 'hidden',
         shadowColor: '#000',
@@ -202,6 +248,11 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 12,
         elevation: 8,
+    },
+    textContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignSelf: 'stretch',
     },
     iconContainer: {
         width: 60,
@@ -214,6 +265,10 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 22,
+        lineHeight: TITLE_LINE_HEIGHT,
+        // Área reservada de 2 linhas: o subtítulo começa na mesma altura em
+        // todos os cards, tenha o título 1 ou 2 linhas.
+        minHeight: TITLE_LINE_HEIGHT * TITLE_MAX_LINES,
         fontWeight: '700',
         color: '#fff',
         textAlign: 'center',
@@ -223,13 +278,16 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: 'rgba(255, 255, 255, 0.9)',
         textAlign: 'center',
-        lineHeight: 22,
+        lineHeight: SUBTITLE_LINE_HEIGHT,
     },
     ctaRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        marginTop: 16,
+        // Ancorado no rodapé do card: com textContent flexível, o "Explorar"
+        // fica na MESMA altura em todos os slides.
+        marginTop: 'auto',
+        paddingTop: 16,
     },
     ctaText: {
         fontSize: 14,
