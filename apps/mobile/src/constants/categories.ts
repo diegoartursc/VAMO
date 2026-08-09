@@ -33,11 +33,6 @@ export const INTENT_FEEDBACK: Record<string, string> = {
     'luxo': 'Mostrando viagens com foco em conforto e exclusividade',
 };
 
-// Duration quick chips
-export const DURATION_CHIPS = [
-    { label: 'Qualquer', min: 0, max: 0 },
-    { label: 'Fim de semana', min: 2, max: 3 },
-    { label: '7 dias', min: 7, max: 7 },
-    { label: '15 dias', min: 15, max: 15 },
-    { label: '+20 dias', min: 20, max: 30 },
-] as const;
+// As faixas de duração da busca ficam em `constants/durationPresets.ts`.
+// O antigo DURATION_CHIPS (min/max colapsados em um único número pelo modal,
+// com "+20 dias" limitado a 30) foi removido junto com o slider.

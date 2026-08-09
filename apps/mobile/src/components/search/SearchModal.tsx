@@ -5,20 +5,50 @@ import {
     StyleSheet,
     Modal,
     TouchableOpacity,
-    TextInput,
     ScrollView,
     Animated,
-    Dimensions,
+    useWindowDimensions,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../theme/theme';
 import { SearchFilters } from '../../contexts/SearchContext';
-import { CATEGORIES, INTENT_CATEGORIES, INTENT_FEEDBACK, DURATION_CHIPS } from '../../constants/categories';
+import { CATEGORIES, INTENT_CATEGORIES, INTENT_FEEDBACK } from '../../constants/categories';
+import {
+    DURATION_PRESETS,
+    DurationPresetId,
+    DEFAULT_DURATION_PRESET,
+    getDurationRange,
+    resolveDurationPresetFromRange,
+} from '../../constants/durationPresets';
 import { useSearch } from '../../hooks/useSearch';
 import { Icon, IconName } from '../common/Icons';
+import { DestinationAutocomplete } from './DestinationAutocomplete';
+import { countMatchingItineraries, DestinationSuggestion } from '../../utils/searchUtils';
 
-const { height } = Dimensions.get('window');
+/**
+ * Distância inicial da animação de entrada. Só o ponto de partida: a altura
+ * real vem de `useWindowDimensions` dentro do componente.
+ *
+ * ⚠️ O valor era lido de `Dimensions.get('window')` no escopo do módulo — na
+ * web esse read acontece antes do layout e devolvia 0, deixando o modal com
+ * `height: 0` e todo o conteúdo abaixo da dobra (filtros invisíveis).
+ */
+const INITIAL_SLIDE_OFFSET = 900;
+
+/** Cabeçalho padrão de seção — ícone em wrapper de tamanho fixo + rótulo. */
+function FilterHeader({ icon, label }: { icon: IconName; label: string }) {
+    return (
+        <View style={styles.filterHeader}>
+            <View style={styles.filterHeaderIcon}>
+                <Icon name={icon} size={FILTER_HEADER_ICON_SIZE} color={theme.colors.primary} strokeWidth={2} />
+            </View>
+            <Text style={styles.filterHeaderLabel}>{label}</Text>
+        </View>
+    );
+}
+
+/** Tamanho único dos ícones de cabeçalho — nada de ícone maior que o outro. */
+const FILTER_HEADER_ICON_SIZE = 18;
 
 interface SearchModalProps {
     visible: boolean;
@@ -35,19 +65,25 @@ export function SearchModal({
     context,
     initialFilters,
 }: SearchModalProps) {
-    const [slideAnim] = useState(new Animated.Value(height));
+    const { height: windowHeight } = useWindowDimensions();
+    const [slideAnim] = useState(new Animated.Value(INITIAL_SLIDE_OFFSET));
     const [backdropAnim] = useState(new Animated.Value(0));
     const [clearAnim] = useState(new Animated.Value(0));
     const {
-        travelIntent, setTravelIntent,
-        selectedCategories, toggleSelectedCategory, setSelectedCategory,
-        filteredItineraries,
+        travelIntent: appliedIntent, setTravelIntent,
+        selectedCategories: appliedCategories, setSelectedCategories,
+        allItineraries,
+        destinationSuggestions,
     } = useSearch();
 
-    // Filtros locais (estado do modal)
-    const [destination, setDestination] = useState(initialFilters?.destination || '');
-    const [duration, setDuration] = useState<number | undefined>(initialFilters?.duration);
-    const [activeDurationChip, setActiveDurationChip] = useState<number | null>(null);
+    // ── Filtros LOCAIS ────────────────────────────────────────────────────
+    // Nada aqui toca o SearchContext até o usuário apertar "Buscar": é o que
+    // permite a contagem do rodapé reagir na hora sem alterar a listagem por
+    // trás do modal (e faz o "Limpar" não deixar filtro invisível aplicado).
+    const [destination, setDestination] = useState('');
+    const [durationPreset, setDurationPreset] = useState<DurationPresetId>(DEFAULT_DURATION_PRESET);
+    const [travelIntent, setLocalIntent] = useState<string | null>(null);
+    const [selectedCategories, setLocalCategories] = useState<string[]>([]);
 
     // Títulos por contexto
     const contextTitles = {
@@ -55,26 +91,48 @@ export function SearchModal({
         itineraries: 'Buscar Roteiros',
     };
 
-    // Contagem dinâmica de resultados
-    const resultCount = useMemo(() => {
-        if (context === 'itineraries') return filteredItineraries.length;
-        return filteredItineraries.length;
-    }, [context, filteredItineraries]);
+    const resultLabel = 'roteiro';
 
-    const resultLabel = useMemo(() => {
-        if (context === 'itineraries') return 'roteiro';
-        return 'roteiro';
-    }, [context]);
+    /**
+     * Hidrata o estado local a cada abertura, a partir do que está realmente
+     * aplicado. Reabrir o modal mostra os filtros vigentes marcados.
+     */
+    useEffect(() => {
+        if (!visible) return;
+        setDestination(initialFilters?.destination || '');
+        setDurationPreset(
+            initialFilters?.durationPreset
+            ?? resolveDurationPresetFromRange(initialFilters?.durationMin, initialFilters?.durationMax)
+            ?? DEFAULT_DURATION_PRESET,
+        );
+        setLocalIntent(appliedIntent);
+        setLocalCategories(appliedCategories);
+    }, [visible]);
+
+    /** Faixa derivada do preset — única fonte de durationMin/durationMax. */
+    const durationRange = useMemo(() => getDurationRange(durationPreset), [durationPreset]);
+
+    /**
+     * Prévia de resultados: mesma função pura da listagem, alimentada pelos
+     * filtros LOCAIS. Por isso o número muda antes de tocar em "Buscar".
+     */
+    const resultCount = useMemo(() => countMatchingItineraries(allItineraries, {
+        destination,
+        durationMin: durationRange.durationMin,
+        durationMax: durationRange.durationMax,
+        selectedCategories,
+        travelIntent,
+    }), [allItineraries, destination, durationRange, selectedCategories, travelIntent]);
 
     // Contagem de filtros locais ativos
     const localActiveCount = useMemo(() => {
         let count = 0;
         if (destination) count++;
-        if (duration !== undefined) count++;
+        if (durationPreset !== DEFAULT_DURATION_PRESET) count++;
         if (travelIntent) count++;
         if (selectedCategories.length > 0) count++;
         return count;
-    }, [destination, duration, travelIntent, selectedCategories]);
+    }, [destination, durationPreset, travelIntent, selectedCategories]);
 
     useEffect(() => {
         if (visible) {
@@ -93,7 +151,7 @@ export function SearchModal({
         } else {
             Animated.parallel([
                 Animated.timing(slideAnim, {
-                    toValue: height,
+                    toValue: windowHeight || INITIAL_SLIDE_OFFSET,
                     duration: 250,
                     useNativeDriver: true,
                 }),
@@ -117,40 +175,41 @@ export function SearchModal({
 
     const handleClearFilters = () => {
         setDestination('');
-        setDuration(undefined);
-        setActiveDurationChip(0); // Select 'Qualquer' by default when clearing
-        setTravelIntent(null);
-        setSelectedCategory(null);
+        setDurationPreset(DEFAULT_DURATION_PRESET); // "Qualquer" volta a ficar aceso
+        setLocalIntent(null);
+        setLocalCategories([]);
     };
 
     const handleApplyFilters = () => {
-        const filters: SearchFilters = {
-            destination,
-            duration,
-        };
+        // Intenção e categorias vivem em outro pedaço do contexto — precisam ser
+        // empurradas junto para o estado aplicado bater com o que o modal mostra.
+        setTravelIntent(travelIntent);
+        setSelectedCategories(selectedCategories);
+        const filters: SearchFilters = { destination, ...durationRange };
         onSearch(filters);
         onClose();
     };
 
     const handleIntentSelect = (intentId: string) => {
-        setTravelIntent(travelIntent === intentId ? null : intentId);
+        setLocalIntent(prev => (prev === intentId ? null : intentId));
     };
 
-    const handleDurationChip = (index: number, min: number, max: number) => {
-        if (index === 0) {
-            // "Qualquer" selected
-            setActiveDurationChip(0);
-            setDuration(undefined);
-            return;
-        }
-        
-        if (activeDurationChip === index) {
-            setActiveDurationChip(0);
-            setDuration(undefined);
-        } else {
-            setActiveDurationChip(index);
-            setDuration(min === max ? min : Math.round((min + max) / 2));
-        }
+    const handleToggleCategory = (categoryId: string) => {
+        setLocalCategories(prev =>
+            prev.includes(categoryId)
+                ? prev.filter(item => item !== categoryId)
+                : [...prev, categoryId],
+        );
+    };
+
+    /** Seleção única e sempre definida: reapertar o chip ativo volta a "Qualquer". */
+    const handleDurationPreset = (presetId: DurationPresetId) => {
+        setDurationPreset(prev => (prev === presetId ? DEFAULT_DURATION_PRESET : presetId));
+    };
+
+    const handleSelectDestination = (suggestion: DestinationSuggestion) => {
+        // Grava o termo buscável ("Tóquio"), nunca um label composto.
+        setDestination(suggestion.searchValue);
     };
 
     return (
@@ -202,92 +261,58 @@ export function SearchModal({
                     style={styles.content}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingBottom: 24 }}
+                    // Sem isso o primeiro toque numa sugestão só fecha o teclado.
+                    keyboardShouldPersistTaps="handled"
                 >
                     {/* ── 1. DESTINO ── */}
                     <View style={styles.filterSection}>
-                        <View style={styles.filterLabelWithIcon}>
-                            <Icon name="location" size={16} color={theme.colors.primary} />
-                            <Text style={styles.filterLabel}>Destino</Text>
-                        </View>
-                        <View style={styles.inputContainer}>
-                            <Icon name="globe" size={20} color={theme.colors.text.tertiary} style={{ marginRight: 10 }} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Para onde você quer ir?"
-                                placeholderTextColor={theme.colors.text.secondary}
-                                value={destination}
-                                onChangeText={setDestination}
-                            />
-                        </View>
+                        <FilterHeader icon="location" label="Destino" />
+                        <DestinationAutocomplete
+                            value={destination}
+                            suggestions={destinationSuggestions}
+                            onChangeText={setDestination}
+                            onSelect={handleSelectDestination}
+                        />
                     </View>
 
                     {/* ── 2. DURAÇÃO DA VIAGEM ── */}
                     <View style={styles.filterSection}>
-                        <View style={styles.filterLabelRow}>
-                            <View style={styles.filterLabelWithIcon}>
-                                <Icon name="calendar" size={16} color={theme.colors.primary} />
-                                <Text style={styles.filterLabel}>Duração da Viagem</Text>
-                            </View>
-                            <Text style={styles.filterValue}>
-                                {duration === undefined ? 'Qualquer' : duration === 1 ? '1 dia' : `${duration} dias`}
-                            </Text>
-                        </View>
-
-                        {/* Quick chips */}
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.durationChipsScroll}
-                        >
-                            {DURATION_CHIPS.map((chip, index) => {
-                                const isActive = activeDurationChip === index;
+                        <FilterHeader icon="calendar" label="Duração da viagem" />
+                        <View style={styles.durationChips}>
+                            {DURATION_PRESETS.map((preset) => {
+                                const isActive = durationPreset === preset.id;
                                 return (
                                     <TouchableOpacity
-                                        key={index}
+                                        key={preset.id}
                                         style={[
                                             styles.durationChip,
                                             isActive && styles.durationChipActive,
                                         ]}
-                                        onPress={() => handleDurationChip(index, chip.min, chip.max)}
+                                        onPress={() => handleDurationPreset(preset.id)}
+                                        activeOpacity={0.8}
+                                        accessibilityRole="button"
+                                        accessibilityState={{ selected: isActive }}
+                                        accessibilityLabel={preset.accessibilityLabel}
+                                        testID={`duration-preset-${preset.id}`}
                                     >
-                                        <Text style={[
-                                            styles.durationChipText,
-                                            isActive && styles.durationChipTextActive,
-                                        ]}>
-                                            {chip.label}
+                                        <Text
+                                            style={[
+                                                styles.durationChipText,
+                                                isActive && styles.durationChipTextActive,
+                                            ]}
+                                            numberOfLines={1}
+                                        >
+                                            {preset.label}
                                         </Text>
                                     </TouchableOpacity>
                                 );
                             })}
-                        </ScrollView>
-
-                        {/* Slider */}
-                        <Slider
-                            style={styles.slider}
-                            minimumValue={1}
-                            maximumValue={30}
-                            value={duration || 1} // Fallback to 1 if undefined for slider display
-                            onValueChange={(val: number) => {
-                                setDuration(Math.round(val));
-                                setActiveDurationChip(null);
-                            }}
-                            minimumTrackTintColor={theme.colors.primary}
-                            maximumTrackTintColor={theme.colors.border}
-                            thumbTintColor={theme.colors.primary}
-                            step={1}
-                        />
-                        <View style={styles.sliderRange}>
-                            <Text style={styles.sliderRangeText}>1 dia</Text>
-                            <Text style={styles.sliderRangeText}>30 dias</Text>
                         </View>
                     </View>
 
                     {/* ── 3. COMO VOCÊ QUER VIAJAR? ── */}
                     <View style={styles.filterSection}>
-                        <View style={styles.filterLabelWithIcon}>
-                            <Icon name="compass" size={16} color={theme.colors.primary} />
-                            <Text style={styles.filterLabel}>Como você quer viajar?</Text>
-                        </View>
+                        <FilterHeader icon="compass" label="Como você quer viajar?" />
                         <View style={styles.intentGrid}>
                             {INTENT_CATEGORIES.map((intent) => {
                                 const isSelected = travelIntent === intent.id;
@@ -300,6 +325,9 @@ export function SearchModal({
                                         ]}
                                         onPress={() => handleIntentSelect(intent.id)}
                                         activeOpacity={0.8}
+                                        accessibilityRole="button"
+                                        accessibilityState={{ selected: isSelected }}
+                                        accessibilityLabel={`Filtrar roteiros de estilo ${intent.label}`}
                                     >
                                         <Icon
                                             name={intent.icon as IconName}
@@ -329,14 +357,12 @@ export function SearchModal({
 
                     {/* ── 4. CATEGORIAS ── */}
                     <View style={styles.filterSection}>
-                        <View style={styles.filterLabelWithIcon}>
-                            <Icon name="filter" size={16} color={theme.colors.primary} />
-                            <Text style={styles.filterLabel}>Categorias</Text>
-                        </View>
+                        <FilterHeader icon="filter" label="Categorias" />
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={styles.categoriesScroll}
+                            keyboardShouldPersistTaps="handled"
                         >
                             {CATEGORIES.map((cat) => {
                                 const isActive = selectedCategories.includes(cat.id);
@@ -347,7 +373,10 @@ export function SearchModal({
                                             styles.categoryPill,
                                             isActive && styles.categoryPillActive,
                                         ]}
-                                        onPress={() => toggleSelectedCategory(cat.id)}
+                                        onPress={() => handleToggleCategory(cat.id)}
+                                        accessibilityRole="button"
+                                        accessibilityState={{ selected: isActive }}
+                                        accessibilityLabel={`Filtrar roteiros da categoria ${cat.label}`}
                                     >
                                         <Icon
                                             name={cat.icon as IconName}
@@ -443,7 +472,10 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: height * 0.9,
+        // Percentual (não pixel calculado no import): correto em qualquer
+        // viewport, sobrevive a rotação/resize e não depende de medir a janela
+        // antes do primeiro layout.
+        height: '90%',
         backgroundColor: theme.colors.background,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
@@ -496,11 +528,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: theme.colors.text.secondary,
     },
-    filterLabelWithIcon: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
     content: {
         flex: 1,
         paddingHorizontal: theme.spacing.lg,
@@ -509,53 +536,44 @@ const styles = StyleSheet.create({
     filterSection: {
         marginBottom: 28,
     },
-    filterLabel: {
+
+    // Cabeçalho de seção — mesma estrutura em TODAS as seções, para os ícones
+    // ficarem do mesmo tamanho e na mesma linha de base do texto.
+    filterHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: theme.spacing.md,
+    },
+    filterHeaderIcon: {
+        // Caixa fixa: o ícone nunca herda largura do flex nem estica quando o
+        // título é longo.
+        width: FILTER_HEADER_ICON_SIZE,
+        height: FILTER_HEADER_ICON_SIZE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+    },
+    filterHeaderLabel: {
+        flexShrink: 1,
         fontSize: 16,
+        lineHeight: FILTER_HEADER_ICON_SIZE,
         fontWeight: '600',
         color: theme.colors.text.primary,
-        marginBottom: theme.spacing.md,
-    },
-    filterLabelRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: theme.spacing.md,
-    },
-    filterValue: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: theme.colors.primary,
     },
 
-    // Input
-    inputContainer: {
+    // Duration chips — em wrap, nada escondido em rolagem horizontal.
+    durationChips: {
         flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.surface,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        borderRadius: 14,
-        paddingHorizontal: theme.spacing.md,
-        height: 56,
-    },
-    inputIcon: {
-        marginRight: theme.spacing.sm,
-    },
-    input: {
-        flex: 1,
-        fontSize: 16,
-        color: theme.colors.text.primary,
-    },
-
-    // Duration Chips
-    durationChipsScroll: {
+        flexWrap: 'wrap',
         gap: 8,
-        marginBottom: 14,
     },
     durationChip: {
+        minHeight: 44,
+        justifyContent: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingVertical: 10,
+        borderRadius: theme.borderRadius.full,
         backgroundColor: theme.colors.surface,
         borderWidth: 1,
         borderColor: theme.colors.border,
@@ -565,27 +583,12 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.primary,
     },
     durationChipText: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '600',
         color: theme.colors.text.primary,
     },
     durationChipTextActive: {
         color: '#FFFFFF',
-    },
-
-    // Slider (shared by duration & price)
-    slider: {
-        width: '100%',
-        height: 40,
-    },
-    sliderRange: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: -6,
-    },
-    sliderRangeText: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
     },
 
     // Intent / Travel Style

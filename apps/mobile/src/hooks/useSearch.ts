@@ -1,7 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchContext, SearchFilters } from '../contexts/SearchContext';
 import { getItineraries } from '../services/api';
-import { applyAllItineraryFilters, itineraryMatchesCategory } from '../utils/searchUtils';
+import {
+    applyAllItineraryFilters,
+    buildDestinationSuggestions,
+    ItineraryFilterInput,
+} from '../utils/searchUtils';
+import { DEFAULT_DURATION_PRESET } from '../constants/durationPresets';
 
 /**
  * Hook personalizado para gerenciar busca e filtros.
@@ -43,45 +48,33 @@ export function useSearch() {
     }, [reloadKey]);
 
     /**
-     * Filtra roteiros com base nos filtros atuais, categoria e intent de viagem
+     * Filtros ativos no formato que as funções puras consomem. Mesma entrada
+     * usada pela prévia de contagem do SearchModal — nenhuma regra de filtro
+     * vive fora de `searchUtils`.
      */
-    const filteredItineraries = useMemo(() => {
-        let itineraries = applyAllItineraryFilters(allItineraries, {
-            ...context.filters,
-            selectedCategories: context.selectedCategories,
-        });
+    const activeFilterInput: ItineraryFilterInput = useMemo(() => ({
+        destination: context.filters.destination,
+        durationMin: context.filters.durationMin,
+        durationMax: context.filters.durationMax,
+        selectedCategories: context.selectedCategories,
+        travelIntent: context.travelIntent,
+    }), [context.filters, context.selectedCategories, context.travelIntent]);
 
-        // Filtro por intenção de viagem (estilo)
-        if (context.travelIntent) {
-            if (context.travelIntent === 'luxo') {
-                itineraries = itineraries.filter(it =>
-                    itineraryMatchesCategory(it, ['luxo', 'luxury'])
-                );
-            } else if (context.travelIntent === 'economico' || context.travelIntent === 'custo-beneficio') {
-                itineraries = itineraries.filter(it =>
-                    itineraryMatchesCategory(it, ['economico', 'mochilao'])
-                );
-            } else if (context.travelIntent === 'moderado') {
-                itineraries = itineraries.filter(it =>
-                    !itineraryMatchesCategory(it, ['luxo', 'luxury'])
-                );
-            } else if (context.travelIntent === 'mochilao') {
-                itineraries = itineraries.filter(it =>
-                    itineraryMatchesCategory(it, ['mochilao', 'economico'])
-                );
-            } else if (context.travelIntent === 'romantico') {
-                itineraries = itineraries.filter(it =>
-                    itineraryMatchesCategory(it, ['romantico'])
-                );
-            } else if (context.travelIntent === 'aventura') {
-                itineraries = itineraries.filter(it =>
-                    itineraryMatchesCategory(it, ['aventura'])
-                );
-            }
-        }
+    /** Roteiros que passam nos filtros atuais (destino, duração, categoria, intenção). */
+    const filteredItineraries = useMemo(
+        () => applyAllItineraryFilters(allItineraries, activeFilterInput),
+        [allItineraries, activeFilterInput],
+    );
 
-        return itineraries;
-    }, [allItineraries, context.filters, context.travelIntent, context.selectedCategories]);
+    /**
+     * Sugestões de destino do autocomplete, derivadas dos roteiros REAIS já
+     * carregados. Memoizado aqui para o modal não recalcular a cada tecla nem
+     * disparar request por caractere.
+     */
+    const destinationSuggestions = useMemo(
+        () => buildDestinationSuggestions(allItineraries),
+        [allItineraries],
+    );
 
     const getItinerariesOnly = useCallback(() => {
         return filteredItineraries;
@@ -103,12 +96,12 @@ export function useSearch() {
     }, [context]);
 
     const hasActiveFilters = useMemo(() => {
-        const { destination, startDate, endDate, duration } = context.filters;
+        const { destination, startDate, endDate, durationPreset } = context.filters;
         return !!(
             destination ||
             startDate ||
             endDate ||
-            duration !== undefined ||
+            (durationPreset && durationPreset !== DEFAULT_DURATION_PRESET) ||
             context.travelIntent ||
             context.selectedCategories.length > 0
         );
@@ -116,9 +109,9 @@ export function useSearch() {
 
     const activeFilterCount = useMemo(() => {
         let count = 0;
-        const { destination, duration } = context.filters;
+        const { destination, durationPreset } = context.filters;
         if (destination) count++;
-        if (duration !== undefined) count++;
+        if (durationPreset && durationPreset !== DEFAULT_DURATION_PRESET) count++;
         if (context.travelIntent) count++;
         if (context.selectedCategories.length > 0) count++;
         return count;
@@ -151,6 +144,8 @@ export function useSearch() {
         // Resultados
         filteredItineraries,
         totalResultsCount,
+        /** Opções do autocomplete de destino (derivadas dos roteiros reais). */
+        destinationSuggestions,
         getItinerariesOnly,
         getAllResults,
 

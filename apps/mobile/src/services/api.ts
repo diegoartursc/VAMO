@@ -215,6 +215,13 @@ export interface ItinerarySummary {
     title: string;
     destination: string;
     country: string;
+    /**
+     * Destinos adicionais (multi-destino). Opcionais na listagem: um backend
+     * anterior à inclusão desses campos simplesmente não os envia, e a busca
+     * degrada para destino/país sem quebrar.
+     */
+    extraCities?: string[];
+    extraCountries?: string[];
     creator: ItineraryCreatorSummary;
     /** Vendas reais DESTE roteiro (diferente de creator.salesCount, acumulado do criador). */
     salesCount: number;

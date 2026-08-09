@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,6 +13,8 @@ import { CTACarousel } from '../../src/components/home/CTACarousel';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { ItineraryCard } from '../../src/components/cards/ItineraryCard';
 import { CATEGORIES } from '../../src/constants/categories';
+import { DEFAULT_DURATION_PRESET, getDurationRange } from '../../src/constants/durationPresets';
+import { isPublicItinerary } from '../../src/utils/searchUtils';
 
 // Critérios de ORDENAÇÃO (não filtro). Cada opção apenas reorganiza a
 // lista — nunca esconde resultados. "relevance" é o estado padrão.
@@ -32,10 +34,8 @@ const SORT_LABELS: Record<string, string> = Object.fromEntries(
 
 const DEFAULT_SORT = 'relevance';
 
-const isPublicItinerary = (itinerary: any) => {
-    const status = String(itinerary?.status ?? itinerary?.approvalStatus ?? 'active').toLowerCase();
-    return ['active', 'ativo', 'published', 'publicado'].includes(status);
-};
+// `isPublicItinerary` vem de utils/searchUtils — mesmo critério de
+// disponibilidade usado pela prévia de contagem do SearchModal.
 
 const ts = (it: any) =>
     new Date(it?.publishedAt || it?.approvedAt || it?.createdAt || it?.updatedAt || 0).getTime();
@@ -140,6 +140,17 @@ export default function ItinerariesScreen() {
         return sortItineraries(base.filter(isPublicItinerary), activeSort);
     }, [activeSort, hasActiveFilters, filteredItineraries, allItineraries]);
 
+    /** Zera TODOS os filtros — inclusive a faixa de duração (volta a "Qualquer"). */
+    const handleClearAllFilters = useCallback(() => {
+        setActiveSort(DEFAULT_SORT);
+        setSelectedCategory(null);
+        setTravelIntent(null);
+        applyFilters({
+            destination: '',
+            ...getDurationRange(DEFAULT_DURATION_PRESET),
+        });
+    }, [applyFilters, setSelectedCategory, setTravelIntent]);
+
     const activeCategoryLabel = useMemo(() => {
         if (selectedCategories.length === 0) return undefined;
         const labels = selectedCategories
@@ -234,15 +245,7 @@ export default function ItinerariesScreen() {
                         </View>
                         {hasActiveFilters && (
                             <TouchableOpacity
-                                onPress={() => {
-                                    setActiveSort(DEFAULT_SORT);
-                                    setSelectedCategory(null);
-                                    setTravelIntent(null);
-                                    applyFilters({
-                                        destination: '',
-                                        duration: undefined,
-                                    });
-                                }}
+                                onPress={handleClearAllFilters}
                             >
                                 <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>
                                     Limpar filtros
@@ -281,15 +284,7 @@ export default function ItinerariesScreen() {
                             {hasActiveFilters && (
                                 <TouchableOpacity
                                     style={styles.listStateButton}
-                                    onPress={() => {
-                                        setActiveSort(DEFAULT_SORT);
-                                        setSelectedCategory(null);
-                                        setTravelIntent(null);
-                                        applyFilters({
-                                            destination: '',
-                                            duration: undefined,
-                                        });
-                                    }}
+                                    onPress={handleClearAllFilters}
                                     activeOpacity={0.85}
                                 >
                                     <Text style={styles.listStateButtonText}>Limpar filtros</Text>

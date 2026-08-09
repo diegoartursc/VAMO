@@ -1,48 +1,56 @@
-import { Package } from '../types';
+/**
+ * Metadados COMPLEMENTARES de destino.
+ *
+ * A lista estática de "destinos populares" que existia aqui foi removida: ela
+ * não representava os roteiros publicados (sugeria Paris, Cancún, Dubai… sem
+ * nenhum roteiro por trás). As sugestões do autocomplete passam a ser
+ * derivadas dos roteiros reais — ver `buildDestinationSuggestions` em
+ * `utils/searchUtils.ts`.
+ *
+ * O que sobra aqui é só enriquecimento de BUSCA: apelidos e grafias
+ * alternativas (inglês, sem acento, nome antigo) que o usuário pode digitar e
+ * que não aparecem literalmente no cadastro do roteiro. Nada aqui cria
+ * sugestão — apenas amplia o que um texto digitado consegue encontrar.
+ */
 
-export interface Destination {
-    id: string;
-    name: string;
-    country: string;
-    emoji: string;
-    popular: boolean;
-}
+/**
+ * alias digitado (normalizado) → termos canônicos (normalizados) que ele deve
+ * alcançar. Mantido pequeno e de propósito: cada entrada existe porque um
+ * australiano/brasileiro pode digitar assim.
+ */
+export const DESTINATION_ALIASES: Record<string, string[]> = {
+    tokyo: ['toquio'],
+    japan: ['japao'],
+    kioto: ['kyoto'],
+    australia: ['australia'],
+    spain: ['espanha'],
+    france: ['franca'],
+    italy: ['italia'],
+    greece: ['grecia'],
+    portugal: ['portugal'],
+    lisbon: ['lisboa'],
+    brazil: ['brasil'],
+    'new york': ['nova york'],
+    'nova iorque': ['nova york'],
+    thailand: ['tailandia'],
+    bali: ['bali'],
+    indonesia: ['indonesia'],
+};
 
-export const POPULAR_DESTINATIONS: Destination[] = [
-    { id: '1', name: 'Paris', country: 'França', emoji: '🗼', popular: true },
-    { id: '2', name: 'Cancún', country: 'México', emoji: '🏖️', popular: true },
-    { id: '3', name: 'Nova York', country: 'EUA', emoji: '🗽', popular: true },
-    { id: '4', name: 'Roma', country: 'Itália', emoji: '🏛️', popular: true },
-    { id: '5', name: 'Dubai', country: 'Emirados Árabes', emoji: '🏙️', popular: true },
-    { id: '6', name: 'Fernando de Noronha', country: 'Brasil', emoji: '🐢', popular: true },
-    { id: '7', name: 'Machu Picchu', country: 'Peru', emoji: '⛰️', popular: true },
-    { id: '8', name: 'Cusco', country: 'Peru', emoji: '🦙', popular: false },
-    { id: '9', name: 'Barcelona', country: 'Espanha', emoji: '⚽', popular: true },
-    { id: '10', name: 'Londres', country: 'Reino Unido', emoji: '🎡', popular: true },
-    { id: '11', name: 'Amsterdam', country: 'Holanda', emoji: '🌷', popular: false },
-    { id: '12', name: 'Tóquio', country: 'Japão', emoji: '🗾', popular: true },
-    { id: '13', name: 'Maldivas', country: 'Maldivas', emoji: '🏝️', popular: true },
-    { id: '14', name: 'Santorini', country: 'Grécia', emoji: '🏘️', popular: true },
-    { id: '15', name: 'El Calafate', country: 'Argentina', emoji: '🧊', popular: false },
-    { id: '16', name: 'Rio de Janeiro', country: 'Brasil', emoji: '🏖️', popular: true },
-    { id: '17', name: 'Salvador', country: 'Brasil', emoji: '🥁', popular: false },
-    { id: '18', name: 'Gramado', country: 'Brasil', emoji: '🍫', popular: true },
-    { id: '19', name: 'Florianópolis', country: 'Brasil', emoji: '🏄', popular: false },
-    { id: '20', name: 'Jericoacoara', country: 'Brasil', emoji: '🌅', popular: true },
-];
+/**
+ * Expande um termo já normalizado nas variantes que devem ser testadas contra
+ * os campos do roteiro. Sempre inclui o próprio termo.
+ */
+export function expandDestinationAliases(normalizedTerm: string): string[] {
+    if (!normalizedTerm) return [];
+    const variants = new Set<string>([normalizedTerm]);
 
-export function searchDestinations(query: string): Destination[] {
-    if (!query.trim()) {
-        return POPULAR_DESTINATIONS.filter(d => d.popular).slice(0, 6);
+    for (const [alias, canonicals] of Object.entries(DESTINATION_ALIASES)) {
+        // Prefixo basta: quem digita "tok" já deve alcançar "toquio".
+        if (alias.startsWith(normalizedTerm) || normalizedTerm.startsWith(alias)) {
+            canonicals.forEach(canonical => variants.add(canonical));
+        }
     }
 
-    const lowerQuery = query.toLowerCase();
-    return POPULAR_DESTINATIONS.filter(d =>
-        d.name.toLowerCase().includes(lowerQuery) ||
-        d.country.toLowerCase().includes(lowerQuery)
-    ).slice(0, 8);
-}
-
-export function getPopularDestinations(): Destination[] {
-    return POPULAR_DESTINATIONS.filter(d => d.popular).slice(0, 6);
+    return Array.from(variants);
 }

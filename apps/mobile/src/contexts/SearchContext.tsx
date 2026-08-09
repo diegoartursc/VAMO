@@ -3,12 +3,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Itinerary } from '../data/mockItineraries';
 import { useAuth } from './AuthContext';
 import { SearchIntent, mergeSearchIntent } from '../utils/homeSections';
+import { DurationPresetId, DEFAULT_DURATION_PRESET } from '../constants/durationPresets';
 
 export interface SearchFilters {
     destination: string;
     startDate?: Date;
     endDate?: Date;
-    duration?: number; // Duração em dias (para roteiros)
+    /**
+     * Duração como FAIXA real. `durationPreset` é o estado da UI (qual chip
+     * está aceso) e min/max são o que a filtragem consome — os três são
+     * escritos SEMPRE juntos por `getDurationRange()`, nunca à mão, para não
+     * existirem dois modelos conflitantes.
+     *
+     * Substituiu o antigo `duration?: number`, que era interpretado como
+     * "máximo" e obrigava a converter faixas em média ("+20 dias" virava 25).
+     */
+    durationPreset: DurationPresetId;
+    /** Mínimo inclusivo em dias. `undefined` = sem piso. */
+    durationMin?: number;
+    /** Máximo inclusivo em dias. `undefined` = sem teto. */
+    durationMax?: number;
     // priceMin/priceMax: filtro de faixa de preço REMOVIDO da UI. Campos
     // mantidos opcionais só por compat de quem ainda passa Partial; não
     // afetam mais a busca.
@@ -50,7 +64,11 @@ const defaultFilters: SearchFilters = {
     destination: '',
     startDate: undefined,
     endDate: undefined,
-    duration: undefined,
+    // Representação canônica de "sem restrição de duração": preset 'any' com
+    // min/max ausentes. Nunca usar null ou 0 para dizer a mesma coisa.
+    durationPreset: DEFAULT_DURATION_PRESET,
+    durationMin: undefined,
+    durationMax: undefined,
 };
 
 const defaultResults: SearchResults = {

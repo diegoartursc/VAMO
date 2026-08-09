@@ -1,108 +1,213 @@
-import React, { useState, useRef } from 'react';
+/**
+ * DestinationAutocomplete — campo de destino com sugestões dos roteiros REAIS.
+ *
+ * Não conhece API nem contexto: recebe `suggestions` já prontas (memoizadas em
+ * useSearch a partir dos roteiros carregados) e devolve a seleção. Zero request
+ * por caractere.
+ *
+ * Decisões de layout:
+ *  - Sem título "Destino" interno: o cabeçalho da seção é do SearchModal, para
+ *    o rótulo não aparecer duplicado.
+ *  - Dropdown renderizado NO FLUXO (não absoluto) com Views simples: dentro do
+ *    ScrollView do modal, posição absoluta é cortada em algumas plataformas e
+ *    FlatList aninhada em ScrollView vertical conflita. Como são no máximo 8
+ *    itens, lista virtualizada não traz ganho nenhum.
+ */
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     Text,
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    FlatList,
-    Modal,
-    Pressable,
+    Platform,
+    NativeSyntheticEvent,
+    TextInputKeyPressEventData,
 } from 'react-native';
 import { theme } from '../../theme/theme';
-import { searchDestinations, getPopularDestinations, Destination } from '../../data/destinations';
+import { Icon } from '../common/Icons';
+import {
+    DestinationSuggestion,
+    searchDestinationSuggestions,
+    DESTINATION_SUGGESTION_LIMIT,
+} from '../../utils/searchUtils';
 
 interface DestinationAutocompleteProps {
+    /** Texto atual do campo (controlado pelo pai). */
     value: string;
-    onSelect: (destination: Destination) => void;
+    /** Fonte das opções — já filtrada para roteiros disponíveis. */
+    suggestions: DestinationSuggestion[];
+    /** Digitação livre: o texto também vale como filtro. */
+    onChangeText: (text: string) => void;
+    /** Seleção de uma sugestão — grava `searchValue`, nunca o label composto. */
+    onSelect: (suggestion: DestinationSuggestion) => void;
     placeholder?: string;
+    /** Limite de itens exibidos. */
+    limit?: number;
 }
 
 export function DestinationAutocomplete({
     value,
+    suggestions,
+    onChangeText,
     onSelect,
-    placeholder = 'Para onde você vai?',
+    placeholder = 'Para onde você quer ir?',
+    limit = DESTINATION_SUGGESTION_LIMIT,
 }: DestinationAutocompleteProps) {
-    const [query, setQuery] = useState(value);
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [results, setResults] = useState<Destination[]>(getPopularDestinations());
+    const [isOpen, setIsOpen] = useState(false);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const inputRef = useRef<TextInput>(null);
+    // Fechar no blur precisa esperar o toque na sugestão ser processado — em
+    // web e Android o blur chega ANTES do press. O timer é cancelado assim que
+    // uma sugestão é escolhida, então o toque nunca se perde.
+    const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const cancelBlurClose = () => {
+        if (blurTimer.current) {
+            clearTimeout(blurTimer.current);
+            blurTimer.current = null;
+        }
+    };
+
+    useEffect(() => cancelBlurClose, []);
+
+    const visibleSuggestions = useMemo(
+        () => searchDestinationSuggestions(suggestions, value, limit),
+        [suggestions, value, limit],
+    );
+
+    const showEmptyState = isOpen && value.trim().length > 0 && visibleSuggestions.length === 0;
+    const showList = isOpen && visibleSuggestions.length > 0;
 
     const handleChangeText = (text: string) => {
-        setQuery(text);
-        const searchResults = searchDestinations(text);
-        setResults(searchResults);
-        setShowDropdown(true);
+        onChangeText(text);
+        setHighlightedIndex(-1);
+        setIsOpen(true);
     };
 
-    const handleSelect = (destination: Destination) => {
-        setQuery(`${destination.name}, ${destination.country}`);
-        setShowDropdown(false);
-        onSelect(destination);
+    const handleSelect = (suggestion: DestinationSuggestion) => {
+        cancelBlurClose();
+        onSelect(suggestion);
+        setHighlightedIndex(-1);
+        setIsOpen(false);
     };
 
-    const handleFocus = () => {
-        setResults(query ? searchDestinations(query) : getPopularDestinations());
-        setShowDropdown(true);
+    const handleBlur = () => {
+        cancelBlurClose();
+        blurTimer.current = setTimeout(() => setIsOpen(false), 150);
     };
 
-    const renderItem = ({ item }: { item: Destination }) => (
-        <TouchableOpacity
-            style={styles.resultItem}
-            onPress={() => handleSelect(item)}
-        >
-            <Text style={styles.resultEmoji}>{item.emoji}</Text>
-            <View style={styles.resultTextContainer}>
-                <Text style={styles.resultName}>{item.name}</Text>
-                <Text style={styles.resultCountry}>{item.country}</Text>
-            </View>
-            {item.popular && (
-                <View style={styles.popularBadge}>
-                    <Text style={styles.popularText}>Popular</Text>
-                </View>
-            )}
-        </TouchableOpacity>
-    );
+    const handleClear = () => {
+        onChangeText('');
+        setHighlightedIndex(-1);
+        setIsOpen(true);
+        inputRef.current?.focus();
+    };
+
+    /**
+     * Teclado no web: setas navegam, Enter confirma, Escape fecha. No nativo o
+     * evento não traz essas teclas — o guard evita comportamento fantasma.
+     */
+    const handleKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+        if (Platform.OS !== 'web') return;
+        const key = event.nativeEvent.key;
+
+        if (key === 'Escape') {
+            setIsOpen(false);
+            setHighlightedIndex(-1);
+            return;
+        }
+        if (key === 'ArrowDown' || key === 'ArrowUp') {
+            (event as unknown as { preventDefault?: () => void }).preventDefault?.();
+            if (visibleSuggestions.length === 0) return;
+            setIsOpen(true);
+            setHighlightedIndex(prev => {
+                const next = key === 'ArrowDown' ? prev + 1 : prev - 1;
+                if (next < 0) return visibleSuggestions.length - 1;
+                if (next >= visibleSuggestions.length) return 0;
+                return next;
+            });
+            return;
+        }
+        if (key === 'Enter') {
+            const picked = visibleSuggestions[highlightedIndex] ?? visibleSuggestions[0];
+            if (isOpen && picked) handleSelect(picked);
+        }
+    };
 
     return (
         <View style={styles.container}>
             <View style={styles.inputContainer}>
-                <Text style={styles.inputIcon}>📍</Text>
-                <View style={styles.inputContent}>
-                    <Text style={styles.inputLabel}>Destino</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder={placeholder}
-                        value={query}
-                        onChangeText={handleChangeText}
-                        onFocus={handleFocus}
-                        placeholderTextColor={theme.colors.text.disabled}
-                    />
-                </View>
-                {query.length > 0 && (
-                    <TouchableOpacity onPress={() => { setQuery(''); setResults(getPopularDestinations()); }}>
-                        <Text style={styles.clearIcon}>✕</Text>
+                <Icon name="globe" size={20} color={theme.colors.text.tertiary} />
+                <TextInput
+                    ref={inputRef}
+                    style={styles.input}
+                    placeholder={placeholder}
+                    placeholderTextColor={theme.colors.text.secondary}
+                    value={value}
+                    onChangeText={handleChangeText}
+                    onFocus={() => { cancelBlurClose(); setIsOpen(true); }}
+                    onBlur={handleBlur}
+                    onKeyPress={handleKeyPress}
+                    autoCorrect={false}
+                    returnKeyType="search"
+                    accessibilityLabel="Destino"
+                    accessibilityHint="Digite para ver sugestões de destinos com roteiros disponíveis"
+                    // Web: desliga o autocomplete do navegador pra não cobrir o nosso.
+                    {...(Platform.OS === 'web' ? ({ autoComplete: 'off' } as object) : {})}
+                />
+                {value.length > 0 && (
+                    <TouchableOpacity
+                        onPress={handleClear}
+                        style={styles.clearButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Limpar destino"
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                        <Icon name="close" size={16} color={theme.colors.text.secondary} />
                     </TouchableOpacity>
                 )}
             </View>
 
-            {showDropdown && results.length > 0 && (
-                <View style={styles.dropdown}>
-                    <Text style={styles.dropdownTitle}>
-                        {query ? 'Resultados' : '🔥 Destinos Populares'}
+            {showList && (
+                <View style={styles.dropdown} accessibilityRole="menu">
+                    {!value.trim() && (
+                        <Text style={styles.dropdownHint}>Destinos com roteiros disponíveis</Text>
+                    )}
+                    {visibleSuggestions.map((suggestion, index) => {
+                        const highlighted = index === highlightedIndex;
+                        return (
+                            <TouchableOpacity
+                                key={suggestion.id}
+                                style={[styles.item, highlighted && styles.itemHighlighted]}
+                                onPressIn={cancelBlurClose}
+                                onPress={() => handleSelect(suggestion)}
+                                accessibilityRole="menuitem"
+                                accessibilityLabel={`${suggestion.label}, ${suggestion.itineraryCount} ${suggestion.itineraryCount === 1 ? 'roteiro' : 'roteiros'}`}
+                                testID={`destination-suggestion-${suggestion.id}`}
+                            >
+                                <Icon
+                                    name={suggestion.type === 'country' ? 'globe' : 'location'}
+                                    size={16}
+                                    color={theme.colors.primary}
+                                />
+                                <Text style={styles.itemLabel} numberOfLines={1}>
+                                    {suggestion.label}
+                                </Text>
+                                <Text style={styles.itemCount}>
+                                    {suggestion.itineraryCount} {suggestion.itineraryCount === 1 ? 'roteiro' : 'roteiros'}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            )}
+
+            {showEmptyState && (
+                <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>
+                        Nenhum destino encontrado com roteiros disponíveis.
                     </Text>
-                    <FlatList
-                        data={results}
-                        keyExtractor={(item) => item.id}
-                        renderItem={renderItem}
-                        style={styles.resultsList}
-                        keyboardShouldPersistTaps="handled"
-                    />
-                    <TouchableOpacity
-                        style={styles.closeButton}
-                        onPress={() => setShowDropdown(false)}
-                    >
-                        <Text style={styles.closeButtonText}>Fechar</Text>
-                    </TouchableOpacity>
                 </View>
             )}
         </View>
@@ -111,105 +216,77 @@ export function DestinationAutocomplete({
 
 const styles = StyleSheet.create({
     container: {
-        position: 'relative',
-        zIndex: 100,
+        gap: 8,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: theme.spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.borderLight,
-    },
-    inputIcon: {
-        fontSize: 20,
-        marginRight: theme.spacing.md,
-    },
-    inputContent: {
-        flex: 1,
-    },
-    inputLabel: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginBottom: 4,
+        gap: 10,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        borderRadius: 14,
+        paddingHorizontal: theme.spacing.md,
+        height: 56,
     },
     input: {
-        fontSize: 15,
+        flex: 1,
+        fontSize: 16,
         color: theme.colors.text.primary,
-        padding: 0,
+        // RNW desenha um contorno próprio no foco; o container já dá a moldura.
+        ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}),
     },
-    clearIcon: {
-        fontSize: 18,
-        color: theme.colors.text.secondary,
-        padding: theme.spacing.xs,
+    clearButton: {
+        width: 24,
+        height: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     dropdown: {
-        position: 'absolute',
-        top: '100%',
-        left: -theme.spacing.md,
-        right: -theme.spacing.md,
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.md,
-        ...theme.shadows.large,
-        maxHeight: 350,
-        zIndex: 1000,
-        marginTop: 4,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        borderRadius: 14,
+        overflow: 'hidden',
     },
-    dropdownTitle: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.colors.text.secondary,
-        paddingHorizontal: theme.spacing.md,
-        paddingTop: theme.spacing.md,
-        paddingBottom: theme.spacing.sm,
+    dropdownHint: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        paddingHorizontal: 14,
+        paddingTop: 10,
+        paddingBottom: 4,
     },
-    resultsList: {
-        maxHeight: 250,
-    },
-    resultItem: {
+    item: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        gap: theme.spacing.sm,
+        gap: 10,
+        paddingHorizontal: 14,
+        minHeight: 44,
+        paddingVertical: 10,
     },
-    resultEmoji: {
-        fontSize: 24,
-        width: 36,
-        textAlign: 'center',
+    itemHighlighted: {
+        backgroundColor: theme.colors.surfaceHighlight,
     },
-    resultTextContainer: {
+    itemLabel: {
         flex: 1,
-    },
-    resultName: {
         fontSize: 15,
         fontWeight: '500',
         color: theme.colors.text.primary,
     },
-    resultCountry: {
+    itemCount: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+    },
+    emptyState: {
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        backgroundColor: theme.colors.surfaceLight,
+        borderRadius: 14,
+    },
+    emptyStateText: {
         fontSize: 13,
         color: theme.colors.text.secondary,
     },
-    popularBadge: {
-        backgroundColor: theme.colors.secondary,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 10,
-    },
-    popularText: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    closeButton: {
-        alignItems: 'center',
-        paddingVertical: theme.spacing.sm,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.borderLight,
-    },
-    closeButtonText: {
-        fontSize: 14,
-        color: theme.colors.primary,
-        fontWeight: '500',
-    },
 });
+
+export default DestinationAutocomplete;

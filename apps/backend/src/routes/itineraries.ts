@@ -62,6 +62,12 @@ router.get('/', async (req: Request, res: Response) => {
             // o total acumulado do criador.
             salesCount: it._count.sales,
             description: it.description, price: it.price, currency: it.currency,
+            // Destinos adicionais: colunas escalares, zero query extra. O
+            // autocomplete de busca monta as sugestões a partir dos roteiros
+            // reais — sem estes campos, um roteiro que passa por Kyoto e Osaka
+            // só seria encontrado pela cidade principal.
+            extraCities: it.extraCities || [],
+            extraCountries: it.extraCountries || [],
             images: it.images.map(img => img.url), rating: it.rating,
             // Capa e galeria — sem estes, o card cai em fallback quando o criador
             // só preencheu highlightPhotos (caso comum no fluxo de criação atual).
