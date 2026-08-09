@@ -1,37 +1,52 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { Icon } from '../common/Icons';
 import { CoverCarousel } from '../common/CoverCarousel';
 import { VerifiedBadge } from '../creator/VerifiedBadge';
+import { VERIFICATION_CONFIGS, VerificationLevel } from '../../types/creator';
 import { CreatorAvatar } from '../common/CreatorAvatar';
 import { getModuleBadges, getCategoryChips } from '../../utils/itineraryCardBadges';
 import { getCoverImages, getCoverFocalPoint } from '../../utils/itineraryMedia';
+import { ItinerarySummaryPanel } from './ItinerarySummaryPanel';
+import { formatItineraryDestination } from '../../utils/itineraryCardSummary';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useCart } from '../../hooks/useCart';
 import { evaluateItineraryAvailability } from '../../utils/availability';
 import { calculateBudgetSummary, formatMoney, getRouteRatingDisplay } from '@vamo/shared/itinerary';
 
-const MAX_CATEGORY_CHIPS = 3;
-const MAX_MODULE_CHIPS = 3;
+/** Padding horizontal do bloco de conteúdo — precisa bater com `styles.content`. */
+const CONTENT_PADDING_HORIZONTAL = 14;
+
+/**
+ * Margem horizontal típica das listas que renderizam o card em largura total
+ * (telas de listagem e perfil do criador). Usada só quando o consumidor não
+ * informa `width` — é uma estimativa conservadora: errar para menos apenas
+ * mostra um item a menos, nunca estoura a largura.
+ */
+const FULL_WIDTH_LIST_INSET = 40;
 
 export interface ItineraryCardProps {
     itinerary: any;
     onPress: () => void;
+    /** Largura fixa (carrosséis). Sem ela, o card ocupa a largura do container. */
     width?: number;
 }
 
 export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress, width }) => {
-    const allCategoryChips = getCategoryChips(itinerary);
-    const allModuleBadges = getModuleBadges(itinerary);
-
-    const categoryChips = allCategoryChips.slice(0, MAX_CATEGORY_CHIPS);
-    const extraCategories = allCategoryChips.length - categoryChips.length;
-
-    const moduleChips = allModuleBadges.slice(0, MAX_MODULE_CHIPS);
-    const extraModules = allModuleBadges.length - moduleChips.length;
+    // Largura real do card: a prop tem precedência (carrossel sabe exatamente);
+    // sem ela, parte da janela menos a margem típica da lista. `onLayout` seria
+    // o ideal, mas não dispara de forma confiável neste setup RN Web — ver
+    // relatório. O painel ainda tem overflow hidden + ellipsis como rede.
+    const { width: windowWidth } = useWindowDimensions();
+    const cardWidth = width ?? Math.max(0, windowWidth - FULL_WIDTH_LIST_INSET);
+    const contentWidth = Math.max(0, cardWidth - CONTENT_PADDING_HORIZONTAL * 2);
+    // Fonte única dos dados reais — o card não decide o que é categoria válida
+    // nem qual módulo está preenchido (ver utils/itineraryCardBadges).
+    const categoryChips = getCategoryChips(itinerary);
+    const moduleBadges = getModuleBadges(itinerary);
     const { isFavorite, toggleFavorite } = useFavorites();
     const { isInCart, addToCart, isOwned } = useCart();
     const [cartAdded, setCartAdded] = useState(false);
@@ -45,6 +60,11 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
         ? formatMoney(itineraryPrice, 'AUD')
         : 'Grátis';
     const creatorName = itinerary.creator?.name || 'Criador VAMO';
+    // O selo agora existe em UM lugar só (linha do criador). Como ele é
+    // icon-only, o texto do nível vai no rótulo acessível — a informação de
+    // confiança não se perde para quem usa leitor de tela.
+    const verificationLevel = (itinerary.creator?.verificationLevel || 'basic') as VerificationLevel;
+    const verificationLabel = (VERIFICATION_CONFIGS[verificationLevel] ?? VERIFICATION_CONFIGS.basic).label;
     // Nota exibida no card é a do ROTEIRO (averageRating + reviewCount), NÃO
     // a do criador — herdar `creator.rating` mostrava 5.0 em roteiros novos
     // só porque o criador tinha reputação. Sem reviews reais → 'Novo'.
@@ -61,8 +81,11 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
         ? `${salesCount.toLocaleString('pt-BR')} vendas`
         : 'Roteirista';
     const title = itinerary.title || 'Roteiro digital';
-    const description = itinerary.description || 'Planejamento digital com dicas práticas para sua viagem.';
-    const destination = itinerary.destination || itinerary.city || 'Destino a confirmar';
+    // Sem descrição real o card NÃO renderiza a linha (nem texto genérico de
+    // enchimento, nem espaço reservado).
+    const description = typeof itinerary.description === 'string' ? itinerary.description.trim() : '';
+    // "Tóquio, Kyoto e Osaka · Japão" — null quando não há dado nenhum.
+    const destinationLabel = formatItineraryDestination(itinerary);
 
     // Badge de confiança do orçamento (só aparece se há sinal positivo —
     // evita poluir cards de roteiros antigos sem dados de custo).
@@ -153,13 +176,8 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     />
                 </TouchableOpacity>
 
-                {/* Badge de verificação */}
-                <View style={styles.verifiedBadge}>
-                    <VerifiedBadge
-                        level={itinerary.creator?.verificationLevel || 'basic'}
-                        size="small"
-                    />
-                </View>
+                {/* Verificação do criador NÃO fica aqui: ela vive na linha do
+                    criador, junto ao nome. Antes aparecia nos dois lugares. */}
 
                 {/* Duração sobre imagem */}
                 {itinerary.duration && (
@@ -173,88 +191,73 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
             {/* ── Conteúdo ── */}
             <View style={styles.content}>
 
-                {/* Linha do criador */}
+                {/* 1. Criador — única ocorrência do selo de verificação */}
                 <View style={styles.creatorRow}>
-                    <View style={styles.creatorLeft}>
-                        <CreatorAvatar creator={itinerary.creator} size={36} />
-                        <View>
-                            <Text style={styles.creatorName} numberOfLines={1}>
-                                {creatorName}
+                    <CreatorAvatar creator={itinerary.creator} size={32} />
+                    <View style={styles.creatorInfo}>
+                        <Text style={styles.creatorName} numberOfLines={1}>
+                            {creatorName}
+                        </Text>
+                        <View style={styles.ratingRow}>
+                            <Icon
+                                name="star"
+                                size={11}
+                                color={ratingDisplay.type === 'rating' ? '#F59E0B' : theme.colors.text.tertiary}
+                                strokeWidth={2.5}
+                            />
+                            <Text
+                                style={[
+                                    styles.ratingText,
+                                    ratingDisplay.type === 'new' && styles.ratingTextMuted,
+                                ]}
+                            >
+                                {ratingDisplay.label}
                             </Text>
-                            <View style={styles.ratingRow}>
-                                <Icon
-                                    name="star"
-                                    size={11}
-                                    color={ratingDisplay.type === 'rating' ? '#F59E0B' : theme.colors.text.tertiary}
-                                    strokeWidth={2.5}
-                                />
-                                <Text
-                                    style={[
-                                        styles.ratingText,
-                                        ratingDisplay.type === 'new' && styles.ratingTextMuted,
-                                    ]}
-                                >
-                                    {ratingDisplay.label}
-                                </Text>
-                                <Text style={styles.ratingDivider}>·</Text>
-                                <Text style={styles.salesText}>
-                                    {salesLabel}
-                                </Text>
-                            </View>
+                            <Text style={styles.ratingDivider}>·</Text>
+                            <Text style={styles.salesText} numberOfLines={1}>
+                                {salesLabel}
+                            </Text>
                         </View>
                     </View>
-                    <VerifiedBadge
-                        level={itinerary.creator?.verificationLevel || 'basic'}
-                        size="small"
-                        showLabel={false}
-                    />
+                    <View accessible accessibilityLabel={`Roteirista ${verificationLabel}`}>
+                        <VerifiedBadge level={verificationLevel} size="small" showLabel={false} />
+                    </View>
                 </View>
 
-                {/* Título */}
+                {/* 2. Título */}
                 <Text style={styles.title} numberOfLines={2}>
                     {title}
                 </Text>
 
-                {/* Descrição */}
-                <Text style={styles.description} numberOfLines={2}>
-                    {description}
-                </Text>
-
-                {/* Categorias temáticas — chips navy com ícone Lucide profissional */}
-                {categoryChips.length > 0 && (
-                    <View style={styles.chipsRow}>
-                        {categoryChips.map((cat) => (
-                            <View key={cat.key} style={styles.categoryChip}>
-                                <Icon name={cat.icon} size={12} color={theme.colors.text.primary} />
-                                <Text style={styles.categoryChipText}>{cat.label}</Text>
-                            </View>
-                        ))}
-                        {extraCategories > 0 && (
-                            <View style={styles.overflowChip}>
-                                <Text style={styles.overflowChipText}>+{extraCategories}</Text>
-                            </View>
-                        )}
+                {/* 3. Destino — contexto principal, logo abaixo do título */}
+                {destinationLabel && (
+                    <View style={styles.destinationRow}>
+                        <Icon name="location" size={13} color={theme.colors.text.tertiary} />
+                        <Text style={styles.destinationText} numberOfLines={1}>
+                            {destinationLabel}
+                        </Text>
                     </View>
                 )}
 
-                {/* Módulos incluídos — chips teal */}
-                {moduleChips.length > 0 && (
-                    <View style={[styles.chipsRow, categoryChips.length > 0 && styles.chipsRowTop]}>
-                        {moduleChips.map((mod) => (
-                            <View key={mod.key} style={styles.chip}>
-                                <Icon name={mod.icon} size={12} color={theme.colors.primary} />
-                                <Text style={styles.chipText}>{mod.label}</Text>
-                            </View>
-                        ))}
-                        {extraModules > 0 && (
-                            <View style={[styles.chip, styles.overflowModuleChip]}>
-                                <Text style={styles.chipText}>+{extraModules}</Text>
-                            </View>
-                        )}
+                {/* 4. Descrição — uma linha; o detalhe mostra a completa */}
+                {!!description && (
+                    <Text style={styles.description} numberOfLines={1} ellipsizeMode="tail">
+                        {description}
+                    </Text>
+                )}
+
+                {/* 5. Resumo: Estilo (tema) + Inclui (o que é entregue) */}
+                {(categoryChips.length > 0 || moduleBadges.length > 0) && (
+                    <View style={styles.summaryWrapper}>
+                        <ItinerarySummaryPanel
+                            categories={categoryChips}
+                            modules={moduleBadges}
+                            availableWidth={contentWidth}
+                        />
                     </View>
                 )}
 
-                {/* Badge de confiança do orçamento (discreto, só se há sinal positivo) */}
+                {/* 6. Confiança dos custos — uma linha, só com sinal real */}
                 {budgetBadge && (
                     <View style={styles.budgetBadgeRow}>
                         <Ionicons
@@ -262,48 +265,45 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                             size={11}
                             color={budgetBadge.tone === 'success' ? theme.colors.verified : theme.colors.info}
                         />
-                        <Text style={[
-                            styles.budgetBadgeText,
-                            { color: budgetBadge.tone === 'success' ? theme.colors.verified : theme.colors.info },
-                        ]}>
+                        <Text
+                            style={[
+                                styles.budgetBadgeText,
+                                { color: budgetBadge.tone === 'success' ? theme.colors.verified : theme.colors.info },
+                            ]}
+                            numberOfLines={1}
+                        >
                             {budgetBadge.label}
                         </Text>
                     </View>
                 )}
 
-                {/* Footer: localização (linha 1, full width) + ações (linha 2) */}
-                <View style={styles.footer}>
-                    <View style={styles.destinationRow}>
-                        <Icon name="location" size={14} color={theme.colors.text.tertiary} />
-                        <Text style={styles.destinationText} numberOfLines={1}>
-                            {destination}{itinerary.country ? `, ${itinerary.country}` : ''}
-                        </Text>
-                    </View>
-                    <View style={styles.footerActions}>
-                        {/* Botão carrinho (secundário, ~44x44) */}
-                        <TouchableOpacity
-                            style={[styles.cartButton, inCart && styles.cartButtonActive]}
-                            onPress={handleCart}
-                            activeOpacity={0.8}
-                            accessibilityLabel={inCart ? 'No carrinho' : 'Adicionar ao carrinho'}
-                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        >
-                            <Icon
-                                name={inCart ? 'verified' : 'shopping-cart'}
-                                size={18}
-                                color={inCart ? theme.colors.primary : theme.colors.text.secondary}
-                            />
-                        </TouchableOpacity>
-                        {/* CTA "Ver roteiro" (primário, ocupa o restante) */}
-                        <TouchableOpacity
-                            style={styles.ctaButton}
-                            onPress={onPress}
-                            activeOpacity={0.85}
-                        >
-                            <Text style={styles.ctaText}>Ver roteiro</Text>
-                            <Icon name="chevron-right" size={15} color="#FFF" strokeWidth={2.5} />
-                        </TouchableOpacity>
-                    </View>
+                {/* 7. Ações — o destino saiu daqui e subiu para junto do título */}
+                <View style={styles.footerActions}>
+                    <TouchableOpacity
+                        style={[styles.cartButton, inCart && styles.cartButtonActive]}
+                        onPress={handleCart}
+                        activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: inCart, disabled: inCart || owned }}
+                        accessibilityLabel={inCart ? 'Já está no carrinho' : 'Adicionar ao carrinho'}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                        <Icon
+                            name={inCart ? 'verified' : 'shopping-cart'}
+                            size={18}
+                            color={inCart ? theme.colors.primary : theme.colors.text.secondary}
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.ctaButton}
+                        onPress={onPress}
+                        activeOpacity={0.85}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Ver roteiro ${title}`}
+                    >
+                        <Text style={styles.ctaText}>Ver roteiro</Text>
+                        <Icon name="chevron-right" size={15} color="#FFF" strokeWidth={2.5} />
+                    </TouchableOpacity>
                 </View>
             </View>
         </TouchableOpacity>
@@ -347,16 +347,6 @@ const styles = StyleSheet.create({
         color: '#FFF',
         letterSpacing: -0.3,
     },
-    budgetBadgeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 6,
-    },
-    budgetBadgeText: {
-        fontSize: 11,
-        fontWeight: '600',
-    },
     favButton: {
         position: 'absolute',
         top: 14,
@@ -367,11 +357,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.4)',
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    verifiedBadge: {
-        position: 'absolute',
-        top: 14,
-        right: 14,
     },
     durationBadge: {
         position: 'absolute',
@@ -392,28 +377,29 @@ const styles = StyleSheet.create({
     },
 
     // ── Conteúdo ──
+    // Escala vertical: cada bloco declara a própria distância para o ANTERIOR
+    // (marginTop). Assim uma seção ausente não deixa espaço reservado — e não
+    // há marginBottom acumulando entre irmãos.
     content: {
-        padding: 16,
+        padding: 14,
     },
 
-    // Criador
+    // 1. Criador
     creatorRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-    },
-    creatorLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
         gap: 8,
+        marginBottom: 8,
+    },
+    creatorInfo: {
         flex: 1,
+        minWidth: 0,
     },
     creatorName: {
         fontSize: 13,
         fontWeight: '700',
         color: theme.colors.text.primary,
-        marginBottom: 2,
+        marginBottom: 1,
     },
     ratingRow: {
         flexDirection: 'row',
@@ -434,103 +420,26 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
     },
     salesText: {
+        flexShrink: 1,
         fontSize: 11,
         color: theme.colors.text.tertiary,
     },
 
-    // Título
+    // 2. Título
     title: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '800',
         color: theme.colors.text.primary,
-        lineHeight: 25,
+        lineHeight: 23,
         letterSpacing: -0.3,
-        marginBottom: 8,
-    },
-    description: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-        lineHeight: 19,
-        marginBottom: 12,
     },
 
-    // Chips — pill arredondado, compacto, com ícone Lucide 12px alinhado.
-    chipsRow: {
-        flexDirection: 'row',
-        gap: 6,
-        marginBottom: 10,
-        flexWrap: 'wrap',
-    },
-    chipsRowTop: {
-        marginTop: -2,
-    },
-    // Module chips (teal claro)
-    chip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        backgroundColor: theme.colors.primary + '10',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: theme.colors.primary + '22',
-    },
-    chipText: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: theme.colors.primary,
-        lineHeight: 14,
-    },
-    // Category chips (navy claro)
-    categoryChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        backgroundColor: '#1A3263' + '0D',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: '#1A3263' + '1F',
-    },
-    categoryChipText: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: '#1A3263',
-        lineHeight: 14,
-    },
-    // Overflow "+X" chip
-    overflowChip: {
-        backgroundColor: '#1A3263' + '0D',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: '#1A3263' + '1F',
-    },
-    overflowChipText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#1A3263',
-        lineHeight: 14,
-    },
-    overflowModuleChip: {
-        opacity: 0.7,
-    },
-
-    // Footer em 2 linhas: localização (linha 1, full width) + ações (linha 2)
-    footer: {
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.borderLight,
-        gap: 10,
-    },
+    // 3. Destino (logo abaixo do título)
     destinationRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 5,
-        // Sem flex:1 nem botões na mesma linha — localização tem o espaço todo.
+        marginTop: 4,
     },
     destinationText: {
         flex: 1,
@@ -538,10 +447,42 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
         fontWeight: '500',
     },
+
+    // 4. Descrição (uma linha)
+    description: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
+        marginTop: 6,
+    },
+
+    // 5. Painel de resumo (Estilo / Inclui)
+    summaryWrapper: {
+        marginTop: 10,
+    },
+
+    // 6. Confiança dos custos
+    budgetBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 6,
+    },
+    budgetBadgeText: {
+        flexShrink: 1,
+        fontSize: 11,
+        fontWeight: '600',
+    },
+
+    // 7. Ações
     footerActions: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderLight,
     },
     // Cart secundário: 44x44, borda teal, fundo branco (Opção A do spec)
     cartButton: {
