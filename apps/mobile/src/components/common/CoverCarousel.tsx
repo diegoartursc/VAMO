@@ -127,7 +127,7 @@ const KenBurnsImage = memo(({
             toValue: to,
             duration: KEN_BURNS_DURATION_MS,
             easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
         });
         const runner: Animated.CompositeAnimation = loop
             ? Animated.loop(
@@ -137,7 +137,7 @@ const KenBurnsImage = memo(({
                           toValue: from,
                           duration: KEN_BURNS_DURATION_MS,
                           easing: Easing.inOut(Easing.ease),
-                          useNativeDriver: true,
+                          useNativeDriver: Platform.OS !== 'web',
                       }),
                   ]),
               )
@@ -345,7 +345,7 @@ const CoverCarouselInner = ({
                 toValue: i === activeIndex ? 1 : 0,
                 duration: CROSSFADE_DURATION_MS,
                 easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
+                useNativeDriver: Platform.OS !== 'web',
             }),
         );
         Animated.parallel(anims).start();
