@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -17,8 +17,9 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../src/theme/theme';
 import { getItineraryById, getCurrencyRates } from '../../../src/services/api';
-import { VerifiedBadge } from '../../../src/components/creator/VerifiedBadge';
-import { CreatorAvatar } from '../../../src/components/common/CreatorAvatar';
+import { CreatorIdentityLink } from '../../../src/components/creator/CreatorIdentityLink';
+import { resolveCreatorId, buildCreatorProfileHref } from '../../../src/utils/creatorProfile';
+import { analytics } from '../../../src/services/analytics';
 import { VERIFICATION_CONFIGS, VerificationLevel } from '../../../src/types/creator';
 import CollapsibleSection from '../../../src/components/common/CollapsibleSection';
 import PremiumReviewsSection from '../../../src/components/reviews/PremiumReviewsSection';
@@ -70,6 +71,8 @@ export default function ItineraryDetailScreen() {
     const [currencyRates, setCurrencyRates] = useState<Record<string, number>>({});
     const [peopleCount, setPeopleCount] = useState<number>(1);
     const [cartToast, setCartToast] = useState(false);
+    /** Evita repetir o warn de "roteiro sem creatorId" a cada render. */
+    const missingCreatorIdWarned = useRef(false);
 
     // Compartilhamento: hook é chamado SEMPRE no topo (regra dos hooks); os
     // params dependem de `itinerary` que pode estar nulo no primeiro render,
@@ -179,7 +182,12 @@ export default function ItineraryDetailScreen() {
     const rating = Number(itinerary.rating) || 0;
     const reviewCount = Number(itinerary.reviewCount) || 0;
     const creator = itinerary.creator || {};
-    const creatorId = creator.id;
+    // Rota do perfil PÚBLICO do criador deste roteiro. `null` quando o payload
+    // veio sem id — o bloco continua renderizando, só não navega.
+    const creatorId = resolveCreatorId(itinerary);
+    const creatorProfileHref = buildCreatorProfileHref(creatorId, {
+        from: `/itinerary/${itineraryId}`,
+    });
     const creatorName = creator.name || 'Criador VAMO';
     const creatorRating = Number(creator.rating) || 0;
     // `creatorSales` agora representa as VENDAS REAIS DESTE ROTEIRO
@@ -196,6 +204,26 @@ export default function ItineraryDetailScreen() {
         ? Number((reviews.reduce((sum: number, review: any) => sum + (Number(review.rating) || 0), 0) / reviews.length).toFixed(1))
         : rating;
     const reviewPhotos = reviews.flatMap((review: any) => Array.isArray(review.photos) ? review.photos : []);
+
+    // Payload sem id de criador é anomalia de dados, não estado esperado:
+    // avisa uma vez em dev e segue com o bloco inerte (sem rota inválida).
+    if (__DEV__ && !creatorProfileHref && !missingCreatorIdWarned.current) {
+        missingCreatorIdWarned.current = true;
+        console.warn(
+            `[itinerary/${itineraryId}] roteiro sem id de criador no payload — bloco do criador renderizado sem link.`,
+        );
+    }
+
+    /** Analytics do acesso ao perfil público a partir dos detalhes do roteiro. */
+    const handleOpenCreatorProfile = () => {
+        haptics.light();
+        if (creatorId) {
+            analytics.creatorProfileOpened(creatorId, {
+                itineraryId,
+                source: 'itinerary_details',
+            });
+        }
+    };
 
     const handleGoToMyTrips = () => {
         setShowSuccessModal(false);
@@ -324,29 +352,16 @@ export default function ItineraryDetailScreen() {
                 <View style={styles.contentSheet}>
                     {/* Creator Badge */}
                     <View style={styles.creatorRow}>
-                        <TouchableOpacity
-                            style={styles.creatorBadge}
-                            activeOpacity={creatorId ? 0.85 : 1}
-                            disabled={!creatorId}
-                            accessibilityLabel={`Ver perfil de ${creatorName}`}
-                            onPress={() => creatorId && router.push(`/creator/${creatorId}` as any)}
-                        >
-                            <CreatorAvatar creator={creator} name={creatorName} size={40} style={styles.creatorAvatarCircle} />
-                            <View>
-                                <View style={styles.creatorNameRow}>
-                                    <Text style={styles.creatorName}>{creatorName}</Text>
-                                    <VerifiedBadge level={creator.verificationLevel || 'basic'} size="small" showLabel={false} />
-                                </View>
-                                <View style={styles.creatorStatsRow}>
-                                    <Icon name="star" size={11} color="#F59E0B" strokeWidth={2.5} />
-                                    <Text style={styles.creatorStats}>
-                                        {creatorRating.toFixed(1)} · {creatorSales.toLocaleString('pt-BR')} vendas
-                                    </Text>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
+                        <CreatorIdentityLink
+                            creator={creator}
+                            name={creatorName}
+                            rating={creatorRating}
+                            salesCount={creatorSales}
+                            href={creatorProfileHref}
+                            onOpen={handleOpenCreatorProfile}
+                        />
 
-                        {/* Creator Verification Link */}
+                        {/* Creator Verification Link — ação SEPARADA do perfil */}
                         <TouchableOpacity
                             style={styles.verificationLink}
                             onPress={() => router.push('/verification-explained' as any)}
@@ -882,46 +897,7 @@ const styles = StyleSheet.create({
     creatorRow: {
         marginBottom: 20,
     },
-    creatorBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.surface,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 16,
-        alignSelf: 'flex-start',
-        gap: 12,
-        ...theme.shadows.small,
-    },
-    creatorAvatarCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: theme.colors.primary + '15',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    creatorNameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    creatorName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: theme.colors.text.primary,
-    },
-    creatorStats: {
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-        marginTop: 2,
-    },
-    creatorStatsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 2,
-    },
+    // Estilos do bloco do criador vivem em components/creator/CreatorIdentityLink.
     title: {
         fontSize: 28,
         fontWeight: '700',

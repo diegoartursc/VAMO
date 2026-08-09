@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { safeBack } from '../../../src/utils/navigation';
+import { sanitizeReturnPath } from '../../../src/utils/creatorProfile';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../../src/theme/theme';
 import { getCreatorById, CreatorDetail } from '../../../src/services/api';
@@ -22,8 +23,17 @@ function formatAverageRating(value: number | null | undefined): string {
 }
 
 export default function CreatorDetailScreen() {
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
     const router = useRouter();
+    // `from` (opcional) diz de qual tela o usuário veio — ver comentário em
+    // utils/creatorProfile: dentro do navegador de Tabs a ida pro perfil não
+    // empilha histórico, então `router.back()` cairia na Home. Com `from`, o
+    // voltar tem destino explícito (ex.: os detalhes do roteiro de origem).
+    const returnPath = sanitizeReturnPath(Array.isArray(from) ? from[0] : from);
+    const goBack = useCallback(() => {
+        if (returnPath) router.replace(returnPath as any);
+        else safeBack(router, '/(tabs)');
+    }, [returnPath, router]);
     const insets = useSafeAreaInsets();
     const [creator, setCreator] = useState<CreatorDetail | null>(null);
     const [loadError, setLoadError] = useState<LoadErrorKind | null>(null);
@@ -134,7 +144,7 @@ export default function CreatorDetailScreen() {
                 (fundo translúcido) para continuar legível em qualquer ponto. */}
             <TouchableOpacity
                 style={[styles.backButtonFixed, { top: insets.top + 10 }]}
-                onPress={() => safeBack(router, '/(tabs)')}
+                onPress={goBack}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
                 <Text style={styles.backIconFixed}>‹</Text>
