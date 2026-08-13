@@ -19,7 +19,7 @@ const SLIDES: OnboardingSlide[] = [
     {
         icon: '💳',
         title: '2. Pague',
-        description: 'Pagamento seguro em até 12x'
+        description: 'Pagamento seguro pela Stripe'
     },
     {
         icon: '✈️',

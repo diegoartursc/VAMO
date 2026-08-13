@@ -8,7 +8,7 @@
  * Passos:
  *   1. Identidade & Indexação  (título, destino, categorias, estilos, descrição)
  *   2. Comprovante de Viagem   (upload de imagem do comprovante — obrigatório)
- *   3. Preço & Comercial       (preço, moeda, promoção, acessos, parcelas)
+ *   3. Preço & Comercial       (preço, moeda, promoção, acessos)
  *   4. Módulos                  (toggles dos 9 módulos)
  *   5. Roteiro dia a dia        (gera N dias baseado em duration)
  *   6. Conteúdo dos módulos     (hospedagens, passeios, transporte, restaurantes, voo)
@@ -3011,7 +3011,6 @@ function deserializeFromApi(data: any): ItineraryFormState {
         price: data.price || 0,
         currency: data.currency || 'AUD',
         promoPrice: data.promoPrice ?? undefined,
-        installments: data.installments ?? undefined,
         immediateAccess: data.immediateAccess ?? true,
         lifetimeAccess: data.lifetimeAccess ?? true,
         offlineDownload: data.offlineDownload ?? true,

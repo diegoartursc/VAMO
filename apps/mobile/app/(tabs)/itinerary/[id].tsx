@@ -450,7 +450,7 @@ export default function ItineraryDetailScreen() {
                     )}
 
                     {/* Price & CTA — card de compra com 2 linhas claras
-                        Linha 1: preço + parcelamento
+                        Linha 1: preço total (o VAMO não parcela)
                         Linha 2: [Adicionar ao carrinho] [Comprar agora] */}
                     <LinearGradient
                         colors={['#1A3263', '#162A55']}
@@ -466,9 +466,6 @@ export default function ItineraryDetailScreen() {
                                     {price.toFixed(2).replace('.', ',')}
                                 </Text>
                             </View>
-                            <Text style={styles.priceInstallment}>
-                                Em até 12x de {formatMoney(price / 12)} sem juros
-                            </Text>
                             <View style={styles.priceMeta}>
                                 <Ionicons name="flash" size={12} color="#28C9BF" />
                                 <Text style={styles.priceMetaText}>Acesso imediato após a compra</Text>
@@ -982,12 +979,6 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#FFFFFF',
         letterSpacing: -0.8,
-    },
-    priceInstallment: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.78)',
-        fontWeight: '500',
-        marginTop: 2,
     },
     priceMeta: {
         flexDirection: 'row',

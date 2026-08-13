@@ -289,7 +289,6 @@ export interface ItineraryFormState {
     price: number;
     currency: Currency;
     promoPrice?: number;
-    installments?: number;
     immediateAccess: boolean;
     lifetimeAccess: boolean;
     offlineDownload: boolean;

@@ -52,7 +52,6 @@ export const CreateItinerarySchema = z.object({
     activeModules: z.array(z.string()).default([]),
     productType: z.enum(['DIGITAL', 'PHYSICAL']).default('DIGITAL'),
     promoPrice: z.number().positive().optional(),
-    installments: z.number().int().positive().optional(),
     immediateAccess: z.boolean().default(true),
     lifetimeAccess: z.boolean().default(true),
     offlineDownload: z.boolean().default(true),

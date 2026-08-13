@@ -557,7 +557,7 @@ export function buildPurchasedItineraryPayload(it: any, sale?: { id?: string; pr
         downloadCount: it.downloadCount,
         subtitle: it.subtitle, travelStyles: it.travelStyles, categories: it.categories,
         productType: it.productType, activeModules: it.activeModules,
-        promoPrice: it.promoPrice, installments: it.installments,
+        promoPrice: it.promoPrice,
         immediateAccess: it.immediateAccess, lifetimeAccess: it.lifetimeAccess,
         offlineDownload: it.offlineDownload, allowPdf: it.allowPdf, allowShare: it.allowShare,
         travelProofUrl: it.travelProofUrl,
@@ -929,7 +929,7 @@ router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
             // ─── Identidade e comercial ───
             subtitle: i.subtitle, travelStyles: i.travelStyles, categories: i.categories,
             productType: i.productType, activeModules: i.activeModules,
-            promoPrice: i.promoPrice, installments: i.installments,
+            promoPrice: i.promoPrice,
             immediateAccess: i.immediateAccess, lifetimeAccess: i.lifetimeAccess,
             offlineDownload: i.offlineDownload, allowPdf: i.allowPdf, allowShare: i.allowShare,
             travelProofUrl: i.travelProofUrl,
@@ -1009,9 +1009,12 @@ function calcItineraryQuality(data: any): number {
     if ((data.travelStyles?.length ?? 0) >= 1) s += 3;
 
     // Bloco 2 — Comercial (10 pts)
-    if (parseFloat(data.price) > 0) s += 6;
+    // 8 pts no preço (era 6) porque os 2 pts que sobravam vinham de
+    // "promoPrice OU installments". Parcelamento saiu do produto, e deixar
+    // os 2 pts só na promoção obrigaria o roteirista a criar desconto para
+    // não perder score. O bloco continua valendo 10 e o total, 100.
+    if (parseFloat(data.price) > 0) s += 8;
     if ((data.categories?.length ?? 0) >= 1) s += 2;
-    if ((data.promoPrice && parseFloat(data.promoPrice) > 0) || data.installments) s += 2;
 
     // Bloco 3 — Imagens de capa (8 pts)
     const imgs = Array.from(new Set([
@@ -1068,7 +1071,7 @@ function hasContentUpdate(body: any): boolean {
         'title', 'destination', 'country', 'description', 'price', 'currency', 'duration',
         'highlights', 'inclusions', 'estimatedSpending', 'images', 'days', 'subtitle',
         'travelStyles', 'categories', 'productType', 'activeModules', 'promoPrice',
-        'installments', 'immediateAccess', 'lifetimeAccess', 'offlineDownload', 'allowPdf',
+        'immediateAccess', 'lifetimeAccess', 'offlineDownload', 'allowPdf',
         'allowShare', 'accommodations', 'transports', 'checklists', 'travelProofUrl',
         'extraCities', 'extraCountries', 'flightInfo', 'attractions', 'restaurants',
         'generalTips', 'mediaUrls', 'highlightPhotos', 'tripStartDate', 'tripEndDate',
@@ -1224,7 +1227,7 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
             estimatedSpending, featured, images, days,
             // New fields
             subtitle, travelStyles, categories, productType,
-            activeModules, promoPrice, installments,
+            activeModules, promoPrice,
             immediateAccess, lifetimeAccess, offlineDownload,
             allowPdf, allowShare,
             accommodations, transports, checklists,
@@ -1343,7 +1346,6 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 productType: productType || 'DIGITAL',
                 activeModules: activeModules || [],
                 promoPrice: promoPrice ? parseDecimalInput(promoPrice) : undefined,
-                installments: installments ? parseIntegerInput(installments) : undefined,
                 immediateAccess: immediateAccess ?? true,
                 lifetimeAccess: lifetimeAccess ?? true,
                 offlineDownload: offlineDownload ?? true,
@@ -1477,7 +1479,7 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
             estimatedSpending, featured, status, images, days,
             // New fields
             subtitle, travelStyles, categories, productType,
-            activeModules, promoPrice, installments,
+            activeModules, promoPrice,
             immediateAccess, lifetimeAccess, offlineDownload,
             allowPdf, allowShare,
             accommodations, transports, checklists,
@@ -1551,7 +1553,6 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (productType !== undefined) updateData.productType = productType;
         if (activeModules !== undefined) updateData.activeModules = activeModules;
         if (promoPrice !== undefined) updateData.promoPrice = promoPrice ? parseDecimalInput(promoPrice) : null;
-        if (installments !== undefined) updateData.installments = installments ? parseIntegerInput(installments) : null;
         if (immediateAccess !== undefined) updateData.immediateAccess = immediateAccess;
         if (lifetimeAccess !== undefined) updateData.lifetimeAccess = lifetimeAccess;
         if (offlineDownload !== undefined) updateData.offlineDownload = offlineDownload;

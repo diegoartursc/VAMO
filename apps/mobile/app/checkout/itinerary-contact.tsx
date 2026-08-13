@@ -153,10 +153,6 @@ export default function ItineraryContactScreen() {
         ? formatMoney(checkoutPrice)
         : 'Grátis';
 
-    const installment = checkoutPrice > 0
-        ? `12x de ${formatMoney(checkoutPrice / 12)}`
-        : null;
-
     const coverImage = useMemo(() => {
         if (!itinerary) return null;
         try {
@@ -461,7 +457,6 @@ export default function ItineraryContactScreen() {
                     <View style={styles.footerInfo}>
                         <Text style={styles.footerLabel}>Total</Text>
                         <Text style={styles.footerPrice}>{formattedPrice}</Text>
-                        {installment ? <Text style={styles.footerInstallment}>{installment} sem juros</Text> : null}
                     </View>
                     <TouchableOpacity
                         style={[styles.continueButton, submitting && styles.continueButtonDisabled]}
@@ -856,12 +851,6 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: theme.colors.text.primary,
         marginTop: 1,
-    },
-    footerInstallment: {
-        fontSize: 11,
-        color: theme.colors.primaryDark,
-        marginTop: 2,
-        fontWeight: '600',
     },
     continueButton: {
         flexDirection: 'row',

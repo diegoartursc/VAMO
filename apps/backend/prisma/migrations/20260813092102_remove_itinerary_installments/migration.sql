@@ -1,0 +1,13 @@
+-- Remove a coluna de parcelamento do roteiro.
+--
+-- O VAMO não oferece parcelamento nem BNPL no lançamento australiano: o
+-- roteiro é vendido pelo preço total. A coluna saiu do model Prisma, da API,
+-- do payload compartilhado, do formulário e do score.
+--
+-- Seguro: em produção a coluna estava 100% NULL (0 de 5 roteiros preenchidos),
+-- então o DROP não descarta nenhum dado.
+--
+-- Ordem de deploy (backward-safe): publicar primeiro o backend sem o campo no
+-- model — uma coluna órfã no banco é inofensiva, enquanto o inverso (coluna
+-- ausente + backend antigo selecionando-a) quebraria toda query de roteiro.
+ALTER TABLE "itineraries" DROP COLUMN IF EXISTS "installments";

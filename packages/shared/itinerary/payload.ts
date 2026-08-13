@@ -22,7 +22,6 @@ export interface ItineraryPayload {
     productType: string;
     activeModules: string[];
     promoPrice?: string;
-    installments?: string;
     immediateAccess: boolean;
     lifetimeAccess: boolean;
     offlineDownload: boolean;
@@ -89,7 +88,6 @@ export function buildPayload(form: ItineraryFormState): ItineraryPayload {
         productType: form.productType,
         activeModules: form.activeModules,
         promoPrice: form.promoPrice ? form.promoPrice.toString() : undefined,
-        installments: form.installments ? form.installments.toString() : undefined,
         immediateAccess: form.immediateAccess,
         lifetimeAccess: form.lifetimeAccess,
         offlineDownload: form.offlineDownload,

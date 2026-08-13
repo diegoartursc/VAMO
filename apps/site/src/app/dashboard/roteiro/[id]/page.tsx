@@ -514,7 +514,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [price, setPrice] = useState(0);
     const [currency, setCurrency] = useState("AUD");
     const [promoPrice, setPromoPrice] = useState<number | null>(null);
-    const [installments, setInstallments] = useState<number | null>(null);
     const [immediateAccess, setImmediateAccess] = useState(true);
     const [lifetimeAccess, setLifetimeAccess] = useState(true);
     const [featured, setFeatured] = useState(false);
@@ -616,7 +615,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const _scoreData = {
         title, subtitle, destination, country, description, duration, price,
         travelStyles, categories, highlights: highlightItems, inclusions: inclusionItems,
-        days, hasSpending, promoPrice, installments,
+        days, hasSpending, promoPrice,
         images, highlightPhotos, travelProofUrl,
         locations, // ← array estruturado de locais (cidade/país real)
         accommodations, restaurants, attractions, transports, generalTips,
@@ -643,7 +642,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             setTravelStyles([]); setCategories([]);
             setProductType("DIGITAL");
             setPrice(0); setCurrency("AUD");
-            setPromoPrice(null); setInstallments(null);
+            setPromoPrice(null);
             setImmediateAccess(true); setLifetimeAccess(true);
             setFeatured(false); setActiveModules([]);
             setHighlightItems([]); setInclusionItems([]);
@@ -679,7 +678,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 setTravelStyles(data.travelStyles || []); setCategories(data.categories || []);
                 setProductType(data.productType || "DIGITAL");
                 setPrice(data.price || 0); setCurrency(data.currency || "AUD");
-                setPromoPrice(data.promoPrice || null); setInstallments(data.installments || null);
+                setPromoPrice(data.promoPrice || null);
                 setImmediateAccess(data.immediateAccess ?? true); setLifetimeAccess(data.lifetimeAccess ?? true);
                 setFeatured(data.featured || false);
                 setActiveModules(data.activeModules || []);
@@ -817,7 +816,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             price: price.toString(), currency, duration: duration.toString(), featured,
             travelStyles, categories, productType, activeModules,
             promoPrice: promoPrice?.toString() || undefined,
-            installments: installments?.toString() || undefined,
             immediateAccess, lifetimeAccess, allowShare,
             highlights: highlightItems, inclusions: inclusionItems,
             estimatedSpending: { manualEntries: validEntries },
@@ -844,7 +842,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             mediaUrls: mediaUrls.filter(Boolean),
             highlightPhotos: highlightPhotos.filter(Boolean),
         };
-    }, [title, subtitle, destination, country, locations, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, allowShare, highlightItems, inclusionItems, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTips, flightSpending, flightCost, restaurants, generalTips, attractions, extraSpendingItems, mediaUrls, highlightPhotos, rating, reviewCount, spendingEntries]);
+    }, [title, subtitle, destination, country, locations, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, immediateAccess, lifetimeAccess, allowShare, highlightItems, inclusionItems, images, days, accommodations, transports, checklistItems, flightOutbound, flightReturn, flightTips, flightSpending, flightCost, restaurants, generalTips, attractions, extraSpendingItems, mediaUrls, highlightPhotos, rating, reviewCount, spendingEntries]);
 
     /* ─── Save ─── */
     const handleSave = async () => {

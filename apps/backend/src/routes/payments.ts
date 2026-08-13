@@ -178,7 +178,7 @@ async function fulfillItineraryPurchase(opts: {
 // Roteiro grátis (price <= 0) é liberado direto, sem passar pelo Stripe.
 router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
     try {
-        const { itineraryId, source, paymentMethod } = req.body || {};
+        const { itineraryId, source } = req.body || {};
         const travelerId = req.traveler!.travelerId;
 
         if (!itineraryId || typeof itineraryId !== 'string') {
@@ -212,7 +212,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
             const result = await fulfillItineraryPurchase({
                 itineraryId,
                 travelerId,
-                payment: { provider: 'free', paymentMethod: paymentMethod || null },
+                payment: { provider: 'free', paymentMethod: null },
             });
             res.json({ itineraryId, saleId: result.saleId, freePurchase: true, alreadyPurchased: result.alreadyPurchased });
             return;
@@ -234,6 +234,19 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
 
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
+            // REGRA DE PRODUTO: o VAMO não oferece parcelamento nem BNPL.
+            //
+            // Sem `payment_method_types` explícito, o Checkout usa os métodos
+            // dinâmicos habilitados no Dashboard da conta — e a Stripe ativa
+            // Afterpay/Clearpay, Klarna, Affirm e Zip por padrão em várias
+            // contas, ainda mais em AUD. Isso colocaria "pague em 4x" na
+            // página de pagamento sem ninguém mexer no código.
+            //
+            // Fixar em ['card'] fecha a regra no backend, que é onde ela
+            // precisa valer: nenhuma mudança no Dashboard reintroduz BNPL.
+            // Apple Pay e Google Pay continuam funcionando — no Checkout eles
+            // são wallets do próprio método `card`, não métodos separados.
+            payment_method_types: ['card'],
             line_items: [{
                 quantity: 1,
                 price_data: {
@@ -246,7 +259,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
                 },
             }],
             customer_email: traveler?.email || undefined,
-            metadata: { itineraryId, travelerId, source: source || '', paymentMethod: paymentMethod || '' },
+            metadata: { itineraryId, travelerId, source: source || '' },
             payment_intent_data: { metadata: { itineraryId, travelerId } },
             success_url: `${APP_BASE_URL}/checkout/itinerary-confirm?session_id={CHECKOUT_SESSION_ID}&itineraryId=${encodeURIComponent(itineraryId)}${sourceParam}`,
             cancel_url: `${APP_BASE_URL}/checkout/itinerary-confirm?canceled=true&itineraryId=${encodeURIComponent(itineraryId)}${sourceParam}`,
@@ -258,6 +271,19 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
         res.status(500).json({ error: 'Não foi possível iniciar o pagamento. Tente novamente.' });
     }
 });
+
+/**
+ * Método de pagamento REAL usado na sessão, lido do próprio objeto Stripe.
+ *
+ * Antes gravávamos `session.metadata.paymentMethod`, que era a escolha
+ * cosmética feita na UI antes do Checkout (e vinha 'pix' por padrão, um
+ * método que nem existe no fluxo australiano). O snapshot da compra passa a
+ * refletir o que de fato aconteceu; quando a Stripe não informa, fica null.
+ */
+function resolveStripePaymentMethod(session: Stripe.Checkout.Session): string | null {
+    const types = session.payment_method_types;
+    return Array.isArray(types) && types.length === 1 ? types[0] : null;
+}
 
 // ─── GET /api/payments/checkout-session/:sessionId ───────────────
 // Tela de retorno consulta o status real no Stripe e, se pago, libera o
@@ -295,7 +321,7 @@ router.get('/checkout-session/:sessionId', travelerAuthMiddleware, async (req: T
                         paymentStatus: session.payment_status,
                         amountTotal: session.amount_total != null ? session.amount_total / 100 : null,
                         currency: session.currency || null,
-                        paymentMethod: session.metadata?.paymentMethod || null,
+                        paymentMethod: resolveStripePaymentMethod(session),
                     },
                 });
                 res.json({ status: 'paid', itineraryId, saleId: result.saleId, alreadyPurchased: result.alreadyPurchased });
@@ -362,7 +388,7 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
                             paymentStatus: session.payment_status,
                             amountTotal: session.amount_total != null ? session.amount_total / 100 : null,
                             currency: session.currency || null,
-                            paymentMethod: session.metadata?.paymentMethod || null,
+                            paymentMethod: resolveStripePaymentMethod(session),
                         },
                     });
                     console.log(`[stripe webhook] ${event.type}: sale ${result.saleId} (alreadyPurchased=${result.alreadyPurchased})`);

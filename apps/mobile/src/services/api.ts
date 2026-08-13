@@ -371,7 +371,6 @@ export interface ItineraryDetail extends ItinerarySummary {
     subtitle: string | null;
     productType: ProductType | string;
     promoPrice: number | null;
-    installments: number | null;
     immediateAccess: boolean;
     lifetimeAccess: boolean;
     offlineDownload: boolean;
@@ -636,12 +635,12 @@ export interface CheckoutSessionResult {
 /** Cria a sessão de pagamento no Stripe e devolve a URL do checkout hospedado. */
 export async function createCheckoutSession(
     itineraryId: string,
-    opts: { source?: string; paymentMethod?: string } = {},
+    opts: { source?: string } = {},
     accessToken?: string | null,
 ): Promise<CheckoutSessionResult> {
     return request('/payments/checkout-session', {
         method: 'POST',
-        body: { itineraryId, source: opts.source, paymentMethod: opts.paymentMethod },
+        body: { itineraryId, source: opts.source },
         accessToken,
     });
 }

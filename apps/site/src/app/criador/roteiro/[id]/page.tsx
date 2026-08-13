@@ -64,7 +64,6 @@ const SECTION_TIPS: Record<SectionKey, string[]> = {
     ],
     commerce: [
         "Roteiros entre A$ 19-49 têm a melhor taxa de conversão",
-        "Ative parcelas para aumentar as vendas em até 40%",
         "O preço promocional cria urgência — use com moderação",
     ],
     modules: [
@@ -165,7 +164,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [price, setPrice] = useState(0);
     const [currency, setCurrency] = useState("AUD");
     const [promoPrice, setPromoPrice] = useState<number | null>(null);
-    const [installments, setInstallments] = useState<number | null>(null);
     const [immediateAccess, setImmediateAccess] = useState(true);
     const [lifetimeAccess, setLifetimeAccess] = useState(true);
     const [featured, setFeatured] = useState(false);
@@ -233,7 +231,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         setTravelStyles(data.travelStyles || []); setCategories(data.categories || []);
         setProductType(data.productType || "DIGITAL");
         setPrice(data.price || 0); setCurrency(data.currency || "AUD");
-        setPromoPrice(data.promoPrice || null); setInstallments(data.installments || null);
+        setPromoPrice(data.promoPrice || null);
         setImmediateAccess(data.immediateAccess ?? true); setLifetimeAccess(data.lifetimeAccess ?? true);
         setFeatured(data.featured || false);
         setActiveModules(data.activeModules || []);
@@ -291,7 +289,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             price: price.toString(), currency, duration: duration.toString(), featured,
             travelStyles, categories, productType, activeModules,
             promoPrice: promoPrice?.toString() || undefined,
-            installments: installments?.toString() || undefined,
             immediateAccess, lifetimeAccess, allowShare,
             highlights: highlightItems, inclusions: inclusionItems,
             estimatedSpending: { min: spMin, max: spMax, currency: spendingCurrency, breakdown: spendingBreakdown },
@@ -300,7 +297,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             accommodations, transports, checklists: checklistItems,
             faqQuestions: faqItems,
         };
-    }, [title, subtitle, destination, country, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, installments, immediateAccess, lifetimeAccess, allowShare, highlightItems, inclusionItems, spendingBreakdown, spendingCurrency, images, days, accommodations, transports, checklistItems]);
+    }, [title, subtitle, destination, country, description, price, currency, duration, featured, travelStyles, categories, productType, activeModules, promoPrice, immediateAccess, lifetimeAccess, allowShare, highlightItems, inclusionItems, spendingBreakdown, spendingCurrency, images, days, accommodations, transports, checklistItems]);
 
     /* ─── Save ─── */
     const handleSave = async () => {

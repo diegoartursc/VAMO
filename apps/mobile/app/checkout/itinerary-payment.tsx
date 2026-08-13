@@ -21,7 +21,6 @@ import { useCart } from '../../src/hooks/useCart';
 import { formatMoney } from '@vamo/shared/itinerary';
 import { features } from '../../src/config/features';
 
-type PaymentMethod = 'apple' | 'pix' | 'card';
 
 const getParam = (value: string | string[] | undefined): string => {
     if (Array.isArray(value)) return value[0] || '';
@@ -120,7 +119,6 @@ export default function ItineraryPaymentScreen() {
         return () => { mounted = false; };
     }, [itineraryId]);
 
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
     const [summaryExpanded, setSummaryExpanded] = useState(true);
 
     const [processing, setProcessing] = useState(false);
@@ -151,12 +149,10 @@ export default function ItineraryPaymentScreen() {
         setProcessing(true);
         setPaymentError(null);
         try {
-            console.log('[checkout] criando sessão Stripe', { itineraryId, paymentMethod });
-            const result = await createCheckoutSession(
-                itineraryId,
-                { source, paymentMethod },
-                accessToken,
-            );
+            console.log('[checkout] criando sessão Stripe', { itineraryId });
+            // Sem meio de pagamento local: quem apresenta e decide os meios
+            // (cartão e wallets elegíveis) é o Checkout hospedado da Stripe.
+            const result = await createCheckoutSession(itineraryId, { source }, accessToken);
 
             // Grátis ou já comprado: backend liberou direto, sem cobrança.
             if (result.alreadyPurchased || result.freePurchase) {
@@ -191,12 +187,6 @@ export default function ItineraryPaymentScreen() {
             setPaymentError(msg);
             setProcessing(false);
         }
-    };
-
-    const selectPaymentMethod = (method: PaymentMethod) => {
-        if (processing) return;
-        setPaymentMethod(method);
-        setPaymentError(null);
     };
 
     if (authLoading || loading) {
@@ -253,40 +243,19 @@ export default function ItineraryPaymentScreen() {
                     </View>
                 </View>
 
-                {/* Payment Method */}
+                {/* Pagamento — sem seletor local: o meio efetivo é escolhido
+                    no Checkout hospedado da Stripe. Um seletor aqui seria
+                    cosmético e ainda mandava metadata enganosa (o estado
+                    inicial era 'pix', que nem é oferecido na Austrália). */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Forma de pagamento</Text>
+                    <Text style={styles.sectionTitle}>Pagamento seguro</Text>
 
                     <View style={styles.securityBadge}>
                         <Ionicons name="lock-closed" size={16} color={theme.colors.primary} />
                         <Text style={styles.securityText}>
-                            Pagamento seguro processado pela Stripe. Você será redirecionado para concluir a compra.
+                            Você será redirecionado para a Stripe para concluir o pagamento.
                         </Text>
                     </View>
-
-                    <Pressable
-                        style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionSelected]}
-                        onPress={() => selectPaymentMethod('card')}
-                        disabled={processing}
-                    >
-                        <View style={[styles.radio, paymentMethod === 'card' && styles.radioSelected]}>
-                            {paymentMethod === 'card' && <View style={styles.radioDot} />}
-                        </View>
-                        <Text style={styles.paymentOptionText}>Cartão de débito ou crédito</Text>
-                        <Ionicons name="card" size={20} color={theme.colors.text.tertiary} style={{ marginLeft: 'auto' }} />
-                    </Pressable>
-
-                    <Pressable
-                        style={[styles.paymentOption, paymentMethod === 'apple' && styles.paymentOptionSelected]}
-                        onPress={() => selectPaymentMethod('apple')}
-                        disabled={processing}
-                    >
-                        <View style={[styles.radio, paymentMethod === 'apple' && styles.radioSelected]}>
-                            {paymentMethod === 'apple' && <View style={styles.radioDot} />}
-                        </View>
-                        <Text style={styles.paymentOptionText}>Apple Pay</Text>
-                        <Ionicons name="logo-apple" size={24} color={theme.colors.text.primary} style={{ marginLeft: 'auto' }} />
-                    </Pressable>
                 </View>
 
                 {/* Review Details */}
@@ -404,43 +373,23 @@ export default function ItineraryPaymentScreen() {
                     </View>
                 )}
 
-                {paymentMethod === 'apple' && (
-                    <TouchableOpacity
-                        style={[styles.applePayButton, processing && { opacity: 0.6 }]}
-                        onPress={handleConfirmPayment}
-                        disabled={processing}
-                        activeOpacity={0.85}
-                    >
-                        {processing ? (
+                <TouchableOpacity
+                    style={[styles.confirmButton, processing && { opacity: 0.6 }]}
+                    onPress={handleConfirmPayment}
+                    disabled={processing}
+                    activeOpacity={0.85}
+                >
+                    {processing ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                             <ActivityIndicator color="#fff" />
-                        ) : (
-                            <>
-                                <Ionicons name="logo-apple" size={24} color="#fff" />
-                                <Text style={styles.applePayText}>Pagar com Apple Pay</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                )}
-
-                {paymentMethod !== 'apple' && (
-                    <TouchableOpacity
-                        style={[styles.confirmButton, processing && { opacity: 0.6 }]}
-                        onPress={handleConfirmPayment}
-                        disabled={processing}
-                        activeOpacity={0.85}
-                    >
-                        {processing ? (
-                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                                <ActivityIndicator color="#fff" />
-                                <Text style={styles.confirmButtonText}>Processando...</Text>
-                            </View>
-                        ) : (
-                            <Text style={styles.confirmButtonText}>
-                                {paymentAmount > 0 ? `Pagar ${formatPrice(paymentAmount)}` : 'Resgatar grátis'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-                )}
+                            <Text style={styles.confirmButtonText}>Processando...</Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.confirmButtonText}>
+                            {paymentAmount > 0 ? `Pagar ${formatPrice(paymentAmount)}` : 'Resgatar grátis'}
+                        </Text>
+                    )}
+                </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
@@ -523,36 +472,6 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     securityText: { color: theme.colors.primary, fontSize: 14 },
-    paymentOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        padding: 16,
-        backgroundColor: theme.colors.surface,
-        borderRadius: 12,
-        marginBottom: 12,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-    },
-    paymentOptionSelected: { borderColor: theme.colors.primary },
-    radio: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    radioSelected: { borderColor: theme.colors.primary },
-    radioDot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: theme.colors.primary,
-    },
-    paymentOptionText: { fontSize: 16, color: theme.colors.text.primary, fontWeight: '500' },
-    pixBadge: { fontSize: 24 },
     reviewCard: {
         backgroundColor: theme.colors.surface,
         borderRadius: 12,
@@ -609,16 +528,6 @@ const styles = StyleSheet.create({
     taxIncluded: { fontSize: 13, color: theme.colors.primary, marginTop: 4 },
     terms: { fontSize: 12, color: theme.colors.text.secondary, lineHeight: 16, marginBottom: 16 },
     link: { color: theme.colors.primary },
-    applePayButton: {
-        backgroundColor: '#000',
-        paddingVertical: 14,
-        borderRadius: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-    },
-    applePayText: { color: '#fff', fontSize: 18, fontWeight: '600' },
     confirmButton: {
         backgroundColor: theme.colors.primary,
         paddingVertical: 16,

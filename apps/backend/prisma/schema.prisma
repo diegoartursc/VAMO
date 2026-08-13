@@ -438,7 +438,6 @@ model Itinerary {
   activeModules      String[] // itinerario, mapa, hospedagem, transporte, gasto, restaurantes, dicas, checklist, voo
   // ─── Bloco 2: Estrutura Comercial ───
   promoPrice         Float?
-  installments       Int?
   immediateAccess    Boolean         @default(true)
   lifetimeAccess     Boolean         @default(true)
   offlineDownload    Boolean         @default(true)
