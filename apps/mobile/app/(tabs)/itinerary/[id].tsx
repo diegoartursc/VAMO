@@ -350,28 +350,6 @@ export default function ItineraryDetailScreen() {
 
                 {/* Content Sheet */}
                 <View style={styles.contentSheet}>
-                    {/* Creator Badge */}
-                    <View style={styles.creatorRow}>
-                        <CreatorIdentityLink
-                            creator={creator}
-                            name={creatorName}
-                            rating={creatorRating}
-                            salesCount={creatorSales}
-                            href={creatorProfileHref}
-                            onOpen={handleOpenCreatorProfile}
-                        />
-
-                        {/* Creator Verification Link — ação SEPARADA do perfil */}
-                        <TouchableOpacity
-                            style={styles.verificationLink}
-                            onPress={() => router.push('/verification-explained' as any)}
-                        >
-                            <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
-                            <Text style={styles.verificationLinkText}>Como verificamos os criadores</Text>
-                            <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
-                        </TouchableOpacity>
-                    </View>
-
                     {/* Title & Location */}
                     <Text style={styles.title}>{itinerary.title}</Text>
                     <View style={[styles.locationRow, { flexWrap: 'wrap', gap: 10 }]}>
@@ -449,6 +427,113 @@ export default function ItineraryDetailScreen() {
                         </View>
                     )}
 
+                    {/* Sobre o Roteiro */}
+                    <CollapsibleSection title="Sobre o Roteiro" defaultExpanded>
+                        <Text style={styles.description}>{itinerary.description}</Text>
+                    </CollapsibleSection>
+
+                    {/* Resumo da experiência — estilo + categorias, compacto */}
+                    {(() => {
+                        const expStyle = getExperienceStyle(itinerary);
+                        const categoryChips = getCategoryChips(itinerary);
+                        return (
+                            <ExperienceSummaryCard
+                                styleLabel={expStyle?.label}
+                                styleBlurb={expStyle?.blurb}
+                                categories={categoryChips}
+                                onOpenStyleGuide={() => setBudgetHelpOpen(true)}
+                            />
+                        );
+                    })()}
+
+                    {/* Destaques */}
+                    {itinerary.highlights && itinerary.highlights.length > 0 && (
+                        <CollapsibleSection title="Destaques da viagem" defaultExpanded>
+                            <View style={styles.highlightsContainer}>
+                                {itinerary.highlights.map((highlight: any, index: number) => (
+                                    <View key={index} style={styles.highlightRow}>
+                                        <View style={styles.checkIcon}>
+                                            <Ionicons name="checkmark" size={12} color="#fff" />
+                                        </View>
+                                        <Text style={styles.highlightText}>{highlight}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </CollapsibleSection>
+                    )}
+
+                    {/* Fotos e Vídeos da Viagem (highlightPhotos + images + mediaUrls) */}
+                    <MediaGallery itinerary={itinerary} />
+
+                    {/* Para quem é este roteiro */}
+                    {(() => {
+                        const bullets = getIdealForBullets(itinerary);
+                        if (bullets.length === 0) return null;
+                        return (
+                            <View style={styles.idealForCard}>
+                                <View style={styles.idealForHeader}>
+                                    <Ionicons name="people-circle-outline" size={20} color={theme.colors.primaryDark} />
+                                    <Text style={styles.idealForTitle}>Para quem é este roteiro</Text>
+                                </View>
+                                <Text style={styles.idealForIntro}>Este roteiro é ideal para quem busca:</Text>
+                                <View style={styles.idealForList}>
+                                    {bullets.map((b, i) => (
+                                        <View key={i} style={styles.idealForItem}>
+                                            <View style={styles.idealForBullet} />
+                                            <Text style={styles.idealForText}>{b}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        );
+                    })()}
+
+                    {/* Por que comprar este roteiro? */}
+                    {(() => {
+                        const bullets = getWhyBuyBullets(itinerary);
+                        if (bullets.length === 0) return null;
+                        return (
+                            <View style={styles.whyBuyCard}>
+                                <View style={styles.whyBuyHeader}>
+                                    <Ionicons name="ribbon" size={18} color={theme.colors.primary} />
+                                    <Text style={styles.whyBuyTitle}>Por que comprar este roteiro?</Text>
+                                </View>
+                                <View style={styles.whyBuyList}>
+                                    {bullets.map((text, i) => (
+                                        <View key={i} style={styles.whyBuyItem}>
+                                            <View style={styles.whyBuyDot}>
+                                                <Ionicons name="checkmark" size={11} color="#fff" />
+                                            </View>
+                                            <Text style={styles.whyBuyText}>{text}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        );
+                    })()}
+
+                    {/* Creator Badge */}
+                    <View style={styles.creatorRow}>
+                        <CreatorIdentityLink
+                            creator={creator}
+                            name={creatorName}
+                            rating={creatorRating}
+                            salesCount={creatorSales}
+                            href={creatorProfileHref}
+                            onOpen={handleOpenCreatorProfile}
+                        />
+
+                        {/* Creator Verification Link — ação SEPARADA do perfil */}
+                        <TouchableOpacity
+                            style={styles.verificationLink}
+                            onPress={() => router.push('/verification-explained' as any)}
+                        >
+                            <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
+                            <Text style={styles.verificationLinkText}>Como verificamos os criadores</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Price & CTA — card de compra com 2 linhas claras
                         Linha 1: preço total (o VAMO não parcela)
                         Linha 2: [Adicionar ao carrinho] [Comprar agora] */}
@@ -515,106 +600,6 @@ export default function ItineraryDetailScreen() {
                         repetiam a mesma mensagem. */}
                     <PurchaseBenefitsCard />
 
-                    {/* Resumo da experiência — estilo + categorias, compacto */}
-                    {(() => {
-                        const expStyle = getExperienceStyle(itinerary);
-                        const categoryChips = getCategoryChips(itinerary);
-                        return (
-                            <ExperienceSummaryCard
-                                styleLabel={expStyle?.label}
-                                styleBlurb={expStyle?.blurb}
-                                categories={categoryChips}
-                                onOpenStyleGuide={() => setBudgetHelpOpen(true)}
-                            />
-                        );
-                    })()}
-
-                    {/* Referência de custos da viagem — seção única (resumo geral +
-                        categorias agregadas + simulador de grupo + aviso), substitui
-                        as três áreas antigas que repetiam o mesmo assunto. */}
-                    {(() => {
-                        const costForm = {
-                            accommodations: itinerary.accommodations,
-                            attractions: itinerary.attractions,
-                            transports: itinerary.transports,
-                            restaurants: itinerary.restaurants,
-                            extraSpendingItems: itinerary.extraSpendingItems,
-                            flightCost: itinerary.flightInfo?.cost,
-                            flightSpending: itinerary.flightInfo?.spending,
-                        };
-                        const hasCostData = getCostReferences(costForm as any).length > 0;
-                        const trustItems: TrustSignal[] = [
-                            { icon: 'shield-checkmark', label: 'Roteirista verificado' },
-                            { icon: 'flash', label: 'Acesso imediato' },
-                        ];
-                        if (hasCostData) {
-                            trustItems.push({ icon: 'wallet-outline', label: 'Custos informados' });
-                        }
-                        return (
-                            <>
-                                <TravelCostSummarySection
-                                    form={costForm as any}
-                                    activeModules={itinerary.activeModules}
-                                    currencyRates={currencyRates}
-                                    peopleCount={peopleCount}
-                                    onPeopleCountChange={setPeopleCount}
-                                />
-                                <TrustStrip items={trustItems} />
-                            </>
-                        );
-                    })()}
-
-                    {/* Sobre o Roteiro */}
-                    <CollapsibleSection title="Sobre o Roteiro" defaultExpanded>
-                        <Text style={styles.description}>{itinerary.description}</Text>
-                    </CollapsibleSection>
-
-                    {/* Fotos e Vídeos da Viagem (highlightPhotos + images + mediaUrls) */}
-                    <MediaGallery itinerary={itinerary} />
-
-                    {/* Por que comprar este roteiro? */}
-                    {(() => {
-                        const bullets = getWhyBuyBullets(itinerary);
-                        if (bullets.length === 0) return null;
-                        return (
-                            <View style={styles.whyBuyCard}>
-                                <View style={styles.whyBuyHeader}>
-                                    <Ionicons name="ribbon" size={18} color={theme.colors.primary} />
-                                    <Text style={styles.whyBuyTitle}>Por que comprar este roteiro?</Text>
-                                </View>
-                                <View style={styles.whyBuyList}>
-                                    {bullets.map((text, i) => (
-                                        <View key={i} style={styles.whyBuyItem}>
-                                            <View style={styles.whyBuyDot}>
-                                                <Ionicons name="checkmark" size={11} color="#fff" />
-                                            </View>
-                                            <Text style={styles.whyBuyText}>{text}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        );
-                    })()}
-
-                    {/* Destaques */}
-                    {itinerary.highlights && itinerary.highlights.length > 0 && (
-                        <CollapsibleSection title="Destaques da viagem" defaultExpanded>
-                            <View style={styles.highlightsContainer}>
-                                {itinerary.highlights.map((highlight: any, index: number) => (
-                                    <View key={index} style={styles.highlightRow}>
-                                        <View style={styles.checkIcon}>
-                                            <Ionicons name="checkmark" size={12} color="#fff" />
-                                        </View>
-                                        <Text style={styles.highlightText}>{highlight}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </CollapsibleSection>
-                    )}
-
-                    {/* Depois da compra, este roteiro vira sua central de viagem */}
-                    {features.interactivePurchasedRouteEnabled && <InteractiveExperienceSection />}
-
                     {/* O que você vai receber — apenas módulos ativos E preenchidos no roteiro real */}
                     {(() => {
                         const receivedModules = getReceivedModules(itinerary);
@@ -676,6 +661,69 @@ export default function ItineraryDetailScreen() {
                         );
                     })()}
 
+                    {/* Depois da compra, este roteiro vira sua central de viagem */}
+                    {features.interactivePurchasedRouteEnabled && <InteractiveExperienceSection />}
+
+                    {/* Referência de custos da viagem — seção única (resumo geral +
+                        categorias agregadas + simulador de grupo + aviso), substitui
+                        as três áreas antigas que repetiam o mesmo assunto. */}
+                    {(() => {
+                        const costForm = {
+                            accommodations: itinerary.accommodations,
+                            attractions: itinerary.attractions,
+                            transports: itinerary.transports,
+                            restaurants: itinerary.restaurants,
+                            extraSpendingItems: itinerary.extraSpendingItems,
+                            flightCost: itinerary.flightInfo?.cost,
+                            flightSpending: itinerary.flightInfo?.spending,
+                        };
+                        const hasCostData = getCostReferences(costForm as any).length > 0;
+                        const trustItems: TrustSignal[] = [
+                            { icon: 'shield-checkmark', label: 'Roteirista verificado' },
+                            { icon: 'flash', label: 'Acesso imediato' },
+                        ];
+                        if (hasCostData) {
+                            trustItems.push({ icon: 'wallet-outline', label: 'Custos informados' });
+                        }
+                        return (
+                            <>
+                                <TravelCostSummarySection
+                                    form={costForm as any}
+                                    activeModules={itinerary.activeModules}
+                                    currencyRates={currencyRates}
+                                    peopleCount={peopleCount}
+                                    onPeopleCountChange={setPeopleCount}
+                                />
+                                <TrustStrip items={trustItems} />
+                            </>
+                        );
+                    })()}
+
+                    {/* Trust Info */}
+                    <View style={styles.trustBox}>
+                        <Ionicons name="shield-checkmark" size={24} color={theme.colors.verified} />
+                        <View style={styles.trustContent}>
+                            <Text style={styles.trustTitle}>{creatorReputation.label}</Text>
+                            <Text style={styles.trustText}>
+                                {creatorName} tem {creatorReputation.description.toLowerCase()}
+                                {creatorSales > 0 ? ` e ${creatorSales.toLocaleString('pt-BR')} roteiro${creatorSales === 1 ? '' : 's'} vendido${creatorSales === 1 ? '' : 's'}` : ''}.
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Premium Reviews Section */}
+                    {reviews.length > 0 && (
+                        <View style={styles.reviewsSection}>
+                            <PremiumReviewsSection
+                                reviews={reviews}
+                                averageRating={averageReviewRating}
+                                totalReviews={reviews.length}
+                                communityPhotos={reviewPhotos}
+                                topRatedSummary="Avaliações de viajantes que compraram este roteiro"
+                            />
+                        </View>
+                    )}
+
                     {/* Como você vai receber */}
                     <CollapsibleSection title="Como você vai receber">
                         <View style={styles.howReceiveContainer}>
@@ -727,61 +775,6 @@ export default function ItineraryDetailScreen() {
                         </View>
                     </CollapsibleSection>
 
-                    {/* Para quem é este roteiro */}
-                    {(() => {
-                        const bullets = getIdealForBullets(itinerary);
-                        if (bullets.length === 0) return null;
-                        return (
-                            <View style={styles.idealForCard}>
-                                <View style={styles.idealForHeader}>
-                                    <Ionicons name="people-circle-outline" size={20} color={theme.colors.primaryDark} />
-                                    <Text style={styles.idealForTitle}>Para quem é este roteiro</Text>
-                                </View>
-                                <Text style={styles.idealForIntro}>Este roteiro é ideal para quem busca:</Text>
-                                <View style={styles.idealForList}>
-                                    {bullets.map((b, i) => (
-                                        <View key={i} style={styles.idealForItem}>
-                                            <View style={styles.idealForBullet} />
-                                            <Text style={styles.idealForText}>{b}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        );
-                    })()}
-
-                    {/* Perguntas Frequentes */}
-                    <FAQSection
-                        itineraryId={itineraryId}
-                        creatorName={creatorName}
-                        creatorId={creator?.id}
-                    />
-
-                    {/* Premium Reviews Section */}
-                    {reviews.length > 0 && (
-                        <View style={styles.reviewsSection}>
-                            <PremiumReviewsSection
-                                reviews={reviews}
-                                averageRating={averageReviewRating}
-                                totalReviews={reviews.length}
-                                communityPhotos={reviewPhotos}
-                                topRatedSummary="Avaliações de viajantes que compraram este roteiro"
-                            />
-                        </View>
-                    )}
-
-                    {/* Trust Info */}
-                    <View style={styles.trustBox}>
-                        <Ionicons name="shield-checkmark" size={24} color={theme.colors.verified} />
-                        <View style={styles.trustContent}>
-                            <Text style={styles.trustTitle}>{creatorReputation.label}</Text>
-                            <Text style={styles.trustText}>
-                                {creatorName} tem {creatorReputation.description.toLowerCase()}
-                                {creatorSales > 0 ? ` e ${creatorSales.toLocaleString('pt-BR')} roteiro${creatorSales === 1 ? '' : 's'} vendido${creatorSales === 1 ? '' : 's'}` : ''}.
-                            </Text>
-                        </View>
-                    </View>
-
                     {/* Antes de comprar, saiba */}
                     <View style={styles.beforeBuyBox}>
                         <View style={styles.beforeBuyHeader}>
@@ -800,6 +793,13 @@ export default function ItineraryDetailScreen() {
                             Os valores são referências informadas pelo criador e podem variar conforme data, temporada, câmbio, disponibilidade e estilo de consumo.
                         </Text>
                     </View>
+
+                    {/* Perguntas Frequentes */}
+                    <FAQSection
+                        itineraryId={itineraryId}
+                        creatorName={creatorName}
+                        creatorId={creator?.id}
+                    />
 
                     <View style={{ height: 100 }} />
                 </View>
