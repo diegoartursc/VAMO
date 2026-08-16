@@ -252,12 +252,20 @@ test('33. o bloco comercial do shared depende só do preço de venda', () => {
 // 34-36. COPY E BUSCA GLOBAL
 // ══════════════════════════════════════════════════════════════════
 
-test('34/35. HowItWorks e Onboarding usam a mesma copy, sem 12x', () => {
-    const how = ler('apps/mobile/src/components/common/HowItWorks.tsx');
-    const onb = ler('apps/mobile/src/components/onboarding/OnboardingSlider.tsx');
-    for (const [nome, src] of [['HowItWorks', how], ['OnboardingSlider', onb]] as const) {
-        assert.ok(!TERMOS_PARCELAMENTO.test(src), `${nome} ainda menciona parcelamento`);
-        assert.ok(src.includes('Pagamento seguro pela Stripe'), `${nome} deve usar a copy padrão`);
+test('34/35. a tela "Como funciona" não menciona parcelamento', () => {
+    // Os componentes HowItWorks.tsx e OnboardingSlider.tsx foram REMOVIDOS:
+    // eram código morto (nenhuma tela os importava, então nem entravam no
+    // bundle) e carregavam a copy antiga "Pagamento seguro em até 12x".
+    // A superfície viva é a rota /how-it-works, com conteúdo próprio.
+    const tela = ler('apps/mobile/app/how-it-works.tsx');
+    assert.ok(!TERMOS_PARCELAMENTO.test(semComentarios(tela)));
+    assert.ok(/pagamento seguro/i.test(tela), 'a copy de pagamento seguro continua lá');
+
+    for (const morto of [
+        'apps/mobile/src/components/common/HowItWorks.tsx',
+        'apps/mobile/src/components/onboarding/OnboardingSlider.tsx',
+    ]) {
+        assert.throws(() => ler(morto), `${morto} deveria ter sido removido`);
     }
 });
 
