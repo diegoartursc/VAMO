@@ -13,7 +13,7 @@ const router = Router();
 // ─── VALIDATION SCHEMAS ───
 const travelerRegisterSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Invalid email'),
+    email: z.string().trim().toLowerCase().email('Invalid email'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     // Campos opcionais — quando presentes, cria também um Creator vinculado
     profileName: z.string().min(2).optional(),
@@ -22,7 +22,7 @@ const travelerRegisterSchema = z.object({
 });
 
 const travelerLoginSchema = z.object({
-    email: z.string().email('Invalid email'),
+    email: z.string().trim().toLowerCase().email('Invalid email'),
     password: z.string().min(1, 'Password is required'),
 });
 
@@ -41,8 +41,8 @@ router.post('/register', async (req: Request, res: Response) => {
         const validatedData = travelerRegisterSchema.parse(req.body);
 
         // Check if email already exists
-        const existingTraveler = await prisma.traveler.findUnique({
-            where: { email: validatedData.email },
+        const existingTraveler = await prisma.traveler.findFirst({
+            where: { email: { equals: validatedData.email, mode: 'insensitive' } },
         });
 
         if (existingTraveler) {
@@ -124,8 +124,9 @@ router.post('/login', async (req: Request, res: Response) => {
         const validatedData = travelerLoginSchema.parse(req.body);
 
         // Find traveler by email (include creator if exists)
-        const traveler = await prisma.traveler.findUnique({
-            where: { email: validatedData.email },
+        // Case-insensitive: contas antigas podem ter sido gravadas com maiúsculas.
+        const traveler = await prisma.traveler.findFirst({
+            where: { email: { equals: validatedData.email, mode: 'insensitive' } },
             include: { creator: { select: { id: true, verificationLevel: true } } },
         });
 

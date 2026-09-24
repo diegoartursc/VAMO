@@ -41,7 +41,8 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
 - **Local:** Postgres em `localhost:5432/vamo` foi **wipado e abandonado** em 2026-06-06. Não usar. Não rodar seed. Se precisar testar destrutivo, descomente a URL de fallback no `.env` e isole.
 
 ### Dados que devem existir em prod (estado canônico — 2026-06-18)
-- 2 travelers (1 real: `mariavamo@gmail.com` / Maria Beckenkamp — senha `vamo123`; +1 de teste, ex.: "Diego GOGO")
+- Travelers (auditado 2026-09-24): `juliavamo@gmail.com` / Julia Beckenkamp (conta real, antes "Maria"; senha redefinida para `vamo123` em 2026-09-24), `diegovamo@gmail.com` (Diego GOGO, teste), `arianavamo@gmail.com` (Ariana). `mariavamo@gmail.com` NÃO existe mais.
+- **Senhas são bcrypt — impossível ler.** `hasPwd=true` só diz que existe senha. Nunca informe senha que não foi confirmada; para recuperar acesso use `npx tsx scripts/reset-password.ts <email> <senha>` (em `apps/backend`, salva hash antigo em `scripts/backups/`).
 - 1 admin: `admin@vamo.com` (SUPER_ADMIN)
 - 1 creator: Maria (BASIC)
 - **2 itinerários (ambos ACTIVE, by Maria):**
