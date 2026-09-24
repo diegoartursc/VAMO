@@ -19,10 +19,28 @@
 
 **Pessoa Física ou CNPJ?** Precisa ser decidido antes da task 5 (ativar o Stripe), porque o tipo de empresa **não muda depois** no Stripe. Leve essa pergunta ao contador (task 10). Se ainda não tiver CNPJ, vale esperar o CNPJ para ativar o Stripe.
 
-## 1. Ligar recibo por e-mail no Stripe · ⚡ · 👤
+## 1. E-mails para o cliente (recibo, confirmação, boas-vindas) · ⚡ · 👥
 
-- [ ] Stripe → Configurações → **E-mails para clientes** → ligar "Pagamentos bem-sucedidos" e "Reembolsos".
-- [ ] Em Configurações → **Marca**, colocar o logo e a cor do VAMO, que aparecem no recibo e na página de pagamento.
+E-mail oficial do VAMO: **vamoappviagens@gmail.com**.
+
+**Recibos do Stripe:**
+- [x] Recibo de pagamento concluído e de reembolso ligados, em inglês, na conta principal e na área restrita de testes.
+- [x] Marca no Stripe: ícone do VAMO, cor `#28C9BF` e destaque `#1A3263`. Aparecem no recibo e na página de pagamento.
+- [ ] 👤 Na ativação da conta (task 5), preencher o **e-mail de suporte** com `vamoappviagens@gmail.com`. Hoje o Stripe mostra o e-mail pessoal do Diego, e esse campo só pode ser alterado depois da ativação.
+
+**E-mails do próprio VAMO (código pronto, em `apps/backend/src/lib/mailer.ts`):**
+- [x] 🤖 Boas-vindas, no cadastro.
+- [x] 🤖 Confirmação de compra com o link do roteiro, enviada uma única vez por compra, mesmo que o webhook e a tela de retorno cheguem juntos.
+- [x] 🤖 Sem a senha configurada, o backend só registra um aviso e segue funcionando.
+- [ ] 👤 Criar a **senha de app** do Gmail: entrar em myaccount.google.com com a conta `vamoappviagens@gmail.com` → Segurança → ativar a **Verificação em duas etapas** → **Senhas de app** → criar "VAMO backend" → copiar o código de 16 letras.
+- [ ] 👤 No Render (Environment), adicionar `SMTP_USER=vamoappviagens@gmail.com` e `SMTP_PASS=<código de 16 letras>`. No `apps/backend/.env` local, preencher o `SMTP_PASS`.
+- [ ] 🤖 Testar em produção: criar uma conta nova e fazer uma compra de teste, conferindo que os dois e-mails chegam.
+
+**Limites do Gmail:** cerca de 500 e-mails por dia, e o remetente é "@gmail.com". Quando o domínio próprio existir (task 6), migrar para o Resend com `contato@<domínio>`. É só trocar o transporte no `mailer.ts`.
+
+**Newsletter (depois):**
+- [ ] 👥 A lei australiana contra spam (Spam Act 2003) exige consentimento explícito. Adicionar a caixa "Quero receber novidades" no cadastro (desmarcada por padrão), registrando a data do aceite. Precisa de migration.
+- [ ] 👤 Usar uma ferramenta própria de newsletter (Brevo ou Mailchimp) com link de descadastro. Não enviar newsletter pelo Gmail, porque há risco de bloqueio da conta.
 
 ## 2. Migrations do banco automáticas no deploy · ⚡ · 👥 · Bloqueia
 
@@ -68,6 +86,7 @@ Passo a passo detalhado em [STRIPE-PRODUCAO.md](STRIPE-PRODUCAO.md). Depende da 
 - [ ] 👤 No Render, atualizar `APP_BASE_URL` e `ALLOWED_ORIGINS` com o domínio novo.
 - [ ] 🤖 Atualizar `EXPO_PUBLIC_API_URL` na Vercel, se a API mudar de endereço.
 - [ ] 🤖 Testar login e compra pelo domínio novo.
+- [ ] 🤖 Trocar o ícone do app (`apps/mobile/assets/icon.png`), que ainda é o modelo padrão do Expo, pelo logo do VAMO. Conferir também o favicon e a imagem de abertura.
 
 ## 7. "Esqueci minha senha" · 🟡 · 🤖 (+👤 para criar a conta de e-mail) · Bloqueia
 

@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import prisma from '../lib/prisma';
 import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken } from '../lib/auth';
+import { sendWelcomeEmail } from '../lib/mailer';
 import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
 import { hasValidFileSignature } from '../lib/file-signature';
 
@@ -92,6 +93,7 @@ router.post('/register', async (req: Request, res: Response) => {
         });
 
         console.log('[traveler-auth.register]', { travelerId: traveler.id, creatorId: creator?.id, email: traveler.email });
+        void sendWelcomeEmail(traveler.email, traveler.name);
 
         res.json({
             message: 'Traveler registered successfully',

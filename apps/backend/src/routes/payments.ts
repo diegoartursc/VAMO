@@ -4,6 +4,7 @@ import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import { PURCHASED_ITINERARY_INCLUDE, buildPurchasedItineraryPayload, toJsonSafe } from './itineraries';
 import { isPurchasableItineraryStatus } from '../lib/itineraryStatus';
+import { sendPurchaseConfirmationEmail } from '../lib/mailer';
 
 const router = Router();
 
@@ -156,6 +157,18 @@ async function fulfillItineraryPurchase(opts: {
                 data: { totalSales: { increment: 1 } },
             }),
         ]);
+        // Só quem cria a venda envia — webhook e tela de retorno nunca duplicam.
+        prisma.traveler
+            .findUnique({ where: { id: travelerId }, select: { email: true, name: true } })
+            .then((t) => t && sendPurchaseConfirmationEmail({
+                to: t.email,
+                name: t.name,
+                itineraryId,
+                itineraryTitle: itinerary.title,
+                amountTotal: payment.amountTotal,
+                currency: payment.currency,
+            }))
+            .catch((e) => console.error('[payments] e-mail de confirmação falhou:', e?.message || e));
         return { saleId: sale.id, alreadyPurchased: false };
     } catch (err: any) {
         // Índice único (itineraryId, travelerId): duas chamadas concorrentes
