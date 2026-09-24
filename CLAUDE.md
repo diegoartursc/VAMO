@@ -4,6 +4,12 @@
 
 ---
 
+## 🧭 Norte atual: lançamento
+
+Checklist do que falta para lançar, ordenado por esforço: [docs/LANCAMENTO-TASKS.md](docs/LANCAMENTO-TASKS.md). Marque `[x]` ao concluir cada item.
+
+---
+
 ## 🚀 Boot obrigatório (FAZER PRIMEIRO, sempre)
 
 O projeto VAMO tem **dois processos** que precisam estar no ar para o app funcionar:
