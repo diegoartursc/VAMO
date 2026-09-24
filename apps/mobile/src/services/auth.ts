@@ -110,3 +110,40 @@ export async function fetchMe(accessToken: string): Promise<Pick<TravelerSession
         return null;
     }
 }
+
+async function postPublic(path: string, body: unknown, fallbackError: string): Promise<{ message?: string }> {
+    let res: Response;
+    try {
+        res = await fetch(`${API_BASE_URL}${path}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+    } catch {
+        throw new Error('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const err = new Error(data?.error || fallbackError) as Error & { status?: number };
+        err.status = res.status;
+        throw err;
+    }
+    return data;
+}
+
+/** Resposta sempre neutra: não indica se o e-mail tem conta. */
+export async function requestPasswordReset(email: string): Promise<void> {
+    await postPublic(
+        '/auth/traveler/forgot-password',
+        { email: email.trim().toLowerCase() },
+        'Não foi possível enviar agora. Tente novamente em instantes.',
+    );
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+    await postPublic(
+        '/auth/traveler/reset-password',
+        { token, password },
+        'Não foi possível redefinir a senha. Tente novamente.',
+    );
+}

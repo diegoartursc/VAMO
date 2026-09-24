@@ -88,16 +88,27 @@ Passo a passo detalhado em [STRIPE-PRODUCAO.md](STRIPE-PRODUCAO.md). Depende da 
 - [ ] 🤖 Testar login e compra pelo domínio novo.
 - [ ] 🤖 Trocar o ícone do app (`apps/mobile/assets/icon.png`), que ainda é o modelo padrão do Expo, pelo logo do VAMO. Conferir também o favicon e a imagem de abertura.
 
-## 7. "Esqueci minha senha" · 🟡 · 🤖 (+👤 para criar a conta de e-mail) · Bloqueia
+## 7. "Esqueci minha senha" · 🟢 (falta ativar em produção) · 👥 · Bloqueia
 
-Hoje, o cliente que esquece a senha perde o acesso aos roteiros que comprou.
+Código pronto e testado localmente. Ainda **não está no ar**: falta aplicar a migration e publicar.
 
-- [ ] 👤 Criar uma conta num serviço de e-mail transacional (sugestão: **Resend**) e verificar o domínio da task 6.
-- [ ] 🤖 Backend: token de reset com validade de 1 hora e uso único. Precisa de migration.
-- [ ] 🤖 Backend: rota `POST /auth/traveler/forgot-password`, que responde sempre "ok" para não revelar se o e-mail existe, e rota `POST /auth/traveler/reset-password`.
-- [ ] 🤖 Backend: limite de tentativas nessas rotas.
-- [ ] 🤖 App: link "Esqueci minha senha" no login, tela para pedir o e-mail e tela para criar a senha nova.
-- [ ] 🤖 Testar o fluxo inteiro em produção com uma conta de teste.
+**Feito (🤖):**
+- [x] Tabela `password_reset_tokens`, que guarda só o SHA-256 do token, e a coluna `travelers.passwordChangedAt`. Migration `20260924230000_add_password_reset_tokens`, só com adições e RLS ligado.
+- [x] `POST /api/auth/traveler/forgot-password`: resposta sempre neutra, token aleatório de 32 bytes, validade de 1 hora, só o link mais recente vale e no máximo 1 e-mail por minuto por conta.
+- [x] `POST /api/auth/traveler/reset-password`: uso único, seguro mesmo com dois envios simultâneos, e a política de senha é a mesma do cadastro (mínimo de 6 caracteres).
+- [x] Limites por IP: 5 pedidos de link e 10 tentativas de redefinição a cada 15 minutos, além do limite global.
+- [x] O refresh emitido antes da troca de senha passa a ser recusado. Por isso, os outros aparelhos saem em até 24 horas (ver limitação abaixo).
+- [x] E-mail "Redefina sua senha no VAMO" no `mailer.ts`, que funciona com qualquer provedor de e-mail. O Gmail basta para o lançamento; o Resend com domínio próprio fica para depois.
+- [x] App: link "Esqueci minha senha?" no login, telas `/forgot-password` e `/reset-password?token=…`, e o atalho em Conta → Segurança.
+- [x] 37 testes de API (itens A a R) em banco local isolado, fluxo testado no navegador (web, desktop e celular) e builds do backend e do app web passando.
+
+**Falta, nesta ordem:**
+- [ ] 👥 **Aplicar a migration no Supabase ANTES de publicar o código.** O código novo lê `passwordChangedAt`; sem essa coluna, o login quebra com erro 500. Em `apps/backend`: `npx tsx scripts/backup-db.ts`, depois `npx prisma migrate deploy` e por fim `npx prisma migrate status`.
+- [ ] 👥 Fazer o push para a `main`. O Render e a Vercel publicam sozinhos.
+- [ ] 👤 Configurar `SMTP_USER` e `SMTP_PASS` no Render (task 1). Sem isso, o link não chega por e-mail.
+- [ ] 🤖 Testar em produção com uma conta de teste: pedir o link, receber o e-mail, redefinir e entrar.
+
+**Limitação conhecida:** o token de acesso continua valendo até expirar (24 horas). A troca de senha não desconecta na hora os outros aparelhos: eles saem quando tentam renovar a sessão. Para desconectar na hora, todas as rotas autenticadas teriam que consultar o banco a cada requisição.
 
 ## 8. Termos de uso, privacidade e reembolso · 🟡 · 👥 · Bloqueia
 

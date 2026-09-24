@@ -194,17 +194,19 @@ model AgencyEmployee {
 // ─────────────────────────────────────────────
 
 model Traveler {
-  id             String       @id @default(cuid())
-  name           String
-  email          String       @unique
-  passwordHash   String?
-  avatar         String?
-  coverUrl       String?
-  authProvider   AuthProvider @default(EMAIL)
-  authProviderId String?
-  bio            String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                String       @id @default(cuid())
+  name              String
+  email             String       @unique
+  passwordHash      String?
+  avatar            String?
+  coverUrl          String?
+  authProvider      AuthProvider @default(EMAIL)
+  authProviderId    String?
+  bio               String?
+  // Refresh tokens emitidos antes disso são recusados (revogação pós-reset de senha).
+  passwordChangedAt DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   personalData        TravelerPersonalData?
   creator             Creator?
@@ -217,8 +219,25 @@ model Traveler {
   checklistItems      TravelerChecklistItem[]
   tripFiles           TravelerFile[]
   routeCustomizations TravelerItineraryCustomization[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("travelers")
+}
+
+// Token de "Esqueci minha senha". Só o SHA-256 do token é salvo; o token bruto
+// existe apenas no link do e-mail. Uso único: a linha é apagada ao consumir.
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  travelerId String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  traveler Traveler @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+
+  @@index([travelerId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model TravelerPersonalData {

@@ -99,3 +99,32 @@ ${amount ? `<p style="color:#6B7A90;margin:0">Valor pago: <strong style="color:#
     const text = `Compra confirmada! Seu roteiro "${opts.itineraryTitle}" já está liberado${amount ? ` (valor pago: ${amount})` : ''}. Abrir: ${url}`;
     return send(opts.to, `Seu roteiro está liberado: ${opts.itineraryTitle}`, html, text);
 }
+
+export function buildPasswordResetUrl(rawToken: string): string {
+    return `${env().appUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+}
+
+export function sendPasswordResetEmail(opts: { to: string; name: string; resetUrl: string; expiresInMinutes: number }): Promise<boolean> {
+    const first = (opts.name || '').trim().split(/\s+/)[0] || 'viajante';
+    const m = opts.expiresInMinutes;
+    const validity = m % 60 === 0 ? `${m / 60} hora${m > 60 ? 's' : ''}` : `${m} minutos`;
+    const html = layout(
+        'Redefina sua senha no VAMO',
+        `<p style="line-height:1.6">Oi, ${escapeHtml(first)}! Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+<p style="line-height:1.6">Clique no botão abaixo para criar uma nova senha. O link expira em <strong>${validity}</strong> e só pode ser usado uma vez.</p>`,
+        { label: 'Redefinir minha senha', url: opts.resetUrl },
+    ).replace(
+        '<p style="font-size:13px;color:#6B7A90;margin-top:32px">',
+        `<p style="font-size:13px;color:#6B7A90;line-height:1.6">Se o botão não funcionar, copie e cole este endereço no navegador:<br><span style="word-break:break-all">${escapeHtml(opts.resetUrl)}</span></p>
+<p style="font-size:13px;color:#6B7A90;line-height:1.6">Se não foi você quem pediu, é só ignorar este e-mail: sua senha continua a mesma.</p>
+<p style="font-size:13px;color:#6B7A90;margin-top:32px">`,
+    );
+    const text = [
+        `Oi, ${first}!`,
+        'Recebemos uma solicitação para redefinir a senha da sua conta no VAMO.',
+        `Crie uma nova senha por este link (expira em ${validity} e só pode ser usado uma vez):`,
+        opts.resetUrl,
+        'Se não foi você quem pediu, ignore este e-mail: sua senha continua a mesma.',
+    ].join('\n\n');
+    return send(opts.to, 'Redefina sua senha no VAMO', html, text);
+}

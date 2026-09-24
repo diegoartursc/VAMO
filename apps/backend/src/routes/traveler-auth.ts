@@ -5,17 +5,23 @@ import path from 'path';
 import fs from 'fs';
 import prisma from '../lib/prisma';
 import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken } from '../lib/auth';
-import { sendWelcomeEmail } from '../lib/mailer';
+import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
+import { sendWelcomeEmail, sendPasswordResetEmail, buildPasswordResetUrl } from '../lib/mailer';
 import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
 import { hasValidFileSignature } from '../lib/file-signature';
 
 const router = Router();
 
 // ─── VALIDATION SCHEMAS ───
+// Política única de senha: cadastro e redefinição usam o mesmo schema.
+const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const emailSchema = z.string().trim().toLowerCase().email('Invalid email');
+
 const travelerRegisterSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().trim().toLowerCase().email('Invalid email'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    email: emailSchema,
+    password: passwordSchema,
     // Campos opcionais — quando presentes, cria também um Creator vinculado
     profileName: z.string().min(2).optional(),
     cpf: z.string().optional(),
@@ -23,7 +29,7 @@ const travelerRegisterSchema = z.object({
 });
 
 const travelerLoginSchema = z.object({
-    email: z.string().trim().toLowerCase().email('Invalid email'),
+    email: emailSchema,
     password: z.string().min(1, 'Password is required'),
 });
 
@@ -201,6 +207,13 @@ router.post('/refresh', async (req: Request, res: Response) => {
             return res.status(401).json({ error: 'Traveler not found' });
         }
 
+        // Refresh emitido antes da última troca de senha não vale mais: sessões
+        // antigas caem quando o access token (24h) expira.
+        const issuedAt = (decoded as any).iat as number | undefined;
+        if (traveler.passwordChangedAt && (!issuedAt || issuedAt < Math.floor(traveler.passwordChangedAt.getTime() / 1000))) {
+            return res.status(401).json({ error: 'Session expired. Please log in again.' });
+        }
+
         // Generate new access token
         const newAccessToken = generateAccessToken({
             travelerId: traveler.id,
@@ -213,6 +226,140 @@ router.post('/refresh', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Traveler refresh error:', error);
         res.status(500).json({ error: 'Failed to refresh token' });
+    }
+});
+
+// ─── ESQUECI MINHA SENHA ───
+// Token: 32 bytes aleatórios (base64url) no link do e-mail; no banco só o
+// SHA-256. Uso único (a linha é apagada ao consumir), validade de 1 hora e só
+// o token mais recente de cada traveler vale.
+const RESET_TOKEN_TTL_MINUTES = 60;
+const RESET_EMAIL_COOLDOWN_MS = 60 * 1000;
+const FORGOT_PASSWORD_MESSAGE = 'Se existir uma conta associada a este e-mail, enviaremos as instruções para redefinir sua senha.';
+const INVALID_RESET_LINK_MESSAGE = 'Este link é inválido ou expirou. Solicite uma nova redefinição de senha.';
+
+const hashResetToken = (raw: string) => crypto.createHash('sha256').update(raw).digest('hex');
+
+const forgotPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Muitas solicitações. Aguarde alguns minutos e tente novamente.' },
+});
+
+const resetPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' },
+});
+
+const forgotPasswordSchema = z.object({ email: emailSchema });
+const resetPasswordSchema = z.object({
+    token: z.string().trim().min(20).max(200),
+    password: passwordSchema,
+});
+
+class InvalidResetTokenError extends Error {}
+
+// ─── POST /api/auth/traveler/forgot-password ───
+router.post('/forgot-password', forgotPasswordLimiter, async (req: Request, res: Response) => {
+    let email: string;
+    try {
+        email = forgotPasswordSchema.parse(req.body).email;
+    } catch {
+        return res.status(422).json({ error: 'Informe um e-mail válido.' });
+    }
+
+    // Resposta idêntica com ou sem conta (evita enumeração de e-mails). O
+    // trabalho real roda depois da resposta, então o tempo também não denuncia.
+    res.json({ message: FORGOT_PASSWORD_MESSAGE });
+
+    try {
+        const traveler = await prisma.traveler.findFirst({
+            where: { email: { equals: email, mode: 'insensitive' } },
+            select: { id: true, email: true, name: true, authProvider: true },
+        });
+        // Contas de login social não têm senha para redefinir.
+        if (!traveler || traveler.authProvider !== 'EMAIL') return;
+
+        const latest = await prisma.passwordResetToken.findFirst({
+            where: { travelerId: traveler.id },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true },
+        });
+        if (latest && Date.now() - latest.createdAt.getTime() < RESET_EMAIL_COOLDOWN_MS) return;
+
+        const rawToken = crypto.randomBytes(32).toString('base64url');
+        await prisma.$transaction([
+            prisma.passwordResetToken.deleteMany({ where: { travelerId: traveler.id } }),
+            prisma.passwordResetToken.create({
+                data: {
+                    travelerId: traveler.id,
+                    tokenHash: hashResetToken(rawToken),
+                    expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000),
+                },
+            }),
+        ]);
+
+        const sent = await sendPasswordResetEmail({
+            to: traveler.email,
+            name: traveler.name,
+            resetUrl: buildPasswordResetUrl(rawToken),
+            expiresInMinutes: RESET_TOKEN_TTL_MINUTES,
+        });
+        if (!sent) console.error(`[forgot-password] e-mail de recuperação não enviado (traveler ${traveler.id})`);
+    } catch (error: any) {
+        console.error('[forgot-password] erro interno:', error?.message || error);
+    }
+});
+
+// ─── POST /api/auth/traveler/reset-password ───
+router.post('/reset-password', resetPasswordLimiter, async (req: Request, res: Response) => {
+    const parsed = resetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+        const fields = parsed.error.flatten().fieldErrors;
+        if (fields.password) {
+            return res.status(422).json({ error: 'A senha precisa ter pelo menos 6 caracteres.' });
+        }
+        return res.status(400).json({ error: INVALID_RESET_LINK_MESSAGE });
+    }
+    const { token, password } = parsed.data;
+
+    try {
+        const record = await prisma.passwordResetToken.findUnique({
+            where: { tokenHash: hashResetToken(token) },
+            select: { id: true, travelerId: true, expiresAt: true },
+        });
+        if (!record || record.expiresAt.getTime() <= Date.now()) {
+            return res.status(400).json({ error: INVALID_RESET_LINK_MESSAGE });
+        }
+
+        const passwordHash = await hashPassword(password);
+        await prisma.$transaction(async (tx) => {
+            // Consumo atômico: numa corrida, só uma transação apaga a linha.
+            const consumed = await tx.passwordResetToken.deleteMany({
+                where: { id: record.id, expiresAt: { gt: new Date() } },
+            });
+            if (consumed.count !== 1) throw new InvalidResetTokenError();
+
+            await tx.traveler.update({
+                where: { id: record.travelerId },
+                data: { passwordHash, passwordChangedAt: new Date() },
+            });
+            await tx.passwordResetToken.deleteMany({ where: { travelerId: record.travelerId } });
+        });
+
+        console.log(`[reset-password] senha redefinida (traveler ${record.travelerId})`);
+        res.json({ message: 'Senha alterada com sucesso.' });
+    } catch (error: any) {
+        if (error instanceof InvalidResetTokenError) {
+            return res.status(400).json({ error: INVALID_RESET_LINK_MESSAGE });
+        }
+        console.error('[reset-password] erro interno:', error?.message || error);
+        res.status(500).json({ error: 'Não foi possível redefinir a senha agora. Tente novamente.' });
     }
 });
 

@@ -1,14 +1,9 @@
 /**
  * VAMO Mobile — Segurança da conta.
  *
- * Tela informativa/honesta: não há (ainda) fluxo de troca de senha, 2FA ou
- * "sair de todos os dispositivos" no backend, então NÃO exibimos botões
- * falsos. Mostramos o método de login da conta, o e-mail e orientação de
- * suporte. O único botão real é "Sair da conta" (logout local) e o atalho
- * para a Central de Ajuda.
- *
- * TODO(backend): quando existirem endpoints de alteração de senha / sessões,
- * adicionar as ações reais aqui.
+ * Tela informativa/honesta: não há 2FA nem "sair de todos os dispositivos"
+ * no backend, então NÃO exibimos botões falsos. A troca de senha usa o fluxo
+ * de redefinição por e-mail (/forgot-password).
  */
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
@@ -58,16 +53,18 @@ export default function SecurityScreen() {
                 {/* Alteração de senha — honesto, sem botão falso */}
                 <InfoCard icon="lock" title="Alteração de senha">
                     <Text style={s.cardText}>
-                        A alteração de senha no app estará disponível em breve. Se você
-                        precisar redefinir o acesso agora, fale com o suporte pela Central de
-                        Ajuda.
+                        Para trocar sua senha, enviamos um link de redefinição para o seu
+                        e-mail. O link vale por 1 hora.
                     </Text>
                     <TouchableOpacity
                         style={s.linkBtn}
-                        onPress={() => { haptics.light(); router.push('/help'); }}
+                        onPress={() => {
+                            haptics.light();
+                            router.push({ pathname: '/forgot-password', params: user?.email ? { email: user.email } : {} });
+                        }}
                     >
-                        <Icon name="message-circle" size={16} color={theme.colors.primary} />
-                        <Text style={s.linkBtnText}>Ir para a Central de ajuda</Text>
+                        <Icon name="lock" size={16} color={theme.colors.primary} />
+                        <Text style={s.linkBtnText}>Redefinir senha por e-mail</Text>
                     </TouchableOpacity>
                 </InfoCard>
 

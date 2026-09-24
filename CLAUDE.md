@@ -123,6 +123,16 @@ Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 202
 - **`MediaLightbox.tsx`** + hook `useMediaLightbox()` — visualizador global de imagem/vídeo. Qualquer `<Image>` clicável deve abrir por aqui.
 - **`BudgetStyleGuideSheet.tsx`** — bottom-sheet de ajuda do estilo de orçamento.
 
+### Autenticação Traveler e e-mail (`apps/backend/src/routes/traveler-auth.ts`, `src/lib/mailer.ts`)
+- E-mail sempre normalizado (`trim().toLowerCase()`, busca case-insensitive). Política de senha única: `passwordSchema` (min 6) vale para cadastro E redefinição.
+- **Esqueci minha senha:** `POST /forgot-password` (resposta sempre neutra, cooldown 1 e-mail/min por conta) e `POST /reset-password`. Token = 32 bytes base64url no link; no banco só o SHA-256 (`password_reset_tokens`), TTL 1h, uso único (linha apagada em transação), só o último token vale. Telas `app/forgot-password.tsx` e `app/reset-password.tsx` (moldura `src/components/auth/AuthScreenShell.tsx`).
+- JWT é stateless: o reset grava `travelers.passwordChangedAt` e o `/refresh` recusa refresh emitido antes disso. Access token segue válido até expirar (24h). O middleware NÃO consulta o banco.
+- E-mails só pelo `mailer.ts` (Gmail SMTP hoje; trocar provider = trocar só o transporte). Nunca logar token de reset.
+- `scripts/reset-password.ts` continua como ferramenta administrativa de emergência.
+
+### ⚠️ Ordem migration → deploy
+Se o código novo usa coluna/tabela nova, **aplique a migration no Supabase ANTES do push para `main`**. O Render publica sozinho e o Prisma quebra (500) em qualquer query do model se a coluna não existir. Migrations não rodam automaticamente no Render free.
+
 ### Roteiro comprado (`apps/mobile/app/purchased-itinerary/[id].tsx` + `src/features/route-versioning/`)
 - Ordem da página: hero → "pronto pra usar" (atalhos) → experiência → custos → RouteVersioning (Original/Minha versão) → o que recebeu → mídia → avaliar.
 - Atalhos usam refs por versão (`itinerary:original`, `checklist:mine`, etc.) e **nunca trocam de aba**. `scrollToSection` usa `scrollIntoView` no web, `measureLayout` no nativo.
