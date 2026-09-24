@@ -61,7 +61,7 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
 
 ### Deploy (produção)
 `vamo-ten.vercel.app` (Vercel, app mobile/Expo Web) → `vamo-699h.onrender.com/api` (Render, backend) → Supabase.
-⚠️ **Pendência conhecida:** o Render aponta para a branch antiga `fix/cta-carousel-mobile-2026-05-30`. Mudanças de **backend** (ex.: novos campos no payload como `status`/`createdAt`/`approvedAt`) só chegam em prod quando o Render for repontado para `main`. Mudanças de frontend chegam via Vercel automaticamente no push para `main`. Detalhes em [[supabase-database]].
+Render e Vercel publicam a `main` automaticamente no push (confirmado 2026-09-24). Migrations NÃO são automáticas: rodar `npx prisma migrate status` e `migrate deploy` (após backup) quando houver migration nova. O projeto `vamo-backend` na Vercel não é usado pelo app. Detalhes em [[supabase-database]].
 
 ---
 
