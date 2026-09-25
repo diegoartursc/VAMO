@@ -16,23 +16,23 @@
 
 ## Tabela completa de e-mails
 
-"Local ✅" = testado em banco isolado com as rotas reais (33 verificações). "Prod ✅" = testado no Render com entrega real (ver seção "Testes em produção").
+"Local ✅" = testado em banco isolado com as rotas reais (33 verificações). **"Prod fluxo ✅"** = o fluxo real rodou em produção e o e-mail chegou. **"Prod entrega ✅"** = o modelo foi enviado pelo servidor de produção e chegou (o fluxo real depende de venda com cartão, de dados reais de roteirista ou da Stripe em modo real).
 
 | # | Evento | Destinatário | Gatilho (rota) | Função do mailer | Assunto | Proteção contra duplicado | Testado |
 |---|---|---|---|---|---|---|---|
-| A | Cadastro | Viajante | `POST /api/auth/traveler/register` | `sendWelcomeEmail` | Bem-vindo(a) ao VAMO ✈️ | 1 por conta criada | Local ✅ |
-| B | Compra confirmada | Comprador | `payments.ts` → `fulfillItineraryPurchase` (webhook **ou** tela de retorno) | `sendPurchaseConfirmationEmail` | Seu roteiro está liberado: *título* | Só quem cria a `ItinerarySale` envia (índice único venda+viajante) | Local ✅ (3 webhooks, 2 simultâneos → 1 e-mail) |
-| C | Esqueci minha senha | Dono da conta | `POST /api/auth/traveler/forgot-password` | `sendPasswordResetEmail` | Redefina sua senha no VAMO | No máximo 1 por minuto por conta | Local ✅ · Prod ✅ (entregue em 2026-09-24) |
-| D | Senha alterada | Dono da conta | `POST /api/auth/traveler/reset-password` (depois de gravar) | `sendPasswordChangedEmail` | Sua senha do VAMO foi alterada | 1 por token consumido (o token é apagado em transação) | Local ✅ (mesmo link 2x em paralelo → 1 e-mail) |
-| E | Venda realizada | Roteirista | `payments.ts` → `fulfillItineraryPurchase` (mesmo evento do B) | `sendCreatorSaleEmail` | Você vendeu: *título* | Igual ao B | Local ✅ |
-| F | Roteiro aprovado | Roteirista | `POST /api/admin/itineraries/:id/approve` | `sendItineraryApprovedEmail` | Roteiro aprovado: *título* | Transição atômica PENDING_REVIEW → APPROVED | Local ✅ (2 aprovações simultâneas → 1 e-mail) |
-| G | Roteiro reprovado | Roteirista | `POST /api/admin/itineraries/:id/reject` | `sendItineraryRejectedEmail` | Roteiro precisa de ajustes: *título* | Transição atômica PENDING_REVIEW → REJECTED | Local ✅ |
-| H | Roteiro enviado para revisão | Admin (`ADMIN_NOTIFICATION_EMAIL`, senão `SMTP_USER`) | `PATCH /api/itineraries/:id/creator/status` → PENDING_REVIEW | `sendItinerarySubmittedForReviewEmail` | [Admin] Roteiro para revisão: *título* | Só quando o status anterior não era PENDING_REVIEW | Local ✅ (repetir não duplica; reenvio após reprovação avisa de novo) |
-| I | Nova pergunta | Roteirista | `POST /api/questions` | `sendNewQuestionEmail` | Nova pergunta: *título* | 1 por pergunta criada | Local ✅ |
-| J | Pergunta respondida | Viajante que perguntou | `POST /api/questions/:id/answer` | `sendQuestionAnsweredEmail` | Sua pergunta foi respondida: *título* | 1 por resposta criada (a rota recusa 2ª resposta com 409) | Local ✅ |
-| K | Nova avaliação | Roteirista | `POST /api/reviews` (**não** no `PUT`, que é edição) | `sendNewReviewEmail` | Nova avaliação (*n*/5): *título* | 1 por avaliação criada | Local ✅ (editar não envia) |
-| L | Roteirista aprovado | Roteirista | `POST /api/admin/creators/:id/approve` | `sendCreatorApprovedEmail` | Seu perfil de roteirista foi aprovado | Só na transição atômica BASIC → TRUSTED ("Roteirista Recomendado" no app) | Local ✅ |
-| M | Estorno automático | Comprador | `payments.ts` → compra bloqueada (roteiro pausado ou arquivado durante o pagamento) | `sendPurchaseAutoRefundEmail` | Estorno do seu pagamento: *título* | Só se o estorno foi criado **agora** (`newlyCreated`: listagem prévia + idempotency key + cabeçalho `Idempotent-Replayed`) | Local ✅ com Stripe **modo teste real** (3 webhooks, 2 simultâneos → 1 estorno, 1 e-mail) |
+| A | Cadastro | Viajante | `POST /api/auth/traveler/register` | `sendWelcomeEmail` | Bem-vindo(a) ao VAMO ✈️ | 1 por conta criada | Local ✅ · Prod fluxo ✅ |
+| B | Compra confirmada | Comprador | `payments.ts` → `fulfillItineraryPurchase` (webhook **ou** tela de retorno) | `sendPurchaseConfirmationEmail` | Seu roteiro está liberado: *título* | Só quem cria a `ItinerarySale` envia (índice único venda+viajante) | Local ✅ (3 webhooks, 2 simultâneos → 1 e-mail) · Prod entrega ✅ |
+| C | Esqueci minha senha | Dono da conta | `POST /api/auth/traveler/forgot-password` | `sendPasswordResetEmail` | Redefina sua senha no VAMO | No máximo 1 por minuto por conta | Local ✅ · Prod fluxo ✅ |
+| D | Senha alterada | Dono da conta | `POST /api/auth/traveler/reset-password` (depois de gravar) | `sendPasswordChangedEmail` | Sua senha do VAMO foi alterada | 1 por token consumido (o token é apagado em transação) | Local ✅ (mesmo link 2x em paralelo → 1 e-mail) · Prod fluxo ✅ |
+| E | Venda realizada | Roteirista | `payments.ts` → `fulfillItineraryPurchase` (mesmo evento do B) | `sendCreatorSaleEmail` | Você vendeu: *título* | Igual ao B | Local ✅ · Prod entrega ✅ |
+| F | Roteiro aprovado | Roteirista | `POST /api/admin/itineraries/:id/approve` | `sendItineraryApprovedEmail` | Roteiro aprovado: *título* | Transição atômica PENDING_REVIEW → APPROVED | Local ✅ (2 aprovações simultâneas → 1 e-mail) · Prod entrega ✅ |
+| G | Roteiro reprovado | Roteirista | `POST /api/admin/itineraries/:id/reject` | `sendItineraryRejectedEmail` | Roteiro precisa de ajustes: *título* | Transição atômica PENDING_REVIEW → REJECTED | Local ✅ · Prod entrega ✅ |
+| H | Roteiro enviado para revisão | Admin (`ADMIN_NOTIFICATION_EMAIL`, senão `SMTP_USER`) | `PATCH /api/itineraries/:id/creator/status` → PENDING_REVIEW | `sendItinerarySubmittedForReviewEmail` | [Admin] Roteiro para revisão: *título* | Só quando o status anterior não era PENDING_REVIEW | Local ✅ (repetir não duplica; reenvio após reprovação avisa de novo) · Prod entrega ✅ |
+| I | Nova pergunta | Roteirista | `POST /api/questions` | `sendNewQuestionEmail` | Nova pergunta: *título* | 1 por pergunta criada | Local ✅ · Prod entrega ✅ |
+| J | Pergunta respondida | Viajante que perguntou | `POST /api/questions/:id/answer` | `sendQuestionAnsweredEmail` | Sua pergunta foi respondida: *título* | 1 por resposta criada (a rota recusa 2ª resposta com 409) | Local ✅ · Prod entrega ✅ |
+| K | Nova avaliação | Roteirista | `POST /api/reviews` (**não** no `PUT`, que é edição) | `sendNewReviewEmail` | Nova avaliação (*n*/5): *título* | 1 por avaliação criada | Local ✅ (editar não envia) · Prod entrega ✅ |
+| L | Roteirista aprovado | Roteirista | `POST /api/admin/creators/:id/approve` | `sendCreatorApprovedEmail` | Seu perfil de roteirista foi aprovado | Só na transição atômica BASIC → TRUSTED ("Roteirista Recomendado" no app) | Local ✅ · Prod entrega ✅ |
+| M | Estorno automático | Comprador | `payments.ts` → compra bloqueada (roteiro pausado ou arquivado durante o pagamento) | `sendPurchaseAutoRefundEmail` | Estorno do seu pagamento: *título* | Só se o estorno foi criado **agora** (`newlyCreated`: listagem prévia + idempotency key + cabeçalho `Idempotent-Replayed`) | Local ✅ com Stripe **modo teste real** (3 webhooks, 2 simultâneos → 1 estorno, 1 e-mail) · Prod entrega ✅ |
 
 **O que cada e-mail diz** (todos em português, com layout do VAMO, versão texto e links via `APP_BASE_URL`):
 - **A · Boas-vindas:** conta pronta; botão *Explorar roteiros*.
@@ -102,8 +102,18 @@ Um comprador de roteiro pago recebe **dois** e-mails de propósito: o do VAMO ("
   6. Editar avaliação.
 - **Testes em produção:** ver a seção abaixo (atualizada após o deploy).
 
-## Testes em produção
+## Testes em produção (2026-09-24, deploy `e5cf1db`)
 
-Envio real pelo Render Starter:
+**Resultado: os 13 e-mails chegaram na caixa de entrada do VAMO, nenhum no spam.**
+
+- **Fluxo real** (conta de teste `vamoappviagens+prod2309@gmail.com`):
+  1. Cadastro → **A** "Bem-vindo(a)" chegou.
+  2. "Esqueci minha senha" → **C** chegou, com o link apontando para `https://vamo-ten.vercel.app/reset-password?token=…`.
+  3. Troca de senha pelo link → 200 → **D** "Sua senha do VAMO foi alterada" chegou. O mesmo link usado de novo → 400. Login com a senha nova → 200.
+- **Entrega pelo servidor de produção** (terminal do Render, os modelos reais chamados com dados de exemplo para `vamoappviagens+preview@gmail.com`): **B, E, F, G, H (para `vamoappviagens@gmail.com`), I, J, K, L e M** → `[mailer] enviado` nos 10 e os 10 na caixa de entrada.
+  - Valores conferidos: compra A$29.90; venda A$29.90, comissão (15%) A$4.49 e líquido A$25.42.
 - **Infraestrutura:** e-mail de teste para anapaulaabeckenkamp@gmail.com aceito pelo Gmail (`250 OK`).
-- **Recuperação de senha (C):** entregue na caixa do VAMO em 2026-09-24.
+
+**Ainda não validado em produção pelo fluxo real:**
+- **B, E e M:** dependem de uma compra paga. Os recibos da Stripe só serão validáveis com a **Stripe em modo real** (task 5). No modo teste, o fluxo foi validado localmente.
+- **F, G, H, I, J, K e L:** o fluxo real em produção exige mexer em roteiros ou roteiristas reais. Validados localmente com as rotas reais, e a entrega confirmada em produção.

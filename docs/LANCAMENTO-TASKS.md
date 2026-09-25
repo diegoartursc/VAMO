@@ -11,7 +11,7 @@
 
 | # | Task | Status |
 |---|---|---|
-| 1 | E-mails automáticos | 🟡 13 e-mails implementados e testados localmente; falta confirmar a entrega em produção |
+| 1 | E-mails automáticos | ✅ 13 e-mails no ar e entregues em produção (caixa de entrada); pendentes: central no app e validação com Stripe em modo real |
 | 2 | "Esqueci minha senha" | 🟡 no ar e o e-mail chega; falta testar a troca de senha pelo link em produção |
 | 3 | Migrations automáticas no deploy | ✅ concluída |
 | 4 | Render pago + Supabase Pro | 🟡 Render Starter ✅; falta o Supabase Pro |
@@ -28,7 +28,7 @@
 
 | Data | O que foi feito | Commit |
 |---|---|---|
-| 2026-09-24 | **Todos os e-mails transacionais:** 10 novos (senha alterada, venda ao roteirista, aprovado, reprovado, revisão ao admin, nova pergunta, resposta, avaliação, roteirista aprovado, estorno automático), com proteção contra duplicado. Corrigido o valor da compra, que aparecia dividido por 100 (A$0.30). Sininho e preferências sem promessas falsas. 33 verificações locais + 12 testes permanentes. | (este commit) |
+| 2026-09-24 | **Todos os e-mails transacionais:** 10 novos (senha alterada, venda ao roteirista, aprovado, reprovado, revisão ao admin, nova pergunta, resposta, avaliação, roteirista aprovado, estorno automático), com proteção contra duplicado. Corrigido o valor da compra, que aparecia dividido por 100 (A$0.30). Sininho e preferências sem promessas falsas. 33 verificações locais + 12 testes permanentes. | `e5cf1db` |
 | 2026-09-24 | Diagnóstico de e-mails e notificações: só 3 e-mails existem; os avisos dentro do app são gravados mas nenhuma tela mostra; o sininho e as preferências são falsos. Ver [NOTIFICACOES-DIAGNOSTICO.md](NOTIFICACOES-DIAGNOSTICO.md). | `a4b570d` |
 | 2026-09-24 | **E-mails funcionando em produção.** Criada a senha de app do Gmail (com verificação em duas etapas), `SMTP_USER`/`SMTP_PASS` no Render. Teste para anapaulaabeckenkamp@gmail.com aceito pelo Gmail e e-mail de recuperação de senha entregue. | `c83c6d2` |
 | 2026-09-24 | **Render passou para o plano Starter** (0.5c-512mb, US$ 7 por mês). Motivo: o plano gratuito bloqueia o envio de e-mail (SMTP) e "dorme" sem uso. | — |
@@ -40,7 +40,7 @@
 
 ## Próximos passos (em ordem)
 
-1. 🤖 **Confirmar a entrega dos e-mails novos em produção** (task 1) e criar a central de notificações no app, que vai mostrar os avisos já gravados no banco.
+1. 🤖 **Central de notificações no app** (task 1): mostrar os avisos já gravados de pergunta, resposta e avaliação. Opcional antes do lançamento.
 2. 🤖 **Testes em produção pendentes:** troca de senha pelo link (task 2) e e-mail de confirmação de compra (task 1), com a conta de teste `vamoappviagens+teste2225@gmail.com`.
 3. 👤 **Supabase Pro** (task 4), para ter backups diários.
 4. 👤 **Contador e decisão PF ou CNPJ** (task 5.1). Isso trava a ativação do Stripe.
@@ -63,7 +63,8 @@ E-mail oficial do VAMO: **vamoappviagens@gmail.com**. Diagnóstico completo de e
 - [x] 🤖 13 e-mails: boas-vindas, compra, recuperação e alteração de senha, venda, aprovado, reprovado, revisão ao admin, nova pergunta, resposta, avaliação, roteirista aprovado e estorno automático. Todos com proteção contra duplicado e 33 verificações locais.
 - [x] 🤖 Corrigido o valor do e-mail de compra, que era dividido por 100 duas vezes (A$29.90 aparecia como A$0.30).
 - [x] 🤖 Sininho e tela de preferências não prometem mais avisos que não existem.
-- [ ] 🤖 Confirmar a entrega de cada e-mail novo em produção (Render) e ver se cai no spam.
+- [x] 🤖 Entrega confirmada em produção: os 13 chegaram na caixa de entrada, nenhum no spam (2026-09-24). A, C e D pelo fluxo real completo.
+- [ ] 👥 Validar B, E e M pelo fluxo real com a Stripe em modo real (task 5), incluindo os recibos da Stripe.
 - [ ] 🤖 Central de notificações no app (`GET /api/notifications` + sininho), que vai mostrar os avisos já gravados de pergunta, resposta e avaliação.
 - [ ] 🤖 Índice único em respostas e avaliações, para impedir linha duplicada numa corrida.
 - [ ] 👤 Quando o painel admin (site) for publicado: `ADMIN_APP_URL` no Render.
