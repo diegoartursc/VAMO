@@ -6,7 +6,7 @@
 
 ## 🧭 Norte atual: lançamento
 
-Checklist do que falta para lançar, ordenado por esforço: [docs/LANCAMENTO-TASKS.md](docs/LANCAMENTO-TASKS.md). Marque `[x]` ao concluir cada item.
+Checklist do que falta para lançar, ordenado por prioridade: [docs/LANCAMENTO-TASKS.md](docs/LANCAMENTO-TASKS.md). Marque `[x]` ao concluir cada item.
 
 ---
 
