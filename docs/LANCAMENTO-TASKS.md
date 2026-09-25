@@ -42,15 +42,27 @@ E-mail oficial do VAMO: **vamoappviagens@gmail.com**.
 - [ ] 👥 A lei australiana contra spam (Spam Act 2003) exige consentimento explícito. Adicionar a caixa "Quero receber novidades" no cadastro (desmarcada por padrão), registrando a data do aceite. Precisa de migration.
 - [ ] 👤 Usar uma ferramenta própria de newsletter (Brevo ou Mailchimp) com link de descadastro. Não enviar newsletter pelo Gmail, porque há risco de bloqueio da conta.
 
-## 2. Migrations do banco automáticas no deploy · ⚡ · 👥 · Bloqueia
+## 2. Migrations do banco automáticas no deploy · ✅ concluída em 2026-09-24
 
-Hoje, uma migration nova só vai para o Supabase se alguém rodar à mão. No plano gratuito do Render, o "Pre-Deploy Command" fica bloqueado.
+A cada push na `main`, o Render roda `prisma migrate deploy` antes de subir o servidor. Se a migration falhar, o servidor novo não sobe e a versão anterior continua no ar.
 
-- [ ] 👤 Aprovar a mudança: `npm start` passa a rodar `prisma migrate deploy && tsx src/index.ts`.
-- [ ] 🤖 Aplicar, fazer o push e conferir no Render que o deploy subiu e rodou as migrations.
-- [ ] 🤖 Atualizar o `render.yaml` e o CLAUDE.md.
+- [x] Diagnóstico:
+  - O `preDeployCommand` do `render.yaml` nunca rodou: o serviço foi criado pelo painel, sem Blueprint.
+  - O Pre-Deploy Command só existe em plano pago.
+  - Os logs antigos não tinham nenhum `migrate`.
+- [x] `npm run start` agora é `npm run prisma:migrate:deploy && tsx src/index.ts`. O painel já chamava `npm run start`, então não foi preciso mexer nele.
+- [x] Testado localmente em três cenários:
+  - Banco zerado: aplicou as 12 migrations e subiu.
+  - Reinício: "No pending migrations" e subiu.
+  - Migration com erro: saiu com código 1 e o servidor não subiu.
+- [x] Deploy real validado (commit `b26f011`):
+  - O Render aplicou `20260924230000_add_password_reset_tokens`, subiu o servidor e o `/health` respondeu 200.
+  - Login, refresh, `/me`, Meus Roteiros e a vitrine responderam 200.
+  - Dados intactos (3 viajantes, 5 roteiros, 4 vendas).
+- [x] `render.yaml` virou espelho do painel e o CLAUDE.md documenta o fluxo.
+- [ ] 👤 Opcional: Render → VAMO → Settings → Health Checks → **Health Check Path** = `/health`. Hoje está vazio.
 
-Se você fizer upgrade do Render (task 3), dá para usar o campo "Pre-Deploy Command" no lugar.
+Se você fizer upgrade do Render (task 3), dá para mover a migration para o "Pre-Deploy Command". Nesse caso, tirar o migrate do `start`, para não rodar duas vezes.
 
 ## 3. Render no plano pago · ⚡ · 👤 · Bloqueia
 
@@ -88,9 +100,9 @@ Passo a passo detalhado em [STRIPE-PRODUCAO.md](STRIPE-PRODUCAO.md). Depende da 
 - [ ] 🤖 Testar login e compra pelo domínio novo.
 - [ ] 🤖 Trocar o ícone do app (`apps/mobile/assets/icon.png`), que ainda é o modelo padrão do Expo, pelo logo do VAMO. Conferir também o favicon e a imagem de abertura.
 
-## 7. "Esqueci minha senha" · 🟢 (falta ativar em produção) · 👥 · Bloqueia
+## 7. "Esqueci minha senha" · 🟢 (no ar; falta o SMTP) · 👥 · Bloqueia
 
-Código pronto e testado localmente. Ainda **não está no ar**: falta aplicar a migration e publicar.
+No ar desde 2026-09-24 (commit `587ecbb`, publicado junto com o `b26f011`). A migration foi aplicada automaticamente pelo deploy (task 2). Os e-mails de recuperação só chegam depois que o SMTP for configurado.
 
 **Feito (🤖):**
 - [x] Tabela `password_reset_tokens`, que guarda só o SHA-256 do token, e a coluna `travelers.passwordChangedAt`. Migration `20260924230000_add_password_reset_tokens`, só com adições e RLS ligado.
@@ -103,8 +115,8 @@ Código pronto e testado localmente. Ainda **não está no ar**: falta aplicar a
 - [x] 37 testes de API (itens A a R) em banco local isolado, fluxo testado no navegador (web, desktop e celular) e builds do backend e do app web passando.
 
 **Falta, nesta ordem:**
-- [ ] 👥 **Aplicar a migration no Supabase ANTES de publicar o código.** O código novo lê `passwordChangedAt`; sem essa coluna, o login quebra com erro 500. Em `apps/backend`: `npx tsx scripts/backup-db.ts`, depois `npx prisma migrate deploy` e por fim `npx prisma migrate status`.
-- [ ] 👥 Fazer o push para a `main`. O Render e a Vercel publicam sozinhos.
+- [x] Migration `20260924230000_add_password_reset_tokens` aplicada no Supabase pelo deploy do Render, com backup antes.
+- [x] Publicado na `main`: Render e Vercel.
 - [ ] 👤 Configurar `SMTP_USER` e `SMTP_PASS` no Render (task 1). Sem isso, o link não chega por e-mail.
 - [ ] 🤖 Testar em produção com uma conta de teste: pedir o link, receber o e-mail, redefinir e entrar.
 
