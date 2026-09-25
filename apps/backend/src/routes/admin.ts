@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { sendItineraryApprovedEmail, sendItineraryRejectedEmail, sendCreatorApprovedEmail } from '../lib/mailer';
 
 const router = Router();
 const JWT_SECRET: string = process.env.JWT_SECRET || (() => {
@@ -173,12 +174,26 @@ router.post('/creators/:id/approve', verifyAdmin, async (req: Request, res: Resp
             res.status(404).json({ error: 'Roteirista não encontrado' });
             return;
         }
-        const creator = await prisma.creator.update({
-            where: { id },
+        // Transição atômica BASIC → TRUSTED: só ela gera e-mail. Chamada repetida
+        // (ou roteirista já em outro nível) mantém o comportamento antigo, sem e-mail.
+        const promoted = await prisma.creator.updateMany({
+            where: { id, verificationLevel: 'BASIC' },
             data: { verificationLevel: 'TRUSTED' },
-            select: { id: true, verificationLevel: true },
         });
-        res.json(creator);
+        const creator = promoted.count === 1
+            ? await prisma.creator.findUniqueOrThrow({
+                where: { id },
+                select: { id: true, verificationLevel: true, traveler: { select: { email: true, name: true } } },
+            })
+            : await prisma.creator.update({
+                where: { id },
+                data: { verificationLevel: 'TRUSTED' },
+                select: { id: true, verificationLevel: true, traveler: { select: { email: true, name: true } } },
+            });
+        if (promoted.count === 1 && creator.traveler) {
+            void sendCreatorApprovedEmail({ to: creator.traveler.email, name: creator.traveler.name });
+        }
+        res.json({ id: creator.id, verificationLevel: creator.verificationLevel });
     } catch (error) {
         console.error('Error approving creator:', error);
         res.status(500).json({ error: 'Falha ao aprovar roteirista' });
@@ -382,10 +397,23 @@ router.post('/itineraries/:id/approve', verifyAdmin, async (req: Request, res: R
         // público/comprável. Setar ACTIVE aqui pulava esse passo e deixava
         // o status APPROVED inalcançável na prática, apesar da UI do
         // criador já esperar esse estado intermediário.
-        const it = await prisma.itinerary.update({
-            where: { id },
+        // Transição atômica PENDING_REVIEW → APPROVED: numa corrida, só uma
+        // chamada grava e só ela manda o e-mail.
+        const moved = await prisma.itinerary.updateMany({
+            where: { id, status: 'PENDING_REVIEW' },
             data: { status: 'APPROVED', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
         });
+        if (moved.count !== 1) {
+            res.status(400).json({ error: 'Apenas roteiros em análise podem ser aprovados.' });
+            return;
+        }
+        const it = await prisma.itinerary.findUniqueOrThrow({
+            where: { id },
+            select: { id: true, title: true, status: true, approvedAt: true, creator: { select: { traveler: { select: { email: true, name: true } } } } },
+        });
+        if (it.creator?.traveler) {
+            void sendItineraryApprovedEmail({ to: it.creator.traveler.email, name: it.creator.traveler.name, itineraryId: it.id, itineraryTitle: it.title });
+        }
         res.json({ id: it.id, status: it.status, approvedAt: it.approvedAt });
     } catch (error) {
         console.error('[admin itinerary approve] error:', error);
@@ -412,14 +440,31 @@ router.post('/itineraries/:id/reject', verifyAdmin, async (req: Request, res: Re
             res.status(400).json({ error: 'Apenas roteiros em análise podem ser rejeitados.' });
             return;
         }
-        const it = await prisma.itinerary.update({
-            where: { id },
+        const moved = await prisma.itinerary.updateMany({
+            where: { id, status: 'PENDING_REVIEW' },
             data: {
                 status: 'REJECTED',
                 approvalNote: rejectionNote,
                 approvedBy: (req as any).admin.id,
             },
         });
+        if (moved.count !== 1) {
+            res.status(400).json({ error: 'Apenas roteiros em análise podem ser rejeitados.' });
+            return;
+        }
+        const it = await prisma.itinerary.findUniqueOrThrow({
+            where: { id },
+            select: { id: true, title: true, status: true, approvalNote: true, creator: { select: { traveler: { select: { email: true, name: true } } } } },
+        });
+        if (it.creator?.traveler) {
+            void sendItineraryRejectedEmail({
+                to: it.creator.traveler.email,
+                name: it.creator.traveler.name,
+                itineraryId: it.id,
+                itineraryTitle: it.title,
+                reason: rejectionNote,
+            });
+        }
         res.json({ id: it.id, status: it.status, approvalNote: it.approvalNote });
     } catch (error) {
         console.error('[admin itinerary reject] error:', error);

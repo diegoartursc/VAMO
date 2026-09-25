@@ -82,7 +82,7 @@ export default function NotificationsScreen() {
 
     return (
         <View style={s.container}>
-            <ScreenHeader title="Notificações" subtitle="Escolha o que você quer receber da VAMO." />
+            <ScreenHeader title="Notificações" subtitle="Como a VAMO avisa você." />
             <ScrollView contentContainerStyle={s.scroll}>
                 {!hydrated ? (
                     <View style={s.center}><ActivityIndicator color={theme.colors.primary} /></View>
@@ -90,6 +90,15 @@ export default function NotificationsScreen() {
                     <Text style={s.notice}>Entre na sua conta para configurar as notificações.</Text>
                 ) : (
                     <>
+                        <Text style={s.sectionTitle}>Por e-mail, sempre</Text>
+                        <View style={[s.card, s.infoCard]}>
+                            <Text style={s.infoText}>
+                                Avisos essenciais chegam sempre no e-mail da sua conta: compra confirmada,
+                                segurança (redefinição e troca de senha) e respostas às suas perguntas.
+                                {isCreator ? ' Como roteirista, você também recebe vendas, roteiros aprovados ou com ajustes, novas perguntas e novas avaliações.' : ''}
+                            </Text>
+                        </View>
+                        <Text style={s.sectionTitle}>Preferências no app (em breve)</Text>
                         <View style={s.card}>
                             {visibleItems.map((item, idx) => (
                                 <View
@@ -110,8 +119,9 @@ export default function NotificationsScreen() {
                             ))}
                         </View>
                         <Text style={s.footnote}>
-                            Suas preferências ficam salvas neste dispositivo. Em breve elas serão
-                            sincronizadas com a sua conta.
+                            Estas opções ainda não controlam nenhum envio: ficam salvas só neste
+                            dispositivo e passam a valer quando a central de notificações chegar.
+                            Os avisos essenciais por e-mail não dependem delas.
                         </Text>
                     </>
                 )}
@@ -125,6 +135,9 @@ const s = StyleSheet.create({
     scroll: { padding: 20, paddingBottom: 60 },
     center: { paddingVertical: 60, alignItems: 'center' },
     notice: { fontSize: 14, color: theme.colors.text.secondary, textAlign: 'center', paddingVertical: 40 },
+    sectionTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.text.secondary, marginBottom: 8, marginTop: 4 },
+    infoCard: { padding: 16, marginBottom: 20 },
+    infoText: { fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     card: {
         backgroundColor: theme.colors.background,
         borderRadius: 16, overflow: 'hidden',

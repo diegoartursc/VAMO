@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
+import { sendNewReviewEmail } from '../lib/mailer';
 
 const router = Router();
 
@@ -171,7 +172,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
         // Criar bloqueio extra: o criador não avalia o próprio roteiro
         const itineraryRow = await prisma.itinerary.findUnique({
             where: { id: itineraryId },
-            select: { id: true, creator: { select: { travelerId: true } } },
+            select: { id: true, title: true, creator: { select: { travelerId: true, traveler: { select: { email: true, name: true } } } } },
         });
         if (!itineraryRow) {
             return res.status(404).json({ error: 'Roteiro não encontrado' });
@@ -204,6 +205,27 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
         }
 
         await recalculateItineraryAndCreatorRating(itineraryId);
+
+        // Só aqui (review nova). PUT /:id é edição e não avisa de novo.
+        const creatorTraveler = itineraryRow.creator?.traveler;
+        if (itineraryRow.creator?.travelerId && creatorTraveler) {
+            prisma.notification.create({
+                data: {
+                    travelerId: itineraryRow.creator.travelerId,
+                    type: 'SYSTEM',
+                    title: 'Nova avaliação recebida',
+                    body: `Seu roteiro ${itineraryRow.title} recebeu uma avaliação ${review.rating}/5.`,
+                    data: { reviewId: review.id, itineraryId, source: 'itinerary_review' },
+                },
+            }).catch((error) => console.warn('Failed to create review notification:', error));
+            void sendNewReviewEmail({
+                to: creatorTraveler.email,
+                name: creatorTraveler.name,
+                itineraryTitle: itineraryRow.title,
+                rating: review.rating,
+                comment: review.comment,
+            });
+        }
 
         res.status(201).json({ review: { id: review.id, itineraryId, rating: review.rating, comment: review.comment, photos: photoUrls } });
     } catch (error) {

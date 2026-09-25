@@ -128,7 +128,9 @@ Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 202
 - E-mail sempre normalizado (`trim().toLowerCase()`, busca case-insensitive). Política de senha única: `passwordSchema` (min 6) vale para cadastro E redefinição.
 - **Esqueci minha senha:** `POST /forgot-password` (resposta sempre neutra, cooldown 1 e-mail/min por conta) e `POST /reset-password`. Token = 32 bytes base64url no link; no banco só o SHA-256 (`password_reset_tokens`), TTL 1h, uso único (linha apagada em transação), só o último token vale. Telas `app/forgot-password.tsx` e `app/reset-password.tsx` (moldura `src/components/auth/AuthScreenShell.tsx`).
 - JWT é stateless: o reset grava `travelers.passwordChangedAt` e o `/refresh` recusa refresh emitido antes disso. Access token segue válido até expirar (24h). O middleware NÃO consulta o banco.
-- E-mails só pelo `mailer.ts` (Gmail SMTP hoje; trocar provider = trocar só o transporte). Nunca logar token de reset.
+- E-mails só pelo `mailer.ts` (Gmail SMTP hoje; trocar provider = trocar só o transporte). Nunca logar token de reset. Lista completa (13 e-mails, gatilhos, proteção contra duplicado) em `docs/NOTIFICACOES-DIAGNOSTICO.md`.
+- **Regra dos e-mails:** gravar a ação primeiro e enviar depois (o mailer nunca lança erro). Um e-mail por evento lógico, amarrado a algo gravado: transição atômica com `updateMany where status = …` (aprovar, reprovar, revisão, BASIC → TRUSTED), linha criada (venda, resposta, avaliação) ou estorno com `newlyCreated`. Nunca deduplicar com timer ou memória.
+- `amountTotal` em `payments.ts` já está em unidades da moeda (29.9), não em centavos.
 - `scripts/reset-password.ts` continua como ferramenta administrativa de emergência.
 
 ### Migrations automáticas (Render)

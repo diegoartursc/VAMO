@@ -16,6 +16,7 @@ import { Router, Request, Response } from 'express';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { isPublicItineraryStatus } from '../lib/itineraryStatus';
+import { sendNewQuestionEmail, sendQuestionAnsweredEmail } from '../lib/mailer';
 
 const router = Router();
 
@@ -58,7 +59,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
                 id: true,
                 title: true,
                 status: true,
-                creator: { select: { travelerId: true } },
+                creator: { select: { travelerId: true, traveler: { select: { email: true, name: true } } } },
             },
         });
         if (!itinerary) {
@@ -107,6 +108,19 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
             }).catch((error) => {
                 console.warn('Failed to create question notification:', error);
             });
+            if (itinerary.creator.traveler) {
+                const creatorTraveler = itinerary.creator.traveler;
+                prisma.traveler
+                    .findUnique({ where: { id: travelerId }, select: { name: true } })
+                    .then((asker) => sendNewQuestionEmail({
+                        to: creatorTraveler.email,
+                        name: creatorTraveler.name,
+                        itineraryTitle: itinerary.title,
+                        question: text,
+                        askerName: asker?.name,
+                    }))
+                    .catch((e) => console.error('[questions] e-mail de nova pergunta falhou:', e?.message || e));
+            }
         }
 
         res.status(201).json({
@@ -304,7 +318,8 @@ router.post('/:id/answer', optionalAuthMiddleware, async (req: AuthRequest, res:
         const question: any = await prisma.faqQuestion.findUnique({
             where: { id: questionId },
             include: {
-                itinerary: { select: { creator: { select: { id: true, travelerId: true } } } },
+                itinerary: { select: { title: true, creator: { select: { id: true, travelerId: true } } } },
+                traveler: { select: { email: true, name: true } },
                 answers: { select: { id: true }, take: 1 },
             },
         });
@@ -341,6 +356,15 @@ router.post('/:id/answer', optionalAuthMiddleware, async (req: AuthRequest, res:
         }).catch((error) => {
             console.warn('Failed to create answer notification:', error);
         });
+        if (question.traveler?.email) {
+            void sendQuestionAnsweredEmail({
+                to: question.traveler.email,
+                name: question.traveler.name,
+                itineraryTitle: question.itinerary?.title || 'seu roteiro',
+                question: question.question,
+                answer: text,
+            });
+        }
 
         res.status(201).json({
             answer: {

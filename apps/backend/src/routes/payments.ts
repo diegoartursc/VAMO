@@ -4,7 +4,7 @@ import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import { PURCHASED_ITINERARY_INCLUDE, buildPurchasedItineraryPayload, toJsonSafe } from './itineraries';
 import { isPurchasableItineraryStatus } from '../lib/itineraryStatus';
-import { sendPurchaseConfirmationEmail } from '../lib/mailer';
+import { sendPurchaseConfirmationEmail, sendCreatorSaleEmail, sendPurchaseAutoRefundEmail } from '../lib/mailer';
 
 const router = Router();
 
@@ -46,27 +46,78 @@ const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:8081';
  * chamada extra de rede por tentativa de fulfillment bloqueado, mas nunca
  * gera um segundo estorno pro mesmo pagamento.
  */
-async function refundPaymentIntentIfNeeded(
+// `newlyCreated` só é true para a chamada que de fato criou o refund: é o que
+// decide o e-mail explicativo ao comprador. Retry do webhook encontra o refund
+// na listagem; chamadas concorrentes caem na mesma idempotency key e recebem
+// `Idempotent-Replayed: true` do Stripe.
+export async function refundPaymentIntentIfNeeded(
     stripe: Stripe,
     paymentIntentId: string,
     reason: string,
-): Promise<boolean> {
+): Promise<{ refunded: boolean; newlyCreated: boolean }> {
     const existingRefunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 10 });
     const alreadyRefunded = existingRefunds.data.some(
         (r) => r.status === 'succeeded' || r.status === 'pending',
     );
-    if (alreadyRefunded) return true;
+    if (alreadyRefunded) return { refunded: true, newlyCreated: false };
     try {
-        await stripe.refunds.create({
-            payment_intent: paymentIntentId,
-            reason: 'requested_by_customer',
-            metadata: { vamoReason: reason },
-        });
-        return true;
+        const refund = await stripe.refunds.create(
+            {
+                payment_intent: paymentIntentId,
+                reason: 'requested_by_customer',
+                metadata: { vamoReason: reason },
+            },
+            { idempotencyKey: `vamo-auto-refund-${paymentIntentId}` },
+        );
+        const replayed = String((refund as any)?.lastResponse?.headers?.['idempotent-replayed'] ?? '') === 'true';
+        return { refunded: true, newlyCreated: !replayed };
     } catch (err: any) {
         console.error('[payments] refund failed for', paymentIntentId, err?.message);
-        return false;
+        return { refunded: false, newlyCreated: false };
     }
+}
+
+// E-mails de uma venda nova (comprador + roteirista). Chamado só por quem criou
+// a ItinerarySale, então webhook e tela de retorno nunca duplicam.
+async function notifySaleCreated(saleId: string, payment: { amountTotal?: number | null; currency?: string | null }): Promise<void> {
+    const sale = await prisma.itinerarySale.findUnique({
+        where: { id: saleId },
+        select: {
+            price: true,
+            commission: true,
+            traveler: { select: { email: true, name: true } },
+            itinerary: {
+                select: {
+                    id: true,
+                    title: true,
+                    currency: true,
+                    creator: { select: { traveler: { select: { email: true, name: true } } } },
+                },
+            },
+        },
+    });
+    if (!sale) return;
+    const currency = payment.currency || sale.itinerary.currency;
+    await Promise.all([
+        sendPurchaseConfirmationEmail({
+            to: sale.traveler.email,
+            name: sale.traveler.name,
+            itineraryId: sale.itinerary.id,
+            itineraryTitle: sale.itinerary.title,
+            amount: payment.amountTotal ?? sale.price,
+            currency,
+        }),
+        sale.itinerary.creator?.traveler
+            ? sendCreatorSaleEmail({
+                to: sale.itinerary.creator.traveler.email,
+                name: sale.itinerary.creator.traveler.name,
+                itineraryTitle: sale.itinerary.title,
+                price: sale.price,
+                commission: sale.commission,
+                currency: sale.itinerary.currency,
+            })
+            : Promise.resolve(false),
+    ]);
 }
 
 // ─── Fulfillment ─────────────────────────────────────────────────
@@ -114,11 +165,24 @@ async function fulfillItineraryPurchase(opts: {
         if (payment.provider === 'stripe' && payment.paymentIntentId) {
             const stripe = getStripe();
             if (stripe) {
-                refunded = await refundPaymentIntentIfNeeded(
+                const refund = await refundPaymentIntentIfNeeded(
                     stripe,
                     payment.paymentIntentId,
                     'itinerary_paused_or_archived_during_checkout',
                 );
+                refunded = refund.refunded;
+                if (refund.newlyCreated) {
+                    prisma.traveler
+                        .findUnique({ where: { id: travelerId }, select: { email: true, name: true } })
+                        .then((t) => t && sendPurchaseAutoRefundEmail({
+                            to: t.email,
+                            name: t.name,
+                            itineraryTitle: itinerary.title,
+                            amount: payment.amountTotal,
+                            currency: payment.currency || itinerary.currency,
+                        }))
+                        .catch((e) => console.error('[payments] e-mail de estorno falhou:', e?.message || e));
+                }
             }
         }
         console.warn(
@@ -158,17 +222,8 @@ async function fulfillItineraryPurchase(opts: {
             }),
         ]);
         // Só quem cria a venda envia — webhook e tela de retorno nunca duplicam.
-        prisma.traveler
-            .findUnique({ where: { id: travelerId }, select: { email: true, name: true } })
-            .then((t) => t && sendPurchaseConfirmationEmail({
-                to: t.email,
-                name: t.name,
-                itineraryId,
-                itineraryTitle: itinerary.title,
-                amountTotal: payment.amountTotal,
-                currency: payment.currency,
-            }))
-            .catch((e) => console.error('[payments] e-mail de confirmação falhou:', e?.message || e));
+        notifySaleCreated(sale.id, payment)
+            .catch((e) => console.error('[payments] e-mails da venda falharam:', e?.message || e));
         return { saleId: sale.id, alreadyPurchased: false };
     } catch (err: any) {
         // Índice único (itineraryId, travelerId): duas chamadas concorrentes

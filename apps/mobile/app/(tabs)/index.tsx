@@ -10,10 +10,10 @@ import {
     Platform,
     StatusBar,
     SafeAreaView,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { notify } from '../../src/utils/notify';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { theme } from '../../src/theme/theme';
@@ -72,7 +72,11 @@ const HeroHeader = ({
                 <View style={styles.heroTopRow}>
                     <VamoLogo size={120} style={styles.brandLogo} />
                     <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <TouchableOpacity style={styles.iconButton} onPress={() => Alert.alert('🔔 Notificações', 'Você não possui notificações no momento.')}>
+                        <TouchableOpacity style={styles.iconButton} onPress={() => notify({
+                            title: 'Notificações',
+                            message: 'Os avisos importantes chegam por e-mail: compras, segurança da conta, respostas às suas perguntas e, para roteiristas, vendas, aprovações e avaliações. A central de notificações no app chega em breve.',
+                            icon: 'notifications-outline',
+                        })}>
                             <Icon name="bell" size={24} color="#FFF" />
                         </TouchableOpacity>
                     </View>

@@ -5,6 +5,7 @@ import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import { selectFeaturedRanked } from '../utils/featuredRanking';
 import { PUBLIC_ITINERARY_WHERE, isPublicItineraryStatus, isPurchasableItineraryStatus } from '../lib/itineraryStatus';
+import { sendItinerarySubmittedForReviewEmail } from '../lib/mailer';
 
 const router = Router();
 
@@ -826,19 +827,45 @@ router.patch('/:id/creator/status', optionalAuthMiddleware, async (req: AuthRequ
         // que ele sai do ar. Vendas/snapshots/customizações NUNCA são
         // tocadas aqui — só o SavedItem (favorito), que é puramente
         // navegacional.
+        const statusSelect = { id: true, status: true, approvalNote: true, approvedAt: true, updatedAt: true } as const;
+        let enteredReview = false;
         const updated = await prisma.$transaction(async (tx) => {
+            if (requestedStatus === 'PENDING_REVIEW') {
+                // Só a transição real (status anterior ≠ PENDING_REVIEW) avisa o
+                // admin; reenviar um roteiro que já está em análise não duplica.
+                const moved = await tx.itinerary.updateMany({
+                    where: { id, status: { not: 'PENDING_REVIEW' } },
+                    data: { status: 'PENDING_REVIEW', approvalNote: null, approvedAt: null, approvedBy: null },
+                });
+                enteredReview = moved.count === 1;
+                return tx.itinerary.findUniqueOrThrow({ where: { id }, select: statusSelect });
+            }
             const result = await tx.itinerary.update({
                 where: { id },
-                data: requestedStatus === 'PENDING_REVIEW'
-                    ? { status: 'PENDING_REVIEW', approvalNote: null, approvedAt: null, approvedBy: null }
-                    : { status: requestedStatus as any },
-                select: { id: true, status: true, approvalNote: true, approvedAt: true, updatedAt: true },
+                data: { status: requestedStatus as any },
+                select: statusSelect,
             });
             if (requestedStatus === 'PAUSED') {
                 await tx.savedItem.deleteMany({ where: { itineraryId: id } });
             }
             return result;
         });
+
+        if (enteredReview) {
+            prisma.creator
+                .findUnique({ where: { id: existing.creatorId }, select: { traveler: { select: { name: true } } } })
+                .then((c) => sendItinerarySubmittedForReviewEmail({
+                    creatorName: c?.traveler?.name || 'Um roteirista',
+                    itineraryId: existing.id,
+                    itineraryTitle: existing.title,
+                    destination: existing.destination,
+                    country: existing.country,
+                    price: existing.price,
+                    currency: existing.currency,
+                    days: existing.days?.length || null,
+                }))
+                .catch((e) => console.error('[itineraries.creator.status] e-mail ao admin falhou:', e?.message || e));
+        }
 
         res.json(updated);
     } catch (error) {

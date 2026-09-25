@@ -7,7 +7,7 @@ import prisma from '../lib/prisma';
 import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken } from '../lib/auth';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
-import { sendWelcomeEmail, sendPasswordResetEmail, buildPasswordResetUrl } from '../lib/mailer';
+import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordChangedEmail, buildPasswordResetUrl } from '../lib/mailer';
 import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
 import { hasValidFileSignature } from '../lib/file-signature';
 
@@ -338,21 +338,26 @@ router.post('/reset-password', resetPasswordLimiter, async (req: Request, res: R
         }
 
         const passwordHash = await hashPassword(password);
-        await prisma.$transaction(async (tx) => {
+        const changedAt = new Date();
+        const owner = await prisma.$transaction(async (tx) => {
             // Consumo atômico: numa corrida, só uma transação apaga a linha.
             const consumed = await tx.passwordResetToken.deleteMany({
                 where: { id: record.id, expiresAt: { gt: new Date() } },
             });
             if (consumed.count !== 1) throw new InvalidResetTokenError();
 
-            await tx.traveler.update({
+            const t = await tx.traveler.update({
                 where: { id: record.travelerId },
-                data: { passwordHash, passwordChangedAt: new Date() },
+                data: { passwordHash, passwordChangedAt: changedAt },
+                select: { email: true, name: true },
             });
             await tx.passwordResetToken.deleteMany({ where: { travelerId: record.travelerId } });
+            return t;
         });
 
         console.log(`[reset-password] senha redefinida (traveler ${record.travelerId})`);
+        // Um aviso por token consumido: só a transação que apagou o token chega aqui.
+        void sendPasswordChangedEmail({ to: owner.email, name: owner.name, changedAt });
         res.json({ message: 'Senha alterada com sucesso.' });
     } catch (error: any) {
         if (error instanceof InvalidResetTokenError) {
