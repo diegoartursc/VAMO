@@ -35,7 +35,13 @@
 
 ## 1. Finalizar e testar os e-mails automáticos · ⚡ · 👥
 
-E-mail oficial do VAMO: **vamoappviagens@gmail.com**. O envio usa o Gmail dessa conta, via SMTP com uma "senha de app".
+E-mail oficial do VAMO: **vamoappviagens@gmail.com**. Diagnóstico completo de e-mails e avisos (o que existe, textos, quando sai, o que falta): [NOTIFICACOES-DIAGNOSTICO.md](NOTIFICACOES-DIAGNOSTICO.md).
+
+**Faltam para o lançamento (ver o diagnóstico, seção 4):**
+- [ ] 🤖 E-mails ao roteirista: venda realizada, roteiro aprovado ou reprovado, nova pergunta, nova avaliação.
+- [ ] 🤖 E-mail ao admin: roteiro enviado para revisão.
+- [ ] 🤖 E-mail de segurança: senha alterada.
+- [ ] 🤖 Sininho da Home e tela de preferências: parar de prometer avisos que não existem, ou criar a central de notificações de verdade. O envio usa o Gmail dessa conta, via SMTP com uma "senha de app".
 
 **Recibos do Stripe:**
 - [x] Recibo de pagamento concluído e de reembolso ligados, em inglês, na conta principal e na área restrita de testes.
