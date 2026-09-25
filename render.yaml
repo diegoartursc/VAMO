@@ -6,7 +6,7 @@ services:
   - type: web
     runtime: node
     name: vamo-backend
-    plan: free
+    plan: starter  # 0.5c-512mb, desde 2026-09-24 (o free bloqueia SMTP e dorme sem uso)
     branch: main
     rootDir: apps/backend
     # O `npm install` dentro de apps/backend enxerga os workspaces da raiz e
@@ -18,9 +18,9 @@ services:
     # de subir o servidor (ver "start" em apps/backend/package.json). Se a
     # migration falhar, o processo sai com erro, a porta nunca abre, o deploy
     # falha e o Render mantém a versão anterior no ar.
-    # Não usamos preDeployCommand: no Render ele só existe em planos pagos.
-    # Ao migrar para plano pago, dá para mover a migration para o pre-deploy —
-    # e então tirá-la do "start", para não rodar duas vezes.
+    # Não usamos preDeployCommand: foi configurado quando o serviço era free
+    # (onde ele não existe). No Starter ele está disponível; se mover para lá,
+    # tirar a migration do "start" para não rodar duas vezes.
     #
     # Runtime `tsx` (não `node dist/index.js`): @vamo/shared é distribuído como
     # .ts fonte, sem build próprio, e `node` puro não consegue fazer require()

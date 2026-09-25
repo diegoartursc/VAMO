@@ -133,9 +133,9 @@ Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 202
 
 ### Migrations automáticas (Render)
 - **Onde:** no `npm run start` do backend (`apps/backend/package.json`): `npm run prisma:migrate:deploy && tsx src/index.ts`. O painel do Render chama `npm run start`.
-- **Por que não pre-deploy:** o Pre-Deploy Command do Render só existe em plano pago, e o serviço está no free. Ao migrar para plano pago, mover para o pre-deploy e **tirar do start**, para não rodar duas vezes.
+- **Por que não pre-deploy:** quando isto foi feito, o serviço estava no plano gratuito, onde o Pre-Deploy Command não existe. Desde 2026-09-24 o serviço está no **Starter (0.5c-512mb, pago)**, então o pre-deploy ficou disponível. Continua no start por ora. Se mover para o pre-deploy, **tirar do start**, para não rodar duas vezes.
 - **Falha:** se o `migrate deploy` falhar, o `&&` impede o servidor de subir, a porta não abre, o deploy falha e o Render mantém a versão anterior no ar. Nunca usar `||`.
-- **Sem migration pendente:** "No pending migrations to apply" e o servidor sobe normalmente. Roda também a cada cold start do plano free (+ alguns segundos).
+- **Sem migration pendente:** "No pending migrations to apply" e o servidor sobe normalmente. Roda também a cada reinício do servidor (alguns segundos a mais).
 - **Verificar:** logs do deploy no Render (procurar `prisma migrate deploy`) ou `cd apps/backend && npx prisma migrate status`.
 - **Fluxo para mudar o schema:**
   1. Editar o `schema.prisma`.

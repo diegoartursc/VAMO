@@ -1,7 +1,7 @@
 # Tasks para finalizar e lançar o VAMO
 
 > Nosso norte na reta final. Ordenado por **prioridade** (definida pelo Diego em 2026-09-24).
-> Marque `[x]` ao concluir.
+> Marque `[x]` ao concluir. Última atualização: 2026-09-24 (noite).
 
 **Legenda:**
 - **Esforço:** ⚡ minutos · 🟢 horas · 🟡 1–3 dias · 🔴 1+ semana.
@@ -11,10 +11,10 @@
 
 | # | Task | Status |
 |---|---|---|
-| 1 | E-mails automáticos | 🟡 enviando em produção; falta testar a confirmação de compra |
-| 2 | "Esqueci minha senha" | 🟡 e-mail chegando; falta testar a troca de senha pelo link |
+| 1 | E-mails automáticos | 🟡 3 e-mails enviando em produção; faltam os e-mails ao roteirista, ao admin e de senha alterada, e testar a confirmação de compra |
+| 2 | "Esqueci minha senha" | 🟡 no ar e o e-mail chega; falta testar a troca de senha pelo link em produção |
 | 3 | Migrations automáticas no deploy | ✅ concluída |
-| 4 | Render pago + Supabase Pro | 🟡 Render ✅; falta o Supabase |
+| 4 | Render pago + Supabase Pro | 🟡 Render Starter ✅; falta o Supabase Pro |
 | 5 | Stripe em produção + repasse aos roteiristas | ⬜ depende do contador (PF/CNPJ) |
 | 6 | Domínio próprio | ⬜ |
 | 7 | Termos, privacidade, reembolso e termos dos roteiristas | ⬜ |
@@ -23,6 +23,27 @@
 | 10 | QA geral de pré-lançamento | ⬜ |
 | 11 | Apple App Store e Google Play | ⬜ |
 | 12 | Lançamento | ⬜ |
+
+## Últimas ações (mais recentes primeiro)
+
+| Data | O que foi feito | Commit |
+|---|---|---|
+| 2026-09-24 | Diagnóstico de e-mails e notificações: só 3 e-mails existem; os avisos dentro do app são gravados mas nenhuma tela mostra; o sininho e as preferências são falsos. Ver [NOTIFICACOES-DIAGNOSTICO.md](NOTIFICACOES-DIAGNOSTICO.md). | `a4b570d` |
+| 2026-09-24 | **E-mails funcionando em produção.** Criada a senha de app do Gmail (com verificação em duas etapas), `SMTP_USER`/`SMTP_PASS` no Render. Teste para anapaulaabeckenkamp@gmail.com aceito pelo Gmail e e-mail de recuperação de senha entregue. | `c83c6d2` |
+| 2026-09-24 | **Render passou para o plano Starter** (0.5c-512mb, US$ 7 por mês). Motivo: o plano gratuito bloqueia o envio de e-mail (SMTP) e "dorme" sem uso. | — |
+| 2026-09-24 | Checklist reordenado pela prioridade do Diego (12 tasks). | `ffed266` |
+| 2026-09-24 | **Migrations automáticas no deploy:** o `npm run start` roda `prisma migrate deploy` antes de subir e falha sem subir se a migration der erro. Validado em deploy real. | `b26f011`, `8875f32` |
+| 2026-09-24 | **"Esqueci minha senha"** completo (backend, telas, e-mail, limites contra abuso, 37 testes). A migration foi aplicada pelo próprio deploy. | `587ecbb` |
+| 2026-09-24 | E-mails de boas-vindas e de confirmação de compra (`mailer.ts`). Recibos e marca do VAMO configurados no Stripe. | `c56ef03` |
+| 2026-09-24 | Login aceita e-mail com maiúscula e espaço; script `reset-password.ts` de emergência. | `f90a4b9` |
+
+## Próximos passos (em ordem)
+
+1. 🤖 **E-mails que faltam (task 1):** venda realizada e roteiro aprovado ou reprovado, para o roteirista; roteiro enviado para revisão, para o admin; senha alterada, para o dono da conta. Também parar o sininho e a tela de preferências de prometerem avisos que não existem.
+2. 🤖 **Testes em produção pendentes:** troca de senha pelo link (task 2) e e-mail de confirmação de compra (task 1), com a conta de teste `vamoappviagens+teste2225@gmail.com`.
+3. 👤 **Supabase Pro** (task 4), para ter backups diários.
+4. 👤 **Contador e decisão PF ou CNPJ** (task 5.1). Isso trava a ativação do Stripe.
+5. 👥 **Termos, privacidade e reembolso** (task 7). Posso começar pelas páginas e pelos textos-base para revisão.
 
 ## Já está pronto ✅
 
@@ -41,7 +62,9 @@ E-mail oficial do VAMO: **vamoappviagens@gmail.com**. Diagnóstico completo de e
 - [ ] 🤖 E-mails ao roteirista: venda realizada, roteiro aprovado ou reprovado, nova pergunta, nova avaliação.
 - [ ] 🤖 E-mail ao admin: roteiro enviado para revisão.
 - [ ] 🤖 E-mail de segurança: senha alterada.
-- [ ] 🤖 Sininho da Home e tela de preferências: parar de prometer avisos que não existem, ou criar a central de notificações de verdade. O envio usa o Gmail dessa conta, via SMTP com uma "senha de app".
+- [ ] 🤖 Sininho da Home e tela de preferências: parar de prometer avisos que não existem, ou criar a central de notificações de verdade.
+
+O envio usa o Gmail da conta do VAMO, via SMTP com uma "senha de app". Só funciona com o Render em instância paga.
 
 **Recibos do Stripe:**
 - [x] Recibo de pagamento concluído e de reembolso ligados, em inglês, na conta principal e na área restrita de testes.
@@ -64,7 +87,7 @@ E-mail oficial do VAMO: **vamoappviagens@gmail.com**. Diagnóstico completo de e
 
 ## 2. "Esqueci minha senha" completo · 🟢 · 👥
 
-No ar desde 2026-09-24 (commit `587ecbb`). Só falta o e-mail chegar, o que depende do SMTP da task 1.
+No ar desde 2026-09-24 (commit `587ecbb`). O e-mail de recuperação chega na caixa de entrada (testado em produção). Falta testar a troca de senha pelo link em produção.
 
 - [x] 🤖 Tabela `password_reset_tokens`, que guarda só o SHA-256 do token, e a coluna `travelers.passwordChangedAt`. Migration aplicada pelo deploy.
 - [x] 🤖 `POST /api/auth/traveler/forgot-password`: resposta sempre neutra, token aleatório de 32 bytes, validade de 1 hora, só o link mais recente vale e no máximo 1 e-mail por minuto por conta.
@@ -98,7 +121,7 @@ A cada push na `main`, o Render roda `prisma migrate deploy` antes de subir o se
 - [ ] 🤖 Opcional: mover o `prisma migrate deploy` do `start` para o **Pre-Deploy Command**, que passa a ficar disponível, e tirar do `start` para não rodar duas vezes.
 
 **Supabase Pro (US$ 25 por mês):** no plano gratuito, o projeto pausa após inatividade e não há backup automático.
-- [ ] 👤 Supabase → Organization → Billing → plano **Pro**.
+- [ ] 👤 Supabase → Organization → Billing → plano **Pro**. **Próximo item desta task.**
 - [ ] 👤 Confirmar que os **backups diários** aparecem em Database → Backups.
 
 ## 5. Stripe em produção + Stripe Connect / repasse aos roteiristas · 🔴 · 👥
