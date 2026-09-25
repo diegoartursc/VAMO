@@ -11,10 +11,10 @@
 
 | # | Task | Status |
 |---|---|---|
-| 1 | E-mails automáticos | 🟡 código no ar; falta o SMTP no Render |
-| 2 | "Esqueci minha senha" | 🟡 no ar; falta o SMTP no Render |
+| 1 | E-mails automáticos | 🟡 enviando em produção; falta testar a confirmação de compra |
+| 2 | "Esqueci minha senha" | 🟡 e-mail chegando; falta testar a troca de senha pelo link |
 | 3 | Migrations automáticas no deploy | ✅ concluída |
-| 4 | Render pago + Supabase Pro | ⬜ |
+| 4 | Render pago + Supabase Pro | 🟡 Render ✅; falta o Supabase |
 | 5 | Stripe em produção + repasse aos roteiristas | ⬜ depende do contador (PF/CNPJ) |
 | 6 | Domínio próprio | ⬜ |
 | 7 | Termos, privacidade, reembolso e termos dos roteiristas | ⬜ |
@@ -45,9 +45,10 @@ E-mail oficial do VAMO: **vamoappviagens@gmail.com**. O envio usa o Gmail dessa 
 **E-mails do próprio VAMO (`apps/backend/src/lib/mailer.ts`):**
 - [x] 🤖 Boas-vindas no cadastro, confirmação de compra (uma única vez por compra) e recuperação de senha.
 - [x] 🤖 Sem a senha configurada, o backend só registra um aviso e segue funcionando.
-- [ ] 👤 Criar a **senha de app** do Gmail: entrar em myaccount.google.com com a conta `vamoappviagens@gmail.com` → Segurança → ativar a **Verificação em duas etapas** → **Senhas de app** → criar "VAMO backend" → copiar o código de 16 letras.
-- [ ] 👤 Na conta atual do Render → serviço VAMO → **Environment** → adicionar `SMTP_USER=vamoappviagens@gmail.com` e `SMTP_PASS=<código de 16 letras>` e salvar. O Render reinicia sozinho. No `apps/backend/.env` local, preencher o `SMTP_PASS`.
-- [ ] 🤖 Testar em produção: criar uma conta de teste e fazer uma compra de teste, conferindo a chegada, o visual e os links dos e-mails de boas-vindas e de confirmação. Conferir também a caixa de spam.
+- [x] 👤 Criar a **senha de app** do Gmail (feito em 2026-09-24, com a verificação em duas etapas ligada): entrar em myaccount.google.com com a conta `vamoappviagens@gmail.com` → Segurança → ativar a **Verificação em duas etapas** → **Senhas de app** → criar "VAMO backend" → copiar o código de 16 letras.
+- [x] 👤 Na conta atual do Render → serviço VAMO → **Environment** → adicionar `SMTP_USER=vamoappviagens@gmail.com` e `SMTP_PASS=<código de 16 letras>` e salvar. ⚠️ No plano **gratuito** o Render bloqueia as portas de SMTP (dá "Connection timeout"); só funciona em instância paga (task 4). O Render reinicia sozinho. No `apps/backend/.env` local, preencher o `SMTP_PASS`.
+- [x] 🤖 Envio testado em produção em 2026-09-24: o e-mail de teste para anapaulaabeckenkamp@gmail.com foi aceito pelo Gmail (`250 OK`), e o de recuperação de senha para a conta de teste `vamoappviagens+teste2225@gmail.com` chegou na caixa de entrada.
+- [ ] 🤖 Falta testar numa compra de teste, conferindo a chegada, o visual e os links dos e-mails de boas-vindas e de confirmação. Conferir também a caixa de spam.
 
 **Limites do Gmail:** cerca de 500 e-mails por dia, e o remetente é "@gmail.com". Quando o domínio próprio existir (task 6), migrar para o Resend com `contato@<domínio>`. É só trocar o transporte no `mailer.ts`.
 
@@ -66,7 +67,7 @@ No ar desde 2026-09-24 (commit `587ecbb`). Só falta o e-mail chegar, o que depe
 - [x] 🤖 O refresh emitido antes da troca de senha passa a ser recusado (ver limitação abaixo).
 - [x] 🤖 App: link "Esqueci minha senha?" no login, telas `/forgot-password` e `/reset-password?token=…`, e o atalho em Conta → Segurança.
 - [x] 🤖 37 testes de API em banco isolado, fluxo testado no navegador e builds passando.
-- [ ] 👤 SMTP no Render (task 1).
+- [x] 👤 SMTP no Render (task 1). O e-mail de recuperação chegou na caixa de entrada em 2026-09-24.
 - [ ] 🤖 Testar em produção com uma conta de teste: pedir o link, receber o e-mail, redefinir e entrar.
 
 **Limitação conhecida:** o token de acesso continua valendo até expirar (24 horas). A troca de senha não desconecta na hora os outros aparelhos: eles saem quando tentam renovar a sessão.
@@ -86,7 +87,7 @@ A cada push na `main`, o Render roda `prisma migrate deploy` antes de subir o se
 ## 4. Render pago + Supabase Pro · ⚡ · 👤
 
 **Render (US$ 7 por mês):** no plano gratuito, o servidor "dorme" sem uso e o primeiro acesso leva mais de 50 segundos. Para o cliente, parece que o app travou.
-- [ ] 👤 Render → serviço VAMO → **Upgrade your instance** → plano **Starter**.
+- [x] 👤 Render → serviço VAMO → **Compute** → plano Starter (0.5c-512mb, US$ 7 por mês), trocado em 2026-09-24.
 - [ ] 🤖 Conferir que o `/health` responde rápido logo após um período sem uso.
 - [ ] 🤖 Opcional: mover o `prisma migrate deploy` do `start` para o **Pre-Deploy Command**, que passa a ficar disponível, e tirar do `start` para não rodar duas vezes.
 
