@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "prisma generate && tsc",
-    "start": "tsx src/index.ts",
+    "start": "npm run prisma:migrate:deploy && tsx src/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "echo 'BLOQUEADO: nunca rode prisma migrate dev (cria shadow DB direto no Supabase e quebra). Gere SQL offline com prisma migrate diff --script e aplique com npm run prisma:migrate:deploy. Ver CLAUDE.md.' && exit 1",
     "prisma:migrate:deploy": "prisma migrate deploy",

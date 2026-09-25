@@ -67,7 +67,7 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
 
 ### Deploy (produção)
 `vamo-ten.vercel.app` (Vercel, app mobile/Expo Web) → `vamo-699h.onrender.com/api` (Render, backend) → Supabase.
-Render e Vercel publicam a `main` automaticamente no push (confirmado 2026-09-24). Migrations NÃO são automáticas: rodar `npx prisma migrate status` e `migrate deploy` (após backup) quando houver migration nova. O projeto `vamo-backend` na Vercel não é usado pelo app. Detalhes em [[supabase-database]].
+Render e Vercel publicam a `main` automaticamente no push. **Migrations são automáticas no deploy do Render** (ver "Migrations automáticas" abaixo). O serviço do Render foi criado pelo painel, sem Blueprint: o `render.yaml` só espelha o painel, que é a fonte da verdade. O projeto `vamo-backend` na Vercel não é usado pelo app. Detalhes em [[supabase-database]].
 
 ---
 
@@ -80,7 +80,8 @@ Estas restrições foram dadas pelo usuário em sessões anteriores. **Respeite 
 3. **Migrations:**
    - **NUNCA** `prisma migrate dev` (cria SHADOW DB direto no Supabase e quebra)
    - **SEMPRE** `prisma migrate diff --from-schema-datamodel ... --to-schema-datamodel ... --script` para gerar SQL offline
-   - Aplicar com `prisma migrate deploy` ou via Supabase SQL editor
+   - Versionar a pasta da migration no Git: o deploy do Render aplica sozinho (`prisma migrate deploy`). Não aplicar pelo Supabase SQL editor, porque isso deixa `_prisma_migrations` inconsistente.
+   - Migration destrutiva (DROP, rename, NOT NULL em coluna com dados) só com autorização explícita do Diego.
 4. **Seed:** NÃO existe mais (`prisma/seed.ts` foi deletado em 2026-06-06). NÃO recriar. NÃO rodar `prisma db seed`. NÃO rodar `prisma migrate reset`. O bloco `prisma.seed` foi removido do `package.json` do backend justamente pra impedir isso.
 5. **Dados em prod:** Não apagar usuários reais. Maria é usuária real, criada manualmente pelo app — tratar como sagrada.
 6. **Refatoração:** Não fazer refatoração ampla. Não trocar arquitetura. Não criar novo backend. Não mudar banco. Não remover rotas. Não remover funcionalidades existentes.
@@ -130,8 +131,18 @@ Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 202
 - E-mails só pelo `mailer.ts` (Gmail SMTP hoje; trocar provider = trocar só o transporte). Nunca logar token de reset.
 - `scripts/reset-password.ts` continua como ferramenta administrativa de emergência.
 
-### ⚠️ Ordem migration → deploy
-Se o código novo usa coluna/tabela nova, **aplique a migration no Supabase ANTES do push para `main`**. O Render publica sozinho e o Prisma quebra (500) em qualquer query do model se a coluna não existir. Migrations não rodam automaticamente no Render free.
+### Migrations automáticas (Render)
+- **Onde:** no `npm run start` do backend (`apps/backend/package.json`): `npm run prisma:migrate:deploy && tsx src/index.ts`. O painel do Render chama `npm run start`.
+- **Por que não pre-deploy:** o Pre-Deploy Command do Render só existe em plano pago, e o serviço está no free. Ao migrar para plano pago, mover para o pre-deploy e **tirar do start**, para não rodar duas vezes.
+- **Falha:** se o `migrate deploy` falhar, o `&&` impede o servidor de subir, a porta não abre, o deploy falha e o Render mantém a versão anterior no ar. Nunca usar `||`.
+- **Sem migration pendente:** "No pending migrations to apply" e o servidor sobe normalmente. Roda também a cada cold start do plano free (+ alguns segundos).
+- **Verificar:** logs do deploy no Render (procurar `prisma migrate deploy`) ou `cd apps/backend && npx prisma migrate status`.
+- **Fluxo para mudar o schema:**
+  1. Editar o `schema.prisma`.
+  2. Gerar o SQL offline com `prisma migrate diff --from-schema-datamodel <schema antigo> --to-schema-datamodel prisma/schema.prisma --script` e salvar em `prisma/migrations/<timestamp>_<nome>/migration.sql`.
+  3. Revisar se é só aditivo.
+  4. Commit e push para a `main`: o Render aplica a migration e sobe o código novo no mesmo deploy.
+- **Pegadinha local:** depois de gerar o Prisma com coluna nova, scripts locais contra o Supabase (inclusive `backup-db.ts`) quebram com P2022 até a migration ser aplicada. Para fazer backup antes: rodar o `prisma generate` com o schema anterior, fazer o backup e depois rodar o `prisma generate` de novo.
 
 ### Roteiro comprado (`apps/mobile/app/purchased-itinerary/[id].tsx` + `src/features/route-versioning/`)
 - Ordem da página: hero → "pronto pra usar" (atalhos) → experiência → custos → RouteVersioning (Original/Minha versão) → o que recebeu → mídia → avaliar.

@@ -1,22 +1,32 @@
+# ATENÇÃO: o serviço do Render ("VAMO", srv-d8grk07lk1mc73f81f2g) foi criado pelo
+# painel, NÃO por Blueprint — este arquivo NÃO é aplicado automaticamente. A
+# fonte da verdade é o painel (Settings); aqui é um espelho dele, verificado em
+# 2026-09-24. Mudou algo no painel? Atualize aqui também.
 services:
   - type: web
     runtime: node
     name: vamo-backend
+    plan: free
+    branch: main
     rootDir: apps/backend
-    # O backend importa @vamo/shared (packages/shared, workspace do
-    # monorepo). `npm ci` isolado dentro de apps/backend nunca resolve esse
-    # pacote (não é um projeto standalone) — precisa instalar a partir da
-    # raiz do monorepo pra hoistear os workspaces, igual ao ambiente local.
-    buildCommand: cd ../.. && npm ci && cd apps/backend && npm run build
-    preDeployCommand: npm run prisma:migrate:deploy
-    # `node dist/index.js` não consegue fazer require() de @vamo/shared em
-    # runtime puro (o pacote é distribuído como .ts fonte, sem etapa de
-    # build própria — assim ele funciona tanto no mobile/Metro quanto no
-    # backend sem duplicar build). `tsx` já é devDependency do backend e é
-    # exatamente o mesmo runtime usado em dev (`npm run dev`) a sessão
-    # inteira — troca o executor sem mudar nenhum código.
-    startCommand: npx tsx src/index.ts
-    healthCheckPath: /health
+    # O `npm install` dentro de apps/backend enxerga os workspaces da raiz e
+    # resolve @vamo/shared (dependência `file:../../packages/shared`). Dev
+    # dependencies entram porque o runtime usa `tsx` e as migrations usam o
+    # CLI `prisma`.
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
+    # Migrations automáticas: `npm run start` roda `prisma migrate deploy` ANTES
+    # de subir o servidor (ver "start" em apps/backend/package.json). Se a
+    # migration falhar, o processo sai com erro, a porta nunca abre, o deploy
+    # falha e o Render mantém a versão anterior no ar.
+    # Não usamos preDeployCommand: no Render ele só existe em planos pagos.
+    # Ao migrar para plano pago, dá para mover a migration para o pre-deploy —
+    # e então tirá-la do "start", para não rodar duas vezes.
+    #
+    # Runtime `tsx` (não `node dist/index.js`): @vamo/shared é distribuído como
+    # .ts fonte, sem build próprio, e `node` puro não consegue fazer require()
+    # dele.
+    startCommand: npm run start
+    # healthCheckPath: vazio no painel. Recomendado configurar /health.
     envVars:
       - key: NODE_VERSION
         value: 22
