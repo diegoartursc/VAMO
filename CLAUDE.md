@@ -44,12 +44,13 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
 - **Produção (único banco em uso):** Supabase Postgres
   - Host: `aws-1-us-west-2.pooler.supabase.com:5432` (Session pooler, IPv4)
   - Conexão: `apps/backend/.env` → `DATABASE_URL`
+- **Limite de conexões:** o Session pooler aceita **15 clientes**. `src/lib/prisma.ts` limita o Prisma a 5 por instância (`DB_POOL_SIZE`). Se aparecer `EMAXCONNSESSION` / "Can't reach database server", confira `pg_stat_activity` pela porta **6543** (transaction pooler, `?pgbouncer=true`), que não sofre esse limite.
 - **Local:** Postgres em `localhost:5432/vamo` foi **wipado e abandonado** em 2026-06-06. Não usar. Não rodar seed. Se precisar testar destrutivo, descomente a URL de fallback no `.env` e isole.
 
 ### Dados que devem existir em prod (estado canônico — 2026-06-18)
 - Travelers (auditado 2026-09-24): `juliavamo@gmail.com` / Julia Beckenkamp (conta real, antes "Maria"; senha redefinida para `vamo123` em 2026-09-24), `diegovamo@gmail.com` (Diego GOGO, teste), `arianavamo@gmail.com` (Ariana). `mariavamo@gmail.com` NÃO existe mais.
 - **Senhas são bcrypt — impossível ler.** `hasPwd=true` só diz que existe senha. Nunca informe senha que não foi confirmada; para recuperar acesso use `npx tsx scripts/reset-password.ts <email> <senha>` (em `apps/backend`, salva hash antigo em `scripts/backups/`).
-- 1 admin: `admin@vamo.com` (SUPER_ADMIN)
+- 1 admin: `admin@vamo.com` (SUPER_ADMIN). Senha redefinida em 2026-09-28 (o Diego tem). Para trocar: `npx tsx scripts/reset-admin-password.ts <email> [senha]` em `apps/backend` (sem senha, gera uma forte e mostra uma vez; salva o hash antigo em `scripts/backups/`).
 - 1 creator: Maria (BASIC)
 - **2 itinerários (ambos ACTIVE, by Maria):**
   - "Japão Clássico: 10 Dias em Tóquio, Kyoto e Osaka…" — 1 review real (5★), `travelStyles: ["moderado"]`
