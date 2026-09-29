@@ -97,6 +97,9 @@ export default function PurchasedItineraryScreen() {
     // clique, usar `measureLayout(scrollHandle, …)` — que devolve a
     // posição RELATIVA ao ScrollView. Funciona cross-platform (iOS,
     // Android, Expo Web).
+    // Blocos de apoio começam recolhidos: o foco da página é o roteiro (Original/Minha versão).
+    const [openAbout, setOpenAbout] = useState(false);
+    const [openCosts, setOpenCosts] = useState(false);
     const sectionRefs = useRef<Record<string, View | null>>({});
 
     const trackSection = (key: string) => (node: View | null) => {
@@ -652,7 +655,12 @@ export default function PurchasedItineraryScreen() {
                                                     // são blocos únicos fora do RouteVersioning.
                                                     const versioned = a.sectionKey === 'itinerary' || a.sectionKey === 'checklist';
                                                     const key = versioned ? `${a.sectionKey}:${routeActiveTab}` : a.sectionKey;
-                                                    scrollToSection(key);
+                                                    if (a.sectionKey === 'costs' && !openCosts) {
+                                                        setOpenCosts(true);
+                                                        setTimeout(() => scrollToSection(key), 60);
+                                                    } else {
+                                                        scrollToSection(key);
+                                                    }
                                                 }}
                                                 activeOpacity={0.85}
                                             >
@@ -671,7 +679,8 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ SOBRE A EXPERIÊNCIA ══════════ */}
                     <View style={styles.block}>
-                        <SectionTitle icon="compass-outline" label="Sobre a Experiência" />
+                        <CollapsibleSectionTitle icon="compass-outline" label="Sobre a Experiência" open={openAbout} onToggle={() => setOpenAbout(v => !v)} />
+                        {openAbout && (
                         <View style={styles.card}>
                             {itinerary.tripStartDate && itinerary.tripEndDate && (
                                 <>
@@ -709,6 +718,7 @@ export default function PurchasedItineraryScreen() {
                                 </>
                             )}
                         </View>
+                        )}
                     </View>
 
                     {/* ══════════ CUSTOS E ORÇAMENTO (transparência graduada) ══════════
@@ -722,8 +732,8 @@ export default function PurchasedItineraryScreen() {
                         original enquanto o merge não chegou (primeiros
                         ms da carga ou sessão sem auth). */}
                     <View style={styles.block} ref={trackSection('costs')} collapsable={false}>
-                        <SectionTitle icon="wallet-outline" label="Custos e orçamento do roteiro" />
-                        {(() => {
+                        <CollapsibleSectionTitle icon="wallet-outline" label="Custos e orçamento do roteiro" open={openCosts} onToggle={() => setOpenCosts(v => !v)} />
+                        {openCosts && (() => {
                             // Helper: extrai array do merged se houver, senão cai no itinerary original.
                             // mergedItinerary tem shape MergedItinerary com arrays de MergedItem
                             // onde cada MergedItem.data é o objeto que `getCostReferences` espera.
@@ -1083,6 +1093,26 @@ export default function PurchasedItineraryScreen() {
 }
 
 // ─── Sub-components ─────────────────────────────────────────
+
+function CollapsibleSectionTitle({ icon, label, open, onToggle }: { icon: string; label: string; open: boolean; onToggle: () => void }) {
+    return (
+        <TouchableOpacity
+            onPress={() => { haptics.light(); onToggle(); }}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: open }}
+            accessibilityLabel={`${label}: ${open ? 'recolher' : 'expandir'}`}
+            style={{ flexDirection: 'row', alignItems: 'center' }}
+        >
+            <View style={{ flex: 1 }}>
+                <SectionTitle icon={icon} label={label} />
+            </View>
+            <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.surfaceLight, marginBottom: 16 }}>
+                <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={theme.colors.primary} />
+            </View>
+        </TouchableOpacity>
+    );
+}
 
 function SectionTitle({ icon, label }: { icon: string; label: string }) {
     // Cabeçalho premium compartilhado — acento/ícone por seção quando a
