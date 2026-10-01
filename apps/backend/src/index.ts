@@ -84,6 +84,9 @@ app.use(cors({
         // Allow requests with no origin (mobile apps, curl, Postman)
         if (!origin) return callback(null, true);
         if (corsOrigins.includes(origin)) return callback(null, true);
+        // Em desenvolvimento, qualquer porta de localhost (app, site, painel
+        // admin, worktrees) — lista fixa quebrava o login a cada porta nova.
+        if (isDev && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
         callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     credentials: true,
