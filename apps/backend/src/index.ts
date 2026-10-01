@@ -71,6 +71,7 @@ const DEFAULT_DEV_ORIGINS = [
     'http://localhost:3001',
     'http://localhost:3030', // Claude Preview worktree
     'http://localhost:3033', // Site dashboard (worktree)
+    'http://localhost:3034', // Painel admin (launch "admin")
     'http://localhost:8081', // Expo web
     'http://localhost:8082', // Expo web (porta alternativa quando a 8081 está ocupada)
     'http://localhost:19006', // Expo Go
