@@ -100,7 +100,7 @@ const bool = (pick: (s: NormStats) => boolean): Pick<MissionDef, 'value' | 'done
  */
 const MISSION_DEFS: MissionDef[] = [
     // ── 1. EXPLORADOR ──
-    { key: 'profile_ready', level: 'explorer', label: 'Perfil pronto para viajar', hint: 'Complete nome, foto, moeda, interesses e preferências.', xp: XP.PROFILE_READY, category: 'profile', ...bool((s) => s.profileCompleted) },
+    { key: 'profile_ready', level: 'explorer', label: 'Perfil pronto para viajar', hint: 'Complete seu perfil com nome, informações e foto.', xp: XP.PROFILE_READY, category: 'profile', ...bool((s) => s.profileCompleted) },
     { key: 'first_saved_itinerary', level: 'explorer', label: 'Primeiro roteiro salvo', hint: 'Salve/favorite o seu primeiro roteiro.', xp: XP.FIRST_SAVED_ITINERARY, category: 'discovery', ...bool((s) => s.savedCount >= 1) },
     { key: 'first_cart_itinerary', level: 'explorer', label: 'Primeiro roteiro no carrinho', hint: 'Adicione o primeiro roteiro ao carrinho.', xp: XP.FIRST_CART_ITINERARY, category: 'cart', ...bool((s) => s.cartCount >= 1) },
     { key: 'first_question_sent', level: 'explorer', label: 'Primeira dúvida enviada', hint: 'Faça uma pergunta sobre um roteiro.', xp: XP.FIRST_QUESTION_SENT, category: 'engagement', ...bool((s) => s.questionsCount >= 1) },
