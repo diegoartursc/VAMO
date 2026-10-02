@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    Platform, StatusBar, ActivityIndicator, Alert, Animated,
+    Platform, StatusBar, ActivityIndicator, Animated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { safeBack } from '../../src/utils/navigation';
@@ -16,6 +16,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { confirm } from '../../src/utils/confirm';
+import { notify } from '../../src/utils/notify';
 import { formatMoney } from '@vamo/shared/itinerary';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
@@ -126,84 +128,77 @@ export default function CreatorItineraryScreen() {
     }, [loading, itinerary]);
 
     // ── Reenviar para análise (após rejeição) ───────────────────
+    // confirm()/notify() em vez de Alert.alert: Alert com botões é no-op no
+    // web, e o botão não fazia nada no navegador do celular.
     const resubmit = async () => {
         if (!itinerary || !accessToken) {
-            Alert.alert('Sessão expirada', 'Faça login novamente para continuar.');
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para continuar.', variant: 'warning' });
             return;
         }
         haptics.medium();
-        Alert.alert(
-            'Reenviar para análise',
-            'Certifique-se de ter corrigido os pontos apontados na reprovação antes de reenviar.',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Reenviar',
-                    onPress: async () => {
-                        setSubmitting(true);
-                        try {
-                            const res = await fetch(`${API_BASE}/itineraries/${itinerary.id}/creator/status`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    Authorization: `Bearer ${accessToken}`,
-                                },
-                                body: JSON.stringify({ status: 'PENDING_REVIEW' }),
-                            });
-                            if (!res.ok) {
-                                const err = await res.json().catch(() => ({}));
-                                throw new Error(err?.error || 'Falha ao reenviar');
-                            }
-                            haptics.success();
-                            setItinerary(prev => prev ? { ...prev, status: 'pending_review', approvalNote: null } : prev);
-                        } catch (err: any) {
-                            Alert.alert('Erro', err?.message || 'Não foi possível reenviar.');
-                        } finally {
-                            setSubmitting(false);
-                        }
-                    },
-                },
-            ],
-        );
+        const ok = await confirm({
+            title: 'Reenviar para análise',
+            message: 'Certifique-se de ter corrigido os pontos apontados na reprovação antes de reenviar.',
+            confirmText: 'Reenviar',
+            variant: 'info',
+        });
+        if (!ok) return;
+        setSubmitting(true);
+        try {
+            const res = await fetch(`${API_BASE}/itineraries/${itinerary.id}/creator/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                body: JSON.stringify({ status: 'PENDING_REVIEW' }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err?.error || 'Falha ao reenviar');
+            }
+            haptics.success();
+            setItinerary(prev => prev ? { ...prev, status: 'pending_review', approvalNote: null } : prev);
+            notify({ title: 'Enviado para análise', message: 'A equipe VAMO vai revisar e você recebe um e-mail com o resultado.', variant: 'success' });
+        } catch (err: any) {
+            notify({ title: 'Erro', message: err?.message || 'Não foi possível reenviar.', variant: 'error' });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    // ── Pausar / despausar roteiro ──────────────────────────────
+    // ── Pausar / publicar novamente ──────────────────────────────
     const togglePause = async () => {
         if (!itinerary || !accessToken) {
-            Alert.alert('Sessão expirada', 'Faça login novamente para continuar.');
+            notify({ title: 'Sessão expirada', message: 'Faça login novamente para continuar.', variant: 'warning' });
             return;
         }
         const isActive = itinerary.status === 'active';
         const newStatus = isActive ? 'PAUSED' : 'ACTIVE';
         const label = isActive ? 'Pausar roteiro' : 'Publicar roteiro';
         haptics.light();
-        Alert.alert(label, isActive
-            ? 'O roteiro ficará invisível no marketplace enquanto pausado.'
-            : 'O roteiro voltará a aparecer no marketplace.',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: label,
-                    onPress: async () => {
-                        try {
-                            const res = await fetch(`${API_BASE}/itineraries/${itinerary.id}/creator/status`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                                body: JSON.stringify({ status: newStatus }),
-                            });
-                            if (!res.ok) {
-                                const err = await res.json().catch(() => ({}));
-                                throw new Error(err?.error || 'Falha');
-                            }
-                            haptics.success();
-                            setItinerary(prev => prev ? { ...prev, status: newStatus.toLowerCase() as ItineraryStatus } : prev);
-                        } catch {
-                            Alert.alert('Erro', 'Não foi possível alterar o status.');
-                        }
-                    },
-                },
-            ],
-        );
+        const ok = await confirm({
+            title: label,
+            message: isActive
+                ? 'O roteiro ficará invisível no marketplace enquanto pausado. Quem já comprou continua com acesso.'
+                : 'O roteiro vai aparecer no marketplace e poderá ser comprado.',
+            confirmText: label,
+            variant: isActive ? 'warning' : 'success',
+        });
+        if (!ok) return;
+        try {
+            const res = await fetch(`${API_BASE}/itineraries/${itinerary.id}/creator/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err?.error || 'Falha');
+            }
+            haptics.success();
+            setItinerary(prev => prev ? { ...prev, status: newStatus.toLowerCase() as ItineraryStatus } : prev);
+            notify({ title: isActive ? 'Roteiro pausado' : 'Roteiro publicado!', message: isActive ? 'Ele saiu do marketplace.' : 'Ele já aparece no marketplace.', variant: 'success' });
+        } catch (err: any) {
+            notify({ title: 'Erro', message: err?.message || 'Não foi possível alterar o status.', variant: 'error' });
+        }
     };
 
     // ─── Loading / Error ────────────────────────────────────────

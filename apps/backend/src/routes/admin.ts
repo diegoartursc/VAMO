@@ -443,17 +443,14 @@ router.post('/itineraries/:id/approve', verifyAdmin, async (req: Request, res: R
             res.status(400).json({ error: 'Apenas roteiros em análise podem ser aprovados.' });
             return;
         }
-        // Aprovação do admin NUNCA publica direto. Isso é intencional: o
-        // criador precisa tocar em "Publicar roteiro" (PATCH
-        // /:id/creator/status → ACTIVE) pra decidir quando o roteiro vira
-        // público/comprável. Setar ACTIVE aqui pulava esse passo e deixava
-        // o status APPROVED inalcançável na prática, apesar da UI do
-        // criador já esperar esse estado intermediário.
+        // Aprovar = publicar (decisão das sócias em 2026-10-02): o roteiro vai
+        // direto para ACTIVE e aparece no marketplace. O criador ainda pode
+        // pausar depois (PATCH /:id/creator/status → PAUSED).
         // Transição atômica PENDING_REVIEW → APPROVED: numa corrida, só uma
         // chamada grava e só ela manda o e-mail.
         const moved = await prisma.itinerary.updateMany({
             where: { id, status: 'PENDING_REVIEW' },
-            data: { status: 'APPROVED', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
+            data: { status: 'ACTIVE', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
         });
         if (moved.count !== 1) {
             res.status(400).json({ error: 'Apenas roteiros em análise podem ser aprovados.' });

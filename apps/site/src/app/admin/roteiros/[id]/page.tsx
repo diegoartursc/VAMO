@@ -124,7 +124,7 @@ function DetailContent() {
 
             {!isPending && (
                 <div style={{ ...box, background: "#F8FAFC", fontSize: 13, color: "#5A6B8C" }}>
-                    {status === "APPROVED" && "Aprovado. Aguardando o roteirista tocar em “Publicar roteiro” para aparecer no app."}
+                    {status === "APPROVED" && "Aprovado pelo fluxo antigo, ainda não publicado. O roteirista pode publicar no Portal do Roteirista."}
                     {status === "ACTIVE" && "Publicado: este roteiro está à venda no app."}
                     {status === "REJECTED" && "Rejeitado. O roteirista pode corrigir e reenviar para revisão."}
                     {!["APPROVED", "ACTIVE", "REJECTED"].includes(status) && "Este roteiro não está aguardando revisão."}

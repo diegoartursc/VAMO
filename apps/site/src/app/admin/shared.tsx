@@ -423,7 +423,7 @@ export function ApproveRejectModal({ modal, onClose, onConfirm, loading }: {
                 </h2>
                 <p style={{ margin: "0 0 20px", color: "#5A6B8C", fontSize: "14px" }}>
                     {modal.type === "approve"
-                        ? `Aprovar "${modal.title}"? O roteirista recebe um e-mail e precisa tocar em "Publicar roteiro" para ele aparecer no app.`
+                        ? `Aprovar "${modal.title}"? Ele é publicado na hora no app e o roteirista recebe um e-mail.`
                         : `Rejeitar "${modal.title}"? Informe o motivo — ele vai no e-mail para o roteirista corrigir e reenviar.`}
                 </p>
                 {modal.type === "reject" && (

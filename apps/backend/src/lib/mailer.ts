@@ -269,15 +269,15 @@ export function sendItineraryApprovedEmail(opts: { to: string; name: string; iti
     const first = firstName(opts.name, 'roteirista');
     const url = appLink(`/creator-itinerary/${encodeURIComponent(opts.itineraryId)}`);
     const html = layout({
-        title: 'Seu roteiro foi aprovado ✅',
-        body: P(`Boa notícia, ${escapeHtml(first)}! A equipe VAMO aprovou o seu roteiro:`)
+        title: 'Seu roteiro foi aprovado e já está no ar ✅',
+        body: P(`Boa notícia, ${escapeHtml(first)}! A equipe VAMO aprovou o seu roteiro e ele <strong>já foi publicado</strong>:`)
             + HIGHLIGHT(opts.itineraryTitle)
-            + P('<strong>Falta um passo:</strong> aprovado ainda não significa publicado. Abra o roteiro no Portal do Roteirista e toque em <strong>“Publicar roteiro”</strong> quando quiser que ele apareça para os viajantes e comece a vender.'),
-        cta: { label: 'Abrir e publicar', url },
+            + P('Ele já aparece para os viajantes no marketplace e pode ser comprado. Se precisar tirá-lo do ar, use “Pausar roteiro” no Portal do Roteirista.'),
+        cta: { label: 'Ver meu roteiro', url },
     });
-    return send(opts.to, `Roteiro aprovado: ${opts.itineraryTitle}`, html, textOf(
+    return send(opts.to, `Roteiro aprovado e publicado: ${opts.itineraryTitle}`, html, textOf(
         `Boa notícia, ${first}! A equipe VAMO aprovou "${opts.itineraryTitle}".`,
-        'Aprovado ainda não é publicado: abra o roteiro no Portal do Roteirista e toque em "Publicar roteiro".',
+        'Ele já foi publicado e aparece no marketplace.',
         url,
     ));
 }
