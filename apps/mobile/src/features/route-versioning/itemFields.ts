@@ -56,23 +56,6 @@ export interface FieldSpec {
 // funcionando. Quando o criador adicionar opções no futuro, sincronize
 // aqui também.
 
-const ATTRACTION_TYPE_OPTIONS = [
-    { value: 'museu', label: 'Museu' },
-    { value: 'parque', label: 'Parque' },
-    { value: 'monumento', label: 'Monumento' },
-    { value: 'natureza', label: 'Natureza' },
-    { value: 'cultural', label: 'Cultural' },
-    { value: 'aventura', label: 'Aventura' },
-    { value: 'praia', label: 'Praia' },
-    { value: 'historico', label: 'Histórico' },
-    { value: 'religioso', label: 'Religioso' },
-    { value: 'gastronomia', label: 'Gastronomia' },
-    { value: 'compras', label: 'Compras' },
-    { value: 'vida_noturna', label: 'Vida noturna' },
-    { value: 'familia', label: 'Família' },
-    { value: 'outros', label: 'Outros' },
-] as const;
-
 const CUISINE_OPTIONS = [
     { value: 'brasileira', label: 'Brasileira' },
     { value: 'francesa', label: 'Francesa' },
@@ -144,7 +127,6 @@ const TRANSPORTS: FieldSpec[] = [
 
 const ATTRACTIONS: FieldSpec[] = [
     { key: 'name', label: 'Nome da atração', type: 'text', placeholder: 'Ex: Torre Eiffel', required: true },
-    { key: 'type', label: 'Tipo', type: 'picker', options: ATTRACTION_TYPE_OPTIONS },
     { key: 'location', label: 'Nome do local ou endereço', type: 'text', placeholder: 'Ex: Champ de Mars, 5 Ave…' },
     { key: 'mapLink', label: 'Link do Google Maps', type: 'text', placeholder: 'Ex: https://goo.gl/maps/…' },
     { key: 'startDate', label: 'Data de início', type: 'date' },

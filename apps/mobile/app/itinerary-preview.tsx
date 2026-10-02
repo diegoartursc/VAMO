@@ -769,7 +769,7 @@ export default function ItineraryPreviewScreen() {
                             {form.attractions.map((a: AttractionItem, i) => (
                                 <View key={i} style={styles.subCard}>
                                     <Text style={styles.subCardTitle}>{a.name || `Atração ${i + 1}`}</Text>
-                                    {a.type ? <Text style={styles.subCardMeta}>{a.type}{a.duration ? ` · ${a.duration}` : ''}</Text> : null}
+                                    {a.duration ? <Text style={styles.subCardMeta}>{a.duration}</Text> : null}
                                     {a.location ? <Text style={styles.subCardMeta}>📍 {a.location}</Text> : null}
                                     {a.description ? <Text style={styles.subCardDesc}>{a.description}</Text> : null}
                                 </View>

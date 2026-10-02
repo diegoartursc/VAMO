@@ -234,7 +234,6 @@ const SPENDING_MODULE_MAP: Record<string, { label: string; icon: string }> = {
     transporte: { label: "Transporte Local", icon: "🚌" },
     restaurantes: { label: "Alimentação", icon: "🍽️" },
 };
-const ATTRACTION_TYPES = ["Museu", "Monumento", "Parque", "Tour", "Mirante", "Igreja", "Palácio", "Praia", "Trilha", "Show / Espetáculo", "Parque Temático", "Mercado", "Passeio de Barco", "Outro"];
 interface FlightLeg { airline: string; originCity: string; originAirport: string; destinationAirport: string; departureDate: string; arrivalDate: string; stops: number; }
 const EMPTY_FLIGHT_LEG: FlightLeg = { airline: "", originCity: "", originAirport: "", destinationAirport: "", departureDate: "", arrivalDate: "", stops: 0 };
 const CUISINE_OPTIONS = ["Ramen", "Sushi", "Tempura", "Izakaya", "Yakitori", "Italiana", "Francesa", "Brasileira", "Mexicana", "Indiana", "Tailandesa", "Fast Food", "Café", "Padaria", "Bistrô", "Fine Dining", "Street Food", "Vegetariana", "Frutos do Mar", "Outro"];
@@ -1507,13 +1506,6 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             <div className="form-group" style={{ flex: 2, margin: 0 }}>
                                 <label className="form-label" style={{ fontSize: 11 }}>Nome da atração *</label>
                                 <input className="form-input" value={att.name} onChange={e => { const u = [...attractions]; u[i].name = e.target.value; setAttractions(u); markDirty(); }} placeholder="Ex: Torre Eiffel" />
-                            </div>
-                            <div className="form-group" style={{ width: 160, margin: 0 }}>
-                                <label className="form-label" style={{ fontSize: 11 }}>Tipo</label>
-                                <select className="form-input" value={att.type} onChange={e => { const u = [...attractions]; u[i].type = e.target.value; setAttractions(u); markDirty(); }}>
-                                    <option value="">Tipo</option>
-                                    {ATTRACTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                </select>
                             </div>
                             <button className="btn-remove" style={{ marginBottom: 6 }} onClick={() => { setAttractions(attractions.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                         </div>

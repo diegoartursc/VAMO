@@ -82,7 +82,6 @@ import {
     CHECKLIST_CATS,
     SPENDING_CATS,
     EXTRA_SPENDING_CATEGORIES,
-    ATTRACTION_TYPES,
     CUISINE_OPTIONS,
     MAX_CATEGORIES,
     MIN_TIPS,
@@ -2001,17 +2000,6 @@ function StepAttractions({ form, update, token }: StepProps) {
                     return (
                         <>
                             <FormInput label="Nome da atração" required placeholder="Ex: Torre Eiffel" value={item.name} onChangeText={v => set({ name: v })} />
-                            <Text style={s.label}>Tipo</Text>
-                            <View style={s.chipRow}>
-                                {ATTRACTION_TYPES.map(t => {
-                                    const active = item.type === t;
-                                    return (
-                                        <TouchableOpacity key={t} style={[s.chip, active && s.chipActive]} onPress={() => set({ type: t })}>
-                                            <Text style={[s.chipText, active && s.chipTextActive]}>{t}</Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
                             <FormInput label="Nome do local ou endereço" placeholder="Ex: Champ de Mars, 5 Ave..." value={item.location} onChangeText={v => set({ location: v })} />
                             <FormInput label="Link do Google Maps" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
                             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>

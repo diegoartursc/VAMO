@@ -208,14 +208,6 @@ function AttractionCard({ data }: { data: any }) {
                     );
                 })()}
             </View>
-            {/* Linha 2: categoria */}
-            {data?.type ? (
-                <View style={styles.metaRow}>
-                    <View style={styles.typeBadge}>
-                        <Text style={styles.typeBadgeText}>{String(data.type)}</Text>
-                    </View>
-                </View>
-            ) : null}
             {/* Linha 3: localização em largura total, até 2 linhas, sem vazar */}
             {data?.location ? (
                 <View style={styles.locRow}>
@@ -571,13 +563,6 @@ const styles = StyleSheet.create({
         flexShrink: 0,
     },
     greenPillText: { fontSize: 12, fontWeight: '700', color: theme.colors.success },
-    typeBadge: {
-        backgroundColor: theme.colors.primary + '18',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 6,
-    },
-    typeBadgeText: { fontSize: 11, fontWeight: '700', color: theme.colors.primary },
     cuisineTag: {
         backgroundColor: theme.colors.surfaceLight,
         paddingHorizontal: 8,

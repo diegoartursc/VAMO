@@ -193,7 +193,6 @@ function renderAttraction(data: any, source?: MergedItem['source']): string {
                 <h3>${escapeHtml(title)}</h3>
                 ${source ? badgeForSource(source) : ''}
             </div>
-            ${renderField('Tipo', data?.type)}
             ${renderField('Localização', data?.location)}
             ${renderField('Ingresso', data?.ticketPrice)}
             ${renderField('Horário', formatTimeForAustraliaDisplay(data?.hours))}

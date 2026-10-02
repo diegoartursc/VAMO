@@ -197,12 +197,6 @@ export const SPENDING_CATS = [
     "🎁 Extras",
 ];
 
-export const ATTRACTION_TYPES = [
-    "Museu", "Monumento", "Parque", "Tour", "Mirante", "Igreja",
-    "Palácio", "Praia", "Trilha", "Show / Espetáculo", "Parque Temático",
-    "Mercado", "Passeio de Barco", "Outro",
-];
-
 export const CUISINE_OPTIONS = [
     "Ramen", "Sushi", "Tempura", "Izakaya", "Yakitori",
     "Italiana", "Francesa", "Brasileira", "Mexicana", "Indiana",
