@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AdminDataProvider, useAdmin, ApproveRejectModal, API, STATUS_LABEL, STATUS_COLOR, Status } from "../../shared";
 import CostProofsModal from "../../CostProofsModal";
+import ScoreBreakdownModal from "../../ScoreBreakdownModal";
 
 const box: React.CSSProperties = { background: "#fff", borderRadius: "18px", padding: "20px 22px", border: "1px solid rgba(226,232,240,0.7)", marginBottom: "16px" };
 const h2: React.CSSProperties = { fontSize: "15px", fontWeight: 800, color: "#1A3263", margin: "0 0 12px" };
@@ -32,6 +33,7 @@ function DetailContent() {
     const [modal, setModal] = useState<{ type: "approve" | "reject"; itemType: "itineraries"; id: string; title: string } | null>(null);
     const [acting, setActing] = useState(false);
     const [proofsOpen, setProofsOpen] = useState(false);
+    const [scoreOpen, setScoreOpen] = useState(false);
 
     const load = useCallback(async () => {
         try {
@@ -102,6 +104,9 @@ function DetailContent() {
                     <div style={{ ...muted, marginTop: 4 }}>
                         Roteirista: <b>{it.creator?.traveler?.name}</b> ({it.creator?.traveler?.email}) · enviado em {fmtDate(it.updatedAt || it.createdAt)}
                     </div>
+                    {it.qualityScore != null && (
+                        <button onClick={() => setScoreOpen(true)} style={{ marginTop: 6, border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#1FA89F", textDecoration: "underline dotted" }}>Score de qualidade: {it.qualityScore}% ⓘ</button>
+                    )}
                     {asArray(it.categories).length > 0 && <div style={{ ...muted, marginTop: 4 }}>Categorias: {asArray(it.categories).join(", ")}</div>}
                     {it.approvalNote && <div style={{ marginTop: 8, fontSize: 13, color: "#DC2626" }}>Motivo da última rejeição: {it.approvalNote}</div>}
                 </div>
@@ -196,6 +201,7 @@ function DetailContent() {
             </Section>
 
             <ApproveRejectModal modal={modal} onClose={() => setModal(null)} onConfirm={decide} loading={acting} />
+            {scoreOpen && <ScoreBreakdownModal itineraryId={id} storedScore={it.qualityScore} getToken={getToken} onClose={() => setScoreOpen(false)} />}
             {proofsOpen && <CostProofsModal itineraryId={id} getToken={getToken} onClose={() => setProofsOpen(false)} onToast={showToast} />}
         </div>
     );

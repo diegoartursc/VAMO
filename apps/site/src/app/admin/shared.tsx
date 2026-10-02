@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ScoreBreakdownModal from "./ScoreBreakdownModal";
 
 export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 
@@ -275,9 +276,11 @@ export function ItemList({ items, type, onApprove, onReject, onCostProofs, empty
     onCostProofs?: (id: string, title: string) => void;
     emptyMsg: string; showStatus?: boolean;
 }) {
+    const [scoreFor, setScoreFor] = useState<{ id: string; score: number } | null>(null);
     if (items.length === 0) return <EmptyState msg={emptyMsg} />;
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {scoreFor && <ScoreBreakdownModal itineraryId={scoreFor.id} storedScore={scoreFor.score} getToken={() => localStorage.getItem("adminToken")} onClose={() => setScoreFor(null)} />}
             {items.map(item => {
                 const isPending = item.status === "PENDING_REVIEW";
                 return (
@@ -310,8 +313,12 @@ export function ItemList({ items, type, onApprove, onReject, onCostProofs, empty
                                 {item.destination}, {item.country} · <span style={{ color: "#98989D" }}>{type === "packages" ? item.agency?.name : item.creator?.traveler?.name}</span>
                             </div>
                             <div style={{ display: "flex", gap: "10px", marginTop: "6px", alignItems: "center", flexWrap: "wrap" }}>
-                                {item.qualityScore !== undefined && (
-                                    <span style={{ fontSize: "11px", fontWeight: "700", color: item.qualityScore >= 70 ? "#16A34A" : item.qualityScore >= 40 ? "#D97706" : "#DC2626" }}>Score: {item.qualityScore}%</span>
+                                {item.qualityScore !== undefined && item.qualityScore !== null && (
+                                    type === "itineraries" ? (
+                                        <button onClick={() => setScoreFor({ id: item.id, score: item.qualityScore })} title="Ver como o score foi calculado" style={{ fontSize: "11px", fontWeight: "700", border: "none", background: "none", padding: 0, cursor: "pointer", textDecoration: "underline dotted", color: item.qualityScore >= 70 ? "#16A34A" : item.qualityScore >= 40 ? "#D97706" : "#DC2626" }}>Score: {item.qualityScore}% ⓘ</button>
+                                    ) : (
+                                        <span style={{ fontSize: "11px", fontWeight: "700", color: item.qualityScore >= 70 ? "#16A34A" : item.qualityScore >= 40 ? "#D97706" : "#DC2626" }}>Score: {item.qualityScore}%</span>
+                                    )
                                 )}
                                 <span style={{ fontSize: "11px", color: "#98989D" }}>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</span>
                                 {item.approvalNote && <span style={{ fontSize: "11px", color: "#DC2626", fontStyle: "italic" }}>Nota: {item.approvalNote}</span>}
