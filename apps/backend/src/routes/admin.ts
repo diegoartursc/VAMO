@@ -219,16 +219,68 @@ router.get('/stats', verifyAdmin, async (_req: Request, res: Response) => {
         const rejectedPackages = await prisma.package.count({ where: { status: 'REJECTED' } });
         const rejectedItineraries = await prisma.itinerary.count({ where: { status: 'REJECTED' } });
 
+        const [activeItineraries, approvedAwaitingPublish, travelers, creators, pendingCreators, sales] = await Promise.all([
+            prisma.itinerary.count({ where: { status: 'ACTIVE' } }),
+            prisma.itinerary.count({ where: { status: 'APPROVED' } }),
+            prisma.traveler.count(),
+            prisma.creator.count(),
+            prisma.creator.count({ where: { verificationLevel: 'BASIC' } }),
+            prisma.itinerarySale.count(),
+        ]);
+
         res.json({
             pendingPackages,
             pendingItineraries,
             totalPending: pendingPackages + pendingItineraries,
             approvedToday: approvedPackagesToday + approvedItinerariesToday,
             rejectedTotal: rejectedPackages + rejectedItineraries,
+            activeItineraries,
+            approvedAwaitingPublish,
+            travelers,
+            creators,
+            pendingCreators,
+            sales,
         });
     } catch (error) {
         console.error('[admin stats] error:', error);
         res.status(500).json({ error: 'Failed to fetch admin stats' });
+    }
+});
+
+// GET /api/admin/sales — vendas de roteiros para o Financeiro do painel.
+router.get('/sales', verifyAdmin, async (_req: Request, res: Response) => {
+    try {
+        const sales = await prisma.itinerarySale.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 500,
+            select: {
+                id: true, price: true, commission: true, createdAt: true, purchaseData: true,
+                traveler: { select: { name: true, email: true } },
+                itinerary: { select: { id: true, title: true, currency: true, creator: { select: { traveler: { select: { name: true } } } } } },
+            },
+        });
+        res.json(sales.map((s) => {
+            const payment = (s.purchaseData as any)?.payment || {};
+            return {
+                id: s.id,
+                createdAt: s.createdAt,
+                price: s.price,
+                commission: s.commission,
+                net: s.price - s.commission,
+                currency: s.itinerary.currency,
+                itineraryId: s.itinerary.id,
+                itineraryTitle: s.itinerary.title,
+                creatorName: s.itinerary.creator?.traveler?.name ?? null,
+                buyerName: s.traveler.name,
+                buyerEmail: s.traveler.email,
+                provider: payment.provider ?? null,
+                paymentStatus: payment.paymentStatus ?? null,
+                amountPaid: payment.amountTotal ?? null,
+            };
+        }));
+    } catch (error) {
+        console.error('[admin sales] error:', error);
+        res.status(500).json({ error: 'Failed to fetch sales' });
     }
 });
 

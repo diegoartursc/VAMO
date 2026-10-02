@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
+export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 
 /* ═══════════════════════════════════════════════════
    TYPES
@@ -24,7 +25,10 @@ export interface PendingItinerary {
     creator?: { id: string; traveler?: { name: string; avatar?: string } };
     images?: { url: string }[];
 }
-export interface Stats { pendingPackages: number; pendingItineraries: number; totalPending: number; approvedToday: number; rejectedTotal: number; }
+export interface Stats {
+    pendingPackages: number; pendingItineraries: number; totalPending: number; approvedToday: number; rejectedTotal: number;
+    activeItineraries?: number; approvedAwaitingPublish?: number; travelers?: number; creators?: number; pendingCreators?: number; sales?: number;
+}
 export interface PendingCreator { id: string; traveler: { name: string; email: string; avatar?: string }; bio: string; createdAt: string; }
 
 export type AgencyStatus = "PENDING" | "REVIEW" | "ACTIVE" | "SUSPENDED";
@@ -337,6 +341,13 @@ export function ItemList({ items, type, onApprove, onReject, onCostProofs, empty
                             </div>
                         </div>
                         <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                            {type === "itineraries" && (
+                                <Link href={`/admin/roteiros/${item.id}`} style={{
+                                    padding: "9px 14px", borderRadius: "10px", border: "1.5px solid #E2E8F0",
+                                    background: "#fff", color: "#1A3263", fontWeight: "700", fontSize: "13px",
+                                    textDecoration: "none", display: "flex", alignItems: "center",
+                                }}>Ver roteiro</Link>
+                            )}
                             {type === "itineraries" && onCostProofs && (
                                 <button
                                     onClick={() => onCostProofs(item.id, item.title)}
@@ -404,7 +415,9 @@ export function ApproveRejectModal({ modal, onClose, onConfirm, loading }: {
                     {modal.type === "approve" ? <>{Icon.checkCircle({ color: "#16A34A", size: 22 })} Aprovar</> : <>{Icon.x({ color: "#DC2626", size: 22 })} Rejeitar</>}
                 </h2>
                 <p style={{ margin: "0 0 20px", color: "#5A6B8C", fontSize: "14px" }}>
-                    {modal.type === "approve" ? `Aprovar "${modal.title}"? Ele ficará visível no app.` : `Rejeitar "${modal.title}"? Informe o motivo.`}
+                    {modal.type === "approve"
+                        ? `Aprovar "${modal.title}"? O roteirista recebe um e-mail e precisa tocar em "Publicar roteiro" para ele aparecer no app.`
+                        : `Rejeitar "${modal.title}"? Informe o motivo — ele vai no e-mail para o roteirista corrigir e reenviar.`}
                 </p>
                 {modal.type === "reject" && (
                     <textarea value={note} onChange={e => setNote(e.target.value)}
@@ -414,7 +427,8 @@ export function ApproveRejectModal({ modal, onClose, onConfirm, loading }: {
                 )}
                 <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                     <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: "12px", border: "1.5px solid #E0E4EB", background: "#fff", cursor: "pointer", fontWeight: "600", fontSize: "14px", color: "#5A6B8C" }}>Cancelar</button>
-                    <button onClick={() => onConfirm(note)} disabled={loading} style={{
+                    <button onClick={() => onConfirm(note)} disabled={loading || (modal.type === "reject" && !note.trim())} style={{
+                        opacity: modal.type === "reject" && !note.trim() ? 0.5 : 1,
                         flex: 1, padding: "12px", borderRadius: "12px", border: "none",
                         background: modal.type === "approve" ? "linear-gradient(135deg, #28C9BF, #1FA89F)" : "linear-gradient(135deg, #EF4444, #DC2626)",
                         color: "#fff", cursor: "pointer", fontWeight: "700", fontSize: "14px",

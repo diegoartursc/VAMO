@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AdminDataProvider, useAdmin, FilterBar, ItemList, ApproveRejectModal } from "../shared";
 import CostProofsModal from "../CostProofsModal";
 
@@ -9,6 +9,18 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 function ItinerariesContent() {
     const { allItineraries, showToast, refetch, getToken } = useAdmin();
     const [filter, setFilter] = useState("ALL");
+    const [filterChosen, setFilterChosen] = useState(false);
+
+    // Filtro vindo do link (?status=PENDING_REVIEW…); sem ele, abre nos
+    // pendentes quando houver algum — é o que o admin veio fazer aqui.
+    useEffect(() => {
+        const fromUrl = new URLSearchParams(window.location.search).get("status");
+        if (fromUrl) { setFilter(fromUrl); setFilterChosen(true); }
+    }, []);
+    useEffect(() => {
+        if (!filterChosen && allItineraries.some(i => i.status === "PENDING_REVIEW")) setFilter("PENDING_REVIEW");
+    }, [allItineraries, filterChosen]);
+    const chooseFilter = (f: string) => { setFilter(f); setFilterChosen(true); };
     const [modal, setModal] = useState<{ type: "approve" | "reject"; itemType: "packages" | "itineraries"; id: string; title: string } | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
     /** Roteiro atualmente aberto na modal de comprovantes (null = fechado). */
@@ -31,10 +43,13 @@ function ItinerariesContent() {
                 headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
                 body: JSON.stringify(modal.type === "reject" ? { note } : {}),
             });
-            if (!res.ok) throw new Error("Erro");
-            showToast(modal.type === "approve" ? "Aprovado!" : "Rejeitado.", "success");
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body?.error || "Erro ao executar ação");
+            }
+            showToast(modal.type === "approve" ? "Aprovado! O roteirista recebeu um e-mail." : "Rejeitado. O motivo foi enviado ao roteirista.", "success");
             setModal(null); refetch();
-        } catch { showToast("Erro ao executar ação", "error"); }
+        } catch (e: any) { showToast(e?.message || "Erro ao executar ação", "error"); }
         finally { setActionLoading(false); }
     };
 
@@ -46,7 +61,7 @@ function ItinerariesContent() {
                     <p className="dash-subtitle">Modere os roteiros dos criadores de conteúdo</p>
                 </div>
             </header>
-            <FilterBar current={filter} onChange={setFilter} counts={{
+            <FilterBar current={filter} onChange={chooseFilter} counts={{
                 ALL: allItineraries.length,
                 PENDING_REVIEW: allItineraries.filter(i => i.status === "PENDING_REVIEW").length,
                 APPROVED: allItineraries.filter(i => i.status === "APPROVED").length,
