@@ -22,7 +22,8 @@ export type FieldType =
     | 'time'        // HH:MM, TimePickerField
     | 'number'      // numérico (inteiro), FormInput keyboardType numeric
     | 'picker'      // chips horizontais com opções fixas (single-select)
-    | 'cost';       // { value, currency } — MoneyInput + CurrencyPicker do creator
+    | 'cost'        // { value, currency } — MoneyInput + CurrencyPicker do creator
+    | 'stars';      // classificação do hotel 0–5 (string), HotelStarsInput
 
 export interface FieldSpec {
     /** Chave no objeto `data` do item. */
@@ -105,7 +106,7 @@ const EXTRA_SPENDING_CATEGORY_OPTIONS = [
 
 const ACCOMMODATIONS: FieldSpec[] = [
     { key: 'name', label: 'Nome do hotel / hostel', type: 'text', placeholder: 'Ex: Waldorf Astoria', required: true },
-    { key: 'rating', label: 'Nota', type: 'text', placeholder: 'Ex: 8.5' },
+    { key: 'rating', label: 'Classificação (estrelas)', type: 'stars' },
     { key: 'address', label: 'Nome do local ou endereço', type: 'text', placeholder: 'Ex: Rue de Rivoli, 228' },
     { key: 'mapLink', label: 'Link da localização (Google Maps)', type: 'text', placeholder: 'Ex: https://goo.gl/maps/…' },
     { key: 'nights', label: 'Noites', type: 'number', placeholder: '1', hint: 'Quantas noites a sua estadia.' },
@@ -143,6 +144,7 @@ const RESTAURANTS: FieldSpec[] = [
     { key: 'name', label: 'Nome do restaurante', type: 'text', placeholder: 'Ex: Le Jules Verne', required: true },
     { key: 'cuisine', label: 'Culinária', type: 'picker', options: CUISINE_OPTIONS },
     { key: 'location', label: 'Cidade ou localização', type: 'text', placeholder: 'Ex: Tóquio, Shibuya, região central ou perto da estação', hint: 'Informe cidade, bairro, região ou ponto de referência.', required: true },
+    { key: 'mapLink', label: 'Link do Google Maps', type: 'text', placeholder: 'Ex: https://goo.gl/maps/…' },
     { key: 'description', label: 'Descrição / Por que recomendar', type: 'multiline', placeholder: 'Ex: O melhor croque monsieur da cidade…' },
     { key: 'hoursStart', label: 'Horário', type: 'time' },
     { key: 'startDate', label: 'Data', type: 'date' },

@@ -19,6 +19,7 @@ import {
     BUDGET_STYLE_CREATOR_SUBTITLE,
     getBudgetStyleGuide,
     getPrimaryBudgetStyle,
+    toHotelStars,
 } from "@vamo/shared/itinerary";
 import { getItineraryById, createItinerary, updateItinerary, uploadFile, uploadFiles } from "../../../../lib/api";
 import {
@@ -223,7 +224,7 @@ interface Accommodation { name: string; address: string; mapLink: string; descri
 interface Transport { description: string; passTypes: string; notes: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
 interface ChecklistItem { category: string; item: string; isDefault: boolean; }
 interface BreakdownItem { category: string; min: string; max: string; currency: string; }
-interface RestaurantItem { name: string; cuisine: string; location: string; description: string; hours: string; hoursStart: string; externalLink: string; tips: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
+interface RestaurantItem { name: string; cuisine: string; location: string; mapLink?: string; description: string; hours: string; hoursStart: string; externalLink: string; tips: string; startDate: string; endDate: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
 interface AttractionItem { name: string; type: string; location: string; mapLink: string; description: string; hours: string; duration: string; externalLink: string; tips: string; startDate: string; endDate: string; price?: string; spending?: ModuleSpending; cost?: ModuleCostInfo; }
 interface ExtraSpendingItem { id: string; category: string; title: string; description: string; value: string; currency: string; cost?: ModuleCostInfo; }
 interface SpendingEntry { moduleKey: string; label: string; icon: string; priceValue: string; priceCurrency: string; receiptUrl: string; originCity?: string; }
@@ -756,7 +757,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     const hoursRaw: string = r.hoursStart ? "" : (r.hours || "");
                     const parts = hoursRaw.split(/[-–—]+/).map((s: string) => s.trim());
                     return {
-                        name: r.name || "", cuisine: r.cuisine || "", location: r.location || "",
+                        name: r.name || "", cuisine: r.cuisine || "", location: r.location || "", mapLink: r.mapLink || "",
                         description: r.description || "",
                         hours: r.hours || "",
                         hoursStart: r.hoursStart || parts[0] || "",
@@ -1427,9 +1428,12 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                 <label className="form-label" style={{ fontSize: 11 }}>Nome do hotel / hostel *</label>
                                 <input className="form-input" value={acc.name} onChange={e => { const u = [...accommodations]; u[i].name = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Ex: Waldorf Astoria" />
                             </div>
-                            <div className="form-group" style={{ width: 90, margin: 0 }}>
-                                <label className="form-label" style={{ fontSize: 11 }}>Nota</label>
-                                <input className="form-input" value={acc.rating} onChange={e => { const u = [...accommodations]; u[i].rating = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Ex: 8.5" />
+                            <div className="form-group" style={{ width: 150, margin: 0 }}>
+                                <label className="form-label" style={{ fontSize: 11 }}>Estrelas</label>
+                                <select className="form-input" value={String(toHotelStars(acc.rating))} onChange={e => { const u = [...accommodations]; u[i].rating = e.target.value === "0" ? "" : e.target.value; setAccommodations(u); markDirty(); }}>
+                                    <option value="0">Sem estrelas</option>
+                                    {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{"★".repeat(n)} ({n})</option>)}
+                                </select>
                             </div>
                             <button className="btn-remove" style={{ marginBottom: 6 }} onClick={() => { setAccommodations(accommodations.filter((_, idx) => idx !== i)); markDirty(); }}>✕</button>
                         </div>
@@ -1665,6 +1669,10 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             <div className="form-group" style={{ flex: 2, minWidth: 120, margin: 0 }}>
                                 <label className="form-label" style={{ fontSize: 11 }}>Localização / Bairro *</label>
                                 <input className="form-input" value={rest.location} onChange={e => { const u = [...restaurants]; u[i].location = e.target.value; setRestaurants(u); markDirty(); }} placeholder="Ex: Montmartre" />
+                            </div>
+                            <div className="form-group" style={{ flex: 2, minWidth: 160, margin: 0 }}>
+                                <label className="form-label" style={{ fontSize: 11 }}>Link do Google Maps</label>
+                                <input className="form-input" value={rest.mapLink || ""} onChange={e => { const u = [...restaurants]; u[i].mapLink = e.target.value; setRestaurants(u); markDirty(); }} placeholder="Ex: https://goo.gl/maps/..." />
                             </div>
                         </div>
                         <div className="editor-activity-row">

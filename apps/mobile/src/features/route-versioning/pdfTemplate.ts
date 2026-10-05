@@ -26,7 +26,7 @@
 
 import type { MergedItem, MergedItinerary } from './mergeEngine';
 import { resolveGeneralTipText } from './mergeEngine';
-import { getCostReferences, formatMoney, formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
+import { getCostReferences, formatMoney, formatTimeForAustraliaDisplay, hotelStarsText } from '@vamo/shared/itinerary';
 import { convertToAud, summarizeInAud } from '../../utils/currencyConversion';
 
 // ─── Tipos públicos ─────────────────────────────────────────────────
@@ -165,7 +165,7 @@ function renderAccommodation(data: any, source?: MergedItem['source']): string {
             ${renderField('Endereço', data?.address)}
             ${renderField('Bairro', data?.neighborhood)}
             ${renderField('Faixa de preço', data?.priceRange)}
-            ${renderField('Avaliação', data?.rating)}
+            ${renderField('Classificação', hotelStarsText(data?.rating))}
             ${renderParagraph(data?.description)}
             ${data?.tips ? `<p class="tip"><strong>Dica:</strong> ${escapeHtml(data.tips)}</p>` : ''}
         </div>`;

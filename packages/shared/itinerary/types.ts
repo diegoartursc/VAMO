@@ -190,6 +190,8 @@ export interface RestaurantItem {
     name: string;
     cuisine: string;
     location: string;
+    /** Link do Google Maps do restaurante (opcional). */
+    mapLink?: string;
     description: string;
     hours: string;
     hoursStart: string;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AdminDataProvider, useAdmin, ApproveRejectModal, API, STATUS_LABEL, STATUS_COLOR, Status } from "../../shared";
 import CostProofsModal from "../../CostProofsModal";
+import { hotelStarsText } from "@vamo/shared/itinerary";
 import ScoreBreakdownModal from "../../ScoreBreakdownModal";
 
 const box: React.CSSProperties = { background: "#fff", borderRadius: "18px", padding: "20px 22px", border: "1px solid rgba(226,232,240,0.7)", marginBottom: "16px" };
@@ -156,7 +157,7 @@ function DetailContent() {
 
             <Section title="Hospedagem" count={accommodations.length}>
                 {accommodations.map((a: any, i: number) => (
-                    <div key={i} style={row}><b style={{ color: "#1A3263" }}>{a.name}</b><div style={muted}>{[a.location, a.type, a.nights ? `${a.nights} noites` : ""].filter(Boolean).join(" · ")}</div>{a.description && <div style={muted}>{a.description}</div>}</div>
+                    <div key={i} style={row}><b style={{ color: "#1A3263" }}>{a.name}</b>{hotelStarsText(a.rating) && <span style={{ color: "#F5A623", marginLeft: 8 }}>{hotelStarsText(a.rating)}</span>}<div style={muted}>{[a.location, a.type, a.nights ? `${a.nights} noites` : ""].filter(Boolean).join(" · ")}</div>{a.description && <div style={muted}>{a.description}</div>}</div>
                 ))}
             </Section>
 
@@ -185,7 +186,7 @@ function DetailContent() {
             </Section>
 
             <Section title="Restaurantes" count={restaurants.length}>
-                {restaurants.map((r: any, i: number) => <div key={i} style={row}><b style={{ color: "#1A3263" }}>{r.name}</b><div style={muted}>{[r.cuisine, r.location].filter(Boolean).join(" · ")}</div></div>)}
+                {restaurants.map((r: any, i: number) => <div key={i} style={row}><b style={{ color: "#1A3263" }}>{r.name}</b><div style={muted}>{[r.cuisine, r.location].filter(Boolean).join(" · ")}{r.mapLink && <> · <a href={r.mapLink} target="_blank" rel="noopener noreferrer" style={{ color: "#1FA89F" }}>Mapa</a></>}</div></div>)}
             </Section>
 
             <Section title="Dicas" count={tips.length}>

@@ -55,3 +55,21 @@ function toFiniteNonNegative(v: unknown): number {
     if (!Number.isFinite(n) || n < 0) return 0;
     return n;
 }
+
+/**
+ * Classificação de hotel em estrelas (0–5, inteiro). O campo `rating` da
+ * hospedagem já foi uma "nota de 0 a 10"; valores acima de 5 são tratados como
+ * essa escala antiga e convertidos (8.5 → 4). 0/vazio = sem classificação.
+ */
+export function toHotelStars(rating: unknown): number {
+    const n = typeof rating === 'number' ? rating : parseFloat(String(rating ?? '').replace(',', '.'));
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    const stars = n > 5 ? n / 2 : n;
+    return Math.max(0, Math.min(5, Math.round(stars)));
+}
+
+/** "★★★★☆" para exibir em texto (PDF, painel). Vazio quando não há classificação. */
+export function hotelStarsText(rating: unknown): string {
+    const s = toHotelStars(rating);
+    return s ? '★'.repeat(s) + '☆'.repeat(5 - s) : '';
+}

@@ -24,6 +24,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { toHotelStars } from '@vamo/shared/itinerary';
+import { HotelStarsDisplay } from '../../components/common/HotelStars';
 
 import { theme } from '../../theme/theme';
 import { openExternalUrl } from '../../utils/externalLinks';
@@ -175,10 +177,9 @@ function AccommodationCard({ data }: { data: any }) {
             {data?.description ? (
                 <Text style={styles.desc}>{String(data.description)}</Text>
             ) : null}
-            {data?.rating ? (
+            {toHotelStars(data?.rating) > 0 ? (
                 <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={13} color="#FFC107" />
-                    <Text style={styles.ratingText}>{String(data.rating)}</Text>
+                    <HotelStarsDisplay value={data.rating} />
                 </View>
             ) : null}
             {data?.tips ? (
@@ -288,6 +289,7 @@ function RestaurantCard({ data }: { data: any }) {
                     <Text style={styles.tipText}>💡 {String(data.tips)}</Text>
                 </View>
             ) : null}
+            <MapButton url={data?.mapLink} />
             <ExternalButton url={data?.externalLink} label="Ver reservas" />
         </>
     );

@@ -25,6 +25,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { safeBack } from '../src/utils/navigation';
+import { HotelStarsInput } from '../src/components/common/HotelStars';
 import { Ionicons } from '@expo/vector-icons';
 import {
     Wallet, BarChart3, Crown,
@@ -963,7 +964,9 @@ function QuantityStepper({
     const inc = () => onChange(clamp(value + step));
     const atMin = value <= min;
     const atMax = max != null && value >= max;
+    const hasUnits = !!(unit && onUnitChange && units && units.length > 0);
     return (
+        <View style={hasUnits ? { gap: 8 } : undefined}>
         <View style={s.qsRow}>
             <TouchableOpacity
                 style={[s.qsBtn, atMin && s.qsBtnDisabled]}
@@ -999,22 +1002,33 @@ function QuantityStepper({
                     color={atMax ? theme.colors.text.disabled : theme.colors.primary}
                 />
             </TouchableOpacity>
-            {unit && onUnitChange && units && units.length > 0 && (
-                <TouchableOpacity
-                    style={s.qsUnit}
-                    onPress={() => {
-                        const idx = units.indexOf(unit);
-                        const next = units[(idx + 1) % units.length];
-                        onUnitChange(next);
-                    }}
-                    activeOpacity={0.7}
-                >
-                    <Text style={s.qsUnitText}>{unit}</Text>
-                </TouchableOpacity>
+        </View>
+            {/* Unidade visível como opções lado a lado (antes era um toque que
+                alternava escondido entre min/h/d e ninguém percebia). */}
+            {hasUnits && (
+                <View style={s.unitSeg} accessibilityRole="radiogroup">
+                    {units!.map(u => {
+                        const active = u === unit;
+                        return (
+                            <TouchableOpacity
+                                key={u}
+                                style={[s.unitSegItem, active && s.unitSegItemActive]}
+                                onPress={() => onUnitChange!(u)}
+                                activeOpacity={0.8}
+                                accessibilityRole="radio"
+                                accessibilityState={{ selected: active }}
+                            >
+                                <Text style={[s.unitSegText, active && s.unitSegTextActive]}>{UNIT_LABELS[u] ?? u}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
             )}
         </View>
     );
 }
+
+const UNIT_LABELS: Record<string, string> = { min: 'Minutos', h: 'Horas', d: 'Dias' };
 
 // ═══════════════════════════════════════════════════════════════════
 // STEP 1 — IDENTIDADE
@@ -1892,14 +1906,8 @@ function StepAccommodations({ form, update, token }: StepProps) {
                 factory={emptyAccommodation}
                 render={(item, set) => (
                     <>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <View style={{ flex: 2 }}>
-                                <FormInput label="Nome do hotel / hostel" required placeholder="Ex: Waldorf Astoria" value={item.name} onChangeText={v => set({ name: v })} />
-                            </View>
-                            <View style={{ width: 90 }}>
-                                <FormInput label="Nota" keyboardType="decimal-pad" placeholder="Ex: 8.5" value={item.rating} onChangeText={v => set({ rating: v })} />
-                            </View>
-                        </View>
+                        <FormInput label="Nome do hotel / hostel" required placeholder="Ex: Waldorf Astoria" value={item.name} onChangeText={v => set({ name: v })} />
+                        <HotelStarsInput value={item.rating} onChange={v => set({ rating: v })} />
                         <FormInput label="Nome do local ou endereço" placeholder="Ex: Rue de Rivoli, 228" value={item.address} onChangeText={v => set({ address: v })} />
                         <FormInput label="Link da localização (Google Maps)" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
                         <Text style={s.label}>Noites <Text style={s.requiredAsterisk}>*</Text></Text>
@@ -2194,6 +2202,7 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             })}
                         </View>
                         <FormInput label="Localização / Bairro" required placeholder="Ex: Montmartre" value={item.location} onChangeText={v => set({ location: v })} />
+                        <FormInput label="Link do Google Maps" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink || ''} onChangeText={v => set({ mapLink: v })} />
                         <FormInput
                             label="Descrição / Por que recomendar"
                             placeholder="Ex: O melhor croque monsieur da cidade com vista incrível..."
@@ -3328,6 +3337,15 @@ const s = StyleSheet.create({
         borderLeftWidth: 1, borderRightWidth: 1,
         borderColor: theme.colors.borderLight,
     },
+    unitSeg: {
+        flexDirection: 'row', alignSelf: 'flex-start',
+        backgroundColor: theme.colors.surfaceLight, borderRadius: 10, padding: 3, gap: 3,
+        borderWidth: 1, borderColor: theme.colors.borderLight,
+    },
+    unitSegItem: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 8 },
+    unitSegItemActive: { backgroundColor: theme.colors.primary },
+    unitSegText: { fontSize: 13, fontWeight: '600', color: theme.colors.text.secondary },
+    unitSegTextActive: { color: '#fff' },
     qsUnit: {
         paddingHorizontal: 14, minWidth: 56,
         alignItems: 'center', justifyContent: 'center',

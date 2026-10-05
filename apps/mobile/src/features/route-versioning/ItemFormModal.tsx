@@ -31,6 +31,7 @@ import FormInput from '../../components/dashboard/FormInput';
 import MoneyInput from '../../components/dashboard/MoneyInput';
 import { CurrencyPicker } from '../../components/common/CurrencyPicker';
 import VamoButton from '../../components/common/VamoButton';
+import { HotelStarsInput } from '../../components/common/HotelStars';
 
 import { DatePickerField, TimePickerField } from './pickers';
 import { FIELDS_BY_KIND, KIND_TITLE, type FieldSpec } from './itemFields';
@@ -328,6 +329,8 @@ function FieldRenderer({ spec, value, onChange }: FieldRendererProps) {
     switch (spec.type) {
         case 'cost':
             return <CostField spec={spec} value={value} onChange={onChange} />;
+        case 'stars':
+            return <HotelStarsInput label={spec.label} value={value} onChange={onChange} />;
         case 'picker':
             return <PickerField spec={spec} value={value} onChange={onChange} />;
         case 'multiline':

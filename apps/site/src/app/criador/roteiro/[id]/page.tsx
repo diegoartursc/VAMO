@@ -1,4 +1,5 @@
 "use client";
+import { toHotelStars } from "@vamo/shared/itinerary";
 
 import Link from "next/link";
 import { useState, useEffect, useRef, useCallback, use, type ReactNode } from "react";
@@ -699,7 +700,10 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         <div className="editor-activity-card" key={i} style={{ marginBottom: 10 }}>
                             <div className="editor-activity-row">
                                 <input className="form-input" value={acc.name} onChange={e => { const u = [...accommodations]; u[i].name = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Nome do hotel / hostel" style={{ flex: 2 }} />
-                                <input className="form-input" value={acc.rating} onChange={e => { const u = [...accommodations]; u[i].rating = e.target.value; setAccommodations(u); markDirty(); }} placeholder="Nota (ex: 8.5)" style={{ width: 90 }} />
+                                <select className="form-input" value={String(toHotelStars(acc.rating))} onChange={e => { const u = [...accommodations]; u[i].rating = e.target.value === "0" ? "" : e.target.value; setAccommodations(u); markDirty(); }} style={{ width: 150 }}>
+                                    <option value="0">Sem estrelas</option>
+                                    {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{"★".repeat(n)} ({n})</option>)}
+                                </select>
                                 <button className="btn-remove" onClick={() => { setAccommodations(accommodations.filter((_, idx) => idx !== i)); markDirty(); }}><X size={14} /></button>
                             </div>
                             <div className="editor-activity-row">
