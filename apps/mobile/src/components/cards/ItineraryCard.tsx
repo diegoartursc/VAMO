@@ -35,6 +35,8 @@ export interface ItineraryCardProps {
     width?: number;
 }
 
+const CARD_BORDER_WIDTH = 1;
+
 export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress, width }) => {
     // Largura real do card: a prop tem precedência (carrossel sabe exatamente);
     // sem ela, parte da janela menos a margem típica da lista. `onLayout` seria
@@ -140,6 +142,11 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     sem corte agressivo do destino. */}
                 <CoverCarousel
                     images={getCoverImages(itinerary)}
+                    // Largura da capa = largura do card menos a borda dos dois
+                    // lados. Sem isso o carrossel usava a largura da JANELA e,
+                    // no desktop, a capa 4:3 de um card de 300px ficava com
+                    // ~1440px de altura.
+                    width={Math.max(1, cardWidth - CARD_BORDER_WIDTH * 2)}
                     aspectRatio={4 / 3}
                     focalPoint={getCoverFocalPoint(itinerary)}
                     coverMode="containWithBlurredBg"
@@ -316,7 +323,7 @@ const styles = StyleSheet.create({
         borderRadius: theme.borderRadius.xl,
         overflow: 'hidden',
         marginBottom: 20,
-        borderWidth: 1,
+        borderWidth: CARD_BORDER_WIDTH,
         borderColor: theme.colors.borderLight,
         ...theme.shadows.medium,
     },

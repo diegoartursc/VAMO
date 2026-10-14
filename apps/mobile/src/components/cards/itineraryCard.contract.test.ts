@@ -148,3 +148,10 @@ test('nenhum nome de categoria ou módulo está hardcoded no card ou no painel',
         assert.ok(!codigoPanel.includes(proibido), `"${proibido}" não pode estar hardcoded no painel`);
     }
 });
+
+test('a capa recebe a largura do CARD, nunca a da janela (bug da capa gigante no desktop)', () => {
+    // Sem `width`, o CoverCarousel calcula a altura a partir da largura da
+    // janela: card de 300px numa tela de 1920px → capa 4:3 com 1440px de altura.
+    const carousel = cardCode.slice(cardCode.indexOf('<CoverCarousel'), cardCode.indexOf('/>', cardCode.indexOf('<CoverCarousel')));
+    assert.ok(/\bwidth=\{[^}]*cardWidth/.test(carousel), 'CoverCarousel precisa receber width derivado de cardWidth');
+});
