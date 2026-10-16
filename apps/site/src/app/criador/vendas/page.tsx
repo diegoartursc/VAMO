@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 export default function VendasPage() {
     const [balance] = useState(12450.00);
     const [pending] = useState(1200.00);
 
     const formatCurrency = (val: number) =>
-        `A$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        `${BASE_CURRENCY_SYMBOL}${val.toLocaleString(BASE_LOCALE, { minimumFractionDigits: 2 })}`;
 
     const transactions = [
         { id: 1, date: "27/02/2026", desc: "Venda: Roteiro Chapada Diamantina", amount: 450.00, status: "Recebido" },

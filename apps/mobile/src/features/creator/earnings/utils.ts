@@ -1,9 +1,10 @@
-import { formatMoney } from '@vamo/shared/itinerary';
+import { formatMoney, BASE_LOCALE } from '@vamo/shared/itinerary';
 import type { EarningTransactionStatus, PayoutAccountStatus } from './types';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
-/** Currency formatter for the Australian market. Wraps the shared helper. */
-export function formatCurrencyAUD(value: number): string {
-    return formatMoney(value, 'AUD', 'en-AU');
+/** Currency formatter for the product's base currency. Wraps the shared helper. */
+export function formatBaseCurrency(value: number): string {
+    return formatMoney(value, BASE_CURRENCY, BASE_LOCALE);
 }
 
 /** Short, human date — e.g. "Mon, 10 Jun". Returns '—' for invalid input. */
@@ -11,7 +12,7 @@ export function formatShortDate(iso?: string): string {
     if (!iso) return '—';
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return '—';
-    return new Intl.DateTimeFormat('en-AU', {
+    return new Intl.DateTimeFormat(BASE_LOCALE, {
         weekday: 'short',
         day: '2-digit',
         month: 'short',
@@ -23,7 +24,7 @@ export function formatLongDate(iso?: string): string {
     if (!iso) return '—';
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return '—';
-    return new Intl.DateTimeFormat('en-AU', {
+    return new Intl.DateTimeFormat(BASE_LOCALE, {
         day: '2-digit',
         month: 'short',
         year: 'numeric',

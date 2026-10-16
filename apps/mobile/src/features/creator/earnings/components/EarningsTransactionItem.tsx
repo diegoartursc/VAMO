@@ -4,7 +4,7 @@ import { theme } from '../../../../theme/theme';
 import type { CreatorEarningTransaction } from '../types';
 import {
     TRANSACTION_STATUS_VISUALS,
-    formatCurrencyAUD,
+    formatBaseCurrency,
     formatLongDate,
 } from '../utils';
 
@@ -30,16 +30,16 @@ export function EarningsTransactionItem({ transaction, isLast }: Props) {
             <Text style={styles.date}>{formatLongDate(transaction.saleDate)}</Text>
 
             <View style={styles.breakdown}>
-                <BreakdownLine label="Gross" value={formatCurrencyAUD(transaction.grossAmount)} />
+                <BreakdownLine label="Gross" value={formatBaseCurrency(transaction.grossAmount)} />
                 <BreakdownLine
                     label="VAMO fee"
-                    value={`-${formatCurrencyAUD(transaction.platformFee)}`}
+                    value={`-${formatBaseCurrency(transaction.platformFee)}`}
                     valueColor={theme.colors.text.secondary}
                 />
                 <View style={styles.divider} />
                 <BreakdownLine
                     label="Estimated payout"
-                    value={formatCurrencyAUD(transaction.estimatedPayout)}
+                    value={formatBaseCurrency(transaction.estimatedPayout)}
                     emphasize
                 />
             </View>

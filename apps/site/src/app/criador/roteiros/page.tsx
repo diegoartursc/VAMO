@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getDashboardStats, deleteItinerary, type DashboardItinerary } from "@/lib/api";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 export default function RoteirosPage() {
     const [itineraries, setItineraries] = useState<DashboardItinerary[]>([]);
@@ -30,7 +31,7 @@ export default function RoteirosPage() {
     };
 
     const formatCurrency = (value: number) =>
-        `A$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+        `${BASE_CURRENCY_SYMBOL}${value.toLocaleString(BASE_LOCALE, { minimumFractionDigits: 0 })}`;
 
     const formatDate = (iso: string) => {
         const d = new Date(iso);
@@ -109,7 +110,7 @@ export default function RoteirosPage() {
                                 </span>
                             </div>
                             <div className="table-cell">
-                                {it.sales > 0 ? it.sales.toLocaleString("pt-BR") : "—"}
+                                {it.sales > 0 ? it.sales.toLocaleString(BASE_LOCALE) : "—"}
                             </div>
                             <div className="table-cell">
                                 {it.revenue > 0 ? formatCurrency(it.revenue) : "—"}

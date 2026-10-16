@@ -150,7 +150,7 @@ export default function ItineraryContactScreen() {
     const creatorName = itinerary?.creator?.name || 'Criador VAMO';
 
     const formattedPrice = checkoutPrice > 0
-        ? formatMoney(checkoutPrice)
+        ? formatMoney(checkoutPrice, itinerary?.currency || undefined)
         : 'Grátis';
 
     const coverImage = useMemo(() => {

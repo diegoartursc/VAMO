@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { formatTimeForAustraliaDisplay } from "@vamo/shared/itinerary";
+import { BASE_CURRENCY } from "@vamo/shared/itinerary";
 
 interface PhonePreviewProps {
     title: string;
@@ -40,7 +41,7 @@ export default function PhonePreview({
     country,
     duration,
     price,
-    currency = "AUD",
+    currency = BASE_CURRENCY,
     coverImage,
     highlights = [],
     days = [],
@@ -48,7 +49,7 @@ export default function PhonePreview({
     categories = [],
     type = "roteiro",
 }: PhonePreviewProps) {
-    const currencySymbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "BRL" ? "R$" : "A$";
+    const currencySymbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "BRL" ? "R$" : currency === "AUD" ? "A$" : currency;
     const formattedPrice = price > 0 ? `${currencySymbol} ${price.toLocaleString("pt-BR")}` : "—";
     const hasContent = !!(title || destination);
 

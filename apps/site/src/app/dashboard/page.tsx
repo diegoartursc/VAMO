@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getSession, isAgencySession, type AuthSession } from "../../lib/auth";
 import { getAgencyPackages, getAgencySales } from "../../lib/api";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 function getGreeting() {
     const h = new Date().getHours();
@@ -13,8 +14,8 @@ function getGreeting() {
 }
 
 function formatCurrency(value: number) {
-    if (value >= 1000) return `A$ ${(value / 1000).toFixed(1).replace(".", ",")}k`;
-    return `A$ ${value.toLocaleString("pt-BR")}`;
+    if (value >= 1000) return `${BASE_CURRENCY_SYMBOL}${(value / 1000).toFixed(1)}k`;
+    return `${BASE_CURRENCY_SYMBOL}${value.toLocaleString(BASE_LOCALE)}`;
 }
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {

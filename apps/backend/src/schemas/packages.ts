@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 /**
  * Zod schemas for package validation
@@ -16,7 +17,7 @@ export const CreatePackageSchema = z.object({
     duration: z.number().int().positive('Duration must be positive'),
     priceMin: z.number().positive('Price must be positive'),
     priceMax: z.number().positive('Price must be positive').optional(),
-    currency: z.enum(['AUD', 'USD', 'EUR', 'GBP', 'BRL']).default('AUD'),
+    currency: z.enum(['AUD', 'USD', 'EUR', 'GBP', 'BRL']).default(BASE_CURRENCY as 'USD'),
     continent: z.string().optional(),
     airport: z.string().optional(),
     multiDestination: z.boolean().default(false),

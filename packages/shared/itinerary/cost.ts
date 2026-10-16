@@ -20,6 +20,7 @@ import type {
     RestaurantItem,
     ExtraSpendingItem,
 } from "./types";
+import { BASE_CURRENCY, BASE_LOCALE } from "./market";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parsing
@@ -82,7 +83,7 @@ interface LegacyShape {
  */
 export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
     if (!item) {
-        return { disclosureType: "not_informed", currency: "AUD", amount: "", sharedByPeople: 1, proofFiles: [], proofStatus: "none" };
+        return { disclosureType: "not_informed", currency: BASE_CURRENCY, amount: "", sharedByPeople: 1, proofFiles: [], proofStatus: "none" };
     }
     if (item.cost && typeof item.cost === "object") {
         const c = item.cost;
@@ -91,7 +92,7 @@ export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
         const amount = typeof rawAmount === "number" ? String(rawAmount) : rawAmount;
         return {
             amount,
-            currency: c.currency ?? "AUD",
+            currency: c.currency ?? BASE_CURRENCY,
             disclosureType: c.disclosureType
                 ?? (parseMoney(amount) > 0 ? "estimated" : "not_informed"),
             sharedByPeople: normalizeSharedBy(c.sharedByPeople),
@@ -114,7 +115,7 @@ export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
         ?? item.currency
         ?? item.priceCurrency
         ?? item.ticketCurrency
-        ?? "AUD";
+        ?? BASE_CURRENCY;
     const hasValue = parseMoney(legacyValue) > 0;
     return {
         amount: hasValue ? String(legacyValue) : "",
@@ -130,7 +131,7 @@ export function resolveCostInfo(item?: LegacyShape | null): ModuleCostInfo {
 /**
  * Cria um ModuleCostInfo "limpo" para um novo item. Default not_informed.
  */
-export function createEmptyCostInfo(currency: string = "AUD"): ModuleCostInfo {
+export function createEmptyCostInfo(currency: string = BASE_CURRENCY): ModuleCostInfo {
     return {
         amount: "",
         currency,
@@ -169,17 +170,20 @@ export function getAmountPerPerson(cost?: ModuleCostInfo | null): number {
 // Formatação para exibição
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Formata número como moeda. Default: en-AU + AUD. */
-export function formatMoney(amount: number, currency: string = "AUD", locale: string = "en-AU"): string {
+/** Formata número como moeda. Default: locale e moeda-base do mercado (market.ts). */
+export function formatMoney(amount: number, currency: string = BASE_CURRENCY, locale: string = BASE_LOCALE): string {
     try {
         const formatted = new Intl.NumberFormat(locale, {
             style: "currency",
-            currency: currency || "AUD",
+            currency: currency || BASE_CURRENCY,
             maximumFractionDigits: 2,
         }).format(amount);
-        if ((currency || "AUD").toUpperCase() === "AUD") {
+        if ((currency || BASE_CURRENCY).toUpperCase() === "AUD") {
             if (formatted.startsWith("-$")) return `-A$ ${formatted.slice(2)}`;
             if (formatted.startsWith("$")) return `A$ ${formatted.slice(1)}`;
+            // Fora do locale en-AU o Intl já escreve "A$" (sem espaço): padroniza o espaço.
+            if (formatted.startsWith("-A$") && formatted[3] !== " ") return `-A$ ${formatted.slice(3)}`;
+            if (formatted.startsWith("A$") && formatted[2] !== " ") return `A$ ${formatted.slice(2)}`;
         }
         return formatted;
     } catch {
@@ -223,7 +227,7 @@ export function formatCostLabel(
     const resolved = info ?? { disclosureType: "not_informed" as CostDisclosureType };
     const type = resolved.disclosureType;
     const amount = parseMoney(resolved.amount);
-    const currency = resolved.currency || "AUD";
+    const currency = resolved.currency || BASE_CURRENCY;
     const moneyStr = amount > 0 ? formatMoney(amount, currency, locale) : "";
     const hasFile = (resolved.proofFiles?.length ?? 0) > 0;
     const status = resolved.proofStatus ?? "none";
@@ -362,7 +366,7 @@ export interface BudgetSummary {
     totalEstimated: number;
     /** Subtotal de itens com disclosureType="verified" e valor > 0. */
     totalVerified: number;
-    /** Moeda dominante encontrada (AUD por padrão). */
+    /** Moeda dominante encontrada (moeda-base por padrão). */
     currency: string;
     /** Contagens */
     informedItemsCount: number;
@@ -392,7 +396,7 @@ export function calculateBudgetSummary(form?: Partial<ItineraryFormState> | null
         totalInformed: 0,
         totalEstimated: 0,
         totalVerified: 0,
-        currency: "AUD",
+        currency: BASE_CURRENCY,
         informedItemsCount: 0,
         notInformedItemsCount: 0,
         estimatedItemsCount: 0,
@@ -444,7 +448,7 @@ export function calculateBudgetSummary(form?: Partial<ItineraryFormState> | null
         // é por pessoa — assim o PeopleSimulator pode multiplicar pela
         // quantidade de viajantes do comprador sem distorção.
         const perPerson = getAmountPerPerson(info);
-        const c = info.currency || "AUD";
+        const c = info.currency || BASE_CURRENCY;
         currencyCounts.set(c, (currencyCounts.get(c) ?? 0) + 1);
 
         if (info.disclosureType === "not_informed") {
@@ -469,7 +473,7 @@ export function calculateBudgetSummary(form?: Partial<ItineraryFormState> | null
     const totalItemsCount = items.length;
 
     // Moeda dominante
-    let dominantCurrency = "AUD";
+    let dominantCurrency = BASE_CURRENCY;
     let max = 0;
     for (const [c, n] of currencyCounts.entries()) {
         if (n > max) { max = n; dominantCurrency = c; }
@@ -694,7 +698,7 @@ function toReferenceItem(
         amountTotal,
         amountPerPerson,
         sharedByPeople,
-        currency: info.currency || "AUD",
+        currency: info.currency || BASE_CURRENCY,
         disclosureType: info.disclosureType,
         hasProof,
         proofStatus: info.proofStatus,
@@ -779,27 +783,27 @@ export function getCostReferences(
 // BRUTOS de moedas potencialmente diferentes e rotula com a "moeda
 // dominante" (por contagem de itens) — o que produz totais sem sentido
 // quando o roteiro mistura moedas (ex.: JPY 12.000 + A$ 2.000 vira "A$
-// 14.000"). Aqui cada item é convertido pra AUD (moeda de referência do
+// 14.000"). Aqui cada item é convertido pra a moeda-base (moeda de referência do
 // mercado) ANTES de somar, usando as mesmas taxas do admin já usadas pela
 // conversão "≈ A$" item-a-item em outras telas.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Converte um valor numa moeda pra AUD. Retorna `null` quando a taxa não
+/** Converte um valor numa moeda pra a moeda-base. Retorna `null` quando a taxa não
  *  está disponível — nunca 0 silencioso (evita subestimar o total). */
-export type ConvertToAud = (amount: number, currency: string) => number | null;
+export type ConvertToBase = (amount: number, currency: string) => number | null;
 
 export type CategoryCostStatus = "verified" | "estimated" | "mixed";
 
 export interface ConsolidatedCostCategory {
     moduleKey: CostReferencesGroup["moduleKey"];
     moduleLabel: string;
-    /** Total da categoria em AUD (por pessoa), já convertido. */
-    perPersonAUD: number;
-    verifiedAUD: number;
-    estimatedAUD: number;
+    /** Total da categoria na moeda-base (por pessoa), já convertido. */
+    perPersonBase: number;
+    verifiedBase: number;
+    estimatedBase: number;
     status: CategoryCostStatus;
     /** Moeda original ÚNICA da categoria — null quando os itens misturam moedas
-     *  (nesse caso, mostrar só o total em AUD com nota de moedas originais). */
+     *  (nesse caso, mostrar só o total na moeda-base com nota de moedas originais). */
     originalCurrency: string | null;
     /** Soma na moeda original (por pessoa) — só quando `originalCurrency` != null. */
     originalAmountPerPerson: number | null;
@@ -815,10 +819,10 @@ export interface ConsolidatedCostCategory {
 }
 
 export interface ConsolidatedTravelCostSummary {
-    /** Custo total estimado da viagem, por pessoa, em AUD. */
-    perPersonTotalAUD: number;
-    verifiedAmountAUD: number;
-    estimatedAmountAUD: number;
+    /** Custo total estimado da viagem, por pessoa, na moeda-base. */
+    perPersonTotalBase: number;
+    verifiedAmountBase: number;
+    estimatedAmountBase: number;
     /** 0..100, sempre `verifiedPercentage + estimatedPercentage === 100`
      *  quando houver algum valor informado (nunca 99/101 por arredondamento
      *  independente — um dos dois é sempre `100 - o outro`). */
@@ -833,7 +837,7 @@ export interface ConsolidatedTravelCostSummary {
      *  o estado "ainda não há estimativa" e ocultar barra/lista/simulador. */
     hasAnyData: boolean;
     /** true quando qualquer categoria tem `hasConversionGap` — some
-     *  ao menos 1 item não pôde ser convertido pra AUD. */
+     *  ao menos 1 item não pôde ser convertido pra a moeda-base. */
     hasConversionFailure: boolean;
 }
 
@@ -855,13 +859,13 @@ const ACTIVE_MODULE_TO_COST_KEY: Record<string, CostReferencesGroup["moduleKey"]
 
 /**
  * Agrega os grupos de `getCostReferences` em categorias consolidadas,
- * convertendo cada item pra AUD antes de somar (nunca soma moedas
+ * convertendo cada item pra a moeda-base antes de somar (nunca soma moedas
  * diferentes cruas). Não expõe título/nome de item — só o agregado da
  * categoria.
  */
 export function aggregateCostsByCategory(
     groups: CostReferencesGroup[],
-    convert: ConvertToAud,
+    convert: ConvertToBase,
 ): ConsolidatedCostCategory[] {
     const byKey = new Map(groups.map((g) => [g.moduleKey, g] as const));
 
@@ -869,9 +873,9 @@ export function aggregateCostsByCategory(
         .map((moduleKey) => byKey.get(moduleKey))
         .filter((g): g is CostReferencesGroup => !!g && g.items.length > 0)
         .map((group) => {
-            let perPersonAUD = 0;
-            let verifiedAUD = 0;
-            let estimatedAUD = 0;
+            let perPersonBase = 0;
+            let verifiedBase = 0;
+            let estimatedBase = 0;
             let hasConversionGap = false;
             const currencies = new Set<string>();
 
@@ -882,9 +886,9 @@ export function aggregateCostsByCategory(
                     hasConversionGap = true;
                     continue; // não soma — evita subestimar silenciosamente com 0
                 }
-                perPersonAUD += converted;
-                if (item.disclosureType === "verified") verifiedAUD += converted;
-                else estimatedAUD += converted;
+                perPersonBase += converted;
+                if (item.disclosureType === "verified") verifiedBase += converted;
+                else estimatedBase += converted;
             }
 
             const originalCurrencies = Array.from(currencies);
@@ -894,8 +898,8 @@ export function aggregateCostsByCategory(
                 : null;
 
             const status: CategoryCostStatus =
-                verifiedAUD > 0 && estimatedAUD > 0 ? "mixed"
-                    : verifiedAUD > 0 ? "verified"
+                verifiedBase > 0 && estimatedBase > 0 ? "mixed"
+                    : verifiedBase > 0 ? "verified"
                         : "estimated";
 
             const sharedBase = group.items.length === 1 && group.items[0].sharedByPeople > 1
@@ -909,9 +913,9 @@ export function aggregateCostsByCategory(
             const category: ConsolidatedCostCategory = {
                 moduleKey: group.moduleKey,
                 moduleLabel: group.moduleLabel,
-                perPersonAUD,
-                verifiedAUD,
-                estimatedAUD,
+                perPersonBase,
+                verifiedBase,
+                estimatedBase,
                 status,
                 originalCurrency: singleCurrency,
                 originalAmountPerPerson,
@@ -931,28 +935,28 @@ export function aggregateCostsByCategory(
 export function buildConsolidatedCostSummary(
     form: Partial<ItineraryFormState> | null | undefined,
     activeModules: string[] | null | undefined,
-    convert: ConvertToAud,
+    convert: ConvertToBase,
 ): ConsolidatedTravelCostSummary {
     const groups = getCostReferences(form);
     const categories = aggregateCostsByCategory(groups, convert);
 
-    let verifiedAmountAUD = 0;
-    let estimatedAmountAUD = 0;
+    let verifiedAmountBase = 0;
+    let estimatedAmountBase = 0;
     let hasConversionFailure = false;
     for (const cat of categories) {
-        verifiedAmountAUD += cat.verifiedAUD;
-        estimatedAmountAUD += cat.estimatedAUD;
+        verifiedAmountBase += cat.verifiedBase;
+        estimatedAmountBase += cat.estimatedBase;
         if (cat.hasConversionGap) hasConversionFailure = true;
     }
-    const perPersonTotalAUD = verifiedAmountAUD + estimatedAmountAUD;
+    const perPersonTotalBase = verifiedAmountBase + estimatedAmountBase;
 
     // Arredondamento consistente: o percentual estimado é sempre o
     // complemento do comprovado — nunca os dois arredondam
     // independentemente (evita somar 99% ou 101%).
     let verifiedPercentage = 0;
     let estimatedPercentage = 0;
-    if (perPersonTotalAUD > 0) {
-        verifiedPercentage = Math.round((verifiedAmountAUD / perPersonTotalAUD) * 100);
+    if (perPersonTotalBase > 0) {
+        verifiedPercentage = Math.round((verifiedAmountBase / perPersonTotalBase) * 100);
         estimatedPercentage = 100 - verifiedPercentage;
     }
 
@@ -963,9 +967,9 @@ export function buildConsolidatedCostSummary(
         .map((key) => MODULE_LABEL_PT[key]);
 
     return {
-        perPersonTotalAUD,
-        verifiedAmountAUD,
-        estimatedAmountAUD,
+        perPersonTotalBase,
+        verifiedAmountBase,
+        estimatedAmountBase,
         verifiedPercentage,
         estimatedPercentage,
         categories,

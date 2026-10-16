@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 /**
  * Zod schemas for itinerary validation
@@ -43,7 +44,7 @@ export const CreateItinerarySchema = z.object({
     country: z.string().min(2, 'Country required'),
     description: z.string().min(10, 'Description must be at least 10 characters'),
     price: z.number().positive('Price must be positive'),
-    currency: z.enum(['AUD', 'USD', 'EUR', 'GBP', 'BRL']).default('AUD'),
+    currency: z.enum(['AUD', 'USD', 'EUR', 'GBP', 'BRL']).default(BASE_CURRENCY as 'USD'),
     duration: z.number().int().positive('Duration must be positive'),
     travelStyles: z.array(z.string()).max(3, 'Max 3 travel styles'),
     categories: z.array(z.string()).min(1, 'At least 1 category required').max(5),
@@ -61,7 +62,7 @@ export const CreateItinerarySchema = z.object({
     estimatedSpending: z.object({
         min: z.number().positive().optional(),
         max: z.number().positive().optional(),
-        currency: z.string().default('AUD'),
+        currency: z.string().default(BASE_CURRENCY),
         breakdown: z.array(z.object({
             category: z.string(),
             min: z.string(),

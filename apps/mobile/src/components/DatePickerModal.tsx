@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AvailableDate } from '../types';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 interface DatePickerModalProps {
     visible: boolean;
@@ -115,7 +116,7 @@ export default function DatePickerModal({
     const formatPrice = (price: number) => {
         return price.toLocaleString('pt-BR', {
             style: 'currency',
-            currency: 'AUD',
+            currency: BASE_CURRENCY,
         });
     };
 

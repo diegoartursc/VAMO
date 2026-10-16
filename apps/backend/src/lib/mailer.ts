@@ -1,4 +1,5 @@
 import nodemailer, { Transporter } from 'nodemailer';
+import { BASE_CURRENCY, BASE_LOCALE, BASE_TIMEZONE, BASE_TIMEZONE_LABEL } from '@vamo/shared/itinerary';
 
 // Único ponto de envio de e-mail do VAMO: Gmail (SMTP) com "senha de app".
 // Sem SMTP_USER/SMTP_PASS o envio é pulado com log. Nenhuma função daqui lança
@@ -40,10 +41,10 @@ const appLink = (path: string) => `${env().appUrl}${path.startsWith('/') ? path 
 
 const supportEmail = () => env().user || 'vamoappviagens@gmail.com';
 
-/** `amount` em unidades da moeda (29.9 = A$ 29,90), nunca em centavos. */
+/** `amount` em unidades da moeda (29.9 = $29.90), nunca em centavos. */
 export function formatMoney(amount: number | null | undefined, currency?: string | null): string | null {
     if (amount == null || !Number.isFinite(amount)) return null;
-    return new Intl.NumberFormat('en-AU', { style: 'currency', currency: (currency || 'AUD').toUpperCase() }).format(amount);
+    return new Intl.NumberFormat(BASE_LOCALE, { style: 'currency', currency: (currency || BASE_CURRENCY).toUpperCase() }).format(amount);
 }
 
 const P = (html: string) => `<p style="line-height:1.6;margin:0 0 14px">${html}</p>`;
@@ -187,11 +188,11 @@ export function sendPasswordResetEmail(opts: { to: string; name: string; resetUr
 export function sendPasswordChangedEmail(opts: { to: string; name: string; changedAt: Date }): Promise<boolean> {
     const first = firstName(opts.name);
     const when = new Intl.DateTimeFormat('pt-BR', {
-        dateStyle: 'long', timeStyle: 'short', timeZone: 'Australia/Sydney',
+        dateStyle: 'long', timeStyle: 'short', timeZone: BASE_TIMEZONE,
     }).format(opts.changedAt);
     const html = layout({
         title: 'Sua senha foi alterada',
-        body: P(`Oi, ${escapeHtml(first)}. A senha da sua conta VAMO foi alterada com sucesso em <strong>${escapeHtml(when)}</strong> (horário de Sydney).`)
+        body: P(`Oi, ${escapeHtml(first)}. A senha da sua conta VAMO foi alterada com sucesso em <strong>${escapeHtml(when)}</strong> (${BASE_TIMEZONE_LABEL}).`)
             + P('Se foi você, está tudo certo — não precisa fazer nada.')
             + P(`<strong>Se não foi você</strong>, entre em contato com o suporte imediatamente respondendo este e-mail ou escrevendo para ${escapeHtml(supportEmail())}.`),
         cta: { label: 'Entrar no VAMO', url: appLink('/login') },

@@ -53,6 +53,7 @@ export interface ItemCardProps {
 // cai pra legacy original.
 
 import { CURRENCIES, formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 const CURRENCY_SYMBOL: Record<string, string> = CURRENCIES.reduce(
     (acc, c) => { acc[c.code] = c.symbol; return acc; },
@@ -70,7 +71,7 @@ function pickDisplayCost(data: any): string | null {
         if (value !== null && value !== undefined && value !== '') {
             const currency = typeof cost.currency === 'string' && cost.currency.length > 0
                 ? cost.currency
-                : 'AUD';
+                : BASE_CURRENCY;
             return formatCostString(value, currency);
         }
     }
@@ -79,7 +80,7 @@ function pickDisplayCost(data: any): string | null {
     if (data.priceValue !== undefined && data.priceValue !== null && data.priceValue !== '') {
         const currency = typeof data.priceCurrency === 'string' && data.priceCurrency.length > 0
             ? data.priceCurrency
-            : 'AUD';
+            : BASE_CURRENCY;
         return formatCostString(data.priceValue, currency);
     }
 
@@ -87,7 +88,7 @@ function pickDisplayCost(data: any): string | null {
     if (data.value !== undefined && data.value !== null && data.value !== '' && data.value !== '0') {
         const currency = typeof data.currency === 'string' && data.currency.length > 0
             ? data.currency
-            : 'AUD';
+            : BASE_CURRENCY;
         return formatCostString(data.value, currency);
     }
 

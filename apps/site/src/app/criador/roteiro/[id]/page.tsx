@@ -1,5 +1,5 @@
 "use client";
-import { toHotelStars } from "@vamo/shared/itinerary";
+import { toHotelStars, BASE_CURRENCY_SYMBOL } from "@vamo/shared/itinerary";
 
 import Link from "next/link";
 import { useState, useEffect, useRef, useCallback, use, type ReactNode } from "react";
@@ -11,6 +11,7 @@ import PhonePreview from "../../../../components/dashboard/PhonePreview";
 import QualityCoach from "../../../../components/dashboard/QualityCoach";
 import DraggableList, { DragHandle } from "../../../../components/dashboard/DraggableList";
 import SectionInfo from "../../../../components/dashboard/SectionInfo";
+import { BASE_CURRENCY } from "@vamo/shared/itinerary";
 
 /* ─── Constants ─── */
 const STYLE_OPTIONS = [
@@ -64,7 +65,7 @@ const SECTION_TIPS: Record<SectionKey, string[]> = {
         "Adicione pelo menos 3 fotos de alta qualidade do destino",
     ],
     commerce: [
-        "Roteiros entre A$ 19-49 têm a melhor taxa de conversão",
+        `Roteiros entre ${BASE_CURRENCY_SYMBOL}19-49 têm a melhor taxa de conversão`,
         "O preço promocional cria urgência — use com moderação",
     ],
     modules: [
@@ -163,7 +164,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Bloco 2: Comercial ─── */
     const [price, setPrice] = useState(0);
-    const [currency, setCurrency] = useState("AUD");
+    const [currency, setCurrency] = useState(BASE_CURRENCY);
     const [promoPrice, setPromoPrice] = useState<number | null>(null);
     const [immediateAccess, setImmediateAccess] = useState(true);
     const [lifetimeAccess, setLifetimeAccess] = useState(true);
@@ -182,7 +183,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Bloco 5: Gasto ─── */
     const [spendingBreakdown, setSpendingBreakdown] = useState<BreakdownItem[]>([]);
-    const [spendingCurrency, setSpendingCurrency] = useState("AUD");
+    const [spendingCurrency, setSpendingCurrency] = useState(BASE_CURRENCY);
 
     /* ─── Bloco 6: Checklist + FAQ ─── */
     const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
@@ -231,7 +232,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         setDuration(data.duration || 1); setDescription(data.description || "");
         setTravelStyles(data.travelStyles || []); setCategories(data.categories || []);
         setProductType(data.productType || "DIGITAL");
-        setPrice(data.price || 0); setCurrency(data.currency || "AUD");
+        setPrice(data.price || 0); setCurrency(data.currency || BASE_CURRENCY);
         setPromoPrice(data.promoPrice || null);
         setImmediateAccess(data.immediateAccess ?? true); setLifetimeAccess(data.lifetimeAccess ?? true);
         setFeatured(data.featured || false);
@@ -240,7 +241,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
         setImages(Array.isArray(data.images) ? data.images.map((img: any) => typeof img === "string" ? img : img.url) : [""]);
         setAllowShare(data.allowShare ?? true);
         const sp = data.estimatedSpending || {};
-        setSpendingCurrency(sp.currency || "AUD");
+        setSpendingCurrency(sp.currency || BASE_CURRENCY);
         setSpendingBreakdown((sp.breakdown || []).map((b: any) => ({ category: b.category || "", min: b.min || "", max: b.max || "" })));
         setDays((data.days || []).map((d: any) => ({
             dayNumber: d.dayNumber, title: d.title || "", summary: d.summary || "", description: d.description || "",
@@ -565,7 +566,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     <div className="form-group" style={{ flex: 1 }}>
                         <label className="form-label">Moeda</label>
                         <select className="form-input" value={currency} onChange={e => { setCurrency(e.target.value); markDirty(); }}>
-                            <option value="AUD">AUD (A$)</option><option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
+                            <option value="USD">USD ($)</option><option value="AUD">AUD (A$)</option><option value="BRL">BRL (R$)</option><option value="EUR">EUR (€)</option>
                         </select>
                     </div>
                 </div>
@@ -752,7 +753,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 <div className="form-group">
                     <label className="form-label">Moeda</label>
                     <select className="form-input" value={spendingCurrency} onChange={e => { setSpendingCurrency(e.target.value); markDirty(); }}>
-                        <option value="AUD">AUD (A$)</option><option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
+                        <option value="USD">USD ($)</option><option value="AUD">AUD (A$)</option><option value="BRL">BRL (R$)</option><option value="EUR">EUR (€)</option>
                     </select>
                 </div>
                 {spendingBreakdown.length === 0 && (
@@ -776,7 +777,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         <div className="editor-breakdown-total">
                             <span className="editor-breakdown-total-label">Total estimado por pessoa</span>
                             <span className="editor-breakdown-total-value">
-                                A$ {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.min) || 0), 0).toLocaleString("pt-BR")} – {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.max) || 0), 0).toLocaleString("pt-BR")}
+                                {BASE_CURRENCY_SYMBOL}{spendingBreakdown.reduce((s, b) => s + (parseFloat(b.min) || 0), 0).toLocaleString("pt-BR")} – {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.max) || 0), 0).toLocaleString("pt-BR")}
                             </span>
                         </div>
                     </>

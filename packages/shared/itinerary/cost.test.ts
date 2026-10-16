@@ -10,13 +10,13 @@ import {
     buildConsolidatedCostSummary,
     getCostReferences,
     formatMoney,
-    type ConvertToAud,
+    type ConvertToBase,
 } from './cost';
 
 // Taxas fixas de teste: 1 unidade da moeda = X AUD. JPY bem pequeno (como na
 // vida real) pra expor bugs de soma bruta sem conversão.
 const RATES: Record<string, number> = { AUD: 1, JPY: 0.01, USD: 1.5 };
-const convert: ConvertToAud = (amount, currency) => {
+const convert: ConvertToBase = (amount, currency) => {
     const code = String(currency || '').toUpperCase();
     if (code === 'AUD') return amount;
     const rate = RATES[code];
@@ -50,7 +50,7 @@ test('soma múltiplos itens da mesma categoria (hospedagem) corretamente', () =>
     const [cat] = aggregateCostsByCategory(groups, convert);
     assert.equal(cat.moduleKey, 'hospedagem');
     // 15000 + 10000 = 25000 JPY/pessoa * 0.01 = 250 AUD
-    assert.equal(cat.perPersonAUD, 250);
+    assert.equal(cat.perPersonBase, 250);
     assert.equal(cat.originalCurrency, 'JPY');
     assert.equal(cat.originalAmountPerPerson, 25000);
 });
@@ -96,8 +96,8 @@ test('status verified: todos os itens da categoria comprovados', () => {
     const form: any = { attractions: [{ name: 'A', cost: cost(100, { disclosureType: 'verified' }) }] };
     const [cat] = aggregateCostsByCategory(getCostReferences(form), convert);
     assert.equal(cat.status, 'verified');
-    assert.equal(cat.verifiedAUD, 100);
-    assert.equal(cat.estimatedAUD, 0);
+    assert.equal(cat.verifiedBase, 100);
+    assert.equal(cat.estimatedBase, 0);
 });
 
 test('status estimated: todos os itens da categoria estimados', () => {
@@ -115,8 +115,8 @@ test('status mixed: categoria com um item comprovado e outro estimado', () => {
     };
     const [cat] = aggregateCostsByCategory(getCostReferences(form), convert);
     assert.equal(cat.status, 'mixed');
-    assert.equal(cat.verifiedAUD, 100);
-    assert.equal(cat.estimatedAUD, 50);
+    assert.equal(cat.verifiedBase, 100);
+    assert.equal(cat.estimatedBase, 50);
 });
 
 // ── 7. Categorias sem valor (missing), só entre as ativas ──
@@ -163,7 +163,7 @@ test('total zero: percentuais ficam 0 e 0, sem divisão por zero (NaN/Infinity)'
     assert.equal(summary.verifiedPercentage, 0);
     assert.equal(summary.estimatedPercentage, 0);
     assert.equal(summary.hasAnyData, false);
-    assert.ok(Number.isFinite(summary.perPersonTotalAUD));
+    assert.ok(Number.isFinite(summary.perPersonTotalBase));
 });
 
 // ── Múltiplas moedas ──
@@ -171,7 +171,7 @@ test('categoria com moeda única preserva moeda original + equivalente AUD', () 
     const form: any = { attractions: [{ name: 'A', cost: cost(1000, { currency: 'JPY' }) }] };
     const [cat] = aggregateCostsByCategory(getCostReferences(form), convert);
     assert.equal(cat.originalCurrency, 'JPY');
-    assert.equal(cat.perPersonAUD, 10); // 1000 * 0.01
+    assert.equal(cat.perPersonBase, 10); // 1000 * 0.01
 });
 
 test('categoria com moedas MISTAS não inventa uma moeda original única', () => {
@@ -185,7 +185,7 @@ test('categoria com moedas MISTAS não inventa uma moeda original única', () =>
     assert.equal(cat.originalCurrency, null);
     assert.deepEqual(cat.originalCurrencies.sort(), ['JPY', 'USD']);
     // 1000*0.01 + 100*1.5 = 10 + 150 = 160
-    assert.equal(cat.perPersonAUD, 160);
+    assert.equal(cat.perPersonBase, 160);
 });
 
 test('agregado nunca soma moedas diferentes cruas (bug do total "dominante")', () => {
@@ -197,8 +197,8 @@ test('agregado nunca soma moedas diferentes cruas (bug do total "dominante")', (
         ],
     };
     const [cat] = aggregateCostsByCategory(getCostReferences(form), convert);
-    assert.equal(cat.perPersonAUD, 2120); // correto: 120 + 2000
-    assert.notEqual(cat.perPersonAUD, 14000); // bug antigo
+    assert.equal(cat.perPersonBase, 2120); // correto: 120 + 2000
+    assert.notEqual(cat.perPersonBase, 14000); // bug antigo
 });
 
 // ── Falha de conversão ──
@@ -206,8 +206,8 @@ test('moeda sem taxa cadastrada: categoria continua existindo, marca hasConversi
     const form: any = { attractions: [{ name: 'A', cost: cost(100, { currency: 'XYZ' }) }] };
     const [cat] = aggregateCostsByCategory(getCostReferences(form), convert);
     assert.equal(cat.hasConversionGap, true);
-    assert.equal(cat.perPersonAUD, 0); // não soma 0 disfarçado de conversão bem-sucedida
-    assert.ok(!Number.isNaN(cat.perPersonAUD));
+    assert.equal(cat.perPersonBase, 0); // não soma 0 disfarçado de conversão bem-sucedida
+    assert.ok(!Number.isNaN(cat.perPersonBase));
 });
 
 test('falha de conversão numa categoria não quebra o total das demais', () => {
@@ -217,7 +217,7 @@ test('falha de conversão numa categoria não quebra o total das demais', () => 
     };
     const summary = buildConsolidatedCostSummary(form, ['passeios', 'hospedagem'], convert);
     assert.equal(summary.hasConversionFailure, true);
-    assert.equal(summary.perPersonTotalAUD, 50); // só a categoria convertível entra no total
+    assert.equal(summary.perPersonTotalBase, 50); // só a categoria convertível entra no total
 });
 
 // ── Grupo de pessoas (a lógica do simulador em si vive no componente RN;
@@ -226,8 +226,8 @@ test('valor por pessoa é a fonte canônica pro simulador (não duplica divisão
     const form: any = { accommodations: [{ name: 'A', cost: cost(30000, { currency: 'JPY', sharedByPeople: 2 }) }] };
     const summary = buildConsolidatedCostSummary(form, ['hospedagem'], convert);
     // 30000/2 = 15000 JPY por pessoa * 0.01 = 150 AUD por pessoa (não 300, não 75)
-    assert.equal(summary.perPersonTotalAUD, 150);
-    const forThreePeople = Math.round(summary.perPersonTotalAUD * 3 * 100) / 100;
+    assert.equal(summary.perPersonTotalBase, 150);
+    const forThreePeople = Math.round(summary.perPersonTotalBase * 3 * 100) / 100;
     assert.equal(forThreePeople, 450);
 });
 

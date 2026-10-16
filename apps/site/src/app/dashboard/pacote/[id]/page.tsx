@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getPackageById, createPackage, updatePackage } from "@/lib/api";
 import { getSession, isAgencySession } from "@/lib/auth";
 import TimeInput from "@/components/TimeInput";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 /* ═══════════════════════════════════════════════════
    CONSTANTS & TYPES
@@ -80,7 +81,7 @@ const CATEGORY_OPTIONS = [
     { key: "aventura", label: "Aventura" },
 ];
 
-const CURRENCIES = ["AUD (A$)", "BRL (R$)", "USD ($)", "EUR (€)", "GBP (£)"];
+const CURRENCIES = ["USD ($)", "AUD (A$)", "BRL (R$)", "EUR (€)", "GBP (£)"];
 
 function getDurationLabel(days: number): string {
     if (days <= 3) return "Fim de semana";
@@ -133,7 +134,7 @@ const EMPTY_FORM = {
     priceMin: 0,
     priceMax: 0,
     promoPrice: null as number | null,
-    currency: "AUD (A$)",
+    currency: "USD ($)",
     installments: 12,
     cancellationPolicy: "",
     hasFreeCancellation: false,
@@ -1035,7 +1036,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                                     </strong>
                                                     {!dep.editing && dep.startDate && (
                                                         <div style={{ fontSize: 13, color: '#718096', marginTop: 2 }}>
-                                                            A$ {dep.price.toLocaleString('pt-BR')} · Vagas VAMO: {dep.capacityVamoAvailable}/{dep.capacityVamo} · {dep.status}
+                                                            {BASE_CURRENCY_SYMBOL}{dep.price.toLocaleString(BASE_LOCALE)} · Vagas VAMO: {dep.capacityVamoAvailable}/{dep.capacityVamo} · {dep.status}
                                                         </div>
                                                     )}
                                                 </div>
@@ -1065,7 +1066,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                                         />
                                                     </div>
                                                     <div className="editor-field">
-                                                        <label>Preço por pessoa (A$) *</label>
+                                                        <label>Preço por pessoa ({BASE_CURRENCY_SYMBOL}) *</label>
                                                         <input
                                                             type="number"
                                                             value={dep.price || ''}

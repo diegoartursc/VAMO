@@ -2,6 +2,7 @@ import type {
     CreatorEarningTransaction,
     CreatorEarningsSummary,
 } from './types';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 // VAMO platform fee used to derive net amount in the mocks (25%).
 // Not surfaced in UI as a fixed rule — kept here just for mock math.
@@ -16,7 +17,7 @@ const buildTx = (
     const platformFee = +(overrides.grossAmount * VAMO_FEE_RATE).toFixed(2);
     const estimatedPayout = +(overrides.grossAmount - platformFee).toFixed(2);
     return {
-        currency: 'AUD',
+        currency: BASE_CURRENCY,
         platformFee,
         estimatedPayout,
         ...overrides,
@@ -24,7 +25,7 @@ const buildTx = (
 };
 
 export const mockCreatorEarningsSummary: CreatorEarningsSummary = {
-    currency: 'AUD',
+    currency: BASE_CURRENCY,
     availableBalance: 428.5,
     pendingBalance: 196,
     totalEarned: 2840.75,

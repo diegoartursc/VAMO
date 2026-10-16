@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAgencyPackages, deletePackage } from "@/lib/api";
 import { getSession, isAgencySession } from "@/lib/auth";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 export default function PacotesListPage() {
     const [packages, setPackages] = useState<any[]>([]);
@@ -84,9 +85,9 @@ export default function PacotesListPage() {
                                     <td>{pkg.destination}, {pkg.country}</td>
                                     <td>
                                         {pkg.price?.min != null
-                                            ? `A$ ${pkg.price.min.toLocaleString("pt-BR")}`
+                                            ? `${BASE_CURRENCY_SYMBOL}${pkg.price.min.toLocaleString(BASE_LOCALE)}`
                                             : pkg.priceMin != null
-                                                ? `A$ ${pkg.priceMin.toLocaleString("pt-BR")}`
+                                                ? `${BASE_CURRENCY_SYMBOL}${pkg.priceMin.toLocaleString(BASE_LOCALE)}`
                                                 : "—"}
                                     </td>
                                     <td>{pkg.duration} dias</td>

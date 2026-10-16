@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getDashboardStats, deleteItinerary, type DashboardItinerary } from "../../../lib/api";
 import { getTravelerSession } from "../../../lib/auth";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 /* ── Status config (SVG only, no emojis) ── */
 const STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
@@ -58,8 +59,8 @@ const Ic = {
 };
 
 function formatCurrency(v: number) {
-    if (v >= 1000) return `A$ ${(v / 1000).toFixed(1).replace(".", ",")}k`;
-    return `A$ ${v.toLocaleString("pt-BR")}`;
+    if (v >= 1000) return `${BASE_CURRENCY_SYMBOL}${(v / 1000).toFixed(1)}k`;
+    return `${BASE_CURRENCY_SYMBOL}${v.toLocaleString(BASE_LOCALE)}`;
 }
 
 function formatDate(iso: string) {
@@ -172,7 +173,7 @@ export default function RoteirosPage() {
                 }}>
                     {[
                         { icon: Ic.map,    label: "Publicados",   value: String(itineraries.filter(i => ["ACTIVE","active","APPROVED","approved"].includes(i.status)).length), color: "#28C9BF" },
-                        { icon: Ic.bag,    label: "Vendas",        value: totalSales.toLocaleString("pt-BR"),  color: "#6366F1" },
+                        { icon: Ic.bag,    label: "Vendas",        value: totalSales.toLocaleString(BASE_LOCALE),  color: "#6366F1" },
                         { icon: Ic.dollar, label: "Receita",       value: formatCurrency(totalRevenue),        color: "#10B981" },
                     ].map((s, i) => (
                         <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10, paddingRight: 24, borderRight: i < 2 ? "1px solid rgba(226,232,240,0.6)" : "none" }}>
@@ -360,7 +361,7 @@ export default function RoteirosPage() {
                                 <div style={{ display: "flex", gap: 20, flexShrink: 0 }}>
                                     <div style={{ textAlign: "center" }}>
                                         <div style={{ fontSize: 15, fontWeight: 800, color: "#1A3263", lineHeight: 1 }}>
-                                            {it.sales > 0 ? it.sales.toLocaleString("pt-BR") : "—"}
+                                            {it.sales > 0 ? it.sales.toLocaleString(BASE_LOCALE) : "—"}
                                         </div>
                                         <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, marginTop: 3 }}>Vendas</div>
                                     </div>

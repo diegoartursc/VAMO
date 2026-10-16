@@ -3,7 +3,7 @@
 // Designed so we can swap the current mock for a real backend response
 // (Stripe Connect Express + VAMO ledger) without touching the UI.
 
-export type CurrencyCode = 'AUD';
+export type CurrencyCode = string;
 
 export type PayoutAccountStatus =
     | 'not_started'

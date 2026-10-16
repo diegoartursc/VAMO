@@ -17,6 +17,7 @@ import { getMyTrips } from '../../src/services/api';
 import { Icon } from '../../src/components/common/Icons';
 import { CreatorAvatar } from '../../src/components/common/CreatorAvatar';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 const PLACEHOLDER_IMAGE =
     'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop';
@@ -64,7 +65,7 @@ function normalizePurchasedItineraries(value: unknown): PurchasedItineraryItem[]
             creatorName: item?.creatorName || 'Criador VAMO',
             creatorAvatar: item?.creatorAvatar || '',
             price: Number.isFinite(Number(item?.price)) ? Number(item.price) : 0,
-            currency: item?.currency || 'AUD',
+            currency: item?.currency || BASE_CURRENCY,
             duration: Number.isFinite(Number(item?.duration)) ? Number(item.duration) : undefined,
         }];
     });
@@ -203,7 +204,7 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
 
     const priceFormatted = new Intl.NumberFormat('pt-BR', {
         style: 'currency',
-        currency: itin.currency ?? 'AUD',
+        currency: itin.currency ?? BASE_CURRENCY,
     }).format(itin.price);
     const destinationLabel = [itin.destination, itin.country].filter(Boolean).join(', ') || 'Destino a confirmar';
     const durationLabel = itin.duration && itin.duration > 0

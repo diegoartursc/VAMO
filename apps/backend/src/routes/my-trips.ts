@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import prisma from '../lib/prisma';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 const router = Router();
 
@@ -66,7 +67,7 @@ router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Re
                 creatorName: s.itinerary.creator.traveler.name || snapshot?.creator?.name || 'Criador VAMO',
                 creatorAvatar: s.itinerary.creator.traveler.avatar || '',
                 price: s.price,
-                currency: snapshot?.currency || s.itinerary.currency || 'AUD',
+                currency: snapshot?.currency || s.itinerary.currency || BASE_CURRENCY,
                 duration: snapshot?.duration || s.itinerary.duration,
             };
         });

@@ -9,6 +9,7 @@ import {
     Pressable,
 } from 'react-native';
 import { theme } from '../../theme/theme';
+import { BASE_CURRENCY_SYMBOL } from '@vamo/shared/itinerary';
 
 export interface FilterState {
     budget: {
@@ -50,10 +51,10 @@ const CATEGORIES = [
 ];
 
 const BUDGET_OPTIONS = [
-    { label: 'Até A$ 500', min: 0, max: 500 },
-    { label: 'A$ 500 - A$ 1.500', min: 500, max: 1500 },
-    { label: 'A$ 1.500 - A$ 3.000', min: 1500, max: 3000 },
-    { label: 'Acima de A$ 3.000', min: 3000, max: 100000 },
+    { label: `Até ${BASE_CURRENCY_SYMBOL}500`, min: 0, max: 500 },
+    { label: `${BASE_CURRENCY_SYMBOL}500 - ${BASE_CURRENCY_SYMBOL}1,500`, min: 500, max: 1500 },
+    { label: `${BASE_CURRENCY_SYMBOL}1,500 - ${BASE_CURRENCY_SYMBOL}3,000`, min: 1500, max: 3000 },
+    { label: `Acima de ${BASE_CURRENCY_SYMBOL}3,000`, min: 3000, max: 100000 },
     { label: 'Qualquer valor', min: 0, max: 100000 },
 ];
 

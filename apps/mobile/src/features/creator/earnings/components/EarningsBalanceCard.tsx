@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../../theme/theme';
 import { Icon } from '../../../../components/common/Icons';
-import { formatCurrencyAUD } from '../utils';
+import { formatBaseCurrency } from '../utils';
 
 interface Props {
     availableBalance: number;
@@ -26,7 +26,7 @@ export function EarningsBalanceCard({ availableBalance, onManagePayouts }: Props
                 </View>
             </View>
 
-            <Text style={styles.value}>{formatCurrencyAUD(availableBalance)}</Text>
+            <Text style={styles.value}>{formatBaseCurrency(availableBalance)}</Text>
 
             <Text style={styles.subtext}>Ready for your next payout</Text>
 

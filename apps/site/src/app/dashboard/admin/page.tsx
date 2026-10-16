@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 
@@ -620,7 +621,7 @@ function ItemList({ items, type, onApprove, onReject, emptyMsg }: {
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                         <div style={{ fontSize: "14px", fontWeight: "700", color: "#1FA89F" }}>
-                            {type === "packages" ? item.priceMin ? `A$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `A$ ${item.price.toLocaleString("pt-BR")}` : "—"}
+                            {type === "packages" ? item.priceMin ? `${BASE_CURRENCY_SYMBOL}${item.priceMin.toLocaleString(BASE_LOCALE)}` : "—" : item.price ? `${BASE_CURRENCY_SYMBOL}${item.price.toLocaleString(BASE_LOCALE)}` : "—"}
                         </div>
                     </div>
                     <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>

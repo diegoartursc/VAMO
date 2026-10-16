@@ -46,7 +46,8 @@ import { useShareItinerary } from '../../src/hooks/useShareItinerary';
 import { getSnapshot, getCustomization } from '../../src/services/routeCustomization';
 import { mergeItineraryWithCustomization } from '../../src/features/route-versioning/mergeEngine';
 import { getTripChecklist, getTripFiles } from '../../src/services/tripCenter';
-import { convertToAud, summarizeInAud } from '../../src/utils/currencyConversion';
+import { convertToBase, summarizeInBase } from '../../src/utils/currencyConversion';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 // AttractionInfo type (inline — no longer from mock)
 type AttractionInfo = {
@@ -296,10 +297,10 @@ export default function PurchasedItineraryScreen() {
     }, [authLoading, id, accessToken, isAuthenticated]);
 
     /** Converte valor em qualquer moeda para AUD sem inventar taxa ausente. */
-    const toAUD = (value: string | number, currency: string): string | null => {
+    const toBase = (value: string | number, currency: string): string | null => {
         const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
         if (n <= 0) return formatMoney(0);
-        const aud = convertToAud(n, currency, currencyRates);
+        const aud = convertToBase(n, currency, currencyRates);
         if (aud === null) return null;
         return formatMoney(aud);
     };
@@ -777,7 +778,7 @@ export default function PurchasedItineraryScreen() {
                             // Itens já em AUD passam intactos. Moeda sem taxa NÃO
                             // entra no agregado como se tivesse paridade 1:1.
                             const costItems = getCostReferences(costForm as any).flatMap(g => g.items);
-                            const converted = summarizeInAud(
+                            const converted = summarizeInBase(
                                 costItems.map(it => ({
                                     amount: it.amountPerPerson,
                                     currency: it.currency,
@@ -786,8 +787,8 @@ export default function PurchasedItineraryScreen() {
                             );
                             const summaryConverted = {
                                 ...summary,
-                                totalInformed: converted.totalAud,
-                                currency: 'AUD',
+                                totalInformed: converted.totalBase,
+                                currency: BASE_CURRENCY,
                             };
                             return (
                                 <>
@@ -810,7 +811,7 @@ export default function PurchasedItineraryScreen() {
                                         <View style={styles.currencyWarning}>
                                             <Ionicons name="alert-circle-outline" size={16} color={theme.colors.warning} />
                                             <Text style={styles.currencyWarningText}>
-                                                Total em AUD indisponível: falta cotação para {converted.missingCurrencies.join(', ')}.
+                                                Total em {BASE_CURRENCY} indisponível: falta cotação para {converted.missingCurrencies.join(', ')}.
                                                 Os valores originais continuam listados abaixo.
                                             </Text>
                                         </View>
@@ -868,8 +869,8 @@ export default function PurchasedItineraryScreen() {
                                                 const proofOk = item.hasProof && (item.proofStatus === 'uploaded' || item.proofStatus === 'pending_review' || item.proofStatus === 'approved');
                                                 const showVerifiedBadge = isVerified && proofOk;
                                                 const isShared = item.sharedByPeople > 1;
-                                                const convertedLabel = item.currency !== 'AUD'
-                                                    ? toAUD(item.amountPerPerson, item.currency)
+                                                const convertedLabel = item.currency !== BASE_CURRENCY
+                                                    ? toBase(item.amountPerPerson, item.currency)
                                                     : null;
                                                 return (
                                                     <View key={idx} style={styles.costRefItem}>
@@ -877,11 +878,11 @@ export default function PurchasedItineraryScreen() {
                                                         <Text style={styles.costRefItemValue}>
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
                                                             {' por pessoa'}
-                                                            {item.currency !== 'AUD' && (
+                                                            {item.currency !== BASE_CURRENCY && (
                                                                 <Text style={styles.costRefItemConverted}>
                                                                     {convertedLabel
                                                                         ? ` ≈ ${convertedLabel}`
-                                                                        : ' · cotação AUD indisponível'}
+                                                                        : ` · cotação ${BASE_CURRENCY} indisponível`}
                                                                 </Text>
                                                             )}
                                                         </Text>

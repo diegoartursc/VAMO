@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/hooks/useCart";
 import { useRouter } from "next/navigation";
+import { BASE_CURRENCY, BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop";
@@ -20,9 +21,9 @@ interface CartItem {
     creator?: { id: string; name: string };
 }
 
-function formatPrice(p: number, currency = "AUD") {
-    try { return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(p); }
-    catch { return `A$ ${p.toFixed(2)}`; }
+function formatPrice(p: number, currency = BASE_CURRENCY) {
+    try { return new Intl.NumberFormat(BASE_LOCALE, { style: "currency", currency }).format(p); }
+    catch { return `${BASE_CURRENCY_SYMBOL}${p.toFixed(2)}`; }
 }
 
 function pickCover(images?: string[]): string {

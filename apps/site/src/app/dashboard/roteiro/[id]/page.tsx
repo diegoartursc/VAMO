@@ -12,15 +12,7 @@ import {
     ChevronDown, ChevronUp, TrendingUp, MapPin, Clock, ExternalLink, Receipt, Wifi,
     HelpCircle,
 } from "lucide-react";
-import {
-    BUDGET_STYLE_GUIDE,
-    BUDGET_STYLE_KEYS,
-    BUDGET_STYLE_GENERAL_NOTE,
-    BUDGET_STYLE_CREATOR_SUBTITLE,
-    getBudgetStyleGuide,
-    getPrimaryBudgetStyle,
-    toHotelStars,
-} from "@vamo/shared/itinerary";
+import { BUDGET_STYLE_GUIDE, BUDGET_STYLE_KEYS, BUDGET_STYLE_GENERAL_NOTE, BUDGET_STYLE_CREATOR_SUBTITLE, getBudgetStyleGuide, getPrimaryBudgetStyle, toHotelStars, BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 import { getItineraryById, createItinerary, updateItinerary, uploadFile, uploadFiles } from "../../../../lib/api";
 import {
     acceptAttributeFor,
@@ -32,6 +24,7 @@ import MoneyInput from "../../../../components/MoneyInput";
 import TimeInput from "../../../../components/TimeInput";
 import { useDollarRate } from "../../../../hooks/useDollarRate";
 import ItineraryPreview from "../../../../components/ItineraryPreview";
+import { BASE_CURRENCY } from "@vamo/shared/itinerary";
 
 function isVideoUploadUrl(url: string): boolean {
     return /\.(mp4|mov|webm|m4v)(\?|#|$)/i.test(url || "");
@@ -470,19 +463,19 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Cotações (definidas pelo admin em /admin/conversao) ─── */
     const { dollarRate, formattedRate, rates } = useDollarRate();
-    /** Converte um valor em qualquer moeda para número na moeda base do mercado (AUD) usando as taxas do admin. */
+    /** Converte um valor em qualquer moeda para número na moeda base do mercado usando as taxas do admin. */
     const convertToBaseNumber = (value: string | number, currency: string): number => {
         const n = typeof value === "number" ? value : parseFloat(value);
         if (isNaN(n) || n <= 0) return 0;
-        if (currency === "AUD") return n;
+        if (currency === BASE_CURRENCY) return n;
         const rate = rates[currency];
         if (rate === undefined || rate <= 0) return 0;
         return n * rate;
     };
     const toBase = (value: string, currency: string): string | null => {
         const aud = convertToBaseNumber(value, currency);
-        if (aud <= 0 || currency === "AUD") return null;
-        return aud.toLocaleString("pt-BR", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
+        if (aud <= 0 || currency === BASE_CURRENCY) return null;
+        return aud.toLocaleString(BASE_LOCALE, { style: "currency", currency: BASE_CURRENCY, maximumFractionDigits: 0 });
     };
 
     /* ─── UI state ─── */
@@ -512,7 +505,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Bloco 2: Comercial ─── */
     const [price, setPrice] = useState(0);
-    const [currency, setCurrency] = useState("AUD");
+    const [currency, setCurrency] = useState(BASE_CURRENCY);
     const [promoPrice, setPromoPrice] = useState<number | null>(null);
     const [immediateAccess, setImmediateAccess] = useState(true);
     const [lifetimeAccess, setLifetimeAccess] = useState(true);
@@ -537,7 +530,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [flightTips, setFlightTips] = useState<string[]>([]);
     const [newFlightTip, setNewFlightTip] = useState("");
     const [flightTotalPrice, setFlightTotalPrice] = useState("");
-    const [flightPriceCurrency, setFlightPriceCurrency] = useState("AUD");
+    const [flightPriceCurrency, setFlightPriceCurrency] = useState(BASE_CURRENCY);
     /** Round-trip de cost/spending do módulo voo (preenchidos via mobile). */
     const [flightSpending, setFlightSpending] = useState<ModuleSpending | undefined>(undefined);
     const [flightCost, setFlightCost] = useState<ModuleCostInfo | undefined>(undefined);
@@ -578,7 +571,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
     const [reviewCount, setReviewCount] = useState(0);
 
     /* ─── Estimated Spending (computed from manual entries for preview) ─── */
-    /* Total na moeda base (AUD) é calculado dinamicamente usando as taxas atuais do admin (hook useDollarRate).
+    /* Total na moeda base é calculado dinamicamente usando as taxas atuais do admin (hook useDollarRate).
        Este valor NÃO é persistido no banco — apenas os manualEntries com moeda original são salvos. */
     const estimatedSpending = useMemo(() => {
         const total = spendingEntries.reduce((s, e) => s + convertToBaseNumber(e.priceValue, e.priceCurrency), 0);
@@ -641,7 +634,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             setDuration(1); setDescription("");
             setTravelStyles([]); setCategories([]);
             setProductType("DIGITAL");
-            setPrice(0); setCurrency("AUD");
+            setPrice(0); setCurrency(BASE_CURRENCY);
             setPromoPrice(null);
             setImmediateAccess(true); setLifetimeAccess(true);
             setFeatured(false); setActiveModules([]);
@@ -677,7 +670,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 setDuration(data.duration || 1); setDescription(data.description || "");
                 setTravelStyles(data.travelStyles || []); setCategories(data.categories || []);
                 setProductType(data.productType || "DIGITAL");
-                setPrice(data.price || 0); setCurrency(data.currency || "AUD");
+                setPrice(data.price || 0); setCurrency(data.currency || BASE_CURRENCY);
                 setPromoPrice(data.promoPrice || null);
                 setImmediateAccess(data.immediateAccess ?? true); setLifetimeAccess(data.lifetimeAccess ?? true);
                 setFeatured(data.featured || false);
@@ -743,7 +736,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                     setFlightOutbound(mapLeg(data.flightInfo.outbound));
                     setFlightReturn(mapLeg(data.flightInfo.return));
                     setFlightTotalPrice(data.flightInfo.totalPrice || "");
-                    setFlightPriceCurrency(data.flightInfo.priceCurrency || "AUD");
+                    setFlightPriceCurrency(data.flightInfo.priceCurrency || BASE_CURRENCY);
                     setFlightTips(data.flightInfo.tips || []);
                     // Round-trip: preserva cost/spending do módulo voo (criados via mobile)
                     setFlightSpending(data.flightInfo.spending || undefined);
@@ -790,7 +783,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 if (data.estimatedSpending?.manualEntries) {
                     setSpendingEntries(data.estimatedSpending.manualEntries.map((e: any) => ({
                         moduleKey: e.moduleKey || "", label: e.label || "", icon: e.icon || "",
-                        priceValue: e.priceValue || "", priceCurrency: e.priceCurrency || "AUD",
+                        priceValue: e.priceValue || "", priceCurrency: e.priceCurrency || BASE_CURRENCY,
                         receiptUrl: e.receiptUrl || "",
                     })));
                 }
@@ -804,7 +797,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
 
     /* ─── Build payload ─── */
     const buildPayload = useCallback(() => {
-        /* IMPORTANTE: os valores convertidos a AUD NÃO são salvos no banco. Só persistimos
+        /* IMPORTANTE: os valores convertidos para a moeda-base NÃO são salvos no banco. Só persistimos
            as entradas originais (valor + moeda escolhida pelo criador). A conversão para a
            moeda preferida do cliente acontece em tempo de exibição, usando a cotação atual
            do admin (useDollarRate → rates). */
@@ -1874,7 +1867,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         const existing = spendingEntries.find(e => e.moduleKey === k);
                         if (existing) return existing;
                         const meta = SPENDING_MODULE_MAP[k];
-                        return { moduleKey: k, label: meta.label, icon: meta.icon, priceValue: "", priceCurrency: "AUD", receiptUrl: "" };
+                        return { moduleKey: k, label: meta.label, icon: meta.icon, priceValue: "", priceCurrency: BASE_CURRENCY, receiptUrl: "" };
                     });
                     // Defer state update to avoid render loop
                     setTimeout(() => { setSpendingEntries(synced); markDirty(); }, 0);
@@ -2021,7 +2014,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                             {spTotal > 0 && (
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "linear-gradient(135deg, var(--primary), var(--accent, #6366f1))", borderRadius: 10, color: "#fff" }}>
                                     <span style={{ fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><BarChart3 size={16} strokeWidth={2} /> Total Estimado</span>
-                                    <span style={{ fontWeight: 800, fontSize: 18 }}>A$ {fmt(spTotal)}</span>
+                                    <span style={{ fontWeight: 800, fontSize: 18 }}>{BASE_CURRENCY_SYMBOL}{fmt(spTotal)}</span>
                                 </div>
                             )}
                         </div>

@@ -1,45 +1,46 @@
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 export interface CurrencyAmount {
     amount: number;
     currency: string;
 }
 
-export interface AudConversionSummary {
-    totalAud: number;
+export interface BaseConversionSummary {
+    totalBase: number;
     missingCurrencies: string[];
 }
 
-export function convertToAud(
+export function convertToBase(
     amount: number,
     currency: string,
     rates: Record<string, number>,
 ): number | null {
     if (!Number.isFinite(amount)) return null;
     const code = String(currency || '').trim().toUpperCase();
-    if (code === 'AUD') return amount;
+    if (code === BASE_CURRENCY) return amount;
 
     const rate = Number(rates[code]);
     if (!Number.isFinite(rate) || rate <= 0) return null;
     return amount * rate;
 }
 
-export function summarizeInAud(
+export function summarizeInBase(
     items: CurrencyAmount[],
     rates: Record<string, number>,
-): AudConversionSummary {
-    let totalAud = 0;
+): BaseConversionSummary {
+    let totalBase = 0;
     const missing = new Set<string>();
 
     for (const item of items) {
-        const converted = convertToAud(item.amount, item.currency, rates);
+        const converted = convertToBase(item.amount, item.currency, rates);
         if (converted === null) {
             missing.add(String(item.currency || '').trim().toUpperCase() || 'N/D');
             continue;
         }
-        totalAud += converted;
+        totalBase += converted;
     }
 
     return {
-        totalAud,
+        totalBase,
         missingCurrencies: [...missing].sort(),
     };
 }

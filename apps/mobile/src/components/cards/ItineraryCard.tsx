@@ -16,6 +16,7 @@ import { useFavorites } from '../../hooks/useFavorites';
 import { useCart } from '../../hooks/useCart';
 import { evaluateItineraryAvailability } from '../../utils/availability';
 import { calculateBudgetSummary, formatMoney, getRouteRatingDisplay } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 /** Padding horizontal do bloco de conteúdo — precisa bater com `styles.content`. */
 const CONTENT_PADDING_HORIZONTAL = 14;
@@ -57,7 +58,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     const owned = itineraryId ? isOwned(itineraryId) : false;
     const itineraryPrice = Number(itinerary.price);
     const priceLabel = Number.isFinite(itineraryPrice) && itineraryPrice > 0
-        ? formatMoney(itineraryPrice, 'AUD')
+        ? formatMoney(itineraryPrice, itinerary.currency || BASE_CURRENCY)
         : 'Grátis';
     const creatorName = itinerary.creator?.name || 'Criador VAMO';
     // O selo agora existe em UM lugar só (linha do criador). Como ele é

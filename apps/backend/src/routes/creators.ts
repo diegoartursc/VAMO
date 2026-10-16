@@ -14,6 +14,7 @@ import {
     normalizeMatchText,
     type RecommendationCandidate,
 } from '../utils/creatorRecommendation';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 const router = Router();
 
@@ -166,7 +167,7 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
                 grossAmount: sale.price,
                 platformFee: sale.commission,
                 estimatedPayout: Math.max(0, sale.price - sale.commission),
-                currency: 'AUD',
+                currency: BASE_CURRENCY,
                 status: 'pending',
             })),
         ).sort((a, b) => b.saleDate.localeCompare(a.saleDate));
@@ -174,7 +175,7 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
         const pendingFromSales = transactions.reduce((sum, transaction) => sum + transaction.estimatedPayout, 0);
         res.json({
             summary: {
-                currency: 'AUD',
+                currency: BASE_CURRENCY,
                 availableBalance: creator.balance?.availableBalance ?? 0,
                 pendingBalance: creator.balance?.pendingBalance ?? pendingFromSales,
                 totalEarned: pendingFromSales,

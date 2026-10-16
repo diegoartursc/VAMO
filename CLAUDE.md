@@ -12,18 +12,20 @@ Checklist do que falta para lançar, ordenado por prioridade: [docs/LANCAMENTO-T
 
 ## 🚀 Boot obrigatório (FAZER PRIMEIRO, sempre)
 
-O projeto VAMO tem **dois processos** que precisam estar no ar para o app funcionar:
+O projeto VAMO tem **três processos** que precisam estar no ar (o Admin só quando for usar o painel):
 
 | Serviço | Porta | Por quê |
 |---|---|---|
 | **backend** (Express + Prisma) | 3333 | Login, listagem de roteiros, qualquer chamada autenticada |
 | **mobile** (Expo) | 8081 | A própria UI do app no navegador |
+| **admin** (Next.js, `apps/site`) | 3034 | Painel Admin (`/admin`): aprovar roteiros/roteiristas, financeiro |
 
-**Toda nova sessão de Claude deve começar com estas duas chamadas em paralelo:**
+**Toda nova sessão de Claude deve começar com estas três chamadas em paralelo:**
 
 ```
 mcp__Claude_Preview__preview_start { name: "backend" }
 mcp__Claude_Preview__preview_start { name: "mobile" }
+mcp__Claude_Preview__preview_start { name: "admin" }
 ```
 
 Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: true }` e não duplicam.
@@ -35,6 +37,22 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
 - Confirma qual banco está conectado (Supabase prod vs local)
 
 **Se você pular esse boot**, o usuário vai abrir o app, tentar login, e ver "falhou". Não é bug — é serviço faltando. Isso já aconteceu 4 vezes. **Não permita a quinta.**
+
+---
+
+## 🖥️ Painel Admin local (LEIA se for abrir o dashboard)
+
+O Admin é `apps/site` (Next.js) em `/admin`, rodando em **http://localhost:3034/admin** e falando com o backend em `localhost:3333`. Telas: Visão Geral, Roteiros (aprovar), Roteiristas, Clientes, Conversão de Moedas, Financeiro, Histórico (+ Pacotes e Configurações fora do menu). `/admin/agencias` dá 404 de propósito (`LegacyAgenciesPage`). Também existe publicado na Vercel (projeto `vamo-admin`, ver "Deploy"); local e Vercel usam o MESMO banco de produção, então aprovar em um aparece no outro.
+
+**Carregamento:** `AdminDataProvider` (`shared.tsx`) guarda os dados num cache em memória compartilhado entre as telas, busca as 6 rotas em paralelo e o `layout.tsx`/login chamam `prefetchAdminData()` ao abrir. Trocar de aba mostra os dados na hora e revalida em segundo plano; `clearAdminCache()` no logout/login. Não voltar a buscar por tela (as telas abriam zeradas).
+
+**Como subir (qualquer sessão):** `bash scripts/subir-admin.sh` na raiz. Liga só o que estiver desligado, espera responder e abre o Chrome. Para desligar: `bash scripts/subir-admin.sh parar`. Em falha, mostra o fim dos logs (`.local/logs/`).
+
+**Sessão local (app Claude Code no Mac, pasta VAMO):** use `preview_start { name: "backend" }` e `preview_start { name: "admin" }` (definidos em `.claude/launch.json`).
+
+**Sessão na nuvem (a conversa só "enxerga" a pasta):** NÃO existe `preview_start`, o shell da sessão é um Linux separado (os `node_modules` do Mac quebram nele e `localhost` de lá não é o do Chrome do usuário). Não tente rodar servidor lá, não peça controle de mouse/teclado e não crie páginas substitutas. Diga na primeira resposta: "esta sessão é na nuvem e não liga o Admin; rode `bash scripts/subir-admin.sh` ou abra uma sessão local na pasta VAMO". Depois que o usuário avisar que subiu, abra `http://localhost:3034/admin` no Chrome e confira a tela antes de dizer que está aberto.
+
+**Login do Admin:** `admin@vamo.com` (SUPER_ADMIN). O Chrome guarda o login por porta, então use sempre a 3034.
 
 ---
 
@@ -52,7 +70,7 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
 - Backup completo anterior à limpeza: `../VAMO-backups-archive/pre-reset-2026-09-28_2322/` (SQL + JSON + fotos + LEIA-ME).
 - 1 traveler: `anapaulaabeckenkamp@gmail.com` (Ana Paula Beckenkamp, conta real criada em 2026-09-29, mantida a pedido do Diego).
 - 1 admin: `admin@vamo.com` (SUPER_ADMIN). Senha redefinida em 2026-09-28 (o Diego tem). Para trocar: `npx tsx scripts/reset-admin-password.ts <email> [senha]` em `apps/backend`.
-- 0 roteiros · 0 roteiristas · 0 vendas · 0 agências. Tudo que aparecer daqui em diante é real: não apagar sem confirmação.
+- Em 2026-10-14: 4 roteiros ACTIVE, todos da Ana Paula (Tromsø, Queenstown, California, Caribbean). Os 2 últimos foram aprovados direto no banco (sem e-mail de aprovação). 0 vendas · 0 agências. Tudo isso é real: não apagar sem confirmação.
 - **Senhas são bcrypt — impossível ler.** Nunca informe senha que não foi confirmada; para recuperar acesso use `npx tsx scripts/reset-password.ts <email> <senha>` (em `apps/backend`).
 
 **Se a auditoria (`npx tsx scripts/audit-prod.ts` no `apps/backend`) mostrar números muito diferentes, INVESTIGUE antes de mexer em qualquer coisa.**
@@ -65,7 +83,7 @@ Ambas são **idempotentes** — se já estiverem rodando, retornam `{ reused: tr
 
 ### Deploy (produção)
 `vamo-ten.vercel.app` (Vercel, app mobile/Expo Web) → `vamo-699h.onrender.com/api` (Render, backend) → Supabase.
-Render e Vercel publicam a `main` automaticamente no push. **Migrations são automáticas no deploy do Render** (ver "Migrations automáticas" abaixo). O serviço do Render foi criado pelo painel, sem Blueprint: o `render.yaml` só espelha o painel, que é a fonte da verdade. O projeto `vamo-backend` na Vercel não é usado pelo app. Detalhes em [[supabase-database]].
+Render e Vercel publicam a `main` automaticamente no push. **Migrations são automáticas no deploy do Render** (ver "Migrations automáticas" abaixo). O serviço do Render foi criado pelo painel, sem Blueprint: o `render.yaml` só espelha o painel, que é a fonte da verdade. O painel admin (`apps/site`) também está na Vercel como projeto `vamo-admin` (configurado por `apps/site/vercel.json`), com a Deployment Protection da Vercel ligada (só membros do time entram). Para funcionar fora do Mac precisa de `NEXT_PUBLIC_API_URL=https://vamo-699h.onrender.com/api` na Vercel e do domínio dele em `ALLOWED_ORIGINS` no Render (ainda não verificado em 2026-10-14). O projeto `vamo-backend` na Vercel não é usado pelo app. Detalhes em [[supabase-database]].
 
 ---
 
@@ -154,7 +172,7 @@ Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 202
 
 ## 📋 Mercado / produto
 
-- **Mercado-alvo atual (confirmado 2026-06-10):** compradores **australianos**, roteiros para **qualquer destino do mundo** (Austrália é o MERCADO, não o destino). Moeda AUD. Config centralizada em `packages/shared/itinerary/market.ts`. ⚠️ Incongruência conhecida: UI segue em PT-BR — i18n en-AU é decisão pendente do Diego; não traduzir sem ele pedir. Herói da Home = Bali (destino internacional nº 1 dos australianos).
+- **Mercado-alvo atual: Estados Unidos, moeda USD (decidido pelo Diego em 2026-10-15; antes era Austrália/AUD desde 2026-06-10).** Fonte ÚNICA: `packages/shared/itinerary/market.ts` (`MARKET`, `BASE_CURRENCY`, `BASE_LOCALE`, `BASE_CURRENCY_SYMBOL`, fuso, `DEFAULT_RATES_TO_BASE`). Nunca escreva `'USD'`/`'AUD'`/`'$'` na mão como moeda-base: importe dali. Cada roteiro guarda a própria moeda (`itineraries.currency`), então roteiros antigos em AUD seguem mostrando A$ até serem convertidos (`apps/backend/scripts/convert-itineraries-to-base-currency.ts`, dry-run por padrão). Taxas de câmbio são "1 unidade = X moeda-base"; o arquivo salvo pelo admin só vale se tiver `base` igual à atual. UI e e-mails seguem em PT-BR: tradução para inglês é tarefa pendente (docs/PAGAMENTOS-PLANO-PILOTO.md e a lista de adaptação para o mercado americano).
 - **Modelo de usuário:** Traveler é o "root" — todo viajante pode opcionalmente virar Creator (extensão 1:1). NÃO são contas separadas.
 - **Gamificação:** Passaporte VAMO (viajante) + Trilha do Roteirista (reputação). Código em `src/gamification/`.
 

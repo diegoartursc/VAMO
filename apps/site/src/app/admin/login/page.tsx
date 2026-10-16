@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { prefetchAdminData, clearAdminCache } from "../shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 
@@ -30,6 +31,8 @@ export default function AdminLoginPage() {
 
             localStorage.setItem("adminToken", data.token);
             localStorage.setItem("adminUser", JSON.stringify(data.admin));
+            clearAdminCache();
+            prefetchAdminData();
             router.replace("/admin");
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "Erro ao fazer login");

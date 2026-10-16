@@ -4,6 +4,7 @@
  */
 
 import type { ModuleKey, Currency } from "./types";
+import { BASE_CURRENCY } from "./market";
 
 /**
  * Estilo de orçamento do roteiro — ESCOLHA ÚNICA entre Econômico, Moderado e
@@ -247,6 +248,12 @@ export const CURRENCIES: { code: Currency; label: string; symbol: string; emoji:
     { code: "VND", label: "Dong Vietnamita",           symbol: "₫",    emoji: "🇻🇳" },
     { code: "ZAR", label: "Rand Sul-africano",         symbol: "R",    emoji: "🇿🇦" },
 ];
+
+/** Símbolo da moeda (ex.: "USD" → "$", "AUD" → "A$"). Sem código: moeda-base do mercado. */
+export function getCurrencySymbol(code?: string | null): string {
+    const c = (code || BASE_CURRENCY).toUpperCase();
+    return CURRENCIES.find(x => x.code === c)?.symbol ?? c;
+}
 
 export const MAX_STYLES = 3;
 export const MAX_CATEGORIES = 5;

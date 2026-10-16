@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+import { prefetchAdminData, clearAdminCache } from "./shared";
 
 export const DOLLAR_RATE_KEY = "adminDollarRate";
 
@@ -94,6 +95,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     useEffect(() => {
         const user = localStorage.getItem("adminUser");
         if (user) setAdminUser(JSON.parse(user));
+        prefetchAdminData();
     }, []);
 
     if (isLoginPage) return <>{children}</>;
@@ -104,6 +106,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
 
     const handleLogout = () => {
+        clearAdminCache();
         localStorage.removeItem("adminToken");
         localStorage.removeItem("adminUser");
         router.push("/admin/login");

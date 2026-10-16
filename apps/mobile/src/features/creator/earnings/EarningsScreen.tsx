@@ -32,7 +32,7 @@ import type {
     CreatorEarningsSummary,
     PayoutAccountStatus,
 } from './types';
-import { formatCurrencyAUD, formatShortDate } from './utils';
+import { formatBaseCurrency, formatShortDate } from './utils';
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -167,7 +167,7 @@ export default function EarningsScreen() {
                                 iconColor="#A16207"
                                 iconBg="#F59E0B1F"
                                 label="Pending balance"
-                                value={formatCurrencyAUD(summary.pendingBalance)}
+                                value={formatBaseCurrency(summary.pendingBalance)}
                                 subtext="Sales under review or still within the protection period."
                             />
                             <EarningsMetricCard
@@ -188,7 +188,7 @@ export default function EarningsScreen() {
                                 iconColor="#15803D"
                                 iconBg="#22C55E1F"
                                 label="Total earned"
-                                value={formatCurrencyAUD(summary.totalEarned)}
+                                value={formatBaseCurrency(summary.totalEarned)}
                                 subtext="Since joining VAMO."
                             />
                             <EarningsMetricCard

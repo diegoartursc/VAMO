@@ -3,6 +3,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
 import { CreatePackageSchema, UpdatePackageSchema } from '../schemas/packages';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 const router = Router();
 
@@ -359,7 +360,7 @@ router.post('/', authMiddleware, createAuditMiddleware('CREATE'), async (req: Au
                 description: data.description || '',
                 fullDescription: data.fullDescription,
                 emotionalIntro: data.emotionalIntro,
-                currency: data.currency || 'AUD',
+                currency: data.currency || BASE_CURRENCY,
                 duration: data.duration,
                 nights,
                 continent,

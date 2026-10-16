@@ -64,7 +64,7 @@ const contato = ler('apps/mobile/app/checkout/itinerary-contact.tsx');
 test('8. o rodapé mostra o total real', () => {
     assert.ok(/footerLabel[\s\S]{0,40}Total/.test(contato));
     assert.ok(/\{formattedPrice\}/.test(contato));
-    assert.ok(/formatMoney\(checkoutPrice\)/.test(contato));
+    assert.ok(/formatMoney\(checkoutPrice[,)]/.test(contato));
 });
 
 test('9/10/11/12. installment, footerInstallment e "sem juros" não existem mais', () => {
@@ -130,7 +130,7 @@ test('19/20/21. Afterpay, Klarna e qualquer outro BNPL ficam de fora', () => {
 });
 
 test('22. moeda e valor total continuam corretos (nada de fração de parcela)', () => {
-    assert.ok(/currency: \(itinerary\.currency \|\| 'AUD'\)\.toLowerCase\(\)/.test(payments));
+    assert.ok(/currency: \(itinerary\.currency \|\| BASE_CURRENCY\)\.toLowerCase\(\)/.test(payments));
     assert.ok(/unit_amount: Math\.round\(itinerary\.price \* 100\)/.test(payments), 'cobra o preço cheio');
     assert.ok(!/\/\s*12/.test(payments), 'nenhuma divisão de preço no backend');
 });

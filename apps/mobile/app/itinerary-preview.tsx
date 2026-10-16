@@ -46,8 +46,9 @@ import type {
     RestaurantItem, AttractionItem, ChecklistItem,
     CostReferencesGroup,
 } from '@vamo/shared/itinerary';
-import { getCostReferences, calculateBudgetSummary, formatMoney, formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
-import { convertToAud } from '../src/utils/currencyConversion';
+import { getCostReferences, calculateBudgetSummary, formatMoney, formatTimeForAustraliaDisplay, getCurrencySymbol } from '@vamo/shared/itinerary';
+import { convertToBase } from '../src/utils/currencyConversion';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 // Handoff one-shot: payload do form serializado em new-itinerary é lido aqui
 // e APAGADO no mesmo useEffect. Sem isso, dois usuários no mesmo dispositivo
@@ -98,7 +99,7 @@ function buildManualEntries(form: ItineraryFormState) {
         entries.push({
             moduleKey: 'voo',
             priceValue: form.flightSpending!.value,
-            priceCurrency: form.flightSpending!.currency || 'AUD',
+            priceCurrency: form.flightSpending!.currency || BASE_CURRENCY,
             label: MODULE_LABELS.voo,
         });
     }
@@ -111,7 +112,7 @@ function buildManualEntries(form: ItineraryFormState) {
         (items || []).forEach(it => {
             const v = parseValue(it?.spending?.value);
             if (v <= 0) return;
-            const cur = it?.spending?.currency || form.currency || 'AUD';
+            const cur = it?.spending?.currency || form.currency || BASE_CURRENCY;
             totals.set(cur, (totals.get(cur) || 0) + v);
         });
         totals.forEach((value, currency) => {
@@ -133,7 +134,7 @@ function buildManualEntries(form: ItineraryFormState) {
     (form.extraSpendingItems || []).forEach(e => {
         const v = parseValue(e.value);
         if (v <= 0) return;
-        const cur = e.currency || form.currency || 'AUD';
+        const cur = e.currency || form.currency || BASE_CURRENCY;
         extrasTotals.set(cur, (extrasTotals.get(cur) || 0) + v);
     });
     extrasTotals.forEach((value, currency) => {
@@ -243,23 +244,23 @@ export default function ItineraryPreviewScreen() {
     const promoNumber = form.promoPrice && form.promoPrice > 0 ? form.promoPrice : 0;
     const effectivePrice = promoNumber || priceNumber;
 
-    // Converte um valor para a moeda de referência (AUD) usando as taxas do
+    // Converte um valor para a moeda de referência (moeda-base do mercado) usando as taxas do
     // admin. Nome honesto: NÃO é BRL. Fallback: se faltar taxa, mostra o valor
     // como está (mesma degradação do código anterior).
     const formatInRefCurrency = (value: string | number, currency: string): string => {
         const n = typeof value === 'number' ? value : parseValue(String(value));
         if (n <= 0) return formatMoney(0);
-        const aud = convertToAud(n, currency, rates);
+        const aud = convertToBase(n, currency, rates);
         return formatMoney(aud ?? n);
     };
 
-    const totalAUD = manualEntries.reduce((s, e) => {
+    const totalBase = manualEntries.reduce((s, e) => {
         const n = parseValue(e.priceValue);
-        const rate = e.priceCurrency === 'AUD' ? 1 : (rates[e.priceCurrency] ?? 1);
+        const rate = e.priceCurrency === BASE_CURRENCY ? 1 : (rates[e.priceCurrency] ?? 1);
         return s + n * rate;
     }, 0);
-    const totalFormatted = totalAUD > 0
-        ? formatMoney(totalAUD)
+    const totalFormatted = totalBase > 0
+        ? formatMoney(totalBase)
         : null;
 
     const creatorName = user?.name || 'Você';
@@ -415,7 +416,7 @@ export default function ItineraryPreviewScreen() {
                         <View>
                             <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.65)' }]}>Roteiro completo</Text>
                             <View style={styles.priceRow}>
-                                <Text style={[styles.priceSymbol, { color: '#28C9BF' }]}>A$</Text>
+                                <Text style={[styles.priceSymbol, { color: '#28C9BF' }]}>{getCurrencySymbol(form.currency)}</Text>
                                 <Text style={[styles.priceValue, { color: '#FFFFFF' }]}>
                                     {effectivePrice > 0
                                         ? effectivePrice.toFixed(2).replace('.', ',')
@@ -523,7 +524,7 @@ export default function ItineraryPreviewScreen() {
                                                         <Text style={styles.breakdownDescription}>
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
                                                             {' por pessoa'}
-                                                            {item.currency !== 'AUD' && (
+                                                            {item.currency !== BASE_CURRENCY && (
                                                                 <Text> ≈ {formatInRefCurrency(item.amountPerPerson, item.currency)}</Text>
                                                             )}
                                                         </Text>

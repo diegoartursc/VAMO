@@ -1,3 +1,4 @@
+import { BASE_CURRENCY } from "./market";
 /**
  * Tipos canônicos para criação/edição de roteiro.
  * Espelham o schema Prisma em apps/backend/prisma/schema.prisma.
@@ -54,12 +55,12 @@ export interface Day {
  */
 export interface ModuleSpending {
     value: string;        // valor por pessoa (string para preservar zeros)
-    currency: string;     // código (AUD, USD, EUR, BRL, ...)
+    currency: string;     // código (USD, AUD, EUR, BRL, ...)
 }
 
 export const EMPTY_MODULE_SPENDING: ModuleSpending = {
     value: "",
-    currency: "AUD",
+    currency: BASE_CURRENCY,
 };
 
 /**
@@ -118,7 +119,7 @@ export interface ModuleCostInfo {
      *  por pessoa. Para gastos compartilhados (sharedByPeople>1), o
      *  valor por pessoa é calculado como amount/sharedByPeople. */
     amount?: string | null;
-    /** Código de moeda (AUD, USD, EUR, BRL, ...). Default: "AUD". */
+    /** Código de moeda (USD, AUD, EUR, BRL, ...). Default: moeda-base do mercado (market.ts). */
     currency?: string;
     /** Como o criador classifica esta informação de custo. */
     disclosureType: CostDisclosureType;
@@ -138,7 +139,7 @@ export interface ModuleCostInfo {
 
 export const EMPTY_MODULE_COST_INFO: ModuleCostInfo = {
     amount: "",
-    currency: "AUD",
+    currency: BASE_CURRENCY,
     disclosureType: "not_informed",
     sharedByPeople: 1,
     notes: "",
@@ -347,7 +348,7 @@ export function createEmptyForm(): ItineraryFormState {
         categories: [],
         travelProofUrl: "",
         price: 0,
-        currency: "AUD",
+        currency: BASE_CURRENCY,
         immediateAccess: true,
         lifetimeAccess: true,
         offlineDownload: true,

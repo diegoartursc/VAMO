@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, createContext, useContext } fr
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ScoreBreakdownModal from "./ScoreBreakdownModal";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 
@@ -143,15 +144,53 @@ function mergeAdminItems<T extends { id: string }>(preferred: T[], fallback: T[]
     return merged;
 }
 
+/* Cache em memória compartilhado entre as telas do admin: trocar de aba mostra
+   os dados na hora (sem piscar zeros) e atualiza em segundo plano. O layout
+   chama prefetchAdminData() assim que o painel abre. */
+interface AdminSnapshot {
+    packages: PendingPackage[]; allPackages: PendingPackage[];
+    itineraries: PendingItinerary[]; allItineraries: PendingItinerary[];
+    creators: PendingCreator[]; stats: Stats;
+}
+let adminCache: AdminSnapshot | null = null;
+let inFlight: Promise<AdminSnapshot | "unauthorized"> | null = null;
+
+async function loadAdminData(token: string): Promise<AdminSnapshot | "unauthorized"> {
+    const fetchOpts = { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" as RequestCache };
+    const paths = ["/admin/pending?type=package", "/admin/pending?type=itinerary", "/admin/all?type=package", "/admin/all?type=itinerary", "/admin/stats", "/admin/creators/pending"];
+    const responses = await Promise.all(paths.map(path => fetch(`${API}${path}`, fetchOpts)));
+    if (responses.some(r => r.status === 401)) return "unauthorized";
+    const [pp, pi, ap, ai, st, cr] = await Promise.all(responses.map(r => readJsonResponse<unknown>(r)));
+
+    const pkgs = listFromPayload<PendingPackage>(pp, "packages");
+    const its = listFromPayload<PendingItinerary>(pi, "itineraries");
+    const allPkgs = mergeAdminItems(pkgs, listFromPayload<PendingPackage>(ap, "packages"));
+    const allIts = mergeAdminItems(its, listFromPayload<PendingItinerary>(ai, "itineraries"));
+    const stats = (st as Stats | null) ?? { pendingPackages: pkgs.length, pendingItineraries: its.length, totalPending: pkgs.length + its.length, approvedToday: 0, rejectedTotal: allPkgs.filter(p => p.status === "REJECTED").length + allIts.filter(i => i.status === "REJECTED").length };
+    return { packages: pkgs, itineraries: its, allPackages: allPkgs, allItineraries: allIts, stats, creators: Array.isArray(cr) ? cr as PendingCreator[] : [] };
+}
+
+function startLoad(token: string) {
+    if (!inFlight) {
+        inFlight = loadAdminData(token)
+            .then(r => { if (r !== "unauthorized") adminCache = r; return r; })
+            .finally(() => { inFlight = null; });
+    }
+    return inFlight;
+}
+
+export function clearAdminCache() { adminCache = null; }
+
+/** Dispara o carregamento antes de a tela pedir (chamado pelo layout). */
+export function prefetchAdminData() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+    if (token && !adminCache) startLoad(token).catch(() => {});
+}
+
 export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-    const [packages, setPackages] = useState<PendingPackage[]>([]);
-    const [allPackages, setAllPackages] = useState<PendingPackage[]>([]);
-    const [itineraries, setItineraries] = useState<PendingItinerary[]>([]);
-    const [allItineraries, setAllItineraries] = useState<PendingItinerary[]>([]);
-    const [creators, setCreators] = useState<PendingCreator[]>([]);
-    const [stats, setStats] = useState<Stats | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<AdminSnapshot | null>(adminCache);
+    const [loading, setLoading] = useState(!adminCache);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
     const getToken = () => localStorage.getItem("adminToken");
@@ -164,67 +203,25 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
         const token = getToken();
         if (!token) { router.push("/admin/login"); return; }
         try {
-            const headers = { Authorization: `Bearer ${token}` };
-            const fetchOpts = { headers, cache: 'no-store' as RequestCache };
-            const fetchAdmin = async (path: string) => {
-                const res = await fetch(`${API}${path}`, fetchOpts);
-                if (res.status === 401) {
-                    localStorage.removeItem("adminToken");
-                    router.push("/admin/login");
-                    return null;
-                }
-                return res;
-            };
-
-            const pendingPackagesRes = await fetchAdmin("/admin/pending?type=package");
-            const pendingItinerariesRes = await fetchAdmin("/admin/pending?type=itinerary");
-            const allPackagesRes = await fetchAdmin("/admin/all?type=package");
-            const allItinerariesRes = await fetchAdmin("/admin/all?type=itinerary");
-            const statsRes = await fetchAdmin("/admin/stats");
-
-            if (!pendingPackagesRes || !pendingItinerariesRes || !allPackagesRes || !allItinerariesRes || !statsRes) {
+            const result = await startLoad(token);
+            if (result === "unauthorized") {
+                adminCache = null;
                 localStorage.removeItem("adminToken");
+                router.push("/admin/login");
                 return;
             }
-
-            let pkgs: PendingPackage[] = [], its: PendingItinerary[] = [], allPkgs: PendingPackage[] = [], allIts: PendingItinerary[] = [];
-            const [pendingPackagesData, pendingItinerariesData, allPackagesData, allItinerariesData] = await Promise.all([
-                readJsonResponse<unknown>(pendingPackagesRes),
-                readJsonResponse<unknown>(pendingItinerariesRes),
-                readJsonResponse<unknown>(allPackagesRes),
-                readJsonResponse<unknown>(allItinerariesRes),
-            ]);
-
-            pkgs = listFromPayload<PendingPackage>(pendingPackagesData, "packages");
-            its = listFromPayload<PendingItinerary>(pendingItinerariesData, "itineraries");
-            allPkgs = mergeAdminItems(pkgs, listFromPayload<PendingPackage>(allPackagesData, "packages"));
-            allIts = mergeAdminItems(its, listFromPayload<PendingItinerary>(allItinerariesData, "itineraries"));
-
-            setPackages(pkgs);
-            setItineraries(its);
-            setAllPackages(allPkgs);
-            setAllItineraries(allIts);
-
-            let s: Stats = { pendingPackages: pkgs.length, pendingItineraries: its.length, totalPending: pkgs.length + its.length, approvedToday: 0, rejectedTotal: allPkgs.filter(p => p.status === "REJECTED").length + allIts.filter(i => i.status === "REJECTED").length };
-            const statsData = await readJsonResponse<Stats>(statsRes);
-            if (statsData) s = statsData;
-            setStats(s);
-
-            const creatorsRes = await fetch(`${API}/admin/creators/pending`, fetchOpts);
-            if (creatorsRes.ok) {
-                const cd = await readJsonResponse<PendingCreator[]>(creatorsRes);
-                setCreators(Array.isArray(cd) ? cd : []);
-            }
+            setData(result);
         } catch (error) {
             console.error("[admin/shared] failed to load admin data", error);
-            setPackages([]); setItineraries([]);
-            setAllPackages([]); setAllItineraries([]);
-            setStats({ pendingPackages: 0, pendingItineraries: 0, totalPending: 0, approvedToday: 0, rejectedTotal: 0 });
-            showToast("Não foi possível carregar os roteiros do admin agora.", "error");
+            if (!adminCache) showToast("Não foi possível carregar os roteiros do admin agora.", "error");
         } finally { setLoading(false); }
     }, [router]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
+
+    const packages = data?.packages ?? [], allPackages = data?.allPackages ?? [];
+    const itineraries = data?.itineraries ?? [], allItineraries = data?.allItineraries ?? [];
+    const creators = data?.creators ?? [], stats = data?.stats ?? null;
 
     return (
         <AdminContext.Provider value={{ packages, allPackages, itineraries, allItineraries, creators, stats, loading, refetch: fetchData, showToast, toast, getToken }}>
@@ -344,7 +341,7 @@ export function ItemList({ items, type, onApprove, onReject, onCostProofs, empty
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontSize: "14px", fontWeight: "700", color: "#1FA89F" }}>
-                                {type === "packages" ? item.priceMin ? `A$ ${item.priceMin.toLocaleString("pt-BR")}` : "—" : item.price ? `A$ ${item.price.toLocaleString("pt-BR")}` : "—"}
+                                {type === "packages" ? item.priceMin ? `${BASE_CURRENCY_SYMBOL}${item.priceMin.toLocaleString(BASE_LOCALE)}` : "—" : item.price ? `${BASE_CURRENCY_SYMBOL}${item.price.toLocaleString(BASE_LOCALE)}` : "—"}
                             </div>
                         </div>
                         <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>

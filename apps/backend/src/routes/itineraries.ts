@@ -6,6 +6,7 @@ import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/trave
 import { selectFeaturedRanked } from '../utils/featuredRanking';
 import { PUBLIC_ITINERARY_WHERE, isPublicItineraryStatus, isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 import { sendItinerarySubmittedForReviewEmail } from '../lib/mailer';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 const router = Router();
 
@@ -1361,7 +1362,7 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 country,
                 description: description || '',
                 price: parseDecimalInput(price),
-                currency: currency || 'AUD',
+                currency: currency || BASE_CURRENCY,
                 duration: parseIntegerInput(duration),
                 highlights: highlights || [],
                 inclusions: inclusions || [],

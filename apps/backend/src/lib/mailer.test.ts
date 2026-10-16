@@ -22,7 +22,9 @@ const last = () => outbox[outbox.length - 1];
 
 test('formatMoney usa unidades da moeda, não centavos', async () => {
     const { formatMoney } = await load();
-    assert.equal(formatMoney(29.9, 'aud'), '$29.90');
+    assert.equal(formatMoney(29.9, 'usd'), '$29.90');
+    assert.equal(formatMoney(29.9, 'aud'), 'A$29.90');
+    assert.equal(formatMoney(29.9, undefined), '$29.90'); // sem moeda → moeda-base do mercado (USD)
     assert.equal(formatMoney(null, 'aud'), null);
 });
 
@@ -63,7 +65,7 @@ test('senha alterada nunca inclui senha e orienta o suporte', async () => {
     const m = await load();
     await m.sendPasswordChangedEmail({ to: 'a@x.test', name: 'Ana', changedAt: new Date('2026-09-24T12:00:00Z') });
     assert.match(last().html, /suporte/);
-    assert.match(last().html, /Sydney/);
+    assert.match(last().html, /Nova York/);
     assert.ok(!/senha:\s*\S/i.test(last().text));
 });
 

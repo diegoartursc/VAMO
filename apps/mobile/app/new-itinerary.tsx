@@ -93,6 +93,7 @@ import {
     validateForSubmission,
     dayIsComplete,
 } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 // Rascunho do roteiro é dado privado do criador (destino, datas, preços, fotos).
 // Chave por travelerId — sem isso, Maria deslogava e Diego pegava o rascunho dela.
@@ -1973,7 +1974,7 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             cost={item.cost}
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
-                            defaultCurrency={form.currency || 'AUD'}
+                            defaultCurrency={form.currency || BASE_CURRENCY}
                             helperShort="Valor por pessoa da estadia. Comprovante (reserva, recibo) aumenta a confiança."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
@@ -2096,7 +2097,7 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 cost={item.cost}
                                 legacySpending={item.spending}
                                 onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
-                                defaultCurrency={form.currency || 'AUD'}
+                                defaultCurrency={form.currency || BASE_CURRENCY}
                                 helperShort="Valor por pessoa do ingresso/passeio. Para passeios caros, comprovante aumenta a confiança."
                                 encourageProof
                                 uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
@@ -2157,7 +2158,7 @@ function StepTransport({ form, update, token }: StepProps) {
                             cost={item.cost}
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
-                            defaultCurrency={form.currency || 'AUD'}
+                            defaultCurrency={form.currency || BASE_CURRENCY}
                             helperShort="Valor por pessoa do passe/transporte — opcional. Use estimativa para transporte local."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
@@ -2242,7 +2243,7 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             cost={item.cost}
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
-                            defaultCurrency={form.currency || 'AUD'}
+                            defaultCurrency={form.currency || BASE_CURRENCY}
                             helperShort="Valor por pessoa da refeição — opcional. Use estimativa quando o preço varia."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
@@ -2317,7 +2318,7 @@ function StepFlight({ form, update, token }: StepProps) {
                     update('flightCost', c);
                     update('flightSpending', costToLegacySpending(c));
                 }}
-                defaultCurrency={form.currency || 'AUD'}
+                defaultCurrency={form.currency || BASE_CURRENCY}
                 helperShort="Valor da passagem por pessoa — opcional. Reserva/recibo aumenta a confiança."
                 encourageProof
                 uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
@@ -2331,7 +2332,7 @@ function StepFlight({ form, update, token }: StepProps) {
 // ═══════════════════════════════════════════════════════════════════
 
 function emptyChecklist(): ChecklistItem { return { category: 'documentos', item: '', isDefault: false }; }
-function emptySpending(): SpendingEntry { return { moduleKey: 'gasto', label: '', icon: '💳', priceValue: '', priceCurrency: 'AUD', receiptUrl: '' }; }
+function emptySpending(): SpendingEntry { return { moduleKey: 'gasto', label: '', icon: '💳', priceValue: '', priceCurrency: BASE_CURRENCY, receiptUrl: '' }; }
 
 // ═══════════════════════════════════════════════════════════════════
 // STEP MODULES — Dicas Exclusivas
@@ -2447,7 +2448,7 @@ function emptyExtraSpending(): ExtraSpendingItem {
         title: '',
         description: '',
         value: '',
-        currency: 'AUD',
+        currency: BASE_CURRENCY,
     };
 }
 
@@ -2529,16 +2530,16 @@ function StepExtraSpending({ form, update, token }: StepProps) {
 
                     <CostBlock
                         cost={e.cost}
-                        legacySpending={e.value ? { value: e.value, currency: e.currency || 'AUD' } : undefined}
+                        legacySpending={e.value ? { value: e.value, currency: e.currency || BASE_CURRENCY } : undefined}
                         onChange={c => {
                             const legacy = costToLegacySpending(c);
                             updateItem(i, {
                                 cost: c,
                                 value: legacy?.value ?? '',
-                                currency: legacy?.currency ?? e.currency ?? 'AUD',
+                                currency: legacy?.currency ?? e.currency ?? BASE_CURRENCY,
                             });
                         }}
-                        defaultCurrency={form.currency || 'AUD'}
+                        defaultCurrency={form.currency || BASE_CURRENCY}
                         helperShort="Gastos variáveis (chip, taxas, gorjetas) costumam ser estimativas."
                         encourageProof
                         uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
@@ -3006,7 +3007,7 @@ function deserializeFromApi(data: any): ItineraryFormState {
         categories: Array.from(new Set((data.categories || []).map((c: string) => String(c).trim()).filter(Boolean))),
         travelProofUrl: data.travelProofUrl || '',
         price: data.price || 0,
-        currency: data.currency || 'AUD',
+        currency: data.currency || BASE_CURRENCY,
         promoPrice: data.promoPrice ?? undefined,
         immediateAccess: data.immediateAccess ?? true,
         lifetimeAccess: data.lifetimeAccess ?? true,

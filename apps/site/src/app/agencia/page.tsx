@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getSession, isAgencySession, type AuthSession } from "../../lib/auth";
 import { getAgencyPackages } from "../../lib/api";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 export default function AgenciaDashboardPage() {
     const [session, setSession] = useState<AuthSession | null>(null);
@@ -30,7 +31,7 @@ export default function AgenciaDashboardPage() {
     }, []);
 
     const formatCurrency = (value: number) =>
-        `A$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+        `${BASE_CURRENCY_SYMBOL}${value.toLocaleString(BASE_LOCALE, { minimumFractionDigits: 0 })}`;
 
     const activePackages = packages.filter(p => p.status === "ACTIVE" || p.status === "active");
     const totalSales = packages.reduce((s, p) => s + (p.recentPurchases || 0), 0);

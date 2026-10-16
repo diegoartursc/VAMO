@@ -27,8 +27,8 @@ const getParam = (value: string | string[] | undefined): string => {
     return value || '';
 };
 
-const formatPrice = (value: number) => (
-    value > 0 ? formatMoney(value) : 'Grátis'
+const formatPrice = (value: number, currency?: string | null) => (
+    value > 0 ? formatMoney(value, currency || undefined) : 'Grátis'
 );
 
 const hasValidContactData = ({
@@ -323,7 +323,7 @@ export default function ItineraryPaymentScreen() {
                                 </View>
 
                                 <Text style={styles.totalInSummary}>
-                                    {formatPrice(paymentAmount)}
+                                    {formatPrice(paymentAmount, itinerary?.currency)}
                                 </Text>
                             </View>
                         )}
@@ -348,7 +348,7 @@ export default function ItineraryPaymentScreen() {
             <View style={styles.footer}>
                 <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total</Text>
-                    <Text style={styles.totalPrice}>{formatPrice(paymentAmount)}</Text>
+                    <Text style={styles.totalPrice}>{formatPrice(paymentAmount, itinerary?.currency)}</Text>
                     <Text style={styles.taxIncluded}>Todos os impostos e taxas inclusos</Text>
                 </View>
 
@@ -386,7 +386,7 @@ export default function ItineraryPaymentScreen() {
                         </View>
                     ) : (
                         <Text style={styles.confirmButtonText}>
-                            {paymentAmount > 0 ? `Pagar ${formatPrice(paymentAmount)}` : 'Resgatar grátis'}
+                            {paymentAmount > 0 ? `Pagar ${formatPrice(paymentAmount, itinerary?.currency)}` : 'Resgatar grátis'}
                         </Text>
                     )}
                 </TouchableOpacity>

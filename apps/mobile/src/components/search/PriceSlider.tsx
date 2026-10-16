@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { theme } from '../../theme/theme';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 interface PriceSliderProps {
     min: number;
@@ -17,7 +18,7 @@ export function PriceSlider({ min, max, value, onChange, step = 100 }: PriceSlid
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
-            currency: 'AUD',
+            currency: BASE_CURRENCY,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
         }).format(price);

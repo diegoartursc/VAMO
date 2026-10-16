@@ -29,7 +29,8 @@ import {
     type ConsolidatedCostCategory,
     type ItineraryFormState,
 } from '@vamo/shared/itinerary';
-import { convertToAud } from '../../utils/currencyConversion';
+import { convertToBase } from '../../utils/currencyConversion';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 export interface TravelCostSummarySectionProps {
     form: Partial<ItineraryFormState> | null | undefined;
@@ -65,12 +66,12 @@ export function TravelCostSummarySection({
     const summary = buildConsolidatedCostSummary(
         form,
         activeModules,
-        (amount, currency) => convertToAud(amount, currency, currencyRates),
+        (amount, currency) => convertToBase(amount, currency, currencyRates),
     );
 
-    const isPureVerified = summary.hasAnyData && summary.estimatedAmountAUD === 0;
-    const isPureEstimated = summary.hasAnyData && summary.verifiedAmountAUD === 0;
-    const isMixedTotal = summary.hasAnyData && summary.verifiedAmountAUD > 0 && summary.estimatedAmountAUD > 0;
+    const isPureVerified = summary.hasAnyData && summary.estimatedAmountBase === 0;
+    const isPureEstimated = summary.hasAnyData && summary.verifiedAmountBase === 0;
+    const isMixedTotal = summary.hasAnyData && summary.verifiedAmountBase > 0 && summary.estimatedAmountBase > 0;
 
     return (
         <View style={styles.card}>
@@ -90,9 +91,9 @@ export function TravelCostSummarySection({
                 <>
                     <Text
                         style={styles.totalValue}
-                        accessibilityLabel={`Valor de referência por pessoa: ${formatMoney(summary.perPersonTotalAUD, 'AUD')}`}
+                        accessibilityLabel={`Valor de referência por pessoa: ${formatMoney(summary.perPersonTotalBase, BASE_CURRENCY)}`}
                     >
-                        {formatMoney(summary.perPersonTotalAUD, 'AUD')}
+                        {formatMoney(summary.perPersonTotalBase, BASE_CURRENCY)}
                         <Text style={styles.totalSuffix}> por pessoa</Text>
                     </Text>
 
@@ -127,7 +128,7 @@ export function TravelCostSummarySection({
                         <View style={styles.conversionWarningRow}>
                             <Icon name="info" size={12} color={theme.colors.warning} />
                             <Text style={styles.conversionWarningText}>
-                                Alguns valores não puderam ser convertidos para AUD agora — o total pode estar subestimado.
+                                Alguns valores não puderam ser convertidos para {BASE_CURRENCY} agora — o total pode estar subestimado.
                             </Text>
                         </View>
                     )}
@@ -164,7 +165,7 @@ export function TravelCostSummarySection({
                     {/* ── Bloco 3: simulador de grupo ── */}
                     <View style={styles.divider} />
                     <GroupSimulatorBlock
-                        perPersonAUD={summary.perPersonTotalAUD}
+                        perPersonBase={summary.perPersonTotalBase}
                         value={peopleCount}
                         onChange={onPeopleCountChange}
                     />
@@ -176,7 +177,7 @@ export function TravelCostSummarySection({
                         <Text style={styles.disclaimerText}>
                             Os valores são referências informadas pelo criador e podem variar conforme data, temporada,
                             câmbio, antecedência, disponibilidade e estilo de consumo.
-                            {summary.verifiedAmountAUD > 0 && (
+                            {summary.verifiedAmountBase > 0 && (
                                 ' Comprovantes aprovados representam valores pagos pelo criador naquele contexto e não garantem o mesmo preço para outras datas ou viajantes.'
                             )}
                         </Text>
@@ -189,12 +190,12 @@ export function TravelCostSummarySection({
 
 function CategoryRow({ category }: { category: ConsolidatedCostCategory }) {
     const meta = STATUS_META[category.status];
-    const showOriginal = !!category.originalCurrency && category.originalCurrency !== 'AUD';
+    const showOriginal = !!category.originalCurrency && category.originalCurrency !== BASE_CURRENCY;
     const showMixedOriginals = !category.originalCurrency && category.originalCurrencies.length > 1;
 
     const a11yLabel = [
         category.moduleLabel,
-        formatMoney(category.perPersonAUD, 'AUD') + ' por pessoa',
+        formatMoney(category.perPersonBase, BASE_CURRENCY) + ' por pessoa',
         meta.label,
     ].join(', ');
 
@@ -206,13 +207,13 @@ function CategoryRow({ category }: { category: ConsolidatedCostCategory }) {
             <View style={{ flex: 1 }}>
                 <View style={styles.categoryTopRow}>
                     <Text style={styles.categoryLabel} numberOfLines={1}>{category.moduleLabel}</Text>
-                    <Text style={styles.categoryAmount}>{formatMoney(category.perPersonAUD, 'AUD')}</Text>
+                    <Text style={styles.categoryAmount}>{formatMoney(category.perPersonBase, BASE_CURRENCY)}</Text>
                 </View>
 
                 {showOriginal && (
                     <Text style={styles.categorySub} numberOfLines={1}>
                         {formatMoney(category.originalAmountPerPerson ?? 0, category.originalCurrency!)} por pessoa
-                        {' ≈ '}{formatMoney(category.perPersonAUD, 'AUD')}
+                        {' ≈ '}{formatMoney(category.perPersonBase, BASE_CURRENCY)}
                     </Text>
                 )}
                 {showMixedOriginals && (
@@ -227,7 +228,7 @@ function CategoryRow({ category }: { category: ConsolidatedCostCategory }) {
                 )}
                 {category.hasConversionGap && (
                     <Text style={styles.conversionGapText}>
-                        Equivalente em AUD indisponível para parte deste valor.
+                        Equivalente em {BASE_CURRENCY} indisponível para parte deste valor.
                     </Text>
                 )}
 
@@ -235,7 +236,7 @@ function CategoryRow({ category }: { category: ConsolidatedCostCategory }) {
                     <Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text>
                     {category.status === 'mixed' && (
                         <Text style={styles.statusMixedDetail}>
-                            {' · '}{formatMoney(category.verifiedAUD, 'AUD')} comprovados · {formatMoney(category.estimatedAUD, 'AUD')} estimados
+                            {' · '}{formatMoney(category.verifiedBase, BASE_CURRENCY)} comprovados · {formatMoney(category.estimatedBase, BASE_CURRENCY)} estimados
                         </Text>
                     )}
                 </View>
@@ -245,10 +246,10 @@ function CategoryRow({ category }: { category: ConsolidatedCostCategory }) {
 }
 
 function GroupSimulatorBlock({
-    perPersonAUD, value, onChange,
-}: { perPersonAUD: number; value: number; onChange: (n: number) => void }) {
+    perPersonBase, value, onChange,
+}: { perPersonBase: number; value: number; onChange: (n: number) => void }) {
     const safeValue = Math.max(SIM_MIN, Math.min(SIM_MAX, value || SIM_MIN));
-    const totalGroup = Math.round(perPersonAUD * safeValue * 100) / 100;
+    const totalGroup = Math.round(perPersonBase * safeValue * 100) / 100;
     const peopleLabel = safeValue === 1 ? '1 pessoa' : `${safeValue} pessoas`;
 
     const dec = () => onChange(Math.max(SIM_MIN, safeValue - 1));
@@ -296,13 +297,13 @@ function GroupSimulatorBlock({
             <View style={styles.simSummaryRow}>
                 <View style={styles.simSummaryCell}>
                     <Text style={styles.simSummaryLabel}>Por pessoa</Text>
-                    <Text style={styles.simSummaryValue}>{formatMoney(perPersonAUD, 'AUD')}</Text>
+                    <Text style={styles.simSummaryValue}>{formatMoney(perPersonBase, BASE_CURRENCY)}</Text>
                 </View>
                 <View style={styles.simSummaryDivider} />
                 <View style={styles.simSummaryCell}>
                     <Text style={styles.simSummaryLabel}>Total para {peopleLabel}</Text>
                     <Text style={[styles.simSummaryValue, styles.simSummaryValueGroup]}>
-                        {formatMoney(totalGroup, 'AUD')}
+                        {formatMoney(totalGroup, BASE_CURRENCY)}
                     </Text>
                 </View>
             </View>

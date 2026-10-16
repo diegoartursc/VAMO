@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BASE_CURRENCY_SYMBOL } from "@vamo/shared/itinerary";
 
 export default function CriadoresPage() {
     return (
@@ -37,7 +38,7 @@ export default function CriadoresPage() {
                             <div className="stat-label">Comissão por venda</div>
                         </div>
                         <div className="stat-item">
-                            <div className="stat-value">A$ 0</div>
+                            <div className="stat-value">{BASE_CURRENCY_SYMBOL}0</div>
                             <div className="stat-label">Investimento inicial</div>
                         </div>
                         <div className="stat-item">

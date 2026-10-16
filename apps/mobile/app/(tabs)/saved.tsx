@@ -306,7 +306,7 @@ function SavedCard({
 
                     {/* Price — top left */}
                     <View style={styles.priceBadge}>
-                        <Text style={styles.priceBadgeText}>{price > 0 ? formatMoney(price) : priceFormatted}</Text>
+                        <Text style={styles.priceBadgeText}>{price > 0 ? formatMoney(price, item.currency || undefined) : priceFormatted}</Text>
                     </View>
 
                     {/* Heart remove — top right */}

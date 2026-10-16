@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminDataProvider, useAdmin, API } from "../shared";
+import { BASE_CURRENCY, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 interface Sale {
     id: string; createdAt: string; price: number; commission: number; net: number; currency: string;
@@ -10,7 +11,7 @@ interface Sale {
     buyerName: string; buyerEmail: string; provider: string | null; paymentStatus: string | null;
 }
 
-const money = (v: number, c = "AUD") => new Intl.NumberFormat("en-AU", { style: "currency", currency: c }).format(v || 0);
+const money = (v: number, c = BASE_CURRENCY) => new Intl.NumberFormat(BASE_LOCALE, { style: "currency", currency: c }).format(v || 0);
 const card: React.CSSProperties = { background: "#fff", borderRadius: "18px", padding: "18px 20px", border: "1px solid rgba(226,232,240,0.7)" };
 
 function FinanceContent() {
@@ -31,7 +32,7 @@ function FinanceContent() {
             <header className="dash-header">
                 <div>
                     <h1 className="dash-title">Financeiro</h1>
-                    <p className="dash-subtitle">Vendas de roteiros registradas no sistema (valores em AUD). Comissão = a registrada em cada venda.</p>
+                    <p className="dash-subtitle">Vendas de roteiros registradas no sistema (valores na moeda de cada venda). Comissão = a registrada em cada venda.</p>
                 </div>
             </header>
             {error && <div style={{ ...card, color: "#DC2626", fontWeight: 600 }}>{error}</div>}

@@ -5,6 +5,7 @@ import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/trave
 import { PURCHASED_ITINERARY_INCLUDE, buildPurchasedItineraryPayload, toJsonSafe } from './itineraries';
 import { isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 import { sendPurchaseConfirmationEmail, sendCreatorSaleEmail, sendPurchaseAutoRefundEmail } from '../lib/mailer';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 const router = Router();
 
@@ -307,7 +308,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
             // Sem `payment_method_types` explícito, o Checkout usa os métodos
             // dinâmicos habilitados no Dashboard da conta — e a Stripe ativa
             // Afterpay/Clearpay, Klarna, Affirm e Zip por padrão em várias
-            // contas, ainda mais em AUD. Isso colocaria "pague em 4x" na
+            // contas, ainda mais em moeda estrangeira. Isso colocaria "pague em 4x" na
             // página de pagamento sem ninguém mexer no código.
             //
             // Fixar em ['card'] fecha a regra no backend, que é onde ela
@@ -318,7 +319,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
             line_items: [{
                 quantity: 1,
                 price_data: {
-                    currency: (itinerary.currency || 'AUD').toLowerCase(),
+                    currency: (itinerary.currency || BASE_CURRENCY).toLowerCase(),
                     unit_amount: Math.round(itinerary.price * 100),
                     product_data: {
                         name: itinerary.title,

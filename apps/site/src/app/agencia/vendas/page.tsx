@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { acceptAttributeFor, validateUploadFile } from "../../../lib/uploadContexts";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 /* ─── Types ─── */
 type QuoteStatus = "AWAITING_QUOTE" | "QUOTED" | "ACCEPTED" | "EXPIRED" | "REJECTED";
@@ -138,7 +139,7 @@ export default function VendasPage() {
         new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 
     const formatCurrency = (v: number) =>
-        `A$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+        `${BASE_CURRENCY_SYMBOL}${v.toLocaleString(BASE_LOCALE, { minimumFractionDigits: 0 })}`;
 
     const getUrgencyColor = (createdAt: string) => {
         const hours = (Date.now() - new Date(createdAt).getTime()) / 3600000;

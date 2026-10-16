@@ -54,7 +54,7 @@ import { TravelCostSummarySection } from '../../../src/components/itinerary/Trav
 import { ExperienceSummaryCard } from '../../../src/components/itinerary/ExperienceSummaryCard';
 import { TrustStrip, TrustSignal } from '../../../src/components/itinerary/TrustStrip';
 import { features } from '../../../src/config/features';
-import { formatMoney, getRouteRatingDisplay, getPrimaryBudgetStyle, getCostReferences } from '@vamo/shared/itinerary';
+import { formatMoney, getRouteRatingDisplay, getPrimaryBudgetStyle, getCostReferences, getCurrencySymbol } from '@vamo/shared/itinerary';
 import BudgetStyleGuideSheet from '../../../src/components/common/BudgetStyleGuideSheet';
 
 const { width, height } = Dimensions.get('window');
@@ -546,7 +546,7 @@ export default function ItineraryDetailScreen() {
                         <View style={styles.priceInfo}>
                             <Text style={styles.priceLabelText}>Roteiro completo</Text>
                             <View style={styles.priceRow}>
-                                <Text style={styles.priceSymbolText}>A$</Text>
+                                <Text style={styles.priceSymbolText}>{getCurrencySymbol(itinerary.currency)}</Text>
                                 <Text style={styles.priceValueText}>
                                     {price.toFixed(2).replace('.', ',')}
                                 </Text>

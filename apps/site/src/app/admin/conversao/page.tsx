@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { BASE_CURRENCY, BASE_CURRENCY_SYMBOL } from "@vamo/shared/itinerary";
 import { useDollarRate, CURRENCY_RATES_KEY, CurrencyRates, DEFAULT_RATES } from "../../../hooks/useDollarRate";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
@@ -141,7 +142,7 @@ export default function ConversaoMoedasPage() {
             <header className="dash-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
                     <h1 className="dash-title">Conversão de Moedas</h1>
-                    <p className="dash-subtitle">Gerencie as taxas de conversão (para AUD) utilizadas em todo o sistema.</p>
+                    <p className="dash-subtitle">Gerencie as taxas de conversão (para {BASE_CURRENCY}) utilizadas em todo o sistema.</p>
                 </div>
                 {hasChanges && (
                     <button 
@@ -176,7 +177,7 @@ export default function ConversaoMoedasPage() {
                     <div>Bandeira</div>
                     <div>Sigla</div>
                     <div>Nome da Moeda</div>
-                    <div>Taxa (A$)</div>
+                    <div>Taxa ({BASE_CURRENCY_SYMBOL})</div>
                     <div style={{ textAlign: "right" }}>Ações</div>
                 </div>
 
@@ -197,7 +198,7 @@ export default function ConversaoMoedasPage() {
                             <div style={{ color: "#64748B", fontSize: 15, fontWeight: 500 }}>{info.name}</div>
                             
                             <div style={{ position: "relative" }}>
-                                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", fontSize: 14 }}>A$</span>
+                                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", fontSize: 14 }}>{BASE_CURRENCY_SYMBOL}</span>
                                 <input 
                                     type="text" 
                                     value={draftRates[code] || ""}
@@ -234,7 +235,7 @@ export default function ConversaoMoedasPage() {
             
             <div style={{ marginTop: 24, fontSize: 13, color: "#64748B", display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ fontSize: 16 }}>💡</span>
-                <span>As taxas informadas representam o valor de <strong>1 unidade da moeda estrangeira</strong> em dólar australiano (AUD). A moeda base de cálculo no banco de dados é o AUD.</span>
+                <span>As taxas informadas representam o valor de <strong>1 unidade da moeda estrangeira</strong> na moeda base do mercado ({BASE_CURRENCY}). Todos os totais de custo são calculados nessa moeda.</span>
             </div>
         </div>
     );

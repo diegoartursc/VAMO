@@ -291,7 +291,7 @@ model CreatorBalance {
   creatorId        String   @unique
   availableBalance Float    @default(0)
   pendingBalance   Float    @default(0)
-  currency         String   @default("AUD")
+  currency         String   @default("USD")
   updatedAt        DateTime @updatedAt
 
   creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
@@ -312,7 +312,7 @@ model Package {
   description         String        @db.Text
   fullDescription     String?       @db.Text
   emotionalIntro      String?       @db.Text
-  currency            String        @default("AUD")
+  currency            String        @default("USD")
   duration            Int
   maxSlots            Int?
   // Price range (derived from pricing windows or set manually)
@@ -437,7 +437,7 @@ model Itinerary {
   country            String
   description        String          @db.Text
   price              Float
-  currency           String          @default("AUD")
+  currency           String          @default("USD")
   duration           Int
   rating             Float?
   reviewCount        Int             @default(0)

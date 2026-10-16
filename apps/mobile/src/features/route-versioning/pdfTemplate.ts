@@ -27,7 +27,8 @@
 import type { MergedItem, MergedItinerary } from './mergeEngine';
 import { resolveGeneralTipText } from './mergeEngine';
 import { getCostReferences, formatMoney, formatTimeForAustraliaDisplay, hotelStarsText } from '@vamo/shared/itinerary';
-import { convertToAud, summarizeInAud } from '../../utils/currencyConversion';
+import { convertToBase, summarizeInBase } from '../../utils/currencyConversion';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 // ─── Tipos públicos ─────────────────────────────────────────────────
 
@@ -180,7 +181,7 @@ function renderTransport(data: any, source?: MergedItem['source']): string {
                 ${source ? badgeForSource(source) : ''}
             </div>
             ${renderField('Tipos de passe', data?.passTypes)}
-            ${renderField('Valor', data?.priceValue ? `${data?.priceCurrency ?? 'A$'} ${data.priceValue}` : '')}
+            ${renderField('Valor', data?.priceValue ? `${data?.priceCurrency ?? BASE_CURRENCY} ${data.priceValue}` : '')}
             ${renderParagraph(data?.notes)}
         </div>`;
 }
@@ -260,7 +261,7 @@ function renderExtraSpending(data: any, source?: MergedItem['source']): string {
     // Sem isso, gastos salvos em `cost` saíam sem valor no card individual.
     const cost = data?.cost ?? null;
     const rawValue = cost?.amount ?? cost?.value ?? data?.value ?? null;
-    const currency = cost?.currency ?? data?.currency ?? 'A$';
+    const currency = cost?.currency ?? data?.currency ?? BASE_CURRENCY;
     const value = rawValue ? `${currency} ${rawValue}` : '';
     return `
         <div class="card">
@@ -524,7 +525,7 @@ function renderCostReferenceSection(
 
     const rates = ctx.rates ?? {};
     const allItems = groups.flatMap(group => group.items);
-    const convertedSummary = summarizeInAud(
+    const convertedSummary = summarizeInBase(
         allItems.map(item => ({
             amount: item.amountPerPerson,
             currency: item.currency,
@@ -535,11 +536,11 @@ function renderCostReferenceSection(
     const groupsHtml = groups.map(group => {
         const itemsHtml = group.items.map(item => {
             const main = formatMoney(item.amountPerPerson, item.currency);
-            const converted = convertToAud(item.amountPerPerson, item.currency, rates);
-            const conv = item.currency !== 'AUD'
+            const converted = convertToBase(item.amountPerPerson, item.currency, rates);
+            const conv = item.currency !== BASE_CURRENCY
                 ? converted === null
-                    ? ' <span class="cost-conv">· cotação AUD indisponível</span>'
-                    : ` <span class="cost-conv">≈ ${escapeHtml(formatMoney(converted, 'AUD'))}</span>`
+                    ? ` <span class="cost-conv">· cotação ${BASE_CURRENCY} indisponível</span>`
+                    : ` <span class="cost-conv">≈ ${escapeHtml(formatMoney(converted, BASE_CURRENCY))}</span>`
                 : '';
             const base = item.sharedByPeople > 1
                 ? `<div class="cost-base">Base: ${escapeHtml(formatMoney(item.amountTotal, item.currency))} ÷ ${item.sharedByPeople} pessoas</div>`
@@ -561,8 +562,8 @@ function renderCostReferenceSection(
     }).join('');
 
     const totalHtml = convertedSummary.missingCurrencies.length === 0
-        ? `<div class="cost-total">Total estimado por pessoa <strong>${escapeHtml(formatMoney(convertedSummary.totalAud, 'AUD'))}</strong></div>`
-        : `<div class="cost-total">Total em AUD indisponível: falta cotação para <strong>${escapeHtml(convertedSummary.missingCurrencies.join(', '))}</strong>.</div>`;
+        ? `<div class="cost-total">Total estimado por pessoa <strong>${escapeHtml(formatMoney(convertedSummary.totalBase, BASE_CURRENCY))}</strong></div>`
+        : `<div class="cost-total">Total em ${BASE_CURRENCY} indisponível: falta cotação para <strong>${escapeHtml(convertedSummary.missingCurrencies.join(', '))}</strong>.</div>`;
     const disclaimer = `<p class="cost-disclaimer">Valores de referência por pessoa, informados pelo criador ou por você. Podem variar por época, câmbio e disponibilidade.</p>`;
 
     return sectionWrapper('Custos e orçamento (referência por pessoa)', groupsHtml + totalHtml + disclaimer);

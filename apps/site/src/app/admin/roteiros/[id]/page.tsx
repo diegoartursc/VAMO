@@ -7,6 +7,7 @@ import { AdminDataProvider, useAdmin, ApproveRejectModal, API, STATUS_LABEL, STA
 import CostProofsModal from "../../CostProofsModal";
 import { hotelStarsText } from "@vamo/shared/itinerary";
 import ScoreBreakdownModal from "../../ScoreBreakdownModal";
+import { BASE_CURRENCY } from "@vamo/shared/itinerary";
 
 const box: React.CSSProperties = { background: "#fff", borderRadius: "18px", padding: "20px 22px", border: "1px solid rgba(226,232,240,0.7)", marginBottom: "16px" };
 const h2: React.CSSProperties = { fontSize: "15px", fontWeight: 800, color: "#1A3263", margin: "0 0 12px" };
@@ -100,7 +101,7 @@ function DetailContent() {
                     <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1A3263", margin: "10px 0 6px" }}>{it.title}</h1>
                     {it.subtitle && <div style={{ ...muted, marginBottom: 6 }}>{it.subtitle}</div>}
                     <div style={muted}>
-                        {it.destination}, {it.country} · {it.duration} dias · <b style={{ color: "#1FA89F" }}>{it.currency || "AUD"} {Number(it.price || 0).toFixed(2)}</b>
+                        {it.destination}, {it.country} · {it.duration} dias · <b style={{ color: "#1FA89F" }}>{it.currency || BASE_CURRENCY} {Number(it.price || 0).toFixed(2)}</b>
                     </div>
                     <div style={{ ...muted, marginTop: 4 }}>
                         Roteirista: <b>{it.creator?.traveler?.name}</b> ({it.creator?.traveler?.email}) · enviado em {fmtDate(it.updatedAt || it.createdAt)}

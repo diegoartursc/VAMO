@@ -36,6 +36,7 @@ import { HotelStarsInput } from '../../components/common/HotelStars';
 import { DatePickerField, TimePickerField } from './pickers';
 import { FIELDS_BY_KIND, KIND_TITLE, type FieldSpec } from './itemFields';
 import type { ItemKind } from '../../services/routeCustomization';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 /**
  * Shape interno do estado UI para um campo `cost`. Note que ele é DIFERENTE
@@ -57,7 +58,7 @@ import type { ItemKind } from '../../services/routeCustomization';
 interface CostValue { value: string; currency: string; }
 
 /** Estado vazio padrão pra um campo cost. AUD por ser o mercado canônico. */
-const EMPTY_COST: CostValue = { value: '', currency: 'AUD' };
+const EMPTY_COST: CostValue = { value: '', currency: BASE_CURRENCY };
 
 export interface ItemFormModalProps {
     visible: boolean;
@@ -104,7 +105,7 @@ function pickInitialValue(spec: FieldSpec, source: Record<string, any> | null | 
                 value: amountStr ?? valueStr ?? '',
                 currency: typeof raw.currency === 'string' && raw.currency.length > 0
                     ? raw.currency
-                    : 'AUD',
+                    : BASE_CURRENCY,
             };
         }
         if (source && typeof source === 'object') {
@@ -115,7 +116,7 @@ function pickInitialValue(spec: FieldSpec, source: Record<string, any> | null | 
                     value: String(legacyValue),
                     currency: typeof legacyCurrency === 'string' && legacyCurrency.length > 0
                         ? legacyCurrency
-                        : 'AUD',
+                        : BASE_CURRENCY,
                 };
             }
         }
@@ -135,7 +136,7 @@ function normalizeForSave(spec: FieldSpec, raw: any): any {
         if (!value) return null;
         const currency = typeof raw.currency === 'string' && raw.currency.length > 0
             ? raw.currency
-            : 'AUD';
+            : BASE_CURRENCY;
         // ⚠️ ATENÇÃO — salvamos como `{ amount, currency, disclosureType }`
         // e NÃO como `{ value, currency }`. Motivo:
         //   - `amount` é a chave que `resolveCostInfo` lê (shared util).
@@ -427,7 +428,7 @@ function CostField({
     onChange,
 }: { spec: FieldSpec; value: any; onChange: (v: any) => void }) {
     const current: CostValue = value && typeof value === 'object'
-        ? { value: value.value ?? '', currency: value.currency ?? 'AUD' }
+        ? { value: value.value ?? '', currency: value.currency ?? BASE_CURRENCY }
         : { ...EMPTY_COST };
 
     return (

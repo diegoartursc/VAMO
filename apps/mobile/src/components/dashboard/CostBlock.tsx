@@ -37,6 +37,7 @@ import FormInput from './FormInput';
 import MoneyInput from './MoneyInput';
 import { CurrencyPicker } from '../common/CurrencyPicker';
 import { acceptAttributeFor, uploadHint, validateUploadFile } from '../../utils/uploadContexts';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 export interface CostBlockProps {
     /** Valor atual do bloco de custo. Pode ser null/undefined em itens novos. */
@@ -88,7 +89,7 @@ export default function CostBlock({
     cost,
     legacySpending,
     onChange,
-    defaultCurrency = 'AUD',
+    defaultCurrency = BASE_CURRENCY,
     helperShort,
     encourageProof = false,
     uploadProof,
@@ -429,7 +430,7 @@ export function costToLegacySpending(cost: ModuleCostInfo | null | undefined): M
     if (cost.disclosureType === 'not_informed') return undefined;
     const amount = cost.amount ?? '';
     if (!amount) return undefined;
-    return { value: String(amount), currency: cost.currency || 'AUD' };
+    return { value: String(amount), currency: cost.currency || BASE_CURRENCY };
 }
 
 const styles = StyleSheet.create({

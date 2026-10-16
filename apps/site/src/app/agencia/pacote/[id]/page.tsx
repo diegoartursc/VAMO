@@ -10,6 +10,7 @@ import TimeInput from "../../../../components/TimeInput";
 import PhonePreview from "../../../../components/dashboard/PhonePreview";
 import QualityCoach from "../../../../components/dashboard/QualityCoach";
 import { Target, DollarSign, Compass, Tag, Package, CheckSquare, FileText, MapPin, Trash2, X, HelpCircle } from "lucide-react";
+import { BASE_CURRENCY, BASE_CURRENCY_SYMBOL } from "@vamo/shared/itinerary";
 
 /* ═══════════════════════════════════════════════════
    CONSTANTS & TYPES
@@ -72,7 +73,7 @@ const CATEGORY_OPTIONS = [
     { key: "relax", label: "Relax" }, { key: "familia", label: "Família" },
     { key: "aventura", label: "Aventura" },
 ];
-const CURRENCIES = ["AUD", "BRL", "USD", "EUR", "GBP"];
+const CURRENCIES = [BASE_CURRENCY, "BRL", "USD", "EUR", "GBP"];
 
 function getDurationLabel(days: number): string {
     if (days <= 3) return "Fim de semana";
@@ -118,7 +119,7 @@ const EMPTY_FORM = {
     travelStyles: [] as string[], categories: [] as string[],
     description: "", fullDescription: "", emotionalIntro: "",
     priceMin: 0, priceMax: 0, promoPrice: null as number | null,
-    currency: "AUD", installments: 12,
+    currency: BASE_CURRENCY, installments: 12,
     cancellationPolicy: "", hasFreeCancellation: false, isAllInclusive: false, featured: false,
     includedItems: [] as string[], highlights: [] as string[],
     perfectFor: [] as string[], notRecommendedFor: [] as string[],
@@ -725,7 +726,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                         <input type="date" className="form-input" value={dep.startDate} onChange={e => updateDeparture(i, "startDate", e.target.value)} />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label" style={{ fontSize: 11 }}>Preço (A$)</label>
+                                        <label className="form-label" style={{ fontSize: 11 }}>Preço ({BASE_CURRENCY_SYMBOL})</label>
                                         <MoneyInput className="form-input" value={dep.price ?? ""} onChangeNumber={n => updateDeparture(i, "price", n)} />
                                     </div>
                                     <div className="form-group">

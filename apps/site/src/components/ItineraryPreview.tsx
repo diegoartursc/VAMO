@@ -2,7 +2,8 @@
 
 import { useDollarRate } from "../hooks/useDollarRate";
 import BudgetSummaryCard from "./BudgetSummaryCard";
-import { getRouteRatingDisplay } from "@vamo/shared/itinerary";
+import { getRouteRatingDisplay, BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
+import { BASE_CURRENCY } from "@vamo/shared/itinerary";
 
 /**
  * Componente de Prévia do Roteiro
@@ -75,14 +76,14 @@ export default function ItineraryPreview({
   const priceNum = typeof price === "string" ? parseFloat(price) || 0 : price;
   const durationNum = typeof duration === "string" ? parseInt(duration) || 0 : duration;
   const ratingDisplay = getRouteRatingDisplay({ averageRating: rating, reviewCount });
-  const curSymbol = currency === "AUD" ? "A$" : currency === "BRL" ? "R$" : currency;
+  const curSymbol = currency === BASE_CURRENCY ? BASE_CURRENCY_SYMBOL : currency === "BRL" ? "R$" : currency;
 
-  /** Converte um valor em qualquer moeda para a moeda base do mercado (AUD) usando as taxas do admin */
+  /** Converte um valor em qualquer moeda para a moeda base do mercado usando as taxas do admin */
   const entryToBase = (value: string | number, fromCurrency: string): string => {
     const n = typeof value === "number" ? value : parseFloat(value) || 0;
-    if (n <= 0) return "A$ 0";
-    const aud = fromCurrency === "AUD" ? n : n * (rates[fromCurrency] ?? 0);
-    return aud.toLocaleString("pt-BR", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
+    if (n <= 0) return `${BASE_CURRENCY_SYMBOL}0`;
+    const aud = fromCurrency === BASE_CURRENCY ? n : n * (rates[fromCurrency] ?? 0);
+    return aud.toLocaleString(BASE_LOCALE, { style: "currency", currency: BASE_CURRENCY, maximumFractionDigits: 0 });
   };
 
   // Paleta alinhada com o theme do mobile

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getDashboardStats } from "@/lib/api";
 import { getSession, isAgencySession, type AuthSession } from "@/lib/auth";
+import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 export default function CriadorOverview() {
     const [session, setSession] = useState<AuthSession | null>(null);
@@ -66,7 +67,7 @@ export default function CriadorOverview() {
                     </div>
                     <div className="dash-stat-label">Receita</div>
                     <div className="dash-stat-value green">
-                        {loading ? "..." : `A$ ${stats.totalRevenue.toLocaleString("pt-BR")}`}
+                        {loading ? "..." : `${BASE_CURRENCY_SYMBOL}${stats.totalRevenue.toLocaleString(BASE_LOCALE)}`}
                     </div>
                 </div>
             </div>
