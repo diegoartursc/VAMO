@@ -83,11 +83,11 @@ function storagePathFromUrl(url: string): string {
 }
 
 function friendlyUploadError(status: number): string {
-    if (status === 401) return 'Sua sessão expirou. Faça login novamente.';
-    if (status === 403) return 'Você não tem permissão para enviar este arquivo.';
-    if (status === 413) return 'Esse arquivo é muito grande. Tente enviar uma versão menor.';
-    if (status === 415) return 'Esse formato não é aceito neste campo.';
-    return 'Não foi possível enviar o arquivo. Verifique sua conexão e tente novamente.';
+    if (status === 401) return 'Your session expired. Please sign in again.';
+    if (status === 403) return 'You don\'t have permission to upload this file.';
+    if (status === 413) return 'This file is too large. Try uploading a smaller version.';
+    if (status === 415) return 'This format isn\'t accepted in this field.';
+    return 'We couldn\'t upload the file. Check your connection and try again.';
 }
 
 export async function prepareUploadFile(
@@ -128,7 +128,7 @@ export async function uploadPreparedFile(
         if (Platform.OS === 'web') {
             const blobRes = await fetch(prepared.uri);
             if (!blobRes.ok) {
-                throw new Error('Não foi possível ler o arquivo selecionado.');
+                throw new Error('We couldn\'t read the selected file.');
             }
             const blob = await blobRes.blob();
             const blobToSend = blob.type
@@ -159,7 +159,7 @@ export async function uploadPreparedFile(
         });
         if (res.status !== 401 || attempt === 1) break;
         const newToken = await tryRefreshSession();
-        if (!newToken) throw new Error('Sua sessão expirou. Faça login novamente.');
+        if (!newToken) throw new Error('Your session expired. Please sign in again.');
         currentToken = newToken;
     }
 
@@ -173,7 +173,7 @@ export async function uploadPreparedFile(
 
     const data = await res!.json();
     const url = data.url || data.urls?.[0];
-    if (!url) throw new Error('Servidor não retornou a URL do arquivo.');
+    if (!url) throw new Error('The server didn\'t return the file URL.');
     const returnedMime = data.mimetype || prepared.mimeType;
     const returnedName = data.filename || prepared.fileName;
 

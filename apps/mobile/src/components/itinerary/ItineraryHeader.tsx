@@ -54,18 +54,18 @@ export function ItineraryHeader({
 
     const getStatusMessage = () => {
         if (isTripCompleted) {
-            return { icon: '✅', text: 'Viagem Concluída!', color: theme.colors.success };
+            return { icon: '✅', text: 'Trip Completed!', color: theme.colors.success };
         }
         if (isOnTrip) {
-            return { icon: '✈️', text: `Dia ${currentDay} de ${totalDays}`, color: theme.colors.primary };
+            return { icon: '✈️', text: `Day ${currentDay} of ${totalDays}`, color: theme.colors.primary };
         }
         if (daysUntil === 0) {
-            return { icon: '🎉', text: 'Sua viagem começa hoje!', color: theme.colors.warning };
+            return { icon: '🎉', text: 'Your trip starts today!', color: theme.colors.warning };
         }
         if (daysUntil === 1) {
-            return { icon: '⏰', text: 'Falta 1 dia!', color: theme.colors.warning };
+            return { icon: '⏰', text: '1 day to go!', color: theme.colors.warning };
         }
-        return { icon: '📅', text: `Faltam ${daysUntil} dias`, color: theme.colors.text.secondary };
+        return { icon: '📅', text: `${daysUntil} days to go`, color: theme.colors.text.secondary };
     };
 
     const status = getStatusMessage();
@@ -99,7 +99,7 @@ export function ItineraryHeader({
                 <View style={styles.statsRow}>
                     <View style={styles.statItem}>
                         <Text style={styles.statValue}>{totalDays}</Text>
-                        <Text style={styles.statLabel}>dias</Text>
+                        <Text style={styles.statLabel}>days</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
@@ -131,11 +131,11 @@ export function ItineraryHeader({
                 <View style={styles.actionButtons}>
                     <TouchableOpacity style={styles.actionButton} onPress={onShare}>
                         <Ionicons name="share-social-outline" size={20} color={theme.colors.primary} />
-                        <Text style={styles.actionButtonText}>Compartilhar</Text>
+                        <Text style={styles.actionButtonText}>Share</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionButton} onPress={onDownload}>
                         <Ionicons name="download-outline" size={20} color={theme.colors.primary} />
-                        <Text style={styles.actionButtonText}>Baixar</Text>
+                        <Text style={styles.actionButtonText}>Download</Text>
                     </TouchableOpacity>
                 </View>
             </View>

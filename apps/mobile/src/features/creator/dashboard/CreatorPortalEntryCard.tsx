@@ -45,24 +45,24 @@ export function CreatorPortalEntryCard({
                 end={{ x: 1, y: 1 }}
                 style={s.card}
             >
-                <Text style={s.eyebrow}>CENTRAL DO ROTEIRISTA</Text>
-                <Text style={s.title}>Central do Roteirista</Text>
+                <Text style={s.eyebrow}>CREATOR CENTER</Text>
+                <Text style={s.title}>Creator Center</Text>
                 <Text style={s.subtitle}>
                     {isCreator
-                        ? 'Gerencie seus roteiros, vendas, avaliações e desempenho em um só lugar.'
-                        : 'Crie roteiros, compartilhe sua experiência e acompanhe seus resultados em um só lugar.'}
+                        ? 'Manage your itineraries, sales, reviews and performance in one place.'
+                        : 'Create itineraries, share your experience and track your results in one place.'}
                 </Text>
 
                 {hasMicro && (
                     <View style={s.microRow}>
                         <View style={s.microItem}>
                             <Text style={s.microValue}>{stats!.totalItineraries}</Text>
-                            <Text style={s.microLabel}>{stats!.totalItineraries === 1 ? 'roteiro' : 'roteiros'}</Text>
+                            <Text style={s.microLabel}>{stats!.totalItineraries === 1 ? 'itinerary' : 'itineraries'}</Text>
                         </View>
                         <View style={s.microDivider} />
                         <View style={s.microItem}>
                             <Text style={s.microValue}>{stats!.totalSales}</Text>
-                            <Text style={s.microLabel}>{stats!.totalSales === 1 ? 'venda' : 'vendas'}</Text>
+                            <Text style={s.microLabel}>{stats!.totalSales === 1 ? 'sale' : 'sales'}</Text>
                         </View>
                         <View style={s.microDivider} />
                         <View style={s.microItem}>
@@ -77,21 +77,21 @@ export function CreatorPortalEntryCard({
                         <>
                             <TouchableOpacity style={[s.cta, s.ctaPrimary]} onPress={onEnterPortal} activeOpacity={0.85}>
                                 <Ionicons name="grid-outline" size={16} color={theme.colors.secondary} />
-                                <Text style={s.ctaPrimaryText}>Entrar no portal</Text>
+                                <Text style={s.ctaPrimaryText}>Open the portal</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={[s.cta, s.ctaSecondary]} onPress={onCreate} activeOpacity={0.85}>
                                 <Ionicons name="add" size={16} color="#fff" />
-                                <Text style={s.ctaSecondaryText}>Novo roteiro</Text>
+                                <Text style={s.ctaSecondaryText}>New itinerary</Text>
                             </TouchableOpacity>
                         </>
                     ) : (
                         <>
                             <TouchableOpacity style={[s.cta, s.ctaPrimary]} onPress={onCreate} activeOpacity={0.85}>
                                 <Ionicons name="add-circle-outline" size={16} color={theme.colors.secondary} />
-                                <Text style={s.ctaPrimaryText}>Criar primeiro roteiro</Text>
+                                <Text style={s.ctaPrimaryText}>Create first itinerary</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={[s.cta, s.ctaSecondary]} onPress={onEnterPortal} activeOpacity={0.85}>
-                                <Text style={s.ctaSecondaryText}>Conhecer a central</Text>
+                                <Text style={s.ctaSecondaryText}>Explore the center</Text>
                                 <Ionicons name="arrow-forward" size={15} color="#fff" />
                             </TouchableOpacity>
                         </>

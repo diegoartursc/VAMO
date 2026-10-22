@@ -22,8 +22,8 @@ export function DateRangePicker({
     const [showEndPicker, setShowEndPicker] = useState(false);
 
     const formatDate = (date?: Date) => {
-        if (!date) return 'Selecionar';
-        return new Intl.DateTimeFormat('pt-BR', {
+        if (!date) return 'Select';
+        return new Intl.DateTimeFormat('en-US', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -50,7 +50,7 @@ export function DateRangePicker({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>Período da Viagem</Text>
+            <Text style={styles.label}>Trip Dates</Text>
 
             <View style={styles.dateRow}>
                 {/* Data de Ida */}

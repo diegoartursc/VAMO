@@ -81,7 +81,7 @@ router.get('/me/stripe/account-status', travelerAuthMiddleware, async (req: Trav
         res.json({ connected: !!account, stripeConfigured: true, accountId: account?.id ?? null, ...mapAccountStatus(account) });
     } catch (error: any) {
         console.error('[stripe.account-status] error:', error?.message);
-        res.status(500).json({ error: 'Falha ao consultar status de recebimento.' });
+        res.status(500).json({ error: 'Failed to check payout status.' });
     }
 });
 
@@ -91,10 +91,10 @@ router.get('/me/stripe/account-status', travelerAuthMiddleware, async (req: Trav
 router.post('/me/stripe/onboarding-link', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
     try {
         const creator = await resolveCreatorFromToken(req);
-        if (!creator) { res.status(403).json({ error: 'Perfil de roteirista não encontrado.' }); return; }
+        if (!creator) { res.status(403).json({ error: 'Creator profile not found.' }); return; }
 
         const stripe = getStripe();
-        if (!stripe) { res.status(503).json({ error: 'Recebimentos indisponíveis no momento (Stripe não configurado).' }); return; }
+        if (!stripe) { res.status(503).json({ error: 'Payouts are unavailable right now (Stripe is not configured).' }); return; }
 
         const traveler = await prisma.traveler.findUnique({ where: { id: creator.travelerId }, select: { email: true } });
 
@@ -125,12 +125,12 @@ router.post('/me/stripe/onboarding-link', travelerAuthMiddleware, async (req: Tr
         // Caso comum: a plataforma ainda não fez signup do Connect no dashboard.
         if (/sign(ed)? up for Connect/i.test(msg)) {
             res.status(503).json({
-                error: 'Os recebimentos ainda estão sendo ativados pela VAMO. Tente novamente em breve.',
+                error: 'Payouts are still being enabled by VAMO. Please try again soon.',
                 code: 'connect_not_enabled',
             });
             return;
         }
-        res.status(500).json({ error: msg || 'Não foi possível iniciar a configuração de recebimentos.' });
+        res.status(500).json({ error: msg || 'Couldn\'t start payout setup.' });
     }
 });
 
@@ -154,7 +154,7 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
             },
         });
         if (!creator) {
-            res.status(404).json({ error: 'Perfil de roteirista não encontrado' });
+            res.status(404).json({ error: 'Creator profile not found' });
             return;
         }
 
@@ -185,7 +185,7 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
         });
     } catch (error) {
         console.error('Error fetching creator earnings:', error);
-        res.status(500).json({ error: 'Falha ao carregar ganhos do roteirista' });
+        res.status(500).json({ error: 'Failed to load creator earnings' });
     }
 });
 

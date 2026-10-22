@@ -229,7 +229,7 @@ export default function RouteVersioning({
                 setSnapshot(null);
                 setLoadError(
                     snapRes.reason?.message ||
-                    'Não foi possível carregar a versão original comprada.',
+                    'We couldn\'t load the purchased original version.',
                 );
             }
 
@@ -298,8 +298,8 @@ export default function RouteVersioning({
                 // Rollback
                 setCustomization(lastCommittedRef.current);
                 notify({
-                    title: 'Não foi possível salvar',
-                    message: e?.message || 'Tente novamente em instantes.',
+                    title: 'Couldn\'t save',
+                    message: e?.message || 'Please try again in a moment.',
                     variant: 'error',
                 });
                 return false;
@@ -573,7 +573,7 @@ export default function RouteVersioning({
                     creatorChecklistProgress: nextProgress,
                 };
                 const saved = await mutateCustomization(base, { addedItems: base.addedItems });
-                if (!saved) throw new Error('Não foi possível salvar o checklist.');
+                if (!saved) throw new Error('We couldn\'t save the checklist.');
             } finally {
                 setCreatorChecklistPending(false);
             }
@@ -617,7 +617,7 @@ export default function RouteVersioning({
                 // roteiro comprado, que é quem conecta o exportRoutePdf).
                 notify({
                     title: 'Exportar PDF',
-                    message: 'Abra este roteiro em Meus Roteiros para exportar o PDF.',
+                    message: 'Open this itinerary in My Itineraries to export the PDF.',
                 });
             }
         },
@@ -634,10 +634,10 @@ export default function RouteVersioning({
                     <Ionicons name="git-branch" size={18} color={theme.colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.title}>Meu roteiro</Text>
+                    <Text style={styles.title}>My itinerary</Text>
                     <Text style={styles.subtitle}>
-                        Compare a versão original com a sua personalização. Suas anotações ficam
-                        salvas só para você.
+                        Compare the original version with your personalization. Your notes are
+                        saved only for you.
                     </Text>
                 </View>
             </View>
@@ -655,8 +655,8 @@ export default function RouteVersioning({
                     <Ionicons name="lock-closed-outline" size={14} color={theme.colors.text.secondary} />
                     <Text style={styles.bannerText}>
                         {isAuthenticated
-                            ? 'Personalização indisponível para esta sessão.'
-                            : 'Entre na sua conta para personalizar seu roteiro.'}
+                            ? 'Personalization is unavailable for this session.'
+                            : 'Sign in to your account to personalize your itinerary.'}
                     </Text>
                 </View>
             ) : null}
@@ -689,7 +689,7 @@ export default function RouteVersioning({
                 >
                     <Ionicons name="document-attach-outline" size={15} color={theme.colors.primary} />
                     <Text style={styles.exportBtnText}>
-                        {tab === 'mine' ? 'Exportar minha versão (PDF)' : 'Exportar versão original (PDF)'}
+                        {tab === 'mine' ? 'Export my version (PDF)' : 'Export original version (PDF)'}
                     </Text>
                 </TouchableOpacity>
             ) : null}
@@ -731,7 +731,7 @@ export default function RouteVersioning({
                             ? (section, node) => onRegisterSectionRef(section, 'mine', node)
                             : undefined}
                     />
-                    {/* Slot "Minha Versão" — vive SÓ aqui. Hoje é onde o
+                    {/* Slot "My Version" — vive SÓ aqui. Hoje é onde o
                         purchased-itinerary encaixa a Central da Viagem
                         (checklist pessoal + arquivos), seguindo a regra
                         de produto: esses recursos não pertencem à Original. */}

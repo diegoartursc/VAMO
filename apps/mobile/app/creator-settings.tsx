@@ -1,5 +1,5 @@
 /**
- * VAMO Mobile — "Configurações" do roteirista.
+ * VAMO Mobile — "Settings" do roteirista.
  * Primeira versão: identidade do criador (nome/avatar/verificação), atalhos
  * para recebimentos, verificação e perguntas, e orientações de recebimento.
  * Sem dados mockados — usa o usuário autenticado (useAuth).
@@ -24,10 +24,10 @@ import { CreatorEmptyState } from '../src/features/creator/dashboard/CreatorEmpt
 import { DASHBOARD_MAX_WIDTH } from '../src/features/creator/dashboard/types';
 
 const VERIFICATION_LABEL: Record<string, { label: string; color: string }> = {
-    BASIC:    { label: 'Roteirista Básico',     color: theme.colors.text.secondary },
-    VERIFIED: { label: 'Roteirista Verificado', color: theme.colors.primary },
-    PREMIUM:  { label: 'Roteirista Premium',    color: theme.colors.warning },
-    EXPERT:   { label: 'Roteirista Expert',     color: theme.colors.success },
+    BASIC:    { label: 'Basic Creator',     color: theme.colors.text.secondary },
+    VERIFIED: { label: 'Verified Creator', color: theme.colors.primary },
+    PREMIUM:  { label: 'Premium Creator',    color: theme.colors.warning },
+    EXPERT:   { label: 'Expert Creator',     color: theme.colors.success },
 };
 
 function Row({ icon, title, hint, onPress, tone }: { icon: string; title: string; hint: string; onPress: () => void; tone?: string }) {
@@ -54,8 +54,8 @@ export default function CreatorSettingsScreen() {
 
     const header = (
         <CreatorSubHeader
-            title="Configurações"
-            subtitle="Gerencie dados do perfil, recebimentos e preferências de roteirista."
+            title="Settings"
+            subtitle="Manage your profile details, payouts and creator preferences."
             onBack={() => safeBack(router, '/created-itineraries')}
         />
     );
@@ -65,7 +65,7 @@ export default function CreatorSettingsScreen() {
             <View style={s.container}>
                 {header}
                 <View style={s.center}>
-                    <CreatorEmptyState icon="lock-closed-outline" title="Login necessário" text="Faça login para acessar as configurações." ctaLabel="Entrar" onCta={() => router.push({ pathname: '/login' as any, params: { next: '/creator-settings' } })} />
+                    <CreatorEmptyState icon="lock-closed-outline" title="Sign-in required" text="Sign in to access settings." ctaLabel="Sign in" onCta={() => router.push({ pathname: '/login' as any, params: { next: '/creator-settings' } })} />
                 </View>
             </View>
         );
@@ -84,7 +84,7 @@ export default function CreatorSettingsScreen() {
                     <View style={s.profileCard}>
                         <CreatorAvatar avatar={user?.avatar} name={user?.name} size={56} />
                         <View style={{ flex: 1 }}>
-                            <Text style={s.profileName}>{user?.name || 'Roteirista'}</Text>
+                            <Text style={s.profileName}>{user?.name || 'Creator'}</Text>
                             {!!user?.email && <Text style={s.profileEmail}>{user.email}</Text>}
                             <View style={[s.verifBadge, { backgroundColor: verif.color + '15' }]}>
                                 <Ionicons name="shield-checkmark-outline" size={12} color={verif.color} />
@@ -94,27 +94,27 @@ export default function CreatorSettingsScreen() {
                     </View>
 
                     {/* Conta & perfil */}
-                    <Text style={s.sectionLabel}>Conta & perfil</Text>
-                    <Row icon="person-circle-outline" title="Editar perfil" hint="Nome e foto de perfil" onPress={() => { haptics.light(); router.push('/(tabs)/profile' as any); }} />
-                    <Row icon="shield-checkmark-outline" title="Nível de verificação" hint={`Atual: ${verif.label}`} onPress={() => { haptics.light(); router.push('/verification-explained'); }} tone={verif.color} />
+                    <Text style={s.sectionLabel}>Account & profile</Text>
+                    <Row icon="person-circle-outline" title="Edit profile" hint="Name and profile photo" onPress={() => { haptics.light(); router.push('/(tabs)/profile' as any); }} />
+                    <Row icon="shield-checkmark-outline" title="Verification level" hint={`Current: ${verif.label}`} onPress={() => { haptics.light(); router.push('/verification-explained'); }} tone={verif.color} />
 
                     {/* Recebimentos */}
-                    <Text style={s.sectionLabel}>Recebimentos</Text>
-                    <Row icon="card-outline" title="Recebimentos e saldo" hint="Saldo, transações e pagamentos" onPress={() => { haptics.light(); router.push('/creator-earnings'); }} tone={theme.colors.success} />
+                    <Text style={s.sectionLabel}>Payouts</Text>
+                    <Row icon="card-outline" title="Payouts and balance" hint="Balance, transactions and payments" onPress={() => { haptics.light(); router.push('/creator-earnings'); }} tone={theme.colors.success} />
                     <View style={s.infoCard}>
                         <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
                         <Text style={s.infoText}>
-                            Os valores das suas vendas ficam disponíveis para saque após a confirmação da compra. A configuração de conta para recebimento estará disponível em breve.
+                            Your sales earnings become available for payout once the purchase is confirmed. Payout account setup will be available soon.
                         </Text>
                     </View>
 
                     {/* Interação */}
-                    <Text style={s.sectionLabel}>Interação com viajantes</Text>
-                    <Row icon="chatbubbles-outline" title="Perguntas dos viajantes" hint="Responda dúvidas sobre seus roteiros" onPress={() => { haptics.light(); router.push('/creator-questions'); }} tone={theme.colors.secondary} />
+                    <Text style={s.sectionLabel}>Traveler interaction</Text>
+                    <Row icon="chatbubbles-outline" title="Traveler questions" hint="Answer questions about your itineraries" onPress={() => { haptics.light(); router.push('/creator-questions'); }} tone={theme.colors.secondary} />
 
                     <TouchableOpacity style={s.backBtn} activeOpacity={0.85} onPress={() => { haptics.light(); router.push('/(tabs)/profile' as any); }}>
                         <Ionicons name="arrow-back-outline" size={18} color={theme.colors.primary} />
-                        <Text style={s.backBtnText}>Voltar ao perfil</Text>
+                        <Text style={s.backBtnText}>Back to profile</Text>
                     </TouchableOpacity>
 
                     <View style={{ height: 40 }} />

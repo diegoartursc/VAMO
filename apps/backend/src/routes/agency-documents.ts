@@ -50,7 +50,7 @@ router.post('/:purchaseId', authMiddleware, upload.single('file'), async (req: A
             return res.status(404).json({ error: 'Purchase not found' });
         }
         if (purchase.package.agencyId !== req.agency?.agencyId) {
-            return res.status(403).json({ error: 'Acesso negado a esta reserva' });
+            return res.status(403).json({ error: 'Access denied to this booking' });
         }
 
         const doc = await prisma.agencyDocument.create({
@@ -83,7 +83,7 @@ router.post('/:purchaseId', authMiddleware, upload.single('file'), async (req: A
 router.get('/:purchaseId', optionalAuthMiddleware, async (req: AuthRequest, res) => {
     try {
         if (!req.traveler && !req.agency) {
-            return res.status(401).json({ error: 'Autenticação necessária' });
+            return res.status(401).json({ error: 'Authentication required' });
         }
         const purchaseId = String(req.params.purchaseId);
         const purchase = await prisma.purchaseHistory.findUnique({
@@ -94,7 +94,7 @@ router.get('/:purchaseId', optionalAuthMiddleware, async (req: AuthRequest, res)
         const isTravelerOwner = req.traveler?.travelerId === purchase.travelerId;
         const isAgencyOwner = req.agency?.agencyId === purchase.package.agencyId;
         if (!isTravelerOwner && !isAgencyOwner) {
-            return res.status(req.traveler || req.agency ? 403 : 401).json({ error: 'Acesso negado a esta reserva' });
+            return res.status(req.traveler || req.agency ? 403 : 401).json({ error: 'Access denied to this booking' });
         }
 
         const docs = await prisma.agencyDocument.findMany({
@@ -119,7 +119,7 @@ router.delete('/doc/:docId', authMiddleware, async (req: AuthRequest, res) => {
         });
         if (!existing) return res.status(404).json({ error: 'Document not found' });
         if (existing.purchase.package.agencyId !== req.agency?.agencyId) {
-            return res.status(403).json({ error: 'Acesso negado a este documento' });
+            return res.status(403).json({ error: 'Access denied to this document' });
         }
 
         await prisma.agencyDocument.delete({
@@ -143,7 +143,7 @@ router.put('/doc/:docId/viewed', travelerAuthMiddleware, async (req: TravelerAut
         });
         if (!existing) return res.status(404).json({ error: 'Document not found' });
         if (existing.purchase.travelerId !== req.traveler!.travelerId) {
-            return res.status(403).json({ error: 'Acesso negado a este documento' });
+            return res.status(403).json({ error: 'Access denied to this document' });
         }
 
         const doc = await prisma.agencyDocument.update({

@@ -28,7 +28,7 @@ function HistoryContent() {
                             <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${STATUS_COLOR[i.status as Status]}14`, color: STATUS_COLOR[i.status as Status] }}>{STATUS_LABEL[i.status as Status]}</span>
                             <span style={{ flex: 1, color: "#1A3263", fontWeight: 600, fontSize: 14 }}>{i.title}</span>
                             {i.approvalNote && <span style={{ fontSize: 12, color: "#DC2626", maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Motivo: {i.approvalNote}</span>}
-                            <span style={{ fontSize: 12, color: "#98989D" }}>{new Date(i.when).toLocaleDateString("pt-BR")}</span>
+                            <span style={{ fontSize: 12, color: "#98989D" }}>{new Date(i.when).toLocaleDateString("en-US")}</span>
                         </Link>
                     ))}
                 </div>

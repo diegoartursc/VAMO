@@ -26,7 +26,7 @@ import { notify } from '../../src/utils/notify';
 const SUPPORT_EMAIL = 'suporte@vamo.app';
 
 const CATEGORIES = [
-    'Conta', 'Compra', 'Roteiro comprado', 'Roteirista', 'Pagamento', 'Problema técnico', 'Outro',
+    'Account', 'Purchase', 'Purchased itinerary', 'Creator', 'Payment', 'Technical issue', 'Other',
 ];
 
 export default function ContactSupportScreen() {
@@ -44,13 +44,13 @@ export default function ContactSupportScreen() {
         haptics.light();
 
         const body = [
-            `Categoria: ${category}`,
-            `E-mail de contato: ${contactEmail || '—'}`,
+            `Category: ${category}`,
+            `Contact email: ${contactEmail || '—'}`,
             '',
             message.trim(),
             '',
             '—',
-            `Enviado pelo app VAMO${user?.travelerId ? ` (id: ${user.travelerId})` : ''}`,
+            `Sent from the VAMO app${user?.travelerId ? ` (id: ${user.travelerId})` : ''}`,
         ].join('\n');
 
         const mailto = `mailto:${SUPPORT_EMAIL}`
@@ -65,8 +65,8 @@ export default function ContactSupportScreen() {
             }
         } catch {
             notify({
-                title: 'Não foi possível abrir o e-mail',
-                message: `Envie sua solicitação para ${SUPPORT_EMAIL}.`,
+                title: 'Couldn\'t open email',
+                message: `Send your request to ${SUPPORT_EMAIL}.`,
                 variant: 'warning',
             });
         }
@@ -74,10 +74,10 @@ export default function ContactSupportScreen() {
 
     return (
         <View style={s.container}>
-            <ScreenHeader title="Falar com o suporte" subtitle="Conte o que aconteceu e nossa equipe vai ajudar." fallback="/help" />
+            <ScreenHeader title="Contact support" subtitle="Tell us what happened and our team will help." fallback="/help" />
             <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
                 {/* Categoria */}
-                <Text style={s.label}>Categoria</Text>
+                <Text style={s.label}>Category</Text>
                 <View style={s.chips}>
                     {CATEGORIES.map((cat) => {
                         const active = cat === category;
@@ -99,7 +99,7 @@ export default function ContactSupportScreen() {
                     style={s.input}
                     value={subject}
                     onChangeText={setSubject}
-                    placeholder="Resuma o seu problema"
+                    placeholder="Summarize your problem"
                     placeholderTextColor={theme.colors.text.tertiary}
                     maxLength={120}
                 />
@@ -110,7 +110,7 @@ export default function ContactSupportScreen() {
                     style={[s.input, s.textarea]}
                     value={message}
                     onChangeText={setMessage}
-                    placeholder="Descreva com detalhes o que aconteceu."
+                    placeholder="Describe in detail what happened."
                     placeholderTextColor={theme.colors.text.tertiary}
                     multiline
                     numberOfLines={6}
@@ -119,12 +119,12 @@ export default function ContactSupportScreen() {
                 />
 
                 {/* E-mail de contato */}
-                <Text style={s.label}>E-mail para resposta</Text>
+                <Text style={s.label}>Email for reply</Text>
                 <TextInput
                     style={s.input}
                     value={contactEmail}
                     onChangeText={setContactEmail}
-                    placeholder="seu@email.com"
+                    placeholder="you@email.com"
                     placeholderTextColor={theme.colors.text.tertiary}
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -136,12 +136,12 @@ export default function ContactSupportScreen() {
                     disabled={!canSend}
                 >
                     <Icon name="message-circle" size={18} color="#fff" />
-                    <Text style={s.sendBtnText}>Enviar solicitação</Text>
+                    <Text style={s.sendBtnText}>Send request</Text>
                 </TouchableOpacity>
 
                 <Text style={s.footnote}>
-                    Ao enviar, abrimos seu app de e-mail com a mensagem pronta para
-                    {' '}{SUPPORT_EMAIL}. Você confirma o envio por lá.
+                    When you send, we open your email app with the message ready for
+                    {' '}{SUPPORT_EMAIL}. You confirm sending there.
                 </Text>
             </ScrollView>
         </View>

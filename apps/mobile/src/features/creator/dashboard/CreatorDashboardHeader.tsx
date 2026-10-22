@@ -2,7 +2,7 @@
  * Cabeçalho do Portal do Roteirista, em duas partes:
  *  - CreatorTopBar: barra fixa (voltar + título + botão "+"). Sempre visível.
  *  - CreatorHero: bloco de boas-vindas com título, subtítulo e dois botões
- *    ("Criar roteiro" primário + "Ver meus roteiros" secundário). Rola junto
+ *    ("Create itinerary" primário + "Ver meus roteiros" secundário). Rola junto
  *    com o conteúdo. Web/desktop: CTAs em linha; mobile: empilhados.
  */
 import React from 'react';
@@ -21,16 +21,16 @@ export function CreatorTopBar({
 }) {
     return (
         <View style={s.bar}>
-            <TouchableOpacity style={s.iconBtn} onPress={onBack} accessibilityLabel="Voltar">
+            <TouchableOpacity style={s.iconBtn} onPress={onBack} accessibilityLabel="Back">
                 <Ionicons name="arrow-back" size={22} color={theme.colors.text.primary} />
             </TouchableOpacity>
             <View style={s.barCenter}>
-                <Text style={s.barTitle}>Portal do Roteirista</Text>
+                <Text style={s.barTitle}>Creator Portal</Text>
                 {count > 0 && (
-                    <Text style={s.barSubtitle}>{count} {count === 1 ? 'roteiro' : 'roteiros'}</Text>
+                    <Text style={s.barSubtitle}>{count} {count === 1 ? 'itinerary' : 'itineraries'}</Text>
                 )}
             </View>
-            <TouchableOpacity style={s.plusBtn} onPress={onNew} accessibilityLabel="Criar roteiro">
+            <TouchableOpacity style={s.plusBtn} onPress={onNew} accessibilityLabel="Create itinerary">
                 <Ionicons name="add" size={20} color="#fff" />
             </TouchableOpacity>
         </View>
@@ -53,7 +53,7 @@ export function CreatorSubHeader({
     return (
         <View style={s.subWrap}>
             <View style={s.bar}>
-                <TouchableOpacity style={s.iconBtn} onPress={onBack} accessibilityLabel="Voltar">
+                <TouchableOpacity style={s.iconBtn} onPress={onBack} accessibilityLabel="Back">
                     <Ionicons name="arrow-back" size={22} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <View style={s.barCenter}>
@@ -78,19 +78,19 @@ export function CreatorHero({
     return (
         <View style={s.hero}>
             <View style={s.heroText}>
-                <Text style={s.heroTitle}>Gerencie suas experiências</Text>
+                <Text style={s.heroTitle}>Manage your experiences</Text>
                 <Text style={s.heroSubtitle}>
-                    Acompanhe vendas, avaliações e o desempenho dos seus roteiros — tudo em um só lugar.
+                    Track sales, reviews and the performance of your itineraries — all in one place.
                 </Text>
             </View>
             <View style={[s.ctaRow, isWide ? s.ctaRowWide : s.ctaRowNarrow]}>
                 <TouchableOpacity style={[s.cta, s.ctaPrimary]} onPress={onNew} activeOpacity={0.85}>
                     <Ionicons name="add-circle-outline" size={18} color="#fff" />
-                    <Text style={s.ctaPrimaryText}>Criar roteiro</Text>
+                    <Text style={s.ctaPrimaryText}>Create itinerary</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.cta, s.ctaSecondary]} onPress={onSeeAll} activeOpacity={0.85}>
                     <Ionicons name="albums-outline" size={18} color={theme.colors.primary} />
-                    <Text style={s.ctaSecondaryText}>Ver meus roteiros</Text>
+                    <Text style={s.ctaSecondaryText}>View my itineraries</Text>
                 </TouchableOpacity>
             </View>
         </View>

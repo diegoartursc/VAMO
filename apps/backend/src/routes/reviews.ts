@@ -132,18 +132,18 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
 
         // Validações básicas
         if (!travelerId) {
-            return res.status(401).json({ error: 'Autenticação necessária para enviar avaliação' });
+            return res.status(401).json({ error: 'Sign in to submit a review' });
         }
         if (!itineraryId || rating === undefined || rating === null) {
-            return res.status(400).json({ error: 'itineraryId e rating são obrigatórios' });
+            return res.status(400).json({ error: 'itineraryId and rating are required' });
         }
         const numericRating = Number(rating);
         if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
-            return res.status(400).json({ error: 'rating deve ser entre 1 e 5' });
+            return res.status(400).json({ error: 'rating must be between 1 and 5' });
         }
         const photoUrls = normalizePhotoUrls(photos);
         if (Array.isArray(photos) && photoUrls.length !== photos.length) {
-            return res.status(400).json({ error: 'As fotos da avaliação devem ser URLs válidas.' });
+            return res.status(400).json({ error: 'Review photos must be valid URLs.' });
         }
 
         // Verificar se já avaliou este roteiro
@@ -151,12 +151,12 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
             where: { travelerId, itineraryId },
         });
         if (existing) {
-            return res.status(409).json({ error: 'Você já avaliou este roteiro' });
+            return res.status(409).json({ error: 'You\'ve already reviewed this itinerary' });
         }
 
         // Buscar dados do traveler para denormalizar no review
         const traveler = await prisma.traveler.findUnique({ where: { id: travelerId } }).catch(() => null);
-        const userName = traveler?.name ?? 'Viajante';
+        const userName = traveler?.name ?? 'Traveler';
         const userInitial = userName.charAt(0).toUpperCase();
 
         // Apenas quem comprou o roteiro pode avaliá-lo. Conferimos via
@@ -166,7 +166,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
             select: { id: true },
         });
         if (!purchase) {
-            return res.status(403).json({ error: 'Apenas quem comprou este roteiro pode avaliá-lo.' });
+            return res.status(403).json({ error: 'Only people who purchased this itinerary can review it.' });
         }
 
         // Criar bloqueio extra: o criador não avalia o próprio roteiro
@@ -175,10 +175,10 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
             select: { id: true, title: true, creator: { select: { travelerId: true, traveler: { select: { email: true, name: true } } } } },
         });
         if (!itineraryRow) {
-            return res.status(404).json({ error: 'Roteiro não encontrado' });
+            return res.status(404).json({ error: 'Itinerary not found' });
         }
         if (itineraryRow?.creator?.travelerId === travelerId) {
-            return res.status(403).json({ error: 'Criadores não podem avaliar seus próprios roteiros.' });
+            return res.status(403).json({ error: 'Creators can\'t review their own itineraries.' });
         }
 
         // Criar o review
@@ -189,7 +189,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
                 rating: numericRating,
                 comment: typeof comment === 'string' ? comment.trim() : '',
                 verified: true,
-                language: 'pt-BR',
+                language: 'en-US',
                 userName,
                 userInitial,
                 userAvatar: traveler?.avatar ?? null,
@@ -213,8 +213,8 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
                 data: {
                     travelerId: itineraryRow.creator.travelerId,
                     type: 'SYSTEM',
-                    title: 'Nova avaliação recebida',
-                    body: `Seu roteiro ${itineraryRow.title} recebeu uma avaliação ${review.rating}/5.`,
+                    title: 'New review received',
+                    body: `Your itinerary ${itineraryRow.title} received a ${review.rating}/5 review.`,
                     data: { reviewId: review.id, itineraryId, source: 'itinerary_review' },
                 },
             }).catch((error) => console.warn('Failed to create review notification:', error));
@@ -230,7 +230,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
         res.status(201).json({ review: { id: review.id, itineraryId, rating: review.rating, comment: review.comment, photos: photoUrls } });
     } catch (error) {
         console.error('Error creating review:', error);
-        res.status(500).json({ error: 'Falha ao enviar avaliação' });
+        res.status(500).json({ error: 'Failed to submit review' });
     }
 });
 
@@ -243,18 +243,18 @@ router.put('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
         const travelerId = req.traveler?.travelerId;
 
         if (!travelerId) {
-            return res.status(401).json({ error: 'Autenticação necessária para atualizar avaliação' });
+            return res.status(401).json({ error: 'Sign in to update a review' });
         }
         if (rating === undefined || rating === null) {
-            return res.status(400).json({ error: 'rating é obrigatório' });
+            return res.status(400).json({ error: 'rating is required' });
         }
         const numericRating = Number(rating);
         if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
-            return res.status(400).json({ error: 'rating deve ser entre 1 e 5' });
+            return res.status(400).json({ error: 'rating must be between 1 and 5' });
         }
         const photoUrls = normalizePhotoUrls(photos);
         if (Array.isArray(photos) && photoUrls.length !== photos.length) {
-            return res.status(400).json({ error: 'As fotos da avaliação devem ser URLs válidas.' });
+            return res.status(400).json({ error: 'Review photos must be valid URLs.' });
         }
 
         const existing = await prisma.review.findUnique({
@@ -262,13 +262,13 @@ router.put('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
             select: { id: true, travelerId: true, itineraryId: true },
         });
         if (!existing) {
-            return res.status(404).json({ error: 'Avaliação não encontrada' });
+            return res.status(404).json({ error: 'Review not found' });
         }
         if (existing.travelerId !== travelerId) {
-            return res.status(403).json({ error: 'Você só pode editar suas próprias avaliações.' });
+            return res.status(403).json({ error: 'You can only edit your own reviews.' });
         }
         if (!existing.itineraryId) {
-            return res.status(400).json({ error: 'Esta avaliação não pertence a um roteiro.' });
+            return res.status(400).json({ error: 'This review doesn\'t belong to an itinerary.' });
         }
 
         const review = await prisma.$transaction(async (tx) => {
@@ -295,7 +295,7 @@ router.put('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
         res.json({ review: { id: review.id, itineraryId: existing.itineraryId, rating: review.rating, comment: review.comment, photos: photoUrls } });
     } catch (error) {
         console.error('Error updating review:', error);
-        res.status(500).json({ error: 'Falha ao atualizar avaliação' });
+        res.status(500).json({ error: 'Failed to update review' });
     }
 });
 

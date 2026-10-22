@@ -50,7 +50,7 @@ export default function LoginScreen() {
     const handleLogin = async () => {
         setError(null);
         if (!email.trim() || !password.trim()) {
-            setError('Preencha e-mail e senha.');
+            setError('Enter your email and password.');
             return;
         }
 
@@ -81,7 +81,7 @@ export default function LoginScreen() {
             }
         } catch (err: any) {
             haptics.error?.();
-            const msg = err?.message || 'Erro ao fazer login. Verifique e-mail e senha.';
+            const msg = err?.message || 'Couldn\'t sign in. Check your email and password.';
             setError(msg);
             console.warn('[login screen] erro:', msg);
         } finally {
@@ -103,12 +103,12 @@ export default function LoginScreen() {
                     style={styles.header}
                 >
                     <VamoLogo size={160} />
-                    <Text style={styles.tagline}>Roteiros criados por quem já esteve lá</Text>
+                    <Text style={styles.tagline}>Itineraries created by people who've been there</Text>
                 </LinearGradient>
 
                 <View style={styles.card}>
-                    <Text style={styles.title}>Entrar na conta</Text>
-                    <Text style={styles.subtitle}>Acesse seus roteiros, favoritos e perfil</Text>
+                    <Text style={styles.title}>Sign in to your account</Text>
+                    <Text style={styles.subtitle}>Access your itineraries, favorites and profile</Text>
 
                     {/* Erro */}
                     {error && (
@@ -120,12 +120,12 @@ export default function LoginScreen() {
 
                     {/* E-mail */}
                     <View style={styles.field}>
-                        <Text style={styles.label}>E-mail</Text>
+                        <Text style={styles.label}>Email</Text>
                         <View style={styles.inputWrapper}>
                             <Ionicons name="mail-outline" size={18} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="seu@email.com"
+                                placeholder="you@email.com"
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 autoCapitalize="none"
                                 keyboardType="email-address"
@@ -140,7 +140,7 @@ export default function LoginScreen() {
 
                     {/* Senha */}
                     <View style={styles.field}>
-                        <Text style={styles.label}>Senha</Text>
+                        <Text style={styles.label}>Password</Text>
                         <View style={styles.inputWrapper}>
                             <Ionicons name="lock-closed-outline" size={18} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                             <TextInput
@@ -173,7 +173,7 @@ export default function LoginScreen() {
                             accessibilityRole="link"
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
-                            <Text style={styles.forgotLinkText}>Esqueci minha senha?</Text>
+                            <Text style={styles.forgotLinkText}>Forgot your password?</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -188,7 +188,7 @@ export default function LoginScreen() {
                             <ActivityIndicator color="#fff" size="small" />
                         ) : (
                             <>
-                                <Text style={styles.loginButtonText}>Entrar</Text>
+                                <Text style={styles.loginButtonText}>Sign in</Text>
                                 <Ionicons name="arrow-forward" size={18} color="#fff" />
                             </>
                         )}
@@ -197,7 +197,7 @@ export default function LoginScreen() {
                     {/* Divider */}
                     <View style={styles.divider}>
                         <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>ou</Text>
+                        <Text style={styles.dividerText}>or</Text>
                         <View style={styles.dividerLine} />
                     </View>
 
@@ -207,7 +207,7 @@ export default function LoginScreen() {
                         onPress={() => router.push('/register')}
                         disabled={loading}
                     >
-                        <Text style={styles.registerButtonText}>Criar conta grátis</Text>
+                        <Text style={styles.registerButtonText}>Create a free account</Text>
                     </TouchableOpacity>
 
                     {/* Continuar sem login */}
@@ -216,7 +216,7 @@ export default function LoginScreen() {
                         onPress={() => router.replace('/(tabs)')}
                         disabled={loading}
                     >
-                        <Text style={styles.skipText}>Continuar sem login →</Text>
+                        <Text style={styles.skipText}>Continue without signing in →</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>

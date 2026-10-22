@@ -138,7 +138,7 @@ export function PurchaseSuccessModal({
 
                     {/* Message */}
                     <Text style={styles.message}>
-                        Seu roteiro digital já está disponível no app:
+                        Your digital itinerary is now available in the app:
                     </Text>
                     <Text style={styles.itineraryTitle} numberOfLines={2}>
                         {itineraryTitle}
@@ -148,7 +148,7 @@ export function PurchaseSuccessModal({
                     <View style={styles.infoBox}>
                         <Ionicons name="information-circle" size={20} color={theme.colors.primary} />
                         <Text style={styles.infoText}>
-                            Acesse agora o roteiro liberado ou encontre a compra sempre em <Text style={styles.infoTextBold}>Meus Roteiros</Text>.
+                            Acesse agora o roteiro liberado ou encontre a compra sempre em <Text style={styles.infoTextBold}>My Itineraries</Text>.
                         </Text>
                     </View>
 
@@ -166,7 +166,7 @@ export function PurchaseSuccessModal({
                                 end={{ x: 1, y: 0 }}
                             >
                                 <Ionicons name="map" size={20} color="#fff" />
-                                <Text style={styles.primaryButtonText}>Ver roteiro</Text>
+                                <Text style={styles.primaryButtonText}>View itinerary</Text>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -176,7 +176,7 @@ export function PurchaseSuccessModal({
                             activeOpacity={0.8}
                         >
                             <Ionicons name="library-outline" size={18} color={theme.colors.primary} />
-                            <Text style={styles.secondaryButtonText}>Ir para Meus Roteiros</Text>
+                            <Text style={styles.secondaryButtonText}>Go to My Itineraries</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -184,7 +184,7 @@ export function PurchaseSuccessModal({
                             onPress={handleClose}
                             activeOpacity={0.8}
                         >
-                            <Text style={styles.tertiaryButtonText}>Continuar explorando</Text>
+                            <Text style={styles.tertiaryButtonText}>Keep exploring</Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>

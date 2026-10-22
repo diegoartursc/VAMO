@@ -15,7 +15,7 @@ const muted: React.CSSProperties = { fontSize: "13px", color: "#5A6B8C", lineHei
 const row: React.CSSProperties = { padding: "10px 0", borderBottom: "1px solid #F0F2F5" };
 
 const asArray = (v: any): any[] => (Array.isArray(v) ? v.filter(Boolean) : []);
-const fmtDate = (v?: string) => (v ? new Date(v).toLocaleDateString("pt-BR") : "");
+const fmtDate = (v?: string) => (v ? new Date(v).toLocaleDateString("en-US") : "");
 
 function Section({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
     if (count === 0) return null;

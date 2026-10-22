@@ -88,14 +88,14 @@ function sendUploadError(res: express.Response, err: unknown): boolean {
     if (!err) return false;
     const error = err as Error & { code?: string };
     if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-        res.status(413).json({ error: 'Arquivo muito grande (máx 100 MB).' });
+        res.status(413).json({ error: 'File is too large (max 100 MB).' });
         return true;
     }
     if (error.message === 'UNSUPPORTED_FILE_TYPE') {
-        res.status(415).json({ error: 'Formato não suportado. Use JPG, PNG, WEBP, HEIC, MP4, MOV ou PDF.' });
+        res.status(415).json({ error: 'Unsupported format. Use JPG, PNG, WEBP, HEIC, MP4, MOV or PDF.' });
         return true;
     }
-    res.status(400).json({ error: error.message || 'Não foi possível processar o upload.' });
+    res.status(400).json({ error: error.message || 'We couldn\'t process the upload.' });
     return true;
 }
 
@@ -147,19 +147,19 @@ async function validateUploadedContent(file: Express.Multer.File): Promise<boole
 // POST /api/uploads — upload de um único arquivo, retorna URL absoluta
 router.post('/', optionalAuthMiddleware, (req: AuthRequest, res) => {
     if (!req.traveler) {
-        res.status(401).json({ error: 'Autenticação necessária para fazer upload' });
+        res.status(401).json({ error: 'Sign in to upload files' });
         return;
     }
     upload.single('file')(req, res, async (err) => {
         if (sendUploadError(res, err)) return;
         if (!req.file) {
-            res.status(400).json({ error: 'Arquivo ausente (campo "file")' });
+            res.status(400).json({ error: 'File missing (field "file")' });
             return;
         }
         try {
             if (!await validateUploadedContent(req.file)) {
                 await cleanupLocalFiles([req.file]);
-                res.status(415).json({ error: 'O conteúdo do arquivo não corresponde ao formato informado.' });
+                res.status(415).json({ error: 'The file contents don\'t match the stated format.' });
                 return;
             }
             const { url, filename } = await persistUploadedFile(req, req.file);
@@ -173,7 +173,7 @@ router.post('/', optionalAuthMiddleware, (req: AuthRequest, res) => {
             });
         } catch (uploadErr) {
             console.error('Error persisting upload:', uploadErr);
-            res.status(500).json({ error: 'Não foi possível salvar o arquivo. Tente novamente.' });
+            res.status(500).json({ error: 'We couldn\'t save the file. Please try again.' });
         }
     });
 });
@@ -181,21 +181,21 @@ router.post('/', optionalAuthMiddleware, (req: AuthRequest, res) => {
 // POST /api/uploads/multiple — upload de múltiplos arquivos
 router.post('/multiple', optionalAuthMiddleware, (req: AuthRequest, res) => {
     if (!req.traveler) {
-        res.status(401).json({ error: 'Autenticação necessária para fazer upload' });
+        res.status(401).json({ error: 'Sign in to upload files' });
         return;
     }
     upload.array('files', 20)(req, res, async (err) => {
         if (sendUploadError(res, err)) return;
         const files = (req.files as Express.Multer.File[] | undefined) || [];
         if (files.length === 0) {
-            res.status(400).json({ error: 'Nenhum arquivo enviado (campo "files")' });
+            res.status(400).json({ error: 'No file uploaded (field "files")' });
             return;
         }
         try {
             const validations = await Promise.all(files.map(validateUploadedContent));
             if (validations.some(valid => !valid)) {
                 await cleanupLocalFiles(files);
-                res.status(415).json({ error: 'Um dos arquivos não corresponde ao formato informado.' });
+                res.status(415).json({ error: 'One of the files doesn\'t match the stated format.' });
                 return;
             }
             const items = [];
@@ -216,7 +216,7 @@ router.post('/multiple', optionalAuthMiddleware, (req: AuthRequest, res) => {
             });
         } catch (uploadErr) {
             console.error('Error persisting uploads:', uploadErr);
-            res.status(500).json({ error: 'Não foi possível salvar os arquivos. Tente novamente.' });
+            res.status(500).json({ error: 'We couldn\'t save the files. Please try again.' });
         }
     });
 });

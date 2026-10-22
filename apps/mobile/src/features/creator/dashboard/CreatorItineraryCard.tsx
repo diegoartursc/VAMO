@@ -15,7 +15,7 @@ import {
 
 function StatusBadge({ item }: { item: CreatorItinerary }) {
     const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.draft;
-    const label = isPendingRevisionOfPublished(item) ? 'Alterações em análise' : cfg.label;
+    const label = isPendingRevisionOfPublished(item) ? 'Changes under review' : cfg.label;
     return (
         <View style={[badge.wrap, { backgroundColor: cfg.bg }]}>
             <Ionicons name={cfg.icon as any} size={11} color={cfg.color} />
@@ -28,7 +28,7 @@ function formatUpdated(iso?: string): string | null {
     if (!iso) return null;
     const d = new Date(iso);
     if (isNaN(d.getTime())) return null;
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function Metric({ value, label, color }: { value: string; label: string; color?: string }) {
@@ -80,10 +80,10 @@ export function CreatorItineraryCard({
                     style={[card.btn, card.publicBtn]}
                     onPress={(e) => { e.stopPropagation?.(); haptics.light(); onViewPublic!(); }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel="Ver roteiro na vitrine"
+                    accessibilityLabel="View itinerary in the storefront"
                 >
                     <Ionicons name="eye-outline" size={13} color={theme.colors.primary} />
-                    <Text style={[card.btnText, { color: theme.colors.primary }]}>Ver na vitrine</Text>
+                    <Text style={[card.btnText, { color: theme.colors.primary }]}>View in storefront</Text>
                 </TouchableOpacity>
             )}
             {canShare && (
@@ -91,10 +91,10 @@ export function CreatorItineraryCard({
                     style={[card.btn, card.publicBtn]}
                     onPress={(e) => { e.stopPropagation?.(); haptics.light(); onShare!(); }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel="Compartilhar roteiro"
+                    accessibilityLabel="Share itinerary"
                 >
                     <Ionicons name="share-social-outline" size={13} color={theme.colors.primary} />
-                    <Text style={[card.btnText, { color: theme.colors.primary }]}>Compartilhar</Text>
+                    <Text style={[card.btnText, { color: theme.colors.primary }]}>Share</Text>
                 </TouchableOpacity>
             )}
             {canEdit && (
@@ -102,10 +102,10 @@ export function CreatorItineraryCard({
                     style={[card.btn, card.editBtn]}
                     onPress={(e) => { e.stopPropagation?.(); haptics.light(); onEdit(); }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel="Editar roteiro"
+                    accessibilityLabel="Edit itinerary"
                 >
                     <Ionicons name="create-outline" size={13} color={theme.colors.primary} />
-                    <Text style={[card.btnText, { color: theme.colors.primary }]}>Editar</Text>
+                    <Text style={[card.btnText, { color: theme.colors.primary }]}>Edit</Text>
                 </TouchableOpacity>
             )}
             {canDelete && (
@@ -113,10 +113,10 @@ export function CreatorItineraryCard({
                     style={[card.btn, card.deleteBtn]}
                     onPress={(e) => { e.stopPropagation?.(); onDelete(); }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel="Arquivar roteiro"
+                    accessibilityLabel="Archive itinerary"
                 >
                     <Ionicons name="archive-outline" size={13} color={theme.colors.error} />
-                    <Text style={[card.btnText, { color: theme.colors.error }]}>Arquivar</Text>
+                    <Text style={[card.btnText, { color: theme.colors.error }]}>Archive</Text>
                 </TouchableOpacity>
             )}
             {qa && (
@@ -145,7 +145,7 @@ export function CreatorItineraryCard({
             <View style={card.body}>
                 {/* Topo: título + status */}
                 <View style={card.titleRow}>
-                    <Text style={card.title} numberOfLines={2}>{item.title || 'Sem título'}</Text>
+                    <Text style={card.title} numberOfLines={2}>{item.title || 'Untitled'}</Text>
                     <StatusBadge item={item} />
                 </View>
 
@@ -166,8 +166,8 @@ export function CreatorItineraryCard({
 
                 {/* Métricas */}
                 <View style={card.metricsRow}>
-                    <Metric value={formatMoney(item.price)} label="preço" />
-                    {item.sales > 0 && <Metric value={String(item.sales)} label="vendas" />}
+                    <Metric value={formatMoney(item.price)} label="price" />
+                    {item.sales > 0 && <Metric value={String(item.sales)} label="sales" />}
                     {item.revenue > 0 && <Metric value={formatMoney(item.revenue)} label="receita" color={theme.colors.success} />}
                     {item.rating > 0 && <Metric value={`★ ${item.rating.toFixed(1)}`} label={`${item.reviewCount} aval.`} color="#F59E0B" />}
                     {typeof item.qualityScore === 'number' && item.qualityScore > 0 && (
@@ -185,7 +185,7 @@ export function CreatorItineraryCard({
                 {item.status === 'rejected' && (
                     <View style={card.hint}>
                         <Ionicons name="information-circle-outline" size={13} color={theme.colors.error} />
-                        <Text style={[card.hintText, { color: theme.colors.error }]}>Toque para ver o motivo da reprovação</Text>
+                        <Text style={[card.hintText, { color: theme.colors.error }]}>Tap to see why it was rejected</Text>
                     </View>
                 )}
                 {item.status === 'pending_review' && (
@@ -193,15 +193,15 @@ export function CreatorItineraryCard({
                         <Ionicons name="time-outline" size={13} color="#D97706" />
                         <Text style={[card.hintText, { color: '#D97706' }]}>
                             {isPendingRevisionOfPublished(item)
-                                ? 'Suas alterações estão em análise (até 48h). A versão pública volta após aprovação.'
-                                : 'Aguardando análise (até 48h).'}
+                                ? 'Your changes are under review (up to 48 hours). The public version returns after approval.'
+                                : 'Waiting for review (up to 48 hours).'}
                         </Text>
                     </View>
                 )}
                 {item.status === 'draft' && (
                     <View style={[card.hint, { backgroundColor: theme.colors.surfaceLight }]}>
                         <Ionicons name="create-outline" size={13} color={theme.colors.text.tertiary} />
-                        <Text style={[card.hintText, { color: theme.colors.text.tertiary }]}>Rascunho — complete e envie para análise</Text>
+                        <Text style={[card.hintText, { color: theme.colors.text.tertiary }]}>Draft — complete it and submit for review</Text>
                     </View>
                 )}
             </View>

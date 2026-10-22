@@ -5,7 +5,7 @@
  * Wrapper sobre `ItemFormModal` configurado para "criar":
  *  - sem aviso de "edição salva apenas no seu roteiro" (já é claro
  *    pelo contexto da tela);
- *  - botão primário "Adicionar ao meu roteiro";
+ *  - botão primário "Add to my itinerary";
  *  - inicial vazia (mas o caller pode passar `defaults` para campos
  *    pré-preenchidos — ex.: `dayNumber` numa atividade do dia).
  *
@@ -43,8 +43,8 @@ export default function AddItemModal({
             onClose={onClose}
             kind={kind}
             initial={defaults || null}
-            title={meta?.addLabel || 'Adicionar item'}
-            primaryLabel="Adicionar ao meu roteiro"
+            title={meta?.addLabel || 'Add item'}
+            primaryLabel="Add to my itinerary"
             onSave={onSave}
         />
     );

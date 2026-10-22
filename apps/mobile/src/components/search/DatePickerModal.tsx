@@ -53,19 +53,36 @@ const getNextMonth = (): { start: Date; end: Date } => {
     return { start, end };
 };
 
+// nth weekday of a month (weekday: 0=Sun..6=Sat); n=-1 means the last one.
+const nthWeekday = (year: number, month: number, weekday: number, n: number): Date => {
+    if (n > 0) {
+        const first = new Date(year, month, 1);
+        const offset = (weekday - first.getDay() + 7) % 7;
+        return new Date(year, month, 1 + offset + (n - 1) * 7);
+    }
+    const last = new Date(year, month + 1, 0);
+    const offset = (last.getDay() - weekday + 7) % 7;
+    return new Date(year, month, last.getDate() - offset);
+};
+
+// US federal holidays that commonly become long weekends.
+const usHolidays = (year: number): Date[] => [
+    new Date(year, 0, 1),               // New Year's Day
+    nthWeekday(year, 0, 1, 3),          // Martin Luther King Jr. Day
+    nthWeekday(year, 1, 1, 3),          // Presidents' Day
+    nthWeekday(year, 4, 1, -1),         // Memorial Day
+    new Date(year, 5, 19),              // Juneteenth
+    new Date(year, 6, 4),               // Independence Day
+    nthWeekday(year, 8, 1, 1),          // Labor Day
+    nthWeekday(year, 9, 1, 2),          // Columbus / Indigenous Peoples' Day
+    new Date(year, 10, 11),             // Veterans Day
+    nthWeekday(year, 10, 4, 4),         // Thanksgiving
+    new Date(year, 11, 25),             // Christmas
+];
+
 const getNextHoliday = (): { start: Date; end: Date } => {
     const today = new Date();
-    const holidays: Date[] = [
-        new Date(today.getFullYear(), 1, 20), // Carnaval
-        new Date(today.getFullYear(), 3, 21), // Tiradentes
-        new Date(today.getFullYear(), 4, 1),  // Dia do Trabalhador
-        new Date(today.getFullYear(), 8, 7),  // Independência
-        new Date(today.getFullYear(), 9, 12), // N. Sra. Aparecida
-        new Date(today.getFullYear(), 10, 2), // Finados
-        new Date(today.getFullYear(), 10, 15), // Proclamação República
-        new Date(today.getFullYear(), 11, 25), // Natal
-        new Date(today.getFullYear() + 1, 0, 1), // Ano Novo
-    ];
+    const holidays: Date[] = [...usHolidays(today.getFullYear()), ...usHolidays(today.getFullYear() + 1)];
 
     const nextHoliday = holidays.find(h => h > today) || holidays[0];
     const start = new Date(nextHoliday);
@@ -78,31 +95,31 @@ const getNextHoliday = (): { start: Date; end: Date } => {
 const QUICK_OPTIONS: QuickOption[] = [
     {
         id: 'weekend',
-        label: 'Próximo fim de semana',
+        label: 'Next weekend',
         icon: '🌴',
         getRange: getNextWeekend,
     },
     {
         id: 'next-week',
-        label: 'Próxima semana',
+        label: 'Next week',
         icon: '📅',
         getRange: getNextWeek,
     },
     {
         id: 'next-month',
-        label: 'Próximo mês',
+        label: 'Next month',
         icon: '🗓️',
         getRange: getNextMonth,
     },
     {
         id: 'holiday',
-        label: 'Próximo feriado',
+        label: 'Next holiday',
         icon: '🎉',
         getRange: getNextHoliday,
     },
     {
         id: 'flexible',
-        label: 'Tenho datas flexíveis (±3 dias)',
+        label: 'My dates are flexible (±3 days)',
         icon: '🔄',
         getRange: () => {
             const today = new Date();
@@ -121,7 +138,7 @@ const formatDate = (date: Date): string => {
         day: 'numeric',
         month: 'short',
     };
-    return date.toLocaleDateString('pt-BR', options);
+    return date.toLocaleDateString('en-US', options);
 };
 
 export function DatePickerModal({ visible, onClose, onSelect }: DatePickerModalProps) {
@@ -143,9 +160,9 @@ export function DatePickerModal({ visible, onClose, onSelect }: DatePickerModalP
                 <Pressable style={styles.modal} onPress={() => { }}>
                     <View style={styles.handle} />
 
-                    <Text style={styles.title}>Quando você quer viajar?</Text>
+                    <Text style={styles.title}>When do you want to travel?</Text>
                     <Text style={styles.subtitle}>
-                        Escolha uma opção rápida ou selecione datas específicas
+                        Pick a quick option or select specific dates
                     </Text>
 
                     <ScrollView style={styles.optionsList}>
@@ -175,11 +192,11 @@ export function DatePickerModal({ visible, onClose, onSelect }: DatePickerModalP
 
                     <TouchableOpacity style={styles.customButton}>
                         <Text style={styles.customButtonIcon}>📆</Text>
-                        <Text style={styles.customButtonText}>Escolher datas específicas</Text>
+                        <Text style={styles.customButtonText}>Choose specific dates</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                        <Text style={styles.closeButtonText}>Cancelar</Text>
+                        <Text style={styles.closeButtonText}>Cancel</Text>
                     </TouchableOpacity>
                 </Pressable>
             </Pressable>

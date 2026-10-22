@@ -25,22 +25,22 @@ const SECOES_ESPERADAS = [
     ['Título & Localização', '<Text style={styles.title}>{itinerary.title}</Text>'],
     ['Stats (avaliação + duração)', '<View style={styles.statsCard}>'],
     ['Badge roteiro interativo', '<InteractiveRouteBadge />'],
-    ['Sobre o Roteiro', 'title="Sobre o Roteiro"'],
+    ['Sobre o Roteiro', 'title="About this Itinerary"'],
     ['Resumo da experiência', '<ExperienceSummaryCard'],
-    ['Destaques da viagem', 'title="Destaques da viagem"'],
+    ['Destaques da viagem', 'title="Trip highlights"'],
     ['Fotos e Vídeos', '<MediaGallery itinerary={itinerary} />'],
     ['Para quem é este roteiro', 'styles.idealForCard'],
     ['Por que comprar este roteiro?', 'styles.whyBuyCard'],
     ['Criador + verificação', '<CreatorIdentityLink'],
     ['Preço + CTA', 'styles.priceSection'],
     ['O que você recebe (PurchaseBenefitsCard)', '<PurchaseBenefitsCard />'],
-    ['O que você vai receber (módulos)', 'title="O que você vai receber"'],
+    ['O que você vai receber (módulos)', 'title="What you\'ll get"'],
     ['Prévia do que vai desbloquear', 'styles.unlockSection'],
     ['Central de viagem (InteractiveExperienceSection)', '<InteractiveExperienceSection />'],
     ['Referência de custos + TrustStrip', '<TravelCostSummarySection'],
     ['Trust Info do criador', 'styles.trustBox'],
     ['Avaliações (PremiumReviewsSection)', '<PremiumReviewsSection'],
-    ['Como você vai receber', 'title="Como você vai receber"'],
+    ['Como você vai receber', 'title="How you\'ll receive it"'],
     ['Antes de comprar, saiba', 'styles.beforeBuyBox'],
     ['FAQ', '<FAQSection'],
 ] as const;
@@ -68,7 +68,7 @@ test('a hierarquia de seções segue a jornada de decisão de compra', () => {
 
 test('o preço/CTA aparece só depois da construção de valor (não no topo, não no fim)', () => {
     const posPreco = src.indexOf('styles.priceSection');
-    const posSobre = src.indexOf('title="Sobre o Roteiro"');
+    const posSobre = src.indexOf('title="About this Itinerary"');
     const posFAQ = src.indexOf('<FAQSection');
     assert.ok(posPreco > posSobre, 'preço não pode vir antes de "Sobre o Roteiro"');
     assert.ok(posPreco < posFAQ, 'preço não pode ser jogado para o fim absoluto da página');
@@ -76,8 +76,8 @@ test('o preço/CTA aparece só depois da construção de valor (não no topo, n�
 
 test('avaliações (reviews) aparecem depois da descrição do roteiro, não no início', () => {
     const posReviews = src.indexOf('<PremiumReviewsSection');
-    const posSobre = src.indexOf('title="Sobre o Roteiro"');
-    const posDestaques = src.indexOf('title="Destaques da viagem"');
+    const posSobre = src.indexOf('title="About this Itinerary"');
+    const posDestaques = src.indexOf('title="Trip highlights"');
     assert.ok(posReviews > posSobre && posReviews > posDestaques,
         'reviews não podem funcionar como primeira explicação do produto');
 });

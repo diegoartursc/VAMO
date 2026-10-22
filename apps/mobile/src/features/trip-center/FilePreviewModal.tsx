@@ -40,7 +40,7 @@ import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
 import { openExternalUrl } from '../../utils/externalLinks';
 import { kindFromMime, type FileKind } from './FileCard';
-import { normalizeCategory, iconForCategory } from './fileCategories';
+import { normalizeCategory, iconForCategory, fileCategoryLabel } from './fileCategories';
 import type { TravelerFile } from '../../services/tripCenter';
 
 export interface FilePreviewModalProps {
@@ -81,16 +81,16 @@ export default function FilePreviewModal({ visible, file, onClose, onDelete }: F
         }
         // Mobile: delega ao SO (Safari/Chrome interceptam o download/abertura).
         await openExternalUrl(file.url, {
-            invalidMessage: 'Este arquivo não tem um link válido.',
-            fallbackMessage: 'Não foi possível baixar agora.',
+            invalidMessage: 'This file doesn\'t have a valid link.',
+            fallbackMessage: 'We couldn\'t download it right now.',
         });
     };
 
     const handleOpenExternal = async () => {
         haptics.light();
         await openExternalUrl(file.url, {
-            invalidMessage: 'Este arquivo não tem um link válido.',
-            fallbackMessage: 'Não foi possível abrir agora.',
+            invalidMessage: 'This file doesn\'t have a valid link.',
+            fallbackMessage: 'We couldn\'t open it right now.',
         });
     };
 
@@ -108,7 +108,7 @@ export default function FilePreviewModal({ visible, file, onClose, onDelete }: F
                                     size={11}
                                     color={theme.colors.primaryDark}
                                 />
-                                <Text style={styles.categoryLabel}>{category}</Text>
+                                <Text style={styles.categoryLabel}>{fileCategoryLabel(category)}</Text>
                             </View>
                             {file.note ? (
                                 <Text style={styles.note}>{file.note}</Text>
@@ -141,13 +141,13 @@ export default function FilePreviewModal({ visible, file, onClose, onDelete }: F
                                     onDelete();
                                 }}
                                 activeOpacity={0.85}
-                                accessibilityLabel="Excluir arquivo"
+                                accessibilityLabel="Delete file"
                             >
                                 <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
-                                <Text style={styles.btnDangerText}>Excluir</Text>
+                                <Text style={styles.btnDangerText}>Delete</Text>
                             </TouchableOpacity>
                         )}
-                        {/* "Abrir externamente" só pra tipos que não temos preview inline real */}
+                        {/* "Open externally" só pra tipos que não temos preview inline real */}
                         {kind !== 'image' && (
                             <TouchableOpacity
                                 style={styles.btnGhost}
@@ -155,7 +155,7 @@ export default function FilePreviewModal({ visible, file, onClose, onDelete }: F
                                 activeOpacity={0.85}
                             >
                                 <Ionicons name="open-outline" size={16} color={theme.colors.primary} />
-                                <Text style={styles.btnGhostText}>Abrir</Text>
+                                <Text style={styles.btnGhostText}>Open</Text>
                             </TouchableOpacity>
                         )}
                         <TouchableOpacity
@@ -164,7 +164,7 @@ export default function FilePreviewModal({ visible, file, onClose, onDelete }: F
                             activeOpacity={0.85}
                         >
                             <Ionicons name="download-outline" size={16} color="#fff" />
-                            <Text style={styles.btnPrimaryText}>Baixar</Text>
+                            <Text style={styles.btnPrimaryText}>Download</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -180,8 +180,8 @@ function PreviewBody({ kind, file }: { kind: FileKind; file: TravelerFile }) {
         return (
             <Placeholder
                 icon="image"
-                title="Imagem HEIC/HEIF"
-                text="O arquivo foi salvo com segurança. Use Abrir para visualizá-lo em um aplicativo compatível."
+                title="HEIC/HEIF image"
+                text="The file was saved securely. Use Open to view it in a compatible app."
                 sizeBytes={file.sizeBytes}
             />
         );
@@ -221,8 +221,8 @@ function PreviewBody({ kind, file }: { kind: FileKind; file: TravelerFile }) {
         return (
             <Placeholder
                 icon="document-text"
-                title="PDF pronto para abrir"
-                text="No celular, abrimos o PDF no leitor do sistema (Safari, Chrome, Files). Use os botões abaixo."
+                title="PDF ready to open"
+                text="On your phone, we open the PDF in the system reader (Safari, Chrome, Files). Use the buttons below."
             />
         );
     }
@@ -248,8 +248,8 @@ function PreviewBody({ kind, file }: { kind: FileKind; file: TravelerFile }) {
         return (
             <Placeholder
                 icon="videocam"
-                title="Vídeo"
-                text="Use o botão Abrir para reproduzir no app de vídeo do seu celular."
+                title="Video"
+                text="Use the Open button to play it in your phone's video app."
             />
         );
     }
@@ -260,8 +260,8 @@ function PreviewBody({ kind, file }: { kind: FileKind; file: TravelerFile }) {
             title={file.title}
             text={
                 file.mimeType
-                    ? `Tipo: ${file.mimeType}. Use "Abrir" para visualizar ou "Baixar" para salvar.`
-                    : 'Use "Abrir" para visualizar ou "Baixar" para salvar.'
+                    ? `Type: ${file.mimeType}. Use "Open" to view or "Download" to save.`
+                    : 'Use "Open" to view or "Download" to save.'
             }
             sizeBytes={file.sizeBytes}
         />

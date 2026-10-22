@@ -1,7 +1,7 @@
 /**
  * VAMO — Roteiro Editável Pós-Compra (PDF export sheet).
  *
- * Bottom sheet com 2 opções: "Exportar versão original" e "Exportar
+ * Bottom sheet com 2 opções: "Export original version" e "Exportar
  * minha versão". O componente é apresentacional — não decide o que
  * exportar: o caller passa `onSelect(variant)` e fica responsável por
  * juntar snapshot + customization e chamar `exportRoutePdf`.
@@ -117,7 +117,7 @@ export default function PdfExportSheet({
                         <TouchableOpacity
                             onPress={onClose}
                             accessibilityRole="button"
-                            accessibilityLabel="Fechar"
+                            accessibilityLabel="Close"
                             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                         >
                             <Ionicons name="close" size={24} color={theme.colors.text.secondary} />
@@ -125,14 +125,14 @@ export default function PdfExportSheet({
                     </View>
 
                     <Text style={styles.description}>
-                        Escolha qual versão do seu roteiro deseja salvar como PDF.
+                        Choose which version of your itinerary you want to save as a PDF.
                     </Text>
 
                     <View style={styles.options}>
                         <OptionRow
                             icon="document-text-outline"
-                            title="Exportar versão original"
-                            subtitle="Roteiro completo do criador, como veio na compra."
+                            title="Export original version"
+                            subtitle="The creator's complete itinerary, as it came with your purchase."
                             iconColor={theme.colors.secondary}
                             onPress={() => {
                                 onSelect('original');
@@ -141,10 +141,10 @@ export default function PdfExportSheet({
                         />
                         <OptionRow
                             icon="sparkles-outline"
-                            title="Exportar minha versão"
+                            title="Export my version"
                             subtitle={personalizedDisabled
-                                ? 'Sem personalizações ainda — edite seu roteiro primeiro.'
-                                : 'Roteiro com suas notas, edições e adições.'}
+                                ? 'No personalizations yet — edit your itinerary first.'
+                                : 'Itinerary with your notes, edits and additions.'}
                             iconColor={theme.colors.primary}
                             onPress={() => {
                                 onSelect('personalized');
@@ -155,7 +155,7 @@ export default function PdfExportSheet({
                     </View>
 
                     <Text style={styles.footnote}>
-                        Seus arquivos aparecem como lista de referência na sua versão. Os anexos (fotos e documentos) não são incorporados ao PDF.
+                        Your files appear as a reference list in your version. Attachments (photos and documents) are not embedded in the PDF.
                     </Text>
                 </Pressable>
             </Pressable>

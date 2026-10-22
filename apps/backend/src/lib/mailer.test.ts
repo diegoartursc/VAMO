@@ -64,9 +64,9 @@ test('e-mail ao admin vai para ADMIN_NOTIFICATION_EMAIL', async () => {
 test('senha alterada nunca inclui senha e orienta o suporte', async () => {
     const m = await load();
     await m.sendPasswordChangedEmail({ to: 'a@x.test', name: 'Ana', changedAt: new Date('2026-09-24T12:00:00Z') });
-    assert.match(last().html, /suporte/);
-    assert.match(last().html, /Nova York/);
-    assert.ok(!/senha:\s*\S/i.test(last().text));
+    assert.match(last().html, /support/);
+    assert.match(last().html, /New York/);
+    assert.ok(!/password:\s*\S/i.test(last().text));
 });
 
 test('todo e-mail tem HTML e texto, e nenhum link aponta para localhost', async () => {

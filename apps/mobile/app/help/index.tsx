@@ -20,44 +20,44 @@ interface Category { icon: IconName; title: string; faqs: Faq[]; }
 
 const CATEGORIES: Category[] = [
     {
-        icon: 'circle-user', title: 'Conta e acesso',
+        icon: 'circle-user', title: 'Account and access',
         faqs: [
-            { q: 'Como altero meus dados pessoais?', a: 'No Perfil, toque em Conta → Dados pessoais. Edite seu nome e telefone e toque em "Salvar alterações".' },
-            { q: 'Como edito minha foto de perfil?', a: 'No Perfil, toque no ícone de edição sobre o avatar para a foto de perfil, ou em "Trocar capa" para a foto de capa.' },
-            { q: 'Esqueci meu acesso. O que faço?', a: 'O acesso é feito pelo e-mail cadastrado. Se você não consegue entrar, fale com o suporte por esta Central de ajuda.' },
+            { q: 'How do I change my personal details?', a: 'In Profile, tap Account → Personal data. Edit your name and phone and tap "Save changes".' },
+            { q: 'How do I edit my profile photo?', a: 'In Profile, tap the edit icon on your avatar for your profile photo, or "Change cover" for your cover photo.' },
+            { q: 'I forgot my password. What do I do?', a: 'You sign in with the email you registered. If you can\'t sign in, use "Forgot your password?" on the sign-in screen or contact support through this Help Center.' },
         ],
     },
     {
-        icon: 'book-open', title: 'Compras e roteiros',
+        icon: 'book-open', title: 'Purchases and itineraries',
         faqs: [
-            { q: 'Onde vejo os roteiros que comprei?', a: 'Na aba "Meus Roteiros" da barra inferior. Todos os roteiros comprados ficam salvos na sua conta.' },
-            { q: 'Posso personalizar um roteiro comprado?', a: 'Sim. Ao abrir um roteiro comprado, você pode criar a "Minha versão" com ajustes pessoais, mantendo o original intacto.' },
-            { q: 'Como funciona o acesso ao roteiro após a compra?', a: 'O acesso é imediato e vitalício: o roteiro fica disponível na sua conta para consultar quando quiser.' },
+            { q: 'Where do I find the itineraries I bought?', a: 'In the "My Itineraries" tab on the bottom bar. Every itinerary you bought is saved to your account.' },
+            { q: 'Can I customize a purchased itinerary?', a: 'Yes. When you open a purchased itinerary, you can create "My version" with your own changes while keeping the original intact.' },
+            { q: 'How does access work after I buy?', a: 'Access is instant and lifetime: the itinerary stays in your account for you to open whenever you want.' },
         ],
     },
     {
-        icon: 'compass', title: 'Roteiristas',
+        icon: 'compass', title: 'Creators',
         faqs: [
-            { q: 'Como publico um roteiro?', a: 'No Perfil, entre na Central do Roteirista e toque em "Novo roteiro". Preencha as etapas e envie para análise.' },
-            { q: 'Como acompanho minhas vendas?', a: 'Na Central do Roteirista, acesse "Minhas vendas" para ver vendas e receita por roteiro.' },
-            { q: 'Como funciona a aprovação de roteiros?', a: 'Após o envio, a equipe VAMO revisa o roteiro (até 48h). Você é avisado quando ele é aprovado ou precisa de ajustes.' },
-            { q: 'Como melhorar o Quality Score?', a: 'Preencha todos os módulos com detalhes: itinerário diário, hospedagem, transporte, dicas, fotos de capa e estimativa de gastos.' },
+            { q: 'How do I publish an itinerary?', a: 'In Profile, open the Creator Center and tap "New itinerary". Fill in the steps and submit for review.' },
+            { q: 'How do I track my sales?', a: 'In the Creator Center, open "My sales" to see sales and revenue by itinerary.' },
+            { q: 'How does itinerary approval work?', a: 'After you submit, the VAMO team reviews the itinerary (up to 48 hours). You\'re notified when it\'s approved or needs changes.' },
+            { q: 'How do I improve my Quality Score?', a: 'Fill in every module in detail: daily itinerary, lodging, transportation, tips, cover photos and cost estimates.' },
         ],
     },
     {
-        icon: 'card', title: 'Pagamentos e reembolsos',
+        icon: 'card', title: 'Payments and refunds',
         faqs: [
-            { q: 'Quais formas de pagamento são aceitas?', a: 'O pagamento é processado com segurança no checkout. As formas disponíveis aparecem na hora da compra.' },
-            { q: 'Como funciona o pagamento de roteiros?', a: 'Você paga uma vez pelo roteiro digital e tem acesso vitalício a ele na sua conta.' },
-            { q: 'Quando posso pedir suporte sobre uma compra?', a: 'Sempre que tiver dúvida ou problema com uma compra, fale com o suporte por esta Central de ajuda.' },
+            { q: 'Which payment methods are accepted?', a: 'Payment is processed securely at checkout. The available methods appear when you buy.' },
+            { q: 'How does paying for itineraries work?', a: 'You pay once for the digital itinerary and get lifetime access to it in your account.' },
+            { q: 'When can I ask for help with a purchase?', a: 'Any time you have a question or problem with a purchase, contact support through this Help Center. See our Refund Policy for when you can get a refund.' },
         ],
     },
     {
-        icon: 'star', title: 'Avaliações e comunidade',
+        icon: 'star', title: 'Reviews and community',
         faqs: [
-            { q: 'Como avalio um roteiro?', a: 'Após comprar, abra o roteiro e toque em avaliar. Dê uma nota e escreva sua experiência.' },
-            { q: 'Posso adicionar fotos na avaliação?', a: 'Sim. Ao escrever a avaliação, você pode anexar fotos da sua viagem.' },
-            { q: 'Como faço uma pergunta sobre um roteiro?', a: 'Na página do roteiro há uma seção de perguntas. Envie sua dúvida e o roteirista poderá responder.' },
+            { q: 'How do I review an itinerary?', a: 'After you buy, open the itinerary and tap review. Give a rating and write about your experience.' },
+            { q: 'Can I add photos to my review?', a: 'Yes. When you write your review, you can attach photos from your trip.' },
+            { q: 'How do I ask a question about an itinerary?', a: 'The itinerary page has a questions section. Send your question and the creator can answer.' },
         ],
     },
 ];
@@ -87,7 +87,7 @@ export default function HelpCenterScreen() {
     const router = useRouter();
     return (
         <View style={s.container}>
-            <ScreenHeader title="Central de ajuda" subtitle="Encontre respostas rápidas ou fale com o suporte da VAMO." />
+            <ScreenHeader title="Help Center" subtitle="Find quick answers or contact VAMO support." />
             <ScrollView contentContainerStyle={s.scroll}>
                 {CATEGORIES.map((cat) => (
                     <View key={cat.title} style={s.section}>
@@ -112,14 +112,14 @@ export default function HelpCenterScreen() {
                     <View style={s.sectionIcon}>
                         <Icon name="message-circle" size={18} color={theme.colors.primary} />
                     </View>
-                    <Text style={s.supportTitle}>Não encontrou o que procurava?</Text>
-                    <Text style={s.supportText}>Nossa equipe pode ajudar com qualquer dúvida ou problema.</Text>
+                    <Text style={s.supportTitle}>Didn't find what you were looking for?</Text>
+                    <Text style={s.supportText}>Our team can help with any question or problem.</Text>
                     <TouchableOpacity
                         style={s.supportBtn}
                         onPress={() => { haptics.light(); router.push('/help/contact-support'); }}
                     >
                         <Icon name="message-circle" size={16} color="#fff" />
-                        <Text style={s.supportBtnText}>Falar com o suporte</Text>
+                        <Text style={s.supportBtnText}>Contact support</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>

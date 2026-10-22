@@ -61,8 +61,8 @@ test('1. o título continua com no máximo duas linhas', () => {
 // ── Painel ────────────────────────────────────────────────────────────────
 
 test('as duas linhas do painel são rotuladas e semanticamente separadas', () => {
-    assert.ok(panel.includes('label="Estilo"'), 'linha de tema precisa do rótulo "Estilo"');
-    assert.ok(panel.includes('label="Inclui"'), 'linha de conteúdo precisa do rótulo "Inclui"');
+    assert.ok(panel.includes('label="Style"'), 'linha de tema precisa do rótulo "Style"');
+    assert.ok(panel.includes('label="Includes"'), 'linha de conteúdo precisa do rótulo "Includes"');
     // A diferença não pode depender só de cor.
     assert.ok(panel.includes("tone=\"category\"") && panel.includes("tone=\"included\""));
 });
@@ -119,7 +119,7 @@ test('16. o CTA abre os detalhes e o botão do carrinho mantém 44x44', () => {
 test('18. estados acessíveis nos botões de ação', () => {
     assert.ok(/accessibilityRole="button"/.test(card));
     assert.ok(/accessibilityState=\{\{ selected: inCart/.test(card), 'estado "no carrinho" anunciado');
-    assert.ok(/accessibilityLabel=\{`Ver roteiro \$\{title\}`\}/.test(card));
+    assert.ok(/accessibilityLabel=\{`View itinerary \$\{title\}`\}/.test(card));
 });
 
 test('12. o card não reserva espaço para seções ausentes (marginTop, não marginBottom)', () => {

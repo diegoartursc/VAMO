@@ -63,11 +63,11 @@ export default function BudgetStyleGuideSheet({
             <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom + 12, 20) }]}>
                 <View style={styles.handle} />
                 <View style={styles.header}>
-                    <Text style={styles.title}>Estilo de orçamento</Text>
+                    <Text style={styles.title}>Budget style</Text>
                     <TouchableOpacity
                         onPress={onClose}
                         hitSlop={8}
-                        accessibilityLabel="Fechar"
+                        accessibilityLabel="Close"
                         style={styles.closeBtn}
                     >
                         <Ionicons name="close" size={22} color={theme.colors.text.secondary} />
@@ -94,7 +94,7 @@ export default function BudgetStyleGuideSheet({
                                     <Text style={styles.cardLabel}>{g.label}</Text>
                                     {highlighted ? (
                                         <View style={styles.selectedPill}>
-                                            <Text style={styles.selectedPillText}>Selecionado</Text>
+                                            <Text style={styles.selectedPillText}>Selected</Text>
                                         </View>
                                     ) : null}
                                 </View>

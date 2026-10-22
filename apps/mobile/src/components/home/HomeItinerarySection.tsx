@@ -40,7 +40,7 @@ export function HomeItinerarySection({
     title,
     subtitle,
     itineraries,
-    seeAllLabel = 'Ver todos',
+    seeAllLabel = 'See all',
     onSeeAll,
     onOpenItinerary,
     fallback,

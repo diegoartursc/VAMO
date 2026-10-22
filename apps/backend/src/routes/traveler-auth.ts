@@ -235,8 +235,8 @@ router.post('/refresh', async (req: Request, res: Response) => {
 // o token mais recente de cada traveler vale.
 const RESET_TOKEN_TTL_MINUTES = 60;
 const RESET_EMAIL_COOLDOWN_MS = 60 * 1000;
-const FORGOT_PASSWORD_MESSAGE = 'Se existir uma conta associada a este e-mail, enviaremos as instruções para redefinir sua senha.';
-const INVALID_RESET_LINK_MESSAGE = 'Este link é inválido ou expirou. Solicite uma nova redefinição de senha.';
+const FORGOT_PASSWORD_MESSAGE = 'If an account exists for this email, we\'ll send instructions to reset your password.';
+const INVALID_RESET_LINK_MESSAGE = 'This link is invalid or has expired. Please request a new password reset.';
 
 const hashResetToken = (raw: string) => crypto.createHash('sha256').update(raw).digest('hex');
 
@@ -245,7 +245,7 @@ const forgotPasswordLimiter = rateLimit({
     max: 5,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Muitas solicitações. Aguarde alguns minutos e tente novamente.' },
+    message: { error: 'Too many requests. Please wait a few minutes and try again.' },
 });
 
 const resetPasswordLimiter = rateLimit({
@@ -253,7 +253,7 @@ const resetPasswordLimiter = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' },
+    message: { error: 'Too many attempts. Please wait a few minutes and try again.' },
 });
 
 const forgotPasswordSchema = z.object({ email: emailSchema });
@@ -270,7 +270,7 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req: Request, res:
     try {
         email = forgotPasswordSchema.parse(req.body).email;
     } catch {
-        return res.status(422).json({ error: 'Informe um e-mail válido.' });
+        return res.status(422).json({ error: 'Enter a valid email address.' });
     }
 
     // Resposta idêntica com ou sem conta (evita enumeração de e-mails). O
@@ -322,7 +322,7 @@ router.post('/reset-password', resetPasswordLimiter, async (req: Request, res: R
     if (!parsed.success) {
         const fields = parsed.error.flatten().fieldErrors;
         if (fields.password) {
-            return res.status(422).json({ error: 'A senha precisa ter pelo menos 6 caracteres.' });
+            return res.status(422).json({ error: 'Your password must be at least 6 characters.' });
         }
         return res.status(400).json({ error: INVALID_RESET_LINK_MESSAGE });
     }
@@ -358,13 +358,13 @@ router.post('/reset-password', resetPasswordLimiter, async (req: Request, res: R
         console.log(`[reset-password] senha redefinida (traveler ${record.travelerId})`);
         // Um aviso por token consumido: só a transação que apagou o token chega aqui.
         void sendPasswordChangedEmail({ to: owner.email, name: owner.name, changedAt });
-        res.json({ message: 'Senha alterada com sucesso.' });
+        res.json({ message: 'Password changed successfully.' });
     } catch (error: any) {
         if (error instanceof InvalidResetTokenError) {
             return res.status(400).json({ error: INVALID_RESET_LINK_MESSAGE });
         }
         console.error('[reset-password] erro interno:', error?.message || error);
-        res.status(500).json({ error: 'Não foi possível redefinir a senha agora. Tente novamente.' });
+        res.status(500).json({ error: 'We couldn\'t reset your password right now. Please try again.' });
     }
 });
 
@@ -524,7 +524,7 @@ router.get('/passport-stats', async (req: Request, res: Response) => {
 // E-mail e identidade ficam read-only nesta rota — alteração de e-mail
 // exige fluxo de confirmação separado que ainda não existe.
 const updateTravelerSchema = z.object({
-    name: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(80).optional(),
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(80).optional(),
     phone: z.string().trim().max(40).nullable().optional(),
     bio: z.string().trim().max(500).nullable().optional(),
 });
@@ -669,14 +669,14 @@ function sendUploadError(res: Response, err: unknown, max: number): boolean {
     const error = err as Error & { code?: string };
     if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
         const mb = Math.round(max / (1024 * 1024));
-        res.status(413).json({ error: `Imagem muito grande (máx ${mb} MB).` });
+        res.status(413).json({ error: `Image is too large (max ${mb} MB).` });
         return true;
     }
     if (error.message === 'UNSUPPORTED_FILE_TYPE') {
-        res.status(415).json({ error: 'Formato não suportado. Use JPG, PNG, WEBP ou HEIC.' });
+        res.status(415).json({ error: 'Unsupported format. Use JPG, PNG, WEBP or HEIC.' });
         return true;
     }
-    res.status(400).json({ error: error.message || 'Não foi possível processar o upload.' });
+    res.status(400).json({ error: error.message || 'We couldn\'t process the upload.' });
     return true;
 }
 
@@ -732,7 +732,7 @@ function buildProfileImageHandler(kind: 'avatar' | 'cover') {
     return (req: Request, res: Response) => {
         const travelerId = authTravelerIdFromHeader(req);
         if (!travelerId) {
-            res.status(401).json({ error: 'Autenticação necessária' });
+            res.status(401).json({ error: 'Authentication required' });
             return;
         }
 
@@ -740,7 +740,7 @@ function buildProfileImageHandler(kind: 'avatar' | 'cover') {
             if (sendUploadError(res, err, maxBytes)) return;
             const file = (req as any).file as Express.Multer.File | undefined;
             if (!file) {
-                res.status(400).json({ error: 'Imagem ausente (campo "file")' });
+                res.status(400).json({ error: 'Image missing (field "file")' });
                 return;
             }
 
@@ -748,7 +748,7 @@ function buildProfileImageHandler(kind: 'avatar' | 'cover') {
                 const buffer = await readUploadedBuffer(file);
                 if (!hasValidFileSignature(buffer, file.originalname)) {
                     if (file.path) await fs.promises.unlink(file.path).catch(() => {});
-                    res.status(415).json({ error: 'O conteúdo do arquivo não corresponde ao formato informado.' });
+                    res.status(415).json({ error: 'The file contents don\'t match the stated format.' });
                     return;
                 }
 
@@ -761,7 +761,7 @@ function buildProfileImageHandler(kind: 'avatar' | 'cover') {
                 res.json({ traveler: updated, url });
             } catch (uploadErr) {
                 console.error(`[traveler-auth.${kind}] error`, uploadErr);
-                res.status(500).json({ error: 'Não foi possível atualizar a imagem. Tente novamente.' });
+                res.status(500).json({ error: 'We couldn\'t update the image. Please try again.' });
             }
         });
     };

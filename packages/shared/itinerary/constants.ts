@@ -15,9 +15,9 @@ import { BASE_CURRENCY } from "./market";
  * "economico"/"moderado"/"luxo" são imutáveis — não renomear.
  */
 export const STYLE_OPTIONS: { key: string; label: string }[] = [
-    { key: "economico", label: "Econômico" },
-    { key: "moderado",  label: "Moderado" },
-    { key: "luxo",      label: "Luxo" },
+    { key: "economico", label: "Budget" },
+    { key: "moderado",  label: "Moderate" },
+    { key: "luxo",      label: "Luxury" },
 ];
 
 /** Keys canônicas de estilo de orçamento (escolha única). */
@@ -44,65 +44,65 @@ export interface BudgetStyleGuideEntry {
 export const BUDGET_STYLE_GUIDE: Record<BudgetStyleKey, BudgetStyleGuideEntry> = {
     economico: {
         key: "economico",
-        label: "Econômico",
-        shortDescription: "Para gastar menos, com opções mais simples.",
+        label: "Budget",
+        shortDescription: "Spend less, with simpler options.",
         buyerDescription:
-            "Roteiro pensado para gastar menos, usando hospedagens simples, transporte acessível e atrações com bom custo-benefício.",
+            "An itinerary designed to spend less, using simple lodging, affordable transportation and good-value attractions.",
         creatorHint:
-            "Use Econômico quando o roteiro prioriza economia, hospedagens simples, transporte barato e atrações gratuitas ou acessíveis.",
+            "Choose Budget when the itinerary prioritizes saving money: simple lodging, cheap transportation and free or affordable attractions.",
         criteria: [
-            "Hospedagens simples, hostel, pousada básica ou acomodação econômica",
-            "Transporte público, caminhada, ônibus ou trem comum",
-            "Alimentação simples, mercado, comida de rua ou restaurantes acessíveis",
-            "Muitos passeios gratuitos ou de baixo custo",
-            "Mais foco em economia do que em conveniência",
+            "Simple lodging, hostels, basic inns or budget accommodation",
+            "Public transit, walking, buses or regular trains",
+            "Simple meals, grocery stores, street food or affordable restaurants",
+            "Many free or low-cost activities",
+            "More focus on saving money than on convenience",
         ],
     },
     moderado: {
         key: "moderado",
-        label: "Moderado",
-        shortDescription: "Equilíbrio entre conforto, localização e custo-benefício.",
+        label: "Moderate",
+        shortDescription: "A balance of comfort, location and value.",
         buyerDescription:
-            "Roteiro equilibrado, com bom conforto, localização conveniente e gastos controlados.",
+            "A balanced itinerary with good comfort, convenient locations and controlled spending.",
         creatorHint:
-            "Use Moderado quando o roteiro equilibra conforto, boa localização, passeios pagos e controle de gastos.",
+            "Choose Moderate when the itinerary balances comfort, good locations, paid activities and controlled spending.",
         criteria: [
-            "Hotéis 3 estrelas, apartamentos confortáveis ou boas pousadas",
-            "Mistura de transporte público, rideshare, táxi ou aluguel pontual",
-            "Restaurantes casuais e algumas experiências gastronômicas melhores",
-            "Passeios pagos relevantes, mas sem excesso de experiências caras",
-            "Boa experiência geral com equilíbrio entre preço e conforto",
+            "3-star hotels, comfortable apartments or good inns",
+            "A mix of public transit, rideshare, taxis or occasional rentals",
+            "Casual restaurants and a few better dining experiences",
+            "Worthwhile paid activities, without too many expensive experiences",
+            "A good overall experience balancing price and comfort",
         ],
     },
     luxo: {
         key: "luxo",
-        label: "Luxo",
-        shortDescription: "Alto conforto, conveniência e experiências premium.",
+        label: "Luxury",
+        shortDescription: "High comfort, convenience and premium experiences.",
         buyerDescription:
-            "Roteiro com alto padrão de conforto, hospedagens superiores, experiências premium e maior conveniência.",
+            "An itinerary with a high standard of comfort, upscale lodging, premium experiences and maximum convenience.",
         creatorHint:
-            "Use Luxo quando o roteiro inclui alto conforto, experiências premium, transporte conveniente e menor foco em economia.",
+            "Choose Luxury when the itinerary includes high comfort, premium experiences, convenient transportation and less focus on saving money.",
         criteria: [
-            "Hotéis 4 ou 5 estrelas, resorts, villas ou hospedagens boutique premium",
-            "Transfers privados, motorista, táxi frequente ou transporte superior",
-            "Restaurantes sofisticados, rooftops ou experiências gastronômicas marcantes",
-            "Passeios privativos, tours premium, spas, beach clubs ou experiências exclusivas",
-            "Mais foco em conforto, tempo e conveniência do que em economia",
+            "4- or 5-star hotels, resorts, villas or premium boutique lodging",
+            "Private transfers, a driver, frequent taxis or upgraded transportation",
+            "Upscale restaurants, rooftops or standout dining experiences",
+            "Private tours, premium tours, spas, beach clubs or exclusive experiences",
+            "More focus on comfort, time and convenience than on saving money",
         ],
     },
 };
 
 /** Nota geral mostrada nos modais de ajuda (criação e detalhe). */
 export const BUDGET_STYLE_GENERAL_NOTE =
-    "A categoria representa o padrão geral da experiência, não apenas o valor total. A VAMO considera hospedagem, transporte, alimentação, passeios e conveniência.";
+    "The category reflects the overall standard of the experience, not just the total cost. VAMO considers lodging, transportation, food, activities and convenience.";
 
 /** Texto curto para o ROTEIRISTA (subtítulo da etapa de criação). */
 export const BUDGET_STYLE_CREATOR_SUBTITLE =
-    "Escolha o padrão geral da viagem considerando hospedagem, transporte, alimentação, passeios e conveniência.";
+    "Choose the overall standard of the trip, considering lodging, transportation, food, activities and convenience.";
 
 /** Texto de transparência para o VIAJANTE no detalhe do roteiro. */
 export const BUDGET_STYLE_BUYER_TRANSPARENCY =
-    "Essa classificação segue critérios da VAMO e é informada pelo roteirista com base no padrão geral da experiência.";
+    "This rating follows VAMO's criteria and is provided by the creator based on the overall standard of the experience.";
 
 /** Resolve o guia a partir de uma key (ou null se ausente/inválida). */
 export function getBudgetStyleGuide(key?: string | null): BudgetStyleGuideEntry | null {
@@ -125,20 +125,20 @@ export function getPrimaryBudgetStyle(travelStyles?: string[] | null): BudgetSty
 
 /** Categorias temáticas — mínimo 1, máximo 5. */
 export const CATEGORY_OPTIONS: { key: string; label: string; emoji: string }[] = [
-    { key: "cultura",     label: "Cultura",     emoji: "🏛️" },
-    { key: "gastronomia", label: "Gastronomia", emoji: "👨‍🍳" },
-    { key: "natureza",    label: "Natureza",    emoji: "🌿" },
-    { key: "esportes",    label: "Esportes",    emoji: "🏋️" },
-    { key: "cruzeiros",   label: "Cruzeiros",   emoji: "🛳️" },
-    { key: "eurotrip",    label: "Eurotrip",    emoji: "🌍" },
+    { key: "cultura",     label: "Culture",     emoji: "🏛️" },
+    { key: "gastronomia", label: "Food & Drink", emoji: "👨‍🍳" },
+    { key: "natureza",    label: "Nature",    emoji: "🌿" },
+    { key: "esportes",    label: "Sports",    emoji: "🏋️" },
+    { key: "cruzeiros",   label: "Cruises",   emoji: "🛳️" },
+    { key: "eurotrip",    label: "Europe Trip",    emoji: "🌍" },
     { key: "relax",       label: "Relax",       emoji: "✨" },
-    { key: "praia",       label: "Praia",       emoji: "🏖️" },
-    { key: "historico",   label: "Histórico",   emoji: "📜" },
-    { key: "festivais",   label: "Festivais",   emoji: "🎵" },
-    { key: "mochilao",    label: "Mochilão",    emoji: "🎒" },
-    { key: "familia",     label: "Família",     emoji: "👨‍👩‍👧" },
-    { key: "romantico",   label: "Romântico",   emoji: "💕" },
-    { key: "aventura",    label: "Aventura",    emoji: "🏔️" },
+    { key: "praia",       label: "Beach",       emoji: "🏖️" },
+    { key: "historico",   label: "Historic",   emoji: "📜" },
+    { key: "festivais",   label: "Festivals",   emoji: "🎵" },
+    { key: "mochilao",    label: "Backpacking",    emoji: "🎒" },
+    { key: "familia",     label: "Family",     emoji: "👨‍👩‍👧" },
+    { key: "romantico",   label: "Romantic",   emoji: "💕" },
+    { key: "aventura",    label: "Adventure",    emoji: "🏔️" },
 ];
 
 /**
@@ -155,15 +155,15 @@ export const CATEGORY_OPTIONS: { key: string; label: string; emoji: string }[] =
 // do roteiro comprado e nas seções do PDF. Mudar a ordem aqui propaga
 // para tudo de uma vez — não reordenar nos consumidores.
 export const MODULE_OPTIONS: { key: ModuleKey; label: string; desc: string; emoji: string }[] = [
-    { key: "voo",           label: "Meu voo",              emoji: "✈️", desc: "Sugestões de voo" },
-    { key: "hospedagem",    label: "Hospedagens",          emoji: "🏨", desc: "Hotéis e hospedagens sugeridas" },
-    { key: "passeios",      label: "Passeios & Atrações",  emoji: "🎫", desc: "Atrações e passeios imperdíveis" },
-    { key: "itinerario",    label: "Itinerário por dia",   emoji: "🗓️", desc: "Roteiro dia a dia completo" },
-    { key: "transporte",    label: "Transporte",           emoji: "🚌", desc: "Dicas de locomoção" },
-    { key: "restaurantes",  label: "Restaurantes",         emoji: "🍴", desc: "Onde comer" },
-    { key: "dicas",         label: "Dicas exclusivas",     emoji: "💡", desc: "Dicas do criador (mín. 2)" },
-    { key: "gastos_extras", label: "Gastos Extras",        emoji: "💰", desc: "Chip, seguro, taxas, gorjetas, lavanderia e outros" },
-    { key: "checklist",     label: "Checklist interativo", emoji: "✅", desc: "O que levar (mín. 5)" },
+    { key: "voo",           label: "My Flight",            emoji: "✈️", desc: "Flight suggestions" },
+    { key: "hospedagem",    label: "Lodging",              emoji: "🏨", desc: "Suggested hotels and stays" },
+    { key: "passeios",      label: "Tours & Attractions", emoji: "🎫", desc: "Must-see attractions and tours" },
+    { key: "itinerario",    label: "Daily Itinerary",     emoji: "🗓️", desc: "Complete day-by-day plan" },
+    { key: "transporte",    label: "Transportation",      emoji: "🚌", desc: "Getting around tips" },
+    { key: "restaurantes",  label: "Restaurants",          emoji: "🍴", desc: "Where to eat" },
+    { key: "dicas",         label: "Insider Tips",         emoji: "💡", desc: "Creator tips (min. 2)" },
+    { key: "gastos_extras", label: "Extra Expenses",       emoji: "💰", desc: "SIM card, insurance, fees, tips, laundry and more" },
+    { key: "checklist",     label: "Interactive Checklist", emoji: "✅", desc: "What to bring (min. 5)" },
 ];
 
 /**
@@ -171,39 +171,74 @@ export const MODULE_OPTIONS: { key: ModuleKey; label: string; desc: string; emoj
  * Apenas referência de UI — o roteirista pode digitar título livre.
  */
 export const EXTRA_SPENDING_CATEGORIES: { key: string; label: string; emoji: string }[] = [
-    { key: "internet",     label: "Internet/Chip",         emoji: "📶" },
-    { key: "seguro",       label: "Seguro Viagem",         emoji: "🛡️" },
-    { key: "taxas",        label: "Taxas Locais",          emoji: "🏛️" },
-    { key: "visto",        label: "Visto/Documentação",    emoji: "📑" },
-    { key: "lavanderia",   label: "Lavanderia",            emoji: "👕" },
-    { key: "guardavolume", label: "Guarda-volumes",        emoji: "🎒" },
-    { key: "gorjetas",     label: "Gorjetas",              emoji: "💵" },
-    { key: "compras",      label: "Compras Essenciais",    emoji: "🛍️" },
-    { key: "bagagem",      label: "Bagagem Extra",         emoji: "🧳" },
-    { key: "aluguel",      label: "Aluguel de Equipamento",emoji: "🚲" },
-    { key: "farmacia",     label: "Farmácia/Remédios",     emoji: "💊" },
-    { key: "estacionamento", label: "Estacionamento",      emoji: "🅿️" },
-    { key: "outros",       label: "Outros",                emoji: "✨" },
+    { key: "internet",     label: "Internet/SIM Card",         emoji: "📶" },
+    { key: "seguro",       label: "Travel Insurance",         emoji: "🛡️" },
+    { key: "taxas",        label: "Local Fees",          emoji: "🏛️" },
+    { key: "visto",        label: "Visa/Documents",    emoji: "📑" },
+    { key: "lavanderia",   label: "Laundry",            emoji: "👕" },
+    { key: "guardavolume", label: "Luggage Storage",        emoji: "🎒" },
+    { key: "gorjetas",     label: "Tips",              emoji: "💵" },
+    { key: "compras",      label: "Essential Shopping",    emoji: "🛍️" },
+    { key: "bagagem",      label: "Extra Baggage",         emoji: "🧳" },
+    { key: "aluguel",      label: "Equipment Rental",emoji: "🚲" },
+    { key: "farmacia",     label: "Pharmacy/Medicine",     emoji: "💊" },
+    { key: "estacionamento", label: "Parking",      emoji: "🅿️" },
+    { key: "outros",       label: "Other",                emoji: "✨" },
 ];
 
+// ATENÇÃO: estes valores são GRAVADOS no banco (itinerary_checklists.category)
+// e já existem em roteiros reais. Não renomear: para exibir, use
+// getChecklistCategoryLabel().
 export const CHECKLIST_CATS = [
     "documentos", "mala", "pre-viagem", "finanças", "apps úteis", "outros",
 ];
 
+const CHECKLIST_CAT_LABELS: Record<string, string> = {
+    "documentos": "Documents",
+    "mala": "Packing",
+    "pre-viagem": "Pre-trip",
+    "finanças": "Finances",
+    "apps úteis": "Useful apps",
+    "outros": "Other",
+};
+
+/** Rótulo em inglês de uma categoria de checklist gravada (aceita valores livres). */
+export function getChecklistCategoryLabel(category?: string | null): string {
+    const raw = (category || "").trim();
+    if (!raw) return CHECKLIST_CAT_LABELS.outros;
+    const known = CHECKLIST_CAT_LABELS[raw.toLowerCase()];
+    if (known) return known;
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
 export const SPENDING_CATS = [
-    "🏨 Hospedagem",
-    "🍽️ Alimentação",
-    "🚌 Transporte",
-    "🎫 Atrações",
+    "🏨 Lodging",
+    "🍽️ Food",
+    "🚌 Transportation",
+    "🎫 Attractions",
     "🎁 Extras",
 ];
 
 export const CUISINE_OPTIONS = [
     "Ramen", "Sushi", "Tempura", "Izakaya", "Yakitori",
-    "Italiana", "Francesa", "Brasileira", "Mexicana", "Indiana",
-    "Tailandesa", "Fast Food", "Café", "Padaria", "Bistrô",
-    "Fine Dining", "Street Food", "Vegetariana", "Frutos do Mar", "Outro",
+    "Italian", "French", "Brazilian", "Mexican", "Indian",
+    "Thai", "Fast Food", "Cafe", "Bakery", "Bistro",
+    "Fine Dining", "Street Food", "Vegetarian", "Seafood", "Other",
 ];
+
+// Roteiros antigos têm a culinária gravada em português.
+const CUISINE_LEGACY: Record<string, string> = {
+    "Italiana": "Italian", "Francesa": "French", "Brasileira": "Brazilian",
+    "Mexicana": "Mexican", "Indiana": "Indian", "Tailandesa": "Thai",
+    "Café": "Cafe", "Padaria": "Bakery", "Bistrô": "Bistro",
+    "Vegetariana": "Vegetarian", "Frutos do Mar": "Seafood", "Outro": "Other",
+};
+
+/** Culinária em inglês, traduzindo valores antigos gravados em português. */
+export function getCuisineLabel(value?: string | null): string {
+    const raw = (value || "").trim();
+    return CUISINE_LEGACY[raw] ?? raw;
+}
 
 /**
  * Lista canônica de moedas — espelha exatamente a usada pela dashboard
@@ -211,45 +246,45 @@ export const CUISINE_OPTIONS = [
  * Single source of truth para mobile + site + admin.
  */
 export const CURRENCIES: { code: Currency; label: string; symbol: string; emoji: string }[] = [
-    { code: "AED", label: "Dirham dos Emirados",       symbol: "د.إ",  emoji: "🇦🇪" },
-    { code: "ARS", label: "Peso Argentino",            symbol: "$",    emoji: "🇦🇷" },
-    { code: "AUD", label: "Dólar Australiano",         symbol: "A$",   emoji: "🇦🇺" },
-    { code: "BOB", label: "Boliviano",                 symbol: "Bs",   emoji: "🇧🇴" },
-    { code: "BRL", label: "Real Brasileiro",           symbol: "R$",   emoji: "🇧🇷" },
-    { code: "CAD", label: "Dólar Canadense",           symbol: "C$",   emoji: "🇨🇦" },
-    { code: "CHF", label: "Franco Suíço",              symbol: "Fr",   emoji: "🇨🇭" },
-    { code: "CLP", label: "Peso Chileno",              symbol: "$",    emoji: "🇨🇱" },
-    { code: "CNY", label: "Yuan Chinês",               symbol: "¥",    emoji: "🇨🇳" },
-    { code: "COP", label: "Peso Colombiano",           symbol: "$",    emoji: "🇨🇴" },
-    { code: "CRC", label: "Colón Costarriquenho",      symbol: "₡",    emoji: "🇨🇷" },
-    { code: "CUP", label: "Peso Cubano",               symbol: "$",    emoji: "🇨🇺" },
-    { code: "DOP", label: "Peso Dominicano",           symbol: "RD$",  emoji: "🇩🇴" },
-    { code: "EGP", label: "Libra Egípcia",             symbol: "£",    emoji: "🇪🇬" },
+    { code: "AED", label: "UAE Dirham",       symbol: "د.إ",  emoji: "🇦🇪" },
+    { code: "ARS", label: "Argentine Peso",            symbol: "$",    emoji: "🇦🇷" },
+    { code: "AUD", label: "Australian Dollar",         symbol: "A$",   emoji: "🇦🇺" },
+    { code: "BOB", label: "Bolivian Boliviano",                 symbol: "Bs",   emoji: "🇧🇴" },
+    { code: "BRL", label: "Brazilian Real",           symbol: "R$",   emoji: "🇧🇷" },
+    { code: "CAD", label: "Canadian Dollar",           symbol: "C$",   emoji: "🇨🇦" },
+    { code: "CHF", label: "Swiss Franc",              symbol: "Fr",   emoji: "🇨🇭" },
+    { code: "CLP", label: "Chilean Peso",              symbol: "$",    emoji: "🇨🇱" },
+    { code: "CNY", label: "Chinese Yuan",               symbol: "¥",    emoji: "🇨🇳" },
+    { code: "COP", label: "Colombian Peso",           symbol: "$",    emoji: "🇨🇴" },
+    { code: "CRC", label: "Costa Rican Colón",      symbol: "₡",    emoji: "🇨🇷" },
+    { code: "CUP", label: "Cuban Peso",               symbol: "$",    emoji: "🇨🇺" },
+    { code: "DOP", label: "Dominican Peso",           symbol: "RD$",  emoji: "🇩🇴" },
+    { code: "EGP", label: "Egyptian Pound",             symbol: "£",    emoji: "🇪🇬" },
     { code: "EUR", label: "Euro",                      symbol: "€",    emoji: "🇪🇺" },
-    { code: "GBP", label: "Libra Esterlina",           symbol: "£",    emoji: "🇬🇧" },
-    { code: "GTQ", label: "Quetzal Guatemalteco",      symbol: "Q",    emoji: "🇬🇹" },
-    { code: "IDR", label: "Rúpia Indonésia",           symbol: "Rp",   emoji: "🇮🇩" },
-    { code: "INR", label: "Rúpia Indiana",             symbol: "₹",    emoji: "🇮🇳" },
-    { code: "JPY", label: "Iene Japonês",              symbol: "¥",    emoji: "🇯🇵" },
-    { code: "KES", label: "Xelim Queniano",            symbol: "KSh",  emoji: "🇰🇪" },
-    { code: "MAD", label: "Dirham Marroquino",         symbol: "د.م.", emoji: "🇲🇦" },
-    { code: "MXN", label: "Peso Mexicano",             symbol: "$",    emoji: "🇲🇽" },
-    { code: "MYR", label: "Ringgit Malaio",            symbol: "RM",   emoji: "🇲🇾" },
-    { code: "NZD", label: "Dólar Neozelandês",         symbol: "NZ$",  emoji: "🇳🇿" },
-    { code: "NOK", label: "Coroa Norueguesa",          symbol: "kr",   emoji: "🇳🇴" },
-    { code: "PEN", label: "Sol Peruano",               symbol: "S/",   emoji: "🇵🇪" },
-    { code: "PHP", label: "Peso Filipino",             symbol: "₱",    emoji: "🇵🇭" },
-    { code: "PYG", label: "Guarani Paraguaio",         symbol: "Gs",   emoji: "🇵🇾" },
-    { code: "SGD", label: "Dólar de Singapura",        symbol: "S$",   emoji: "🇸🇬" },
-    { code: "THB", label: "Baht Tailandês",            symbol: "฿",    emoji: "🇹🇭" },
-    { code: "TRY", label: "Lira Turca",                symbol: "₺",    emoji: "🇹🇷" },
-    { code: "USD", label: "Dólar Americano",           symbol: "$",    emoji: "🇺🇸" },
-    { code: "UYU", label: "Peso Uruguaio",             symbol: "$U",   emoji: "🇺🇾" },
-    { code: "VND", label: "Dong Vietnamita",           symbol: "₫",    emoji: "🇻🇳" },
-    { code: "ZAR", label: "Rand Sul-africano",         symbol: "R",    emoji: "🇿🇦" },
+    { code: "GBP", label: "British Pound",           symbol: "£",    emoji: "🇬🇧" },
+    { code: "GTQ", label: "Guatemalan Quetzal",      symbol: "Q",    emoji: "🇬🇹" },
+    { code: "IDR", label: "Indonesian Rupiah",           symbol: "Rp",   emoji: "🇮🇩" },
+    { code: "INR", label: "Indian Rupee",             symbol: "₹",    emoji: "🇮🇳" },
+    { code: "JPY", label: "Japanese Yen",              symbol: "¥",    emoji: "🇯🇵" },
+    { code: "KES", label: "Kenyan Shilling",            symbol: "KSh",  emoji: "🇰🇪" },
+    { code: "MAD", label: "Moroccan Dirham",         symbol: "د.م.", emoji: "🇲🇦" },
+    { code: "MXN", label: "Mexican Peso",             symbol: "$",    emoji: "🇲🇽" },
+    { code: "MYR", label: "Malaysian Ringgit",            symbol: "RM",   emoji: "🇲🇾" },
+    { code: "NZD", label: "New Zealand Dollar",         symbol: "NZ$",  emoji: "🇳🇿" },
+    { code: "NOK", label: "Norwegian Krone",          symbol: "kr",   emoji: "🇳🇴" },
+    { code: "PEN", label: "Peruvian Sol",               symbol: "S/",   emoji: "🇵🇪" },
+    { code: "PHP", label: "Philippine Peso",             symbol: "₱",    emoji: "🇵🇭" },
+    { code: "PYG", label: "Paraguayan Guaraní",         symbol: "Gs",   emoji: "🇵🇾" },
+    { code: "SGD", label: "Singapore Dollar",        symbol: "S$",   emoji: "🇸🇬" },
+    { code: "THB", label: "Thai Baht",            symbol: "฿",    emoji: "🇹🇭" },
+    { code: "TRY", label: "Turkish Lira",                symbol: "₺",    emoji: "🇹🇷" },
+    { code: "USD", label: "US Dollar",           symbol: "$",    emoji: "🇺🇸" },
+    { code: "UYU", label: "Uruguayan Peso",             symbol: "$U",   emoji: "🇺🇾" },
+    { code: "VND", label: "Vietnamese Dong",           symbol: "₫",    emoji: "🇻🇳" },
+    { code: "ZAR", label: "South African Rand",         symbol: "R",    emoji: "🇿🇦" },
 ];
 
-/** Símbolo da moeda (ex.: "USD" → "$", "AUD" → "A$"). Sem código: moeda-base do mercado. */
+/** Símbolo da moeda (e.g. "USD" → "$", "EUR" → "€"). Sem código: moeda-base do mercado. */
 export function getCurrencySymbol(code?: string | null): string {
     const c = (code || BASE_CURRENCY).toUpperCase();
     return CURRENCIES.find(x => x.code === c)?.symbol ?? c;

@@ -101,7 +101,7 @@ test('5. HomeMiniItineraryCard não existe mais', () => {
 });
 
 test('1-4. as quatro seções de roteiros usam HomeItinerarySection', () => {
-    const titulos = ['Roteiros em Destaque', 'Novos Roteiros', 'Continue sua busca', 'Experiências inesquecíveis'];
+    const titulos = ['Featured Itineraries', 'New Itineraries', 'Continue your search', 'Unforgettable experiences'];
     for (const titulo of titulos) {
         const re = new RegExp(`<HomeItinerarySection[\\s\\S]{0,200}title="${titulo}"`);
         assert.ok(re.test(homeCode), `"${titulo}" precisa usar HomeItinerarySection`);
@@ -152,9 +152,9 @@ test('22/23. cada seção mantém seu seletor e seu limite', () => {
 });
 
 test('21. o "Ver todos" de cada seção mantém o destino original', () => {
-    assert.ok(/title="Novos Roteiros"[\s\S]{0,300}sort: 'newest'/.test(homeCode), 'Novos → sort=newest');
-    assert.ok(/title="Experiências inesquecíveis"[\s\S]{0,300}sort: 'score'/.test(homeCode), 'Inesquecíveis → sort=score');
-    assert.ok(/seeAllLabel="Explorar"/.test(homeCode), 'Novos mantém o rótulo "Explorar"');
+    assert.ok(/title="New Itineraries"[\s\S]{0,300}sort: 'newest'/.test(homeCode), 'Novos → sort=newest');
+    assert.ok(/title="Unforgettable experiences"[\s\S]{0,300}sort: 'score'/.test(homeCode), 'Inesquecíveis → sort=score');
+    assert.ok(/seeAllLabel="Explore"/.test(homeCode), 'Novos mantém o rótulo "Explore"');
 });
 
 // ══════════════════════════════════════════════════════════════════

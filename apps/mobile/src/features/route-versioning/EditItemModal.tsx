@@ -41,9 +41,9 @@ export default function EditItemModal({
 }: EditItemModalProps) {
     const meta = KIND_TITLE[kind];
     const title = isOriginal
-        ? `Personalizar ${meta?.singular?.toLowerCase() || 'item'}`
-        : `Editar ${meta?.singular?.toLowerCase() || 'item'}`;
-    const primaryLabel = isOriginal ? 'Personalizar' : 'Salvar';
+        ? `Customize ${meta?.singular?.toLowerCase() || 'item'}`
+        : `Edit ${meta?.singular?.toLowerCase() || 'item'}`;
+    const primaryLabel = isOriginal ? 'Customize' : 'Save';
 
     return (
         <ItemFormModal

@@ -17,11 +17,11 @@ export async function openExternalUrl(
     options: OpenExternalUrlOptions = {},
 ): Promise<boolean> {
     const value = normalizeExternalUrl(url);
-    const invalidMessage = options.invalidMessage || 'Este link não está em um formato válido.';
-    const fallbackMessage = options.fallbackMessage || 'Não foi possível abrir este link agora.';
+    const invalidMessage = options.invalidMessage || 'This link isn\'t in a valid format.';
+    const fallbackMessage = options.fallbackMessage || 'We couldn\'t open this link right now.';
 
     if (!value) {
-        Alert.alert('Link indisponível', invalidMessage);
+        Alert.alert('Link unavailable', invalidMessage);
         return false;
     }
 
@@ -33,14 +33,14 @@ export async function openExternalUrl(
 
         const canOpen = await Linking.canOpenURL(value);
         if (!canOpen) {
-            Alert.alert('Link indisponível', fallbackMessage);
+            Alert.alert('Link unavailable', fallbackMessage);
             return false;
         }
 
         await Linking.openURL(value);
         return true;
     } catch {
-        Alert.alert('Link indisponível', fallbackMessage);
+        Alert.alert('Link unavailable', fallbackMessage);
         return false;
     }
 }

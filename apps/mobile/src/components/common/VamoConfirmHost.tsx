@@ -144,7 +144,7 @@ const ConfirmContext = createContext<{ confirm: (o: ConfirmOptions) => Promise<b
 /** Hook opcional — mesma função imperativa de `utils/confirm`, via contexto. */
 export function useVamoConfirm() {
     const ctx = useContext(ConfirmContext);
-    if (!ctx) throw new Error('useVamoConfirm precisa do <VamoConfirmHost /> montado na raiz.');
+    if (!ctx) throw new Error('useVamoConfirm needs <VamoConfirmHost /> mounted at the root.');
     return ctx;
 }
 
@@ -242,7 +242,7 @@ export function VamoConfirmHost({ children }: { children?: React.ReactNode }) {
                             style={StyleSheet.absoluteFill}
                             disabled={!closeOnBackdrop}
                             onPress={() => closeOnBackdrop && close(false)}
-                            accessibilityLabel="Fechar"
+                            accessibilityLabel="Close"
                         />
                     </Animated.View>
 
@@ -266,7 +266,7 @@ export function VamoConfirmHost({ children }: { children?: React.ReactNode }) {
                         <View style={[styles.actions, isWide && styles.actionsWide]}>
                             {isConfirm && (
                                 <VamoButton
-                                    label={(current as ConfirmRequest).opts.cancelText ?? 'Cancelar'}
+                                    label={(current as ConfirmRequest).opts.cancelText ?? 'Cancel'}
                                     variant="secondary"
                                     size="md"
                                     onPress={() => { haptics.selection(); close(false); }}

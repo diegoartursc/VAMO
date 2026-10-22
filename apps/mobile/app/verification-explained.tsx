@@ -15,19 +15,19 @@ import { theme } from '../src/theme/theme';
 const VERIFICATION_STEPS = [
     {
         icon: 'document-text-outline',
-        title: 'Identidade Confirmada',
-        description: 'Validamos identidade, dados de contato e consistência do perfil antes de exibir o selo.',
+        title: 'Identity Confirmed',
+        description: 'We verify identity, contact details and profile consistency before showing the badge.',
     },
     {
         icon: 'shield-checkmark-outline',
-        title: 'Experiência Analisada',
-        description: 'Avaliamos histórico de viagens, portfólio, redes e evidências de experiência real no destino.',
+        title: 'Experience Reviewed',
+        description: 'We review travel history, portfolio, social profiles and evidence of real experience at the destination.',
     },
 
     {
         icon: 'star-outline',
-        title: 'Avaliações Reais',
-        description: 'Reviews são de viajantes verificados que compraram pelo VAMO.',
+        title: 'Real Reviews',
+        description: 'Reviews come from verified travelers who bought through VAMO.',
     },
 ];
 
@@ -43,7 +43,7 @@ export default function VerificationExplainedScreen() {
                 <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/profile')} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Verificação de Criadores</Text>
+                <Text style={styles.headerTitle}>Creator Verification</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -53,9 +53,9 @@ export default function VerificationExplainedScreen() {
                     <View style={styles.shieldIcon}>
                         <Ionicons name="shield-checkmark" size={48} color={theme.colors.verified} />
                     </View>
-                    <Text style={styles.heroTitle}>Sua segurança é nossa prioridade</Text>
+                    <Text style={styles.heroTitle}>Your safety is our priority</Text>
                     <Text style={styles.heroSubtitle}>
-                        Todo criador com selo passou por uma análise de identidade, experiência e qualidade do conteúdo.
+                        Every creator with a badge has gone through a review of identity, experience and content quality.
                     </Text>
                 </View>
 
@@ -79,26 +79,26 @@ export default function VerificationExplainedScreen() {
 
                 {/* FAQ */}
                 <View style={styles.faqSection}>
-                    <Text style={styles.faqTitle}>Perguntas Frequentes</Text>
+                    <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>O preço final é pelo quê?</Text>
+                        <Text style={styles.faqQuestion}>What does the price cover?</Text>
                         <Text style={styles.faqAnswer}>
-                            O valor é pelo acesso ao roteiro digital. Gastos de viagem, hospedagem, transporte e atrações aparecem como referência quando informados.
+                            The price is for access to the digital itinerary. Travel costs for lodging, transportation and attractions are shown as references when provided.
                         </Text>
                     </View>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>O criador opera passeios ou reservas?</Text>
+                        <Text style={styles.faqQuestion}>Does the creator run tours or bookings?</Text>
                         <Text style={styles.faqAnswer}>
-                            Não. O VAMO vende conteúdo digital de planejamento. Serviços turísticos devem ser contratados diretamente pelo viajante.
+                            No. VAMO sells digital planning content. Tourism services must be booked directly by the traveler.
                         </Text>
                     </View>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.faqQuestion}>E se o conteúdo tiver problema?</Text>
+                        <Text style={styles.faqQuestion}>What if there's a problem with the content?</Text>
                         <Text style={styles.faqAnswer}>
-                            Você pode reportar pelo suporte. A equipe revisa o caso e aciona o criador quando for necessário corrigir informações.
+                            You can report it through support. The team reviews the case and contacts the creator when information needs to be corrected. See our Refund Policy for eligible refunds.
                         </Text>
                     </View>
                 </View>

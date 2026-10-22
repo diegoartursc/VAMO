@@ -19,13 +19,13 @@ import { isPublicItinerary } from '../../src/utils/searchUtils';
 // Critérios de ORDENAÇÃO (não filtro). Cada opção apenas reorganiza a
 // lista — nunca esconde resultados. "relevance" é o estado padrão.
 const SORT_OPTIONS: { key: string; label: string; icon: IconName }[] = [
-    { key: 'relevance', label: 'Mais relevantes',  icon: 'compass' },
-    { key: 'popular',   label: 'Mais populares',   icon: 'star' },
-    { key: 'sales',     label: 'Mais vendidos',    icon: 'shopping-cart' },
-    { key: 'rating',    label: 'Melhor avaliados', icon: 'award' },
-    { key: 'newest',    label: 'Novidades',        icon: 'gem' },
-    { key: 'price_asc', label: 'Menor preço',      icon: 'wallet' },
-    { key: 'price_desc',label: 'Maior preço',      icon: 'trophy' },
+    { key: 'relevance', label: 'Most relevant',  icon: 'compass' },
+    { key: 'popular',   label: 'Most popular',   icon: 'star' },
+    { key: 'sales',     label: 'Best sellers',    icon: 'shopping-cart' },
+    { key: 'rating',    label: 'Top rated', icon: 'award' },
+    { key: 'newest',    label: 'What\'s new',        icon: 'gem' },
+    { key: 'price_asc', label: 'Lowest price',      icon: 'wallet' },
+    { key: 'price_desc',label: 'Highest price',      icon: 'trophy' },
 ];
 
 const SORT_LABELS: Record<string, string> = Object.fromEntries(
@@ -156,18 +156,18 @@ export default function ItinerariesScreen() {
         const labels = selectedCategories
             .map(category => CATEGORIES.find(cat => cat.id === category)?.label)
             .filter(Boolean);
-        if (labels.length <= 2) return labels.join(' ou ');
-        return `${labels.slice(0, 2).join(' ou ')} +${labels.length - 2}`;
+        if (labels.length <= 2) return labels.join(' or ');
+        return `${labels.slice(0, 2).join(' or ')} +${labels.length - 2}`;
     }, [selectedCategories]);
 
     // Título reflete apenas filtros reais — nunca a ordenação. A ordenação
     // aparece como subtexto pra não dar a impressão de que "Melhor avaliados"
     // está limitando a lista.
     const sectionTitle = activeCategoryLabel
-        ? `Roteiros de ${activeCategoryLabel}`
+        ? `${activeCategoryLabel} itineraries`
         : filters.destination
-        ? `Roteiros em ${filters.destination}`
-        : 'Roteiros encontrados';
+        ? `Itineraries in ${filters.destination}`
+        : 'Itineraries found';
 
     const sortLabel = SORT_LABELS[activeSort] ?? SORT_LABELS[DEFAULT_SORT];
     const resultsCount = itinerariesToShow.length;
@@ -180,9 +180,9 @@ export default function ItinerariesScreen() {
                 style={styles.gradientHeader}
             >
                 <View style={styles.headerContent}>
-                    <Text style={styles.headerTitle}>Roteiros de Viajantes</Text>
+                    <Text style={styles.headerTitle}>Traveler Itineraries</Text>
                     <Text style={styles.headerSubtitle}>
-                        Explore roteiros detalhados de quem já viveu cada destino
+                        Explore detailed itineraries from people who've lived each destination
                     </Text>
                 </View>
             </LinearGradient>
@@ -190,7 +190,7 @@ export default function ItinerariesScreen() {
             {/* Iconic Search Bar */}
             <View style={styles.searchWrapper}>
                 <IconicSearchBar
-                    placeholder="Encontrar roteiros de viajantes"
+                    placeholder="Find traveler itineraries"
                     onPress={() => setSearchModalVisible(true)}
                 />
             </View>
@@ -198,7 +198,7 @@ export default function ItinerariesScreen() {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Ordenação — chips que só reorganizam, nunca filtram a lista */}
                 <View style={styles.sortChipsRow}>
-                    <Text style={styles.sortChipsLabel}>Ordenar por</Text>
+                    <Text style={styles.sortChipsLabel}>Sort by</Text>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -237,9 +237,9 @@ export default function ItinerariesScreen() {
                             <Text style={styles.sectionTitle}>{sectionTitle}</Text>
                             {!loading && resultsCount > 0 && (
                                 <Text style={styles.sectionMeta}>
-                                    {resultsCount} {resultsCount === 1 ? 'roteiro' : 'roteiros'}
+                                    {resultsCount} {resultsCount === 1 ? 'itinerary' : 'itineraries'}
                                     {'  ·  '}
-                                    Ordenado por <Text style={styles.sectionMetaStrong}>{sortLabel}</Text>
+                                    Sorted by <Text style={styles.sectionMetaStrong}>{sortLabel}</Text>
                                 </Text>
                             )}
                         </View>
@@ -257,13 +257,13 @@ export default function ItinerariesScreen() {
                     {loading ? (
                         <View style={styles.listState}>
                             <ActivityIndicator color={theme.colors.primary} />
-                            <Text style={styles.listStateText}>Carregando roteiros digitais...</Text>
+                            <Text style={styles.listStateText}>Loading digital itineraries...</Text>
                         </View>
                     ) : error ? (
                         <View style={styles.listState}>
                             <ErrorState
                                 compact
-                                title="Não foi possível carregar os roteiros"
+                                title="Couldn't load itineraries"
                                 message={error}
                                 onRetry={reload}
                             />
@@ -273,13 +273,13 @@ export default function ItinerariesScreen() {
                             <Icon name="search" size={32} color={theme.colors.text.tertiary} />
                             <Text style={styles.listStateTitle}>
                                 {hasActiveFilters
-                                    ? 'Nenhum roteiro encontrado para os filtros aplicados.'
-                                    : 'Nenhum roteiro disponível por enquanto.'}
+                                    ? 'No itineraries found for the selected filters.'
+                                    : 'No itineraries available yet.'}
                             </Text>
                             <Text style={styles.listStateText}>
                                 {hasActiveFilters
-                                    ? 'Ajuste os filtros ou explore todos os roteiros ativos.'
-                                    : 'Em breve novos roteiros serão publicados aqui.'}
+                                    ? 'Adjust the filters or explore all active itineraries.'
+                                    : 'New itineraries will be published here soon.'}
                             </Text>
                             {hasActiveFilters && (
                                 <TouchableOpacity
@@ -287,7 +287,7 @@ export default function ItinerariesScreen() {
                                     onPress={handleClearAllFilters}
                                     activeOpacity={0.85}
                                 >
-                                    <Text style={styles.listStateButtonText}>Limpar filtros</Text>
+                                    <Text style={styles.listStateButtonText}>Clear filters</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -317,10 +317,10 @@ export default function ItinerariesScreen() {
                 <View style={styles.section}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Icon name="shield-check" size={18} color={theme.colors.primary} strokeWidth={2} />
-                        <Text style={styles.sectionTitle}>Reputação dos Roteiristas</Text>
+                        <Text style={styles.sectionTitle}>Creator Reputation</Text>
                     </View>
                     <Text style={styles.sectionSubtitle}>
-                        Entenda o nível de experiência e confiança por trás de cada roteiro — a mesma trilha usada no perfil de cada criador.
+                        Understand the level of experience and trust behind each itinerary — the same track used on each creator's profile.
                     </Text>
 
                     {/* Trilha vertical: passo numerado + linha conectando os níveis.
@@ -329,8 +329,8 @@ export default function ItinerariesScreen() {
                     <View style={styles.badgesGrid}>
                         {CREATOR_REPUTATION_LEVELS.map((config, index) => {
                             const isLast = index === CREATOR_REPUTATION_LEVELS.length - 1;
-                            const a11yLabel = `Nível ${index + 1} de ${CREATOR_REPUTATION_LEVELS.length}: ${config.label}. ${config.description}`
-                                + (config.manualOnly ? ' Atribuído manualmente pela equipe VAMO.' : '');
+                            const a11yLabel = `Level ${index + 1} of ${CREATOR_REPUTATION_LEVELS.length}: ${config.label}. ${config.description}`
+                                + (config.manualOnly ? ' Assigned manually by the VAMO team.' : '');
                             return (
                                 <View key={config.level} style={styles.badgeExplanation} accessibilityRole="text" accessibilityLabel={a11yLabel}>
                                     <View style={styles.trailIconColumn}>
@@ -351,7 +351,7 @@ export default function ItinerariesScreen() {
                                             </Text>
                                             {config.manualOnly && (
                                                 <View style={styles.manualBadge}>
-                                                    <Text style={styles.manualBadgeText}>Seleção VAMO</Text>
+                                                    <Text style={styles.manualBadgeText}>VAMO Selection</Text>
                                                 </View>
                                             )}
                                         </View>
@@ -375,20 +375,20 @@ export default function ItinerariesScreen() {
                         <View style={styles.communityHeader}>
                             <Icon name="users" size={24} color={theme.colors.primary} />
                             <View style={{ flex: 1 }}>
-                                <Text style={styles.communityTitle}>Comunidade</Text>
-                                <Text style={styles.communitySubtitle}>Converse com viajantes reais</Text>
+                                <Text style={styles.communityTitle}>Community</Text>
+                                <Text style={styles.communitySubtitle}>Chat with real travelers</Text>
                             </View>
                             <View style={styles.comingSoonBadge}>
-                                <Text style={styles.comingSoonText}>Em Breve</Text>
+                                <Text style={styles.comingSoonText}>Coming Soon</Text>
                             </View>
                         </View>
 
                         {/* Preview entries - faded */}
                         <View style={styles.communityPreview}>
                             {[
-                                { icon: 'landmark' as IconName, name: 'Paris', type: 'Chat', members: 234, user: 'Diego Artur', msg: 'Acabei de voltar! A Torre Eiffel à noite é imperdi...' },
-                                { icon: 'compass' as IconName, name: 'Cancún', type: 'Chat', members: 189, user: 'Maria Clara', msg: 'Alguém sabe qual a melhor época para ir?' },
-                                { icon: 'mountain' as IconName, name: 'Machu Picchu', type: 'Roteiro', members: 67, user: 'Pedro Henrique', msg: 'Lembrem de levar coca tea para altitude!' },
+                                { icon: 'landmark' as IconName, name: 'Paris', type: 'Chat', members: 234, user: 'Diego Artur', msg: 'Just got back! The Eiffel Tower at night is unmissable...' },
+                                { icon: 'compass' as IconName, name: 'Cancún', type: 'Chat', members: 189, user: 'Maria Clara', msg: 'Anyone know the best time to go?' },
+                                { icon: 'mountain' as IconName, name: 'Machu Picchu', type: 'Itinerary', members: 67, user: 'Pedro Henrique', msg: 'Remember to bring coca tea for the altitude!' },
                             ].map((item, idx) => (
                                 <View key={idx} style={[styles.communityEntry, idx < 2 && styles.communityEntryBorder]}>
                                     <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surfaceLight, alignItems: 'center', justifyContent: 'center' }}>
@@ -399,7 +399,7 @@ export default function ItinerariesScreen() {
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                             <Icon name="users" size={11} color={theme.colors.primary} />
                                             <Text style={styles.communityEntryMeta}>
-                                                {item.type} • {item.members} membros
+                                                {item.type} • {item.members} members
                                             </Text>
                                         </View>
                                         <Text style={styles.communityEntryMsg} numberOfLines={1}>
@@ -416,11 +416,11 @@ export default function ItinerariesScreen() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                 <Icon name="bell" size={14} color={theme.colors.text.secondary} />
                                 <Text style={styles.communityFooterText}>
-                                    Quer ser avisado quando lançar?
+                                    Want to be notified when it launches?
                                 </Text>
                             </View>
                             <TouchableOpacity style={styles.communityNotifyButton}>
-                                <Text style={styles.communityNotifyText}>Me avise!</Text>
+                                <Text style={styles.communityNotifyText}>Notify me!</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

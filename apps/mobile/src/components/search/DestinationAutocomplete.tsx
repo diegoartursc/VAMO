@@ -6,7 +6,7 @@
  * por caractere.
  *
  * Decisões de layout:
- *  - Sem título "Destino" interno: o cabeçalho da seção é do SearchModal, para
+ *  - Sem título "Destination" interno: o cabeçalho da seção é do SearchModal, para
  *    o rótulo não aparecer duplicado.
  *  - Dropdown renderizado NO FLUXO (não absoluto) com Views simples: dentro do
  *    ScrollView do modal, posição absoluta é cortada em algumas plataformas e
@@ -51,7 +51,7 @@ export function DestinationAutocomplete({
     suggestions,
     onChangeText,
     onSelect,
-    placeholder = 'Para onde você quer ir?',
+    placeholder = 'Where do you want to go?',
     limit = DESTINATION_SUGGESTION_LIMIT,
 }: DestinationAutocompleteProps) {
     const [isOpen, setIsOpen] = useState(false);
@@ -151,8 +151,8 @@ export function DestinationAutocomplete({
                     onKeyPress={handleKeyPress}
                     autoCorrect={false}
                     returnKeyType="search"
-                    accessibilityLabel="Destino"
-                    accessibilityHint="Digite para ver sugestões de destinos com roteiros disponíveis"
+                    accessibilityLabel="Destination"
+                    accessibilityHint="Type to see destination suggestions with available itineraries"
                     // Web: desliga o autocomplete do navegador pra não cobrir o nosso.
                     {...(Platform.OS === 'web' ? ({ autoComplete: 'off' } as object) : {})}
                 />
@@ -161,7 +161,7 @@ export function DestinationAutocomplete({
                         onPress={handleClear}
                         style={styles.clearButton}
                         accessibilityRole="button"
-                        accessibilityLabel="Limpar destino"
+                        accessibilityLabel="Clear destination"
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
                         <Icon name="close" size={16} color={theme.colors.text.secondary} />
@@ -172,7 +172,7 @@ export function DestinationAutocomplete({
             {showList && (
                 <View style={styles.dropdown} accessibilityRole="menu">
                     {!value.trim() && (
-                        <Text style={styles.dropdownHint}>Destinos com roteiros disponíveis</Text>
+                        <Text style={styles.dropdownHint}>Destinations with available itineraries</Text>
                     )}
                     {visibleSuggestions.map((suggestion, index) => {
                         const highlighted = index === highlightedIndex;
@@ -183,7 +183,7 @@ export function DestinationAutocomplete({
                                 onPressIn={cancelBlurClose}
                                 onPress={() => handleSelect(suggestion)}
                                 accessibilityRole="menuitem"
-                                accessibilityLabel={`${suggestion.label}, ${suggestion.itineraryCount} ${suggestion.itineraryCount === 1 ? 'roteiro' : 'roteiros'}`}
+                                accessibilityLabel={`${suggestion.label}, ${suggestion.itineraryCount} ${suggestion.itineraryCount === 1 ? 'itinerary' : 'itineraries'}`}
                                 testID={`destination-suggestion-${suggestion.id}`}
                             >
                                 <Icon
@@ -195,7 +195,7 @@ export function DestinationAutocomplete({
                                     {suggestion.label}
                                 </Text>
                                 <Text style={styles.itemCount}>
-                                    {suggestion.itineraryCount} {suggestion.itineraryCount === 1 ? 'roteiro' : 'roteiros'}
+                                    {suggestion.itineraryCount} {suggestion.itineraryCount === 1 ? 'itinerary' : 'itineraries'}
                                 </Text>
                             </TouchableOpacity>
                         );
@@ -206,7 +206,7 @@ export function DestinationAutocomplete({
             {showEmptyState && (
                 <View style={styles.emptyState}>
                     <Text style={styles.emptyStateText}>
-                        Nenhum destino encontrado com roteiros disponíveis.
+                        No destinations found with available itineraries.
                     </Text>
                 </View>
             )}

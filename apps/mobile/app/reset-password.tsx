@@ -52,7 +52,7 @@ function PasswordField(props: {
                 <TouchableOpacity
                     onPress={() => setVisible((v) => !v)}
                     style={s.eyeButton}
-                    accessibilityLabel={visible ? 'Esconder senha' : 'Mostrar senha'}
+                    accessibilityLabel={visible ? 'Hide password' : 'Show password'}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                     <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={18} color={theme.colors.text.tertiary} />
@@ -78,11 +78,11 @@ export default function ResetPasswordScreen() {
         if (loading) return;
         setError(null);
         if (password.length < MIN_PASSWORD_LENGTH) {
-            setError(`A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+            setError(`Your password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
             return;
         }
         if (password !== confirm) {
-            setError('As senhas não coincidem.');
+            setError('The passwords don\'t match.');
             return;
         }
         haptics.light();
@@ -96,7 +96,7 @@ export default function ResetPasswordScreen() {
             if (err?.status === 400) {
                 setStatus('invalid');
             } else {
-                setError(err?.message || 'Não foi possível redefinir a senha. Tente novamente.');
+                setError(err?.message || 'We couldn\'t reset your password. Please try again.');
             }
         } finally {
             setLoading(false);
@@ -109,11 +109,11 @@ export default function ResetPasswordScreen() {
                 <View style={[s.stateIcon, { backgroundColor: 'rgba(40,201,191,0.12)' }]}>
                     <Ionicons name="checkmark-circle-outline" size={34} color={theme.colors.primary} />
                 </View>
-                <Text style={s.stateTitle}>Senha alterada com sucesso</Text>
+                <Text style={s.stateTitle}>Password changed successfully</Text>
                 <Text style={[s.stateText, { marginBottom: 24 }]}>
-                    Você já pode entrar no VAMO com sua nova senha.
+                    You can now sign in to VAMO with your new password.
                 </Text>
-                <VamoButton label="Entrar" onPress={() => router.replace('/login')} size="lg" fullWidth iconStart="log-in-outline" />
+                <VamoButton label="Sign in" onPress={() => router.replace('/login')} size="lg" fullWidth iconStart="log-in-outline" />
             </AuthScreenShell>
         );
     }
@@ -124,13 +124,13 @@ export default function ResetPasswordScreen() {
                 <View style={[s.stateIcon, { backgroundColor: '#FEF2F2' }]}>
                     <Ionicons name="link-outline" size={30} color="#EF4444" />
                 </View>
-                <Text style={s.stateTitle}>Este link é inválido ou expirou.</Text>
+                <Text style={s.stateTitle}>This link is invalid or has expired.</Text>
                 <Text style={[s.stateText, { marginBottom: 24 }]}>
-                    Os links de redefinição valem por 1 hora e só podem ser usados uma vez. Peça um novo link para continuar.
+                    Reset links are valid for 1 hour and can only be used once. Request a new link to continue.
                 </Text>
-                <VamoButton label="Solicitar novo link" onPress={() => router.replace('/forgot-password')} size="lg" fullWidth />
+                <VamoButton label="Request a new link" onPress={() => router.replace('/forgot-password')} size="lg" fullWidth />
                 <TouchableOpacity style={s.linkButton} onPress={() => router.replace('/login')}>
-                    <Text style={s.linkText}>Voltar para entrar</Text>
+                    <Text style={s.linkText}>Back to sign in</Text>
                 </TouchableOpacity>
             </AuthScreenShell>
         );
@@ -138,8 +138,8 @@ export default function ResetPasswordScreen() {
 
     return (
         <AuthScreenShell>
-            <Text style={s.title}>Criar nova senha</Text>
-            <Text style={s.subtitle}>Escolha uma senha nova para a sua conta VAMO.</Text>
+            <Text style={s.title}>Create a new password</Text>
+            <Text style={s.subtitle}>Choose a new password for your VAMO account.</Text>
 
             {error && (
                 <View style={s.errorBox}>
@@ -149,16 +149,16 @@ export default function ResetPasswordScreen() {
             )}
 
             <PasswordField
-                label="Nova senha"
+                label="New password"
                 value={password}
                 onChangeText={setPassword}
                 editable={!loading}
                 returnKeyType="next"
                 onSubmitEditing={() => confirmRef.current?.focus()}
             />
-            <Text style={[s.hint, { marginTop: -12, marginBottom: 18 }]}>Mínimo de {MIN_PASSWORD_LENGTH} caracteres.</Text>
+            <Text style={[s.hint, { marginTop: -12, marginBottom: 18 }]}>At least {MIN_PASSWORD_LENGTH} characters.</Text>
             <PasswordField
-                label="Confirmar nova senha"
+                label="Confirm new password"
                 value={confirm}
                 onChangeText={setConfirm}
                 editable={!loading}
@@ -168,7 +168,7 @@ export default function ResetPasswordScreen() {
             />
 
             <VamoButton
-                label="Redefinir senha"
+                label="Reset password"
                 onPress={submit}
                 size="lg"
                 fullWidth
@@ -178,7 +178,7 @@ export default function ResetPasswordScreen() {
             />
 
             <TouchableOpacity style={s.linkButton} onPress={() => router.replace('/login')} disabled={loading}>
-                <Text style={s.linkText}>Voltar para entrar</Text>
+                <Text style={s.linkText}>Back to sign in</Text>
             </TouchableOpacity>
         </AuthScreenShell>
     );

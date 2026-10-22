@@ -59,8 +59,8 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     const itineraryPrice = Number(itinerary.price);
     const priceLabel = Number.isFinite(itineraryPrice) && itineraryPrice > 0
         ? formatMoney(itineraryPrice, itinerary.currency || BASE_CURRENCY)
-        : 'Grátis';
-    const creatorName = itinerary.creator?.name || 'Criador VAMO';
+        : 'Free';
+    const creatorName = itinerary.creator?.name || 'VAMO Creator';
     // O selo agora existe em UM lugar só (linha do criador). Como ele é
     // icon-only, o texto do nível vai no rótulo acessível — a informação de
     // confiança não se perde para quem usa leitor de tela.
@@ -79,9 +79,9 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     // então só usamos como fallback se o top-level estiver ausente.
     const salesCount = Number(itinerary.salesCount ?? itinerary.creator?.salesCount);
     const salesLabel = Number.isFinite(salesCount) && salesCount > 0
-        ? `${salesCount.toLocaleString('pt-BR')} vendas`
-        : 'Roteirista';
-    const title = itinerary.title || 'Roteiro digital';
+        ? `${salesCount.toLocaleString('en-US')} ${salesCount === 1 ? 'sale' : 'sales'}`
+        : 'Creator';
+    const title = itinerary.title || 'Digital itinerary';
     // Sem descrição real o card NÃO renderiza a linha (nem texto genérico de
     // enchimento, nem espaço reservado).
     const description = typeof itinerary.description === 'string' ? itinerary.description.trim() : '';
@@ -100,9 +100,9 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
         flightSpending: itinerary.flightInfo?.spending,
     });
     const budgetBadge =
-        budget.confidenceLevel === 'verified' ? { label: 'Custos analisados pela VAMO', tone: 'success' as const }
-      : budget.confidenceLevel === 'high'     ? { label: 'Custos parcialmente comprovados', tone: 'success' as const }
-      : budget.confidenceLevel === 'medium'   ? { label: 'Com custos estimados', tone: 'info' as const }
+        budget.confidenceLevel === 'verified' ? { label: 'Costs reviewed by VAMO', tone: 'success' as const }
+      : budget.confidenceLevel === 'high'     ? { label: 'Partially verified costs', tone: 'success' as const }
+      : budget.confidenceLevel === 'medium'   ? { label: 'With estimated costs', tone: 'info' as const }
       : null;
 
     const handleFav = async (e: any) => {
@@ -167,7 +167,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                     style={styles.favButton}
                     onPress={handleFav}
                     activeOpacity={0.8}
-                    accessibilityLabel={fav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                    accessibilityLabel={fav ? 'Remove from favorites' : 'Add to favorites'}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                     <Ionicons
@@ -184,7 +184,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                 {itinerary.duration && (
                     <View style={styles.durationBadge}>
                         <Icon name="calendar" size={12} color="rgba(255,255,255,0.9)" />
-                        <Text style={styles.durationText}>{itinerary.duration} dias</Text>
+                        <Text style={styles.durationText}>{itinerary.duration} {itinerary.duration === 1 ? 'day' : 'days'}</Text>
                     </View>
                 )}
             </View>
@@ -220,7 +220,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                             </Text>
                         </View>
                     </View>
-                    <View accessible accessibilityLabel={`Roteirista ${verificationLabel}`}>
+                    <View accessible accessibilityLabel={`${verificationLabel} Creator`}>
                         <VerifiedBadge level={verificationLevel} size="small" showLabel={false} />
                     </View>
                 </View>
@@ -286,7 +286,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                         activeOpacity={0.8}
                         accessibilityRole="button"
                         accessibilityState={{ selected: inCart, disabled: inCart || owned }}
-                        accessibilityLabel={inCart ? 'Já está no carrinho' : 'Adicionar ao carrinho'}
+                        accessibilityLabel={inCart ? 'Already in cart' : 'Add to cart'}
                         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     >
                         <Icon
@@ -300,9 +300,9 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
                         onPress={onPress}
                         activeOpacity={0.85}
                         accessibilityRole="button"
-                        accessibilityLabel={`Ver roteiro ${title}`}
+                        accessibilityLabel={`View itinerary ${title}`}
                     >
-                        <Text style={styles.ctaText}>Ver roteiro</Text>
+                        <Text style={styles.ctaText}>View itinerary</Text>
                         <Icon name="chevron-right" size={15} color="#FFF" strokeWidth={2.5} />
                     </TouchableOpacity>
                 </View>

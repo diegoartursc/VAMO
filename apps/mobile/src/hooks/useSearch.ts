@@ -36,7 +36,7 @@ export function useSearch() {
                 }
             } catch (err: any) {
                 if (!cancelled) {
-                    setError(err?.message || 'Não foi possível carregar os roteiros.');
+                    setError(err?.message || 'We couldn\'t load the itineraries.');
                     setAllItineraries([]);
                 }
             } finally {

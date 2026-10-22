@@ -15,19 +15,19 @@ interface Highlight {
 }
 
 const HIGHLIGHTS: Highlight[] = [
-    { icon: 'compass', title: 'Roteiros de quem já viveu', text: 'Um marketplace de roteiros de viagem digitais criados por viajantes reais que já estiveram no destino.' },
-    { icon: 'book-open', title: 'Experiências práticas', text: 'Foco em roteiros úteis e detalhados: o que fazer, onde ficar, quanto gastar e como aproveitar melhor.' },
-    { icon: 'shield-check', title: 'Segurança e comunidade', text: 'Roteiristas verificados, avaliações reais e uma comunidade que ajuda você a viajar com confiança.' },
+    { icon: 'compass', title: 'Itineraries from people who\'ve lived it', text: 'A marketplace of digital travel itineraries created by real travelers who have been to the destination.' },
+    { icon: 'book-open', title: 'Practical experiences', text: 'A focus on useful, detailed itineraries: what to do, where to stay, how much to spend and how to make the most of it.' },
+    { icon: 'shield-check', title: 'Safety and community', text: 'Verified creators, real reviews and a community that helps you travel with confidence.' },
 ];
 
 export default function AboutVamoScreen() {
     return (
         <View style={s.container}>
-            <ScreenHeader title="Sobre a VAMO" subtitle="O que é e por que existimos." />
+            <ScreenHeader title="About VAMO" subtitle="What we are and why we exist." />
             <ScrollView contentContainerStyle={s.scroll}>
                 <View style={s.hero}>
                     <Text style={s.heroLogo}>VAMO</Text>
-                    <Text style={s.heroTagline}>Roteiros de viagem de quem já esteve lá.</Text>
+                    <Text style={s.heroTagline}>Travel itineraries from people who've been there.</Text>
                 </View>
 
                 {HIGHLIGHTS.map((h) => (
@@ -43,7 +43,7 @@ export default function AboutVamoScreen() {
                 ))}
 
                 <Text style={s.version}>VAMO v1.0.0</Text>
-                <Text style={s.copyright}>© 2026 VAMO. Todos os direitos reservados.</Text>
+                <Text style={s.copyright}>© 2026 VAMO. All rights reserved.</Text>
             </ScrollView>
         </View>
     );

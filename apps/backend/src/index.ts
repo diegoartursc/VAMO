@@ -56,7 +56,7 @@ const limiter = rateLimit({
             return ip === '127.0.0.1' || ip === '::1' || ip.endsWith(':127.0.0.1') || ip.endsWith(':::1') || ip === '::ffff:127.0.0.1';
         }
         : undefined,
-    message: { error: 'Muitas requisições. Aguarde alguns minutos e tente novamente.' },
+    message: { error: 'Too many requests. Please wait a few minutes and try again.' },
 });
 
 // Allowed origins: site dashboard, local dev, and Expo mobile app
@@ -111,13 +111,13 @@ app.get('/uploads/itineraries/:filename', async (req, res, next) => {
             select: { id: true },
         });
         if (privateRecord) {
-            res.status(404).json({ error: 'Arquivo não encontrado' });
+            res.status(404).json({ error: 'File not found' });
             return;
         }
         next();
     } catch (error) {
         console.error('Error checking private upload:', error);
-        res.status(500).json({ error: 'Falha ao validar arquivo' });
+        res.status(500).json({ error: 'Failed to validate file' });
     }
 });
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));

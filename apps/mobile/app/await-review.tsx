@@ -15,9 +15,9 @@ import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 
 const STEPS = [
-    { icon: 'checkmark-circle' as const, label: 'Roteiro enviado', done: true, active: false },
-    { icon: 'search' as const, label: 'Em análise pela equipe', done: false, active: true },
-    { icon: 'rocket' as const, label: 'Publicado no marketplace', done: false, active: false },
+    { icon: 'checkmark-circle' as const, label: 'Itinerary submitted', done: true, active: false },
+    { icon: 'search' as const, label: 'Under team review', done: false, active: true },
+    { icon: 'rocket' as const, label: 'Published in the marketplace', done: false, active: false },
 ];
 
 export default function AwaitReviewScreen() {
@@ -59,17 +59,17 @@ export default function AwaitReviewScreen() {
                 </Animated.View>
 
                 <Animated.View style={[s.heroText, { opacity: fadeAnim }]}>
-                    <Text style={s.title}>Roteiro enviado! 🎉</Text>
+                    <Text style={s.title}>Itinerary submitted! 🎉</Text>
                     <Text style={s.subtitle}>
-                        Nossa equipe vai analisar seu roteiro em até 48 horas.{'\n'}
-                        Você receberá uma notificação assim que for aprovado.
+                        Our team will review your itinerary within 48 hours.{'\n'}
+                        You'll be notified as soon as it's approved.
                     </Text>
                 </Animated.View>
             </LinearGradient>
 
             {/* Status tracker */}
             <Animated.View style={[s.tracker, { opacity: fadeAnim }]}>
-                <Text style={s.trackerTitle}>Acompanhe o status</Text>
+                <Text style={s.trackerTitle}>Track the status</Text>
                 {STEPS.map((step, i) => (
                     <View key={i} style={s.trackerItem}>
                         {/* Coluna esquerda: ícone + linha conectora */}
@@ -105,7 +105,7 @@ export default function AwaitReviewScreen() {
             <Animated.View style={[s.infoBox, { opacity: fadeAnim }]}>
                 <Ionicons name="information-circle-outline" size={18} color={theme.colors.info} />
                 <Text style={s.infoText}>
-                    Após aprovado, seu roteiro aparece automaticamente no marketplace para compra.
+                    Once approved, your itinerary automatically appears in the marketplace for purchase.
                 </Text>
             </Animated.View>
 
@@ -116,14 +116,14 @@ export default function AwaitReviewScreen() {
                     onPress={() => { haptics.light(); router.replace('/created-itineraries'); }}
                     activeOpacity={0.85}
                 >
-                    <Text style={s.primaryCtaText}>Ver meus roteiros</Text>
+                    <Text style={s.primaryCtaText}>View my itineraries</Text>
                     <Ionicons name="arrow-forward" size={18} color="#fff" />
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={s.secondaryCta}
                     onPress={() => { haptics.light(); router.replace('/(tabs)/profile'); }}
                 >
-                    <Text style={s.secondaryCtaText}>Voltar ao perfil</Text>
+                    <Text style={s.secondaryCtaText}>Back to profile</Text>
                 </TouchableOpacity>
             </Animated.View>
         </View>

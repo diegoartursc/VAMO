@@ -19,7 +19,7 @@ type LoadErrorKind = 'not_found' | 'network';
 
 function formatAverageRating(value: number | null | undefined): string {
     if (value === null || value === undefined) return 'Novo';
-    return value.toFixed(1).replace('.', ',');
+    return value.toFixed(1);
 }
 
 export default function CreatorDetailScreen() {
@@ -70,8 +70,8 @@ export default function CreatorDetailScreen() {
         setIsFollowing(next);
         if (next && creator) {
             notify({
-                title: 'Seguindo!',
-                message: `Você agora está seguindo ${creator.name}.`,
+                title: 'Following!',
+                message: `You're now following ${creator.name}.`,
                 variant: 'success',
             });
         }
@@ -102,7 +102,7 @@ export default function CreatorDetailScreen() {
                     <View style={styles.nameRow}>
                         <Text style={styles.name} numberOfLines={2}>{creator.name}</Text>
                         {/* Reputação REAL calculada (mesma fórmula/config do card
-                            "Criadores recomendados") — nunca o VerificationLevel
+                            "Recommended creators") — nunca o VerificationLevel
                             técnico sozinho, pra não mostrar nível divergente entre
                             telas. Fallback pro badge antigo só se o backend ainda
                             não tiver enviado `reputation` (deploy defasado). */}
@@ -110,7 +110,7 @@ export default function CreatorDetailScreen() {
                             <View
                                 style={styles.reputationPill}
                                 accessibilityRole="text"
-                                accessibilityLabel={`Nível de reputação: ${creator.reputation.label}`}
+                                accessibilityLabel={`Reputation level: ${creator.reputation.label}`}
                             >
                                 <Text style={{ fontSize: 13 }} accessibilityElementsHidden importantForAccessibility="no">
                                     {creator.reputation.icon}
@@ -153,10 +153,10 @@ export default function CreatorDetailScreen() {
             {loadError && (
                 <View style={[styles.errorWrap, { paddingTop: insets.top + 72 }]}>
                     <ErrorState
-                        title={loadError === 'not_found' ? 'Perfil não encontrado' : 'Algo deu errado'}
+                        title={loadError === 'not_found' ? 'Profile not found' : 'Something went wrong'}
                         message={loadError === 'not_found'
-                            ? 'Perfil de roteirista não encontrado.'
-                            : 'Não foi possível carregar o perfil. Verifique sua conexão e tente novamente.'}
+                            ? 'Creator profile not found.'
+                            : 'We couldn\'t load the profile. Check your connection and try again.'}
                         onRetry={loadCreator}
                     />
                 </View>
@@ -185,14 +185,14 @@ export default function CreatorDetailScreen() {
                     {/* CTAs — "Ver roteiros" é a ação principal, "Seguir" é secundário */}
                     <View style={styles.actionButtons}>
                         <TouchableOpacity style={styles.primaryButton} onPress={() => { haptics.light(); scrollToItineraries(); }}>
-                            <Text style={styles.primaryButtonText}>Ver roteiros</Text>
+                            <Text style={styles.primaryButtonText}>View itineraries</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.secondaryButton, isFollowing && styles.secondaryButtonActive]}
                             onPress={toggleFollow}
                         >
                             <Text style={[styles.secondaryButtonText, isFollowing && styles.secondaryButtonTextActive]}>
-                                {isFollowing ? 'Seguindo' : 'Seguir'}
+                                {isFollowing ? 'Following' : 'Follow'}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -201,7 +201,7 @@ export default function CreatorDetailScreen() {
                     <View style={styles.statsContainer}>
                         <View style={styles.stat}>
                             <Text style={styles.statValue}>{creator.stats.itinerariesCount}</Text>
-                            <Text style={styles.statLabel}>Roteiros publicados</Text>
+                            <Text style={styles.statLabel}>Published itineraries</Text>
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.stat}>
@@ -211,14 +211,14 @@ export default function CreatorDetailScreen() {
                         <View style={styles.statDivider} />
                         <View style={styles.stat}>
                             <Text style={styles.statValue}>{formatAverageRating(creator.stats.averageRating)}</Text>
-                            <Text style={styles.statLabel}>Avaliação</Text>
+                            <Text style={styles.statLabel}>Rating</Text>
                         </View>
                         {showResponseTime && (
                             <>
                                 <View style={styles.statDivider} />
                                 <View style={styles.stat}>
                                     <Text style={styles.statValue}>{creator.stats.responseTime}</Text>
-                                    <Text style={styles.statLabel}>Resposta</Text>
+                                    <Text style={styles.statLabel}>Response</Text>
                                 </View>
                             </>
                         )}
@@ -227,7 +227,7 @@ export default function CreatorDetailScreen() {
                     {/* Destinos — derivados dos roteiros publicados, nunca de campo manual */}
                     {publishedDestinations.length > 0 && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Destinos com roteiros publicados</Text>
+                            <Text style={styles.sectionTitle}>Destinations with published itineraries</Text>
                             <View style={styles.chipsRow}>
                                 {publishedDestinations.map((d) => (
                                     <View key={d} style={styles.chip}><Text style={styles.chipText}>{d}</Text></View>
@@ -241,7 +241,7 @@ export default function CreatorDetailScreen() {
                         style={styles.section}
                         onLayout={(e) => { itinerariesY.current = e.nativeEvent.layout.y; }}
                     >
-                        <Text style={styles.sectionTitle}>Roteiros disponíveis</Text>
+                        <Text style={styles.sectionTitle}>Available itineraries</Text>
                         {creator.itineraries.length > 0 ? (
                             <View style={{ gap: 16 }}>
                                 {creator.itineraries.map((it) => (
@@ -253,7 +253,7 @@ export default function CreatorDetailScreen() {
                                 ))}
                             </View>
                         ) : (
-                            <Text style={styles.emptyItineraries}>Este roteirista ainda não possui roteiros disponíveis.</Text>
+                            <Text style={styles.emptyItineraries}>This creator doesn't have any itineraries available yet.</Text>
                         )}
                     </View>
 

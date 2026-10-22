@@ -12,21 +12,21 @@ export default function TrustBadges({ package: pkg, compact = false }: TrustBadg
     const badges = [];
 
     if (pkg.hasFreeCancellation) {
-        badges.push({ icon: '🔄', text: 'Cancelamento grátis' });
+        badges.push({ icon: '🔄', text: 'Free cancellation' });
     }
 
     if (pkg.isAllInclusive) {
-        badges.push({ icon: '✓', text: 'Tudo incluído' });
+        badges.push({ icon: '✓', text: 'All inclusive' });
     }
 
     if (pkg.recentPurchases && pkg.recentPurchases > 20) {
-        badges.push({ icon: '🔥', text: `${pkg.recentPurchases} vendidos` });
+        badges.push({ icon: '🔥', text: `${pkg.recentPurchases} sold` });
     }
 
     if (pkg.priceComparison === 'below' && pkg.priceDiscount) {
         badges.push({
             icon: '💰',
-            text: `${pkg.priceDiscount}% abaixo da média`
+            text: `${pkg.priceDiscount}% below average`
         });
     }
 

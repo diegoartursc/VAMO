@@ -64,7 +64,7 @@ test('categoria agregada nunca expõe título/nome de item individual', () => {
     const [cat] = aggregateCostsByCategory(groups, convert);
     const serialized = JSON.stringify(cat);
     assert.ok(!serialized.includes('Shinjuku'), 'nome do hotel vazou pro agregado público');
-    assert.equal(cat.moduleLabel, 'Hospedagens');
+    assert.equal(cat.moduleLabel, 'Lodging');
 });
 
 // ── 3. Custo individual vs. compartilhado ──
@@ -123,7 +123,7 @@ test('status mixed: categoria com um item comprovado e outro estimado', () => {
 test('categoria ativa sem nenhum custo aparece em missingCategories', () => {
     const form: any = { attractions: [{ name: 'A', cost: cost(100) }] };
     const summary = buildConsolidatedCostSummary(form, ['passeios', 'restaurantes', 'transporte'], convert);
-    assert.deepEqual(summary.missingCategories, ['Restaurantes & Gastronomia', 'Transporte']);
+    assert.deepEqual(summary.missingCategories, ['Restaurants & Dining', 'Transportation']);
 });
 
 test('módulo NÃO ativo no roteiro nunca aparece como "sem valor"', () => {

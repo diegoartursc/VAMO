@@ -26,51 +26,51 @@ const SLIDES = [
         key: 'earn',
         bg: 'gradient' as const,
         icon: 'earth' as IoniconName,
-        title: 'Ganhe dinheiro\ncom suas viagens',
-        subtitle: 'Transforme experiências reais em roteiros digitais que outros viajantes podem comprar.',
+        title: 'Earn money\nfrom your trips',
+        subtitle: 'Turn real experiences into digital itineraries that other travelers can buy.',
         checks: [
-            'Venda roteiros de viagens que você já fez',
-            'Compartilhe dicas, custos e atalhos reais',
-            'Ajude viajantes a planejar com mais confiança',
+            'Sell itineraries from trips you\'ve already taken',
+            'Share real tips, costs and shortcuts',
+            'Help travelers plan with more confidence',
         ],
-        cta: 'Começar',
+        cta: 'Get started',
     },
     {
         key: 'why',
         bg: 'white' as const,
         icon: 'star' as IoniconName,
-        title: 'Por que ser Roteirista VAMO?',
-        subtitle: 'Use sua experiência para gerar renda, reputação e impacto.',
+        title: 'Why become a VAMO Creator?',
+        subtitle: 'Use your experience to earn income, build a reputation and make an impact.',
         benefits: [
-            { icon: 'wallet-outline' as IoniconName, title: 'Renda com conteúdo', text: 'Seu roteiro pode continuar vendendo mesmo depois da viagem.' },
-            { icon: 'globe-outline' as IoniconName, title: 'Alcance viajantes', text: 'Seu conhecimento ajuda pessoas a escolherem melhor.' },
-            { icon: 'star-outline' as IoniconName, title: 'Credibilidade', text: 'Roteiros bem avaliados fortalecem sua reputação.' },
-            { icon: 'shield-checkmark-outline' as IoniconName, title: 'Apoio da VAMO', text: 'Nossa equipe analisa os roteiros antes da publicação.' },
+            { icon: 'wallet-outline' as IoniconName, title: 'Income from content', text: 'Your itinerary can keep selling long after the trip.' },
+            { icon: 'globe-outline' as IoniconName, title: 'Reach travelers', text: 'Your knowledge helps people choose better.' },
+            { icon: 'star-outline' as IoniconName, title: 'Credibilidade', text: 'Well-reviewed itineraries strengthen your reputation.' },
+            { icon: 'shield-checkmark-outline' as IoniconName, title: 'Apoio da VAMO', text: 'Our team reviews itineraries before publication.' },
         ],
-        cta: 'Continuar',
+        cta: 'Continue',
     },
     {
         key: 'how',
         bg: 'white' as const,
         icon: 'map' as IoniconName,
-        title: 'Como funciona?',
-        subtitle: 'Você cria, a VAMO revisa e os viajantes compram.',
+        title: 'How does it work?',
+        subtitle: 'You create, VAMO reviews and travelers buy.',
         steps: [
-            { icon: 'create-outline' as IoniconName, num: 1, title: 'Criar roteiro', text: 'Preencha destino, módulos, fotos, custos e dicas reais.' },
-            { icon: 'search-outline' as IoniconName, num: 2, title: 'Enviar para análise', text: 'A VAMO revisa a qualidade e a autenticidade do conteúdo.' },
-            { icon: 'storefront-outline' as IoniconName, num: 3, title: 'Publicar e vender', text: 'Após aprovado, seu roteiro aparece para viajantes comprarem.' },
+            { icon: 'create-outline' as IoniconName, num: 1, title: 'Create itinerary', text: 'Fill in the destination, modules, photos, costs and real tips.' },
+            { icon: 'search-outline' as IoniconName, num: 2, title: 'Submit for review', text: 'VAMO reviews the quality and authenticity of the content.' },
+            { icon: 'storefront-outline' as IoniconName, num: 3, title: 'Publish and sell', text: 'Once approved, your itinerary appears for travelers to buy.' },
         ],
-        cta: 'Continuar',
+        cta: 'Continue',
     },
     {
         key: 'ready',
         bg: 'gradient' as const,
         icon: 'rocket' as IoniconName,
-        title: 'Pronto para criar\nseu primeiro roteiro?',
-        subtitle: 'Capriche nas informações, fotos e custos. Roteiros completos têm mais chance de aprovação e destaque.',
-        tip: 'Roteiros com score acima de 80% tendem a ter mais destaque no app.',
-        cta: 'Criar meu primeiro roteiro',
-        ctaSecondary: 'Agora não',
+        title: 'Ready to create\nyour first itinerary?',
+        subtitle: 'Put care into the details, photos and costs. Complete itineraries are more likely to be approved and featured.',
+        tip: 'Itineraries scoring above 80% tend to get more visibility in the app.',
+        cta: 'Create my first itinerary',
+        ctaSecondary: 'Not now',
     },
 ];
 
@@ -193,7 +193,7 @@ function TipCard({ text }: { text: string }) {
         <View style={tip.card}>
             <View style={tip.badge}>
                 <Ionicons name="sparkles" size={13} color={theme.colors.primary} />
-                <Text style={tip.badgeText}>Dica PRO</Text>
+                <Text style={tip.badgeText}>PRO tip</Text>
             </View>
             <Text style={tip.text}>{text}</Text>
         </View>
@@ -513,16 +513,16 @@ export default function BecomeCreatorScreen() {
                 <View style={s.authIconWrap}>
                     <Ionicons name="lock-closed-outline" size={36} color="#fff" />
                 </View>
-                <Text style={s.authTitle}>Entre para criar roteiros</Text>
+                <Text style={s.authTitle}>Sign in to create itineraries</Text>
                 <Text style={s.authText}>
-                    Sua conta protege seus rascunhos, envios para análise, vendas e receita de criador.
+                    Your account protects your drafts, submissions for review, sales and creator revenue.
                 </Text>
                 <TouchableOpacity
                     style={s.authBtn}
                     onPress={() => router.replace({ pathname: '/login' as any, params: { next: '/become-creator' } })}
                     activeOpacity={0.85}
                 >
-                    <Text style={s.authBtnText}>Entrar na conta</Text>
+                    <Text style={s.authBtnText}>Sign in</Text>
                 </TouchableOpacity>
             </LinearGradient>
         );

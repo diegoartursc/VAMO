@@ -25,6 +25,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { haptics } from '../../services/haptics';
+import { getChecklistCategoryLabel } from '@vamo/shared/itinerary';
 
 const CHECKLIST_CATEGORIES = [
     'documentos',
@@ -97,7 +98,7 @@ export default function AddChecklistItemModal({
                 <View style={styles.card}>
                     <View style={styles.header}>
                         <Text style={styles.title}>
-                            {isEdit ? 'Editar item' : 'Novo item do checklist'}
+                            {isEdit ? 'Edit item' : 'New checklist item'}
                         </Text>
                         <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                             <Ionicons name="close" size={22} color={theme.colors.text.secondary} />
@@ -108,7 +109,7 @@ export default function AddChecklistItemModal({
                         <Text style={styles.label}>Item</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Ex: Renovar passaporte"
+                            placeholder="E.g. Renew passport"
                             placeholderTextColor={theme.colors.text.tertiary}
                             value={item}
                             onChangeText={setItem}
@@ -131,7 +132,7 @@ export default function AddChecklistItemModal({
                                         }}
                                     >
                                         <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
-                                            {cat}
+                                            {getChecklistCategoryLabel(cat)}
                                         </Text>
                                     </TouchableOpacity>
                                 );
@@ -152,7 +153,7 @@ export default function AddChecklistItemModal({
                         {useCustom && (
                             <TextInput
                                 style={[styles.input, { marginTop: 4 }]}
-                                placeholder="Nome da categoria"
+                                placeholder="Category name"
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 value={customCategory}
                                 onChangeText={setCustomCategory}
@@ -163,7 +164,7 @@ export default function AddChecklistItemModal({
 
                     <View style={styles.actions}>
                         <TouchableOpacity style={styles.btnGhost} onPress={onClose} disabled={saving}>
-                            <Text style={styles.btnGhostText}>Cancelar</Text>
+                            <Text style={styles.btnGhostText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.btnPrimary, !canSave && styles.btnDisabled]}
@@ -172,7 +173,7 @@ export default function AddChecklistItemModal({
                             activeOpacity={0.85}
                         >
                             <Text style={styles.btnPrimaryText}>
-                                {saving ? 'Salvando…' : isEdit ? 'Salvar' : 'Adicionar'}
+                                {saving ? 'Salvando…' : isEdit ? 'Save' : 'Add'}
                             </Text>
                         </TouchableOpacity>
                     </View>

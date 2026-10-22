@@ -54,7 +54,7 @@ function FinanceContent() {
                                 </tr></thead>
                                 <tbody>{sales.map(s => (
                                     <tr key={s.id} style={{ color: "#1A3263" }}>
-                                        <td style={td}>{new Date(s.createdAt).toLocaleDateString("pt-BR")}</td>
+                                        <td style={td}>{new Date(s.createdAt).toLocaleDateString("en-US")}</td>
                                         <td style={td}><Link href={`/admin/roteiros/${s.itineraryId}`} style={{ color: "#1FA89F", fontWeight: 700, textDecoration: "none" }}>{s.itineraryTitle}</Link></td>
                                         <td style={td}>{s.creatorName || "—"}</td>
                                         <td style={td}>{s.buyerName}<div style={{ color: "#98989D", fontSize: 12 }}>{s.buyerEmail}</div></td>

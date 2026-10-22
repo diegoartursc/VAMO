@@ -14,11 +14,12 @@ export interface SummaryItemLike {
 
 // ── Destino ───────────────────────────────────────────────────────────────
 
-/** Junta com vírgulas e "e" antes do último ("Tóquio, Kyoto e Osaka"). */
+/** Joins with commas and "and" before the last one (American style: "Tokyo, Kyoto, and Osaka"). */
 function joinNatural(parts: string[]): string {
     if (parts.length === 0) return '';
     if (parts.length === 1) return parts[0];
-    return `${parts.slice(0, -1).join(', ')} e ${parts[parts.length - 1]}`;
+    if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+    return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
 }
 
 function cleanStrings(value: unknown): string[] {
@@ -155,7 +156,7 @@ export function buildSummaryAccessibilityLabel(
     modules: SummaryItemLike[],
 ): string | undefined {
     const parts: string[] = [];
-    if (categories.length > 0) parts.push(`Estilo: ${joinNatural(categories.map(c => c.label))}.`);
-    if (modules.length > 0) parts.push(`Inclui: ${joinNatural(modules.map(m => m.label))}.`);
+    if (categories.length > 0) parts.push(`Style: ${joinNatural(categories.map(c => c.label))}.`);
+    if (modules.length > 0) parts.push(`Includes: ${joinNatural(modules.map(m => m.label))}.`);
     return parts.length > 0 ? parts.join(' ') : undefined;
 }

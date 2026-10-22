@@ -7,7 +7,7 @@ import { theme } from '../../theme/theme';
 const STAR_COLOR = '#FFC107';
 
 /** Seletor de 0–5 estrelas (classificação do hotel). Tocar na estrela atual zera. */
-export function HotelStarsInput({ label = 'Classificação (estrelas)', value, onChange }: {
+export function HotelStarsInput({ label = 'Rating (stars)', value, onChange }: {
     label?: string;
     value: unknown;
     onChange: (stars: string) => void;
@@ -22,12 +22,12 @@ export function HotelStarsInput({ label = 'Classificação (estrelas)', value, o
                         key={n}
                         onPress={() => onChange(String(n === current ? 0 : n))}
                         hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                        accessibilityLabel={`${n} estrela${n > 1 ? 's' : ''}`}
+                        accessibilityLabel={`${n} star${n > 1 ? 's' : ''}`}
                     >
                         <Ionicons name={n <= current ? 'star' : 'star-outline'} size={28} color={n <= current ? STAR_COLOR : theme.colors.text.tertiary} />
                     </TouchableOpacity>
                 ))}
-                <Text style={st.hint}>{current ? `${current} de 5` : 'Sem classificação'}</Text>
+                <Text style={st.hint}>{current ? `${current} de 5` : 'No rating'}</Text>
             </View>
         </View>
     );
@@ -38,7 +38,7 @@ export function HotelStarsDisplay({ value, size = 13 }: { value: unknown; size?:
     const stars = toHotelStars(value);
     if (!stars) return null;
     return (
-        <View style={st.displayRow} accessibilityLabel={`Hotel ${stars} estrelas`}>
+        <View style={st.displayRow} accessibilityLabel={`${stars}-star hotel`}>
             {[1, 2, 3, 4, 5].map(n => (
                 <Ionicons key={n} name={n <= stars ? 'star' : 'star-outline'} size={size} color={STAR_COLOR} />
             ))}

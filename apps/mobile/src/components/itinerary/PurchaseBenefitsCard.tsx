@@ -19,10 +19,10 @@ import { Icon } from '../common/Icons';
 import { theme } from '../../theme/theme';
 
 const BENEFITS = [
-    'Acesso imediato ao roteiro digital',
-    'Roteiro original e sua versão personalizada em Meus Roteiros',
-    'Documentos, bilhetes e reservas organizados em um só lugar',
-    'Checklist próprio para acompanhar a preparação da viagem',
+    'Instant access to the digital itinerary',
+    'The original itinerary and your personalized version in My Itineraries',
+    'Documents, tickets and bookings organized in one place',
+    'Your own checklist to track trip preparation',
 ];
 
 export function PurchaseBenefitsCard() {
@@ -33,9 +33,9 @@ export function PurchaseBenefitsCard() {
                     <Icon name="map" size={18} color={theme.colors.primaryDark} />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.title}>O que você recebe</Text>
+                    <Text style={styles.title}>What you get</Text>
                     <Text style={styles.subtitle}>
-                        Compre uma vez, acesse pela VAMO e organize sua própria versão da viagem em Meus Roteiros.
+                        Buy once, access it on VAMO and organize your own version of the trip in My Itineraries.
                     </Text>
                 </View>
             </View>
@@ -54,9 +54,9 @@ export function PurchaseBenefitsCard() {
             <View style={styles.footerRow}>
                 <Icon name="info" size={14} color={theme.colors.text.tertiary} />
                 <Text style={styles.footer}>
-                    Produto digital: o pagamento é referente ao conteúdo informativo do roteiro — dicas,
-                    informações e planejamento de viagem. Não inclui passagens, hospedagens, reservas ou
-                    outros serviços turísticos.
+                    Digital product: payment is for the itinerary's informational content — tips,
+                    information and travel planning. It doesn't include flights, lodging, bookings or
+                    other tourism services.
                 </Text>
             </View>
         </View>

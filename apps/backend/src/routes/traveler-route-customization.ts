@@ -76,7 +76,7 @@ async function assertOwnership(
 }
 
 function sendOwnershipError(res: Response): void {
-    res.status(403).json({ error: 'Acesso negado a esta viagem' });
+    res.status(403).json({ error: 'Access denied to this trip' });
 }
 
 function isPlainObject(value: unknown): value is Record<string, any> {
@@ -97,9 +97,9 @@ function validateCustomizationBody(body: any):
         if (body.notes === null) {
             data.notes = null;
         } else if (typeof body.notes !== 'string') {
-            return { error: 'notes precisa ser string ou null' };
+            return { error: 'notes must be a string or null' };
         } else if (body.notes.length > MAX_NOTES_LEN) {
-            return { error: `notes excede o tamanho máximo (${MAX_NOTES_LEN})` };
+            return { error: `notes exceeds the maximum length (${MAX_NOTES_LEN})` };
         } else {
             data.notes = body.notes;
         }
@@ -109,44 +109,44 @@ function validateCustomizationBody(body: any):
         // Aceitamos tanto array (legado) quanto objeto agrupado por kind
         // — o mobile pode evoluir o shape, manter validação leve.
         if (!Array.isArray(body.addedItems) && !isPlainObject(body.addedItems)) {
-            return { error: 'addedItems precisa ser array ou objeto' };
+            return { error: 'addedItems must be an array or object' };
         }
         if (byteLengthOfJson(body.addedItems) > MAX_ADDED_ITEMS_BYTES) {
-            return { error: `addedItems excede ${Math.round(MAX_ADDED_ITEMS_BYTES / 1024)} KB` };
+            return { error: `addedItems exceeds ${Math.round(MAX_ADDED_ITEMS_BYTES / 1024)} KB` };
         }
         data.addedItems = body.addedItems;
     }
 
     if (body?.hiddenOriginalIds !== undefined) {
         if (!Array.isArray(body.hiddenOriginalIds)) {
-            return { error: 'hiddenOriginalIds precisa ser array' };
+            return { error: 'hiddenOriginalIds must be an array' };
         }
         if (body.hiddenOriginalIds.length > MAX_HIDDEN_IDS) {
-            return { error: `hiddenOriginalIds excede o máximo de ${MAX_HIDDEN_IDS} entradas` };
+            return { error: `hiddenOriginalIds exceeds the maximum of ${MAX_HIDDEN_IDS} entries` };
         }
         if (body.hiddenOriginalIds.some((id: any) => typeof id !== 'string' || id.length > 256)) {
-            return { error: 'hiddenOriginalIds só aceita strings (≤ 256 chars)' };
+            return { error: 'hiddenOriginalIds only accepts strings (≤ 256 chars)' };
         }
         data.hiddenOriginalIds = body.hiddenOriginalIds;
     }
 
     if (body?.editedOriginalItems !== undefined) {
         if (!isPlainObject(body.editedOriginalItems)) {
-            return { error: 'editedOriginalItems precisa ser um objeto' };
+            return { error: 'editedOriginalItems must be an object' };
         }
         if (byteLengthOfJson(body.editedOriginalItems) > MAX_EDITED_ITEMS_BYTES) {
-            return { error: `editedOriginalItems excede ${Math.round(MAX_EDITED_ITEMS_BYTES / 1024)} KB` };
+            return { error: `editedOriginalItems exceeds ${Math.round(MAX_EDITED_ITEMS_BYTES / 1024)} KB` };
         }
         data.editedOriginalItems = body.editedOriginalItems;
     }
 
     if (Object.keys(data).length === 0) {
-        return { error: 'Nenhum campo fornecido' };
+        return { error: 'No fields provided' };
     }
 
     // Cap agregado — defesa final contra explosão de storage por viajante.
     if (byteLengthOfJson(data) > MAX_CUSTOMIZATION_PAYLOAD_BYTES) {
-        return { error: `customização excede ${Math.round(MAX_CUSTOMIZATION_PAYLOAD_BYTES / 1024)} KB` };
+        return { error: `customization exceeds ${Math.round(MAX_CUSTOMIZATION_PAYLOAD_BYTES / 1024)} KB` };
     }
 
     return { data };
@@ -188,7 +188,7 @@ router.get(
             res.json({ customization });
         } catch (error) {
             console.error('Error fetching route customization:', error);
-            res.status(500).json({ error: 'Falha ao carregar personalização' });
+            res.status(500).json({ error: 'Failed to load customization' });
         }
     },
 );
@@ -218,7 +218,7 @@ router.put(
             });
             if (existing && existing.travelerId !== travelerId) {
                 // Não deveria acontecer (unique key cobre), mas guarda extra.
-                res.status(403).json({ error: 'Personalização pertence a outro viajante' });
+                res.status(403).json({ error: 'This customization belongs to another traveler' });
                 return;
             }
 
@@ -242,7 +242,7 @@ router.put(
             res.json({ customization });
         } catch (error) {
             console.error('Error saving route customization:', error);
-            res.status(500).json({ error: 'Falha ao salvar personalização' });
+            res.status(500).json({ error: 'Failed to save customization' });
         }
     },
 );
@@ -269,7 +269,7 @@ router.delete(
             res.json({ ok: true });
         } catch (error) {
             console.error('Error deleting route customization:', error);
-            res.status(500).json({ error: 'Falha ao remover personalização' });
+            res.status(500).json({ error: 'Failed to remove customization' });
         }
     },
 );
@@ -316,7 +316,7 @@ router.get(
                 createdAt: sale.createdAt,
             });
             if (!rebuilt) {
-                res.status(404).json({ error: 'Roteiro não encontrado' });
+                res.status(404).json({ error: 'Itinerary not found' });
                 return;
             }
 
@@ -334,7 +334,7 @@ router.get(
             res.json({ snapshot: rebuilt });
         } catch (error) {
             console.error('Error fetching route snapshot:', error);
-            res.status(500).json({ error: 'Falha ao carregar snapshot do roteiro' });
+            res.status(500).json({ error: 'Failed to load itinerary snapshot' });
         }
     },
 );
@@ -376,7 +376,7 @@ router.post(
                 createdAt: sale.createdAt,
             });
             if (!rebuilt) {
-                res.status(404).json({ error: 'Roteiro não encontrado' });
+                res.status(404).json({ error: 'Itinerary not found' });
                 return;
             }
 
@@ -394,7 +394,7 @@ router.post(
             res.json({ snapshot: rebuilt });
         } catch (error) {
             console.error('Error rebuilding route snapshot:', error);
-            res.status(500).json({ error: 'Falha ao reconstruir snapshot' });
+            res.status(500).json({ error: 'Failed to rebuild snapshot' });
         }
     },
 );

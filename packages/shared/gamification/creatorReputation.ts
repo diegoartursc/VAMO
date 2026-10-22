@@ -53,45 +53,45 @@ const GOLD_BG = '#FBF4E1';
 export const CREATOR_REPUTATION_LEVELS: CreatorReputationLevelConfig[] = [
     {
         level: 'verified_creator',
-        label: 'Roteirista Verificado',
-        description: 'Identidade confirmada e perfil aprovado pela VAMO.',
-        criteriaSummary: 'Perfil e identidade confirmados',
+        label: 'Verified Creator',
+        description: 'Identity confirmed and profile approved by VAMO.',
+        criteriaSummary: 'Profile and identity confirmed',
         icon: '🛡️',
         color: SECONDARY,
         bgColor: NAVY_BG,
     },
     {
         level: 'recommended_creator',
-        label: 'Roteirista Recomendado',
-        description: 'Histórico inicial de vendas com avaliações positivas comprovadas.',
-        criteriaSummary: 'Boas avaliações e histórico inicial',
+        label: 'Recommended Creator',
+        description: 'Early sales history with proven positive reviews.',
+        criteriaSummary: 'Good reviews and early track record',
         icon: '⭐',
         color: GOLD,
         bgColor: GOLD_BG,
     },
     {
         level: 'travel_curator',
-        label: 'Curador de Viagens',
-        description: 'Experiência consistente, bom volume de vendas e avaliações excelentes.',
-        criteriaSummary: 'Experiência consistente e boa resposta',
+        label: 'Travel Curator',
+        description: 'Consistent experience, healthy sales volume and excellent reviews.',
+        criteriaSummary: 'Consistent experience and good responsiveness',
         icon: '🧭',
         color: DEEP_TEAL,
         bgColor: TEAL_BG,
     },
     {
         level: 'top_creator',
-        label: 'Top Roteirista',
-        description: 'Desempenho comercial elevado e reputação excelente comprovada por volume de avaliações.',
-        criteriaSummary: 'Alto desempenho e excelente reputação',
+        label: 'Top Creator',
+        description: 'Strong sales performance and an excellent reputation backed by review volume.',
+        criteriaSummary: 'High performance and excellent reputation',
         icon: '🏆',
         color: GOLD,
         bgColor: GOLD_BG,
     },
     {
         level: 'vamo_ambassador',
-        label: 'Embaixador VAMO',
-        description: 'Reconhecimento institucional da equipe VAMO como referência da comunidade.',
-        criteriaSummary: 'Reconhecimento da equipe VAMO',
+        label: 'VAMO Ambassador',
+        description: 'Official recognition by the VAMO team as a community reference.',
+        criteriaSummary: 'Recognized by the VAMO team',
         icon: '💎',
         color: PRIMARY,
         bgColor: TEAL_BG,
@@ -207,26 +207,26 @@ function unmetFor(target: CreatorReputationLevel, s: CreatorReputationStatsInput
 
     if (target === 'recommended_creator') {
         const t = THRESHOLDS.recommended;
-        need(s.activeItineraries >= t.activeItineraries, `${t.activeItineraries} roteiros publicados`);
-        need(s.totalSales >= t.sales, `${t.sales} vendas`);
-        need(s.reviewCount >= t.minReviews, `${t.minReviews} avaliações`);
-        need(rating >= t.ratingThreshold, `média ${t.ratingThreshold}+ com avaliações suficientes`);
+        need(s.activeItineraries >= t.activeItineraries, `${t.activeItineraries} published itineraries`);
+        need(s.totalSales >= t.sales, `${t.sales} sales`);
+        need(s.reviewCount >= t.minReviews, `${t.minReviews} reviews`);
+        need(rating >= t.ratingThreshold, `${t.ratingThreshold}+ average with enough reviews`);
     } else if (target === 'travel_curator') {
         const t = THRESHOLDS.curator;
-        need(s.activeItineraries >= t.activeItineraries, `${t.activeItineraries} roteiros publicados`);
-        need(s.totalSales >= t.sales, `${t.sales} vendas`);
-        need(s.reviewCount >= t.minReviews, `${t.minReviews} avaliações`);
-        need(rating >= t.ratingThreshold, `média ${t.ratingThreshold}+ com avaliações suficientes`);
-        need((s.responseRatePct ?? 0) >= t.responseRate, 'boa taxa de resposta');
+        need(s.activeItineraries >= t.activeItineraries, `${t.activeItineraries} published itineraries`);
+        need(s.totalSales >= t.sales, `${t.sales} sales`);
+        need(s.reviewCount >= t.minReviews, `${t.minReviews} reviews`);
+        need(rating >= t.ratingThreshold, `${t.ratingThreshold}+ average with enough reviews`);
+        need((s.responseRatePct ?? 0) >= t.responseRate, 'good response rate');
     } else if (target === 'top_creator') {
         const t = THRESHOLDS.top;
-        need(s.activeItineraries >= t.activeItineraries, `${t.activeItineraries} roteiros publicados`);
-        need(s.totalSales >= t.sales, `${t.sales} vendas`);
-        need(s.reviewCount >= t.minReviews, `${t.minReviews} avaliações`);
-        need(rating >= t.ratingThreshold, `média ${t.ratingThreshold}+ com avaliações suficientes`);
-        need((s.complaintRatePct ?? 0) <= t.maxComplaint, 'baixa taxa de reclamação');
+        need(s.activeItineraries >= t.activeItineraries, `${t.activeItineraries} published itineraries`);
+        need(s.totalSales >= t.sales, `${t.sales} sales`);
+        need(s.reviewCount >= t.minReviews, `${t.minReviews} reviews`);
+        need(rating >= t.ratingThreshold, `${t.ratingThreshold}+ average with enough reviews`);
+        need((s.complaintRatePct ?? 0) <= t.maxComplaint, 'low complaint rate');
     } else if (target === 'vamo_ambassador') {
-        out.push('Seleção manual da equipe VAMO');
+        out.push('Hand-picked by the VAMO team');
     }
     return out;
 }

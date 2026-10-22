@@ -26,7 +26,7 @@
 
 import type { MergedItem, MergedItinerary } from './mergeEngine';
 import { resolveGeneralTipText } from './mergeEngine';
-import { getCostReferences, formatMoney, formatTimeForAustraliaDisplay, hotelStarsText } from '@vamo/shared/itinerary';
+import { getCostReferences, formatMoney, formatTimeForDisplay, hotelStarsText, getChecklistCategoryLabel } from '@vamo/shared/itinerary';
 import { convertToBase, summarizeInBase } from '../../utils/currencyConversion';
 import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
@@ -49,7 +49,7 @@ export interface PdfBuildOpts {
     generatedAtISO?: string;
     travelerChecklist?: Array<{ item: string; category?: string; completed?: boolean }>;
     travelerFiles?: Array<{ title: string; category?: string; note?: string | null; originalFileName?: string | null }>;
-    /** Taxas de câmbio (moeda → multiplicador p/ AUD) para a seção de custos
+    /** Taxas de câmbio (currency → multiplier to the base currency) para a seção de custos
      * converter cada item à moeda de referência. Sem uma taxa, o PDF mantém
      * a moeda original e informa que o total AUD está indisponível. */
     rates?: Record<string, number>;
@@ -102,12 +102,12 @@ function formatDateBR(iso: string | undefined): string {
 /** Resolve o título/destino/duração a partir do itinerary. Tolerante a
  * shapes — tanto live quanto snapshot têm essas chaves no topo. */
 function getMeta(itinerary: any): { title: string; destination: string; duration: string } {
-    const title = itinerary?.title ?? itinerary?.name ?? 'Meu Roteiro';
+    const title = itinerary?.title ?? itinerary?.name ?? 'My Itinerary';
     const destination = itinerary?.destination ?? itinerary?.location ?? '';
     const days = itinerary?.days ?? itinerary?.duration ?? itinerary?.tripDays;
     let duration = '';
     if (typeof days === 'number' && days > 0) {
-        duration = `${days} ${days === 1 ? 'dia' : 'dias'}`;
+        duration = `${days} ${days === 1 ? 'day' : 'days'}`;
     } else if (typeof days === 'string' && days.trim()) {
         duration = days;
     }
@@ -124,10 +124,10 @@ function getMeta(itinerary: any): { title: string; destination: string; duration
  */
 function badgeForSource(source: MergedItem['source']): string {
     if (source === 'added') {
-        return `<span class="badge badge-added">Adicionado</span>`;
+        return `<span class="badge badge-added">Added</span>`;
     }
     if (source === 'edited') {
-        return `<span class="badge badge-edited">Editado</span>`;
+        return `<span class="badge badge-edited">Edited</span>`;
     }
     return '';
 }
@@ -156,55 +156,55 @@ function renderParagraph(value: unknown): string {
 }
 
 function renderAccommodation(data: any, source?: MergedItem['source']): string {
-    const title = data?.name ?? 'Hospedagem';
+    const title = data?.name ?? 'Lodging';
     return `
         <div class="card">
             <div class="card-header">
                 <h3>${escapeHtml(title)}</h3>
                 ${source ? badgeForSource(source) : ''}
             </div>
-            ${renderField('Endereço', data?.address)}
-            ${renderField('Bairro', data?.neighborhood)}
-            ${renderField('Faixa de preço', data?.priceRange)}
-            ${renderField('Classificação', hotelStarsText(data?.rating))}
+            ${renderField('Address', data?.address)}
+            ${renderField('Neighborhood', data?.neighborhood)}
+            ${renderField('Price range', data?.priceRange)}
+            ${renderField('Rating', hotelStarsText(data?.rating))}
             ${renderParagraph(data?.description)}
-            ${data?.tips ? `<p class="tip"><strong>Dica:</strong> ${escapeHtml(data.tips)}</p>` : ''}
+            ${data?.tips ? `<p class="tip"><strong>Tip:</strong> ${escapeHtml(data.tips)}</p>` : ''}
         </div>`;
 }
 
 function renderTransport(data: any, source?: MergedItem['source']): string {
-    const title = data?.description ?? data?.title ?? 'Transporte';
+    const title = data?.description ?? data?.title ?? 'Transportation';
     return `
         <div class="card">
             <div class="card-header">
                 <h3>${escapeHtml(title)}</h3>
                 ${source ? badgeForSource(source) : ''}
             </div>
-            ${renderField('Tipos de passe', data?.passTypes)}
-            ${renderField('Valor', data?.priceValue ? `${data?.priceCurrency ?? BASE_CURRENCY} ${data.priceValue}` : '')}
+            ${renderField('Pass types', data?.passTypes)}
+            ${renderField('Amount', data?.priceValue ? `${data?.priceCurrency ?? BASE_CURRENCY} ${data.priceValue}` : '')}
             ${renderParagraph(data?.notes)}
         </div>`;
 }
 
 function renderAttraction(data: any, source?: MergedItem['source']): string {
-    const title = data?.name ?? 'Passeio';
+    const title = data?.name ?? 'Tour';
     return `
         <div class="card">
             <div class="card-header">
                 <h3>${escapeHtml(title)}</h3>
                 ${source ? badgeForSource(source) : ''}
             </div>
-            ${renderField('Localização', data?.location)}
-            ${renderField('Ingresso', data?.ticketPrice)}
-            ${renderField('Horário', formatTimeForAustraliaDisplay(data?.hours))}
-            ${renderField('Duração', data?.duration)}
+            ${renderField('Location', data?.location)}
+            ${renderField('Ticket', data?.ticketPrice)}
+            ${renderField('Time', formatTimeForDisplay(data?.hours))}
+            ${renderField('Duration', data?.duration)}
             ${renderParagraph(data?.description)}
-            ${data?.tips ? `<p class="tip"><strong>Dica:</strong> ${escapeHtml(data.tips)}</p>` : ''}
+            ${data?.tips ? `<p class="tip"><strong>Tip:</strong> ${escapeHtml(data.tips)}</p>` : ''}
         </div>`;
 }
 
 function renderRestaurant(data: any, source?: MergedItem['source']): string {
-    const title = data?.name ?? 'Restaurante';
+    const title = data?.name ?? 'Restaurant';
     return `
         <div class="card">
             <div class="card-header">
@@ -212,11 +212,11 @@ function renderRestaurant(data: any, source?: MergedItem['source']): string {
                 ${source ? badgeForSource(source) : ''}
             </div>
             ${renderField('Cozinha', data?.cuisine)}
-            ${renderField('Localização', data?.location)}
-            ${renderField('Faixa de preço', data?.priceRange)}
-            ${renderField('Horário', formatTimeForAustraliaDisplay(data?.hours))}
+            ${renderField('Location', data?.location)}
+            ${renderField('Price range', data?.priceRange)}
+            ${renderField('Time', formatTimeForDisplay(data?.hours))}
             ${renderParagraph(data?.description)}
-            ${data?.tips ? `<p class="tip"><strong>Dica:</strong> ${escapeHtml(data.tips)}</p>` : ''}
+            ${data?.tips ? `<p class="tip"><strong>Tip:</strong> ${escapeHtml(data.tips)}</p>` : ''}
         </div>`;
 }
 
@@ -255,7 +255,7 @@ function renderChecklistItem(data: any, source?: MergedItem['source']): string {
 }
 
 function renderExtraSpending(data: any, source?: MergedItem['source']): string {
-    const title = data?.title ?? 'Gasto extra';
+    const title = data?.title ?? 'Extra expense';
     // Normaliza ambos os shapes: o canônico `data.cost = { amount/value, currency }`
     // (criador + formulário do viajante) e o legado plano `data.value/currency`.
     // Sem isso, gastos salvos em `cost` saíam sem valor no card individual.
@@ -269,7 +269,7 @@ function renderExtraSpending(data: any, source?: MergedItem['source']): string {
                 <h3>${escapeHtml(title)}</h3>
                 ${source ? badgeForSource(source) : ''}
             </div>
-            ${value ? renderField('Valor', value) : ''}
+            ${value ? renderField('Amount', value) : ''}
             ${renderParagraph(data?.description)}
         </div>`;
 }
@@ -281,28 +281,28 @@ function renderFlight(data: any, label: string, source?: MergedItem['source']): 
                 <h3>${escapeHtml(label)}</h3>
                 ${source ? badgeForSource(source) : ''}
             </div>
-            ${renderField('Companhia', data?.airline)}
-            ${renderField('Voo', data?.flightNumber)}
-            ${renderField('Origem', data?.originAirport)}
-            ${renderField('Destino', data?.destinationAirport)}
-            ${renderField('Saída', [data?.departureDate, formatTimeForAustraliaDisplay(data?.departureTime)].filter(Boolean).join(' '))}
-            ${renderField('Chegada', [data?.arrivalDate, formatTimeForAustraliaDisplay(data?.arrivalTime)].filter(Boolean).join(' '))}
-            ${typeof data?.stops === 'number' ? renderField('Paradas', data.stops === 0 ? 'Direto' : String(data.stops)) : ''}
+            ${renderField('Airline', data?.airline)}
+            ${renderField('Flight', data?.flightNumber)}
+            ${renderField('Origin', data?.originAirport)}
+            ${renderField('Destination', data?.destinationAirport)}
+            ${renderField('Departure', [data?.departureDate, formatTimeForDisplay(data?.departureTime)].filter(Boolean).join(' '))}
+            ${renderField('Arrival', [data?.arrivalDate, formatTimeForDisplay(data?.arrivalTime)].filter(Boolean).join(' '))}
+            ${typeof data?.stops === 'number' ? renderField('Stops', data.stops === 0 ? 'Direto' : String(data.stops)) : ''}
         </div>`;
 }
 
 function renderDayActivity(data: any, source?: MergedItem['source']): string {
-    const title = data?.title ?? data?.name ?? 'Atividade';
+    const title = data?.title ?? data?.name ?? 'Activity';
     const icon = data?.icon ? `${escapeHtml(data.icon)} ` : '';
     return `
         <div class="activity">
             <div class="activity-header">
                 <span class="activity-title">${icon}${escapeHtml(title)}</span>
-                ${data?.time ? `<span class="activity-time">${escapeHtml(formatTimeForAustraliaDisplay(data.time))}</span>` : ''}
+                ${data?.time ? `<span class="activity-time">${escapeHtml(formatTimeForDisplay(data.time))}</span>` : ''}
                 ${source ? badgeForSource(source) : ''}
             </div>
             ${renderField('Local', data?.location)}
-            ${renderField('Duração', data?.duration)}
+            ${renderField('Duration', data?.duration)}
             ${renderParagraph(data?.description)}
         </div>`;
 }
@@ -349,25 +349,25 @@ function renderItineraryDays(itinerary: any, merged: MergedItinerary | null | un
         }).join('');
         return `
             <div class="day">
-                <h3 class="day-title">Dia ${escapeHtml(num)}${title}</h3>
+                <h3 class="day-title">Day ${escapeHtml(num)}${title}</h3>
                 ${summary}
                 ${description}
                 <div class="day-activities">${activitiesHtml}</div>
             </div>`;
     }).join('');
 
-    return sectionWrapper('Itinerário', html);
+    return sectionWrapper('Itinerary', html);
 }
 
 function renderAccommodationsSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
     if (ctx.variant === 'personalized') {
         const items = merged?.accommodations ?? [];
         if (!items.length) return '';
-        return sectionWrapper('Hospedagens', items.map(m => renderAccommodation(m.data, m.source)).join(''));
+        return sectionWrapper('Lodging', items.map(m => renderAccommodation(m.data, m.source)).join(''));
     }
     const items = Array.isArray(itinerary?.accommodations) ? itinerary.accommodations : [];
     if (!items.length) return '';
-    return sectionWrapper('Hospedagens', items.map((a: any) => renderAccommodation(a)).join(''));
+    return sectionWrapper('Lodging', items.map((a: any) => renderAccommodation(a)).join(''));
 }
 
 function renderFlightsSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
@@ -376,8 +376,8 @@ function renderFlightsSection(itinerary: any, merged: MergedItinerary | null | u
         const back = merged?.flightReturn;
         if (!outbound && !back) return '';
         const html = [
-            outbound ? renderFlight(outbound.data, 'Voo de ida', outbound.source) : '',
-            back ? renderFlight(back.data, 'Voo de volta', back.source) : '',
+            outbound ? renderFlight(outbound.data, 'Outbound flight', outbound.source) : '',
+            back ? renderFlight(back.data, 'Return flight', back.source) : '',
         ].join('');
         return sectionWrapper('Voos', html);
     }
@@ -386,8 +386,8 @@ function renderFlightsSection(itinerary: any, merged: MergedItinerary | null | u
     const back = flightInfo?.return;
     if (!outbound && !back) return '';
     const html = [
-        outbound ? renderFlight(outbound, 'Voo de ida') : '',
-        back ? renderFlight(back, 'Voo de volta') : '',
+        outbound ? renderFlight(outbound, 'Outbound flight') : '',
+        back ? renderFlight(back, 'Return flight') : '',
     ].join('');
     return sectionWrapper('Voos', html);
 }
@@ -396,33 +396,33 @@ function renderAttractionsSection(itinerary: any, merged: MergedItinerary | null
     if (ctx.variant === 'personalized') {
         const items = merged?.attractions ?? [];
         if (!items.length) return '';
-        return sectionWrapper('Passeios', items.map(m => renderAttraction(m.data, m.source)).join(''));
+        return sectionWrapper('Tours', items.map(m => renderAttraction(m.data, m.source)).join(''));
     }
     const items = Array.isArray(itinerary?.attractions) ? itinerary.attractions : [];
     if (!items.length) return '';
-    return sectionWrapper('Passeios', items.map((a: any) => renderAttraction(a)).join(''));
+    return sectionWrapper('Tours', items.map((a: any) => renderAttraction(a)).join(''));
 }
 
 function renderTransportsSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
     if (ctx.variant === 'personalized') {
         const items = merged?.transports ?? [];
         if (!items.length) return '';
-        return sectionWrapper('Transporte', items.map(m => renderTransport(m.data, m.source)).join(''));
+        return sectionWrapper('Transportation', items.map(m => renderTransport(m.data, m.source)).join(''));
     }
     const items = Array.isArray(itinerary?.transports) ? itinerary.transports : [];
     if (!items.length) return '';
-    return sectionWrapper('Transporte', items.map((t: any) => renderTransport(t)).join(''));
+    return sectionWrapper('Transportation', items.map((t: any) => renderTransport(t)).join(''));
 }
 
 function renderRestaurantsSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
     if (ctx.variant === 'personalized') {
         const items = merged?.restaurants ?? [];
         if (!items.length) return '';
-        return sectionWrapper('Restaurantes', items.map(m => renderRestaurant(m.data, m.source)).join(''));
+        return sectionWrapper('Restaurants', items.map(m => renderRestaurant(m.data, m.source)).join(''));
     }
     const items = Array.isArray(itinerary?.restaurants) ? itinerary.restaurants : [];
     if (!items.length) return '';
-    return sectionWrapper('Restaurantes', items.map((r: any) => renderRestaurant(r)).join(''));
+    return sectionWrapper('Restaurants', items.map((r: any) => renderRestaurant(r)).join(''));
 }
 
 function renderTipsSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
@@ -432,11 +432,11 @@ function renderTipsSection(itinerary: any, merged: MergedItinerary | null | unde
     if (ctx.variant === 'personalized') {
         const items = merged?.generalTips ?? [];
         const html = items.map(m => renderGeneralTip(m.data, m.source)).filter(Boolean).join('');
-        return sectionWrapper('Dicas', html);
+        return sectionWrapper('Tips', html);
     }
     const items = Array.isArray(itinerary?.generalTips) ? itinerary.generalTips : [];
     const html = items.map((t: any) => renderGeneralTip(t)).filter(Boolean).join('');
-    return sectionWrapper('Dicas', html);
+    return sectionWrapper('Tips', html);
 }
 
 function renderChecklistSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
@@ -459,9 +459,9 @@ function renderTravelerChecklist(items: PdfBuildOpts['travelerChecklist'], varia
     const body = `<ul class="checklist">${items.map(item => `
         <li class="checklist-item">
             ${item.completed ? '✓' : '○'} ${escapeHtml(item.item)}
-            ${item.category ? `<span class="field-label"> · ${escapeHtml(item.category)}</span>` : ''}
+            ${item.category ? `<span class="field-label"> · ${escapeHtml(getChecklistCategoryLabel(item.category))}</span>` : ''}
         </li>`).join('')}</ul>`;
-    return sectionWrapper('Meu checklist', body);
+    return sectionWrapper('My checklist', body);
 }
 
 function renderTravelerFiles(items: PdfBuildOpts['travelerFiles'], variant: PdfVariant): string {
@@ -470,21 +470,21 @@ function renderTravelerFiles(items: PdfBuildOpts['travelerFiles'], variant: PdfV
         <div class="card">
             <div class="card-header"><h3>${escapeHtml(file.title)}</h3></div>
             ${renderField('Categoria', file.category)}
-            ${renderField('Arquivo', file.originalFileName)}
+            ${renderField('File', file.originalFileName)}
             ${renderParagraph(file.note)}
         </div>`).join('');
-    return sectionWrapper('Arquivos da viagem', body);
+    return sectionWrapper('Trip files', body);
 }
 
 function renderExtraSpendingSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
     if (ctx.variant === 'personalized') {
         const items = merged?.extraSpendingItems ?? [];
         if (!items.length) return '';
-        return sectionWrapper('Gastos Extras', items.map(m => renderExtraSpending(m.data, m.source)).join(''));
+        return sectionWrapper('Extra Expenses', items.map(m => renderExtraSpending(m.data, m.source)).join(''));
     }
     const items = Array.isArray(itinerary?.extraSpendingItems) ? itinerary.extraSpendingItems : [];
     if (!items.length) return '';
-    return sectionWrapper('Gastos Extras', items.map((e: any) => renderExtraSpending(e)).join(''));
+    return sectionWrapper('Extra Expenses', items.map((e: any) => renderExtraSpending(e)).join(''));
 }
 
 /**
@@ -539,17 +539,17 @@ function renderCostReferenceSection(
             const converted = convertToBase(item.amountPerPerson, item.currency, rates);
             const conv = item.currency !== BASE_CURRENCY
                 ? converted === null
-                    ? ` <span class="cost-conv">· cotação ${BASE_CURRENCY} indisponível</span>`
+                    ? ` <span class="cost-conv">· ${BASE_CURRENCY} rate unavailable</span>`
                     : ` <span class="cost-conv">≈ ${escapeHtml(formatMoney(converted, BASE_CURRENCY))}</span>`
                 : '';
             const base = item.sharedByPeople > 1
-                ? `<div class="cost-base">Base: ${escapeHtml(formatMoney(item.amountTotal, item.currency))} ÷ ${item.sharedByPeople} pessoas</div>`
+                ? `<div class="cost-base">Base: ${escapeHtml(formatMoney(item.amountTotal, item.currency))} ÷ ${item.sharedByPeople} people</div>`
                 : '';
             return `
                 <div class="cost-item">
                     <div class="cost-item-head">
                         <span class="cost-item-title">${escapeHtml(item.title)}</span>
-                        <span class="cost-item-value">${escapeHtml(main)} / pessoa${conv}</span>
+                        <span class="cost-item-value">${escapeHtml(main)} / person${conv}</span>
                     </div>
                     ${base}
                 </div>`;
@@ -562,11 +562,11 @@ function renderCostReferenceSection(
     }).join('');
 
     const totalHtml = convertedSummary.missingCurrencies.length === 0
-        ? `<div class="cost-total">Total estimado por pessoa <strong>${escapeHtml(formatMoney(convertedSummary.totalBase, BASE_CURRENCY))}</strong></div>`
-        : `<div class="cost-total">Total em ${BASE_CURRENCY} indisponível: falta cotação para <strong>${escapeHtml(convertedSummary.missingCurrencies.join(', '))}</strong>.</div>`;
-    const disclaimer = `<p class="cost-disclaimer">Valores de referência por pessoa, informados pelo criador ou por você. Podem variar por época, câmbio e disponibilidade.</p>`;
+        ? `<div class="cost-total">Estimated total per person <strong>${escapeHtml(formatMoney(convertedSummary.totalBase, BASE_CURRENCY))}</strong></div>`
+        : `<div class="cost-total">Total in ${BASE_CURRENCY} unavailable: missing exchange rate for <strong>${escapeHtml(convertedSummary.missingCurrencies.join(', '))}</strong>.</div>`;
+    const disclaimer = `<p class="cost-disclaimer">Per-person reference amounts provided by the creator or by you. They can vary by season, exchange rate and availability.</p>`;
 
-    return sectionWrapper('Custos e orçamento (referência por pessoa)', groupsHtml + totalHtml + disclaimer);
+    return sectionWrapper('Costs and budget (per-person reference)', groupsHtml + totalHtml + disclaimer);
 }
 
 // ─── CSS ────────────────────────────────────────────────────────────
@@ -842,8 +842,8 @@ export function buildPdfHtml(opts: PdfBuildOpts): string {
         : '';
 
     const variantBadge = variant === 'personalized'
-        ? `<span class="variant-badge personalized">Versão personalizada</span>`
-        : `<span class="variant-badge original">Versão original</span>`;
+        ? `<span class="variant-badge personalized">Personalized version</span>`
+        : `<span class="variant-badge original">Original version</span>`;
 
     const metaLine = [meta.destination, meta.duration].filter(Boolean).join(' · ');
 
@@ -868,10 +868,10 @@ export function buildPdfHtml(opts: PdfBuildOpts): string {
     ].filter(Boolean).join('');
 
     const generatedAt = formatDateBR(generatedAtISO);
-    const footerDate = generatedAt ? `Gerado em ${escapeHtml(generatedAt)} · <strong>VAMO</strong>` : `<strong>VAMO</strong>`;
+    const footerDate = generatedAt ? `Generated on ${escapeHtml(generatedAt)} · <strong>VAMO</strong>` : `<strong>VAMO</strong>`;
 
     return `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en-US">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

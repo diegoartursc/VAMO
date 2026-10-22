@@ -35,9 +35,9 @@ export interface MoneyInputProps
     required?: boolean;
     error?: string;
     hint?: string;
-    /** Prefixo monetário, ex: "R$", "A$". */
+    /** Currency prefix, e.g. "$". */
     prefix?: string;
-    /** Sufixo opcional, ex: "AUD". */
+    /** Optional suffix, e.g. "USD". */
     suffix?: string;
     /** Valor atual — string (mantém formato) ou number (será serializado). */
     value: string | number | null | undefined;
@@ -96,7 +96,7 @@ function sanitize(input: string, opts: { maxDecimals: number; allowNegative: boo
     return `${sign}${out}`;
 }
 
-/** Formato final aplicado no blur: "1234,5" → "1234,50". */
+/** Formato final aplicado no blur: "1234.5" → "1234.50". */
 function formatBlurred(value: string, maxDecimals: number): string {
     if (!value) return '';
     const n = parseMoney(value);
@@ -104,11 +104,11 @@ function formatBlurred(value: string, maxDecimals: number): string {
         // Se o usuário só tem "0," ou "," deixa string vazia para não confundir.
         return value === '0' || value === '' ? value : '';
     }
-    // Formata mantendo vírgula como separador (padrão pt-BR), porque é o
+    // Formats with a dot as the decimal separator (en-US), because that is what the
     // que o usuário acaba de digitar. parseMoney aceita ambos os formatos,
     // então não há ambiguidade no salvamento.
     const fixed = n.toFixed(Math.max(0, maxDecimals));
-    return fixed.replace('.', ',');
+    return fixed;
 }
 
 export default function MoneyInput({
@@ -133,7 +133,7 @@ export default function MoneyInput({
     // Quando perde foco e o pai forçar um valor novo, ressincronizamos.
     const initial =
         typeof value === 'number' && Number.isFinite(value) && value > 0
-            ? String(value).replace('.', ',')
+            ? String(value)
             : typeof value === 'string'
                 ? value
                 : '';
@@ -147,7 +147,7 @@ export default function MoneyInput({
         if (focused.current) return;
         const incoming =
             typeof value === 'number' && Number.isFinite(value) && value !== 0
-                ? String(value).replace('.', ',')
+                ? String(value)
                 : typeof value === 'string'
                     ? value
                     : '';
@@ -193,7 +193,7 @@ export default function MoneyInput({
             prefix={prefix}
             suffix={suffix}
             placeholder={placeholder ?? 'Ex: 29,90'}
-            // keyboardType "decimal-pad" mostra vírgula em locale pt-BR
+            // keyboardType "decimal-pad" mostra vírgula em locale en-US
             // (iOS) e teclado numérico c/ ponto em outros. Não bloqueia
             // digitação — quem normaliza é o sanitize().
             keyboardType="decimal-pad"

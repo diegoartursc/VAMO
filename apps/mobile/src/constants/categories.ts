@@ -5,16 +5,16 @@ export const CATEGORIES = [
     { id: 'gastronomia', icon: 'utensils', label: 'Gastronomia' },
     { id: 'natureza', icon: 'trees', label: 'Natureza' },
     { id: 'esportes', icon: 'trophy', label: 'Esportes' },
-    { id: 'cruzeiros', icon: 'ship', label: 'Cruzeiros' },
-    { id: 'eurotrip', icon: 'globe', label: 'Eurotrip' },
+    { id: 'cruzeiros', icon: 'ship', label: 'Cruises' },
+    { id: 'eurotrip', icon: 'globe', label: 'Europe Trip' },
     { id: 'relax', icon: 'coffee', label: 'Relax' },
-    { id: 'praia', icon: 'sun', label: 'Praia' },
-    { id: 'historico', icon: 'book-open', label: 'Histórico' },
-    { id: 'festivais', icon: 'party-popper', label: 'Festivais' },
-    { id: 'mochilao', icon: 'backpack', label: 'Mochilão' },
-    { id: 'familia', icon: 'users', label: 'Família' },
-    { id: 'romantico', icon: 'heart', label: 'Romântico' },
-    { id: 'aventura', icon: 'mountain', label: 'Aventura' },
+    { id: 'praia', icon: 'sun', label: 'Beach' },
+    { id: 'historico', icon: 'book-open', label: 'Historic' },
+    { id: 'festivais', icon: 'party-popper', label: 'Festivals' },
+    { id: 'mochilao', icon: 'backpack', label: 'Backpacking' },
+    { id: 'familia', icon: 'users', label: 'Family' },
+    { id: 'romantico', icon: 'heart', label: 'Romantic' },
+    { id: 'aventura', icon: 'mountain', label: 'Adventure' },
 ] as const;
 
 export type CategoryId = typeof CATEGORIES[number]['id'];
@@ -22,15 +22,15 @@ export type CategoryId = typeof CATEGORIES[number]['id'];
 // Intent categories — budget/style filter (financial focus only)
 // VAMO 2.0: field renamed from 'emoji' → 'icon'
 export const INTENT_CATEGORIES = [
-    { id: 'economico', icon: 'piggy-bank', label: 'Econômico' },
-    { id: 'moderado', icon: 'wallet', label: 'Moderado' },
-    { id: 'luxo', icon: 'gem', label: 'Luxo' },
+    { id: 'economico', icon: 'piggy-bank', label: 'Budget' },
+    { id: 'moderado', icon: 'wallet', label: 'Moderate' },
+    { id: 'luxo', icon: 'gem', label: 'Luxury' },
 ] as const;
 
 export const INTENT_FEEDBACK: Record<string, string> = {
-    'economico': 'Mostrando viagens com melhor custo-benefício',
-    'moderado': 'Mostrando viagens com equilíbrio entre custo e conforto',
-    'luxo': 'Mostrando viagens com foco em conforto e exclusividade',
+    'economico': 'Showing trips with the best value',
+    'moderado': 'Showing trips that balance cost and comfort',
+    'luxo': 'Showing trips focused on comfort and exclusivity',
 };
 
 // As faixas de duração da busca ficam em `constants/durationPresets.ts`.

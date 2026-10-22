@@ -11,7 +11,7 @@ export default function AuthScreenShell({ children }: { children: ReactNode }) {
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
                 <LinearGradient colors={['#1A3263', '#28C9BF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
                     <VamoLogo size={140} />
-                    <Text style={styles.tagline}>Roteiros criados por quem já esteve lá</Text>
+                    <Text style={styles.tagline}>Itineraries created by people who've been there</Text>
                 </LinearGradient>
                 <View style={styles.card}>{children}</View>
             </ScrollView>

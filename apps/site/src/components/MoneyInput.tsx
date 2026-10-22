@@ -2,7 +2,7 @@
  * MoneyInput — input monetário compartilhado para o site VAMO.
  *
  * Resolve o problema clássico de `<input type="number">` no HTML, que
- * em locale en-US bloqueia vírgula (alguns browsers até em pt-BR), o
+ * em locale en-US bloqueia vírgula (alguns browsers até em en-US), o
  * que impede o usuário brasileiro de digitar "29,90".
  *
  * Estratégia:
@@ -20,7 +20,7 @@
 
 import React, { useCallback, useEffect, useRef, useState, InputHTMLAttributes } from "react";
 
-/** Parser pt-BR ("1.234,56") ou en-US ("1234.56") → number. */
+/** Parser en-US ("1.234,56") ou en-US ("1234.56") → number. */
 function parseMoney(raw: string | number | null | undefined): number {
     if (raw == null) return 0;
     if (typeof raw === "number") return Number.isFinite(raw) ? raw : 0;
@@ -64,7 +64,7 @@ function formatBlurred(raw: string, maxDecimals: number): string {
     if (!raw) return "";
     const n = parseMoney(raw);
     if (!Number.isFinite(n) || n === 0) return raw === "0" ? "0" : "";
-    return n.toFixed(Math.max(0, maxDecimals)).replace(".", ",");
+    return n.toFixed(Math.max(0, maxDecimals));
 }
 
 export interface MoneyInputProps
@@ -93,7 +93,7 @@ export default function MoneyInput({
 }: MoneyInputProps) {
     const initial =
         typeof value === "number" && Number.isFinite(value) && value !== 0
-            ? String(value).replace(".", ",")
+            ? String(value)
             : typeof value === "string" ? value : "";
     const [draft, setDraft] = useState<string>(initial);
     const focused = useRef(false);
@@ -102,7 +102,7 @@ export default function MoneyInput({
         if (focused.current) return;
         const incoming =
             typeof value === "number" && Number.isFinite(value) && value !== 0
-                ? String(value).replace(".", ",")
+                ? String(value)
                 : typeof value === "string" ? value : "";
         setDraft(incoming);
     }, [value]);

@@ -64,7 +64,7 @@ function formatCurrency(v: number) {
 }
 
 function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+    return new Date(iso).toLocaleDateString("en-US", { day: "2-digit", month: "short" });
 }
 
 function matchesFilter(status: string, filter: string): boolean {

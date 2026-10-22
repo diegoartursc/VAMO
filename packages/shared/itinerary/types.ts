@@ -55,7 +55,7 @@ export interface Day {
  */
 export interface ModuleSpending {
     value: string;        // valor por pessoa (string para preservar zeros)
-    currency: string;     // código (USD, AUD, EUR, BRL, ...)
+    currency: string;     // code (USD, EUR, GBP, ...)
 }
 
 export const EMPTY_MODULE_SPENDING: ModuleSpending = {
@@ -119,7 +119,7 @@ export interface ModuleCostInfo {
      *  por pessoa. Para gastos compartilhados (sharedByPeople>1), o
      *  valor por pessoa é calculado como amount/sharedByPeople. */
     amount?: string | null;
-    /** Código de moeda (USD, AUD, EUR, BRL, ...). Default: moeda-base do mercado (market.ts). */
+    /** Currency code (USD, EUR, GBP, ...). Default: moeda-base do mercado (market.ts). */
     currency?: string;
     /** Como o criador classifica esta informação de custo. */
     disclosureType: CostDisclosureType;
@@ -224,7 +224,7 @@ export interface AttractionItem {
 }
 
 /**
- * ExtraSpendingItem — entrada do módulo "Gastos Extras" (chip, seguro,
+ * ExtraSpendingItem — entrada do módulo "Extra Expenses" (chip, seguro,
  * taxas, gorjetas, lavanderia, etc.).
  *
  * `value`/`currency` são o formato legado. Novos itens podem usar `cost`
@@ -234,7 +234,7 @@ export interface AttractionItem {
 export interface ExtraSpendingItem {
     id: string;
     category: string;         // chave da categoria (ver EXTRA_SPENDING_CATEGORIES)
-    title: string;            // ex: "Chip de internet 10GB"
+    title: string;            // ex: "10GB SIM card"
     description: string;      // observação opcional
     /** @deprecated Use `cost.amount`. Mantido para compatibilidade. */
     value: string;            // valor por pessoa, opcional
@@ -318,7 +318,7 @@ export interface ItineraryFormState {
     /** @deprecated Use `flightCost` (ModuleCostInfo). Mantido para compatibilidade. */
     flightSpending?: ModuleSpending;       // gasto único da passagem (ida + volta) — legado
     flightCost?: ModuleCostInfo;            // bloco de custo com transparência graduada
-    extraSpendingItems: ExtraSpendingItem[]; // módulo "Gastos Extras"
+    extraSpendingItems: ExtraSpendingItem[]; // módulo "Extra Expenses"
     // Mídia
     images: string[];               // galeria
     mediaUrls: string[];            // fotos/vídeos extras
@@ -359,9 +359,9 @@ export function createEmptyForm(): ItineraryFormState {
         activeModules: ["itinerario"],
         highlights: [],
         inclusions: [
-            "Roteiro completo dia a dia",
-            "Dicas exclusivas do criador",
-            "Estimativa de gastos",
+            "Complete day-by-day itinerary",
+            "Insider tips from the creator",
+            "Cost estimates",
         ],
         days: [],
         accommodations: [],

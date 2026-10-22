@@ -106,7 +106,7 @@ export default function VendasListPage() {
                                 const isReady = sale.voucherUrl || sale.eticketUrl;
                                 return (
                                     <tr key={sale.id}>
-                                        <td>{new Date(sale.createdAt).toLocaleDateString("pt-BR")}</td>
+                                        <td>{new Date(sale.createdAt).toLocaleDateString("en-US")}</td>
                                         <td>
                                             <div style={{ fontWeight: 600 }}>{sale.contactName || sale.traveler?.name || "Viajante"}</div>
                                             <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{sale.contactEmail || sale.traveler?.email}</div>
@@ -118,7 +118,7 @@ export default function VendasListPage() {
                                         </td>
                                         <td>
                                             {sale.departure?.startDate
-                                                ? new Date(sale.departure.startDate + 'T12:00:00').toLocaleDateString("pt-BR")
+                                                ? new Date(sale.departure.startDate + 'T12:00:00').toLocaleDateString("en-US")
                                                 : "—"}
                                         </td>
                                         <td>

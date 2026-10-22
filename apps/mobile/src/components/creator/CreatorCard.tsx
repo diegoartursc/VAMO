@@ -45,7 +45,7 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
             <View style={styles.statsRow}>
                 <View style={styles.stat}>
                     <Text style={styles.statValue}>{creator.stats.itinerariesCount}</Text>
-                    <Text style={styles.statLabel}>Roteiros</Text>
+                    <Text style={styles.statLabel}>Itineraries</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>
@@ -55,18 +55,18 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>
                     <Text style={styles.statValue}>⭐ {creator.stats.averageRating}</Text>
-                    <Text style={styles.statLabel}>Avaliação</Text>
+                    <Text style={styles.statLabel}>Rating</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>
                     <Text style={styles.statValue}>{creator.stats.responseTime}</Text>
-                    <Text style={styles.statLabel}>Resposta</Text>
+                    <Text style={styles.statLabel}>Response</Text>
                 </View>
             </View>
 
             <View style={styles.footer}>
                 <TouchableOpacity style={styles.viewButton} onPress={onPress}>
-                    <Text style={styles.viewButtonText}>Ver Roteiros</Text>
+                    <Text style={styles.viewButtonText}>View Itineraries</Text>
                 </TouchableOpacity>
             </View>
         </TouchableOpacity>

@@ -38,8 +38,8 @@ interface PurchasedItineraryItem {
 
 function formatDate(dateString: string): string {
     const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return 'Data indisponível';
-    return date.toLocaleDateString('pt-BR', {
+    if (Number.isNaN(date.getTime())) return 'Date unavailable';
+    return date.toLocaleDateString('en-US', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -57,12 +57,12 @@ function normalizePurchasedItineraries(value: unknown): PurchasedItineraryItem[]
 
         return [{
             id,
-            title: item?.title || 'Roteiro digital',
-            destination: item?.destination || 'Destino a confirmar',
+            title: item?.title || 'Digital itinerary',
+            destination: item?.destination || 'Destination to be confirmed',
             country: item?.country || '',
             image: typeof item?.image === 'string' && item.image.trim() ? item.image : PLACEHOLDER_IMAGE,
             purchaseDate: item?.purchaseDate || new Date().toISOString(),
-            creatorName: item?.creatorName || 'Criador VAMO',
+            creatorName: item?.creatorName || 'VAMO Creator',
             creatorAvatar: item?.creatorAvatar || '',
             price: Number.isFinite(Number(item?.price)) ? Number(item.price) : 0,
             currency: item?.currency || BASE_CURRENCY,
@@ -93,9 +93,9 @@ function LoginPrompt() {
                 <Icon name="book-open" size={40} color={theme.colors.primary} />
             </LinearGradient>
 
-            <Text style={styles.emptyTitle}>Seus roteiros te esperam</Text>
+            <Text style={styles.emptyTitle}>Your itineraries are waiting</Text>
             <Text style={styles.emptySubtitle}>
-                Faça login para ver todos os roteiros que você adquiriu e acessar o conteúdo completo.
+                Sign in to see every itinerary you've purchased and access the full content.
             </Text>
 
             <TouchableOpacity
@@ -110,21 +110,21 @@ function LoginPrompt() {
                     style={styles.emptyButtonGradient}
                 >
                     <Icon name="circle-user" size={16} color="#fff" />
-                    <Text style={styles.emptyButtonText}>Entrar na conta</Text>
+                    <Text style={styles.emptyButtonText}>Sign in</Text>
                 </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push('/register')} style={{ marginBottom: 32 }}>
                 <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600', textAlign: 'center' }}>
-                    Criar conta grátis →
+                    Create a free account →
                 </Text>
             </TouchableOpacity>
 
             <View style={styles.emptyHints}>
                 {[
-                    { icon: 'verified', label: 'Roteiros verificados' },
-                    { icon: 'shield-check', label: 'Compra segura' },
-                    { icon: 'star', label: 'Avaliações reais' },
+                    { icon: 'verified', label: 'Verified itineraries' },
+                    { icon: 'shield-check', label: 'Secure purchase' },
+                    { icon: 'star', label: 'Real reviews' },
                 ].map((hint) => (
                     <View key={hint.label} style={styles.emptyHint}>
                         <Icon name={hint.icon as any} size={14} color={theme.colors.primary} />
@@ -202,13 +202,13 @@ function ItineraryCard({ itin, index }: { itin: PurchasedItineraryItem; index: n
     const onPressOut = () =>
         Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 100, friction: 6 }).start();
 
-    const priceFormatted = new Intl.NumberFormat('pt-BR', {
+    const priceFormatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: itin.currency ?? BASE_CURRENCY,
     }).format(itin.price);
-    const destinationLabel = [itin.destination, itin.country].filter(Boolean).join(', ') || 'Destino a confirmar';
+    const destinationLabel = [itin.destination, itin.country].filter(Boolean).join(', ') || 'Destination to be confirmed';
     const durationLabel = itin.duration && itin.duration > 0
-        ? `${itin.duration} ${itin.duration === 1 ? 'dia' : 'dias'}`
+        ? `${itin.duration} ${itin.duration === 1 ? 'day' : 'days'}`
         : null;
 
     return (
@@ -299,7 +299,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
                 <Icon name="refresh" size={38} color={theme.colors.error} />
             </LinearGradient>
 
-            <Text style={styles.emptyTitle}>Não foi possível carregar</Text>
+            <Text style={styles.emptyTitle}>Couldn't load</Text>
             <Text style={styles.emptySubtitle}>{message}</Text>
 
             <TouchableOpacity
@@ -314,13 +314,13 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
                     style={styles.emptyButtonGradient}
                 >
                     <Icon name="refresh" size={16} color="#fff" />
-                    <Text style={styles.emptyButtonText}>Tentar novamente</Text>
+                    <Text style={styles.emptyButtonText}>Try again</Text>
                 </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push('/(tabs)/index')} style={{ marginBottom: 32 }}>
                 <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600', textAlign: 'center' }}>
-                    Explorar roteiros
+                    Explore itineraries
                 </Text>
             </TouchableOpacity>
         </View>
@@ -350,9 +350,9 @@ function EmptyState() {
                 <Icon name="book-open" size={40} color={theme.colors.primary} />
             </LinearGradient>
 
-            <Text style={styles.emptyTitle}>Nenhum roteiro ainda</Text>
+            <Text style={styles.emptyTitle}>No itineraries yet</Text>
             <Text style={styles.emptySubtitle}>
-                Adquira roteiros de viajantes experientes e acesse todos os detalhes da sua aventura aqui.
+                Get itineraries from experienced travelers and access every detail of your adventure here.
             </Text>
 
             <TouchableOpacity
@@ -367,15 +367,15 @@ function EmptyState() {
                     style={styles.emptyButtonGradient}
                 >
                     <Icon name="compass" size={16} color="#fff" />
-                    <Text style={styles.emptyButtonText}>Explorar roteiros</Text>
+                    <Text style={styles.emptyButtonText}>Explore itineraries</Text>
                 </LinearGradient>
             </TouchableOpacity>
 
             <View style={styles.emptyHints}>
                 {[
-                    { icon: 'verified', label: 'Roteiros verificados' },
-                    { icon: 'shield-check', label: 'Compra segura' },
-                    { icon: 'star', label: 'Avaliações reais' },
+                    { icon: 'verified', label: 'Verified itineraries' },
+                    { icon: 'shield-check', label: 'Secure purchase' },
+                    { icon: 'star', label: 'Real reviews' },
                 ].map((hint) => (
                     <View key={hint.label} style={styles.emptyHint}>
                         <Icon name={hint.icon as any} size={14} color={theme.colors.primary} />
@@ -425,7 +425,7 @@ export default function MyTripsScreen() {
                 if (!mounted) return;
                 console.warn('Error loading purchased itineraries:', error);
                 setItineraries([]);
-                setLoadError('Suas compras não foram carregadas. Verifique a conexão e tente novamente.');
+                setLoadError('Your purchases couldn\'t be loaded. Check your connection and try again.');
                 setLoading(false);
                 setRefreshing(false);
             });
@@ -457,7 +457,7 @@ export default function MyTripsScreen() {
                     <View style={styles.headerTop}>
                         <View>
                             <Text style={styles.headerLabel}>BIBLIOTECA DIGITAL</Text>
-                            <Text style={styles.headerTitle}>Meus Roteiros</Text>
+                            <Text style={styles.headerTitle}>My Itineraries</Text>
                         </View>
                         <View style={styles.headerIconCircle}>
                             <Icon name="book-open" size={22} color="#fff" />
@@ -494,7 +494,7 @@ export default function MyTripsScreen() {
                 ) : (
                     <>
                         <Text style={styles.sectionLabel}>
-                            {itineraries.length} {itineraries.length === 1 ? 'roteiro adquirido' : 'roteiros adquiridos'}
+                            {itineraries.length} {itineraries.length === 1 ? 'purchased itinerary' : 'purchased itineraries'}
                         </Text>
                         {itineraries.map((itin, index) => (
                             <ItineraryCard key={itin.id} itin={itin} index={index} />

@@ -73,9 +73,9 @@ export const CreateItinerarySchema = z.object({
     // Capa marcada pelo criador (até 3). Limite documentado aqui; o mobile já
     // enforça via UI (slice(0,3) em new-itinerary.tsx). Tolerante a strings
     // não-URL pra não quebrar dados legados (uploads antigos sem schema URL).
-    highlightPhotos: z.array(z.string()).max(3, 'Máximo 3 fotos de capa').default([]),
+    highlightPhotos: z.array(z.string()).max(3, 'Maximum of 3 cover photos').default([]),
     // Fotos/vídeos adicionais ("Fotos e Vídeos da Viagem"). Limite alvo: 10.
-    mediaUrls: z.array(z.string()).max(10, 'Máximo 10 mídias adicionais').default([]),
+    mediaUrls: z.array(z.string()).max(10, 'Maximum of 10 additional media files').default([]),
     /** URL do comprovante de viagem (passagem/seguro/boarding) — usado pela revisão admin. */
     travelProofUrl: z.string().optional(),
     status: z.enum(['PENDING_REVIEW', 'ACTIVE', 'REJECTED']).default('PENDING_REVIEW'),

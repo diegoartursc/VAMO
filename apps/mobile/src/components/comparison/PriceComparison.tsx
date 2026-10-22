@@ -32,12 +32,12 @@ export function PriceComparison({
     const savingsPercent = Math.round((savings / agencyTotal) * 100);
 
     const formatPrice = (value: number) =>
-        value === 0 ? 'GRÁTIS' : formatMoney(value);
+        value === 0 ? 'FREE' : formatMoney(value);
 
     const items = [
         { icon: '✈️', label: 'Voo', agency: agencyPrice.flight, creator: creatorPrice.flight },
-        { icon: '🏨', label: 'Hospedagem', agency: agencyPrice.hotel, creator: creatorPrice.hotel },
-        { icon: '🎫', label: 'Passeios', agency: agencyPrice.tours, creator: creatorPrice.tours },
+        { icon: '🏨', label: 'Lodging', agency: agencyPrice.hotel, creator: creatorPrice.hotel },
+        { icon: '🎫', label: 'Tours', agency: agencyPrice.tours, creator: creatorPrice.tours },
         { icon: '🚗', label: 'Transfer', agency: agencyPrice.transfer, creator: creatorPrice.transfer },
     ];
 
@@ -83,10 +83,10 @@ export function PriceComparison({
             <View style={styles.row}>
                 <View style={styles.labelCol}>
                     <Text style={styles.itemIcon}>📋</Text>
-                    <Text style={styles.itemLabel}>Roteiro</Text>
+                    <Text style={styles.itemLabel}>Itinerary</Text>
                 </View>
                 <View style={styles.priceCol}>
-                    <Text style={styles.agencyPrice}>Incluído</Text>
+                    <Text style={styles.agencyPrice}>Included</Text>
                 </View>
                 <View style={styles.priceCol}>
                     <Text style={styles.creatorPrice}>{formatPrice(itineraryPrice)}</Text>
@@ -113,7 +113,7 @@ export function PriceComparison({
             <View style={styles.savingsBanner}>
                 <Text style={styles.savingsIcon}>🎉</Text>
                 <View style={styles.savingsContent}>
-                    <Text style={styles.savingsTitle}>VOCÊ ECONOMIZA</Text>
+                    <Text style={styles.savingsTitle}>YOU SAVE</Text>
                     <Text style={styles.savingsAmount}>
                         {formatMoney(savings)} ({savingsPercent}%)
                     </Text>

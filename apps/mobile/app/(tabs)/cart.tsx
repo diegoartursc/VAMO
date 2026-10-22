@@ -61,14 +61,14 @@ function metaToItem(meta: CartItemMeta): CartItemData {
         : [];
     return {
         id: meta.id,
-        title: it?.title || 'Roteiro',
+        title: it?.title || 'Itinerary',
         destination: it?.destination || '',
         country: it?.country || '',
         price: Number(it?.price) || 0,
         duration: Number(it?.duration) || 0,
         images: imgs.length ? imgs : [PLACEHOLDER_IMG],
         creator: {
-            name: it?.creator?.traveler?.name || it?.creator?.name || 'Criador VAMO',
+            name: it?.creator?.traveler?.name || it?.creator?.name || 'VAMO Creator',
             avatar: it?.creator?.traveler?.avatar || '👤',
         },
         lifetimeAccess: Boolean(it?.lifetimeAccess),
@@ -79,7 +79,7 @@ function metaToItem(meta: CartItemMeta): CartItemData {
 
 // ─── Helpers ────────────────────────────────────────────────────
 const formatPrice = (price: number) =>
-    price > 0 ? formatMoney(price) : 'Grátis';
+    price > 0 ? formatMoney(price) : 'Free';
 
 // ════════════════════════════════════════════════════════════════
 //  SCREEN
@@ -150,9 +150,9 @@ export default function CartScreen() {
     const handleRemove = async (item: CartItemData) => {
         haptics.medium();
         const ok = await confirm({
-            title: 'Remover do carrinho?',
-            message: `"${item.title}" será removido.`,
-            confirmText: 'Remover',
+            title: 'Remove from cart?',
+            message: `"${item.title}" will be removed.`,
+            confirmText: 'Remove',
             action: 'removeFromCart',
         });
         if (ok) { haptics.light(); removeFromCart(item.id); }
@@ -161,9 +161,9 @@ export default function CartScreen() {
     const handleClearAll = async () => {
         haptics.medium();
         const ok = await confirm({
-            title: 'Limpar carrinho?',
-            message: 'Todos os roteiros serão removidos.',
-            confirmText: 'Limpar tudo',
+            title: 'Clear cart?',
+            message: 'All itineraries will be removed.',
+            confirmText: 'Clear all',
             action: 'clearCart',
         });
         if (ok) { haptics.light(); clearCart(); }
@@ -190,8 +190,8 @@ export default function CartScreen() {
         if (stillAvailable.length === 0) {
             haptics.warning();
             notify({
-                title: 'Roteiro não está mais disponível',
-                message: 'Esse roteiro deixou de estar disponível para compra e foi removido do seu carrinho.',
+                title: 'Itinerary no longer available',
+                message: 'This itinerary is no longer available for purchase and was removed from your cart.',
                 variant: 'warning',
             });
             return;
@@ -207,8 +207,8 @@ export default function CartScreen() {
         const ok = await confirm({
             title: 'Checkout individual',
             icon: 'cart-outline',
-            message: `Você tem ${stillAvailable.length} roteiros disponíveis, mas o checkout atual libera uma compra por vez. Vamos começar por "${stillAvailable[0].title}" no valor de ${formatPrice(stillAvailable[0].price)}. Os demais continuam no carrinho.`,
-            confirmText: 'Comprar primeiro',
+            message: `You have ${stillAvailable.length} itineraries available, but checkout currently handles one purchase at a time. We'll start with "${stillAvailable[0].title}" for ${formatPrice(stillAvailable[0].price)}. The rest stay in your cart.`,
+            confirmText: 'Buy first one',
         });
         if (ok) proceed(stillAvailable[0]);
     };
@@ -238,8 +238,8 @@ export default function CartScreen() {
                     {/* Top row */}
                     <View style={styles.headerRow}>
                         <View>
-                            <Text style={styles.headerLabel}>MINHA COMPRA</Text>
-                            <Text style={styles.headerTitle}>Carrinho</Text>
+                            <Text style={styles.headerLabel}>MY PURCHASE</Text>
+                            <Text style={styles.headerTitle}>Cart</Text>
                         </View>
                         {/* Icon circle */}
                         <View style={styles.headerIconCircle}>
@@ -254,12 +254,12 @@ export default function CartScreen() {
                             <Text style={styles.headerCountText}>
                                 {loading
                                     ? '...'
-                                    : `${items.length} ${items.length === 1 ? 'roteiro' : 'roteiros'}`}
+                                    : `${items.length} ${items.length === 1 ? 'itinerary' : 'itineraries'}`}
                             </Text>
                         </View>
                         {cartItems.length > 0 && (
                             <TouchableOpacity onPress={handleClearAll} activeOpacity={0.7}>
-                                <Text style={styles.clearAllText}>Limpar tudo</Text>
+                                <Text style={styles.clearAllText}>Clear all</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -270,7 +270,7 @@ export default function CartScreen() {
             {loading ? (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <ActivityIndicator color={theme.colors.primary} />
-                    <Text style={styles.loadingText}>Carregando carrinho...</Text>
+                    <Text style={styles.loadingText}>Loading cart...</Text>
                 </View>
             ) : isEmpty ? (
                 <EmptyState onExplore={() => router.push('/(tabs)/index' as any)} />
@@ -287,16 +287,16 @@ export default function CartScreen() {
                     }
                 >
                     <Animated.View style={{ opacity: bodyAnim }}>
-                        {/* checking_error é uma falha de CONEXÃO transiente — nunca
-                            afirmamos que o roteiro sumiu, só que não conseguimos
-                            confirmar agora. Item permanece na lista abaixo. */}
+                        {/* checking_error is a transient CONNECTION failure — we never claim
+                            the itinerary disappeared, only that we couldn't confirm
+                            right now. The item stays in the list below. */}
                         {checkingErrorCount > 0 && (
                             <View style={styles.unavailableBanner}>
                                 <Ionicons name="cloud-offline-outline" size={17} color={theme.colors.primary} />
                                 <Text style={styles.unavailableBannerText}>
                                     {checkingErrorCount === 1
-                                        ? 'Não foi possível confirmar 1 roteiro agora. Verifique sua conexão.'
-                                        : `Não foi possível confirmar ${checkingErrorCount} roteiros agora. Verifique sua conexão.`}
+                                        ? 'We couldn\'t confirm 1 itinerary right now. Check your connection.'
+                                        : `We couldn't confirm ${checkingErrorCount} itineraries right now. Check your connection.`}
                                 </Text>
                             </View>
                         )}
@@ -370,9 +370,9 @@ function CartItemCard({
     // criador não preencheu duração.
     const durationLabel =
         item.duration <= 0
-            ? 'duração a confirmar'
-            : `${item.duration} ${item.duration === 1 ? 'dia' : 'dias'}`;
-    const destinationLabel = [item.destination, item.country].filter(Boolean).join(', ') || 'Destino a confirmar';
+            ? 'duration to be confirmed'
+            : `${item.duration} ${item.duration === 1 ? 'day' : 'days'}`;
+    const destinationLabel = [item.destination, item.country].filter(Boolean).join(', ') || 'Destination to be confirmed';
 
     return (
         <Animated.View style={[
@@ -448,12 +448,12 @@ function CartItemCard({
                         )}
 
                         {/* Price row OR aviso de conexão (checking_error é transiente,
-                            nunca "indisponível"/"já comprado" — esses casos somem
+                            nunca "unavailable"/"already purchased" — esses casos somem
                             do carrinho automaticamente, ver useCart) */}
                         {item.available ? (
                             <View style={styles.priceRow}>
                                 <Text style={styles.priceLabel}>
-                                    {item.lifetimeAccess ? 'Acesso permanente' : 'Roteiro digital'}
+                                    {item.lifetimeAccess ? 'Lifetime access' : 'Digital itinerary'}
                                 </Text>
                                 <Text style={styles.priceValue}>{formatPrice(item.price)}</Text>
                             </View>
@@ -461,7 +461,7 @@ function CartItemCard({
                             <View style={styles.unavailableReasonRow}>
                                 <Ionicons name="alert-circle-outline" size={13} color={theme.colors.text.tertiary} />
                                 <Text style={styles.unavailableReasonText} numberOfLines={2}>
-                                    Não foi possível confirmar agora. Verifique sua conexão.
+                                    We couldn't confirm right now. Check your connection.
                                 </Text>
                             </View>
                         )}
@@ -475,7 +475,7 @@ function CartItemCard({
                 onPress={onRemove}
                 hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 activeOpacity={0.7}
-                accessibilityLabel={`Remover ${item.title} do carrinho`}
+                accessibilityLabel={`Remove ${item.title} from cart`}
             >
                 <Ionicons name="close" size={14} color={theme.colors.text.tertiary} />
             </TouchableOpacity>
@@ -493,10 +493,10 @@ function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: nu
             <View style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
                     <Ionicons name="receipt" size={16} color={theme.colors.primary} />
-                    <Text style={styles.summaryTitle}>Resumo do Pedido</Text>
+                    <Text style={styles.summaryTitle}>Order Summary</Text>
                 </View>
                 <Text style={styles.summaryEmptyText}>
-                    Nenhum roteiro disponível para compra agora. Remova os indisponíveis ou tente novamente mais tarde.
+                    No itineraries available for purchase right now. Remove the unavailable ones or try again later.
                 </Text>
             </View>
         );
@@ -506,7 +506,7 @@ function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: nu
             {/* Header */}
             <View style={styles.summaryHeader}>
                 <Ionicons name="receipt" size={16} color={theme.colors.primary} />
-                <Text style={styles.summaryTitle}>Resumo do Pedido</Text>
+                <Text style={styles.summaryTitle}>Order Summary</Text>
             </View>
 
             {/* Item lines — usa o título do roteiro, mantém o destino como subtexto */}
@@ -536,7 +536,7 @@ function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: nu
                 <View>
                     <Text style={styles.summaryTotalValue}>{formatPrice(subtotal)}</Text>
                     <Text style={styles.summaryTotalNote}>
-                        {items.length} {items.length === 1 ? 'roteiro disponível' : 'roteiros disponíveis'}
+                        {items.length} {items.length === 1 ? 'itinerary available' : 'itineraries available'}
                     </Text>
                 </View>
             </View>
@@ -546,8 +546,8 @@ function OrderSummary({ items, subtotal }: { items: CartItemData[]; subtotal: nu
                 <Ionicons name="shield-checkmark-outline" size={12} color={theme.colors.primary} />
                 <Text style={styles.trustText}>
                     {items.length > 1
-                        ? 'Checkout individual · compre um roteiro por vez'
-                        : 'Pagamento seguro · acesso imediato após confirmação'}
+                        ? 'Single checkout · buy one itinerary at a time'
+                        : 'Secure payment · instant access after confirmation'}
                 </Text>
             </View>
         </View>
@@ -573,10 +573,10 @@ function CheckoutBar({
 
     const disabled = itemCount === 0;
     const buttonLabel = disabled
-        ? 'Nenhum roteiro disponível'
+        ? 'No itineraries available'
         : itemCount === 1
-        ? 'Comprar 1 roteiro'
-        : `Comprar ${itemCount} roteiros`;
+        ? 'Buy 1 itinerary'
+        : `Buy ${itemCount} itineraries`;
 
     return (
         <View style={styles.checkoutBar}>
@@ -653,14 +653,14 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
                 <Ionicons name="bag-outline" size={52} color={theme.colors.primary} />
             </Animated.View>
 
-            <Text style={styles.emptyTitle}>Carrinho vazio</Text>
+            <Text style={styles.emptyTitle}>Your cart is empty</Text>
             <Text style={styles.emptyText}>
-                Encontre roteiros incríveis feitos por quem viajou de verdade e adicione ao carrinho.
+                Find great itineraries made by people who really traveled and add them to your cart.
             </Text>
 
             {/* Micro trust row */}
             <View style={styles.emptyTrustRow}>
-                {['Salvo na conta', 'Exporta em PDF', 'Compra segura'].map((label, i) => (
+                {['Saved to your account', 'Export to PDF', 'Secure purchase'].map((label, i) => (
                     <View key={i} style={styles.emptyTrustItem}>
                         <Ionicons name="checkmark-circle" size={13} color={theme.colors.primary} />
                         <Text style={styles.emptyTrustText}>{label}</Text>
@@ -677,7 +677,7 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
                     end={{ x: 1, y: 0 }}
                 >
                     <Ionicons name="search" size={16} color="#fff" />
-                    <Text style={styles.emptyCtaText}>Explorar Roteiros</Text>
+                    <Text style={styles.emptyCtaText}>Explore Itineraries</Text>
                 </LinearGradient>
             </TouchableOpacity>
         </Animated.View>

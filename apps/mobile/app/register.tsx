@@ -32,15 +32,15 @@ export default function RegisterScreen() {
         setError(null);
 
         if (!name.trim() || !email.trim() || !password.trim()) {
-            setError('Preencha todos os campos obrigatórios.');
+            setError('Fill in all required fields.');
             return;
         }
         if (password !== confirmPassword) {
-            setError('As senhas não coincidem.');
+            setError('The passwords don\'t match.');
             return;
         }
         if (password.length < 6) {
-            setError('A senha deve ter no mínimo 6 caracteres.');
+            setError('Your password must be at least 6 characters.');
             return;
         }
 
@@ -56,7 +56,7 @@ export default function RegisterScreen() {
             haptics.success();
             router.replace('/(tabs)/profile');
         } catch (err: any) {
-            const msg = err?.message || 'Erro ao criar conta.';
+            const msg = err?.message || 'Couldn\'t create your account.';
             setError(msg);
         } finally {
             setLoading(false);
@@ -79,11 +79,11 @@ export default function RegisterScreen() {
                         <Ionicons name="arrow-back" size={22} color="#fff" />
                     </TouchableOpacity>
                     <VamoLogo size={160} />
-                    <Text style={styles.tagline}>Crie sua conta e comece a explorar</Text>
+                    <Text style={styles.tagline}>Create your account and start exploring</Text>
                 </LinearGradient>
 
                 <View style={styles.card}>
-                    <Text style={styles.title}>Criar conta</Text>
+                    <Text style={styles.title}>Create account</Text>
 
                     {error && (
                         <View style={styles.errorBox}>
@@ -94,12 +94,12 @@ export default function RegisterScreen() {
 
                     {/* Nome */}
                     <View style={styles.field}>
-                        <Text style={styles.label}>Nome completo</Text>
+                        <Text style={styles.label}>Full name</Text>
                         <View style={styles.inputWrapper}>
                             <Ionicons name="person-outline" size={18} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Seu nome"
+                                placeholder="Your name"
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 value={name}
                                 onChangeText={setName}
@@ -110,12 +110,12 @@ export default function RegisterScreen() {
 
                     {/* E-mail */}
                     <View style={styles.field}>
-                        <Text style={styles.label}>E-mail</Text>
+                        <Text style={styles.label}>Email</Text>
                         <View style={styles.inputWrapper}>
                             <Ionicons name="mail-outline" size={18} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="seu@email.com"
+                                placeholder="you@email.com"
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 autoCapitalize="none"
                                 keyboardType="email-address"
@@ -128,12 +128,12 @@ export default function RegisterScreen() {
 
                     {/* Senha */}
                     <View style={styles.field}>
-                        <Text style={styles.label}>Senha</Text>
+                        <Text style={styles.label}>Password</Text>
                         <View style={styles.inputWrapper}>
                             <Ionicons name="lock-closed-outline" size={18} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Mínimo 6 caracteres"
+                                placeholder="At least 6 characters"
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 secureTextEntry={!showPassword}
                                 value={password}
@@ -152,12 +152,12 @@ export default function RegisterScreen() {
 
                     {/* Confirmar senha */}
                     <View style={styles.field}>
-                        <Text style={styles.label}>Confirmar senha</Text>
+                        <Text style={styles.label}>Confirm password</Text>
                         <View style={styles.inputWrapper}>
                             <Ionicons name="lock-closed-outline" size={18} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Repita a senha"
+                                placeholder="Repeat your password"
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 secureTextEntry={!showPassword}
                                 value={confirmPassword}
@@ -177,16 +177,25 @@ export default function RegisterScreen() {
                         {loading ? (
                             <ActivityIndicator color="#fff" size="small" />
                         ) : (
-                            <Text style={styles.buttonText}>Criar conta grátis</Text>
+                            <Text style={styles.buttonText}>Create a free account</Text>
                         )}
                     </TouchableOpacity>
+
+                    <Text style={styles.legalNote}>
+                        By creating an account you agree to our{' '}
+                        <Text style={styles.legalLink} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })}>Terms of Use</Text>
+                        {', '}
+                        <Text style={styles.legalLink} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } })}>Privacy Policy</Text>
+                        {' and '}
+                        <Text style={styles.legalLink} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'refunds' } })}>Refund Policy</Text>.
+                    </Text>
 
                     <TouchableOpacity
                         style={styles.loginLink}
                         onPress={() => router.push('/login')}
                         disabled={loading}
                     >
-                        <Text style={styles.loginLinkText}>Já tenho conta → Entrar</Text>
+                        <Text style={styles.loginLinkText}>I already have an account → Sign in</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -195,6 +204,8 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+    legalNote: { fontSize: 12.5, color: theme.colors.text.secondary, textAlign: 'center', lineHeight: 18, marginTop: 14 },
+    legalLink: { color: theme.colors.primary, fontWeight: '600' },
     root: { flex: 1, backgroundColor: theme.colors.background },
     scroll: { flexGrow: 1 },
     header: {

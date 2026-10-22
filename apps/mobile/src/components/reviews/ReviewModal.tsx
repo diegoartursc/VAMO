@@ -66,12 +66,12 @@ export default function ReviewModal({
         if (loading) return;
         if (rating === 0) {
             const { Alert } = require('react-native');
-            Alert.alert('Avaliação', 'Selecione uma nota para avaliar o roteiro.');
+            Alert.alert('Review', 'Select a rating to review the itinerary.');
             return;
         }
         if (!isAuthenticated || !accessToken) {
             const { Alert } = require('react-native');
-            Alert.alert('Login necessário', 'Faça login para enviar sua avaliação.');
+            Alert.alert('Sign-in required', 'Sign in to submit your review.');
             return;
         }
         haptics.light();
@@ -80,7 +80,7 @@ export default function ReviewModal({
             await submitItineraryReview({
                 itineraryId,
                 rating,
-                comment: comment.trim() || 'Ótima experiência!',
+                comment: comment.trim() || 'Great experience!',
                 photos: [],
             }, accessToken);
             haptics.success();
@@ -91,19 +91,19 @@ export default function ReviewModal({
             }, 1800);
         } catch (err: any) {
             haptics.warning();
-            const msg = err?.message?.includes('já avaliou')
-                ? 'Você já avaliou este roteiro.'
-                : 'Não foi possível enviar a avaliação. Tente novamente.';
+            const msg = err?.message?.includes('already reviewed')
+                ? 'You\'ve already reviewed this itinerary.'
+                : 'We couldn\'t submit the review. Please try again.';
             // Show inline error
             setComment(prev => prev); // force re-render
             setLoading(false);
             // Use alert as fallback
             const { Alert } = require('react-native');
-            Alert.alert('Erro', msg);
+            Alert.alert('Error', msg);
         }
     };
 
-    const STAR_LABELS = ['', 'Ruim', 'Regular', 'Bom', 'Muito bom', 'Excelente!'];
+    const STAR_LABELS = ['', 'Poor', 'Regular', 'Good', 'Very good', 'Excellent!'];
 
     return (
         <Modal
@@ -126,7 +126,7 @@ export default function ReviewModal({
 
                         {/* Header */}
                         <View style={styles.header}>
-                            <Text style={styles.headerTitle}>Avaliar Roteiro</Text>
+                            <Text style={styles.headerTitle}>Rate Itinerary</Text>
                             <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
                                 <Ionicons name="close" size={22} color={theme.colors.text.secondary} />
                             </TouchableOpacity>
@@ -143,9 +143,9 @@ export default function ReviewModal({
                                     <View style={styles.successCircle}>
                                         <Ionicons name="checkmark" size={40} color="#fff" />
                                     </View>
-                                    <Text style={styles.successTitle}>Avaliação enviada!</Text>
+                                    <Text style={styles.successTitle}>Review submitted!</Text>
                                     <Text style={styles.successText}>
-                                        Obrigado por compartilhar sua experiência. Isso ajuda outros viajantes!
+                                        Thanks for sharing your experience. It helps other travelers!
                                     </Text>
                                 </View>
                             ) : (
@@ -157,7 +157,7 @@ export default function ReviewModal({
 
                                     {/* Estrelas */}
                                     <View style={styles.starsSection}>
-                                        <Text style={styles.starsLabel}>Sua nota</Text>
+                                        <Text style={styles.starsLabel}>Your rating</Text>
                                         <View style={styles.starsRow}>
                                             {[1, 2, 3, 4, 5].map(star => (
                                                 <TouchableOpacity
@@ -181,12 +181,12 @@ export default function ReviewModal({
 
                                     {/* Campo de texto */}
                                     <View style={styles.commentSection}>
-                                        <Text style={styles.commentLabel}>Sua experiência</Text>
+                                        <Text style={styles.commentLabel}>Your experience</Text>
                                         <TextInput
                                             style={styles.commentInput}
                                             multiline
                                             numberOfLines={4}
-                                            placeholder="Conta como foi sua experiência com este roteiro..."
+                                            placeholder="Tell us about your experience with this itinerary..."
                                             placeholderTextColor={theme.colors.text.tertiary}
                                             value={comment}
                                             onChangeText={setComment}
@@ -209,7 +209,7 @@ export default function ReviewModal({
                                         {loading ? (
                                             <ActivityIndicator color="#fff" />
                                         ) : (
-                                            <Text style={styles.submitBtnText}>Enviar Avaliação</Text>
+                                            <Text style={styles.submitBtnText}>Submit Review</Text>
                                         )}
                                     </TouchableOpacity>
                                 </>

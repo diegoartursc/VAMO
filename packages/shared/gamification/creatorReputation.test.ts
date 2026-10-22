@@ -78,7 +78,7 @@ test('quase lá (faltam vendas) continua verified_creator', () => {
         ...base, activeItineraries: 3, totalSales: 4, averageRating: 4.9, reviewCount: 5,
     });
     assert.equal(result.level, 'verified_creator');
-    assert.ok(result.unmetCriteria.some((c) => c.includes('vendas')));
+    assert.ok(result.unmetCriteria.some((c) => c.includes('sales')));
 });
 
 // ── 6. Critérios de Curador funcionam ──

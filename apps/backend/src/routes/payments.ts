@@ -191,8 +191,8 @@ async function fulfillItineraryPurchase(opts: {
         );
         throw new PurchaseBlockedError(
             refunded
-                ? 'Este roteiro deixou de estar disponível antes da confirmação do pagamento. O valor pago foi estornado automaticamente.'
-                : 'Este roteiro deixou de estar disponível antes da confirmação do pagamento.',
+                ? 'This itinerary became unavailable before your payment was confirmed. The amount you paid was automatically refunded.'
+                : 'This itinerary became unavailable before your payment was confirmed.',
             refunded,
         );
     }
@@ -251,7 +251,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
         const travelerId = req.traveler!.travelerId;
 
         if (!itineraryId || typeof itineraryId !== 'string') {
-            res.status(400).json({ error: 'itineraryId é obrigatório' });
+            res.status(400).json({ error: 'itineraryId is required' });
             return;
         }
 
@@ -289,7 +289,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
 
         const stripe = getStripe();
         if (!stripe) {
-            res.status(503).json({ error: 'Pagamento online indisponível no momento (Stripe não configurado).' });
+            res.status(503).json({ error: 'Online payment is unavailable right now (Stripe is not configured).' });
             return;
         }
 
@@ -323,7 +323,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
                     unit_amount: Math.round(itinerary.price * 100),
                     product_data: {
                         name: itinerary.title,
-                        description: destinationLabel ? `Roteiro digital — ${destinationLabel}` : 'Roteiro digital VAMO',
+                        description: destinationLabel ? `Digital itinerary — ${destinationLabel}` : 'VAMO digital itinerary',
                     },
                 },
             }],
@@ -337,7 +337,7 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
         res.json({ itineraryId, sessionId: session.id, url: session.url });
     } catch (error) {
         console.error('Error creating Stripe checkout session:', error);
-        res.status(500).json({ error: 'Não foi possível iniciar o pagamento. Tente novamente.' });
+        res.status(500).json({ error: 'We couldn\'t start the payment. Please try again.' });
     }
 });
 
@@ -366,7 +366,7 @@ router.get('/checkout-session/:sessionId', travelerAuthMiddleware, async (req: T
 
         const stripe = getStripe();
         if (!stripe) {
-            res.status(503).json({ error: 'Pagamento online indisponível no momento (Stripe não configurado).' });
+            res.status(503).json({ error: 'Online payment is unavailable right now (Stripe is not configured).' });
             return;
         }
 
@@ -374,7 +374,7 @@ router.get('/checkout-session/:sessionId', travelerAuthMiddleware, async (req: T
         const itineraryId = session.metadata?.itineraryId;
 
         if (!itineraryId || session.metadata?.travelerId !== travelerId) {
-            res.status(403).json({ error: 'Sessão de pagamento não pertence a este usuário.' });
+            res.status(403).json({ error: 'This payment session doesn\'t belong to this user.' });
             return;
         }
 
@@ -407,7 +407,7 @@ router.get('/checkout-session/:sessionId', travelerAuthMiddleware, async (req: T
         res.json({ status: session.payment_status, itineraryId });
     } catch (error) {
         console.error('Error retrieving Stripe checkout session:', error);
-        res.status(500).json({ error: 'Não foi possível confirmar o pagamento. Tente novamente.' });
+        res.status(500).json({ error: 'We couldn\'t confirm the payment. Please try again.' });
     }
 });
 

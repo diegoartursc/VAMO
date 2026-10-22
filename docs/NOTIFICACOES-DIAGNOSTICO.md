@@ -70,7 +70,7 @@ Um comprador de roteiro pago recebe **dois** e-mails de propósito: o do VAMO ("
 - **Rotas legadas de agência** (`packages`, `departures`, `flight-quotes`, `agency-documents`, `sales`): não estão montadas em `index.ts`, então não recebem e-mail.
 - **Compra legada** `POST /api/itineraries/:id/purchase`: desativada em produção (`ALLOW_DEMO_PURCHASES=false`) e sem e-mail.
 - **Decisão de comprovante de custo** (`/admin/itineraries/:id/cost-proofs/decide`): sem e-mail por comprovante, para evitar spam. O que importa é aprovado ou reprovado, e o motivo vai no e-mail G.
-- **Newsletter e promoções:** exigem consentimento pela lei australiana contra spam e uma ferramenta própria (Brevo ou Mailchimp). Nunca pelo Gmail.
+- **Newsletter e promoções:** exigem identificação e link de descadastro pela lei americana contra spam (CAN-SPAM) e uma ferramenta própria (Brevo ou Mailchimp). Nunca pelo Gmail.
 
 ## Pendências e riscos conhecidos
 

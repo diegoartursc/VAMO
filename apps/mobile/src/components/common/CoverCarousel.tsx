@@ -361,7 +361,7 @@ const CoverCarouselInner = ({
                 style={[styles.placeholder, { height: resolvedHeight, borderRadius }]}
             >
                 <Ionicons name="images-outline" size={36} color="rgba(255,255,255,0.6)" />
-                <Text style={styles.placeholderText}>Imagem indisponível</Text>
+                <Text style={styles.placeholderText}>Image unavailable</Text>
             </LinearGradient>
         );
     }

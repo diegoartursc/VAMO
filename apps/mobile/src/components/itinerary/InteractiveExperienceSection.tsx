@@ -31,47 +31,47 @@ type Benefit = {
 const BENEFITS: Benefit[] = [
     {
         icon: 'edit',
-        title: 'Personalize seu roteiro',
+        title: 'Personalize your itinerary',
         description:
-            'Use o roteiro como base e adapte horários, gastos, atividades e observações à sua viagem real.',
+            'Use the itinerary as a starting point and adapt times, expenses, activities and notes to your real trip.',
     },
     {
         icon: 'file',
-        title: 'Guarde seus documentos',
+        title: 'Keep your documents',
         description:
-            'Adicione reservas, bilhetes, vouchers, PDFs e cartões de embarque em um só lugar.',
+            'Add bookings, tickets, vouchers, PDFs and boarding passes in one place.',
     },
     {
         icon: 'clipboard-list',
-        title: 'Monte seu checklist',
+        title: 'Build your checklist',
         description:
-            'Crie tarefas próprias, marque o que já foi resolvido e acompanhe sua preparação.',
+            'Create your own tasks, check off what\'s done and track your preparation.',
     },
     {
         icon: 'download',
-        title: 'Exporte em PDF',
+        title: 'Export as PDF',
         description:
-            'Gere uma versão em PDF do roteiro original ou da sua versão personalizada.',
+            'Generate a PDF of the original itinerary or your personalized version.',
     },
 ];
 
 const STEPS: { icon: IconName; title: string; description: string }[] = [
     {
         icon: 'book-open',
-        title: 'Acesse o roteiro original',
-        description: 'Veja o conteúdo completo criado pelo roteirista.',
+        title: 'View the original itinerary',
+        description: 'See the full content created by the creator.',
     },
     {
         icon: 'edit',
-        title: 'Crie sua versão',
+        title: 'Create your version',
         description:
-            'Adapte atividades, horários, gastos e observações para a sua viagem real.',
+            'Adapt activities, times, expenses and notes to your real trip.',
     },
     {
         icon: 'clipboard-list',
-        title: 'Centralize tudo',
+        title: 'Keep it all together',
         description:
-            'Guarde documentos, reservas, bilhetes, PDFs e checklist dentro do roteiro comprado.',
+            'Keep documents, bookings, tickets, PDFs and your checklist inside the purchased itinerary.',
     },
 ];
 
@@ -89,14 +89,14 @@ export const InteractiveExperienceSection: React.FC = () => {
             <View style={styles.header}>
                 <View style={styles.headerBadge}>
                     <Icon name="map" size={13} color="#fff" />
-                    <Text style={styles.headerBadgeText}>Central de viagem</Text>
+                    <Text style={styles.headerBadgeText}>Trip center</Text>
                 </View>
                 <Text style={styles.title}>
-                    Depois da compra, este roteiro vira sua central de viagem
+                    After purchase, this itinerary becomes your trip center
                 </Text>
                 <Text style={styles.subtitle}>
-                    Além de acessar o roteiro original, você pode personalizar sua própria
-                    versão, guardar documentos e organizar tudo em um só lugar.
+                    Besides viewing the original itinerary, you can personalize your own
+                    version, store documents and organize everything in one place.
                 </Text>
             </View>
 
@@ -118,21 +118,21 @@ export const InteractiveExperienceSection: React.FC = () => {
                 <View style={styles.compareCard}>
                     <View style={styles.compareHeader}>
                         <Icon name="book-open" size={15} color={theme.colors.secondary} />
-                        <Text style={styles.compareLabel}>Original do criador</Text>
+                        <Text style={styles.compareLabel}>Creator's original</Text>
                     </View>
                     <Text style={styles.compareText}>
-                        Conteúdo completo, dicas, custos e recomendações de quem viveu a viagem.
+                        Full content, tips, costs and recommendations from someone who lived the trip.
                     </Text>
                 </View>
                 <View style={[styles.compareCard, styles.compareCardMine]}>
                     <View style={styles.compareHeader}>
                         <Icon name="edit" size={15} color={theme.colors.primaryDark} />
                         <Text style={[styles.compareLabel, { color: theme.colors.primaryDark }]}>
-                            Sua versão
+                            Your version
                         </Text>
                     </View>
                     <Text style={styles.compareText}>
-                        Adicione seus documentos, ajustes, reservas, gastos e checklist pessoal.
+                        Add your documents, changes, bookings, expenses and personal checklist.
                     </Text>
                 </View>
             </View>
@@ -141,8 +141,8 @@ export const InteractiveExperienceSection: React.FC = () => {
             <View style={styles.privacyNote}>
                 <Icon name="lock" size={14} color={theme.colors.text.secondary} />
                 <Text style={styles.privacyText}>
-                    O roteiro original continua preservado. As alterações que você fizer ficam
-                    salvas apenas na sua versão.
+                    The original itinerary stays untouched. Any changes you make are
+                    saved only to your own version.
                 </Text>
             </View>
 
@@ -151,13 +151,13 @@ export const InteractiveExperienceSection: React.FC = () => {
                 style={styles.howButton}
                 onPress={openModal}
                 activeOpacity={0.85}
-                accessibilityLabel="Ver como funciona depois da compra"
+                accessibilityLabel="See how it works after purchase"
             >
                 <Icon name="help" size={16} color={theme.colors.primaryDark} />
-                <Text style={styles.howButtonText}>Ver como funciona</Text>
+                <Text style={styles.howButtonText}>See how it works</Text>
             </TouchableOpacity>
 
-            {/* Modal "Como funciona" */}
+            {/* Modal "How it works" */}
             <Modal
                 visible={showModal}
                 transparent
@@ -172,11 +172,11 @@ export const InteractiveExperienceSection: React.FC = () => {
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                         >
-                            <Text style={styles.modalTitle}>Como funciona depois da compra?</Text>
+                            <Text style={styles.modalTitle}>How does it work after purchase?</Text>
                             <TouchableOpacity
                                 onPress={() => setShowModal(false)}
                                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                accessibilityLabel="Fechar"
+                                accessibilityLabel="Close"
                             >
                                 <Icon name="close" size={20} color="#fff" />
                             </TouchableOpacity>
@@ -204,7 +204,7 @@ export const InteractiveExperienceSection: React.FC = () => {
                             <View style={styles.modalPrivacy}>
                                 <Icon name="lock" size={13} color={theme.colors.text.secondary} />
                                 <Text style={styles.modalPrivacyText}>
-                                    Sua versão é privada. As alterações ficam salvas apenas para você.
+                                    Your version is private. Changes are saved only for you.
                                 </Text>
                             </View>
                         </ScrollView>
@@ -227,7 +227,7 @@ export const InteractiveExperienceSection: React.FC = () => {
 export const InteractiveRouteBadge: React.FC = () => (
     <View style={styles.badge}>
         <Icon name="map" size={12} color={theme.colors.primaryDark} />
-        <Text style={styles.badgeText}>Roteiro interativo</Text>
+        <Text style={styles.badgeText}>Interactive itinerary</Text>
     </View>
 );
 

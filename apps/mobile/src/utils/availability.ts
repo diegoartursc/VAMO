@@ -29,18 +29,18 @@ export type AvailabilityResult =
     | { ok: false; reason: string };
 
 const REASONS: Record<string, string> = {
-    DRAFT: 'Roteiro ainda é um rascunho do criador',
-    PENDING_REVIEW: 'Roteiro em revisão pela VAMO',
-    REJECTED: 'Roteiro não foi aprovado pela VAMO',
-    PAUSED: 'Roteiro está pausado pelo criador',
-    ARCHIVED: 'Roteiro foi arquivado pelo criador',
+    DRAFT: 'Itinerary is still a creator draft',
+    PENDING_REVIEW: 'Itinerary is under VAMO review',
+    REJECTED: 'Itinerary was not approved by VAMO',
+    PAUSED: 'Itinerary is paused by the creator',
+    ARCHIVED: 'Itinerary was archived by the creator',
 };
 
 export const evaluateItineraryAvailability = (
     itinerary: any,
 ): AvailabilityResult => {
     if (!itinerary) {
-        return { ok: false, reason: 'Roteiro removido ou não encontrado' };
+        return { ok: false, reason: 'Itinerary removed or not found' };
     }
 
     const status = normalizeStatus(
@@ -48,12 +48,12 @@ export const evaluateItineraryAvailability = (
     );
 
     if (status && status !== 'ACTIVE') {
-        return { ok: false, reason: REASONS[status] ?? 'Roteiro indisponível para compra' };
+        return { ok: false, reason: REASONS[status] ?? 'Itinerary unavailable for purchase' };
     }
 
     const price = Number(itinerary.price);
     if (!Number.isFinite(price) || price <= 0) {
-        return { ok: false, reason: 'Preço não definido' };
+        return { ok: false, reason: 'Price not set' };
     }
 
     return { ok: true };

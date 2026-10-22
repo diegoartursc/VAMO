@@ -8,13 +8,13 @@ export default function GlassHomeScreen() {
         <ScrollView style={styles.container}>
             <HeroSection
                 image="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1000"
-                title="Sua próxima aventura começa aqui."
-                subtitle="Descubra roteiros digitais criados por viajantes experientes."
+                title="Your next adventure starts here."
+                subtitle="Discover digital itineraries created by experienced travelers."
                 badge="Futurista"
             />
             <View style={styles.content}>
-                <Text style={styles.sectionTitle}>Explorar Destinos</Text>
-                <Text style={styles.placeholder}>Conteúdo em breve...</Text>
+                <Text style={styles.sectionTitle}>Explore Destinations</Text>
+                <Text style={styles.placeholder}>Content coming soon...</Text>
             </View>
         </ScrollView>
     );

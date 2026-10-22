@@ -4,3 +4,4 @@
  */
 export * from "./itinerary";
 export * from "./gamification";
+export * from "./legal";

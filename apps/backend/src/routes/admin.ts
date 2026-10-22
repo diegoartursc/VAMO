@@ -14,7 +14,7 @@ let devAdminCache: any = null;
 async function verifyAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
     const auth = req.headers.authorization;
     if (!auth?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Token obrigatório' });
+        res.status(401).json({ error: 'Token required' });
         return;
     }
     const token = auth.split(' ')[1];
@@ -41,7 +41,7 @@ async function verifyAdmin(req: Request, res: Response, next: NextFunction): Pro
                 },
             }).catch(() => null);
         }
-        if (!admin) { res.status(500).json({ error: 'Falha ao resolver admin dev' }); return; }
+        if (!admin) { res.status(500).json({ error: 'Failed to resolve dev admin' }); return; }
         devAdminCache = admin;
         (req as any).admin = admin;
         next();
@@ -52,13 +52,13 @@ async function verifyAdmin(req: Request, res: Response, next: NextFunction): Pro
         const payload = jwt.verify(token, JWT_SECRET) as { adminId: string };
         const admin = await prisma.admin.findUnique({ where: { id: payload.adminId } });
         if (!admin || !admin.active) {
-            res.status(401).json({ error: 'Admin inválido' });
+            res.status(401).json({ error: 'Invalid admin' });
             return;
         }
         (req as any).admin = admin;
         next();
     } catch {
-        res.status(401).json({ error: 'Token inválido' });
+        res.status(401).json({ error: 'Invalid token' });
     }
 }
 
@@ -66,17 +66,17 @@ async function verifyAdmin(req: Request, res: Response, next: NextFunction): Pro
 router.post('/login', async (req: Request, res: Response) => {
     const { email, password } = req.body || {};
     if (!email || !password) {
-        res.status(400).json({ error: 'Email e senha obrigatórios' });
+        res.status(400).json({ error: 'Email and password are required' });
         return;
     }
     const admin = await prisma.admin.findUnique({ where: { email } });
     if (!admin || !admin.active) {
-        res.status(401).json({ error: 'Credenciais inválidas' });
+        res.status(401).json({ error: 'Invalid credentials' });
         return;
     }
     const valid = await bcrypt.compare(password, admin.passwordHash);
     if (!valid) {
-        res.status(401).json({ error: 'Credenciais inválidas' });
+        res.status(401).json({ error: 'Invalid credentials' });
         return;
     }
     const token = jwt.sign({ adminId: admin.id, role: admin.role }, JWT_SECRET, { expiresIn: '8h' });
@@ -89,18 +89,18 @@ router.post('/seed', async (req: Request, res: Response) => {
         const configuredSecret = process.env.ADMIN_SEED_SECRET;
         const providedSecret = req.header('x-admin-seed-secret');
         if (!configuredSecret || providedSecret !== configuredSecret) {
-            res.status(403).json({ error: 'Bootstrap de admin não autorizado' });
+            res.status(403).json({ error: 'Admin bootstrap not authorized' });
             return;
         }
     }
     const count = await prisma.admin.count();
     if (count > 0) {
-        res.status(409).json({ error: 'Admin já existe. Use o endpoint de login.' });
+        res.status(409).json({ error: 'An admin already exists. Use the login endpoint.' });
         return;
     }
     const { name, email, password } = req.body || {};
     if (!name || !email || !password) {
-        res.status(400).json({ error: 'name, email e password são obrigatórios' });
+        res.status(400).json({ error: 'name, email and password are required' });
         return;
     }
     const passwordHash = await bcrypt.hash(password, 10);
@@ -141,7 +141,7 @@ router.get('/travelers', verifyAdmin, async (_req: Request, res: Response) => {
         res.json(travelers);
     } catch (error) {
         console.error('Error fetching travelers:', error);
-        res.status(500).json({ error: 'Falha ao carregar usuários' });
+        res.status(500).json({ error: 'Failed to load users' });
     }
 });
 
@@ -161,7 +161,7 @@ router.get('/creators/pending', verifyAdmin, async (_req: Request, res: Response
         res.json(creators);
     } catch (error) {
         console.error('Error fetching pending creators:', error);
-        res.status(500).json({ error: 'Falha ao carregar roteiristas pendentes' });
+        res.status(500).json({ error: 'Failed to load pending creators' });
     }
 });
 
@@ -171,7 +171,7 @@ router.post('/creators/:id/approve', verifyAdmin, async (req: Request, res: Resp
         const id = String(req.params.id);
         const existing = await prisma.creator.findUnique({ where: { id }, select: { id: true } });
         if (!existing) {
-            res.status(404).json({ error: 'Roteirista não encontrado' });
+            res.status(404).json({ error: 'Creator not found' });
             return;
         }
         // Transição atômica BASIC → TRUSTED: só ela gera e-mail. Chamada repetida
@@ -196,7 +196,7 @@ router.post('/creators/:id/approve', verifyAdmin, async (req: Request, res: Resp
         res.json({ id: creator.id, verificationLevel: creator.verificationLevel });
     } catch (error) {
         console.error('Error approving creator:', error);
-        res.status(500).json({ error: 'Falha ao aprovar roteirista' });
+        res.status(500).json({ error: 'Failed to approve creator' });
     }
 });
 
@@ -423,7 +423,7 @@ router.post('/packages/:id/reject', verifyAdmin, async (req: Request, res: Respo
         where: { id },
         data: {
             status: 'REJECTED',
-            approvalNote: note || 'Não atende aos critérios de qualidade da plataforma.',
+            approvalNote: note || 'Does not meet the platform\'s quality criteria.',
             approvedBy: (req as any).admin.id,
         },
     });
@@ -440,7 +440,7 @@ router.post('/itineraries/:id/approve', verifyAdmin, async (req: Request, res: R
             return;
         }
         if (existing.status !== 'PENDING_REVIEW') {
-            res.status(400).json({ error: 'Apenas roteiros em análise podem ser aprovados.' });
+            res.status(400).json({ error: 'Only itineraries under review can be approved.' });
             return;
         }
         // Aprovar = publicar (decisão das sócias em 2026-10-02): o roteiro vai
@@ -453,7 +453,7 @@ router.post('/itineraries/:id/approve', verifyAdmin, async (req: Request, res: R
             data: { status: 'ACTIVE', approvedAt: new Date(), approvedBy: (req as any).admin.id, approvalNote: null },
         });
         if (moved.count !== 1) {
-            res.status(400).json({ error: 'Apenas roteiros em análise podem ser aprovados.' });
+            res.status(400).json({ error: 'Only itineraries under review can be approved.' });
             return;
         }
         const it = await prisma.itinerary.findUniqueOrThrow({
@@ -477,7 +477,7 @@ router.post('/itineraries/:id/reject', verifyAdmin, async (req: Request, res: Re
         const { note } = req.body || {};
         const rejectionNote = String(note || '').trim();
         if (!rejectionNote) {
-            res.status(400).json({ error: 'Informe o motivo da rejeição.' });
+            res.status(400).json({ error: 'Enter the reason for the rejection.' });
             return;
         }
         const existing = await prisma.itinerary.findUnique({ where: { id }, select: { id: true, status: true } });
@@ -486,7 +486,7 @@ router.post('/itineraries/:id/reject', verifyAdmin, async (req: Request, res: Re
             return;
         }
         if (existing.status !== 'PENDING_REVIEW') {
-            res.status(400).json({ error: 'Apenas roteiros em análise podem ser rejeitados.' });
+            res.status(400).json({ error: 'Only itineraries under review can be rejected.' });
             return;
         }
         const moved = await prisma.itinerary.updateMany({
@@ -498,7 +498,7 @@ router.post('/itineraries/:id/reject', verifyAdmin, async (req: Request, res: Re
             },
         });
         if (moved.count !== 1) {
-            res.status(400).json({ error: 'Apenas roteiros em análise podem ser rejeitados.' });
+            res.status(400).json({ error: 'Only itineraries under review can be rejected.' });
             return;
         }
         const it = await prisma.itinerary.findUniqueOrThrow({
@@ -579,7 +579,7 @@ function extractCostRowsFromItinerary(it: any): CostProofRow[] {
         pushItem('extra', `extraSpendingItems[${i}]`, e, e.title));
 
     if (it.flightInfo) {
-        pushItem('flight', 'flightInfo', it.flightInfo, 'Passagem aérea');
+        pushItem('flight', 'flightInfo', it.flightInfo, 'Airfare');
     }
     return rows;
 }

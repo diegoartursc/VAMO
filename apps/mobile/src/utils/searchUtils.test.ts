@@ -328,7 +328,7 @@ test('preset ↔ faixa é reversível e o padrão é "Qualquer"', () => {
 test('as 5 opções pedidas existem, nessa ordem', () => {
     assert.deepEqual(
         DURATION_PRESETS.map(p => p.label),
-        ['Qualquer', 'Fim de semana', 'Até 7 dias', 'Até 15 dias', '+20 dias'],
+        ['Any', 'Weekend', 'Up to 7 days', 'Up to 15 days', '20+ days'],
     );
     assert.deepEqual(
         DURATION_PRESETS.map(p => p.id),

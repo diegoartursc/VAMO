@@ -1,6 +1,6 @@
 /**
  * time — formatação e parse de HORÁRIO (hora-do-dia) para o mercado
- * australiano (exibição 12h com AM/PM).
+ * americano (exibição 12h com AM/PM).
  *
  * Fonte ÚNICA de verdade para conversão 12h ↔ 24h. Nenhum componente
  * deve fazer split/regex de hora à mão — importe daqui.
@@ -71,7 +71,7 @@ export function to24HourTime(hour12: number, minute: number, period: Meridiem): 
 }
 
 /**
- * Formata para EXIBIÇÃO ao usuário (mercado AU). Aceita:
+ * Formata para EXIBIÇÃO ao usuário (mercado EUA). Aceita:
  *  - horário único: "18:45" → "6:45 PM"
  *  - range: "09:00 – 18:00" → "9:00 AM – 6:00 PM"
  *  - múltiplos ranges: "09:00 – 12:00; 15:00 – 20:00"
@@ -80,7 +80,7 @@ export function to24HourTime(hour12: number, minute: number, period: Meridiem): 
  * Idempotente: se a string já contém AM/PM, devolve sem reconverter
  * (evita "6:45 PM" virar lixo numa segunda passagem).
  */
-export function formatTimeForAustraliaDisplay(value?: string | null): string {
+export function formatTimeForDisplay(value?: string | null): string {
     if (value === null || value === undefined) return '';
     const s = String(value).trim();
     if (!s) return '';
@@ -98,7 +98,7 @@ export function formatTimeForAustraliaDisplay(value?: string | null): string {
  *
  * Sem meridiem explícito, preserva 24h ("13:30" → "13:30").
  */
-export function parseAustralianTimeInput(value: string | null | undefined): string {
+export function parseTimeInput(value: string | null | undefined): string {
     if (!value) return '';
     const raw = String(value).trim().toLowerCase();
     if (!raw) return '';

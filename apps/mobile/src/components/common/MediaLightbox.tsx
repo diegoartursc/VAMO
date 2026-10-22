@@ -123,8 +123,8 @@ export default function MediaLightbox({
                                         onPress={() => Linking.openURL(item.url).catch(() => undefined)}
                                     >
                                         <Ionicons name="play-circle" size={64} color="rgba(255,255,255,0.85)" />
-                                        <Text style={styles.videoPlaceholderText}>Vídeo</Text>
-                                        <Text style={styles.videoPlaceholderHint}>Toque para abrir</Text>
+                                        <Text style={styles.videoPlaceholderText}>Video</Text>
+                                        <Text style={styles.videoPlaceholderHint}>Tap to open</Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -135,7 +135,7 @@ export default function MediaLightbox({
                 <TouchableOpacity
                     style={styles.closeBtn}
                     onPress={onClose}
-                    accessibilityLabel="Fechar"
+                    accessibilityLabel="Close"
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                     <Ionicons name="close" size={28} color="#fff" />

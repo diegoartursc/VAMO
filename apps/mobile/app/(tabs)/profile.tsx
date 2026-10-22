@@ -225,7 +225,7 @@ export default function ProfileScreen() {
         console.log('[profile] isAuthenticated:', isAuthenticated, '| userId:', user?.travelerId, '| email:', user?.email);
     }, [isAuthenticated, user]);
 
-    const openExternalUrl = async (url: string, fallbackMessage = 'Não foi possível abrir este link agora.') => {
+    const openExternalUrl = async (url: string, fallbackMessage = 'We couldn\'t open this link right now.') => {
         await openSafeExternalUrl(url, { fallbackMessage });
     };
 
@@ -234,7 +234,7 @@ export default function ProfileScreen() {
         const storeUrl = Platform.OS === 'ios'
             ? 'https://apps.apple.com/app/id1234567890'
             : 'https://play.google.com/store/apps/details?id=com.vamo';
-        openExternalUrl(storeUrl, 'A loja de aplicativos não está disponível agora.');
+        openExternalUrl(storeUrl, 'The app store isn\'t available right now.');
     };
 
     const handleShareApp = async () => {
@@ -242,10 +242,10 @@ export default function ProfileScreen() {
         try {
             await Share.share({
                 title: 'VAMO',
-                message: 'Conheça a VAMO: um marketplace de roteiros de viagem digitais criados por viajantes experientes. https://vamo.app',
+                message: 'Check out VAMO: a marketplace of digital travel itineraries created by experienced travelers. https://vamo.app',
             });
         } catch {
-            notify({ title: 'Compartilhar', message: 'Não foi possível abrir o compartilhamento agora.', variant: 'error' });
+            notify({ title: 'Share', message: 'We couldn\'t open sharing right now.', variant: 'error' });
         }
     };
 
@@ -261,10 +261,10 @@ export default function ProfileScreen() {
         if (loggingOut) return; // evita duplo clique
         haptics.warning();
         const ok = await confirm({
-            title: 'Sair da conta?',
-            message: 'Você precisará entrar novamente para acessar seus roteiros e compras.',
-            confirmText: 'Sair da conta',
-            cancelText: 'Cancelar',
+            title: 'Sign out?',
+            message: 'You\'ll need to sign in again to access your itineraries and purchases.',
+            confirmText: 'Sign out',
+            cancelText: 'Cancel',
             action: 'logout',
         });
         if (!ok) return;
@@ -280,8 +280,8 @@ export default function ProfileScreen() {
             console.error('[profile] logout failed', e);
             haptics.error();
             notify({
-                title: 'Não foi possível sair',
-                message: e?.message || 'Tente novamente em instantes.',
+                title: 'Couldn\'t sign out',
+                message: e?.message || 'Please try again in a moment.',
                 variant: 'error',
             });
         } finally {
@@ -296,7 +296,7 @@ export default function ProfileScreen() {
      */
     const pickAndUpload = async (kind: 'avatar' | 'cover') => {
         if (!accessToken) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para alterar suas fotos.', variant: 'warning' });
+            notify({ title: 'Session expired', message: 'Sign in again to change your photos.', variant: 'warning' });
             return;
         }
         const busy = kind === 'avatar' ? avatarUploading : coverUploading;
@@ -306,8 +306,8 @@ export default function ProfileScreen() {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
             notify({
-                title: 'Permissão necessária',
-                message: 'Precisamos de acesso à sua galeria para escolher a foto.',
+                title: 'Permission needed',
+                message: 'We need access to your photo library to choose a photo.',
                 variant: 'warning',
             });
             return;
@@ -335,15 +335,15 @@ export default function ProfileScreen() {
             setImageCacheBust((b) => b + 1);
             haptics.success();
             notify({
-                title: kind === 'avatar' ? 'Foto de perfil atualizada' : 'Foto de capa atualizada',
-                message: kind === 'avatar' ? 'Sua nova foto já está visível no Perfil.' : 'Sua nova capa já está visível no Perfil.',
+                title: kind === 'avatar' ? 'Profile photo updated' : 'Cover photo updated',
+                message: kind === 'avatar' ? 'Your new photo is now showing on your Profile.' : 'Your new cover is now showing on your Profile.',
                 variant: 'success',
             });
         } catch (err: any) {
             haptics.error?.();
             notify({
-                title: 'Não foi possível atualizar a imagem',
-                message: typeof err?.message === 'string' ? err.message : 'Tente novamente em instantes.',
+                title: 'Couldn\'t update the image',
+                message: typeof err?.message === 'string' ? err.message : 'Please try again in a moment.',
                 variant: 'error',
             });
         } finally {
@@ -388,19 +388,19 @@ export default function ProfileScreen() {
             <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
                 <Icon name="circle-user" size={64} color={theme.colors.primary} />
                 <Text style={{ fontSize: 22, fontWeight: '800', color: theme.colors.text.primary, marginTop: 20, marginBottom: 8, textAlign: 'center' }}>
-                    Bem-vindo à VAMO
+                    Welcome to VAMO
                 </Text>
                 <Text style={{ fontSize: 15, color: theme.colors.text.secondary, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
-                    Entre para acessar seu perfil, roteiros salvos, carrinho e viagens.
+                    Sign in to access your profile, saved itineraries, cart and trips.
                 </Text>
                 <TouchableOpacity
                     style={{ backgroundColor: theme.colors.primary, borderRadius: 14, paddingHorizontal: 32, paddingVertical: 14, marginBottom: 12 }}
                     onPress={() => router.push('/login')}
                 >
-                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Entrar</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Sign in</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => router.push('/register')}>
-                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>Criar conta grátis →</Text>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>Create a free account →</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -436,18 +436,18 @@ export default function ProfileScreen() {
                         />
                     )}
 
-                    {/* Botão "alterar capa" no canto sup. direito do header. */}
+                    {/* Botão "change cover" no canto sup. direito do header. */}
                     <TouchableOpacity
                         style={styles.editCoverButton}
                         onPress={() => { haptics.light(); pickAndUpload('cover'); }}
                         disabled={coverUploading}
-                        accessibilityLabel="Alterar foto de capa"
+                        accessibilityLabel="Change cover photo"
                     >
                         {coverUploading
                             ? <ActivityIndicator size="small" color="#fff" />
                             : <Icon name="camera" size={14} color="#fff" />}
                         <Text style={styles.editCoverText}>
-                            {coverUploading ? 'Enviando…' : (user?.coverUrl ? 'Trocar capa' : 'Adicionar capa')}
+                            {coverUploading ? 'Enviando…' : (user?.coverUrl ? 'Change cover' : 'Add cover')}
                         </Text>
                     </TouchableOpacity>
 
@@ -468,18 +468,18 @@ export default function ProfileScreen() {
                                 style={styles.editAvatarButton}
                                 onPress={() => { haptics.light(); pickAndUpload('avatar'); }}
                                 disabled={avatarUploading}
-                                accessibilityLabel="Alterar foto de perfil"
+                                accessibilityLabel="Change profile photo"
                             >
                                 {avatarUploading
                                     ? <ActivityIndicator size="small" color="#fff" />
                                     : <Icon name="edit" size={12} color="#FFF" />}
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.userName}>{user?.name || 'Usuário'}</Text>
+                        <Text style={styles.userName}>{user?.name || 'User'}</Text>
                         <Text style={styles.userEmail}>{user?.email || ''}</Text>
                         <View style={styles.sinceBadge}>
                             <Icon name="calendar" size={12} color="rgba(255,255,255,0.8)" />
-                            <Text style={styles.sinceText}>Conta VAMO</Text>
+                            <Text style={styles.sinceText}>VAMO Account</Text>
                         </View>
                     </View>
                 </View>
@@ -491,12 +491,12 @@ export default function ProfileScreen() {
                     <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('itineraries')}>
                         <Icon name="book-open" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{purchasedCount === null ? '—' : purchasedCount}</Text>
-                        <Text style={styles.statLabel}>Meus Roteiros</Text>
+                        <Text style={styles.statLabel}>My Itineraries</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.statCard} onPress={() => handleStatPress('saved')}>
                         <Icon name="heart" size={22} color={theme.colors.primary} />
                         <Text style={styles.statValue}>{favoritesLoading ? '—' : favorites.length}</Text>
-                        <Text style={styles.statLabel}>Salvos</Text>
+                        <Text style={styles.statLabel}>Saved</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -507,14 +507,14 @@ export default function ProfileScreen() {
                         onPress={() => router.push('/(tabs)/my-trips')}
                     >
                         <Icon name="book-open" size={18} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Meus Roteiros</Text>
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>My Itineraries</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
                         onPress={() => router.push('/(tabs)/saved')}
                     >
                         <Icon name="heart" size={18} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Favoritos</Text>
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Favorites</Text>
                     </TouchableOpacity>
                 </View>
                 <View style={[styles.shortcutsRow, { marginTop: 8 }]}>
@@ -523,14 +523,14 @@ export default function ProfileScreen() {
                         onPress={() => { haptics.light(); router.push('/my-reviews'); }}
                     >
                         <Icon name="star" size={18} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Avaliações</Text>
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Reviews</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.shortcutButton}
                         onPress={() => { haptics.light(); router.push('/my-questions'); }}
                     >
                         <Icon name="message-circle" size={18} color={theme.colors.primary} />
-                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Perguntas</Text>
+                        <Text style={styles.shortcutText} numberOfLines={1} adjustsFontSizeToFit>Questions</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -557,11 +557,11 @@ export default function ProfileScreen() {
                 <View style={styles.sectionSpaced}>
                     <View style={styles.sectionTitleRow}>
                         <Icon name="globe" size={16} color={theme.colors.primary} />
-                        <Text style={styles.sectionTitle}>Passaporte VAMO</Text>
+                        <Text style={styles.sectionTitle}>VAMO Passport</Text>
                         <Text style={styles.journeyProgress}>{travelerProgress.completedMissions}/{travelerProgress.totalCurrentLevelMissions}</Text>
                     </View>
                     <Text style={styles.passportSubtitle}>
-                        Complete missões, ganhe carimbos e evolua sua jornada como viajante.
+                        Complete missions, earn stamps and level up your journey as a traveler.
                     </Text>
                     <View style={styles.sectionCard}>
                         {/* Nível atual */}
@@ -584,8 +584,8 @@ export default function ProfileScreen() {
                         </View>
                         <Text style={styles.passportNextText}>
                             {travelerProgress.nextLevelConfig
-                                ? `Próximo carimbo: ${travelerProgress.nextLevelConfig.label} · ${travelerProgress.xp}/${travelerProgress.nextLevelConfig.minXp} XP`
-                                : `Nível máximo alcançado · ${travelerProgress.xp} XP`}
+                                ? `Next stamp: ${travelerProgress.nextLevelConfig.label} · ${travelerProgress.xp}/${travelerProgress.nextLevelConfig.minXp} XP`
+                                : `Max level reached · ${travelerProgress.xp} XP`}
                         </Text>
 
                         {/* Carimbos / missões do nível atual (+ prévia bloqueada do próximo) */}
@@ -597,7 +597,7 @@ export default function ProfileScreen() {
                             return (
                                 <React.Fragment key={mission.key}>
                                     {showNextLabel && (
-                                        <Text style={styles.nextLevelLabel}>Próximo nível</Text>
+                                        <Text style={styles.nextLevelLabel}>Next level</Text>
                                     )}
                                     <View
                                         style={[
@@ -646,15 +646,15 @@ export default function ProfileScreen() {
 
                 {/* ══════════ 4. CONTA ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Conta</Text>
+                    <Text style={styles.sectionTitle}>Account</Text>
                     <View style={styles.sectionCard}>
                         <SettingItem icon="circle-user" title="Dados pessoais" onPress={() => {
                             haptics.light(); router.push('/account/personal-data');
                         }} />
-                        <SettingItem icon="bell" title="Notificações" onPress={() => {
+                        <SettingItem icon="bell" title="Notifications" onPress={() => {
                             haptics.light(); router.push('/account/notifications');
                         }} />
-                        <SettingItem icon="shield-check" title="Segurança" onPress={() => {
+                        <SettingItem icon="shield-check" title="Security" onPress={() => {
                             haptics.light(); router.push('/account/security');
                         }} isLast />
                     </View>
@@ -662,15 +662,15 @@ export default function ProfileScreen() {
 
                 {/* ══════════ 5. ABOUT ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Sobre</Text>
+                    <Text style={styles.sectionTitle}>About</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="help" title="Como funciona" onPress={() => {
+                        <SettingItem icon="help" title="How it works" onPress={() => {
                             haptics.light(); router.push('/how-it-works');
                         }} />
-                        <SettingItem icon="info" title="Sobre a VAMO" onPress={() => {
+                        <SettingItem icon="info" title="About VAMO" onPress={() => {
                             haptics.light(); router.push('/about-vamo');
                         }} />
-                        <SettingItem icon="message-circle" title="Central de ajuda" onPress={() => {
+                        <SettingItem icon="message-circle" title="Help Center" onPress={() => {
                             haptics.light(); router.push('/help');
                         }} isLast />
                     </View>
@@ -678,33 +678,36 @@ export default function ProfileScreen() {
 
                 {/* ══════════ RATING ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Avaliação</Text>
+                    <Text style={styles.sectionTitle}>Rating</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="star" title="Avaliar o app" onPress={handleRateApp} />
-                        <SettingItem icon="share" title="Compartilhar com amigos" onPress={handleShareApp} isLast />
+                        <SettingItem icon="star" title="Rate the app" onPress={handleRateApp} />
+                        <SettingItem icon="share" title="Share with friends" onPress={handleShareApp} isLast />
                     </View>
                 </View>
 
                 {/* ══════════ 7. LEGAL ══════════ */}
                 <View style={styles.sectionSpaced}>
-                    <Text style={styles.sectionTitle}>Jurídico</Text>
+                    <Text style={styles.sectionTitle}>Legal</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="file" title="Termos de Uso" onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/terms', 'Os Termos de Uso não estão disponíveis agora.');
+                        <SettingItem icon="file" title="Terms of Use" onPress={() => {
+                            haptics.light(); router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } });
                         }} />
-                        <SettingItem icon="shield-check" title="Política de Privacidade" onPress={() => {
-                            haptics.light(); openExternalUrl('https://vamo.app/privacy', 'A Política de Privacidade não está disponível agora.');
+                        <SettingItem icon="shield-check" title="Privacy Policy" onPress={() => {
+                            haptics.light(); router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } });
                         }} />
-                        <SettingItem icon="trash" title="Excluir conta" titleColor={theme.colors.error} onPress={async () => {
+                        <SettingItem icon="file" title="Refund Policy" onPress={() => {
+                            haptics.light(); router.push({ pathname: '/legal/[doc]', params: { doc: 'refunds' } });
+                        }} />
+                        <SettingItem icon="trash" title="Delete account" titleColor={theme.colors.error} onPress={async () => {
                             haptics.warning();
                             const ok = await confirm({
-                                title: 'Excluir conta?',
-                                message: 'Esta ação é permanente. Todos os seus dados serão apagados.',
-                                confirmText: 'Excluir conta',
+                                title: 'Delete account?',
+                                message: 'This action is permanent. All your data will be deleted.',
+                                confirmText: 'Delete account',
                                 action: 'deleteAccount',
                             });
                             if (!ok) return;
-                            notify({ title: 'Solicitação enviada', message: 'Sua solicitação de exclusão de conta foi recebida.', variant: 'success' });
+                            notify({ title: 'Request sent', message: 'Your account deletion request was received.', variant: 'success' });
                         }} isLast />
                     </View>
                 </View>
@@ -714,11 +717,11 @@ export default function ProfileScreen() {
                     style={[styles.logoutButton, loggingOut && { opacity: 0.55 }]}
                     onPress={() => { void handleLogout(); }}
                     disabled={loggingOut}
-                    accessibilityLabel="Sair da conta"
+                    accessibilityLabel="Sign out"
                 >
                     <Icon name="logout" size={18} color={theme.colors.text.tertiary} />
                     <Text style={styles.logoutText}>
-                        {loggingOut ? 'Saindo…' : 'Sair da conta'}
+                        {loggingOut ? 'Saindo…' : 'Sign out'}
                     </Text>
                 </TouchableOpacity>
 

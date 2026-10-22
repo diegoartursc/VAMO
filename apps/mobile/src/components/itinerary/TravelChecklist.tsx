@@ -24,10 +24,10 @@ export function TravelChecklist({
     );
 
     const categories = [
-        { id: 'documents', label: 'Documentos', icon: '📄' },
-        { id: 'packing', label: 'Bagagem', icon: '🎒' },
-        { id: 'pre-trip', label: 'Pré-Viagem', icon: '✅' },
-        { id: 'custom', label: 'Personalizado', icon: '📝' },
+        { id: 'documents', label: 'Documents', icon: '📄' },
+        { id: 'packing', label: 'Packing', icon: '🎒' },
+        { id: 'pre-trip', label: 'Pre-Trip', icon: '✅' },
+        { id: 'custom', label: 'Custom', icon: '📝' },
     ];
 
     const toggleCategory = (categoryId: string) => {
@@ -68,7 +68,7 @@ export function TravelChecklist({
             {/* Header */}
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.title}>Checklist de Viagem</Text>
+                    <Text style={styles.title}>Travel Checklist</Text>
                     <Text style={styles.subtitle}>
                         {completedItems} de {totalItems} itens completos
                     </Text>
@@ -100,12 +100,12 @@ export function TravelChecklist({
                         style={styles.addItemInput}
                         value={newItemText}
                         onChangeText={setNewItemText}
-                        placeholder="Adicionar item personalizado..."
+                        placeholder="Add a custom item..."
                         placeholderTextColor={theme.colors.text.tertiary}
                         autoFocus
                     />
                     <TouchableOpacity style={styles.addItemButton} onPress={handleAddItem}>
-                        <Text style={styles.addItemButtonText}>Adicionar</Text>
+                        <Text style={styles.addItemButtonText}>Add</Text>
                     </TouchableOpacity>
                 </View>
             )}

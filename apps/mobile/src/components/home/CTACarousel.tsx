@@ -40,16 +40,16 @@ const slides: CTASlide[] = [
     {
         id: 1,
         iconName: 'map',
-        title: 'Conheça os roteiros dos viajantes',
-        subtitle: 'Explore experiências autênticas compartilhadas pela comunidade',
+        title: 'Discover traveler itineraries',
+        subtitle: 'Explore authentic experiences shared by the community',
         gradientColors: ['#667eea', '#764ba2'],
         targetTab: 'itineraries',
     },
     {
         id: 2,
         iconName: 'briefcase',
-        title: 'Quer vender seus roteiros?',
-        subtitle: 'Já viajou bastante? Transforme sua experiência em renda extra',
+        title: 'Want to sell your itineraries?',
+        subtitle: 'Traveled a lot? Turn your experience into extra income',
         gradientColors: ['#f093fb', '#f5576c'],
         targetTab: 'profile',
     },
@@ -157,7 +157,7 @@ export const CTACarousel: React.FC = () => {
                         onPress={() => handleCardPress(slide.targetTab)}
                         activeOpacity={0.9}
                         accessibilityRole="button"
-                        accessibilityLabel={`${slide.title}. ${slide.subtitle}. Explorar.`}
+                        accessibilityLabel={`${slide.title}. ${slide.subtitle}. Explore.`}
                         style={[
                             styles.slideWrapper,
                             {
@@ -187,7 +187,7 @@ export const CTACarousel: React.FC = () => {
                                 </Text>
                             </View>
                             <View style={styles.ctaRow}>
-                                <Text style={styles.ctaText}>Explorar</Text>
+                                <Text style={styles.ctaText}>Explore</Text>
                                 <Icon name="chevron-right" size={16} color="rgba(255,255,255,0.9)" />
                             </View>
                         </LinearGradient>

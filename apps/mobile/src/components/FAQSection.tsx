@@ -43,13 +43,13 @@ const MAX_LEN = 500;
 const DEFAULT_FAQ: ReadonlyArray<{ id: string; question: string; answer: string }> = [
     {
         id: '__default_recebimento',
-        question: 'Como recebo o roteiro após a compra?',
-        answer: 'Assim que o pagamento for confirmado, o roteiro fica disponível em "Meus Roteiros" no app, com acesso permanente. Você também pode exportar o roteiro em PDF para consultar fora da VAMO.',
+        question: 'How do I get the itinerary after I buy it?',
+        answer: 'As soon as your payment is confirmed, the itinerary is available in "My Itineraries" in the app, with lifetime access. You can also export the itinerary as a PDF to use outside VAMO.',
     },
     {
         id: '__default_atualizacoes',
-        question: 'O roteiro recebe atualizações?',
-        answer: 'Sim. Os criadores VAMO mantêm os roteiros atualizados com preços, horários e dicas recentes. Você sempre terá acesso à versão mais recente em "Meus Roteiros".',
+        question: 'Does the itinerary get updates?',
+        answer: 'Yes. VAMO creators keep itineraries up to date with recent prices, hours and tips. You\'ll always have access to the latest version in "My Itineraries".',
     },
 ];
 
@@ -91,7 +91,7 @@ export default function FAQSection({
             setQuestions([]);
             setLoadError(err instanceof Error
                 ? err.message
-                : 'Não foi possível carregar as perguntas deste roteiro.');
+                : 'We couldn\'t load the questions for this itinerary.');
         } finally {
             setLoading(false);
         }
@@ -108,15 +108,15 @@ export default function FAQSection({
         if (sending || !itineraryId) return;
         const text = draft.trim();
         if (!text) {
-            notify({ title: 'Pergunta', message: 'Digite sua pergunta antes de enviar.' });
+            notify({ title: 'Question', message: 'Type your question before sending.' });
             return;
         }
         if (text.length < MIN_LEN) {
-            notify({ title: 'Pergunta', message: 'Escreva uma pergunta um pouco mais completa.' });
+            notify({ title: 'Question', message: 'Please write a slightly more detailed question.' });
             return;
         }
         if (text.length > MAX_LEN) {
-            notify({ title: 'Pergunta', message: `Pergunta deve ter no máximo ${MAX_LEN} caracteres.` });
+            notify({ title: 'Question', message: `Questions can be at most ${MAX_LEN} characters.` });
             return;
         }
         if (!isAuthenticated || !accessToken) {
@@ -128,7 +128,7 @@ export default function FAQSection({
             return;
         }
         if (isOwnCreator) {
-            notify({ title: 'Pergunta', message: 'Você é o criador deste roteiro.' });
+            notify({ title: 'Question', message: 'You are the creator of this itinerary.' });
             return;
         }
 
@@ -139,16 +139,16 @@ export default function FAQSection({
             haptics.success?.();
             setDraft('');
             notify({
-                title: 'Pergunta enviada!',
-                message: 'O criador será notificado e poderá responder em breve.',
+                title: 'Question sent!',
+                message: 'The creator will be notified and can answer soon.',
                 variant: 'success',
             });
             await loadQuestions();
         } catch (err: any) {
             haptics.error?.();
             notify({
-                title: 'Erro',
-                message: err?.message || 'Não foi possível enviar sua pergunta agora. Tente novamente.',
+                title: 'Error',
+                message: err?.message || 'We couldn\'t send your question right now. Please try again.',
                 variant: 'error',
             });
         } finally {
@@ -164,19 +164,19 @@ export default function FAQSection({
         <View style={styles.container}>
             <View style={styles.header}>
                 <Ionicons name="help-circle" size={24} color={theme.colors.primary} />
-                <Text style={styles.title}>Perguntas sobre este roteiro</Text>
+                <Text style={styles.title}>Questions about this itinerary</Text>
             </View>
             <Text style={styles.subtitle}>
                 {creatorName
-                    ? `Tire dúvidas antes de comprar. ${creatorName} poderá responder sua pergunta.`
-                    : 'Tire dúvidas antes de comprar. O criador poderá responder sua pergunta.'}
+                    ? `Ask before you buy. ${creatorName} can answer your question.`
+                    : 'Ask before you buy. The creator can answer your question.'}
             </Text>
 
             {/* Dúvidas padrão (fixas em todos os roteiros) */}
             <View style={styles.defaultBlock}>
                 <View style={styles.defaultHeader}>
                     <Ionicons name="information-circle" size={14} color={theme.colors.primary} />
-                    <Text style={styles.defaultHeaderText}>Dúvidas frequentes sobre roteiros digitais</Text>
+                    <Text style={styles.defaultHeaderText}>Frequently asked questions about digital itineraries</Text>
                 </View>
                 {DEFAULT_FAQ.map((item) => {
                     const isExpanded = expandedId === item.id;
@@ -217,9 +217,9 @@ export default function FAQSection({
                     <ErrorState compact message={loadError} onRetry={loadQuestions} />
                 ) : questions.length === 0 ? (
                     <View style={styles.emptyBox}>
-                        <Text style={styles.emptyText}>Ainda não há perguntas de outros viajantes.</Text>
+                        <Text style={styles.emptyText}>No questions from other travelers yet.</Text>
                         {canShowComposer && (
-                            <Text style={styles.emptyHint}>Seja o primeiro a perguntar sobre este roteiro.</Text>
+                            <Text style={styles.emptyHint}>Be the first to ask about this itinerary.</Text>
                         )}
                     </View>
                 ) : (
@@ -243,8 +243,8 @@ export default function FAQSection({
                                                 <Ionicons name="time-outline" size={12} color={theme.colors.text.tertiary} />
                                                 <Text style={styles.pendingText}>
                                                     {q.isMine
-                                                        ? 'Sua pergunta — aguardando resposta do criador'
-                                                        : 'Aguardando resposta'}
+                                                        ? 'Your question — waiting for the creator\'s answer'
+                                                        : 'Waiting for answer'}
                                                 </Text>
                                             </View>
                                         )}
@@ -258,7 +258,7 @@ export default function FAQSection({
                                 {isExpanded && isAnswered && (
                                     <View style={styles.answerBlock}>
                                         <Text style={styles.answerLabel}>
-                                            Resposta {creatorName ? `de ${creatorName}` : 'do criador'}
+                                            Resposta {creatorName ? `from ${creatorName}` : 'from the creator'}
                                         </Text>
                                         <Text style={styles.answerText}>{q.answer!.text}</Text>
                                     </View>
@@ -276,7 +276,7 @@ export default function FAQSection({
                         <>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Digite sua dúvida sobre este roteiro..."
+                                placeholder="Type your question about this itinerary..."
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 multiline
                                 maxLength={MAX_LEN}
@@ -298,7 +298,7 @@ export default function FAQSection({
                                         <Ionicons name="paper-plane" size={14} color="#fff" />
                                     )}
                                     <Text style={styles.sendBtnText}>
-                                        {sending ? 'Enviando...' : 'Enviar pergunta'}
+                                        {sending ? 'Enviando...' : 'Send question'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -317,7 +317,7 @@ export default function FAQSection({
                             activeOpacity={0.85}
                         >
                             <Ionicons name="log-in-outline" size={16} color={theme.colors.primary} />
-                            <Text style={styles.loginCtaText}>Entre para fazer uma pergunta</Text>
+                            <Text style={styles.loginCtaText}>Sign in to ask a question</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -327,7 +327,7 @@ export default function FAQSection({
                 <View style={styles.ownerNotice}>
                     <Ionicons name="information-circle-outline" size={15} color={theme.colors.text.secondary} />
                     <Text style={styles.ownerNoticeText}>
-                        Você é o criador deste roteiro. Responda perguntas em &quot;Perguntas recebidas&quot;.
+                        You are the creator of this itinerary. Answer questions in &quot;Received questions&quot;.
                     </Text>
                 </View>
             )}

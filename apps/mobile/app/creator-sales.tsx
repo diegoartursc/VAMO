@@ -29,7 +29,7 @@ import {
 function formatDate(iso: string): string {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default function CreatorSalesScreen() {
@@ -66,15 +66,15 @@ export default function CreatorSalesScreen() {
         return (
             <View style={s.loading}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={s.loadingText}>Carregando suas vendas...</Text>
+                <Text style={s.loadingText}>Loading your sales...</Text>
             </View>
         );
     }
 
     const header = (
         <CreatorSubHeader
-            title="Minhas vendas"
-            subtitle="Acompanhe vendas confirmadas e receita dos seus roteiros."
+            title="My sales"
+            subtitle="Track confirmed sales and revenue from your itineraries."
             onBack={() => safeBack(router, '/created-itineraries')}
         />
     );
@@ -84,7 +84,7 @@ export default function CreatorSalesScreen() {
             <View style={s.container}>
                 {header}
                 <View style={s.center}>
-                    <CreatorEmptyState icon="lock-closed-outline" title="Login necessário" text="Faça login para ver suas vendas." ctaLabel="Entrar" onCta={() => router.push({ pathname: '/login' as any, params: { next: '/creator-sales' } })} />
+                    <CreatorEmptyState icon="lock-closed-outline" title="Sign-in required" text="Sign in to see your sales." ctaLabel="Sign in" onCta={() => router.push({ pathname: '/login' as any, params: { next: '/creator-sales' } })} />
                 </View>
             </View>
         );
@@ -94,7 +94,7 @@ export default function CreatorSalesScreen() {
             <View style={s.container}>
                 {header}
                 <View style={s.center}>
-                    <CreatorEmptyState icon="cloud-offline-outline" title="Erro ao carregar" text={error} ctaLabel="Tentar novamente" ctaIcon="refresh-outline" onCta={() => fetchData()} />
+                    <CreatorEmptyState icon="cloud-offline-outline" title="Couldn't load" text={error} ctaLabel="Try again" ctaIcon="refresh-outline" onCta={() => fetchData()} />
                 </View>
             </View>
         );
@@ -104,10 +104,10 @@ export default function CreatorSalesScreen() {
     const hasSales = d.totalSales > 0;
 
     const metrics: CreatorMetric[] = [
-        { key: 'sales', icon: 'receipt-outline', tone: theme.colors.secondary, value: String(d.totalSales), label: 'Vendas', hint: 'Confirmadas', empty: !hasSales, emptyHint: 'Nenhuma ainda' },
-        { key: 'revenue', icon: 'wallet-outline', tone: theme.colors.success, value: formatMoney(Math.round(d.totalRevenue)), label: 'Receita', hint: 'Total em vendas', empty: !hasSales, emptyHint: 'Sem receita' },
-        { key: 'ticket', icon: 'pricetag-outline', tone: theme.colors.primary, value: formatMoney(Math.round(d.averageTicket)), label: 'Ticket médio', hint: 'Por venda', empty: !hasSales, emptyHint: '—' },
-        { key: 'top', icon: 'trophy-outline', tone: theme.colors.warning, value: d.topItinerary ? String(d.topItinerary.salesCount) : '—', label: 'Mais vendido', hint: d.topItinerary ? d.topItinerary.title : 'Sem destaque ainda', empty: !d.topItinerary, emptyHint: 'Sem destaque ainda', onPress: d.topItinerary ? () => router.push(`/creator-itinerary/${d.topItinerary!.itineraryId}`) : undefined },
+        { key: 'sales', icon: 'receipt-outline', tone: theme.colors.secondary, value: String(d.totalSales), label: 'Vendas', hint: 'Confirmadas', empty: !hasSales, emptyHint: 'None yet' },
+        { key: 'revenue', icon: 'wallet-outline', tone: theme.colors.success, value: formatMoney(Math.round(d.totalRevenue)), label: 'Revenue', hint: 'Total in vendas', empty: !hasSales, emptyHint: 'No revenue' },
+        { key: 'ticket', icon: 'pricetag-outline', tone: theme.colors.primary, value: formatMoney(Math.round(d.averageTicket)), label: 'Average order', hint: 'Per sale', empty: !hasSales, emptyHint: '—' },
+        { key: 'top', icon: 'trophy-outline', tone: theme.colors.warning, value: d.topItinerary ? String(d.topItinerary.salesCount) : '—', label: 'Best seller', hint: d.topItinerary ? d.topItinerary.title : 'No standout yet', empty: !d.topItinerary, emptyHint: 'No standout yet', onPress: d.topItinerary ? () => router.push(`/creator-itinerary/${d.topItinerary!.itineraryId}`) : undefined },
     ];
 
     return (
@@ -123,15 +123,15 @@ export default function CreatorSalesScreen() {
                     {!hasSales ? (
                         <CreatorEmptyState
                             icon="receipt-outline"
-                            title="Nenhuma venda ainda"
-                            text="Assim que um viajante comprar um dos seus roteiros, a venda aparecerá aqui."
-                            ctaLabel="Ver meus roteiros publicados"
+                            title="No sales yet"
+                            text="As soon as a traveler buys one of your itineraries, the sale will appear here."
+                            ctaLabel="View my published itineraries"
                             ctaIcon="albums-outline"
                             onCta={() => router.push('/created-itineraries')}
                         />
                     ) : (
                         <>
-                            <Text style={s.sectionLabel}>Resumo</Text>
+                            <Text style={s.sectionLabel}>Summary</Text>
                             <View style={s.metricsGrid}>
                                 {metrics.map(m => (
                                     <CreatorMetricCard key={m.key} metric={m} style={isWide ? s.metricWide : s.metricNarrow} />
@@ -142,22 +142,22 @@ export default function CreatorSalesScreen() {
                             <TouchableOpacity style={s.linkCard} onPress={goEarnings} activeOpacity={0.8}>
                                 <View style={s.linkIcon}><Ionicons name="card-outline" size={20} color={theme.colors.primary} /></View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={s.linkTitle}>Recebimentos e saldo</Text>
-                                    <Text style={s.linkHint}>Veja saldo disponível e configure seus pagamentos</Text>
+                                    <Text style={s.linkTitle}>Payouts and balance</Text>
+                                    <Text style={s.linkHint}>See your available balance and set up payouts</Text>
                                 </View>
                                 <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
                             </TouchableOpacity>
 
                             {/* Vendas por roteiro */}
-                            <Text style={s.sectionLabel}>Vendas por roteiro</Text>
+                            <Text style={s.sectionLabel}>Sales by itinerary</Text>
                             {d.salesByItinerary.map(it => (
                                 <TouchableOpacity key={it.itineraryId} style={s.row} activeOpacity={0.8} onPress={() => router.push(`/creator-itinerary/${it.itineraryId}`)}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={s.rowTitle} numberOfLines={2}>{it.title}</Text>
                                         <View style={s.rowMeta}>
-                                            <Text style={s.rowMetaText}>{it.salesCount} venda{it.salesCount === 1 ? '' : 's'}</Text>
+                                            <Text style={s.rowMetaText}>{it.salesCount} sale{it.salesCount === 1 ? '' : 's'}</Text>
                                             <Text style={s.dot}>·</Text>
-                                            <Text style={s.rowMetaText}>preço médio {formatMoney(Math.round(it.averagePrice))}</Text>
+                                            <Text style={s.rowMetaText}>average price {formatMoney(Math.round(it.averagePrice))}</Text>
                                             {it.rating > 0 && (<><Text style={s.dot}>·</Text><Text style={s.rowMetaText}>★ {it.rating.toFixed(1)}</Text></>)}
                                         </View>
                                     </View>
@@ -166,7 +166,7 @@ export default function CreatorSalesScreen() {
                             ))}
 
                             {/* Histórico recente */}
-                            <Text style={s.sectionLabel}>Histórico recente</Text>
+                            <Text style={s.sectionLabel}>Recent history</Text>
                             {d.recentSales.map(sale => (
                                 <View key={sale.id} style={s.histRow}>
                                     <CreatorAvatar avatar={sale.buyerAvatar} name={sale.buyerName} size={36} />

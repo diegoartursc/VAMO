@@ -36,7 +36,7 @@ export default function MyReviewsScreen() {
                 setReviews([]);
                 setLoadError(err instanceof Error
                     ? err.message
-                    : 'Não foi possível carregar suas avaliações.');
+                    : 'We couldn\'t load your reviews.');
             })
             .finally(() => setLoading(false));
     }, [accessToken]);
@@ -53,9 +53,9 @@ export default function MyReviewsScreen() {
                     <Icon name="chevron-left" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
-                    <Text style={styles.headerTitle}>Minhas Avaliações</Text>
+                    <Text style={styles.headerTitle}>My Reviews</Text>
                     <Text style={styles.headerSubtitle}>
-                        {reviews.length} avaliação{reviews.length !== 1 ? 'ões' : ''} publicada{reviews.length !== 1 ? 's' : ''}
+                        {reviews.length} published review{reviews.length !== 1 ? 's' : ''}
                     </Text>
                 </View>
                 <View style={{ width: 40 }} />
@@ -64,16 +64,16 @@ export default function MyReviewsScreen() {
             {loading ? (
                 <View style={styles.emptyState}>
                     <ActivityIndicator size="large" color={theme.colors.primary} />
-                    <Text style={styles.emptyText}>Carregando suas avaliações...</Text>
+                    <Text style={styles.emptyText}>Loading your reviews...</Text>
                 </View>
             ) : loadError ? (
                 <ErrorState message={loadError} onRetry={load} />
             ) : reviews.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Icon name="star" size={48} color={theme.colors.text.tertiary} />
-                    <Text style={styles.emptyTitle}>Nenhuma avaliação ainda</Text>
+                    <Text style={styles.emptyTitle}>No reviews yet</Text>
                     <Text style={styles.emptyText}>
-                        Após comprar e vivenciar um roteiro, você poderá avaliá-lo aqui.
+                        After you buy and experience an itinerary, you can review it here.
                     </Text>
                 </View>
             ) : (

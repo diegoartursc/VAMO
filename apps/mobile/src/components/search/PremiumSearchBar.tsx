@@ -9,7 +9,7 @@ interface PremiumSearchBarProps {
 
 export function PremiumSearchBar({
     onPress,
-    placeholder = 'Buscar no VAMO',
+    placeholder = 'Search VAMO',
 }: PremiumSearchBarProps) {
     return (
         <TouchableOpacity

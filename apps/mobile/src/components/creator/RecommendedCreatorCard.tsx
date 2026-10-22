@@ -30,10 +30,10 @@ export function RecommendedCreatorCard({ creator, onPress, onThumbnailPress, sty
     const extraItinerariesCount = Math.max(0, stats.activeItineraries - topItineraries.length);
 
     const a11yLabel = [
-        `Abrir perfil de ${creator.name}`,
+        `Open ${creator.name}'s profile`,
         reputation.label,
         stats.averageRating != null && stats.reviewCount > 0
-            ? `avaliação ${stats.averageRating.toFixed(1).replace('.', ',')} em ${stats.reviewCount} avaliações`
+            ? `rating ${stats.averageRating.toFixed(1)} from ${stats.reviewCount} reviews`
             : null,
     ].filter(Boolean).join(', ') + '.';
 
@@ -99,7 +99,7 @@ export function RecommendedCreatorCard({ creator, onPress, onThumbnailPress, sty
                     </View>
                 )}
                 <View style={styles.ctaRow}>
-                    <Text style={styles.ctaText}>Ver perfil</Text>
+                    <Text style={styles.ctaText}>View profile</Text>
                     <Icon name="chevron-right" size={16} color={theme.colors.primary} strokeWidth={2.4} />
                 </View>
             </View>

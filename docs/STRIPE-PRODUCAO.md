@@ -18,7 +18,10 @@ Stripe → **Alternar para conta de produção** → **Ative sua conta**.
 
 - **Localização da empresa** e **Tipo de empresa** (Pessoa Física ou CNPJ) **não podem ser alterados depois**. Se o VAMO vai ter CNPJ, ative já com ele.
 - A conta bancária de repasse precisa estar no mesmo CPF/CNPJ informado.
-- Os compradores pagam em **AUD**. Antes de enviar, confirme em *Configurações → Pagamentos → Moedas* que a conta aceita cobrar em AUD. No modo teste funciona; o Stripe converte para a moeda do repasse (BRL, se a conta for do Brasil), e cobra uma taxa de conversão.
+- **Atualização 2026-10-22:** a conta Stripe de produção passa a ser da sócia, aberta com a LLC dela nos EUA (conta bancária americana). Mercado e moeda-base: **USD** (`packages/shared/itinerary/market.ts`). Como a conta é dos EUA e a cobrança é em USD, não há conversão de moeda no repasse. Roteiros antigos ainda em AUD seguem cobrando em AUD, e o Stripe converte nesses casos.
+- Antes de enviar, confirme em *Settings → Payments → Currencies* que a conta aceita cobrar em **USD**.
+- Ao trocar de conta, refazer na conta nova: recibos em inglês (Settings → Customer emails), marca (ícone do VAMO, cor `#28C9BF`, destaque `#1A3263`) e e-mail de suporte `vamoappviagens@gmail.com`.
+- A troca de conta não exige mudança de código: só `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` no Render (e no `apps/backend/.env` local, com chave de teste). Testar primeiro com `sk_test_` + webhook de teste da conta nova; só depois `sk_live_` + webhook de produção.
 
 ## 2. Criar o webhook de produção
 

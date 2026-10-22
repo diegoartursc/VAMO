@@ -37,7 +37,7 @@ class ShareService {
 
             const content: ShareContent = {
                 title: itineraryTitle,
-                message: `Confira este roteiro digital no VAMO!\n\n${itineraryTitle}\nDestino: ${destination}\nValor: ${formatMoney(price)}\n\n${webUrl}`,
+                message: `Check out this digital itinerary on VAMO!\n\n${itineraryTitle}\nDestination: ${destination}\nPrice: ${formatMoney(price)}\n\n${webUrl}`,
                 url: webUrl,
             };
 
@@ -65,8 +65,8 @@ class ShareService {
     ): Promise<boolean> {
         try {
             const content: ShareContent = {
-                title: 'Meu roteiro no VAMO',
-                message: `Comprei um roteiro digital no VAMO!\n\n${itineraryTitle}\nData: ${date}\nPedido: ${purchaseId}`,
+                title: 'My itinerary on VAMO',
+                message: `I bought a digital itinerary on VAMO!\n\n${itineraryTitle}\nDate: ${date}\nOrder: ${purchaseId}`,
             };
 
             const result = await Share.share({
@@ -98,7 +98,7 @@ class ShareService {
             } else {
                 const webUrl = `https://wa.me/${cleanNumber}?text=${encodedMessage}`;
                 return openExternalUrl(webUrl, {
-                    fallbackMessage: 'Não foi possível abrir o WhatsApp agora.',
+                    fallbackMessage: 'We couldn\'t open WhatsApp right now.',
                 });
             }
         } catch (error) {
@@ -113,9 +113,9 @@ class ShareService {
         itineraryId?: string
     ): Promise<boolean> {
         const context = itineraryTitle
-            ? ` sobre o roteiro "${itineraryTitle}"${itineraryId ? ` (ID: ${itineraryId})` : ''}`
+            ? ` about the itinerary "${itineraryTitle}"${itineraryId ? ` (ID: ${itineraryId})` : ''}`
             : '';
-        return this.openWhatsApp(phoneNumber, `Olá! Preciso de ajuda no VAMO${context}.`);
+        return this.openWhatsApp(phoneNumber, `Hi! I need help on VAMO${context}.`);
     }
 
     /**

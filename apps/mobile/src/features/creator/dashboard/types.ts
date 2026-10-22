@@ -55,42 +55,42 @@ export const isPendingRevisionOfPublished = (
 
 // ─── Status config ─────────────────────────────────────────────
 export const STATUS_CONFIG: Record<ItineraryStatus, { label: string; color: string; bg: string; icon: string }> = {
-    draft:          { label: 'Rascunho',  color: '#64748B', bg: '#F1F5F9', icon: 'create-outline' },
-    pending_review: { label: 'Em análise',color: '#D97706', bg: '#FEF3C7', icon: 'time-outline' },
-    approved:       { label: 'Aprovado',  color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle-outline' },
-    active:         { label: 'Publicado', color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle' },
-    rejected:       { label: 'Reprovado', color: '#DC2626', bg: '#FEE2E2', icon: 'close-circle-outline' },
-    paused:         { label: 'Pausado',   color: '#9333EA', bg: '#F3E8FF', icon: 'pause-circle-outline' },
-    archived:       { label: 'Arquivado', color: '#94A3B8', bg: '#F8FAFC', icon: 'archive-outline' },
+    draft:          { label: 'Draft',  color: '#64748B', bg: '#F1F5F9', icon: 'create-outline' },
+    pending_review: { label: 'Under review',color: '#D97706', bg: '#FEF3C7', icon: 'time-outline' },
+    approved:       { label: 'Approved',  color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle-outline' },
+    active:         { label: 'Published', color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle' },
+    rejected:       { label: 'Rejected', color: '#DC2626', bg: '#FEE2E2', icon: 'close-circle-outline' },
+    paused:         { label: 'Paused',   color: '#9333EA', bg: '#F3E8FF', icon: 'pause-circle-outline' },
+    archived:       { label: 'Archived', color: '#94A3B8', bg: '#F8FAFC', icon: 'archive-outline' },
 };
 
 // ─── Filter tabs config ─────────────────────────────────────────
 export const FILTER_TABS: { key: FilterTab; label: string; statuses: ItineraryStatus[] }[] = [
-    { key: 'all',            label: 'Todos',      statuses: [] },
-    { key: 'active',         label: 'Publicados', statuses: ['active', 'approved'] },
-    { key: 'pending_review', label: 'Em análise', statuses: ['pending_review'] },
-    { key: 'draft',          label: 'Rascunhos',  statuses: ['draft'] },
-    { key: 'rejected',       label: 'Reprovados', statuses: ['rejected'] },
-    { key: 'paused',         label: 'Pausados',   statuses: ['paused'] },
+    { key: 'all',            label: 'All',      statuses: [] },
+    { key: 'active',         label: 'Published', statuses: ['active', 'approved'] },
+    { key: 'pending_review', label: 'Under review', statuses: ['pending_review'] },
+    { key: 'draft',          label: 'Drafts',  statuses: ['draft'] },
+    { key: 'rejected',       label: 'Rejected', statuses: ['rejected'] },
+    { key: 'paused',         label: 'Paused',   statuses: ['paused'] },
 ];
 
 // ─── Quick action por status (no card do roteiro) ───────────────
 export const QUICK_ACTION: Partial<Record<ItineraryStatus, { label: string; icon: string; color: string }>> = {
-    draft:          { label: 'Continuar',    icon: 'play-circle-outline',        color: theme.colors.primary },
-    rejected:       { label: 'Corrigir',     icon: 'create-outline',             color: theme.colors.error },
-    pending_review: { label: 'Ver status',   icon: 'information-circle-outline',  color: '#D97706' },
-    active:         { label: 'Ver detalhes', icon: 'bar-chart-outline',          color: theme.colors.success },
-    paused:         { label: 'Publicar',     icon: 'play-circle-outline',        color: '#9333EA' },
+    draft:          { label: 'Continue',    icon: 'play-circle-outline',        color: theme.colors.primary },
+    rejected:       { label: 'Fix',     icon: 'create-outline',             color: theme.colors.error },
+    pending_review: { label: 'View status',   icon: 'information-circle-outline',  color: '#D97706' },
+    active:         { label: 'View details', icon: 'bar-chart-outline',          color: theme.colors.success },
+    paused:         { label: 'Publish',     icon: 'play-circle-outline',        color: '#9333EA' },
 };
 
 // ─── Estados vazios por filtro ──────────────────────────────────
 export const EMPTY_MESSAGES: Record<FilterTab, { icon: string; title: string; text: string }> = {
-    all:            { icon: 'document-text-outline', title: 'Nenhum roteiro ainda',    text: 'Crie seu primeiro roteiro e comece a vender na VAMO.' },
-    active:         { icon: 'rocket-outline',        title: 'Nenhum roteiro publicado', text: 'Envie um roteiro para análise para publicá-lo.' },
-    pending_review: { icon: 'time-outline',          title: 'Nenhum em análise',       text: 'Submeta um roteiro para a equipe VAMO revisar.' },
-    draft:          { icon: 'create-outline',        title: 'Sem rascunhos',           text: 'Inicie um novo roteiro para vê-lo aqui.' },
-    rejected:       { icon: 'checkmark-done-outline',title: 'Nenhuma reprovação',      text: 'Ótimo! Todos os seus roteiros foram aprovados.' },
-    paused:         { icon: 'play-outline',          title: 'Nenhum roteiro pausado',  text: 'Seus roteiros publicados estão todos ativos.' },
+    all:            { icon: 'document-text-outline', title: 'No itineraries yet',    text: 'Create your first itinerary and start selling on VAMO.' },
+    active:         { icon: 'rocket-outline',        title: 'No published itineraries', text: 'Submit an itinerary for review to publish it.' },
+    pending_review: { icon: 'time-outline',          title: 'None under review',       text: 'Submit an itinerary for the VAMO team to review.' },
+    draft:          { icon: 'create-outline',        title: 'No drafts',           text: 'Start a new itinerary to see it here.' },
+    rejected:       { icon: 'checkmark-done-outline',title: 'No rejections',      text: 'Great! All your itineraries were approved.' },
+    paused:         { icon: 'play-outline',          title: 'No paused itineraries',  text: 'Your published itineraries are all active.' },
 };
 
 /**

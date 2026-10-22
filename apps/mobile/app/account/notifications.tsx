@@ -29,12 +29,12 @@ interface PrefItem {
 }
 
 const PREF_ITEMS: PrefItem[] = [
-    { key: 'purchases', title: 'Compras e pedidos', description: 'Avisos sobre compras, status e confirmações.', default: true },
-    { key: 'purchasedUpdates', title: 'Atualizações de roteiros comprados', description: 'Quando um roteiro que você comprou for atualizado pelo criador.', default: true },
-    { key: 'questionAnswers', title: 'Respostas às suas perguntas', description: 'Quando um roteirista responder uma dúvida sua.', default: true },
-    { key: 'promotions', title: 'Promoções e novidades', description: 'Ofertas, lançamentos e novidades da VAMO.', default: false },
-    { key: 'creatorSales', title: 'Vendas dos seus roteiros', description: 'Avisos quando você vender um roteiro publicado.', creatorOnly: true, default: true },
-    { key: 'creatorReviews', title: 'Avaliações recebidas', description: 'Quando alguém avaliar um roteiro seu.', creatorOnly: true, default: true },
+    { key: 'purchases', title: 'Purchases and orders', description: 'Updates about purchases, status and confirmations.', default: true },
+    { key: 'purchasedUpdates', title: 'Updates to purchased itineraries', description: 'When an itinerary you bought is updated by its creator.', default: true },
+    { key: 'questionAnswers', title: 'Answers to your questions', description: 'When a creator answers a question of yours.', default: true },
+    { key: 'promotions', title: 'Promotions and news', description: 'Offers, launches and news from VAMO.', default: false },
+    { key: 'creatorSales', title: 'Sales of your itineraries', description: 'Alerts when you sell a published itinerary.', creatorOnly: true, default: true },
+    { key: 'creatorReviews', title: 'Reviews received', description: 'When someone reviews one of your itineraries.', creatorOnly: true, default: true },
 ];
 
 export default function NotificationsScreen() {
@@ -82,23 +82,23 @@ export default function NotificationsScreen() {
 
     return (
         <View style={s.container}>
-            <ScreenHeader title="Notificações" subtitle="Como a VAMO avisa você." />
+            <ScreenHeader title="Notifications" subtitle="How VAMO keeps you posted." />
             <ScrollView contentContainerStyle={s.scroll}>
                 {!hydrated ? (
                     <View style={s.center}><ActivityIndicator color={theme.colors.primary} /></View>
                 ) : !isAuthenticated && !isLoading ? (
-                    <Text style={s.notice}>Entre na sua conta para configurar as notificações.</Text>
+                    <Text style={s.notice}>Sign in to your account to set up notifications.</Text>
                 ) : (
                     <>
-                        <Text style={s.sectionTitle}>Por e-mail, sempre</Text>
+                        <Text style={s.sectionTitle}>By email, always</Text>
                         <View style={[s.card, s.infoCard]}>
                             <Text style={s.infoText}>
-                                Avisos essenciais chegam sempre no e-mail da sua conta: compra confirmada,
-                                segurança (redefinição e troca de senha) e respostas às suas perguntas.
-                                {isCreator ? ' Como roteirista, você também recebe vendas, roteiros aprovados ou com ajustes, novas perguntas e novas avaliações.' : ''}
+                                Essential updates always arrive at your account email: purchase confirmation,
+                                security (password reset and change) and answers to your questions.
+                                {isCreator ? ' As a creator, you also get sales, approved itineraries or requested changes, new questions and new reviews.' : ''}
                             </Text>
                         </View>
-                        <Text style={s.sectionTitle}>Preferências no app (em breve)</Text>
+                        <Text style={s.sectionTitle}>In-app preferences (coming soon)</Text>
                         <View style={s.card}>
                             {visibleItems.map((item, idx) => (
                                 <View
@@ -119,9 +119,9 @@ export default function NotificationsScreen() {
                             ))}
                         </View>
                         <Text style={s.footnote}>
-                            Estas opções ainda não controlam nenhum envio: ficam salvas só neste
-                            dispositivo e passam a valer quando a central de notificações chegar.
-                            Os avisos essenciais por e-mail não dependem delas.
+                            These options don't control any sending yet: they're saved only on this
+                            device and will take effect when the notification center arrives.
+                            Essential email updates don't depend on them.
                         </Text>
                     </>
                 )}

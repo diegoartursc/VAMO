@@ -86,7 +86,7 @@ function normalizeCreatorCategory(it: CreatorChecklistItem): string {
 }
 
 /**
- * Mapeia categorias (DB pt-BR ou legado en) para rótulos visíveis ao
+ * Mapeia categorias (DB en-US ou legado en) para rótulos visíveis ao
  * usuário, com fallback "Geral" para itens sem categoria.
  *
  * Critério: aceita ambos os formatos para não quebrar roteiros antigos
@@ -95,32 +95,32 @@ function normalizeCreatorCategory(it: CreatorChecklistItem): string {
  */
 function formatCategoryLabel(rawCategory: string): string {
     const cat = (rawCategory || '').toString().trim().toLowerCase();
-    if (!cat) return 'Geral';
+    if (!cat) return 'General';
     const map: Record<string, string> = {
-        // pt-BR (formato canônico do banco)
-        documentos: 'Documentos',
-        mala: 'Mala',
-        'pre-viagem': 'Pré-viagem',
-        'pré-viagem': 'Pré-viagem',
-        saúde: 'Saúde',
-        saude: 'Saúde',
-        transporte: 'Transporte',
-        hospedagem: 'Hospedagem',
-        finanças: 'Finanças',
-        financas: 'Finanças',
-        dinheiro: 'Dinheiro',
-        segurança: 'Segurança',
-        seguranca: 'Segurança',
-        'apps úteis': 'Apps Úteis',
-        'apps uteis': 'Apps Úteis',
-        personalizado: 'Personalizado',
-        custom: 'Personalizado',
-        outros: 'Outros',
+        // en-US (formato canônico do banco)
+        documentos: 'Documents',
+        mala: 'Packing',
+        'pre-viagem': 'Pre-trip',
+        'pré-viagem': 'Pre-trip',
+        saúde: 'Health',
+        saude: 'Health',
+        transporte: 'Transportation',
+        hospedagem: 'Lodging',
+        finanças: 'Finances',
+        financas: 'Finances',
+        dinheiro: 'Money',
+        segurança: 'Safety',
+        seguranca: 'Safety',
+        'apps úteis': 'Useful Apps',
+        'apps uteis': 'Useful Apps',
+        personalizado: 'Custom',
+        custom: 'Custom',
+        outros: 'Other',
         // legado en (mock antigo)
-        documents: 'Documentos',
-        packing: 'Mala',
-        'pre-trip': 'Pré-viagem',
-        general: 'Geral',
+        documents: 'Documents',
+        packing: 'Packing',
+        'pre-trip': 'Pre-trip',
+        general: 'General',
     };
     if (map[cat]) return map[cat];
     // Sem mapeamento — capitaliza primeira letra como fallback elegante.
@@ -198,7 +198,7 @@ export default function ChecklistTab({
 
     /**
      * Lista unificada agrupada por categoria. "Geral" no fim, demais
-     * ordenadas alfabeticamente em pt-BR. Vazias somem.
+     * ordenadas alfabeticamente em en-US. Vazias somem.
      */
     const grouped = useMemo<Array<[string, UnifiedItem[]]>>(() => {
         const map = new Map<string, UnifiedItem[]>();
@@ -209,7 +209,7 @@ export default function ChecklistTab({
             map.set(label, list);
         }
         return [...map.entries()].sort(([a], [b]) => {
-            return a.localeCompare(b, 'pt-BR');
+            return a.localeCompare(b, 'en-US');
         });
     }, [unified]);
 
@@ -257,7 +257,7 @@ export default function ChecklistTab({
             } catch (e: any) {
                 onItemsChange(prev);
                 haptics.error();
-                notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.', variant: 'error' });
+                notify({ title: 'Couldn\'t save', message: e?.message || 'Please try again.', variant: 'error' });
             } finally {
                 markPending(u.id, false);
             }
@@ -284,7 +284,7 @@ export default function ChecklistTab({
                 } catch (e: any) {
                     onItemsChange(prev);
                     haptics.error();
-                    notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.', variant: 'error' });
+                    notify({ title: 'Couldn\'t save', message: e?.message || 'Please try again.', variant: 'error' });
                     throw e;
                 }
                 return;
@@ -293,7 +293,7 @@ export default function ChecklistTab({
         }
 
         // Criação — sempre adiciona como traveler item via API.
-        if (!token) throw new Error('Sessão expirada.');
+        if (!token) throw new Error('Session expired.');
         const tmp: TravelerChecklistItem = {
             id: tmpId(),
             travelerId: '',
@@ -316,7 +316,7 @@ export default function ChecklistTab({
         } catch (e: any) {
             onItemsChange(prev);
             haptics.error();
-            notify({ title: 'Não foi possível adicionar', message: e?.message || 'Tente novamente.', variant: 'error' });
+            notify({ title: 'Couldn\'t add', message: e?.message || 'Please try again.', variant: 'error' });
             throw e;
         }
     };
@@ -335,9 +335,9 @@ export default function ChecklistTab({
         if (!canEdit) return;
         if (u.origin !== 'traveler') return;
         const ok = await confirm({
-            title: 'Excluir item?',
-            message: 'Este item será removido do seu checklist pessoal da viagem.',
-            confirmText: 'Excluir',
+            title: 'Delete item?',
+            message: 'This item will be removed from your personal trip checklist.',
+            confirmText: 'Delete',
             action: 'checklistRemove',
         });
         if (!ok) return;
@@ -358,7 +358,7 @@ export default function ChecklistTab({
                 restored.splice(Math.max(0, idx), 0, it);
                 onItemsChange(restored.length === next.length ? prev : restored);
                 haptics.error();
-                notify({ title: 'Não foi possível remover', message: e?.message || 'Tente novamente.', variant: 'error' });
+                notify({ title: 'Couldn\'t remove', message: e?.message || 'Please try again.', variant: 'error' });
             }
         }
     };
@@ -379,7 +379,7 @@ export default function ChecklistTab({
         <View>
             <View style={styles.group}>
                 <View style={styles.groupHeaderRow}>
-                    <Text style={styles.groupTitle}>Checklist da viagem</Text>
+                    <Text style={styles.groupTitle}>Trip checklist</Text>
                     <View style={styles.groupHeaderActions}>
                         {canEdit && items.length > 0 ? (
                             <TouchableOpacity
@@ -390,7 +390,7 @@ export default function ChecklistTab({
                                 }}
                                 activeOpacity={0.85}
                                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                                accessibilityLabel={editMode ? 'Concluir edição' : 'Editar itens'}
+                                accessibilityLabel={editMode ? 'Done editing' : 'Edit items'}
                             >
                                 <Ionicons
                                     name={editMode ? 'checkmark' : 'pencil'}
@@ -403,30 +403,30 @@ export default function ChecklistTab({
                                         editMode && styles.editToggleLabelActive,
                                     ]}
                                 >
-                                    {editMode ? 'Concluir' : 'Editar'}
+                                    {editMode ? 'Done' : 'Edit'}
                                 </Text>
                             </TouchableOpacity>
                         ) : null}
                         {canEdit && (
                             <TouchableOpacity onPress={openAdd} style={styles.addBtn} activeOpacity={0.85}>
                                 <Ionicons name="add" size={16} color="#fff" />
-                                <Text style={styles.addBtnLabel}>Adicionar</Text>
+                                <Text style={styles.addBtnLabel}>Add</Text>
                             </TouchableOpacity>
                         )}
                     </View>
                 </View>
                 {editMode && hasAnyItem ? (
                     <Text style={styles.editModeHint}>
-                        Toque no lápis para editar, na lixeira para remover.
+                        Tap the pencil to edit, the trash can to remove.
                     </Text>
                 ) : null}
 
                 {!hasAnyItem ? (
                     <EmptyState
                         icon="checkbox-outline"
-                        title="Comece seu checklist"
-                        text="Anote o que importa pra você nesta viagem — documentos, mala, pequenas tarefas."
-                        ctaLabel={canEdit ? 'Adicionar primeiro item' : undefined}
+                        title="Start your checklist"
+                        text="Note what matters to you on this trip — documents, packing, small tasks."
+                        ctaLabel={canEdit ? 'Add first item' : undefined}
                         onCta={canEdit ? openAdd : undefined}
                         disabled={!canEdit}
                     />
@@ -436,7 +436,7 @@ export default function ChecklistTab({
                         return (
                         <View key={cat} style={styles.subgroup}>
                             <Text style={styles.subgroupLabel}>
-                                {origin === 'creator' ? 'DO ROTEIRO' : 'MEU CHECKLIST'} · {categoryLabel}
+                                {origin === 'creator' ? 'FROM ITINERARY' : 'MY CHECKLIST'} · {categoryLabel}
                             </Text>
                             {list.map(u => {
                                 // Pending só faz sentido pra traveler item.
@@ -456,8 +456,8 @@ export default function ChecklistTab({
                                             disabled={!canEdit || pending}
                                             accessibilityLabel={
                                                 u.completed
-                                                    ? `Desmarcar ${u.item}`
-                                                    : `Marcar ${u.item}`
+                                                    ? `Uncheck ${u.item}`
+                                                    : `Check ${u.item}`
                                             }
                                         >
                                             <View style={[styles.check, u.completed && styles.checkActive]}>
@@ -481,7 +481,7 @@ export default function ChecklistTab({
                                                     onPress={() => handleEdit(u)}
                                                     hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                                                     style={styles.actionBtn}
-                                                    accessibilityLabel="Editar item"
+                                                    accessibilityLabel="Edit item"
                                                 >
                                                     <Ionicons name="pencil" size={16} color={theme.colors.primary} />
                                                 </TouchableOpacity>
@@ -489,7 +489,7 @@ export default function ChecklistTab({
                                                     onPress={() => { void handleDelete(u); }}
                                                     hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                                                     style={[styles.actionBtn, styles.actionBtnDanger]}
-                                                    accessibilityLabel="Excluir item"
+                                                    accessibilityLabel="Delete item"
                                                 >
                                                     <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
                                                 </TouchableOpacity>

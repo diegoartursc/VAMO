@@ -15,10 +15,10 @@ interface EditableListProps {
 export default function EditableList({
     items,
     onItemsChange,
-    placeholder = 'Adicionar item...',
+    placeholder = 'Add item...',
     label,
     maxItems = 20,
-    emptyMessage = 'Nenhum item adicionado',
+    emptyMessage = 'No items added',
 }: EditableListProps) {
     const [newItem, setNewItem] = useState('');
 

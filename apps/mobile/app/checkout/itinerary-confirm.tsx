@@ -86,7 +86,7 @@ export default function ItineraryConfirmScreen() {
                 } catch (err: any) {
                     if (!mounted) return;
                     if (attempt === MAX_ATTEMPTS) {
-                        setErrorMessage(err?.message || 'Não foi possível confirmar o pagamento.');
+                        setErrorMessage(err?.message || 'We couldn\'t confirm the payment.');
                         setState('error');
                         return;
                     }
@@ -127,15 +127,15 @@ export default function ItineraryConfirmScreen() {
         return (
             <View style={styles.container}>
                 <Ionicons name="close-circle-outline" size={48} color={theme.colors.text.tertiary} />
-                <Text style={styles.title}>Pagamento cancelado</Text>
+                <Text style={styles.title}>Payment canceled</Text>
                 <Text style={styles.text}>
-                    Nenhuma cobrança foi realizada. Você pode tentar novamente quando quiser.
+                    You weren't charged. You can try again whenever you like.
                 </Text>
                 <TouchableOpacity style={styles.primaryButton} onPress={retryCheckout}>
-                    <Text style={styles.primaryButtonText}>Tentar novamente</Text>
+                    <Text style={styles.primaryButtonText}>Try again</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.secondaryButton} onPress={backToItinerary}>
-                    <Text style={styles.secondaryButtonText}>Voltar ao roteiro</Text>
+                    <Text style={styles.secondaryButtonText}>Back to itinerary</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -146,11 +146,11 @@ export default function ItineraryConfirmScreen() {
             <View style={styles.container}>
                 <Ionicons name="time-outline" size={48} color={theme.colors.text.tertiary} />
                 <Text style={styles.title}>
-                    {state === 'error' ? 'Não foi possível confirmar' : 'Pagamento em processamento'}
+                    {state === 'error' ? 'Couldn\'t confirm' : 'Payment processing'}
                 </Text>
                 <Text style={styles.text}>
                     {errorMessage
-                        || 'Seu pagamento ainda não foi confirmado pelo Stripe. Se você concluiu a compra, o roteiro será liberado em instantes em Meus Roteiros.'}
+                        || 'Your payment hasn\'t been confirmed by Stripe yet. If you completed the purchase, the itinerary will be unlocked in My Itineraries shortly.'}
                 </Text>
                 <TouchableOpacity
                     style={styles.primaryButton}
@@ -160,10 +160,10 @@ export default function ItineraryConfirmScreen() {
                         setState('checking');
                     }}
                 >
-                    <Text style={styles.primaryButtonText}>Verificar novamente</Text>
+                    <Text style={styles.primaryButtonText}>Check again</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.secondaryButton} onPress={backToItinerary}>
-                    <Text style={styles.secondaryButtonText}>Voltar ao roteiro</Text>
+                    <Text style={styles.secondaryButtonText}>Back to itinerary</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -174,7 +174,7 @@ export default function ItineraryConfirmScreen() {
             <ActivityIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.title}>Confirmando pagamento...</Text>
             <Text style={styles.text}>
-                Estamos validando sua compra com o Stripe. Isso leva só alguns segundos.
+                We're verifying your purchase with Stripe. This only takes a few seconds.
             </Text>
         </View>
     );

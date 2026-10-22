@@ -49,7 +49,7 @@ export default function PeopleSimulator({
 
     const safeValue = Math.max(min, Math.min(max, value || min));
     const totalForGroup = totalPerPerson * safeValue;
-    const peopleLabel = safeValue === 1 ? '1 pessoa' : `${safeValue} pessoas`;
+    const peopleLabel = safeValue === 1 ? '1 person' : `${safeValue} people`;
 
     const dec = () => onChange(Math.max(min, safeValue - 1));
     const inc = () => onChange(Math.min(max, safeValue + 1));
@@ -58,15 +58,15 @@ export default function PeopleSimulator({
         <View style={styles.card}>
             <View style={styles.header}>
                 <Ionicons name="people-outline" size={16} color={theme.colors.primary} />
-                <Text style={styles.title}>Simule para mais pessoas</Text>
+                <Text style={styles.title}>Estimate for more people</Text>
             </View>
             <Text style={styles.helper}>
-                Os valores informados pelo criador são por pessoa. Ajuste para estimar o total do grupo.
+                The amounts provided by the creator are per person. Adjust to estimate the group total.
             </Text>
 
             {/* Stepper */}
             <View style={styles.stepperRow}>
-                <Text style={styles.stepperLabel}>Quantidade de pessoas</Text>
+                <Text style={styles.stepperLabel}>Number of people</Text>
                 <View style={styles.stepper}>
                     <TouchableOpacity
                         style={[styles.stepperBtn, safeValue <= min && styles.stepperBtnDisabled]}
@@ -91,7 +91,7 @@ export default function PeopleSimulator({
             {/* Resumo: por pessoa + para o grupo */}
             <View style={styles.summaryRow}>
                 <View style={styles.summaryCell}>
-                    <Text style={styles.summaryLabel}>Por pessoa</Text>
+                    <Text style={styles.summaryLabel}>Per person</Text>
                     <Text style={styles.summaryValue}>
                         {formatMoney(totalPerPerson, currency)}
                     </Text>
@@ -106,7 +106,7 @@ export default function PeopleSimulator({
             </View>
 
             <Text style={styles.disclaimer}>
-                Estimativa baseada apenas nos itens com valor informado. Valores podem variar conforme data, temporada, câmbio e disponibilidade.
+                Estimate based only on items with an amount provided. Prices can vary by date, season, exchange rate and availability.
             </Text>
         </View>
     );

@@ -47,7 +47,7 @@ export default function ForgotPasswordScreen() {
         setError(null);
         const normalized = target.trim().toLowerCase();
         if (!EMAIL_RE.test(normalized)) {
-            setError('Informe um e-mail válido.');
+            setError('Enter a valid email address.');
             return;
         }
         haptics.light();
@@ -59,7 +59,7 @@ export default function ForgotPasswordScreen() {
             startCooldown();
         } catch (err: any) {
             haptics.error?.();
-            setError(err?.message || 'Não foi possível enviar agora. Tente novamente.');
+            setError(err?.message || 'We couldn\'t send it right now. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -73,13 +73,13 @@ export default function ForgotPasswordScreen() {
                 <View style={[s.stateIcon, { backgroundColor: 'rgba(40,201,191,0.12)' }]}>
                     <Ionicons name="mail-unread-outline" size={30} color={theme.colors.primary} />
                 </View>
-                <Text style={s.stateTitle}>Confira seu e-mail</Text>
+                <Text style={s.stateTitle}>Check your email</Text>
                 <Text style={s.stateText}>
-                    Se existir uma conta associada a <Text style={s.stateEmphasis}>{sentTo}</Text>, enviaremos um link para
-                    redefinir sua senha.
+                    If an account exists for <Text style={s.stateEmphasis}>{sentTo}</Text>, we'll send a link to
+                    reset your password.
                 </Text>
                 <Text style={[s.stateText, { marginBottom: 24 }]}>
-                    O link é válido por 1 hora. Não encontrou? Olhe também a caixa de spam.
+                    The link is valid for 1 hour. Can't find it? Check your spam folder too.
                 </Text>
 
                 {error && (
@@ -89,9 +89,9 @@ export default function ForgotPasswordScreen() {
                     </View>
                 )}
 
-                <VamoButton label="Voltar para entrar" onPress={goToLogin} size="lg" fullWidth />
+                <VamoButton label="Back to sign in" onPress={goToLogin} size="lg" fullWidth />
                 <VamoButton
-                    label={cooldown > 0 ? `Reenviar link em ${cooldown}s` : 'Reenviar link'}
+                    label={cooldown > 0 ? `Resend link in ${cooldown}s` : 'Reenviar link'}
                     onPress={() => submit(sentTo)}
                     variant="ghost"
                     size="md"
@@ -105,7 +105,7 @@ export default function ForgotPasswordScreen() {
                     onPress={() => { setSentTo(null); setError(null); }}
                     disabled={loading}
                 >
-                    <Text style={s.linkText}>Usar outro e-mail</Text>
+                    <Text style={s.linkText}>Use a different email</Text>
                 </TouchableOpacity>
             </AuthScreenShell>
         );
@@ -113,9 +113,9 @@ export default function ForgotPasswordScreen() {
 
     return (
         <AuthScreenShell>
-            <Text style={s.title}>Esqueceu sua senha?</Text>
+            <Text style={s.title}>Forgot your password?</Text>
             <Text style={s.subtitle}>
-                Informe o e-mail da sua conta e enviaremos um link para você criar uma nova senha.
+                Enter your account email and we'll send you a link to create a new password.
             </Text>
 
             {error && (
@@ -126,12 +126,12 @@ export default function ForgotPasswordScreen() {
             )}
 
             <View style={s.field}>
-                <Text style={s.label}>E-mail</Text>
+                <Text style={s.label}>Email</Text>
                 <View style={s.inputWrapper}>
                     <Ionicons name="mail-outline" size={18} color={theme.colors.text.tertiary} style={s.inputIcon} />
                     <TextInput
                         style={s.input}
-                        placeholder="seu@email.com"
+                        placeholder="you@email.com"
                         placeholderTextColor={theme.colors.text.tertiary}
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -149,7 +149,7 @@ export default function ForgotPasswordScreen() {
             </View>
 
             <VamoButton
-                label="Enviar link de recuperação"
+                label="Send reset link"
                 onPress={() => submit(email)}
                 size="lg"
                 fullWidth
@@ -159,7 +159,7 @@ export default function ForgotPasswordScreen() {
             />
 
             <TouchableOpacity style={s.linkButton} onPress={goToLogin} disabled={loading}>
-                <Text style={s.linkText}>Voltar para entrar</Text>
+                <Text style={s.linkText}>Back to sign in</Text>
             </TouchableOpacity>
         </AuthScreenShell>
     );

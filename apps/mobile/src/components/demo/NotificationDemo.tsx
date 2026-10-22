@@ -9,10 +9,10 @@ export default function NotificationDemo() {
     const handleTestBooking = () => {
         showNotification({
             type: 'booking',
-            title: 'Seu lugar está reservado por',
+            title: 'Your spot is reserved for',
             timer: '2:30',
             image: require('../../assets/demo-place.jpg'),
-            actionLabel: 'Ir para o carrinho',
+            actionLabel: 'Go to cart',
             onAction: () => {
                 // Handle cart navigation
             },
@@ -23,9 +23,9 @@ export default function NotificationDemo() {
     const handleTestSuccess = () => {
         showNotification({
             type: 'success',
-            title: 'Reserva confirmada!',
-            message: 'Você receberá um email com os detalhes',
-            actionLabel: 'Ver detalhes',
+            title: 'Booking confirmed!',
+            message: 'You\'ll receive an email with the details',
+            actionLabel: 'View details',
             onAction: () => {
                 // Handle details navigation
             },
@@ -35,24 +35,24 @@ export default function NotificationDemo() {
     const handleTestError = () => {
         showNotification({
             type: 'error',
-            title: 'Erro ao processar',
-            message: 'Tente novamente mais tarde',
+            title: 'Processing error',
+            message: 'Please try again later',
         });
     };
 
     const handleTestWarning = () => {
         showNotification({
             type: 'warning',
-            title: 'Atenção',
-            message: 'Poucas vagas disponíveis para esta data',
+            title: 'Heads up',
+            message: 'Few spots left for this date',
         });
     };
 
     const handleTestInfo = () => {
         showNotification({
             type: 'info',
-            title: 'Nova atualização disponível',
-            message: 'Versão 2.0.1 com melhorias de desempenho',
+            title: 'New update available',
+            message: 'Version 2.0.1 with performance improvements',
         });
     };
 
@@ -65,23 +65,23 @@ export default function NotificationDemo() {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Text style={styles.title}>Sistema de Notificações</Text>
-            <Text style={styles.subtitle}>Teste diferentes tipos de notificações</Text>
+            <Text style={styles.title}>Notification System</Text>
+            <Text style={styles.subtitle}>Try different types of notifications</Text>
 
             <View style={styles.buttonGrid}>
                 <TouchableOpacity style={styles.button} onPress={handleTestBooking}>
                     <Text style={styles.buttonIcon}>📦</Text>
-                    <Text style={styles.buttonText}>Reserva</Text>
+                    <Text style={styles.buttonText}>Booking</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.button} onPress={handleTestSuccess}>
                     <Text style={styles.buttonIcon}>✅</Text>
-                    <Text style={styles.buttonText}>Sucesso</Text>
+                    <Text style={styles.buttonText}>Success</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.button} onPress={handleTestError}>
                     <Text style={styles.buttonIcon}>❌</Text>
-                    <Text style={styles.buttonText}>Erro</Text>
+                    <Text style={styles.buttonText}>Error</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.button} onPress={handleTestWarning}>
@@ -96,19 +96,19 @@ export default function NotificationDemo() {
 
                 <TouchableOpacity style={[styles.button, styles.buttonSpecial]} onPress={handleTestMultiple}>
                     <Text style={styles.buttonIcon}>🎯</Text>
-                    <Text style={styles.buttonText}>Múltiplas</Text>
+                    <Text style={styles.buttonText}>Multiple</Text>
                 </TouchableOpacity>
             </View>
 
             <View style={styles.infoBox}>
-                <Text style={styles.infoTitle}>Como usar:</Text>
+                <Text style={styles.infoTitle}>How to use:</Text>
                 <Text style={styles.infoText}>
                     <Text style={styles.code}>showNotification()</Text> pode ser chamada de qualquer componente usando o hook{' '}
                     <Text style={styles.code}>useNotification()</Text>.
                 </Text>
-                <Text style={styles.infoText}>• Auto-dismiss após 5 segundos (padrão)</Text>
-                <Text style={styles.infoText}>• Suporta até 3 notificações simultâneas</Text>
-                <Text style={styles.infoText}>• Pode incluir botão de ação e imagem</Text>
+                <Text style={styles.infoText}>• Auto-dismiss after 5 seconds (default)</Text>
+                <Text style={styles.infoText}>• Supports up to 3 simultaneous notifications</Text>
+                <Text style={styles.infoText}>• Can include an action button and image</Text>
             </View>
         </ScrollView>
     );

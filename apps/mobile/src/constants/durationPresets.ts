@@ -36,33 +36,33 @@ export const DEFAULT_DURATION_PRESET: DurationPresetId = 'any';
 export const DURATION_PRESETS: readonly DurationPreset[] = [
     {
         id: 'any',
-        label: 'Qualquer',
-        accessibilityLabel: 'Não filtrar por duração',
+        label: 'Any',
+        accessibilityLabel: 'Don\'t filter by duration',
     },
     {
         id: 'weekend',
-        label: 'Fim de semana',
+        label: 'Weekend',
         min: 2,
         max: 3,
-        accessibilityLabel: 'Filtrar roteiros com duração de fim de semana, de 2 a 3 dias',
+        accessibilityLabel: 'Filter itineraries that are weekend length, 2 to 3 days',
     },
     {
         id: 'up_to_7',
-        label: 'Até 7 dias',
+        label: 'Up to 7 days',
         max: 7,
-        accessibilityLabel: 'Filtrar roteiros com até 7 dias',
+        accessibilityLabel: 'Filter itineraries up to 7 days',
     },
     {
         id: 'up_to_15',
-        label: 'Até 15 dias',
+        label: 'Up to 15 days',
         max: 15,
-        accessibilityLabel: 'Filtrar roteiros com até 15 dias',
+        accessibilityLabel: 'Filter itineraries up to 15 days',
     },
     {
         id: '20_plus',
-        label: '+20 dias',
+        label: '20+ days',
         min: 20,
-        accessibilityLabel: 'Filtrar roteiros com 20 dias ou mais',
+        accessibilityLabel: 'Filter itineraries of 20 days or more',
     },
 ] as const;
 

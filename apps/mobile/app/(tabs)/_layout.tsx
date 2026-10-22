@@ -25,7 +25,7 @@ export default function TabsLayout() {
                 <Tabs.Screen
                     name="index"
                     options={{
-                        title: 'Busca',
+                        title: 'Search',
                         tabBarIcon: ({ focused, color }) => <TabIcon name="search" focused={focused} color={color} />,
                     }}
                 />
@@ -33,7 +33,7 @@ export default function TabsLayout() {
                     name="saved"
                     options={{
                         href: '/saved',
-                        title: 'Favoritos',
+                        title: 'Favorites',
                         tabBarIcon: ({ focused, color }) => <TabIcon name="heart" focused={focused} color={color} />,
                     }}
                 />
@@ -41,7 +41,7 @@ export default function TabsLayout() {
                     name="my-trips"
                     options={{
                         href: '/my-trips',
-                        title: 'Meus Roteiros',
+                        title: 'My Itineraries',
                         tabBarIcon: ({ focused, color }) => <TabIcon name="book-open" focused={focused} color={color} />,
                     }}
                 />
@@ -49,7 +49,7 @@ export default function TabsLayout() {
                     name="cart"
                     options={{
                         href: '/cart',
-                        title: 'Carrinho',
+                        title: 'Cart',
                         tabBarIcon: ({ focused, color }) => <TabIcon name="shopping-cart" focused={focused} color={color} />,
                         tabBarBadge: cartCount > 0 ? cartCount : undefined,
                         tabBarBadgeStyle: {
@@ -66,7 +66,7 @@ export default function TabsLayout() {
                 <Tabs.Screen
                     name="profile"
                     options={{
-                        title: 'Perfil',
+                        title: 'Profile',
                         tabBarIcon: ({ focused, color }) => <TabIcon name="user" focused={focused} color={color} />,
                     }}
                 />
@@ -76,21 +76,21 @@ export default function TabsLayout() {
                     name="itineraries"
                     options={{
                         href: null,
-                        title: 'Roteiros',
+                        title: 'Itineraries',
                     }}
                 />
                 <Tabs.Screen
                     name="packages"
                     options={{
                         href: null,
-                        title: 'Roteiros',
+                        title: 'Itineraries',
                     }}
                 />
                 <Tabs.Screen
                     name="itinerary/[id]"
                     options={{
                         href: null,
-                        title: 'Experiência Completa',
+                        title: 'Full Experience',
                         headerShown: false,
                     }}
                 />
@@ -98,7 +98,7 @@ export default function TabsLayout() {
                     name="package/[id]"
                     options={{
                         href: null,
-                        title: 'Roteiro',
+                        title: 'Itinerary',
                         headerShown: false,
                     }}
                 />
@@ -106,7 +106,7 @@ export default function TabsLayout() {
                     name="creator/[id]"
                     options={{
                         href: null,
-                        title: 'Perfil do Criador',
+                        title: 'Creator Profile',
                         headerShown: true,
                     }}
                 />

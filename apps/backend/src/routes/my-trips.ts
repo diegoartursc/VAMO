@@ -64,7 +64,7 @@ router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Re
                 // snapshot congelado na compra. Assim a foto/nome atualizados do
                 // criador aparecem em "Meus Roteiros". O snapshot preserva o
                 // CONTEÚDO do roteiro, não a identidade visual da pessoa.
-                creatorName: s.itinerary.creator.traveler.name || snapshot?.creator?.name || 'Criador VAMO',
+                creatorName: s.itinerary.creator.traveler.name || snapshot?.creator?.name || 'VAMO Creator',
                 creatorAvatar: s.itinerary.creator.traveler.avatar || '',
                 price: s.price,
                 currency: snapshot?.currency || s.itinerary.currency || BASE_CURRENCY,

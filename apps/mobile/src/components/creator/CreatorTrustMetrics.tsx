@@ -25,19 +25,19 @@ export function CreatorTrustMetrics({ stats, size = 'medium' }: CreatorTrustMetr
     if (stats.averageRating != null && stats.reviewCount > 0) {
         items.push({
             icon: 'star',
-            label: `${stats.averageRating.toFixed(1).replace('.', ',')} · ${stats.reviewCount} ${stats.reviewCount === 1 ? 'avaliação' : 'avaliações'}`,
+            label: `${stats.averageRating.toFixed(1)} · ${stats.reviewCount} ${stats.reviewCount === 1 ? 'review' : 'reviews'}`,
         });
     }
     if (stats.totalSales > 0) {
         items.push({
             icon: 'shopping-cart',
-            label: stats.totalSales >= 100 ? 'Mais de 100 vendas' : `${stats.totalSales} ${stats.totalSales === 1 ? 'venda' : 'vendas'}`,
+            label: stats.totalSales >= 100 ? '100+ sales' : `${stats.totalSales} ${stats.totalSales === 1 ? 'sale' : 'sales'}`,
         });
     }
     if (stats.activeItineraries > 0) {
         items.push({
             icon: 'map',
-            label: `${stats.activeItineraries} ${stats.activeItineraries === 1 ? 'roteiro' : 'roteiros'}`,
+            label: `${stats.activeItineraries} ${stats.activeItineraries === 1 ? 'itinerary' : 'itineraries'}`,
         });
     }
 

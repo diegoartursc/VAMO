@@ -15,18 +15,18 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-    { icon: 'search', title: 'Busque roteiros', text: 'Explore roteiros completos criados por viajantes que já estiveram no destino.' },
-    { icon: 'card', title: 'Compre com segurança', text: 'Escolha o roteiro ideal, revise os detalhes e finalize a compra com pagamento seguro.' },
-    { icon: 'book-open', title: 'Acesse em Meus Roteiros', text: 'Depois de comprar, o roteiro fica salvo na sua conta, disponível quando você precisar.' },
-    { icon: 'edit', title: 'Personalize sua versão', text: 'Adapte o roteiro comprado às suas datas e preferências, sem perder o original.' },
-    { icon: 'star', title: 'Avalie a experiência', text: 'Compartilhe sua opinião e ajude outros viajantes com avaliações e fotos.' },
-    { icon: 'compass', title: 'Crie como roteirista', text: 'Todo viajante pode virar roteirista e publicar os próprios roteiros para vender na VAMO.' },
+    { icon: 'search', title: 'Search itineraries', text: 'Explore complete itineraries created by travelers who have been to the destination.' },
+    { icon: 'card', title: 'Buy securely', text: 'Pick the ideal itinerary, review the details and complete your purchase with secure payment.' },
+    { icon: 'book-open', title: 'Open it in My Itineraries', text: 'After you buy, the itinerary is saved to your account, available whenever you need it.' },
+    { icon: 'edit', title: 'Personalize your version', text: 'Adapt the purchased itinerary to your dates and preferences without losing the original.' },
+    { icon: 'star', title: 'Review the experience', text: 'Share your opinion and help other travelers with reviews and photos.' },
+    { icon: 'compass', title: 'Create as a creator', text: 'Any traveler can become a creator and publish their own itineraries to sell on VAMO.' },
 ];
 
 export default function HowItWorksScreen() {
     return (
         <View style={s.container}>
-            <ScreenHeader title="Como funciona" subtitle="Da busca à viagem, em poucos passos." />
+            <ScreenHeader title="How it works" subtitle="From search to trip, in a few steps." />
             <ScrollView contentContainerStyle={s.scroll}>
                 {STEPS.map((step, idx) => (
                     <View key={step.title} style={s.step}>

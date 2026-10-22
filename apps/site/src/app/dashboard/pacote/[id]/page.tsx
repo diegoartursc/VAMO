@@ -1032,7 +1032,7 @@ export default function PackageEditorPage({ params }: { params: Promise<{ id: st
                                                 </div>
                                                 <div style={{ flex: 1 }}>
                                                     <strong style={{ fontSize: 15 }}>
-                                                        {dep.startDate ? new Date(dep.startDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Nova Saída'}
+                                                        {dep.startDate ? new Date(dep.startDate + 'T12:00:00').toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Nova Saída'}
                                                     </strong>
                                                     {!dep.editing && dep.startDate && (
                                                         <div style={{ fontSize: 13, color: '#718096', marginTop: 2 }}>

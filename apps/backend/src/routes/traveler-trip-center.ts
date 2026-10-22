@@ -56,7 +56,7 @@ async function assertOwnership(travelerId: string, itineraryId: string): Promise
 }
 
 function sendOwnershipError(res: Response): void {
-    res.status(403).json({ error: 'Acesso negado a esta viagem' });
+    res.status(403).json({ error: 'Access denied to this trip' });
 }
 
 function validateString(value: unknown, maxLen: number, required = true): string | null {
@@ -102,7 +102,7 @@ router.get('/:itineraryId/checklist', travelerAuthMiddleware, async (req: Travel
         res.json({ items });
     } catch (error) {
         console.error('Error fetching trip checklist:', error);
-        res.status(500).json({ error: 'Falha ao carregar checklist' });
+        res.status(500).json({ error: 'Failed to load checklist' });
     }
 });
 
@@ -115,8 +115,8 @@ router.post('/:itineraryId/checklist', travelerAuthMiddleware, async (req: Trave
 
         const category = validateString(req.body?.category, MAX_CATEGORY_LEN);
         const itemText = validateString(req.body?.item, MAX_ITEM_LEN);
-        if (!category) return void res.status(400).json({ error: 'Categoria é obrigatória' });
-        if (!itemText) return void res.status(400).json({ error: 'Descrição do item é obrigatória' });
+        if (!category) return void res.status(400).json({ error: 'Category is required' });
+        if (!itemText) return void res.status(400).json({ error: 'Item description is required' });
 
         const last = await prisma.travelerChecklistItem.findFirst({
             where: { travelerId, itineraryId, saleId: ownership.saleId },
@@ -136,7 +136,7 @@ router.post('/:itineraryId/checklist', travelerAuthMiddleware, async (req: Trave
         res.status(201).json({ item });
     } catch (error) {
         console.error('Error creating checklist item:', error);
-        res.status(500).json({ error: 'Falha ao criar item' });
+        res.status(500).json({ error: 'Failed to create item' });
     }
 });
 
@@ -152,27 +152,27 @@ router.patch('/:itineraryId/checklist/:itemId', travelerAuthMiddleware, async (r
             where: { id: itemId, travelerId, itineraryId, saleId: ownership.saleId },
             select: { id: true },
         });
-        if (!existing) return void res.status(404).json({ error: 'Item não encontrado' });
+        if (!existing) return void res.status(404).json({ error: 'Item not found' });
 
         const data: { completed?: boolean; item?: string; category?: string } = {};
         if (typeof req.body?.completed === 'boolean') data.completed = req.body.completed;
         if (req.body?.item !== undefined) {
             const value = validateString(req.body.item, MAX_ITEM_LEN);
-            if (!value) return void res.status(400).json({ error: 'Descrição do item inválida' });
+            if (!value) return void res.status(400).json({ error: 'Invalid item description' });
             data.item = value;
         }
         if (req.body?.category !== undefined) {
             const value = validateString(req.body.category, MAX_CATEGORY_LEN);
-            if (!value) return void res.status(400).json({ error: 'Categoria inválida' });
+            if (!value) return void res.status(400).json({ error: 'Invalid category' });
             data.category = value;
         }
-        if (!Object.keys(data).length) return void res.status(400).json({ error: 'Nenhuma alteração fornecida' });
+        if (!Object.keys(data).length) return void res.status(400).json({ error: 'No changes provided' });
 
         const item = await prisma.travelerChecklistItem.update({ where: { id: itemId }, data });
         res.json({ item });
     } catch (error) {
         console.error('Error updating checklist item:', error);
-        res.status(500).json({ error: 'Falha ao atualizar item' });
+        res.status(500).json({ error: 'Failed to update item' });
     }
 });
 
@@ -187,11 +187,11 @@ router.delete('/:itineraryId/checklist/:itemId', travelerAuthMiddleware, async (
         const deleted = await prisma.travelerChecklistItem.deleteMany({
             where: { id: itemId, travelerId, itineraryId, saleId: ownership.saleId },
         });
-        if (!deleted.count) return void res.status(404).json({ error: 'Item não encontrado' });
+        if (!deleted.count) return void res.status(404).json({ error: 'Item not found' });
         res.json({ ok: true });
     } catch (error) {
         console.error('Error deleting checklist item:', error);
-        res.status(500).json({ error: 'Falha ao remover item' });
+        res.status(500).json({ error: 'Failed to remove item' });
     }
 });
 
@@ -214,7 +214,7 @@ router.get('/:itineraryId/files', travelerAuthMiddleware, async (req: TravelerAu
         res.json({ files: files.map(file => publicFile(req, file)) });
     } catch (error) {
         console.error('Error fetching trip files:', error);
-        res.status(500).json({ error: 'Falha ao carregar arquivos' });
+        res.status(500).json({ error: 'Failed to load files' });
     }
 });
 
@@ -225,12 +225,12 @@ router.post(
         privateUpload.single('file')(req, res, async (uploadError) => {
             try {
                 if (uploadError instanceof multer.MulterError && uploadError.code === 'LIMIT_FILE_SIZE') {
-                    return void res.status(413).json({ error: 'Arquivo muito grande (máx. 50 MB).' });
+                    return void res.status(413).json({ error: 'File is too large (max 50 MB).' });
                 }
-                if (uploadError) return void res.status(415).json({ error: 'Formato não aceito para este campo.' });
-                if (!req.file) return void res.status(400).json({ error: 'Arquivo ausente ou formato inválido.' });
+                if (uploadError) return void res.status(415).json({ error: 'This format isn\'t accepted for this field.' });
+                if (!req.file) return void res.status(400).json({ error: 'File missing or invalid format.' });
                 if (!hasValidFileSignature(req.file.buffer, req.file.originalname)) {
-                    return void res.status(415).json({ error: 'O conteúdo do arquivo não corresponde ao formato informado.' });
+                    return void res.status(415).json({ error: 'The file contents don\'t match the stated format.' });
                 }
 
                 const travelerId = req.traveler!.travelerId;
@@ -241,11 +241,11 @@ router.post(
                 const category = validateString(req.body?.category, MAX_CATEGORY_LEN);
                 const title = validateString(req.body?.title, MAX_TITLE_LEN);
                 const note = validateString(req.body?.note, MAX_NOTE_LEN, false);
-                if (!category || !ALLOWED_CATEGORIES.has(category.toLocaleLowerCase('pt-BR'))) {
-                    return void res.status(400).json({ error: 'Categoria inválida' });
+                if (!category || !ALLOWED_CATEGORIES.has(category.toLocaleLowerCase('en-US'))) {
+                    return void res.status(400).json({ error: 'Invalid category' });
                 }
-                if (!title) return void res.status(400).json({ error: 'Título é obrigatório' });
-                if (note === null) return void res.status(400).json({ error: 'Observação inválida' });
+                if (!title) return void res.status(400).json({ error: 'Title is required' });
+                if (note === null) return void res.status(400).json({ error: 'Invalid note' });
 
                 const file = await prisma.travelerFile.create({
                     data: {
@@ -270,7 +270,7 @@ router.post(
                 res.status(201).json({ file: publicFile(req, file) });
             } catch (error) {
                 console.error('Error uploading trip file:', error);
-                res.status(500).json({ error: 'Não foi possível enviar o arquivo.' });
+                res.status(500).json({ error: 'We couldn\'t upload the file.' });
             }
         });
     },
@@ -278,7 +278,7 @@ router.post(
 
 // Compatibility guard: old clients must not persist arbitrary public URLs.
 router.post('/:itineraryId/files', travelerAuthMiddleware, (_req, res) => {
-    res.status(410).json({ error: 'Atualize o app para usar o upload privado da Central da Viagem.' });
+    res.status(410).json({ error: 'Update the app to use private uploads in the Trip Center.' });
 });
 
 router.get('/files/:fileId/content', async (req: Request, res: Response) => {
@@ -286,13 +286,13 @@ router.get('/files/:fileId/content', async (req: Request, res: Response) => {
         const fileId = req.params.fileId as string;
         const token = typeof req.query.token === 'string' ? req.query.token : '';
         const payload = verifyPrivateFileToken(token);
-        if (!payload || payload.fileId !== fileId) return void res.status(401).json({ error: 'Link inválido ou expirado' });
+        if (!payload || payload.fileId !== fileId) return void res.status(401).json({ error: 'Link is invalid or has expired' });
 
         const file = await prisma.travelerFile.findFirst({
             where: { id: fileId, travelerId: payload.travelerId },
             select: { content: true, url: true, mimeType: true, originalFileName: true, title: true },
         });
-        if (!file) return void res.status(404).json({ error: 'Arquivo não encontrado' });
+        if (!file) return void res.status(404).json({ error: 'File not found' });
 
         res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
         res.setHeader('Content-Disposition', `inline; filename="${safeFilename(file.originalFileName || file.title)}"`);
@@ -308,12 +308,12 @@ router.get('/files/:fileId/content', async (req: Request, res: Response) => {
         const legacyName = path.basename(new URL(file.url, 'http://local').pathname);
         const legacyPath = path.join(process.cwd(), 'public/uploads/itineraries', legacyName);
         if (!legacyName || !fs.existsSync(legacyPath)) {
-            return void res.status(410).json({ error: 'Arquivo legado indisponível; envie-o novamente.' });
+            return void res.status(410).json({ error: 'This legacy file is unavailable; please upload it again.' });
         }
         res.sendFile(legacyPath);
     } catch (error) {
         console.error('Error serving trip file:', error);
-        res.status(500).json({ error: 'Falha ao abrir arquivo' });
+        res.status(500).json({ error: 'Failed to open file' });
     }
 });
 
@@ -328,11 +328,11 @@ router.delete('/:itineraryId/files/:fileId', travelerAuthMiddleware, async (req:
         const deleted = await prisma.travelerFile.deleteMany({
             where: { id: fileId, travelerId, itineraryId, saleId: ownership.saleId },
         });
-        if (!deleted.count) return void res.status(404).json({ error: 'Arquivo não encontrado' });
+        if (!deleted.count) return void res.status(404).json({ error: 'File not found' });
         res.json({ ok: true });
     } catch (error) {
         console.error('Error deleting trip file:', error);
-        res.status(500).json({ error: 'Falha ao remover arquivo' });
+        res.status(500).json({ error: 'Failed to remove file' });
     }
 });
 

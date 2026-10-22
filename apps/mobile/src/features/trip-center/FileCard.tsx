@@ -12,7 +12,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import type { TravelerFile } from '../../services/tripCenter';
-import { normalizeCategory } from './fileCategories';
+import { normalizeCategory, fileCategoryLabel } from './fileCategories';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -94,7 +94,7 @@ export default function FileCard({ file, onPress, onLongPress, onDelete, uploadi
                                 onDelete();
                             }}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            accessibilityLabel="Excluir arquivo"
+                            accessibilityLabel="Delete file"
                         >
                             <Ionicons name="trash-outline" size={14} color="#fff" />
                         </TouchableOpacity>
@@ -104,7 +104,7 @@ export default function FileCard({ file, onPress, onLongPress, onDelete, uploadi
                     <Text style={styles.title} numberOfLines={2}>{file.title}</Text>
                     <View style={styles.categoryChip}>
                         <Text style={styles.categoryLabel} numberOfLines={1}>
-                            {normalizeCategory(file.category)}
+                            {fileCategoryLabel(normalizeCategory(file.category))}
                         </Text>
                     </View>
                 </View>

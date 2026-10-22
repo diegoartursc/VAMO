@@ -41,18 +41,18 @@ export default function DatePickerModal({
     const [originSearch, setOriginSearch] = useState('');
     const [checkedBags, setCheckedBags] = useState(0);
 
-    const BRAZILIAN_CITIES = [
-        'São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador', 'Fortaleza',
-        'Belo Horizonte', 'Manaus', 'Curitiba', 'Recife', 'Porto Alegre',
-        'Belém', 'Goiânia', 'Guarulhos', 'Campinas', 'São Luís',
-        'Maceió', 'Florianópolis', 'Natal', 'Campo Grande', 'Teresina',
-        'João Pessoa', 'Aracaju', 'Cuiabá', 'Vitória', 'Palmas',
-        'Londrina', 'Joinville', 'Uberlândia', 'Ribeirão Preto', 'Foz do Iguaçu',
+    const US_CITIES = [
+        'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix',
+        'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose',
+        'Austin', 'Jacksonville', 'San Francisco', 'Seattle', 'Denver',
+        'Washington, D.C.', 'Boston', 'Nashville', 'Las Vegas', 'Portland',
+        'Atlanta', 'Miami', 'Orlando', 'Minneapolis', 'Detroit',
+        'Salt Lake City', 'Charlotte', 'Baltimore', 'Honolulu', 'New Orleans',
     ];
 
     const filteredCities = originSearch.length > 0
-        ? BRAZILIAN_CITIES.filter(c => c.toLowerCase().includes(originSearch.toLowerCase()))
-        : BRAZILIAN_CITIES.slice(0, 10);
+        ? US_CITIES.filter(c => c.toLowerCase().includes(originSearch.toLowerCase()))
+        : US_CITIES.slice(0, 10);
 
     const handleDateSelect = (dateItem: AvailableDate) => {
         const date = new Date(dateItem.date + 'T12:00:00');
@@ -97,7 +97,7 @@ export default function DatePickerModal({
 
     const formatDateShort = (isoDate: string) => {
         const date = new Date(isoDate + 'T12:00:00');
-        return date.toLocaleDateString('pt-BR', {
+        return date.toLocaleDateString('en-US', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -106,7 +106,7 @@ export default function DatePickerModal({
 
     const formatDateLong = (isoDate: string) => {
         const date = new Date(isoDate + 'T12:00:00');
-        return date.toLocaleDateString('pt-BR', {
+        return date.toLocaleDateString('en-US', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
@@ -114,7 +114,7 @@ export default function DatePickerModal({
     };
 
     const formatPrice = (price: number) => {
-        return price.toLocaleString('pt-BR', {
+        return price.toLocaleString('en-US', {
             style: 'currency',
             currency: BASE_CURRENCY,
         });
@@ -133,7 +133,7 @@ export default function DatePickerModal({
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                     <Ionicons name="close" size={28} color="#1A3263" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Quem vai viajar?</Text>
+                <Text style={styles.headerTitle}>Who's traveling?</Text>
             </View>
 
             {packageTitle && (
@@ -171,8 +171,8 @@ export default function DatePickerModal({
                     {/* Children */}
                     <View style={styles.counterRow}>
                         <View style={styles.counterLabelContainer}>
-                            <Text style={styles.counterLabel}>Crianças</Text>
-                            <Text style={styles.counterSublabel}>Até 12 anos · 50% do valor</Text>
+                            <Text style={styles.counterLabel}>Children</Text>
+                            <Text style={styles.counterSublabel}>Up to 12 years · 50% of the price</Text>
                         </View>
                         <View style={styles.travelerCounter}>
                             <TouchableOpacity
@@ -197,8 +197,8 @@ export default function DatePickerModal({
                 <View style={styles.travelersSummary}>
                     <Ionicons name="people" size={20} color="#14b8a6" />
                     <Text style={styles.travelersSummaryText}>
-                        {totalTravelers} {totalTravelers === 1 ? 'viajante' : 'viajantes'}
-                        {childrenCount > 0 && ` (${adultsCount} adulto${adultsCount > 1 ? 's' : ''}, ${childrenCount} criança${childrenCount > 1 ? 's' : ''})`}
+                        {totalTravelers} {totalTravelers === 1 ? 'traveler' : 'travelers'}
+                        {childrenCount > 0 && ` (${adultsCount} adult${adultsCount > 1 ? 's' : ''}, ${childrenCount} child${childrenCount > 1 ? 'ren' : ''})`}
                     </Text>
                 </View>
             </View>
@@ -209,7 +209,7 @@ export default function DatePickerModal({
                     style={styles.confirmButton}
                     onPress={() => setViewMode('origin')}
                 >
-                    <Text style={styles.confirmButtonText}>Continuar</Text>
+                    <Text style={styles.confirmButtonText}>Continue</Text>
                     <Ionicons name="arrow-forward" size={20} color="#fff" />
                 </TouchableOpacity>
             </View>
@@ -223,7 +223,7 @@ export default function DatePickerModal({
                 <TouchableOpacity onPress={() => setViewMode('travelers')} style={styles.closeButton}>
                     <Ionicons name="arrow-back" size={28} color="#1A3263" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>De onde você sai?</Text>
+                <Text style={styles.headerTitle}>Where are you departing from?</Text>
             </View>
 
             <ScrollView style={{ flex: 1, paddingHorizontal: 20 }}>
@@ -236,7 +236,7 @@ export default function DatePickerModal({
                 }}>
                     <Ionicons name="airplane" size={22} color="#14b8a6" />
                     <Text style={{ flex: 1, fontSize: 14, color: '#64748B', lineHeight: 20 }}>
-                        Informar sua cidade nos ajuda a cotar o melhor voo para você.
+                        Telling us your city helps us quote the best flight for you.
                     </Text>
                 </View>
 
@@ -252,7 +252,7 @@ export default function DatePickerModal({
                         style={{
                             flex: 1, color: '#1A3263', fontSize: 16, paddingVertical: 14,
                         }}
-                        placeholder="Ex: Florianópolis"
+                        placeholder="E.g. Chicago"
                         placeholderTextColor="#94A3B8"
                         value={originSearch || originCity}
                         onChangeText={(text) => {
@@ -287,7 +287,7 @@ export default function DatePickerModal({
                 {!originCity && (
                     <View style={{ gap: 6 }}>
                         <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '600', marginBottom: 6 }}>
-                            {originSearch ? 'Resultados' : 'Cidades populares'}
+                            {originSearch ? 'Results' : 'Popular cities'}
                         </Text>
                         {filteredCities.map((city) => (
                             <TouchableOpacity
@@ -337,7 +337,7 @@ export default function DatePickerModal({
                         style={styles.confirmButton}
                         onPress={() => setViewMode('dates')}
                     >
-                        <Text style={styles.confirmButtonText}>Continuar</Text>
+                        <Text style={styles.confirmButtonText}>Continue</Text>
                         <Ionicons name="arrow-forward" size={20} color="#fff" />
                     </TouchableOpacity>
                 </View>
@@ -364,7 +364,7 @@ export default function DatePickerModal({
                 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                         <Ionicons name="checkmark-circle" size={20} color="#14b8a6" />
-                        <Text style={{ fontSize: 15, fontWeight: '700', color: '#14b8a6' }}>Já incluso na passagem</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '700', color: '#14b8a6' }}>Already included in the fare</Text>
                     </View>
 
                     <View style={{ gap: 16, paddingLeft: 6 }}>
@@ -372,10 +372,10 @@ export default function DatePickerModal({
                             <Ionicons name="briefcase-outline" size={24} color="#14b8a6" style={{ marginTop: 2 }} />
                             <View style={{ flex: 1 }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1A3263' }}>1 bolsa ou mochila até 10 kg</Text>
+                                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1A3263' }}>1 bag or backpack up to 22 lb</Text>
                                     <Ionicons name="information-circle-outline" size={16} color="#94A3B8" />
                                 </View>
-                                <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>Deve ir debaixo do assento da frente</Text>
+                                <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>Must fit under the seat in front of you</Text>
                             </View>
                         </View>
 
@@ -383,10 +383,10 @@ export default function DatePickerModal({
                             <Ionicons name="bag-handle-outline" size={24} color="#14b8a6" style={{ marginTop: 2 }} />
                             <View style={{ flex: 1 }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1A3263' }}>1 mala pequena até 12 kg</Text>
+                                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1A3263' }}>1 small carry-on up to 26 lb</Text>
                                     <Ionicons name="information-circle-outline" size={16} color="#94A3B8" />
                                 </View>
-                                <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>Sujeita a ser despachada no embarque</Text>
+                                <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>May be checked at boarding</Text>
                             </View>
                         </View>
                     </View>
@@ -394,10 +394,10 @@ export default function DatePickerModal({
 
                 {/* Checked bags selector */}
                 <Text style={{ fontSize: 17, fontWeight: '700', color: '#1A3263', marginBottom: 6 }}>
-                    Bagagens despachadas
+                    Checked bags
                 </Text>
                 <Text style={{ fontSize: 14, color: '#64748B', lineHeight: 20, marginBottom: 16 }}>
-                    Selecione quantas malas de 23kg você vai precisar despachar. Cada viajante pode despachar até 2 malas.
+                    Select how many 50 lb bags you'll need to check. Each traveler can check up to 2 bags.
                 </Text>
 
                 <View style={{
@@ -411,10 +411,10 @@ export default function DatePickerModal({
                             </View>
                             <View>
                                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#1A3263' }}>
-                                    {checkedBags === 0 ? 'Nenhuma mala' : `${checkedBags} mala${checkedBags > 1 ? 's' : ''} de 23kg`}
+                                    {checkedBags === 0 ? 'No bags' : `${checkedBags} bag${checkedBags > 1 ? 's' : ''} (50 lb each)`}
                                 </Text>
                                 <Text style={{ fontSize: 13, color: '#64748B' }}>
-                                    {checkedBags === 0 ? 'Só bagagem de mão' : `${checkedBags * 23}kg no total`}
+                                    {checkedBags === 0 ? 'Carry-on only' : `${checkedBags * 50} lb total`}
                                 </Text>
                             </View>
                         </View>
@@ -455,7 +455,7 @@ export default function DatePickerModal({
                 }}>
                     <Ionicons name="information-circle" size={20} color="#D97706" />
                     <Text style={{ flex: 1, fontSize: 13, color: '#92400E', lineHeight: 19 }}>
-                        A quantidade de bagagens despachadas influencia no preço da passagem aérea que será cotada pela agência.
+                        The number of checked bags affects the price of the airfare quoted by the agency.
                     </Text>
                 </View>
 
@@ -472,7 +472,7 @@ export default function DatePickerModal({
                         }
                     }}
                 >
-                    <Text style={styles.confirmButtonText}>Confirmar Seleção</Text>
+                    <Text style={styles.confirmButtonText}>Confirm Selection</Text>
                     <Ionicons name="checkmark-circle" size={20} color="#fff" />
                 </TouchableOpacity>
             </View>
@@ -492,7 +492,7 @@ export default function DatePickerModal({
                     <TouchableOpacity onPress={() => setViewMode('origin')} style={styles.closeButton}>
                         <Ionicons name="arrow-back" size={28} color="#1A3263" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Selecionar datas</Text>
+                    <Text style={styles.headerTitle}>Select dates</Text>
                 </View>
 
                 {/* Traveler badge */}
@@ -501,16 +501,16 @@ export default function DatePickerModal({
                         <Ionicons name="people" size={14} color="#14b8a6" />
                         <Text style={styles.travelerBadgeText}>
                             {adultsCount} adulto{adultsCount > 1 ? 's' : ''}
-                            {childrenCount > 0 && ` + ${childrenCount} criança${childrenCount > 1 ? 's' : ''}`}
+                            {childrenCount > 0 && ` + ${childrenCount} child${childrenCount > 1 ? 'ren' : ''}`}
                         </Text>
                     </View>
                     <TouchableOpacity onPress={() => setViewMode('travelers')}>
-                        <Text style={styles.editLink}>Alterar</Text>
+                        <Text style={styles.editLink}>Change</Text>
                     </TouchableOpacity>
                 </View>
 
                 <Text style={styles.sectionSubtitle}>
-                    {availableDates.length} {availableDates.length === 1 ? 'data disponível' : 'datas disponíveis'}
+                    {availableDates.length} {availableDates.length === 1 ? 'date available' : 'dates available'}
                 </Text>
 
                 <View style={styles.dateCardsContainer}>
@@ -531,7 +531,7 @@ export default function DatePickerModal({
                                 {isLowestTotal && (
                                     <View style={styles.bestPriceBadge}>
                                         <Ionicons name="pricetag" size={12} color="#fff" />
-                                        <Text style={styles.bestPriceBadgeText}>Melhor preço</Text>
+                                        <Text style={styles.bestPriceBadgeText}>Best price</Text>
                                     </View>
                                 )}
 
@@ -555,12 +555,12 @@ export default function DatePickerModal({
                                             {formatPrice(totalForDate)}
                                         </Text>
                                         <Text style={styles.priceLabel}>
-                                            {totalTravelers} {totalTravelers === 1 ? 'viajante' : 'viajantes'}
+                                            {totalTravelers} {totalTravelers === 1 ? 'traveler' : 'travelers'}
                                         </Text>
                                         {dateItem.spotsLeft && (
                                             <View style={styles.spotsLeftBadge}>
                                                 <Text style={styles.spotsLeftText}>
-                                                    {dateItem.spotsLeft} {dateItem.spotsLeft === 1 ? 'vaga' : 'vagas'}
+                                                    {dateItem.spotsLeft} {dateItem.spotsLeft === 1 ? 'spot left' : 'spots left'}
                                                 </Text>
                                             </View>
                                         )}
@@ -574,9 +574,9 @@ export default function DatePickerModal({
                 {availableDates.length === 0 && (
                     <View style={styles.emptyState}>
                         <Ionicons name="calendar-outline" size={48} color="#555" />
-                        <Text style={styles.emptyStateText}>Nenhuma data disponível no momento</Text>
+                        <Text style={styles.emptyStateText}>No dates available right now</Text>
                         <Text style={styles.emptyStateSubtext}>
-                            Entre em contato com a agência para mais informações.
+                            Contact the agency for more information.
                         </Text>
                     </View>
                 )}
@@ -596,7 +596,7 @@ export default function DatePickerModal({
                 >
                     <Ionicons name="arrow-back" size={28} color="#1A3263" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Confirmar reserva</Text>
+                <Text style={styles.headerTitle}>Confirm booking</Text>
             </View>
 
             <ScrollView style={styles.confirmationContent}>
@@ -604,7 +604,7 @@ export default function DatePickerModal({
                 <View style={styles.confirmDateCard}>
                     <Ionicons name="calendar-outline" size={48} color="#14b8a6" />
                     <Text style={styles.selectedDateText}>
-                        {selectedDate?.toLocaleDateString('pt-BR', {
+                        {selectedDate?.toLocaleDateString('en-US', {
                             day: 'numeric',
                             month: 'long',
                             year: 'numeric',
@@ -624,7 +624,7 @@ export default function DatePickerModal({
                 {/* Price Breakdown */}
                 {selectedPrice && (
                     <View style={styles.priceBreakdownCard}>
-                        <Text style={styles.priceBreakdownTitle}>Resumo do valor</Text>
+                        <Text style={styles.priceBreakdownTitle}>Price summary</Text>
 
                         <View style={styles.priceRow}>
                             <Text style={styles.priceRowLabel}>
@@ -661,8 +661,8 @@ export default function DatePickerModal({
                 <View style={styles.infoBox}>
                     <Ionicons name="information-circle" size={20} color="#14b8a6" />
                     <Text style={styles.infoText}>
-                        Após confirmar, você receberá um email com os detalhes da solicitação.
-                        A agência entrará em contato em até 24h para finalizar a reserva.
+                        After confirming, you'll receive an email with the request details.
+                        The agency will contact you within 24 hours to finalize the booking.
                     </Text>
                 </View>
 
@@ -676,7 +676,7 @@ export default function DatePickerModal({
                     style={styles.cancelButton}
                     onPress={() => setViewMode('dates')}
                 >
-                    <Text style={styles.cancelButtonText}>Escolher Outra Data</Text>
+                    <Text style={styles.cancelButtonText}>Choose Another Date</Text>
                 </TouchableOpacity>
 
                 <View style={{ height: 40 }} />
@@ -692,18 +692,18 @@ export default function DatePickerModal({
                     <Ionicons name="checkmark-circle" size={80} color="#14b8a6" />
                 </View>
 
-                <Text style={styles.successTitle}>Solicitação Enviada!</Text>
+                <Text style={styles.successTitle}>Request Sent!</Text>
                 <Text style={styles.successSubtitle}>
-                    Sua solicitação de reserva foi enviada com sucesso
+                    Your booking request was sent successfully
                 </Text>
 
                 <View style={styles.successSummaryCard}>
                     <View style={styles.summaryRow}>
                         <Ionicons name="calendar" size={20} color="#14b8a6" />
                         <View style={styles.summaryRowContent}>
-                            <Text style={styles.summaryRowLabel}>Data</Text>
+                            <Text style={styles.summaryRowLabel}>Date</Text>
                             <Text style={styles.summaryRowValue}>
-                                {selectedDate?.toLocaleDateString('pt-BR', {
+                                {selectedDate?.toLocaleDateString('en-US', {
                                     day: 'numeric',
                                     month: 'long',
                                     year: 'numeric'
@@ -717,10 +717,10 @@ export default function DatePickerModal({
                     <View style={styles.summaryRow}>
                         <Ionicons name="people" size={20} color="#14b8a6" />
                         <View style={styles.summaryRowContent}>
-                            <Text style={styles.summaryRowLabel}>Viajantes</Text>
+                            <Text style={styles.summaryRowLabel}>Travelers</Text>
                             <Text style={styles.summaryRowValue}>
                                 {adultsCount} Adulto{adultsCount > 1 ? 's' : ''}
-                                {childrenCount > 0 && `, ${childrenCount} Criança${childrenCount > 1 ? 's' : ''}`}
+                                {childrenCount > 0 && `, ${childrenCount} Child${childrenCount > 1 ? 'ren' : ''}`}
                             </Text>
                         </View>
                     </View>
@@ -739,13 +739,13 @@ export default function DatePickerModal({
                 </View>
 
                 <View style={styles.nextStepsCard}>
-                    <Text style={styles.nextStepsTitle}>Próximos passos</Text>
+                    <Text style={styles.nextStepsTitle}>Next steps</Text>
                     <View style={styles.stepItem}>
                         <View style={styles.stepNumber}>
                             <Text style={styles.stepNumberText}>1</Text>
                         </View>
                         <Text style={styles.stepText}>
-                            Você receberá um email de confirmação
+                            You'll receive a confirmation email
                         </Text>
                     </View>
                     <View style={styles.stepItem}>
@@ -753,7 +753,7 @@ export default function DatePickerModal({
                             <Text style={styles.stepNumberText}>2</Text>
                         </View>
                         <Text style={styles.stepText}>
-                            {agencyName || 'A agência'} entrará em contato em até 24h
+                            {agencyName || 'The agency'} entrará em contato em até 24h
                         </Text>
                     </View>
                     <View style={styles.stepItem}>
@@ -761,7 +761,7 @@ export default function DatePickerModal({
                             <Text style={styles.stepNumberText}>3</Text>
                         </View>
                         <Text style={styles.stepText}>
-                            Finalize os detalhes e confirme o pagamento
+                            Finalize the details and confirm payment
                         </Text>
                     </View>
                 </View>
@@ -771,7 +771,7 @@ export default function DatePickerModal({
                     style={styles.doneButton}
                     onPress={handleClose}
                 >
-                    <Text style={styles.doneButtonText}>Concluir</Text>
+                    <Text style={styles.doneButtonText}>Done</Text>
                 </TouchableOpacity>
             </ScrollView>
         </View>

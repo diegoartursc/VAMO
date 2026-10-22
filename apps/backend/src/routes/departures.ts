@@ -68,7 +68,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         }
 
         if (capacityVamo > capacityTotal) {
-            return res.status(400).json({ error: 'Vagas VAMO não podem exceder a capacidade total' });
+            return res.status(400).json({ error: 'VAMO spots can\'t exceed total capacity' });
         }
 
         const departure = await prisma.packageDeparture.create({
@@ -110,7 +110,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 
         if (newCapacityVamo < bookedSlots) {
             return res.status(400).json({
-                error: `Não é possível reduzir para ${newCapacityVamo} vagas VAMO. Já existem ${bookedSlots} reservas.`
+                error: `Can't reduce to ${newCapacityVamo} VAMO spots. There are already ${bookedSlots} bookings.`
             });
         }
 
@@ -147,7 +147,7 @@ router.post('/:id/duplicate', authMiddleware, async (req: Request, res: Response
         const { startDate } = req.body;
 
         if (!startDate) {
-            return res.status(400).json({ error: 'Nova data de saída é obrigatória para duplicar' });
+            return res.status(400).json({ error: 'A new departure date is required to duplicate' });
         }
 
         const original = await prisma.packageDeparture.findUnique({ where: { id } });
@@ -211,7 +211,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
         const depAny = departure as any;
         if (depAny._count && depAny._count.bookings > 0) {
             return res.status(400).json({
-                error: 'Não é possível excluir uma saída com reservas. Encerre as vendas em vez disso.'
+                error: 'Can\'t delete a departure that has bookings. Close sales instead.'
             });
         }
 
@@ -304,13 +304,13 @@ router.post('/:id/book', travelerAuthMiddleware, async (req: TravelerAuthRequest
         });
     } catch (error: any) {
         if (error.message === 'DEPARTURE_NOT_FOUND') {
-            return res.status(404).json({ error: 'Saída não encontrada' });
+            return res.status(404).json({ error: 'Departure not found' });
         }
         if (error.message === 'DEPARTURE_CLOSED') {
-            return res.status(400).json({ error: 'Esta saída não está mais disponível para reservas' });
+            return res.status(400).json({ error: 'This departure is no longer available for booking' });
         }
         if (error.message === 'INSUFFICIENT_SLOTS') {
-            return res.status(400).json({ error: 'Vagas insuficientes para esta saída' });
+            return res.status(400).json({ error: 'Not enough spots left on this departure' });
         }
         console.error('Error booking departure:', error);
         res.status(500).json({ error: 'Failed to book departure' });

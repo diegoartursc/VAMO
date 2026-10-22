@@ -250,13 +250,13 @@ export function buildRecommendationCandidate(
     const reasons: string[] = [];
     if (matchingDestinations.length) {
         const original = allItineraries.find((it) => normalizeMatchText(it.destination) === matchingDestinations[0]);
-        reasons.push(`Especialista em ${original?.destination ?? matchingDestinations[0]}`);
+        reasons.push(`${original?.destination ?? matchingDestinations[0]} expert`);
     }
-    if (levelResult.level === 'vamo_ambassador') reasons.push('Embaixador VAMO');
-    else if (levelResult.level === 'top_creator') reasons.push('Top Roteirista');
-    if (reviewCount >= 5 && ratedAvg >= 4.7) reasons.push('Muito bem avaliado');
-    if (totalSales >= 100) reasons.push('Um dos mais vendidos');
-    if (averageQualityScore != null && averageQualityScore >= 85) reasons.push('Alta qualidade dos roteiros');
+    if (levelResult.level === 'vamo_ambassador') reasons.push('VAMO Ambassador');
+    else if (levelResult.level === 'top_creator') reasons.push('Top Creator');
+    if (reviewCount >= 5 && ratedAvg >= 4.7) reasons.push('Highly rated');
+    if (totalSales >= 100) reasons.push('A bestseller');
+    if (averageQualityScore != null && averageQualityScore >= 85) reasons.push('High-quality itineraries');
     // Nunca fica sem nenhuma razão: elegibilidade já garante pelo menos o
     // critério qualitativo do próprio nível de reputação.
     if (reasons.length === 0) reasons.push(levelResult.config.criteriaSummary);

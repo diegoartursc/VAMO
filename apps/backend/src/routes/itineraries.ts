@@ -293,7 +293,7 @@ async function resolveCreatorIdFromToken(req: AuthRequest): Promise<string | nul
  */
 function buyerDisplayName(name?: string | null): string {
     const clean = String(name || '').trim();
-    if (!clean) return 'Viajante';
+    if (!clean) return 'Traveler';
     const parts = clean.split(/\s+/);
     if (parts.length === 1) return parts[0];
     return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
@@ -646,7 +646,7 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
     try {
         const travelerId = req.traveler?.travelerId;
         if (!travelerId) {
-            res.status(401).json({ error: 'Autenticação necessária' });
+            res.status(401).json({ error: 'Authentication required' });
             return;
         }
 
@@ -656,7 +656,7 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
             select: { id: true, price: true, createdAt: true, purchaseData: true },
         });
         if (!sale) {
-            res.status(403).json({ error: 'Roteiro não comprado por este usuário' });
+            res.status(403).json({ error: 'This itinerary was not purchased by this user' });
             return;
         }
 
@@ -787,7 +787,7 @@ router.patch('/:id/creator/status', optionalAuthMiddleware, async (req: AuthRequ
         const id = req.params.id as string;
         const requestedStatus = normalizeStatus(req.body?.status);
         if (!requestedStatus || !CREATOR_STATUS_ACTIONS.includes(requestedStatus as any)) {
-            res.status(400).json({ error: 'Status inválido para ação do criador.' });
+            res.status(400).json({ error: 'Invalid status for a creator action.' });
             return;
         }
 
@@ -808,17 +808,17 @@ router.patch('/:id/creator/status', optionalAuthMiddleware, async (req: AuthRequ
 
         const current = existing.status as string;
         if (requestedStatus === 'PAUSED' && current !== 'ACTIVE') {
-            res.status(400).json({ error: 'Apenas roteiros publicados podem ser pausados.' });
+            res.status(400).json({ error: 'Only published itineraries can be paused.' });
             return;
         }
         if (requestedStatus === 'ACTIVE' && !['PAUSED', 'APPROVED'].includes(current)) {
-            res.status(400).json({ error: 'Apenas roteiros pausados ou aprovados podem ser publicados pelo criador.' });
+            res.status(400).json({ error: 'Only paused or approved itineraries can be published by the creator.' });
             return;
         }
         if (requestedStatus === 'PENDING_REVIEW') {
             const issues = validateItinerarySubmission(existing);
             if (issues.length) {
-                res.status(400).json({ error: `Corrija antes de enviar: ${issues.join(' ')}` });
+                res.status(400).json({ error: `Fix these before submitting: ${issues.join(' ')}` });
                 return;
             }
         }
@@ -856,7 +856,7 @@ router.patch('/:id/creator/status', optionalAuthMiddleware, async (req: AuthRequ
             prisma.creator
                 .findUnique({ where: { id: existing.creatorId }, select: { traveler: { select: { name: true } } } })
                 .then((c) => sendItinerarySubmittedForReviewEmail({
-                    creatorName: c?.traveler?.name || 'Um roteirista',
+                    creatorName: c?.traveler?.name || 'A creator',
                     itineraryId: existing.id,
                     itineraryTitle: existing.title,
                     destination: existing.destination,
@@ -865,7 +865,7 @@ router.patch('/:id/creator/status', optionalAuthMiddleware, async (req: AuthRequ
                     currency: existing.currency,
                     days: existing.days?.length || null,
                 }))
-                .catch((e) => console.error('[itineraries.creator.status] e-mail ao admin falhou:', e?.message || e));
+                .catch((e) => console.error('[itineraries.creator.status] admin email failed:', e?.message || e));
         }
 
         res.json(updated);
@@ -1149,7 +1149,7 @@ function normalizeActivitiesForPersistence(activities: any[] | undefined): any[]
     return activities.filter(activityHasContent);
 }
 
-function validateItinerarySubmission(data: any): string[] {
+export function validateItinerarySubmission(data: any): string[] {
     const issues: string[] = [];
     const activeModules = Array.isArray(data.activeModules) ? data.activeModules : [];
     const days = Array.isArray(data.days) ? data.days : [];
@@ -1158,23 +1158,27 @@ function validateItinerarySubmission(data: any): string[] {
         ? days.slice(0, duration)
         : [];
 
-    if (!String(data.title || '').trim()) issues.push('Defina um título para o roteiro.');
-    if (!String(data.destination || '').trim() || !String(data.country || '').trim()) issues.push('Informe cidade e país de destino.');
-    if (!String(data.description || '').trim()) issues.push('Escreva uma descrição para o roteiro.');
-    if (!Array.isArray(data.categories) || data.categories.filter(Boolean).length < 1) issues.push('Selecione pelo menos 1 categoria.');
-    if (!Number.isFinite(parseDecimalInput(data.price)) || parseDecimalInput(data.price) <= 0) issues.push('Defina um preço de venda válido.');
-    if (!Number.isFinite(duration) || duration < 1) issues.push('A duração precisa ter pelo menos 1 dia.');
-    if (!String(data.travelProofUrl || '').trim()) issues.push('Anexe o comprovante de viagem.');
-    if (activeModules.length < 1) issues.push('Ative pelo menos 1 módulo.');
-    if (Number.isFinite(duration) && duration > 0 && days.length < duration) {
-        issues.push(`Cadastre os ${duration} dias definidos na duração do roteiro.`);
+    if (!String(data.title || '').trim()) issues.push('Add a title for your itinerary.');
+    if (!String(data.destination || '').trim() || !String(data.country || '').trim()) issues.push('Enter the destination city and country.');
+    if (!String(data.description || '').trim()) issues.push('Write a description for your itinerary.');
+    if (!Array.isArray(data.categories) || data.categories.filter(Boolean).length < 1) issues.push('Select at least 1 category.');
+    if (!Number.isFinite(parseDecimalInput(data.price)) || parseDecimalInput(data.price) <= 0) issues.push('Set a valid sale price.');
+    if (!Number.isFinite(duration) || duration < 1) issues.push('The duration must be at least 1 day.');
+    if (!String(data.travelProofUrl || '').trim()) issues.push('Attach your proof of travel.');
+    if (activeModules.length < 1) issues.push('Turn on at least 1 module.');
+    // Duração é sempre obrigatória; o detalhamento diário só quando o módulo
+    // "itinerario" está ativo (mesma regra de packages/shared/itinerary/validation.ts).
+    const itinerarioActive = activeModules.includes('itinerario');
+    const missingDays = itinerarioActive && Number.isFinite(duration) && duration > 0 && days.length < duration;
+    if (missingDays) {
+        issues.push(`Add all ${duration} days set in the itinerary duration.`);
     }
 
     const coverCount = new Set([
         ...((data.highlightPhotos || []).filter(Boolean)),
         ...((data.images || []).filter(Boolean)),
     ]).size;
-    if (coverCount < 1) issues.push('Adicione pelo menos 1 imagem de capa.');
+    if (coverCount < 1) issues.push('Add at least 1 cover image.');
 
     const moduleIncomplete = (key: string): string | null => {
         if (key === 'itinerario') {
@@ -1182,46 +1186,48 @@ function validateItinerarySubmission(data: any): string[] {
                 && duration > 0
                 && days.length >= duration
                 && submissionDays.every(dayIsCompleteForSubmission);
-            return ok ? null : 'Preencha o itinerário por dia com descrição e atividades.';
+            return ok ? null : 'Fill in the daily itinerary with descriptions and activities.';
         }
         if (key === 'voo') {
             const out = data.flightInfo?.outbound;
             const ret = data.flightInfo?.return;
             const ok = !!(out?.originCity && out?.departureDate && out?.arrivalDate && ret?.originCity && ret?.departureDate && ret?.arrivalDate);
-            return ok ? null : 'Preencha os dados mínimos de ida e volta em Meu Voo.';
+            return ok ? null : 'Fill in the minimum outbound and return details in My Flight.';
         }
         if (key === 'hospedagem') {
             const rows = Array.isArray(data.accommodations) ? data.accommodations : [];
-            return rows.length > 0 && rows.every((a: any) => String(a.name || '').trim()) ? null : 'Adicione pelo menos 1 hospedagem com nome.';
+            return rows.length > 0 && rows.every((a: any) => String(a.name || '').trim()) ? null : 'Add at least 1 lodging with a name.';
         }
         if (key === 'passeios') {
             const rows = Array.isArray(data.attractions) ? data.attractions : [];
-            return rows.length > 0 && rows.every((a: any) => String(a.name || '').trim()) ? null : 'Adicione pelo menos 1 passeio ou atração.';
+            return rows.length > 0 && rows.every((a: any) => String(a.name || '').trim()) ? null : 'Add at least 1 tour or attraction.';
         }
         if (key === 'transporte') {
             const rows = Array.isArray(data.transports) ? data.transports : [];
-            return rows.length > 0 && rows.every((t: any) => String(t.description || '').trim() && String(t.passTypes || '').trim()) ? null : 'Preencha as dicas de transporte.';
+            return rows.length > 0 && rows.every((t: any) => String(t.description || '').trim() && String(t.passTypes || '').trim()) ? null : 'Fill in the transportation tips.';
         }
         if (key === 'dicas') {
             const rows = Array.isArray(data.generalTips) ? data.generalTips : [];
-            return rows.filter((t: string) => String(t || '').trim()).length >= 2 ? null : 'Adicione pelo menos 2 dicas exclusivas.';
+            return rows.filter((t: string) => String(t || '').trim()).length >= 2 ? null : 'Add at least 2 insider tips.';
         }
         if (key === 'restaurantes') {
             const rows = Array.isArray(data.restaurants) ? data.restaurants : [];
-            return rows.length > 0 && rows.every((r: any) => String(r.name || '').trim() && String(r.location || '').trim()) ? null : 'Adicione pelo menos 1 restaurante com nome e localização.';
+            return rows.length > 0 && rows.every((r: any) => String(r.name || '').trim() && String(r.location || '').trim()) ? null : 'Add at least 1 restaurant with a name and location.';
         }
         if (key === 'checklist') {
             const rows = Array.isArray(data.checklists) ? data.checklists : [];
-            return rows.filter((c: any) => String(c.item || '').trim()).length >= 5 ? null : 'Adicione pelo menos 5 itens no checklist.';
+            return rows.filter((c: any) => String(c.item || '').trim()).length >= 5 ? null : 'Add at least 5 checklist items.';
         }
         if (key === 'gastos_extras') {
             const rows = Array.isArray(data.extraSpendingItems) ? data.extraSpendingItems : [];
-            return rows.length > 0 && rows.every((e: any) => String(e.title || '').trim()) ? null : 'Preencha pelo menos 1 gasto extra.';
+            return rows.length > 0 && rows.every((e: any) => String(e.title || '').trim()) ? null : 'Fill in at least 1 extra expense.';
         }
         return null;
     };
 
     for (const moduleKey of activeModules) {
+        // Faltam dias na duração: já reportado acima, sem duplicar.
+        if (moduleKey === 'itinerario' && missingDays) continue;
         const error = moduleIncomplete(moduleKey);
         if (error) issues.push(error);
     }
@@ -1231,7 +1237,7 @@ function validateItinerarySubmission(data: any): string[] {
 
 async function requireCreatorOwner(req: AuthRequest, res: Response, creatorId: string): Promise<boolean> {
     if (!req.traveler?.travelerId) {
-        res.status(401).json({ error: 'Faça login como criador para continuar.' });
+        res.status(401).json({ error: 'Sign in as a creator to continue.' });
         return false;
     }
     const creator = await prisma.creator.findUnique({
@@ -1239,7 +1245,7 @@ async function requireCreatorOwner(req: AuthRequest, res: Response, creatorId: s
         select: { travelerId: true },
     });
     if (!creator || creator.travelerId !== req.traveler.travelerId) {
-        res.status(403).json({ error: 'Sem permissão para acessar este roteiro' });
+        res.status(403).json({ error: 'You don\'t have permission to access this itinerary' });
         return false;
     }
     return true;
@@ -1272,13 +1278,13 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
         void creatorId;
 
         if (!req.traveler?.travelerId) {
-            res.status(401).json({ error: 'Faça login como criador para publicar roteiros.' });
+            res.status(401).json({ error: 'Sign in as a creator to publish itineraries.' });
             return;
         }
 
         const requestedStatus = normalizeStatus(req.body?.status) || 'PENDING_REVIEW';
         if (!CREATOR_WRITABLE_STATUSES.includes(requestedStatus as any)) {
-            res.status(400).json({ error: 'Criadores só podem salvar rascunho ou enviar para análise.' });
+            res.status(400).json({ error: 'Creators can only save a draft or submit for review.' });
             return;
         }
 
@@ -1296,12 +1302,12 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
         }
         // Validate styles max 3
         if (travelStyles && travelStyles.length > 3) {
-            res.status(400).json({ error: 'Máximo 3 estilos de viagem' });
+            res.status(400).json({ error: 'Maximum of 3 travel styles' });
             return;
         }
         // Validate categories min 1 max 5
         if (categories && categories.length > 5) {
-            res.status(400).json({ error: 'Máximo 5 categorias' });
+            res.status(400).json({ error: 'Maximum of 5 categories' });
             return;
         }
 
@@ -1340,14 +1346,14 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
             }
         }
         if (!resolvedCreatorId) {
-            res.status(401).json({ error: 'Faça login como criador para publicar roteiros.' });
+            res.status(401).json({ error: 'Sign in as a creator to publish itineraries.' });
             return;
         }
 
         if (requestedStatus === 'PENDING_REVIEW') {
             const issues = validateItinerarySubmission(req.body);
             if (issues.length) {
-                res.status(400).json({ error: `Corrija antes de enviar: ${issues.join(' ')}` });
+                res.status(400).json({ error: `Fix these before submitting: ${issues.join(' ')}` });
                 return;
             }
         }
@@ -1489,9 +1495,9 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
             message: error?.message, code, meta,
         });
         let userMessage = 'Failed to create itinerary';
-        if (code === 'P2003') userMessage = `Foreign key constraint failed (${meta?.field_name || 'unknown'}). Verifique se o creatorId existe.`;
-        else if (code === 'P2002') userMessage = `Valor duplicado em ${meta?.target?.join(', ') || 'campo único'}.`;
-        else if (error?.message) userMessage = `Erro do servidor: ${error.message}`;
+        if (code === 'P2003') userMessage = `Foreign key constraint failed (${meta?.field_name || 'unknown'}). Check that the creatorId exists.`;
+        else if (code === 'P2002') userMessage = `Duplicate value in ${meta?.target?.join(', ') || 'unique field'}.`;
+        else if (error?.message) userMessage = `Server error: ${error.message}`;
         res.status(500).json({ error: userMessage });
     }
 });
@@ -1542,11 +1548,11 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
 
         // Validate styles max 3
         if (travelStyles && travelStyles.length > 3) {
-            res.status(400).json({ error: 'Máximo 3 estilos de viagem' });
+            res.status(400).json({ error: 'Maximum of 3 travel styles' });
             return;
         }
         if (categories && categories.length > 5) {
-            res.status(400).json({ error: 'Máximo 5 categorias' });
+            res.status(400).json({ error: 'Maximum of 5 categories' });
             return;
         }
 
@@ -1566,7 +1572,7 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
 
         const requestedStatus = normalizeStatus(status);
         if (requestedStatus && !CREATOR_WRITABLE_STATUSES.includes(requestedStatus as any)) {
-            res.status(400).json({ error: 'Criadores só podem salvar rascunho ou enviar para análise.' });
+            res.status(400).json({ error: 'Creators can only save a draft or submit for review.' });
             return;
         }
         if (requestedStatus) {
@@ -1624,7 +1630,7 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (updateData.status === 'PENDING_REVIEW') {
             const issues = validateItinerarySubmission(merged);
             if (issues.length) {
-                res.status(400).json({ error: `Corrija antes de enviar: ${issues.join(' ')}` });
+                res.status(400).json({ error: `Fix these before submitting: ${issues.join(' ')}` });
                 return;
             }
             updateData.approvalNote = null;
@@ -1832,7 +1838,7 @@ router.post('/:id/purchase', travelerAuthMiddleware, async (req: TravelerAuthReq
 
         if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_PURCHASES !== 'true') {
             res.status(503).json({
-                error: 'Pagamento online ainda não está habilitado. Nenhuma cobrança ou liberação foi realizada.',
+                error: 'Online payment is not enabled yet. No charge or access was granted.',
             });
             return;
         }
@@ -1973,11 +1979,11 @@ router.post('/:id/share', optionalAuthMiddleware, async (req: AuthRequest, res: 
             },
         });
         if (!itinerary) {
-            res.status(404).json({ error: 'Roteiro não encontrado' });
+            res.status(404).json({ error: 'Itinerary not found' });
             return;
         }
         if (!itinerary.allowShare) {
-            res.status(403).json({ error: 'Este roteiro não pode ser compartilhado.' });
+            res.status(403).json({ error: 'This itinerary can\'t be shared.' });
             return;
         }
         // Vitrine pública: SOMENTE ACTIVE é compartilhável. Permitimos que o
@@ -1988,7 +1994,7 @@ router.post('/:id/share', optionalAuthMiddleware, async (req: AuthRequest, res: 
         const isOwnerSharing = !!req.traveler?.travelerId
             && req.traveler.travelerId === (itinerary.creator?.travelerId || null);
         if (!isPublic && !isOwnerSharing) {
-            res.status(403).json({ error: 'Este roteiro ainda não está disponível para compartilhamento.' });
+            res.status(403).json({ error: 'This itinerary isn\'t available for sharing yet.' });
             return;
         }
 
@@ -2028,7 +2034,7 @@ router.post('/:id/share', optionalAuthMiddleware, async (req: AuthRequest, res: 
             }
         }
         if (!share) {
-            res.status(500).json({ error: 'Falha ao registrar compartilhamento' });
+            res.status(500).json({ error: 'Failed to record the share' });
             return;
         }
 

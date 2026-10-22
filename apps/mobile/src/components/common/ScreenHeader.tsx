@@ -29,7 +29,7 @@ export function ScreenHeader({
                 <TouchableOpacity
                     style={s.backBtn}
                     onPress={() => { haptics.light(); safeBack(router, fallback); }}
-                    accessibilityLabel="Voltar"
+                    accessibilityLabel="Back"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                     <Ionicons name="arrow-back" size={22} color={theme.colors.text.primary} />

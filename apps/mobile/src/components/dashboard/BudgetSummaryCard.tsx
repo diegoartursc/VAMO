@@ -70,10 +70,10 @@ export default function BudgetSummaryCard({
 
     if (isPremium) {
         const summaryParts: string[] = [];
-        if (summary.verifiedPercentage > 0) summaryParts.push(`${summary.verifiedPercentage}% comprovado`);
-        if (summary.estimatedPercentage > 0) summaryParts.push(`${summary.estimatedPercentage}% estimado`);
+        if (summary.verifiedPercentage > 0) summaryParts.push(`${summary.verifiedPercentage}% verified`);
+        if (summary.estimatedPercentage > 0) summaryParts.push(`${summary.estimatedPercentage}% estimated`);
         if (summary.notInformedItemsCount > 0) {
-            summaryParts.push(`${summary.notInformedItemsCount} ${summary.notInformedItemsCount === 1 ? 'item sem valor' : 'itens sem valor'}`);
+            summaryParts.push(`${summary.notInformedItemsCount} ${summary.notInformedItemsCount === 1 ? 'item without an amount' : 'items without an amount'}`);
         }
         const warning = variant === 'purchased'
             ? COST_DISCLOSURE_COPY.purchasedPlanningTip
@@ -82,7 +82,7 @@ export default function BudgetSummaryCard({
         return (
             <View style={premium.card}>
                 <View style={premium.headerRow}>
-                    <Text style={premium.title}>Referência de custos da viagem</Text>
+                    <Text style={premium.title}>Trip cost reference</Text>
                     <View style={[styles.confidenceBadge, toneStyles.badge]}>
                         <Text style={[styles.confidenceText, toneStyles.badgeText]}>{confidence.label}</Text>
                     </View>
@@ -90,7 +90,7 @@ export default function BudgetSummaryCard({
 
                 <View style={premium.valueRow}>
                     <Text style={premium.value}>{formatMoney(summary.totalInformed, summary.currency)}</Text>
-                    <Text style={premium.valueSuffix}>estimados</Text>
+                    <Text style={premium.valueSuffix}>estimated</Text>
                 </View>
 
                 {(summary.verifiedPercentage > 0 || summary.estimatedPercentage > 0) && (
@@ -113,7 +113,7 @@ export default function BudgetSummaryCard({
                         <Ionicons name="shield-checkmark" size={14} color={theme.colors.verified} />
                         <Text style={styles.vamoBadgeText}>
                             Comprovantes aprovados pela VAMO em {summary.itemsApprovedByVamo}
-                            {summary.itemsApprovedByVamo === 1 ? ' item' : ' itens'}
+                            {summary.itemsApprovedByVamo === 1 ? ' item' : ' items'}
                         </Text>
                     </View>
                 )}
@@ -126,13 +126,13 @@ export default function BudgetSummaryCard({
     // Texto principal
     let mainText: string;
     if (noData) {
-        mainText = 'Este roteiro não possui referência de custos detalhada. Você ainda poderá visualizar o passo a passo, dicas, locais e recomendações do criador.';
+        mainText = 'This itinerary has no detailed cost reference. You can still see the step-by-step plan, tips, places and the creator\'s recommendations.';
     } else if (summary.confidenceLevel === 'verified') {
-        mainText = `Referência de custo com comprovantes analisados pela VAMO: ${formatMoney(summary.totalInformed, summary.currency)}`;
+        mainText = `Cost reference with proof reviewed by VAMO: ${formatMoney(summary.totalInformed, summary.currency)}`;
     } else if (summary.itemsWithProof > 0) {
-        mainText = `Referência de custo informada pelo criador: cerca de ${formatMoney(summary.totalInformed, summary.currency)}`;
+        mainText = `Cost reference provided by the creator: about ${formatMoney(summary.totalInformed, summary.currency)}`;
     } else {
-        mainText = `Orçamento estimado pelo criador: cerca de ${formatMoney(summary.totalInformed, summary.currency)}`;
+        mainText = `Budget estimated by the creator: about ${formatMoney(summary.totalInformed, summary.currency)}`;
     }
 
     const warning = variant === 'purchased'
@@ -150,7 +150,7 @@ export default function BudgetSummaryCard({
                     />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.title}>Referência de custos da viagem</Text>
+                    <Text style={styles.title}>Trip cost reference</Text>
                     <View style={styles.badgeRow}>
                         <View style={[styles.confidenceBadge, toneStyles.badge]}>
                             <Text style={[styles.confidenceText, toneStyles.badgeText]}>
@@ -168,21 +168,21 @@ export default function BudgetSummaryCard({
                     {summary.verifiedPercentage > 0 && (
                         <Stat
                             value={`${summary.verifiedPercentage}%`}
-                            label="comprovado"
+                            label="verified"
                             tone="success"
                         />
                     )}
                     {summary.estimatedPercentage > 0 && (
                         <Stat
                             value={`${summary.estimatedPercentage}%`}
-                            label="estimado"
+                            label="estimated"
                             tone="info"
                         />
                     )}
                     {summary.notInformedItemsCount > 0 && (
                         <Stat
                             value={`${summary.notInformedItemsCount}`}
-                            label={summary.notInformedItemsCount === 1 ? 'item sem valor' : 'itens sem valor'}
+                            label={summary.notInformedItemsCount === 1 ? 'item without an amount' : 'items without an amount'}
                             tone="muted"
                         />
                     )}
@@ -194,7 +194,7 @@ export default function BudgetSummaryCard({
                     <Ionicons name="shield-checkmark" size={14} color={theme.colors.verified} />
                     <Text style={styles.vamoBadgeText}>
                         Comprovantes aprovados pela VAMO em {summary.itemsApprovedByVamo}
-                        {summary.itemsApprovedByVamo === 1 ? ' item' : ' itens'}
+                        {summary.itemsApprovedByVamo === 1 ? ' item' : ' items'}
                     </Text>
                 </View>
             )}

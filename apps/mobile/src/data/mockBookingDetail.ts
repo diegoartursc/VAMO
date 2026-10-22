@@ -61,7 +61,7 @@ export type UploadStatus = 'pending' | 'uploading' | 'reviewing' | 'approved' | 
 
 export interface RequiredDocItem {
     id: string;
-    name: string;      // Ex: "Passaporte", "Visto Americano"
+    name: string;      // Ex: "Passport", "US Visa"
     description: string;
     required: boolean;
 }
@@ -115,11 +115,11 @@ export function formatTripDates(start: string, end: string): string {
     const s = new Date(start);
     const e = new Date(end);
     const opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short' };
-    return `${s.toLocaleDateString('pt-BR', opts)} – ${e.toLocaleDateString('pt-BR', { ...opts, year: 'numeric' })}`;
+    return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`;
 }
 
 export function formatFullDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
+    return new Date(dateString).toLocaleDateString('en-US', {
         weekday: 'long',
         day: '2-digit',
         month: 'long',

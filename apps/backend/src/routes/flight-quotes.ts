@@ -88,7 +88,7 @@ router.get('/:purchaseId', travelerAuthMiddleware, async (req: TravelerAuthReque
             return res.status(404).json({ error: 'Quote not found' });
         }
         if (quote.purchase.travelerId !== req.traveler!.travelerId) {
-            return res.status(403).json({ error: 'Acesso negado a esta cotação' });
+            return res.status(403).json({ error: 'Access denied to this quote' });
         }
 
         // Auto-expire if past expiresAt
@@ -112,7 +112,7 @@ router.get('/agency/:agencyId', authMiddleware, async (req: AuthRequest, res) =>
     try {
         const agencyId = String(req.params.agencyId);
         if (req.agency?.agencyId !== agencyId) {
-            return res.status(403).json({ error: 'Acesso negado a esta agência' });
+            return res.status(403).json({ error: 'Access denied to this agency' });
         }
 
         const quotes = await prisma.flightQuote.findMany({
@@ -174,7 +174,7 @@ router.put('/:id/submit', authMiddleware, async (req: AuthRequest, res) => {
         });
         if (!existing) return res.status(404).json({ error: 'Quote not found' });
         if (existing.purchase.package.agencyId !== req.agency?.agencyId) {
-            return res.status(403).json({ error: 'Acesso negado a esta cotação' });
+            return res.status(403).json({ error: 'Access denied to this quote' });
         }
 
         const hours = expiresInHours || 6;
@@ -213,7 +213,7 @@ router.put('/:id/accept', travelerAuthMiddleware, async (req: TravelerAuthReques
         });
         if (!quote) return res.status(404).json({ error: 'Quote not found' });
         if (quote.purchase.travelerId !== req.traveler!.travelerId) {
-            return res.status(403).json({ error: 'Acesso negado a esta cotação' });
+            return res.status(403).json({ error: 'Access denied to this quote' });
         }
 
         // Check if expired
@@ -256,7 +256,7 @@ router.put('/:id/reject', travelerAuthMiddleware, async (req: TravelerAuthReques
         });
         if (!existing) return res.status(404).json({ error: 'Quote not found' });
         if (existing.purchase.travelerId !== req.traveler!.travelerId) {
-            return res.status(403).json({ error: 'Acesso negado a esta cotação' });
+            return res.status(403).json({ error: 'Access denied to this quote' });
         }
 
         const quote = await prisma.flightQuote.update({

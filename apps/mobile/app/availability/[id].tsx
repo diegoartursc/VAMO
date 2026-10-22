@@ -56,21 +56,21 @@ export default function AvailabilityScreen() {
     const availabilityOptions = [
         {
             id: 'option-1',
-            title: 'Tour coletivo',
-            description: 'Tour em grupo com guia compartilhado.',
+            title: 'Group tour',
+            description: 'Group tour with a shared guide.',
             durationDays: packageData?.duration || 7,
-            guideLanguage: 'Português',
+            guideLanguage: 'English',
             priceMultiplier: 1,
             pricePerAdult: pricePerPerson,
             pricePerChild: pricePerChild,
         },
         {
             id: 'option-2',
-            title: 'Tour privativo',
-            description: 'Experiência exclusiva com guia dedicado apenas para o seu grupo.',
+            title: 'Private tour',
+            description: 'Exclusive experience with a guide dedicated to your group only.',
             isExclusive: true,
             durationDays: packageData?.duration || 7,
-            guideLanguage: 'Português',
+            guideLanguage: 'English',
             priceMultiplier: 2.5,
             pricePerAdult: pricePerPerson * 2.5,
             pricePerChild: pricePerChild * 2.5,
@@ -84,7 +84,7 @@ export default function AvailabilityScreen() {
     const formatPrice = (value: number) => formatMoney(value);
 
     const formatDate = (date: Date) => {
-        return date.toLocaleDateString('pt-BR', {
+        return date.toLocaleDateString('en-US', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
@@ -125,7 +125,7 @@ export default function AvailabilityScreen() {
     if (!packageData) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Carregando...</Text>
+                <Text style={styles.errorText}>Loading...</Text>
             </View>
         );
     }
@@ -137,7 +137,7 @@ export default function AvailabilityScreen() {
                 <TouchableOpacity onPress={() => safeBack(router, '/(tabs)')} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Disponibilidade</Text>
+                <Text style={styles.headerTitle}>Availability</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -150,7 +150,7 @@ export default function AvailabilityScreen() {
                     >
                         <Ionicons name="calendar-outline" size={20} color="#fff" />
                         <View style={styles.summaryRowContent}>
-                            <Text style={styles.summaryLabel}>Data</Text>
+                            <Text style={styles.summaryLabel}>Date</Text>
                             <Text style={styles.summaryValue}>{formatDate(selectedDate)}</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -166,7 +166,7 @@ export default function AvailabilityScreen() {
                         <View style={styles.summaryRowContent}>
                             <Text style={styles.summaryLabel}>Participantes</Text>
                             <Text style={styles.summaryValue}>
-                                Adultos × {adultsCount}{childrenCount > 0 && `, Crianças × ${childrenCount}`}
+                                Adultos × {adultsCount}{childrenCount > 0 && `, Children × ${childrenCount}`}
                             </Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -180,7 +180,7 @@ export default function AvailabilityScreen() {
                             <View style={styles.summaryRow}>
                                 <Ionicons name="airplane-outline" size={20} color="#fff" />
                                 <View style={styles.summaryRowContent}>
-                                    <Text style={styles.summaryLabel}>Cidade de origem</Text>
+                                    <Text style={styles.summaryLabel}>Departure city</Text>
                                     <Text style={styles.summaryValue}>
                                         Saindo de {originCity}
                                     </Text>
@@ -210,7 +210,7 @@ export default function AvailabilityScreen() {
                     <View style={styles.summaryRow}>
                         <Ionicons name="pricetag-outline" size={20} color="#fff" />
                         <View style={styles.summaryRowContent}>
-                            <Text style={styles.summaryLabel}>Valor base selecionado</Text>
+                            <Text style={styles.summaryLabel}>Selected base price</Text>
                             <Text style={styles.summaryValue}>
                                 {formatPrice(pricePerPerson)} /pessoa
                             </Text>
@@ -220,7 +220,7 @@ export default function AvailabilityScreen() {
 
                 {/* Options Title */}
                 <Text style={styles.optionsTitle}>
-                    Escolha entre {availabilityOptions.length} opções disponíveis
+                    Choose from {availabilityOptions.length} available options
                 </Text>
 
                 {/* Availability Options */}
@@ -251,7 +251,7 @@ export default function AvailabilityScreen() {
                                         <View style={styles.exclusiveBanner}>
                                             <Ionicons name="star" size={16} color="#D4A017" />
                                             <Text style={styles.exclusiveBannerText}>
-                                                Experiência exclusiva — guia dedicado apenas para o seu grupo
+                                                Exclusive experience — a guide dedicated to your group only
                                             </Text>
                                         </View>
                                     )}
@@ -259,7 +259,7 @@ export default function AvailabilityScreen() {
                                     {/* Info */}
                                     <View style={styles.infoRow}>
                                         <Ionicons name="calendar-outline" size={18} color="#999" />
-                                        <Text style={styles.infoText}>{option.durationDays} dias de viagem</Text>
+                                        <Text style={styles.infoText}>{option.durationDays} days of travel</Text>
                                     </View>
 
                                     <View style={styles.infoRow}>
@@ -272,21 +272,21 @@ export default function AvailabilityScreen() {
                                         <View style={styles.policyRow}>
                                             <Ionicons name="card-outline" size={18} color={theme.colors.primary} />
                                             <Text style={styles.policyText}>
-                                                Sua solicitação está sujeita à verificação de disponibilidade. Caso a viagem inclua voos, uma cotação final será enviada para aprovação antes de qualquer pagamento.
+                                                Your request is subject to an availability check. If the trip includes flights, a final quote will be sent for your approval before any payment.
                                             </Text>
                                         </View>
 
                                         <View style={styles.policyRow}>
                                             <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
                                             <Text style={styles.policyText}>
-                                                Cancelamento gratuito em até 7 dias após a confirmação do pagamento.
+                                                Free cancellation within 7 days after payment is confirmed.
                                             </Text>
                                         </View>
 
                                         <View style={styles.policyRow}>
                                             <Ionicons name="alert-circle-outline" size={18} color={theme.colors.text.tertiary} />
                                             <Text style={styles.policyTextMuted}>
-                                                Após 7 dias, o cancelamento estará sujeito a taxas.
+                                                After 7 days, cancellation is subject to fees.
                                             </Text>
                                         </View>
                                     </View>
@@ -299,10 +299,10 @@ export default function AvailabilityScreen() {
                                         </Text>
                                         {childrenCount > 0 && (
                                             <Text style={styles.priceBreakdown}>
-                                                {childrenCount} Criança{childrenCount > 1 ? 's' : ''} × {formatPrice(option.pricePerChild)}
+                                                {childrenCount} Child{childrenCount > 1 ? 'ren' : ''} × {formatPrice(option.pricePerChild)}
                                             </Text>
                                         )}
-                                        <Text style={styles.taxIncluded}>Todos os impostos e taxas inclusos</Text>
+                                        <Text style={styles.taxIncluded}>All taxes and fees included</Text>
                                     </View>
 
                                     {/* Book Button */}
@@ -310,7 +310,7 @@ export default function AvailabilityScreen() {
                                         style={styles.bookButton}
                                         onPress={() => handleBookNow(option)}
                                     >
-                                        <Text style={styles.bookButtonText}>Continuar</Text>
+                                        <Text style={styles.bookButtonText}>Continue</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}

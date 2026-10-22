@@ -41,7 +41,7 @@ router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Re
         res.json({ itineraryIds: activeIds });
     } catch (error) {
         console.error('Error fetching saved itineraries:', error);
-        res.status(500).json({ error: 'Falha ao carregar roteiros salvos' });
+        res.status(500).json({ error: 'Failed to load saved itineraries' });
     }
 });
 
@@ -57,7 +57,7 @@ router.put('/:itineraryId', travelerAuthMiddleware, async (req: TravelerAuthRequ
             select: { id: true },
         });
         if (!itinerary) {
-            res.status(404).json({ error: 'Roteiro indisponível para salvar' });
+            res.status(404).json({ error: 'This itinerary can\'t be saved right now' });
             return;
         }
 
@@ -69,7 +69,7 @@ router.put('/:itineraryId', travelerAuthMiddleware, async (req: TravelerAuthRequ
         res.json({ saved: true, itineraryId });
     } catch (error) {
         console.error('Error saving itinerary:', error);
-        res.status(500).json({ error: 'Falha ao salvar roteiro' });
+        res.status(500).json({ error: 'Failed to save itinerary' });
     }
 });
 
@@ -84,7 +84,7 @@ router.delete('/:itineraryId', travelerAuthMiddleware, async (req: TravelerAuthR
         res.json({ saved: false, itineraryId: req.params.itineraryId });
     } catch (error) {
         console.error('Error removing saved itinerary:', error);
-        res.status(500).json({ error: 'Falha ao remover roteiro salvo' });
+        res.status(500).json({ error: 'Failed to remove saved itinerary' });
     }
 });
 

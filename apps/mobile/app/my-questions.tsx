@@ -43,7 +43,7 @@ export default function MyQuestionsScreen() {
             setQuestions([]);
             setLoadError(err instanceof Error
                 ? err.message
-                : 'Não foi possível carregar suas perguntas.');
+                : 'We couldn\'t load your questions.');
         } finally {
             setLoading(false);
         }
@@ -79,7 +79,7 @@ export default function MyQuestionsScreen() {
                     <Icon name="chevron-left" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
-                    <Text style={styles.headerTitle}>Minhas Perguntas</Text>
+                    <Text style={styles.headerTitle}>My Questions</Text>
                     <Text style={styles.headerSubtitle}>
                         {questions.length} pergunta{questions.length !== 1 ? 's' : ''} • {pending.length} aguardando
                     </Text>
@@ -92,9 +92,9 @@ export default function MyQuestionsScreen() {
             ) : questions.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.text.tertiary} />
-                    <Text style={styles.emptyTitle}>Nenhuma pergunta ainda</Text>
+                    <Text style={styles.emptyTitle}>No questions yet</Text>
                     <Text style={styles.emptyText}>
-                        Suas perguntas feitas nos roteiros aparecerão aqui, junto com as respostas dos criadores.
+                        Questions you ask on itineraries will show up here, along with the creators' answers.
                     </Text>
                 </View>
             ) : (
@@ -156,7 +156,7 @@ function QuestionCard({ question }: { question: ItineraryQuestion }) {
                 <Image source={{ uri: question.itinerary?.image || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=900&auto=format&fit=crop' }} style={styles.cardImage} resizeMode="cover" />
                 <View style={styles.cardItineraryInfo}>
                     <Text style={styles.cardItineraryTitle} numberOfLines={1}>
-                        {question.itinerary?.title || 'Roteiro'}
+                        {question.itinerary?.title || 'Itinerary'}
                     </Text>
                     <Text style={styles.cardItineraryDest}>
                         📍 {question.itinerary?.destination ?? ''}{question.itinerary?.country ? `, ${question.itinerary.country}` : ''}
@@ -177,8 +177,8 @@ function QuestionCard({ question }: { question: ItineraryQuestion }) {
                         size={16}
                         color={isPending ? '#F59E0B' : theme.colors.primary}
                     />
-                    <Text style={styles.questionLabel}>Sua pergunta</Text>
-                    <Text style={styles.questionDate}>{new Date(question.createdAt).toLocaleDateString('pt-BR')}</Text>
+                    <Text style={styles.questionLabel}>Your question</Text>
+                    <Text style={styles.questionDate}>{new Date(question.createdAt).toLocaleDateString('en-US')}</Text>
                 </View>
                 <Text style={styles.questionText}>{question.question}</Text>
 
@@ -186,7 +186,7 @@ function QuestionCard({ question }: { question: ItineraryQuestion }) {
                 {isPending && (
                     <View style={styles.pendingBadge}>
                         <Ionicons name="time" size={12} color="#F59E0B" />
-                        <Text style={styles.pendingText}>Aguardando resposta do criador</Text>
+                        <Text style={styles.pendingText}>Waiting for the creator's answer</Text>
                     </View>
                 )}
             </TouchableOpacity>
@@ -199,7 +199,7 @@ function QuestionCard({ question }: { question: ItineraryQuestion }) {
                         <Text style={styles.answerLabel}>
                             Resposta de {question.itinerary?.creatorName ?? 'criador'}
                         </Text>
-                        <Text style={styles.answerDate}>{question.answer?.createdAt ? new Date(question.answer.createdAt).toLocaleDateString('pt-BR') : ''}</Text>
+                        <Text style={styles.answerDate}>{question.answer?.createdAt ? new Date(question.answer.createdAt).toLocaleDateString('en-US') : ''}</Text>
                     </View>
                     <Text style={styles.answerText}>{question.answer?.text}</Text>
                 </View>
@@ -209,7 +209,7 @@ function QuestionCard({ question }: { question: ItineraryQuestion }) {
             {question.answer && (
                 <TouchableOpacity style={styles.expandToggle} onPress={toggleExpand}>
                     <Text style={styles.expandText}>
-                        {expanded ? 'Ocultar resposta' : 'Ver resposta'}
+                        {expanded ? 'Hide answer' : 'View answer'}
                     </Text>
                     <Ionicons
                         name={expanded ? 'chevron-up' : 'chevron-down'}

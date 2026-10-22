@@ -46,7 +46,7 @@ export const IMAGE_FORMATS: FormatGroup = {
         ...HEIC_MIME_TYPES,
     ]),
     extensions: new Set<string>(['jpg', 'jpeg', 'png', 'webp', ...HEIC_EXTENSIONS]),
-    label: 'JPG, PNG, WEBP ou HEIC',
+    label: 'JPG, PNG, WEBP or HEIC',
 };
 
 export const VIDEO_FORMATS: FormatGroup = {
@@ -57,7 +57,7 @@ export const VIDEO_FORMATS: FormatGroup = {
         // alguns clientes mandam genérico — aceitamos por extensão
     ]),
     extensions: new Set<string>(['mp4', 'mov', 'webm']),
-    label: 'MP4, MOV ou WEBM',
+    label: 'MP4, MOV or WEBM',
 };
 
 export const DOCUMENT_FORMATS: FormatGroup = {
@@ -78,7 +78,7 @@ export const DOCUMENT_FORMATS: FormatGroup = {
 /** Identificador estável de cada ponto de upload do app. */
 export type UploadContext =
     | 'routeCoverMedia'      // Capa/destaque do roteiro — só imagens
-    | 'routeGalleryMedia'    // Galeria "Fotos e Vídeos da Viagem" — imagens + vídeos
+    | 'routeGalleryMedia'    // Galeria "Trip Photos & Videos" — imagens + vídeos
     | 'travelProof'          // Comprovante de viagem — imagens + PDF
     | 'costProof'            // Comprovante de custo (módulos) — imagens + PDF
     | 'reviewMedia'          // Foto em avaliação — só imagens
@@ -101,37 +101,37 @@ export const UPLOAD_CONTEXTS: Record<UploadContext, UploadContextDef> = {
     routeCoverMedia: {
         groups: [IMAGE_FORMATS],
         maxBytes: 25 * MB,
-        purpose: 'capa do roteiro',
+        purpose: 'itinerary cover',
     },
     routeGalleryMedia: {
         groups: [IMAGE_FORMATS, VIDEO_FORMATS],
         maxBytes: 100 * MB, // vídeos exigem mais
-        purpose: 'galeria do roteiro',
+        purpose: 'itinerary gallery',
     },
     travelProof: {
         groups: [IMAGE_FORMATS, DOCUMENT_FORMATS],
         maxBytes: 25 * MB,
-        purpose: 'comprovante de viagem',
+        purpose: 'proof of travel',
     },
     costProof: {
         groups: [IMAGE_FORMATS, DOCUMENT_FORMATS],
         maxBytes: 25 * MB,
-        purpose: 'comprovante de custo',
+        purpose: 'cost proof',
     },
     reviewMedia: {
         groups: [IMAGE_FORMATS],
         maxBytes: 25 * MB,
-        purpose: 'foto da avaliação',
+        purpose: 'review photo',
     },
     profileAvatar: {
         groups: [IMAGE_FORMATS],
         maxBytes: 10 * MB,
-        purpose: 'foto de perfil',
+        purpose: 'profile photo',
     },
     travelerFile: {
         groups: [IMAGE_FORMATS, VIDEO_FORMATS, DOCUMENT_FORMATS],
         maxBytes: 50 * MB,
-        purpose: 'arquivo da viagem',
+        purpose: 'trip file',
     },
     adminAttachment: {
         groups: [IMAGE_FORMATS, VIDEO_FORMATS, DOCUMENT_FORMATS],
@@ -208,21 +208,21 @@ export function validateUploadFile(
     context: UploadContext,
 ): ValidationResult {
     const ctx = UPLOAD_CONTEXTS[context];
-    if (!ctx) return { valid: false, reason: 'Contexto de upload desconhecido.' };
+    if (!ctx) return { valid: false, reason: 'Unknown upload context.' };
 
     const mime = (file.mime || '').toLowerCase();
     const ext = extractExtension(file.filename, file.uri);
 
     // Sem nenhum metadado, não conseguimos decidir — recusamos.
     if (!mime && !ext) {
-        return { valid: false, reason: 'Arquivo sem extensão reconhecível.' };
+        return { valid: false, reason: 'File has no recognizable extension.' };
     }
 
     const match = groupForExtensionOrMime(mime, ext, ctx.groups);
     if (!match) {
         return {
             valid: false,
-            reason: `Formato não aceito para ${ctx.purpose}. Use ${acceptedFormatsLabel(context)}.`,
+            reason: `Unsupported format for ${ctx.purpose}. Use ${acceptedFormatsLabel(context)}.`,
         };
     }
 
@@ -231,7 +231,7 @@ export function validateUploadFile(
         const limitMb = (ctx.maxBytes / MB).toFixed(0);
         return {
             valid: false,
-            reason: `Arquivo muito grande (${mb} MB). Máximo: ${limitMb} MB.`,
+            reason: `File is too large (${mb} MB). Maximum: ${limitMb} MB.`,
         };
     }
 
@@ -268,7 +268,7 @@ export function maxMegabytes(context: UploadContext): number {
 
 /** String "JPG, PNG, WEBP ou HEIC — até 25 MB" para hints de UI. */
 export function uploadHint(context: UploadContext): string {
-    return `${acceptedFormatsLabel(context)} — até ${maxMegabytes(context)} MB`;
+    return `${acceptedFormatsLabel(context)} — up to ${maxMegabytes(context)} MB`;
 }
 
 /**

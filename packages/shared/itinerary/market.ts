@@ -16,7 +16,7 @@ export const MARKET = {
     locale: "en-US",
     currencySymbol: "$",
     timeZone: "America/New_York",
-    timeZoneLabel: "horário de Nova York",
+    timeZoneLabel: "New York time",
 } as const;
 
 /** Moeda-base do produto (preço de roteiro, total de custos, comissão). */

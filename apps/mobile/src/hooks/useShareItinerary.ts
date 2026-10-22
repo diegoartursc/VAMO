@@ -71,7 +71,7 @@ async function copyToClipboardWeb(text: string): Promise<void> {
         return;
     }
     const doc = g?.document;
-    if (!doc) throw new Error('Clipboard indisponível neste ambiente.');
+    if (!doc) throw new Error('Clipboard isn\'t available in this environment.');
     const el = doc.createElement('textarea');
     el.value = text;
     el.style.position = 'fixed';
@@ -96,7 +96,7 @@ async function copyToClipboardWeb(text: string): Promise<void> {
 function showManualLinkFallback(url: string): boolean {
     const g = globalThis as any;
     if (typeof g?.window?.prompt !== 'function') return false;
-    g.window.prompt('Copie o link deste roteiro:', url);
+    g.window.prompt('Copy this itinerary\'s link:', url);
     return true;
 }
 
@@ -105,7 +105,7 @@ function buildMessage(params: { title: string; destination?: string | null; coun
     const lead = dest
         ? `${params.title} — ${dest}`
         : params.title;
-    return `Olha esse roteiro no VAMO: ${lead}. Achei que você poderia curtir: ${params.url}`;
+    return `Check out this itinerary on VAMO: ${lead}. Thought you might like it: ${params.url}`;
 }
 
 export function useShareItinerary(params: UseShareItineraryParams): ShareItineraryAction {
@@ -116,8 +116,8 @@ export function useShareItinerary(params: UseShareItineraryParams): ShareItinera
         if (isSharing) return;
         if (params.allowShare === false || params.isShareable === false) {
             notify({
-                title: 'Compartilhamento indisponível',
-                message: 'Este roteiro não pode ser compartilhado no momento.',
+                title: 'Sharing unavailable',
+                message: 'This itinerary can\'t be shared right now.',
                 variant: 'warning',
             });
             return;
@@ -141,9 +141,9 @@ export function useShareItinerary(params: UseShareItineraryParams): ShareItinera
             );
         } catch (err: any) {
             setIsSharing(false);
-            const msg = typeof err?.message === 'string' ? err.message : 'Tente novamente em instantes.';
+            const msg = typeof err?.message === 'string' ? err.message : 'Please try again in a moment.';
             notify({
-                title: 'Não foi possível compartilhar',
+                title: 'Couldn\'t share',
                 message: msg,
                 variant: 'error',
             });
@@ -245,36 +245,36 @@ export function useShareItinerary(params: UseShareItineraryParams): ShareItinera
             if (nextStatus === 'completed') {
                 if (didFallbackToManualLink) {
                     notify({
-                        title: 'Copie o link exibido',
-                        message: 'Não conseguimos copiar automaticamente — selecione e copie o link que aparece na tela.',
+                        title: 'Copy the link shown',
+                        message: 'We couldn\'t copy it automatically — select and copy the link shown on screen.',
                         variant: 'info',
                     });
                 } else if (didFallbackToClipboard) {
                     notify({
-                        title: 'Link copiado',
-                        message: 'Cole onde quiser para compartilhar este roteiro.',
+                        title: 'Link copied',
+                        message: 'Paste it anywhere to share this itinerary.',
                         variant: 'success',
                     });
                 } else if (final.missionCompleted) {
                     notify({
-                        title: 'Roteiro compartilhado!',
-                        message: 'Missão concluída no Passaporte VAMO.',
+                        title: 'Itinerary shared!',
+                        message: 'Mission completed in your VAMO Passport.',
                         variant: 'success',
                     });
                 } else {
                     notify({
-                        title: 'Roteiro compartilhado',
+                        title: 'Itinerary shared',
                         message: final.xpAwarded > 0
-                            ? `+${final.xpAwarded} XP no Passaporte VAMO.`
-                            : 'Obrigado por divulgar a VAMO!',
+                            ? `+${final.xpAwarded} XP in your VAMO Passport.`
+                            : 'Thanks for spreading the word about VAMO!',
                         variant: 'success',
                     });
                 }
                 params.onShareCompleted?.(final);
             } else if (nextStatus === 'failed') {
                 notify({
-                    title: 'Não foi possível compartilhar',
-                    message: 'Tente novamente em instantes.',
+                    title: 'Couldn\'t share',
+                    message: 'Please try again in a moment.',
                     variant: 'error',
                 });
             }
@@ -286,8 +286,8 @@ export function useShareItinerary(params: UseShareItineraryParams): ShareItinera
             // sem confirmação do backend.
             if (nextStatus === 'failed') {
                 notify({
-                    title: 'Não foi possível compartilhar',
-                    message: 'Tente novamente em instantes.',
+                    title: 'Couldn\'t share',
+                    message: 'Please try again in a moment.',
                     variant: 'error',
                 });
             }
@@ -311,8 +311,8 @@ export async function shareItineraryImperative(
 ): Promise<void> {
     if (params.allowShare === false || params.isShareable === false) {
         notify({
-            title: 'Compartilhamento indisponível',
-            message: 'Este roteiro não pode ser compartilhado no momento.',
+            title: 'Sharing unavailable',
+            message: 'This itinerary can\'t be shared right now.',
             variant: 'warning',
         });
         return;
@@ -333,8 +333,8 @@ export async function shareItineraryImperative(
         );
     } catch (err: any) {
         notify({
-            title: 'Não foi possível compartilhar',
-            message: typeof err?.message === 'string' ? err.message : 'Tente novamente em instantes.',
+            title: 'Couldn\'t share',
+            message: typeof err?.message === 'string' ? err.message : 'Please try again in a moment.',
             variant: 'error',
         });
         return;
@@ -412,31 +412,31 @@ export async function shareItineraryImperative(
         if (nextStatus === 'completed') {
             if (didFallbackToManualLink) {
                 notify({
-                    title: 'Copie o link exibido',
-                    message: 'Não conseguimos copiar automaticamente — selecione e copie o link que aparece na tela.',
+                    title: 'Copy the link shown',
+                    message: 'We couldn\'t copy it automatically — select and copy the link shown on screen.',
                     variant: 'info',
                 });
             } else if (didFallbackToClipboard) {
-                notify({ title: 'Link copiado', message: 'Cole onde quiser para compartilhar este roteiro.', variant: 'success' });
+                notify({ title: 'Link copied', message: 'Paste it anywhere to share this itinerary.', variant: 'success' });
             } else if (final.missionCompleted) {
-                notify({ title: 'Roteiro compartilhado!', message: 'Missão concluída no Passaporte VAMO.', variant: 'success' });
+                notify({ title: 'Itinerary shared!', message: 'Mission completed in your VAMO Passport.', variant: 'success' });
             } else {
                 notify({
-                    title: 'Roteiro compartilhado',
+                    title: 'Itinerary shared',
                     message: final.xpAwarded > 0
-                        ? `+${final.xpAwarded} XP no Passaporte VAMO.`
-                        : 'Obrigado por divulgar a VAMO!',
+                        ? `+${final.xpAwarded} XP in your VAMO Passport.`
+                        : 'Thanks for spreading the word about VAMO!',
                     variant: 'success',
                 });
             }
             params.onShareCompleted?.(final);
         } else if (nextStatus === 'failed') {
-            notify({ title: 'Não foi possível compartilhar', message: 'Tente novamente em instantes.', variant: 'error' });
+            notify({ title: 'Couldn\'t share', message: 'Please try again in a moment.', variant: 'error' });
         }
     } catch (err) {
         console.warn('[shareItineraryImperative] failed to report final status', err);
         if (nextStatus === 'failed') {
-            notify({ title: 'Não foi possível compartilhar', message: 'Tente novamente em instantes.', variant: 'error' });
+            notify({ title: 'Couldn\'t share', message: 'Please try again in a moment.', variant: 'error' });
         }
     }
 }

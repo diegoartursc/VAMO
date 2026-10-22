@@ -4,7 +4,7 @@
  * Usa a lista canônica de moedas de @vamo/shared (mesma do admin/site).
  * Apresenta um campo compacto que, ao ser tocado, abre um modal com a
  * lista pesquisável. Cada item exibe: código (AUD), símbolo (A$) e
- * nome localizado em pt-BR (Dólar Australiano — moeda padrão do mercado).
+ * nome localizado em en-US (Dólar Australiano — moeda padrão do mercado).
  *
  * Props mínimas: { value, onChange }. Suporta opcionalmente `label`,
  * `disabled` e `compact` (variação ainda mais condensada para uso
@@ -22,10 +22,10 @@ import { CURRENCIES } from '@vamo/shared/itinerary';
 
 // Nome localizado por moeda — única fonte no app mobile.
 const CURRENCY_NAMES: Record<string, string> = {
-    BRL: 'Real brasileiro',
-    USD: 'Dólar americano',
+    BRL: 'Brazilian real',
+    USD: 'US dollar',
     EUR: 'Euro',
-    GBP: 'Libra esterlina',
+    GBP: 'British pound',
 };
 
 interface CurrencyPickerProps {
@@ -37,7 +37,7 @@ interface CurrencyPickerProps {
 }
 
 export function CurrencyPicker({
-    value, onChange, label = 'Moeda', disabled, compact,
+    value, onChange, label = 'Currency', disabled, compact,
 }: CurrencyPickerProps) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
@@ -87,13 +87,13 @@ export function CurrencyPicker({
                     {/* Pressable interno evita propagar o tap pra fechar */}
                     <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
                         <View style={s.sheetHandle} />
-                        <Text style={s.sheetTitle}>Escolher moeda</Text>
+                        <Text style={s.sheetTitle}>Choose currency</Text>
 
                         <View style={s.searchBox}>
                             <Ionicons name="search" size={16} color={theme.colors.text.tertiary} />
                             <TextInput
                                 style={s.searchInput}
-                                placeholder="Buscar por código, símbolo ou nome"
+                                placeholder="Search by code, symbol or name"
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 value={query}
                                 onChangeText={setQuery}
@@ -111,7 +111,7 @@ export function CurrencyPicker({
                             keyExtractor={(it) => it.code}
                             ItemSeparatorComponent={() => <View style={s.separator} />}
                             ListEmptyComponent={
-                                <Text style={s.emptyText}>Nenhuma moeda encontrada.</Text>
+                                <Text style={s.emptyText}>No currency found.</Text>
                             }
                             renderItem={({ item }) => {
                                 const active = item.code === value;

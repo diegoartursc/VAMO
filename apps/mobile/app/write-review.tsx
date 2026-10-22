@@ -27,7 +27,7 @@ import { uploadFile } from '../src/utils/uploadFile';
 import { validateUploadFile } from '../src/utils/uploadContexts';
 import { getCoverImages } from '../src/utils/itineraryMedia';
 
-const STAR_LABELS = ['', 'Péssimo', 'Ruim', 'Bom', 'Muito bom', 'Excelente'];
+const STAR_LABELS = ['', 'Terrible', 'Poor', 'Good', 'Very good', 'Excellent'];
 
 export default function WriteReviewScreen() {
     const params = useLocalSearchParams<{ itineraryId: string }>();
@@ -90,7 +90,7 @@ export default function WriteReviewScreen() {
                 if (mounted) {
                     setLoadError(err instanceof Error
                         ? err.message
-                        : 'Não foi possível carregar o roteiro para avaliação.');
+                        : 'We couldn\'t load the itinerary for review.');
                 }
             } finally {
                 if (mounted) setLoadingItinerary(false);
@@ -121,14 +121,14 @@ export default function WriteReviewScreen() {
 
     const handlePickPhoto = async () => {
         if (photos.length >= 5) {
-            notify({ title: 'Limite', message: 'Você pode adicionar no máximo 5 fotos.' });
+            notify({ title: 'Limite', message: 'You can add up to 5 photos.' });
             return;
         }
 
         try {
             const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!permission.granted) {
-                notify({ title: 'Fotos', message: 'Permita o acesso às fotos para anexar imagens à avaliação.' });
+                notify({ title: 'Photos', message: 'Allow access to your photos to attach images to your review.' });
                 return;
             }
 
@@ -156,10 +156,10 @@ export default function WriteReviewScreen() {
                         'reviewMedia',
                     );
                     if (v.valid && a.uri) accepted.push(a.uri);
-                    else if (!v.valid) failures.push(`Foto ${i + 1}: ${v.reason}`);
+                    else if (!v.valid) failures.push(`Photo ${i + 1}: ${v.reason}`);
                 });
                 if (failures.length) {
-                    notify({ title: 'Algumas fotos não foram adicionadas', message: failures.join('\n'), variant: 'warning' });
+                    notify({ title: 'Some photos weren\'t added', message: failures.join('\n'), variant: 'warning' });
                 }
                 if (accepted.length) {
                     setPhotos(prev => [...prev, ...accepted].slice(0, 5));
@@ -167,7 +167,7 @@ export default function WriteReviewScreen() {
             }
         } catch (err) {
             console.error('[write-review] erro selecionando fotos:', err);
-            notify({ title: 'Fotos', message: 'Não foi possível selecionar as fotos. Tente novamente.', variant: 'error' });
+            notify({ title: 'Photos', message: 'We couldn\'t select the photos. Please try again.', variant: 'error' });
         }
     };
 
@@ -179,15 +179,15 @@ export default function WriteReviewScreen() {
     const handleSubmit = async () => {
         if (submitting) return;
         if (!isAuthenticated) {
-            notify({ title: 'Login necessário', message: 'Faça login para enviar sua avaliação.', variant: 'warning', icon: 'log-in-outline' });
+            notify({ title: 'Sign-in required', message: 'Sign in to submit your review.', variant: 'warning', icon: 'log-in-outline' });
             return;
         }
         if (rating === 0) {
-            notify({ title: 'Avaliação', message: 'Selecione uma nota para avaliar o roteiro.' });
+            notify({ title: 'Review', message: 'Select a rating to review the itinerary.' });
             return;
         }
         if (!user?.travelerId || !itineraryId) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar sua avaliação.', variant: 'warning' });
+            notify({ title: 'Session expired', message: 'Sign in again to submit your review.', variant: 'warning' });
             return;
         }
 
@@ -216,7 +216,7 @@ export default function WriteReviewScreen() {
                     uploadedPhotos.push(url);
                 } catch (uploadErr: any) {
                     console.error('[write-review] erro no upload de foto:', uploadErr);
-                    throw new Error('Não foi possível enviar uma das fotos. Tente novamente.');
+                    throw new Error('We couldn\'t upload one of the photos. Please try again.');
                 }
             }
 
@@ -241,28 +241,28 @@ export default function WriteReviewScreen() {
             haptics.success?.();
             notify({
                 variant: 'success',
-                title: existingReview ? 'Avaliação atualizada com sucesso.' : 'Avaliação enviada com sucesso.',
+                title: existingReview ? 'Review updated successfully.' : 'Review submitted successfully.',
                 message: existingReview
-                    ? 'Suas mudanças foram salvas.'
-                    : 'Obrigado por compartilhar sua experiência. Sua avaliação ajuda outros viajantes.',
+                    ? 'Your changes were saved.'
+                    : 'Thanks for sharing your experience. Your review helps other travelers.',
                 onDismiss: () => router.replace({ pathname: '/purchased-itinerary/[id]', params: { id: itineraryId } } as any),
             });
         } catch (err: any) {
             haptics.error?.();
-            const msg: string = err?.message || 'Não foi possível enviar sua avaliação.';
+            const msg: string = err?.message || 'We couldn\'t submit your review.';
             // Tratamento amigável dos 3 erros mais comuns do backend.
-            if (msg.includes('já avaliou')) {
+            if (msg.includes('already reviewed')) {
                 notify({
-                    title: 'Avaliação',
-                    message: 'Você já avaliou este roteiro.',
+                    title: 'Review',
+                    message: 'You\'ve already reviewed this itinerary.',
                     onDismiss: () => safeBack(router, '/(tabs)/my-trips'),
                 });
-            } else if (msg.includes('Apenas quem comprou')) {
-                notify({ title: 'Avaliação indisponível', message: 'Apenas quem comprou este roteiro pode avaliá-lo.' });
-            } else if (msg.includes('próprios roteiros') || msg.includes('Criadores')) {
-                notify({ title: 'Avaliação indisponível', message: 'Criadores não podem avaliar seus próprios roteiros.' });
+            } else if (msg.includes('Only people who purchased')) {
+                notify({ title: 'Review unavailable', message: 'Only people who purchased this itinerary can review it.' });
+            } else if (msg.includes('own itineraries') || msg.includes('Creators')) {
+                notify({ title: 'Review unavailable', message: 'Creators can\'t review their own itineraries.' });
             } else {
-                notify({ title: 'Erro', message: msg, variant: 'error' });
+                notify({ title: 'Error', message: msg, variant: 'error' });
             }
         } finally {
             setSubmitting(false);
@@ -289,9 +289,9 @@ export default function WriteReviewScreen() {
         return (
             <View style={styles.container}>
                 <View style={styles.errorState}>
-                    <Text style={styles.errorText}>Roteiro não encontrado</Text>
+                    <Text style={styles.errorText}>Itinerary not found</Text>
                     <TouchableOpacity style={styles.errorBtn} onPress={() => safeBack(router, '/(tabs)/my-trips')}>
-                        <Text style={styles.errorBtnText}>Voltar</Text>
+                        <Text style={styles.errorBtnText}>Back</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -299,7 +299,7 @@ export default function WriteReviewScreen() {
     }
 
     const coverImage = getCoverImages(itinerary)[0];
-    const creatorName = itinerary.creator?.name ?? 'Criador VAMO';
+    const creatorName = itinerary.creator?.name ?? 'VAMO Creator';
 
     return (
         <View style={styles.container}>
@@ -311,7 +311,7 @@ export default function WriteReviewScreen() {
                     <Icon name="chevron-left" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>
-                    {existingReview ? 'Editar Avaliação' : 'Avaliar Roteiro'}
+                    {existingReview ? 'Edit Review' : 'Rate Itinerary'}
                 </Text>
                 <View style={{ width: 40 }} />
             </View>
@@ -344,7 +344,7 @@ export default function WriteReviewScreen() {
 
                 {/* Star Rating */}
                 <View style={styles.ratingSection}>
-                    <Text style={styles.sectionTitle}>Como foi sua experiência?</Text>
+                    <Text style={styles.sectionTitle}>How was your experience?</Text>
                     <View style={styles.starsRow}>
                         {[1, 2, 3, 4, 5].map((star) => (
                             <TouchableOpacity
@@ -369,12 +369,12 @@ export default function WriteReviewScreen() {
 
                 {/* Text Review */}
                 <View style={styles.textSection}>
-                    <Text style={styles.sectionTitle}>Conte sobre sua experiência</Text>
+                    <Text style={styles.sectionTitle}>Tell us about your experience</Text>
                     <TextInput
                         style={styles.textInput}
                         multiline
                         numberOfLines={6}
-                        placeholder="O que você achou do roteiro? As dicas foram úteis? O planejamento dia-a-dia ajudou? Compartilhe com outros viajantes..."
+                        placeholder="What did you think of the itinerary? Were the tips useful? Did the day-by-day plan help? Share with other travelers..."
                         placeholderTextColor={theme.colors.text.tertiary}
                         value={text}
                         onChangeText={setText}
@@ -389,10 +389,10 @@ export default function WriteReviewScreen() {
                 {/* Photo Upload */}
                 <View style={styles.photoSection}>
                     <Text style={styles.sectionTitle}>
-                        Fotos da viagem <Text style={styles.optional}>(opcional)</Text>
+                        Fotos da viagem <Text style={styles.optional}>(optional)</Text>
                     </Text>
                     <Text style={styles.photoHint}>
-                        Adicione até 5 fotos para ajudar outros viajantes
+                        Add up to 5 photos to help other travelers
                     </Text>
                     <View style={styles.photoGrid}>
                         {photos.map((uri, index) => (
@@ -413,7 +413,7 @@ export default function WriteReviewScreen() {
                                 activeOpacity={0.7}
                             >
                                 <Icon name="camera" size={24} color={theme.colors.text.tertiary} />
-                                <Text style={styles.photoAddText}>Adicionar</Text>
+                                <Text style={styles.photoAddText}>Add</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -422,7 +422,7 @@ export default function WriteReviewScreen() {
                 {/* Preview Card */}
                 {rating > 0 && (
                     <View style={styles.previewSection}>
-                        <Text style={styles.sectionTitle}>Preview da avaliação</Text>
+                        <Text style={styles.sectionTitle}>Review preview</Text>
                         <View style={styles.previewCard}>
                             <View style={styles.previewStars}>
                                 {[1, 2, 3, 4, 5].map(s => (
@@ -439,8 +439,8 @@ export default function WriteReviewScreen() {
                                     <Text style={styles.previewAvatarText}>{(user?.name || 'V').charAt(0).toUpperCase()}</Text>
                                 </View>
                                 <View>
-                                    <Text style={styles.previewName}>{user?.name || 'Viajante'}</Text>
-                                    <Text style={styles.previewDate}>Hoje • Compra verificada</Text>
+                                    <Text style={styles.previewName}>{user?.name || 'Traveler'}</Text>
+                                    <Text style={styles.previewDate}>Today • Verified purchase</Text>
                                 </View>
                             </View>
                             {text.trim() ? (
@@ -470,7 +470,7 @@ export default function WriteReviewScreen() {
                         <Icon name="send" size={20} color="#fff" />
                     )}
                     <Text style={styles.submitButtonText}>
-                        {submitting ? 'Enviando...' : existingReview ? 'Atualizar avaliação' : 'Enviar avaliação'}
+                        {submitting ? 'Enviando...' : existingReview ? 'Update review' : 'Submit review'}
                     </Text>
                 </TouchableOpacity>
 

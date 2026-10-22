@@ -26,7 +26,7 @@ const mockChatRooms: ChatRoom[] = [
         membersCount: 234,
         lastMessage: {
             author: 'Diego Artur',
-            content: 'Acabei de voltar! A Torre Eiffel à noite é imperdível...',
+            content: 'Just got back! The Eiffel Tower at night is unmissable...',
             timestamp: '10min',
             isCreator: true,
         },
@@ -40,7 +40,7 @@ const mockChatRooms: ChatRoom[] = [
         membersCount: 189,
         lastMessage: {
             author: 'Maria Clara',
-            content: 'Alguém sabe qual a melhor época para ir?',
+            content: 'Anyone know the best time to go?',
             timestamp: '25min',
             isCreator: false,
         },
@@ -54,20 +54,20 @@ const mockChatRooms: ChatRoom[] = [
         membersCount: 67,
         lastMessage: {
             author: 'Pedro Henrique',
-            content: 'Lembrem de levar coca tea para altitude!',
+            content: 'Remember to bring coca tea for the altitude!',
             timestamp: '1h',
             isCreator: true,
         },
     },
     {
         id: '4',
-        destination: 'Tóquio',
+        destination: 'Tokyo',
         emoji: '🗾',
         type: 'general',
         membersCount: 156,
         lastMessage: {
             author: 'Ana Carolina',
-            content: 'O JR Pass mudou as regras, vou atualizar o roteiro...',
+            content: 'The JR Pass rules changed, I\'ll update the itinerary...',
             timestamp: '2h',
             isCreator: true,
         },
@@ -79,8 +79,8 @@ const mockChatRooms: ChatRoom[] = [
         type: 'photos',
         membersCount: 312,
         lastMessage: {
-            author: 'Júlia Santos',
-            content: '📸 Compartilhou 3 fotos do Magic Kingdom',
+            author: 'Julia Santos',
+            content: '📸 Shared 3 photos from Magic Kingdom',
             timestamp: '3h',
             isCreator: true,
         },
@@ -119,7 +119,7 @@ export function DestinationChats({ onChatPress, limit }: DestinationChatsProps) 
                 <View style={styles.chatMeta}>
                     <Text style={styles.chatType}>
                         {item.type === 'general' ? '💬 Chat' :
-                            item.type === 'photos' ? '📸 Fotos' : '🎫 Roteiro'}
+                            item.type === 'photos' ? '📸 Photos' : '🎫 Itinerary'}
                     </Text>
                     <Text style={styles.chatMembers}>👥 {item.membersCount}</Text>
                 </View>
@@ -127,7 +127,7 @@ export function DestinationChats({ onChatPress, limit }: DestinationChatsProps) 
                 <View style={styles.lastMessage}>
                     {item.lastMessage.isCreator && (
                         <View style={styles.creatorTag}>
-                            <Text style={styles.creatorTagText}>✓ Criador</Text>
+                            <Text style={styles.creatorTagText}>✓ Creator</Text>
                         </View>
                     )}
                     <Text style={styles.messageAuthor}>
@@ -146,8 +146,8 @@ export function DestinationChats({ onChatPress, limit }: DestinationChatsProps) 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>💬 Comunidade</Text>
-                <Text style={styles.subtitle}>Converse com viajantes reais</Text>
+                <Text style={styles.title}>💬 Community</Text>
+                <Text style={styles.subtitle}>Chat with real travelers</Text>
             </View>
 
             <FlatList
@@ -161,9 +161,9 @@ export function DestinationChats({ onChatPress, limit }: DestinationChatsProps) 
                 <TouchableOpacity
                     style={styles.seeAllButton}
                     onPress={() => Alert.alert(
-                        '🗺️ Destinos Disponíveis',
+                        '🗺️ Available Destinations',
                         mockChatRooms.map(c => `${c.emoji} ${c.destination}`).join('\n'),
-                        [{ text: 'Fechar', style: 'default' }]
+                        [{ text: 'Close', style: 'default' }]
                     )}
                 >
                     <Text style={styles.seeAllText}>

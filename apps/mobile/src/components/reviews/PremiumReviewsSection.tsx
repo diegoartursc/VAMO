@@ -100,15 +100,15 @@ export default function PremiumReviewsSection({
         <View style={styles.container}>
             {/* ── Aggregate Rating ── */}
             <View style={styles.aggregateSection}>
-                <Text style={styles.aggregateTitle}>Avaliações</Text>
+                <Text style={styles.aggregateTitle}>Reviews</Text>
                 <View style={styles.ratingDisplay}>
                     <Icon name="star" size={38} color="#F59E0B" fill="#F59E0B" />
                     <Text style={styles.ratingNumber}>{averageRating.toFixed(1)}</Text>
                     <View style={styles.ratingMeta}>
                         <Text style={styles.ratingCount}>
-                            {totalReviews} {totalReviews === 1 ? 'avaliação' : 'avaliações'}
+                            {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
                         </Text>
-                        <Text style={styles.ratingTrust}>100% autênticas</Text>
+                        <Text style={styles.ratingTrust}>100% authentic</Text>
                     </View>
                 </View>
             </View>
@@ -126,24 +126,24 @@ export default function PremiumReviewsSection({
             {/* ── Category Ratings ── */}
             {categoryRatings && (
                 <View style={styles.categorySection}>
-                    {categoryRatings.guide && renderRatingBar('Guia', categoryRatings.guide)}
+                    {categoryRatings.guide && renderRatingBar('Guide', categoryRatings.guide)}
                     {categoryRatings.transport && renderRatingBar('Transporte', categoryRatings.transport)}
-                    {categoryRatings.value && renderRatingBar('Custo-benefício', categoryRatings.value)}
+                    {categoryRatings.value && renderRatingBar('Value', categoryRatings.value)}
                 </View>
             )}
 
             {/* ── Community Photos ── */}
             {communityPhotos && communityPhotos.length > 0 && (
                 <View style={styles.photosSection}>
-                    <Text style={styles.photosTitle}>Fotos da comunidade</Text>
+                    <Text style={styles.photosTitle}>Community photos</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                         {communityPhotos.map((photo, index) => (
                             <TouchableOpacity
                                 key={index}
                                 style={styles.photoWrapper}
                                 activeOpacity={0.85}
-                                accessibilityLabel={`Foto ${index + 1} da comunidade`}
-                                onPress={() => lightbox.open(communityItems, index, 'Fotos da comunidade')}
+                                accessibilityLabel={`Community photo ${index + 1}`}
+                                onPress={() => lightbox.open(communityItems, index, 'Community photos')}
                             >
                                 <Image source={{ uri: photo }} style={styles.communityPhoto} />
                                 {index === communityPhotos.length - 1 && communityPhotos.length > 3 && (
@@ -193,7 +193,7 @@ export default function PremiumReviewsSection({
                         {review.verified && (
                             <View style={styles.verifiedRow}>
                                 <Icon name="verified" size={13} color={theme.colors.verified} />
-                                <Text style={styles.verifiedBadge}>Compra verificada</Text>
+                                <Text style={styles.verifiedBadge}>Verified purchase</Text>
                             </View>
                         )}
 
@@ -210,8 +210,8 @@ export default function PremiumReviewsSection({
                                         <TouchableOpacity
                                             key={index}
                                             activeOpacity={0.85}
-                                            accessibilityLabel={`Foto ${index + 1} da avaliação de ${review.user.name}`}
-                                            onPress={() => lightbox.open(items, index, `Avaliação · ${review.user.name}`)}
+                                            accessibilityLabel={`Photo ${index + 1} from ${review.user.name}'s review`}
+                                            onPress={() => lightbox.open(items, index, `Review · ${review.user.name}`)}
                                         >
                                             <Image source={{ uri: photo }} style={styles.reviewPhoto} />
                                         </TouchableOpacity>
@@ -225,7 +225,7 @@ export default function PremiumReviewsSection({
                             <View style={styles.responseContainer}>
                                 <View style={styles.responseHeader}>
                                     <Icon name="circle-user" size={14} color={theme.colors.primary} />
-                                    <Text style={styles.responseTitle}>Resposta do criador</Text>
+                                    <Text style={styles.responseTitle}>Creator's response</Text>
                                     <Text style={styles.responseDate}>{review.response.date}</Text>
                                 </View>
                                 <Text style={styles.responseText}>{review.response.text}</Text>
@@ -242,7 +242,7 @@ export default function PremiumReviewsSection({
                     activeOpacity={0.8}
                 >
                     <Text style={styles.showMoreText}>
-                        {showAllReviews ? 'Mostrar menos' : `Ver todas as ${reviews.length} avaliações`}
+                        {showAllReviews ? 'Show less' : `See all ${reviews.length} reviews`}
                     </Text>
                     <Icon
                         name={showAllReviews ? 'chevron-left' : 'chevron-right'}

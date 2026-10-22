@@ -128,7 +128,7 @@ cd apps/backend && npx tsx scripts/backup-db.ts
 Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 2026-06:
 
 ### `packages/shared/itinerary/` (single source of truth)
-- **`time.ts`** — horários no padrão AU (12h AM/PM). `formatTimeForAustraliaDisplay()` (exibição, lida com ranges), `parseAustralianTimeInput()` (input → "HH:mm" 24h), `to12HourTime`/`to24HourTime`. Storage segue 24h.
+- **`time.ts`** — horários no padrão americano (12h AM/PM). `formatTimeForDisplay()` (exibição, lida com ranges), `parseTimeInput()` (input → "HH:mm" 24h), `to12HourTime`/`to24HourTime`. Storage segue 24h.
 - **`rating.ts`** — `getRouteRatingDisplay({averageRating, reviewCount})`. Sem review → `{type:'new', label:'Novo'}`. NUNCA herdar `creator.rating` para o card do roteiro.
 - **`sectionOrder.ts`** — `MODULE_ORDER` (voo→hospedagem→passeios→itinerário→transporte→restaurantes→dicas→gastos→checklist). Ordem do wizard segue `MODULE_OPTIONS` em `constants.ts` (alinhado). Mudar a ordem = mudar num lugar.
 - **`constants.ts` → `BUDGET_STYLE_GUIDE`** — critérios oficiais Econômico/Moderado/Luxo. `getPrimaryBudgetStyle()` (escolha única, tolera legado), `getBudgetStyleGuide()`. `travelStyles[]` guarda só UMA key de orçamento.
@@ -172,7 +172,7 @@ Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 202
 
 ## 📋 Mercado / produto
 
-- **Mercado-alvo atual: Estados Unidos, moeda USD (decidido pelo Diego em 2026-10-15; antes era Austrália/AUD desde 2026-06-10).** Fonte ÚNICA: `packages/shared/itinerary/market.ts` (`MARKET`, `BASE_CURRENCY`, `BASE_LOCALE`, `BASE_CURRENCY_SYMBOL`, fuso, `DEFAULT_RATES_TO_BASE`). Nunca escreva `'USD'`/`'AUD'`/`'$'` na mão como moeda-base: importe dali. Cada roteiro guarda a própria moeda (`itineraries.currency`), então roteiros antigos em AUD seguem mostrando A$ até serem convertidos (`apps/backend/scripts/convert-itineraries-to-base-currency.ts`, dry-run por padrão). Taxas de câmbio são "1 unidade = X moeda-base"; o arquivo salvo pelo admin só vale se tiver `base` igual à atual. UI e e-mails seguem em PT-BR: tradução para inglês é tarefa pendente (docs/PAGAMENTOS-PLANO-PILOTO.md e a lista de adaptação para o mercado americano).
+- **Mercado-alvo atual: Estados Unidos, moeda USD (decidido pelo Diego em 2026-10-15; antes era Austrália/AUD desde 2026-06-10).** Fonte ÚNICA: `packages/shared/itinerary/market.ts` (`MARKET`, `BASE_CURRENCY`, `BASE_LOCALE`, `BASE_CURRENCY_SYMBOL`, fuso, `DEFAULT_RATES_TO_BASE`). Nunca escreva `'USD'`/`'AUD'`/`'$'` na mão como moeda-base: importe dali. Cada roteiro guarda a própria moeda (`itineraries.currency`), então roteiros antigos em AUD seguem mostrando A$ até serem convertidos (`apps/backend/scripts/convert-itineraries-to-base-currency.ts`, dry-run por padrão). Taxas de câmbio são "1 unidade = X moeda-base"; o arquivo salvo pelo admin só vale se tiver `base` igual à atual. **O app (mobile), o backend (e-mails e mensagens de erro) e os textos compartilhados estão em inglês americano desde 2026-10-22**; os textos legais ficam em `packages/shared/legal/` (rascunho para revisão de advogado). Ainda em português: painel admin e dashboards internos do `apps/site` (ver docs/LANCAMENTO-TASKS.md, task 9). Não escreva texto de tela em português.
 - **Modelo de usuário:** Traveler é o "root" — todo viajante pode opcionalmente virar Creator (extensão 1:1). NÃO são contas separadas.
 - **Gamificação:** Passaporte VAMO (viajante) + Trilha do Roteirista (reputação). Código em `src/gamification/`.
 

@@ -35,7 +35,7 @@ export async function loginWithEmail(email: string, password: string): Promise<T
     const data = await res.json();
 
     if (!res.ok) {
-        const msg = data?.error || 'Erro ao fazer login';
+        const msg = data?.error || 'Couldn\'t sign in';
         console.warn('[auth.login] erro:', res.status, msg);
         throw new Error(msg);
     }
@@ -69,7 +69,7 @@ export async function registerWithEmail(params: {
     const data = await res.json();
 
     if (!res.ok) {
-        const msg = data?.error || 'Erro ao criar conta';
+        const msg = data?.error || 'Couldn\'t create account';
         console.warn('[auth.register] erro:', res.status, msg);
         throw new Error(msg);
     }
@@ -120,7 +120,7 @@ async function postPublic(path: string, body: unknown, fallbackError: string): P
             body: JSON.stringify(body),
         });
     } catch {
-        throw new Error('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+        throw new Error('Can\'t reach the server. Check your internet connection and try again.');
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -136,7 +136,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
     await postPublic(
         '/auth/traveler/forgot-password',
         { email: email.trim().toLowerCase() },
-        'Não foi possível enviar agora. Tente novamente em instantes.',
+        'We couldn\'t send it right now. Please try again in a moment.',
     );
 }
 
@@ -144,6 +144,6 @@ export async function resetPassword(token: string, password: string): Promise<vo
     await postPublic(
         '/auth/traveler/reset-password',
         { token, password },
-        'Não foi possível redefinir a senha. Tente novamente.',
+        'We couldn\'t reset your password. Please try again.',
     );
 }

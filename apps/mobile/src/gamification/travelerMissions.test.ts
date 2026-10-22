@@ -21,7 +21,7 @@ const done = (stats: TravelerStatsInput, key: string): boolean => {
 };
 
 // ── Cenário 1: usuário novo ──
-test('usuário novo: Explorador, nenhuma missão concluída, XP 0', () => {
+test('usuário novo: Explorer, nenhuma missão concluída, XP 0', () => {
     const p = calculateTravelerProgress({ profileCompleted: false, savedCount: 0, purchasesCount: 0 });
     assert.equal(p.level, 'explorer');
     assert.equal(p.xp, 0);
@@ -111,7 +111,7 @@ test('não existem missões proibidas ou dependentes de terceiros', () => {
     const text = buildAllMissions({})
         .flatMap((mission) => [mission.key, mission.label, mission.hint ?? ''])
         .join(' ')
-        .toLocaleLowerCase('pt-BR');
+        .toLocaleLowerCase('en-US');
     assert.doesNotMatch(text, /checkout/);
     assert.doesNotMatch(text, /vitrine/);
     assert.doesNotMatch(text, /receber resposta|pergunta respondida/);
@@ -142,7 +142,7 @@ test('thresholds e nível 4 = Viajante Criador (key backpacker)', () => {
     // XP 500 → nível backpacker / "Viajante Criador"
     const p = calculateTravelerProgress({ xp: 500 });
     assert.equal(p.level, 'backpacker');
-    assert.equal(p.levelConfig.label, 'Viajante Criador');
+    assert.equal(p.levelConfig.label, 'Creator Traveler');
     assert.equal(p.levelConfig.minXp, 500);
 });
 
@@ -181,5 +181,5 @@ test('subtítulo muda conforme a fase do progresso', () => {
     const start = calculateTravelerProgress({ xp: 0 }).subtitle;
     const almost = calculateTravelerProgress({ xp: 95 }).subtitle; // ~95% rumo a 100
     assert.notEqual(start, almost);
-    assert.match(almost, /Falta pouco/);
+    assert.match(almost, /almost/);
 });

@@ -128,7 +128,7 @@ export default function CreatedItinerariesScreen() {
             setStats(data);
         } catch (err: any) {
             console.error('[created-itineraries] erro:', err?.message);
-            setError('Não foi possível carregar seus roteiros. Verifique sua conexão.');
+            setError('We couldn\'t load your itineraries. Check your connection.');
         } finally {
             setLoading(false); setRefreshing(false);
         }
@@ -170,7 +170,7 @@ export default function CreatedItinerariesScreen() {
         return (
             <View style={s.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={s.loadingText}>Carregando seu portal...</Text>
+                <Text style={s.loadingText}>Loading your portal...</Text>
             </View>
         );
     }
@@ -183,9 +183,9 @@ export default function CreatedItinerariesScreen() {
                 <View style={s.centerState}>
                     <CreatorEmptyState
                         icon="lock-closed-outline"
-                        title="Login necessário"
-                        text="Faça login para acessar o Portal do Roteirista e ver seus roteiros criados."
-                        ctaLabel="Entrar na conta"
+                        title="Sign-in required"
+                        text="Sign in to open the Creator Portal and see the itineraries you've created."
+                        ctaLabel="Sign in"
                         onCta={() => router.push({ pathname: '/login' as any, params: { next: '/created-itineraries' } })}
                     />
                 </View>
@@ -201,9 +201,9 @@ export default function CreatedItinerariesScreen() {
                 <View style={s.centerState}>
                     <CreatorEmptyState
                         icon="cloud-offline-outline"
-                        title="Erro ao carregar"
+                        title="Couldn't load"
                         text={error}
-                        ctaLabel="Tentar novamente"
+                        ctaLabel="Try again"
                         ctaIcon="refresh-outline"
                         onCta={() => fetchData()}
                     />
@@ -220,9 +220,9 @@ export default function CreatedItinerariesScreen() {
                 <View style={s.centerState}>
                     <CreatorEmptyState
                         icon="sparkles-outline"
-                        title="Ative seu portal de roteirista"
-                        text="Crie sua área de criador para publicar roteiros digitais, acompanhar vendas e receber avaliações."
-                        ctaLabel="Começar como roteirista"
+                        title="Activate your creator portal"
+                        text="Set up your creator area to publish digital itineraries, track sales and receive reviews."
+                        ctaLabel="Get started as a creator"
                         ctaIcon="compass-outline"
                         onCta={() => { haptics.medium(); router.push('/become-creator'); }}
                     />
@@ -258,10 +258,10 @@ export default function CreatedItinerariesScreen() {
     const handleEdit = async (item: CreatorItinerary) => {
         if (item.status === 'active' || item.status === 'approved') {
             const ok = await confirm({
-                title: 'Editar roteiro publicado',
-                message: 'Alterações em roteiros publicados passam por nova análise antes de ficarem disponíveis na VAMO. O roteiro pode sair temporariamente da vitrine durante a revisão.',
-                confirmText: 'Continuar edição',
-                cancelText: 'Cancelar',
+                title: 'Edit published itinerary',
+                message: 'Changes to published itineraries go through a new review before they become available on VAMO. The itinerary may temporarily leave the storefront during review.',
+                confirmText: 'Continue editing',
+                cancelText: 'Cancel',
                 icon: 'create-outline',
             });
             if (!ok) return;
@@ -271,14 +271,14 @@ export default function CreatedItinerariesScreen() {
 
     const handleDelete = async (item: CreatorItinerary) => {
         if (!accessToken) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para arquivar o roteiro.', variant: 'warning' });
+            notify({ title: 'Session expired', message: 'Sign in again to archive the itinerary.', variant: 'warning' });
             return;
         }
         const ok = await confirm({
-            title: 'Arquivar roteiro?',
-            message: `"${item.title || 'Sem título'}"\n\nEste roteiro deixará de aparecer para novas compras, mas viajantes que já compraram continuarão tendo acesso ao conteúdo adquirido.`,
-            confirmText: 'Arquivar roteiro',
-            cancelText: 'Cancelar',
+            title: 'Archive itinerary?',
+            message: `"${item.title || 'Untitled'}"\n\nThis itinerary will stop appearing for new purchases, but travelers who already bought it will keep access to the content they purchased.`,
+            confirmText: 'Archive itinerary',
+            cancelText: 'Cancel',
             action: 'archive',
         });
         if (!ok) return;
@@ -290,14 +290,14 @@ export default function CreatedItinerariesScreen() {
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({} as any));
-                throw new Error(err?.error || `Erro ${res.status} ao arquivar o roteiro`);
+                throw new Error(err?.error || `Error ${res.status} archiving the itinerary`);
             }
             haptics.success();
-            notify({ title: 'Roteiro arquivado', message: 'Ele não aparece mais na vitrine. Você pode revisar quando quiser na aba de arquivados.', variant: 'success', icon: 'archive-outline' });
+            notify({ title: 'Itinerary archived', message: 'It no longer appears in the storefront. You can review it any time in the archived tab.', variant: 'success', icon: 'archive-outline' });
             await fetchData(true);
         } catch (e: any) {
             haptics.error?.();
-            notify({ title: 'Não foi possível arquivar', message: e?.message || 'Tente novamente em instantes.', variant: 'error' });
+            notify({ title: 'Couldn\'t archive', message: e?.message || 'Please try again in a moment.', variant: 'error' });
         }
     };
 
@@ -305,7 +305,7 @@ export default function CreatedItinerariesScreen() {
         haptics.light();
         await shareItineraryImperative({
             itineraryId: item.id,
-            title: item.title || 'Roteiro VAMO',
+            title: item.title || 'VAMO itinerary',
             destination: item.destination,
             country: item.country,
             allowShare: true, // Dashboard só mostra Compartilhar p/ status=active (gate no card).
@@ -337,41 +337,41 @@ export default function CreatedItinerariesScreen() {
     const metrics: CreatorMetric[] = stats ? [
         {
             key: 'routes', icon: 'briefcase-outline', tone: theme.colors.primary,
-            value: String(published), label: 'Roteiros ativos',
+            value: String(published), label: 'Active itineraries',
             hint: `${stats.totalItineraries} no total`,
-            empty: stats.totalItineraries === 0, emptyHint: 'Nenhum roteiro ainda',
+            empty: stats.totalItineraries === 0, emptyHint: 'No itineraries yet',
             onPress: showAllAndScroll,
         },
         {
             key: 'sales', icon: 'receipt-outline', tone: theme.colors.secondary,
-            value: String(stats.totalSales), label: 'Total de vendas',
-            hint: `${formatMoney(Math.round(stats.totalRevenue))} em receita`, empty: stats.totalSales === 0,
-            emptyHint: 'Nenhuma venda ainda', onPress: goToSales,
+            value: String(stats.totalSales), label: 'Total sales',
+            hint: `${formatMoney(Math.round(stats.totalRevenue))} in revenue`, empty: stats.totalSales === 0,
+            emptyHint: 'No sales yet', onPress: goToSales,
         },
         {
             key: 'rating', icon: 'star-outline', tone: theme.colors.warning,
             value: stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '—',
-            label: 'Avaliação média', hint: `${stats.totalReviews} avaliaç${stats.totalReviews === 1 ? 'ão' : 'ões'}`,
-            empty: stats.averageRating === 0, emptyHint: 'Sem avaliações ainda', onPress: goToReviews,
+            label: 'Average rating', hint: `${stats.totalReviews} review${stats.totalReviews === 1 ? '' : 's'}`,
+            empty: stats.averageRating === 0, emptyHint: 'No reviews yet', onPress: goToReviews,
         },
         {
             key: 'quality', icon: 'shield-checkmark-outline', tone: theme.colors.success,
             value: stats.averageQualityScore != null ? `${stats.averageQualityScore}%` : '—',
-            label: 'Qualidade média',
-            hint: stats.averageQualityScore != null ? 'Média entre roteiros ativos' : 'Sem roteiros ativos',
-            empty: stats.averageQualityScore == null, emptyHint: 'Sem roteiros ativos',
+            label: 'Average quality',
+            hint: stats.averageQualityScore != null ? 'Average across active itineraries' : 'No active itineraries',
+            empty: stats.averageQualityScore == null, emptyHint: 'No active itineraries',
         },
     ] : [];
 
     // ── Atalhos ─────────────────────────────────────────────────
     const quickActions: QuickAction[] = stats ? [
-        { key: 'new', icon: 'add-circle-outline', label: 'Novo roteiro', hint: 'Publique uma nova experiência', onPress: () => { haptics.medium(); router.push('/new-itinerary'); } },
-        { key: 'all', icon: 'albums-outline', label: 'Meus roteiros', hint: 'Ver e gerenciar todos', badge: String(stats.totalItineraries), onPress: showAllAndScroll },
-        { key: 'sales', icon: 'receipt-outline', label: 'Minhas vendas', hint: 'Vendas e receita por roteiro', badge: stats.totalSales > 0 ? String(stats.totalSales) : undefined, onPress: goToSales },
-        { key: 'earnings', icon: 'wallet-outline', label: 'Ganhos', hint: 'Saldo e repasses', onPress: goToEarnings },
-        { key: 'questions', icon: 'chatbubbles-outline', label: 'Perguntas', hint: 'Dúvidas dos viajantes', badge: pendingQuestions > 0 ? String(pendingQuestions) : undefined, onPress: goToQuestions },
-        { key: 'reviews', icon: 'star-half-outline', label: 'Avaliações', hint: 'Notas e comentários', badge: stats.totalReviews > 0 ? String(stats.totalReviews) : undefined, onPress: goToReviews },
-        { key: 'settings', icon: 'settings-outline', label: 'Configurações', hint: 'Perfil e recebimentos', onPress: goToSettings },
+        { key: 'new', icon: 'add-circle-outline', label: 'New itinerary', hint: 'Publish a new experience', onPress: () => { haptics.medium(); router.push('/new-itinerary'); } },
+        { key: 'all', icon: 'albums-outline', label: 'My itineraries', hint: 'View and manage all', badge: String(stats.totalItineraries), onPress: showAllAndScroll },
+        { key: 'sales', icon: 'receipt-outline', label: 'My sales', hint: 'Sales and revenue by itinerary', badge: stats.totalSales > 0 ? String(stats.totalSales) : undefined, onPress: goToSales },
+        { key: 'earnings', icon: 'wallet-outline', label: 'Earnings', hint: 'Saldo e repasses', onPress: goToEarnings },
+        { key: 'questions', icon: 'chatbubbles-outline', label: 'Questions', hint: 'Traveler questions', badge: pendingQuestions > 0 ? String(pendingQuestions) : undefined, onPress: goToQuestions },
+        { key: 'reviews', icon: 'star-half-outline', label: 'Reviews', hint: 'Ratings and comments', badge: stats.totalReviews > 0 ? String(stats.totalReviews) : undefined, onPress: goToReviews },
+        { key: 'settings', icon: 'settings-outline', label: 'Settings', hint: 'Profile and payouts', onPress: goToSettings },
     ] : [];
 
     return (
@@ -399,7 +399,7 @@ export default function CreatedItinerariesScreen() {
                     />
 
                     {/* Resumo — sempre presente (cards zerados quando sem dados) */}
-                    <Text style={s.sectionLabel}>Resumo</Text>
+                    <Text style={s.sectionLabel}>Summary</Text>
                     <View style={s.metricsGrid}>
                         {metrics.map(m => (
                             <CreatorMetricCard key={m.key} metric={m} style={isWide ? s.metricWide : s.metricNarrow} />
@@ -422,7 +422,7 @@ export default function CreatedItinerariesScreen() {
 
                     {/* Lista de roteiros */}
                     <View onLayout={(e) => { listY.current = e.nativeEvent.layout.y; }}>
-                        <Text style={s.sectionLabel}>Seus roteiros</Text>
+                        <Text style={s.sectionLabel}>Your itineraries</Text>
                         {allItineraries.length > 0 && (
                             <FilterTabBar active={activeFilter} counts={counts} onSelect={handleFilterChange} />
                         )}
@@ -431,9 +431,9 @@ export default function CreatedItinerariesScreen() {
                             {allItineraries.length === 0 ? (
                                 <CreatorEmptyState
                                     icon="rocket-outline"
-                                    title="Seu portal de roteirista está pronto"
-                                    text="Crie seu primeiro roteiro para começar a vender sua experiência na VAMO."
-                                    ctaLabel="Criar primeiro roteiro"
+                                    title="Your creator portal is ready"
+                                    text="Create your first itinerary to start selling your experience on VAMO."
+                                    ctaLabel="Create first itinerary"
                                     ctaIcon="add"
                                     onCta={goCreateFirst}
                                 />
@@ -465,7 +465,7 @@ export default function CreatedItinerariesScreen() {
                                         activeOpacity={0.8}
                                     >
                                         <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
-                                        <Text style={s.newItineraryCtaText}>Criar novo roteiro</Text>
+                                        <Text style={s.newItineraryCtaText}>Create new itinerary</Text>
                                     </TouchableOpacity>
                                 </>
                             )}

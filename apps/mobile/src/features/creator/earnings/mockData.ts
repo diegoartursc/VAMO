@@ -36,16 +36,16 @@ export const mockCreatorEarningsSummary: CreatorEarningsSummary = {
 export const mockCreatorEarningTransactions: CreatorEarningTransaction[] = [
     buildTx({
         id: 'txn_001',
-        itineraryId: 'itn_melbourne_cafes',
-        itineraryTitle: 'Melbourne Hidden Cafés Weekend',
+        itineraryId: 'itn_nyc_cafes',
+        itineraryTitle: 'New York Hidden Cafés Weekend',
         saleDate: '2026-05-28',
         grossAmount: 49,
         status: 'available',
     }),
     buildTx({
         id: 'txn_002',
-        itineraryId: 'itn_sydney_first_timer',
-        itineraryTitle: 'Sydney 5-Day First Timer Guide',
+        itineraryId: 'itn_la_first_timer',
+        itineraryTitle: 'Los Angeles 5-Day First Timer Guide',
         saleDate: '2026-05-27',
         grossAmount: 79,
         status: 'pending',

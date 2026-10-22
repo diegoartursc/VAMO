@@ -82,7 +82,7 @@ export function confirm(opts: ConfirmOptions): Promise<boolean> {
     if (_impl) return _impl(opts);
 
     // ── Fallback nativo (host ausente) ──
-    const { title, message, confirmText = 'OK', cancelText = 'Cancelar', destructive = false } = opts;
+    const { title, message, confirmText = 'OK', cancelText = 'Cancel', destructive = false } = opts;
     if (Platform.OS === 'web') {
         if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
             return Promise.resolve(true);

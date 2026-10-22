@@ -41,7 +41,7 @@ test('1/2/3. o card de compra mostra o preço total, sem 12x nem "sem juros"', (
     assert.ok(!TERMOS_PARCELAMENTO.test(codigo), 'sobrou termo de parcelamento no detalhe');
     // O preço total continua lá.
     assert.ok(/priceValueText/.test(codigo) && /price\.toFixed\(2\)/.test(codigo));
-    assert.ok(/Roteiro completo/.test(codigo));
+    assert.ok(/Complete itinerary/.test(codigo));
 });
 
 test('4. nenhum cálculo de valor parcelado sobrou', () => {
@@ -50,8 +50,8 @@ test('4. nenhum cálculo de valor parcelado sobrou', () => {
 });
 
 test('5/6/7. o card segue íntegro: acesso imediato, Adicionar e Comprar agora', () => {
-    assert.ok(/Acesso imediato após a compra/.test(detalhe));
-    assert.ok(/Comprar agora/.test(detalhe));
+    assert.ok(/Instant access after purchase/.test(detalhe));
+    assert.ok(/Buy now/.test(detalhe));
     assert.ok(/addToCart/.test(detalhe), 'ação de adicionar ao carrinho preservada');
 });
 
@@ -97,12 +97,12 @@ test('15. segue redirecionando para o Checkout hospedado da Stripe', () => {
         'a sessão é criada sem meio de pagamento local');
     assert.ok(/window\.location\.assign\(result\.url\)/.test(pagamento), 'redirect web preservado');
     assert.ok(/Linking\.openURL\(result\.url\)/.test(pagamento), 'redirect nativo preservado');
-    assert.ok(/Você será redirecionado para a Stripe/.test(pagamento), 'copy explica o redirect');
+    assert.ok(/You'll be redirected to Stripe/.test(pagamento), 'copy explica o redirect');
 });
 
 test('16. compra gratuita continua liberando sem passar pela Stripe', () => {
     assert.ok(/result\.alreadyPurchased \|\| result\.freePurchase/.test(pagamento));
-    assert.ok(/Resgatar grátis/.test(pagamento));
+    assert.ok(/Claim for free/.test(pagamento));
 });
 
 test('17. erros da Stripe continuam tratados', () => {
@@ -211,7 +211,7 @@ test('32b. um roteiro sem promoção atinge 100 no score compartilhado', () => {
         title: 'Japão Clássico', subtitle: 'Dez dias por Tóquio, Kyoto e Osaka',
         destination: 'Tóquio', country: 'Japão',
         description: 'x'.repeat(200), travelStyles: ['moderado'], categories: ['cultura'],
-        price: 29.9, currency: 'AUD',
+        price: 29.9, currency: 'USD',
         images: ['a.jpg', 'b.jpg', 'c.jpg'], highlightPhotos: [],
         duration: 3,
         days: [1, 2, 3].map(n => ({
@@ -228,7 +228,7 @@ test('32b. um roteiro sem promoção atinge 100 no score compartilhado', () => {
         activeModules: ['itinerario', 'hospedagem', 'passeios', 'restaurantes', 'transporte', 'dicas', 'checklist', 'voo', 'gastos_extras'],
         // Sem promoPrice — e, claro, sem installments.
     };
-    const comercial = calcQualityBlocks(completo).find(b => b.label.includes('Comercial'))!;
+    const comercial = calcQualityBlocks(completo).find(b => b.label.includes('Commerce'))!;
     assert.equal(comercial.earned, comercial.max,
         'o bloco comercial deve fechar sem promoção nem parcelamento');
 
@@ -242,8 +242,8 @@ test('32b. um roteiro sem promoção atinge 100 no score compartilhado', () => {
 });
 
 test('33. o bloco comercial do shared depende só do preço de venda', () => {
-    const semPreco = calcQualityBlocks({ title: 'x' } as any).find(b => b.label.includes('Comercial'))!;
-    const comPreco = calcQualityBlocks({ title: 'x', price: 10 } as any).find(b => b.label.includes('Comercial'))!;
+    const semPreco = calcQualityBlocks({ title: 'x' } as any).find(b => b.label.includes('Commerce'))!;
+    const comPreco = calcQualityBlocks({ title: 'x', price: 10 } as any).find(b => b.label.includes('Commerce'))!;
     assert.equal(semPreco.earned, 0);
     assert.equal(comPreco.earned, comPreco.max);
 });
@@ -259,7 +259,7 @@ test('34/35. a tela "Como funciona" não menciona parcelamento', () => {
     // A superfície viva é a rota /how-it-works, com conteúdo próprio.
     const tela = ler('apps/mobile/app/how-it-works.tsx');
     assert.ok(!TERMOS_PARCELAMENTO.test(semComentarios(tela)));
-    assert.ok(/pagamento seguro/i.test(tela), 'a copy de pagamento seguro continua lá');
+    assert.ok(/secure payment/i.test(tela), 'a copy de pagamento seguro continua lá');
 
     for (const morto of [
         'apps/mobile/src/components/common/HowItWorks.tsx',

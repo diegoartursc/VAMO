@@ -44,14 +44,14 @@ router.put('/', adminAuthMiddleware, (req: Request, res: Response) => {
     const { rates } = req.body;
 
     if (!rates || typeof rates !== 'object' || Array.isArray(rates)) {
-        res.status(400).json({ error: 'Body deve conter um objeto "rates" com os pares moeda → valor.' });
+        res.status(400).json({ error: 'Body must contain a "rates" object with currency → value pairs.' });
         return;
     }
 
     // Valida que todos os valores são números positivos
     for (const [code, val] of Object.entries(rates)) {
         if (typeof val !== 'number' || val <= 0) {
-            res.status(400).json({ error: `Taxa inválida para ${code}: ${val}` });
+            res.status(400).json({ error: `Invalid rate for ${code}: ${val}` });
             return;
         }
     }
@@ -64,7 +64,7 @@ router.put('/', adminAuthMiddleware, (req: Request, res: Response) => {
         res.json({ success: true, rates });
     } catch (err: any) {
         console.error('[rates] Erro ao salvar rates.json:', err);
-        res.status(500).json({ error: 'Falha ao salvar taxas.', detail: err.message });
+        res.status(500).json({ error: 'Failed to save rates.', detail: err.message });
     }
 });
 

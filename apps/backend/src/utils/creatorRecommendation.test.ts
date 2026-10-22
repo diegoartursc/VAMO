@@ -228,8 +228,8 @@ test('primaryReason sempre presente quando elegível; secondaryReason só quando
     const candidate = buildRecommendationCandidate(strong, { ...noContext, wantedDestination: 'tóquio' });
     assert.equal(candidate.eligible, true);
     assert.ok(candidate.payload.recommendation.primaryReason.length > 0);
-    assert.equal(candidate.payload.recommendation.primaryReason, 'Especialista em Tóquio');
-    assert.equal(candidate.payload.recommendation.secondaryReason, 'Muito bem avaliado');
+    assert.equal(candidate.payload.recommendation.primaryReason, 'Tóquio expert');
+    assert.equal(candidate.payload.recommendation.secondaryReason, 'Highly rated');
 });
 
 test('sem evidências fortes, primaryReason cai pro criteriaSummary do nível (nunca vazio)', () => {

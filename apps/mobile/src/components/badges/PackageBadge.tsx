@@ -30,13 +30,13 @@ interface BadgeConfig {
 const BADGE_CONFIGS: Record<BadgeType, BadgeConfig> = {
     bestseller: {
         icon: '🔥',
-        label: 'Mais Vendido',
+        label: 'Best Seller',
         gradient: ['#FFD700', '#FFA500'],
         textColor: '#FFFFFF',
     },
     flash: {
         icon: '⚡',
-        label: 'Oferta Relâmpago',
+        label: 'Flash Deal',
         gradient: ['#FF6B6B', '#FF5A4D'],
         textColor: '#FFFFFF',
         hasPulse: true,
@@ -49,13 +49,13 @@ const BADGE_CONFIGS: Record<BadgeType, BadgeConfig> = {
     },
     value: {
         icon: '🌟',
-        label: 'Melhor Custo-Benefício',
+        label: 'Best Value',
         gradient: ['#2ECC71', '#27AE60'],
         textColor: '#FFFFFF',
     },
     verified: {
         icon: '✅',
-        label: 'Verificado',
+        label: 'Verified',
         gradient: ['#28C9BF', '#1FA89F'],
         textColor: '#FFFFFF',
     },

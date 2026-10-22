@@ -388,7 +388,7 @@ export default function AdminDashboardPage() {
                         {tab === "history" && "Histórico"}
                     </div>
                     <div style={{ fontSize: "12px", color: "#94A3B8" }}>
-                        {new Date().toLocaleDateString("pt-BR", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                        {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
                     </div>
                 </div>
 
@@ -616,7 +616,7 @@ function ItemList({ items, type, onApprove, onReject, emptyMsg }: {
                             {item.qualityScore !== undefined && (
                                 <span style={{ fontSize: "11px", fontWeight: "700", color: item.qualityScore >= 70 ? "#16A34A" : item.qualityScore >= 40 ? "#D97706" : "#DC2626" }}>Score: {item.qualityScore}%</span>
                             )}
-                            <span style={{ fontSize: "11px", color: "#94A3B8" }}>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</span>
+                            <span style={{ fontSize: "11px", color: "#94A3B8" }}>{new Date(item.createdAt).toLocaleDateString("en-US")}</span>
                         </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>

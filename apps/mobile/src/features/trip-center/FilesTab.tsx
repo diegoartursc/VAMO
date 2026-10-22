@@ -31,6 +31,7 @@ import {
     FILE_FILTERS,
     ALL_FILTER,
     normalizeCategory,
+    fileCategoryLabel,
     type FileFilter,
 } from './fileCategories';
 
@@ -83,9 +84,9 @@ export default function FilesTab({
     const handleDelete = async (file: TravelerFile) => {
         if (!canEdit || !token) return;
         const ok = await confirm({
-            title: 'Remover arquivo?',
-            message: `"${file.title}" será removido da Central da Viagem.`,
-            confirmText: 'Remover',
+            title: 'Remove file?',
+            message: `"${file.title}" will be removed from the Trip Center.`,
+            confirmText: 'Remove',
             action: 'removeFile',
         });
         if (!ok) return;
@@ -103,7 +104,7 @@ export default function FilesTab({
             restored.splice(Math.max(0, idx), 0, file);
             onFilesChange(restored);
             haptics.error();
-            notify({ title: 'Não foi possível remover', message: e?.message || 'Tente novamente.', variant: 'error' });
+            notify({ title: 'Couldn\'t remove', message: e?.message || 'Please try again.', variant: 'error' });
         }
     };
 
@@ -115,7 +116,7 @@ export default function FilesTab({
         filename: string;
         mimeType: string;
     }) => {
-        if (!token) throw new Error('Sessão expirada.');
+        if (!token) throw new Error('Session expired.');
         const prev = files;
         try {
             const saved = await uploadTripFile(itineraryId, payload, token);
@@ -123,7 +124,7 @@ export default function FilesTab({
             haptics.success();
         } catch (e: any) {
             haptics.error();
-            notify({ title: 'Não foi possível salvar', message: e?.message || 'Tente novamente.', variant: 'error' });
+            notify({ title: 'Couldn\'t save', message: e?.message || 'Please try again.', variant: 'error' });
             throw e;
         }
     };
@@ -147,7 +148,7 @@ export default function FilesTab({
                             activeOpacity={0.85}
                         >
                             <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
-                                {cat}
+                                {cat === ALL_FILTER ? 'All' : fileCategoryLabel(cat)}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -157,9 +158,9 @@ export default function FilesTab({
             {files.length === 0 ? (
                 <EmptyState
                     icon="folder-open-outline"
-                    title="Sem arquivos por aqui"
-                    text="Guarde vouchers, passagens, seguro e tudo que quiser ter à mão durante a viagem."
-                    ctaLabel={canEdit ? 'Adicionar arquivo' : undefined}
+                    title="No files here"
+                    text="Keep vouchers, tickets, insurance and anything else you want on hand during your trip."
+                    ctaLabel={canEdit ? 'Add file' : undefined}
                     onCta={canEdit ? () => setModalVisible(true) : undefined}
                     disabled={!canEdit}
                 />
@@ -168,7 +169,7 @@ export default function FilesTab({
                     {filtered.length === 0 ? (
                         <View style={styles.emptyFilter}>
                             <Text style={styles.emptyFilterText}>
-                                Nenhum arquivo nesta categoria.
+                                No files in this category.
                             </Text>
                         </View>
                     ) : (
@@ -198,7 +199,7 @@ export default function FilesTab({
                             activeOpacity={0.85}
                         >
                             <Ionicons name="add" size={18} color="#fff" />
-                            <Text style={styles.addCtaLabel}>Adicionar arquivo</Text>
+                            <Text style={styles.addCtaLabel}>Add file</Text>
                         </TouchableOpacity>
                     )}
                 </>

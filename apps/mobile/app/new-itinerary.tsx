@@ -84,6 +84,8 @@ import {
     SPENDING_CATS,
     EXTRA_SPENDING_CATEGORIES,
     CUISINE_OPTIONS,
+    getCuisineLabel,
+    getChecklistCategoryLabel,
     MAX_CATEGORIES,
     MIN_TIPS,
     MIN_CHECKLIST,
@@ -134,21 +136,21 @@ const MODULE_TO_STEP: Partial<Record<ModuleKey, StepKey>> = {
 };
 
 const STEP_LABEL_MAP: Record<StepKey, string> = {
-    identity:      'Identidade',
-    proof:         'Comprovante',
-    commerce:      'Comercial',
-    modules:       'Módulos',
-    days:          'Itinerário por dia',
-    voo:           'Meu Voo',
-    hospedagem:    'Hospedagens',
-    passeios:      'Passeios & Atrações',
-    transporte:    'Transporte',
-    dicas:         'Dicas Exclusivas',
-    restaurantes:  'Restaurantes',
+    identity:      'Identity',
+    proof:         'Proof',
+    commerce:      'Pricing',
+    modules:       'Modules',
+    days:          'Daily itinerary',
+    voo:           'My Flight',
+    hospedagem:    'Lodging',
+    passeios:      'Tours & Attractions',
+    transporte:    'Transportation',
+    dicas:         'Insider Tips',
+    restaurantes:  'Restaurants',
     checklist:     'Checklist',
-    gastos_extras: 'Gastos Extras',
-    media:         'Fotos e Vídeos',
-    review:        'Revisão',
+    gastos_extras: 'Extra Expenses',
+    media:         'Photos & Videos',
+    review:        'Review',
 };
 
 // Mapeia o campo `section` de uma ValidationIssue para a chave de etapa
@@ -161,7 +163,7 @@ const ISSUE_SECTION_TO_STEP: Record<string, StepKey> = {
     modules:       'modules',
     // 'itinerary' (em inglês) é usado pelas pendências legadas
     // ("Cadastre pelo menos 1 dia…", "link do mapa inválido…").
-    // 'itinerario' (ModuleKey, em pt-BR) é o que validateForSubmission
+    // 'itinerario' (ModuleKey, em en-US) é o que validateForSubmission
     // emite no caminho granular novo (Complete o Dia X…). Ambos
     // levam para o mesmo step.
     itinerary:     'days',
@@ -262,17 +264,17 @@ export default function NewItineraryScreen() {
                 const res = await fetch(`${API_BASE}/itineraries/${editId}/creator`, {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 });
-                if (res.status === 403) throw new Error('Você não tem permissão para editar este roteiro.');
-                if (res.status === 401) throw new Error('Faça login para editar este roteiro.');
-                if (!res.ok) throw new Error('Roteiro não encontrado');
+                if (res.status === 403) throw new Error('You don\'t have permission to edit this itinerary.');
+                if (res.status === 401) throw new Error('Sign in to edit this itinerary.');
+                if (!res.ok) throw new Error('Itinerary not found');
                 const data = await res.json();
                 setForm(deserializeFromApi(data));
             } catch (e: any) {
                 // notify() em vez de Alert.alert pra funcionar no Expo Web também
                 // (Alert.alert é no-op no web → "página quebrada" silenciosa).
                 notify({
-                    title: 'Erro ao carregar',
-                    message: e?.message || 'Não foi possível abrir o roteiro.',
+                    title: 'Couldn\'t load',
+                    message: e?.message || 'We couldn\'t open the itinerary.',
                     variant: 'error',
                     onDismiss: () => safeBack(router, '/created-itineraries'),
                 });
@@ -305,8 +307,8 @@ export default function NewItineraryScreen() {
         if (stepKey === 'proof' && !form.travelProofUrl) {
             haptics.error?.();
             notify({
-                title: 'Comprovante obrigatório',
-                message: 'Envie um arquivo que comprove que você esteve no destino (bilhete aéreo, recibo de hotel, passaporte carimbado, etc.) para continuar.',
+                title: 'Proof required',
+                message: 'Upload a file that proves you were at the destination (airline ticket, hotel receipt, stamped passport, etc.) to continue.',
                 variant: 'warning',
             });
             return;
@@ -340,7 +342,7 @@ export default function NewItineraryScreen() {
 
     async function submit() {
         if (!accessToken) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para enviar o roteiro.', variant: 'warning' });
+            notify({ title: 'Session expired', message: 'Sign in again to submit the itinerary.', variant: 'warning' });
             return;
         }
         if (submitting) return;
@@ -353,7 +355,7 @@ export default function NewItineraryScreen() {
                 haptics.error?.();
                 const firstIssue = issues[0];
                 notify({
-                    title: 'Corrija as pendências antes de enviar',
+                    title: 'Fix the open items before submitting',
                     message: firstIssue.message,
                 });
                 const targetKey = ISSUE_SECTION_TO_STEP[firstIssue.section];
@@ -368,7 +370,7 @@ export default function NewItineraryScreen() {
                 scrollRef.current?.scrollTo({ y: 0, animated: true });
             } else {
                 notify({
-                    title: 'Faltam algumas coisas',
+                    title: 'A few things are missing',
                     message: issues.map(i => `• ${i.message}`).join('\n'),
                 });
             }
@@ -376,8 +378,8 @@ export default function NewItineraryScreen() {
         }
         if (hasPendingLocalUpload(form)) {
             notify({
-                title: 'Upload em andamento',
-                message: 'Aguarde o envio dos arquivos terminar antes de enviar para análise.',
+                title: 'Upload in progress',
+                message: 'Wait for the files to finish uploading before submitting for review.',
             });
             return;
         }
@@ -394,10 +396,10 @@ export default function NewItineraryScreen() {
             if (!res.ok) {
                 const err = await res.json().catch(() => ({} as any));
                 const fallback = res.status === 401
-                    ? 'Você precisa estar logado para enviar o roteiro.'
+                    ? 'You need to be signed in to submit the itinerary.'
                     : res.status === 400
-                        ? 'Há informações inválidas no roteiro. Revise os campos destacados.'
-                        : 'Não foi possível enviar o roteiro para análise agora. Tente novamente.';
+                        ? 'There is invalid information in the itinerary. Review the highlighted fields.'
+                        : 'We couldn\'t submit the itinerary for review right now. Please try again.';
                 throw new Error(err?.error || fallback);
             }
             haptics.success();
@@ -405,7 +407,7 @@ export default function NewItineraryScreen() {
             router.replace('/await-review');
         } catch (e: any) {
             haptics.error?.();
-            notify({ title: 'Erro ao enviar', message: e?.message || 'Não foi possível enviar.', variant: 'error' });
+            notify({ title: 'Couldn\'t submit', message: e?.message || 'We couldn\'t submit it.', variant: 'error' });
         } finally {
             setSubmitting(false);
         }
@@ -439,19 +441,19 @@ export default function NewItineraryScreen() {
                 mediaUrls: normalizeUrls(form.mediaUrls),
             };
             if (!previewKey) {
-                notify({ title: 'Sessão expirada', message: 'Faça login para visualizar a prévia.', variant: 'warning' });
+                notify({ title: 'Session expired', message: 'Sign in to see the preview.', variant: 'warning' });
                 return;
             }
             await AsyncStorage.setItem(previewKey, JSON.stringify(payload));
             router.push('/itinerary-preview');
         } catch (e: any) {
-            notify({ title: 'Erro', message: e?.message || 'Não foi possível abrir a prévia.', variant: 'error' });
+            notify({ title: 'Error', message: e?.message || 'We couldn\'t open the preview.', variant: 'error' });
         }
     }
 
     // ── Salvar rascunho (sai sem enviar) ────────────────────────
     async function saveDraft() {
-        if (!accessToken) { notify({ title: 'Sessão expirada', message: 'Faça login para salvar.', variant: 'warning' }); return; }
+        if (!accessToken) { notify({ title: 'Session expired', message: 'Sign in to save.', variant: 'warning' }); return; }
         setSaving(true);
         try {
             const payload = { ...buildPayload(form), status: 'DRAFT' };
@@ -464,12 +466,12 @@ export default function NewItineraryScreen() {
             });
             if (!draftRes.ok) {
                 const errBody = await draftRes.json().catch(() => ({}));
-                throw new Error(errBody?.error || `Erro ${draftRes.status} ao salvar rascunho`);
+                throw new Error(errBody?.error || `Error ${draftRes.status} saving draft`);
             }
             if (draftKey) await AsyncStorage.removeItem(draftKey);
             router.replace('/created-itineraries');
         } catch (e: any) {
-            notify({ title: 'Erro', message: e?.message || 'Não foi possível salvar o rascunho.', variant: 'error' });
+            notify({ title: 'Error', message: e?.message || 'We couldn\'t save the draft.', variant: 'error' });
         } finally {
             setSaving(false);
         }
@@ -488,13 +490,13 @@ export default function NewItineraryScreen() {
             <View style={[s.root, s.authState]}>
                 <StatusBar barStyle="dark-content" />
                 <Ionicons name="lock-closed-outline" size={44} color={theme.colors.text.tertiary} />
-                <Text style={s.authTitle}>Login necessário</Text>
-                <Text style={s.authText}>Entre na sua conta para criar, salvar ou editar roteiros digitais.</Text>
+                <Text style={s.authTitle}>Sign-in required</Text>
+                <Text style={s.authText}>Sign in to your account to create, save or edit digital itineraries.</Text>
                 <TouchableOpacity
                     style={s.authButton}
                     onPress={() => router.replace({ pathname: '/login' as any, params: { next: '/new-itinerary' } })}
                 >
-                    <Text style={s.authButtonText}>Entrar na conta</Text>
+                    <Text style={s.authButtonText}>Sign in</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -521,9 +523,9 @@ export default function NewItineraryScreen() {
             >
                 <View style={s.modalBg}>
                     <View style={s.modalCard}>
-                        <Text style={s.modalTitle}>Continuar rascunho?</Text>
+                        <Text style={s.modalTitle}>Continue draft?</Text>
                         <Text style={s.modalText}>
-                            Você tem um roteiro em andamento. Quer continuar de onde parou?
+                            You have an itinerary in progress. Want to pick up where you left off?
                         </Text>
                         <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                             <TouchableOpacity
@@ -533,7 +535,7 @@ export default function NewItineraryScreen() {
                                     setShowResume(false);
                                     setPendingDraft(null);
                                 }}>
-                                <Text style={s.modalBtnGhostText}>Começar novo</Text>
+                                <Text style={s.modalBtnGhostText}>Start new</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={s.modalBtnPrimary}
@@ -545,7 +547,7 @@ export default function NewItineraryScreen() {
                                     setShowResume(false);
                                     setPendingDraft(null);
                                 }}>
-                                <Text style={s.modalBtnPrimaryText}>Continuar</Text>
+                                <Text style={s.modalBtnPrimaryText}>Continue</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -560,7 +562,7 @@ export default function NewItineraryScreen() {
                 <View style={{ flex: 1, alignItems: 'center' }}>
                     <Text style={s.headerLabel}>{STEP_LABEL_MAP[stepKey]}</Text>
                     <Text style={s.headerStep}>
-                        {isEdit ? 'Editar roteiro · ' : ''}Passo {step} de {totalSteps} · Score {score}
+                        {isEdit ? 'Edit itinerary · ' : ''}Passo {step} de {totalSteps} · Score {score}
                     </Text>
                 </View>
                 <TouchableOpacity onPress={saveDraft} style={s.headerBtn} disabled={saving}>
@@ -640,9 +642,9 @@ export default function NewItineraryScreen() {
                                 <Text style={s.ctaText}>
                                     {isLastStep
                                         ? (hasIssues
-                                            ? `Corrigir ${submissionIssues.length} pendência${submissionIssues.length > 1 ? 's' : ''}`
-                                            : (isEdit ? 'Enviar alterações para análise' : 'Enviar para análise'))
-                                        : 'Próximo'}
+                                            ? `Fix ${submissionIssues.length} open item${submissionIssues.length > 1 ? 's' : ''}`
+                                            : (isEdit ? 'Submit changes for review' : 'Submit for review'))
+                                        : 'Next'}
                                 </Text>
                             </>
                         )
@@ -655,8 +657,8 @@ export default function NewItineraryScreen() {
                         <Ionicons name="warning-outline" size={14} color={theme.colors.warning || '#F59E0B'} />
                         <Text style={s.ctaHelperText}>
                             {submissionIssues.length === 1
-                                ? 'Há 1 campo obrigatório pendente. Revise os módulos marcados acima.'
-                                : `Há ${submissionIssues.length} campos obrigatórios pendentes. Revise os módulos marcados acima.`}
+                                ? '1 required field is still open. Review the modules marked above.'
+                                : `${submissionIssues.length} required fields are still open. Review the modules marked above.`}
                         </Text>
                     </View>
                 )}
@@ -753,7 +755,7 @@ function clampEndAfterStart(startIso: string, endIso: string): { iso: string; cl
 }
 
 function DatePickerField({
-    label, value, onChange, required, placeholder = 'Selecionar data',
+    label, value, onChange, required, placeholder = 'Select date',
 }: {
     label: string;
     value: string; // AAAA-MM-DD
@@ -893,11 +895,11 @@ function DatePickerField({
                                 display="spinner"
                                 onChange={onPickerChange}
                                 themeVariant="light"
-                                locale="pt-BR"
+                                locale="en-US"
                             />
                             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                                 <TouchableOpacity style={s.modalBtnGhost} onPress={() => setOpen(false)}>
-                                    <Text style={s.modalBtnGhostText}>Cancelar</Text>
+                                    <Text style={s.modalBtnGhostText}>Cancel</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={s.modalBtnPrimary}
@@ -1029,7 +1031,7 @@ function QuantityStepper({
     );
 }
 
-const UNIT_LABELS: Record<string, string> = { min: 'Minutos', h: 'Horas', d: 'Dias' };
+const UNIT_LABELS: Record<string, string> = { min: 'Minutes', h: 'Hours', d: 'Days' };
 
 // ═══════════════════════════════════════════════════════════════════
 // STEP 1 — IDENTIDADE
@@ -1140,13 +1142,13 @@ function StepIdentity({ form, update }: StepProps) {
     return (
         <View>
             <SectionHeader
-                title="Identidade & Indexação"
-                subtitle="Título, destino e categorias — o que o viajante vê primeiro na vitrine."
+                title="Identity & Discoverability"
+                subtitle="Title, destination and categories — what travelers see first in the storefront."
             />
             <FormInput
-                label="Título do Roteiro"
+                label="Itinerary Title"
                 required
-                placeholder='Ex: "Japão Autêntico: 15 dias de gastronomia, templos e cultura viva"'
+                placeholder='E.g. "Authentic Japan: 15 days of food, temples and living culture"'
                 value={form.title}
                 onChangeText={v => update('title', v)}
                 maxLength={120}
@@ -1158,8 +1160,8 @@ function StepIdentity({ form, update }: StepProps) {
                     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
                         <View style={{ flex: 1 }}>
                             <FormInput
-                                label={locIdx === 0 ? 'País *' : `País ${locIdx + 1}`}
-                                placeholder={locIdx === 0 ? 'Digite ou selecione o país...' : 'Digite o país...'}
+                                label={locIdx === 0 ? 'Country *' : `Country ${locIdx + 1}`}
+                                placeholder={locIdx === 0 ? 'Type or select the country...' : 'Type the country...'}
                                 value={loc.country}
                                 onChangeText={v => updateLocationCountry(locIdx, v)}
                             />
@@ -1177,7 +1179,7 @@ function StepIdentity({ form, update }: StepProps) {
                                     style={s.cityInput}
                                     value={city}
                                     onChangeText={v => updateLocationCity(locIdx, cityIdx, v)}
-                                    placeholder={locIdx === 0 && cityIdx === 0 ? 'Cidade *' : 'Cidade...'}
+                                    placeholder={locIdx === 0 && cityIdx === 0 ? 'City *' : 'City...'}
                                     placeholderTextColor={theme.colors.text.disabled}
                                 />
                                 {!(locIdx === 0 && loc.cities.length === 1) && (
@@ -1189,17 +1191,17 @@ function StepIdentity({ form, update }: StepProps) {
                         ))}
                         <TouchableOpacity style={s.addCityBtn} onPress={() => addCity(locIdx)}>
                             <Ionicons name="add" size={14} color={theme.colors.primary} />
-                            <Text style={s.addCityText}>Cidade</Text>
+                            <Text style={s.addCityText}>City</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             ))}
 
             <TouchableOpacity style={s.addCountryBtn} onPress={addCountry}>
-                <Text style={s.addCountryText}>+ Adicionar País</Text>
+                <Text style={s.addCountryText}>+ Add Country</Text>
             </TouchableOpacity>
 
-            <Text style={s.label}>Duração (dias) <Text style={s.requiredAsterisk}>*</Text></Text>
+            <Text style={s.label}>Duration (days) <Text style={s.requiredAsterisk}>*</Text></Text>
             <QuantityStepper
                 value={form.duration || 1}
                 onChange={v => update('duration', Math.max(1, v))}
@@ -1208,10 +1210,10 @@ function StepIdentity({ form, update }: StepProps) {
             />
 
             <View style={s.formGroup}>
-                <Text style={s.label}>Sobre o Roteiro</Text>
+                <Text style={s.label}>About the Itinerary</Text>
                 <TextInput
                     style={s.textArea}
-                    placeholder="Venda seu roteiro: que experiência única você viveu? Que dor você resolve para o viajante? Por que esse roteiro é diferente de tudo que ele encontra no Google?"
+                    placeholder="Sell your itinerary: what unique experience did you have? What problem do you solve for the traveler? Why is this itinerary different from everything they find on Google?"
                     placeholderTextColor={theme.colors.text.disabled}
                     value={form.description}
                     onChangeText={v => update('description', v)}
@@ -1224,12 +1226,12 @@ function StepIdentity({ form, update }: StepProps) {
 
             <View style={s.budgetLabelRow}>
                 <Text style={[s.label, { marginBottom: 0, flexShrink: 1 }]}>
-                    Qual é o estilo de orçamento deste roteiro?
+                    What's the budget style of this itinerary?
                 </Text>
                 <TouchableOpacity
                     onPress={() => setBudgetHelpOpen(true)}
                     hitSlop={8}
-                    accessibilityLabel="Ver critérios da VAMO para o estilo de orçamento"
+                    accessibilityLabel="See VAMO's criteria for budget style"
                     style={s.budgetHelpBtn}
                 >
                     <Ionicons name="help-circle-outline" size={20} color={theme.colors.primary} />
@@ -1275,7 +1277,7 @@ function StepIdentity({ form, update }: StepProps) {
                 highlightKey={selectedBudget}
             />
 
-            <Text style={s.label}>Categorias Temáticas (mín 1, máx {MAX_CATEGORIES}) — {form.categories.length}/{MAX_CATEGORIES}</Text>
+            <Text style={s.label}>Theme Categories (min 1, max {MAX_CATEGORIES}) — {form.categories.length}/{MAX_CATEGORIES}</Text>
             <View style={s.chipRow}>
                 {CATEGORY_OPTIONS.map(c => {
                     const active = form.categories.includes(c.key);
@@ -1306,13 +1308,13 @@ function StepIdentity({ form, update }: StepProps) {
                 </View>
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                        <Text style={s.highlightsTitle}>Destaques da Viagem</Text>
+                        <Text style={s.highlightsTitle}>Trip Highlights</Text>
                         <View style={s.moduleStepBadgeOpt}>
-                            <Text style={s.moduleStepBadgeOptText}>Opcional</Text>
+                            <Text style={s.moduleStepBadgeOptText}>Optional</Text>
                         </View>
                     </View>
                     <Text style={s.highlightsSubtitle}>
-                        Os momentos únicos que diferenciam seu roteiro dos demais
+                        The unique moments that set your itinerary apart
                     </Text>
                 </View>
             </View>
@@ -1320,9 +1322,9 @@ function StepIdentity({ form, update }: StepProps) {
             {form.highlights.length === 0 && (
                 <View style={s.highlightsEmptyCard}>
                     <Star size={36} strokeWidth={1.6} color={theme.colors.primary + 'AA'} />
-                    <Text style={s.highlightsEmptyTitle}>Quais foram os momentos inesquecíveis?</Text>
+                    <Text style={s.highlightsEmptyTitle}>What were the unforgettable moments?</Text>
                     <Text style={s.highlightsEmptyText}>
-                        Liste as experiências únicas que só seu roteiro oferece — é o que chama atenção na vitrine.
+                        List the unique experiences only your itinerary offers — it's what catches attention in the storefront.
                     </Text>
                 </View>
             )}
@@ -1330,7 +1332,7 @@ function StepIdentity({ form, update }: StepProps) {
             <EditableList
                 items={form.highlights}
                 onItemsChange={items => update('highlights', items)}
-                placeholder="Ex: Jantar em restaurante com vista para o Monte Fuji ao entardecer..."
+                placeholder="E.g. Dinner at a restaurant with a view of Mount Fuji at sunset..."
             />
         </View>
     );
@@ -1376,7 +1378,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
             const url = await uploadOne(asset.uri, token, name, mime, 'travelProof');
             update('travelProofUrl', url);
         } catch (e: any) {
-            const msg = e?.message || 'Não foi possível enviar o arquivo. Verifique sua conexão e tente novamente.';
+            const msg = e?.message || 'We couldn\'t upload the file. Check your connection and try again.';
             console.warn('[proof] erro:', msg);
             setError(msg);
             setMeta(null);
@@ -1401,8 +1403,8 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
     return (
         <View>
             <SectionHeader
-                title="Comprovante de viagem"
-                subtitle="Anexe um documento que comprove que você esteve no destino. Obrigatório para envio à análise."
+                title="Proof of travel"
+                subtitle="Attach a document that proves you were at the destination. Required to submit for review."
             />
 
             {/* Aviso explicativo — inspirado no bloco da versão web */}
@@ -1411,20 +1413,20 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                     <Ionicons name="warning-outline" size={20} color="#ea580c" />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={s.proofInfoTitle}>Comprovação de Viagem</Text>
+                    <Text style={s.proofInfoTitle}>Proof of Travel</Text>
                     <Text style={s.proofInfoText}>
-                        Para garantir a autenticidade dos roteiros na plataforma VAMO, solicitamos o envio de pelo menos um comprovante que mostre que você esteve no destino (ex.: bilhete aéreo em seu nome, recibo de hotel, fatura ou passaporte carimbado).{' '}
-                        <Text style={{ fontWeight: '700' }}>Este documento é mantido em sigilo pela moderação</Text>
-                        {' '}e <Text style={{ fontWeight: '700' }}>não</Text> aparecerá publicamente.
+                        To ensure the authenticity of itineraries on VAMO, we ask for at least one document showing you were at the destination (e.g. an airline ticket in your name, hotel receipt, invoice or stamped passport).{' '}
+                        <Text style={{ fontWeight: '700' }}>This document is kept confidential by moderators</Text>
+                        {' '}and <Text style={{ fontWeight: '700' }}>will not</Text> appear publicly.
                     </Text>
                 </View>
             </View>
 
             {/* Label com badge de obrigatoriedade */}
             <View style={s.proofLabelRow}>
-                <Text style={s.proofLabelText}>Arquivo de Comprovação</Text>
+                <Text style={s.proofLabelText}>Proof File</Text>
                 <View style={s.proofObrigBadge}>
-                    <Text style={s.proofObrigText}>OBRIGATÓRIO</Text>
+                    <Text style={s.proofObrigText}>REQUIRED</Text>
                 </View>
             </View>
 
@@ -1452,7 +1454,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                         <Text style={{ color: theme.colors.primary, fontWeight: '600', fontSize: 13 }}>Substituir</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={removeProof} disabled={uploading}>
-                        <Text style={{ color: theme.colors.error, fontWeight: '600', fontSize: 13 }}>Remover</Text>
+                        <Text style={{ color: theme.colors.error, fontWeight: '600', fontSize: 13 }}>Remove</Text>
                     </TouchableOpacity>
                 </View>
             ) : (
@@ -1461,7 +1463,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                         <>
                             <ActivityIndicator color={theme.colors.primary} />
                             <Text style={s.uploadText}>
-                                {uploadStage === 'preparing' ? 'Preparando arquivo...' : 'Enviando...'}
+                                {uploadStage === 'preparing' ? 'Preparing file...' : 'Enviando...'}
                             </Text>
                             {meta?.name && (
                                 <Text style={s.uploadHint} numberOfLines={1}>{meta.name}</Text>
@@ -1470,7 +1472,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                     ) : (
                         <>
                             <Ionicons name="cloud-upload-outline" size={36} color={theme.colors.primary} />
-                            <Text style={s.uploadText}>Selecionar Arquivo</Text>
+                            <Text style={s.uploadText}>Select File</Text>
                             <Text style={s.uploadHint}>{uploadHint('travelProof')}</Text>
                         </>
                     )}
@@ -1494,10 +1496,10 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
 function StepCommerce({ form, update }: StepProps) {
     return (
         <View>
-            <SectionHeader title="Estrutura Comercial" subtitle="Defina o preço do seu roteiro." />
+            <SectionHeader title="Pricing Structure" subtitle="Set the price of your itinerary." />
 
             <MoneyInput
-                label="Preço"
+                label="Price"
                 required
                 placeholder="Ex: 89,90"
                 value={form.price > 0 ? form.price : ''}
@@ -1508,7 +1510,7 @@ function StepCommerce({ form, update }: StepProps) {
             <View style={s.commerceWarningCard}>
                 <Ionicons name="warning-outline" size={16} color="#ea580c" style={{ marginTop: 1 }} />
                 <Text style={s.commerceWarningText}>
-                    Aviso automático: <Text style={{ fontStyle: 'italic' }}>"Produto digital. Não inclui serviços turísticos."</Text>
+                    Automatic notice: <Text style={{ fontStyle: 'italic' }}>"Digital product. Does not include tourism services."</Text>
                 </Text>
             </View>
 
@@ -1516,8 +1518,8 @@ function StepCommerce({ form, update }: StepProps) {
             <View style={s.commerceOfflineCard}>
                 <Ionicons name="wifi-outline" size={16} color={theme.colors.primary} style={{ marginTop: 1 }} />
                 <Text style={s.commerceOfflineText}>
-                    <Text style={{ fontWeight: '700', color: theme.colors.primary }}>Acesso Offline: </Text>
-                    Após a compra, o viajante poderá consultar o roteiro completo mesmo sem conexão com a internet.
+                    <Text style={{ fontWeight: '700', color: theme.colors.primary }}>Offline Access: </Text>
+                    After purchase, travelers can open the full itinerary even without an internet connection.
                 </Text>
             </View>
         </View>
@@ -1539,16 +1541,16 @@ function StepModules({ form, update }: StepProps) {
         <View>
             <View style={s.modulesHeader}>
                 <View style={{ flex: 1 }}>
-                    <Text style={s.stepTitle}>Módulos do Roteiro</Text>
-                    <Text style={s.stepHint}>O que está incluído — o comprador decide com base nos módulos ativos</Text>
+                    <Text style={s.stepTitle}>Itinerary Modules</Text>
+                    <Text style={s.stepHint}>What's included — buyers decide based on the active modules</Text>
                 </View>
                 <View style={s.modulesObrigBadge}>
-                    <Text style={s.modulesObrigText}>Obrigatório</Text>
+                    <Text style={s.modulesObrigText}>Required</Text>
                 </View>
             </View>
 
             <Text style={s.modulesIntro}>
-                Ative os módulos que serão incluídos no roteiro. Módulos ativos precisam ter ao menos 1 item preenchido.
+                Turn on the modules to include in the itinerary. Active modules need at least 1 item filled in.
             </Text>
 
             {MODULE_OPTIONS.map(m => {
@@ -1595,7 +1597,7 @@ function emptyActivity(): Activity {
     return { title: '', description: '', time: '', duration: '1h', location: '', mapLink: '', type: 'activity', icon: '📍', tips: '', category: '' };
 }
 function emptyDay(n: number): Day {
-    return { dayNumber: n, title: `Dia ${n}`, summary: '', description: '', activities: [] };
+    return { dayNumber: n, title: `Day ${n}`, summary: '', description: '', activities: [] };
 }
 
 function dayHasContent(d: Day): boolean {
@@ -1643,10 +1645,10 @@ function StepDays({ form, update }: StepProps) {
         }
         void (async () => {
             const ok = await confirm({
-                title: 'Reduzir duração do roteiro?',
-                message: `Você reduziu a duração para ${duration} dia${duration > 1 ? 's' : ''}, mas ${toRemove.length === 1 ? 'o dia' : 'os dias'} ${toRemove.map((_, i) => duration + i + 1).join(', ')} ${toRemove.length === 1 ? 'já possui' : 'já possuem'} informações preenchidas.`,
-                confirmText: 'Remover dias',
-                cancelText: 'Manter dias extras',
+                title: 'Shorten the itinerary?',
+                message: `You shortened the duration to ${duration} day${duration > 1 ? 's' : ''}, but ${toRemove.length === 1 ? 'day' : 'days'} ${toRemove.map((_, i) => duration + i + 1).join(', ')} already ${toRemove.length === 1 ? 'has' : 'have'} information filled in.`,
+                confirmText: 'Remove days',
+                cancelText: 'Keep extra days',
                 destructive: true,
                 // Lixeira (default do danger) sugeria excluir o roteiro todo;
                 // o que se remove aqui são DIAS do calendário.
@@ -1686,9 +1688,9 @@ function StepDays({ form, update }: StepProps) {
         <View>
             <ModuleStepHeader
                 icon={CalendarDays}
-                title="Itinerário por dia"
-                subtitle="Roteiro dia a dia completo"
-                hint="Monte o roteiro dia a dia conforme a duração informada. Cada dia precisa de descrição e ao menos 1 atividade."
+                title="Daily itinerary"
+                subtitle="Complete day-by-day plan"
+                hint="Build the plan day by day for the duration you set. Each day needs a description and at least 1 activity."
             />
 
             {/* Progresso X/Y dias preenchidos */}
@@ -1707,7 +1709,7 @@ function StepDays({ form, update }: StepProps) {
             {form.days.slice(0, duration).map((d, i) => {
                 const open = !!expanded[i];
                 const complete = dayIsComplete(d);
-                const titleStripped = (d.title || '').replace(new RegExp(`^Dia\\s*${i + 1}\\s*(?:-|—)?\\s*`, 'i'), '');
+                const titleStripped = (d.title || '').replace(new RegExp(`^(?:Dia|Day)\\s*${i + 1}\\s*(?:-|—)?\\s*`, 'i'), '');
                 return (
                     <View key={i} style={s.dayCard}>
                         <TouchableOpacity
@@ -1724,12 +1726,12 @@ function StepDays({ form, update }: StepProps) {
                                 </Text>
                                 <Text style={s.dayHeaderStatus}>
                                     {complete
-                                        ? `${d.activities.length} atividade${d.activities.length === 1 ? '' : 's'} · completo`
+                                        ? `${d.activities.length} activit${d.activities.length === 1 ? 'y' : 'ies'} · complete`
                                         : !d.description?.trim()
-                                            ? 'Falta descrição'
+                                            ? 'Missing description'
                                             : d.activities.length === 0
-                                                ? 'Falta atividade'
-                                                : 'Atividade sem título'}
+                                                ? 'Missing activity'
+                                                : 'Activity without a title'}
                                 </Text>
                             </View>
                             <Ionicons
@@ -1742,15 +1744,15 @@ function StepDays({ form, update }: StepProps) {
                         {open && (
                             <View style={s.dayBody}>
                                 <FormInput
-                                    label="Título do dia"
-                                    placeholder="Ex: Torre Eiffel e Trocadéro"
+                                    label="Day title"
+                                    placeholder="E.g. Eiffel Tower and Trocadéro"
                                     value={titleStripped}
                                     onChangeText={v => updateDay(i, { title: v })}
                                 />
                                 <FormInput
-                                    label="O que esperar nesse dia..."
+                                    label="What to expect that day..."
                                     required
-                                    placeholder="Ex: Manhã de passeios no centro e tarde livre"
+                                    placeholder="E.g. Morning of sightseeing downtown and a free afternoon"
                                     multiline numberOfLines={3}
                                     style={{ minHeight: 80, textAlignVertical: 'top' }}
                                     value={d.description}
@@ -1769,21 +1771,21 @@ function StepDays({ form, update }: StepProps) {
                                                 </TouchableOpacity>
                                             </View>
                                             <FormInput
-                                                label="O que fazer"
+                                                label="What to do"
                                                 required
-                                                placeholder="Ex: Visita ao Museu do Louvre"
+                                                placeholder="E.g. Visit the Louvre Museum"
                                                 value={a.title}
                                                 onChangeText={v => updateActivity(i, ai, { title: v })}
                                             />
                                             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                                                 <TimePickerField
-                                                    label="Horário"
+                                                    label="Time"
                                                     value={a.time}
                                                     onChange={v => updateActivity(i, ai, { time: v })}
                                                     placeholder="09:00"
                                                 />
                                                 <View>
-                                                    <Text style={s.label}>Duração</Text>
+                                                    <Text style={s.label}>Duration</Text>
                                                     <QuantityStepper
                                                         value={num}
                                                         onChange={n => updateActivity(i, ai, { duration: `${Math.max(1, n)}${unit}` })}
@@ -1797,21 +1799,21 @@ function StepDays({ form, update }: StepProps) {
                                                 </View>
                                             </View>
                                             <FormInput
-                                                label="Nome do local ou endereço"
-                                                placeholder="Ex: Rua Direita, 250"
+                                                label="Place name or address"
+                                                placeholder="E.g. 250 Main Street"
                                                 value={a.location}
                                                 onChangeText={v => updateActivity(i, ai, { location: v })}
                                             />
                                             <FormInput
-                                                label="Link da localização (Google Maps)"
+                                                label="Location link (Google Maps)"
                                                 placeholder="Ex: https://goo.gl/maps/..."
                                                 autoCapitalize="none"
                                                 value={a.mapLink}
                                                 onChangeText={v => updateActivity(i, ai, { mapLink: v })}
                                             />
                                             <FormInput
-                                                label="Dica opcional"
-                                                placeholder="Ex: Tente chegar 20 minutos antes para evitar filas"
+                                                label="Optional tip"
+                                                placeholder="E.g. Try to arrive 20 minutes early to avoid lines"
                                                 multiline numberOfLines={2}
                                                 style={{ minHeight: 60, textAlignVertical: 'top' }}
                                                 value={a.tips}
@@ -1822,7 +1824,7 @@ function StepDays({ form, update }: StepProps) {
                                 })}
                                 <TouchableOpacity style={s.addInline} onPress={() => addActivity(i)}>
                                     <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
-                                    <Text style={s.addInlineText}>Adicionar atividade</Text>
+                                    <Text style={s.addInlineText}>Add activity</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -1861,7 +1863,7 @@ function ModuleStepHeader({
                         <Text style={s.moduleStepTitle}>{title}</Text>
                         <View style={required ? s.moduleStepBadgeReq : s.moduleStepBadgeOpt}>
                             <Text style={required ? s.moduleStepBadgeReqText : s.moduleStepBadgeOptText}>
-                                {required ? 'Obrigatório' : 'Opcional'}
+                                {required ? 'Required' : 'Optional'}
                             </Text>
                         </View>
                     </View>
@@ -1896,22 +1898,22 @@ function StepAccommodations({ form, update, token }: StepProps) {
         <View>
             <ModuleStepHeader
                 icon={Building2}
-                title="Hospedagens"
-                subtitle="Hotéis e hospedagens recomendadas — item mais consultado antes da compra"
-                hint="Adicione ao menos 1 hospedagem com nome para que esse módulo fique completo."
+                title="Lodging"
+                subtitle="Recommended hotels and stays — the most-checked item before buying"
+                hint="Add at least 1 lodging with a name to complete this module."
             />
             <Repeater
-                title="Hospedagens adicionadas"
+                title="Lodging added"
                 items={form.accommodations}
                 onChange={v => update('accommodations', v)}
                 factory={emptyAccommodation}
                 render={(item, set) => (
                     <>
-                        <FormInput label="Nome do hotel / hostel" required placeholder="Ex: Waldorf Astoria" value={item.name} onChangeText={v => set({ name: v })} />
+                        <FormInput label="Hotel / hostel name" required placeholder="Ex: Waldorf Astoria" value={item.name} onChangeText={v => set({ name: v })} />
                         <HotelStarsInput value={item.rating} onChange={v => set({ rating: v })} />
-                        <FormInput label="Nome do local ou endereço" placeholder="Ex: Rue de Rivoli, 228" value={item.address} onChangeText={v => set({ address: v })} />
-                        <FormInput label="Link da localização (Google Maps)" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
-                        <Text style={s.label}>Noites <Text style={s.requiredAsterisk}>*</Text></Text>
+                        <FormInput label="Place name or address" placeholder="Ex: Rue de Rivoli, 228" value={item.address} onChangeText={v => set({ address: v })} />
+                        <FormInput label="Location link (Google Maps)" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
+                        <Text style={s.label}>Nights <Text style={s.requiredAsterisk}>*</Text></Text>
                         <QuantityStepper
                             value={Math.max(1, parseInt(item.nights, 10) || 1)}
                             onChange={n => set({ nights: String(Math.max(1, n)) })}
@@ -1919,8 +1921,8 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             max={365}
                         />
                         <FormInput
-                            label="O que torna essa hospedagem especial?"
-                            placeholder="Ex: A localização é excelente ao lado do metrô principal e o café da manhã..."
+                            label="What makes this lodging special?"
+                            placeholder="E.g. The location is excellent next to the main subway station and the breakfast..."
                             multiline value={item.description}
                             onChangeText={v => set({ description: v })}
                             style={{ minHeight: 60, textAlignVertical: 'top' }}
@@ -1933,7 +1935,7 @@ function StepAccommodations({ form, update, token }: StepProps) {
                                     const r = clampEndAfterStart(v, item.endDate);
                                     if (r.clamped) {
                                         next.endDate = r.iso;
-                                        notify({ title: 'Data ajustada', message: 'A data de fim não pode ser anterior à data de início.' });
+                                        notify({ title: 'Date adjusted', message: 'The end date can\'t be before the start date.' });
                                     }
                                 }
                                 set(next);
@@ -1941,13 +1943,13 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             <DatePickerField label="Check-out" value={item.endDate}   onChange={v => {
                                 const r = clampEndAfterStart(item.startDate, v);
                                 if (r.clamped) {
-                                    notify({ title: 'Data ajustada', message: 'A data de fim não pode ser anterior à data de início.' });
+                                    notify({ title: 'Date adjusted', message: 'The end date can\'t be before the start date.' });
                                 }
                                 set({ endDate: r.iso });
                             }} />
                         </View>
                         <FormInput
-                            label="Link da hospedagem"
+                            label="Lodging link"
                             placeholder="Ex: Booking, site do hotel, Airbnb"
                             autoCapitalize="none"
                             autoCorrect={false}
@@ -1956,7 +1958,7 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             onChangeText={v => set({ externalLink: v })}
                             onBlur={() => {
                                 if (item.externalLink && !validateOptionalUrl(item.externalLink)) {
-                                    notify({ title: 'Link inválido', message: 'Informe um link válido ou deixe o campo em branco.' });
+                                    notify({ title: 'Invalid link', message: 'Enter a valid link or leave the field blank.' });
                                 } else if (item.externalLink) {
                                     const normalized = normalizeUrl(item.externalLink);
                                     if (normalized !== item.externalLink) set({ externalLink: normalized });
@@ -1964,8 +1966,8 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             }}
                         />
                         <FormInput
-                            label="Dica extra"
-                            placeholder="Ex: Peça o quarto no último andar para ter vista..."
+                            label="Extra tip"
+                            placeholder="E.g. Ask for a room on the top floor for a view..."
                             multiline value={item.tips}
                             onChangeText={v => set({ tips: v })}
                             style={{ minHeight: 50, textAlignVertical: 'top' }}
@@ -1975,7 +1977,7 @@ function StepAccommodations({ form, update, token }: StepProps) {
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
                             defaultCurrency={form.currency || BASE_CURRENCY}
-                            helperShort="Valor por pessoa da estadia. Comprovante (reserva, recibo) aumenta a confiança."
+                            helperShort="Cost per person for the stay. Proof (booking, receipt) builds trust."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                         />
@@ -1995,12 +1997,12 @@ function StepAttractions({ form, update, token }: StepProps) {
         <View>
             <ModuleStepHeader
                 icon={Ticket}
-                title="Passeios & Atrações"
-                subtitle="Passeios imperdíveis com horários, preços e dicas de experiência"
-                hint="Adicione ao menos 1 atração com nome para que esse módulo fique completo."
+                title="Tours & Attractions"
+                subtitle="Must-do tours with times, prices and experience tips"
+                hint="Add at least 1 attraction with a name to complete this module."
             />
             <Repeater
-                title="Atrações adicionadas"
+                title="Attractions added"
                 items={form.attractions}
                 onChange={v => update('attractions', v)}
                 factory={emptyAttraction}
@@ -2008,30 +2010,30 @@ function StepAttractions({ form, update, token }: StepProps) {
                     const { num, unit } = parseActivityDuration(item.duration);
                     return (
                         <>
-                            <FormInput label="Nome da atração" required placeholder="Ex: Torre Eiffel" value={item.name} onChangeText={v => set({ name: v })} />
-                            <FormInput label="Nome do local ou endereço" placeholder="Ex: Champ de Mars, 5 Ave..." value={item.location} onChangeText={v => set({ location: v })} />
+                            <FormInput label="Attraction name" required placeholder="E.g. Eiffel Tower" value={item.name} onChangeText={v => set({ name: v })} />
+                            <FormInput label="Place name or address" placeholder="Ex: Champ de Mars, 5 Ave..." value={item.location} onChangeText={v => set({ location: v })} />
                             <FormInput label="Link do Google Maps" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
                             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                                <DatePickerField label="Data de Início" value={item.startDate} onChange={v => {
+                                <DatePickerField label="Start Date" value={item.startDate} onChange={v => {
                                     const next: Partial<AttractionItem> = { startDate: v };
                                     if (item.endDate && v) {
                                         const r = clampEndAfterStart(v, item.endDate);
                                         if (r.clamped) {
                                             next.endDate = r.iso;
-                                            notify({ title: 'Data ajustada', message: 'A data de fim não pode ser anterior à data de início.' });
+                                            notify({ title: 'Date adjusted', message: 'The end date can\'t be before the start date.' });
                                         }
                                     }
                                     set(next);
                                 }} />
-                                <DatePickerField label="Data de Fim"    value={item.endDate}   onChange={v => {
+                                <DatePickerField label="End Date"    value={item.endDate}   onChange={v => {
                                     const r = clampEndAfterStart(item.startDate, v);
                                     if (r.clamped) {
-                                        notify({ title: 'Data ajustada', message: 'A data de fim não pode ser anterior à data de início.' });
+                                        notify({ title: 'Date adjusted', message: 'The end date can\'t be before the start date.' });
                                     }
                                     set({ endDate: r.iso });
                                 }} />
                             </View>
-                            <Text style={s.label}>Duração</Text>
+                            <Text style={s.label}>Duration</Text>
                             <QuantityStepper
                                 value={num}
                                 onChange={n => set({ duration: `${Math.max(1, n)}${unit}` })}
@@ -2043,17 +2045,17 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 units={['min', 'h', 'd']}
                             />
                             <FormInput
-                                label="Descrição / Por que recomendar"
+                                label="Description / Why you recommend it"
                                 required
-                                placeholder="Ex: Uma vista imperdível..."
+                                placeholder="E.g. An unmissable view..."
                                 multiline value={item.description}
                                 onChangeText={v => set({ description: v })}
                                 style={{ minHeight: 60, textAlignVertical: 'top' }}
                             />
                             <FormInput
-                                label="Link de compra ou reserva"
-                                placeholder="Ex: site oficial, ingresso ou reserva"
-                                hint="Onde você comprou, reservou ou recomenda consultar a atração."
+                                label="Purchase or booking link"
+                                placeholder="E.g. official site, ticket or booking"
+                                hint="Where you bought, booked or recommend checking the attraction."
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 keyboardType="url"
@@ -2061,7 +2063,7 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 onChangeText={v => set({ externalLink: v })}
                                 onBlur={() => {
                                     if (item.externalLink && !validateOptionalUrl(item.externalLink)) {
-                                        notify({ title: 'Link inválido', message: 'Informe um link válido ou deixe o campo em branco.' });
+                                        notify({ title: 'Invalid link', message: 'Enter a valid link or leave the field blank.' });
                                     } else if (item.externalLink) {
                                         const normalized = normalizeUrl(item.externalLink);
                                         if (normalized !== item.externalLink) set({ externalLink: normalized });
@@ -2078,7 +2080,7 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 return (
                                     <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
                                         <TimePickerField
-                                            label="Horário recomendado"
+                                            label="Recommended time"
                                             value={start}
                                             onChange={v => set({ hours: v })}
                                             placeholder="9:00 AM"
@@ -2087,8 +2089,8 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 );
                             })()}
                             <FormInput
-                                label="Dica de experiência"
-                                placeholder="Ex: Vá próximo ao pôr do sol..."
+                                label="Experience tip"
+                                placeholder="E.g. Go near sunset..."
                                 multiline value={item.tips}
                                 onChangeText={v => set({ tips: v })}
                                 style={{ minHeight: 50, textAlignVertical: 'top' }}
@@ -2098,7 +2100,7 @@ function StepAttractions({ form, update, token }: StepProps) {
                                 legacySpending={item.spending}
                                 onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
                                 defaultCurrency={form.currency || BASE_CURRENCY}
-                                helperShort="Valor por pessoa do ingresso/passeio. Para passeios caros, comprovante aumenta a confiança."
+                                helperShort="Cost per person for the ticket/tour. For expensive tours, proof builds trust."
                                 encourageProof
                                 uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                             />
@@ -2120,18 +2122,18 @@ function StepTransport({ form, update, token }: StepProps) {
             <ModuleStepHeader
                 icon={Bus}
                 title="Transporte"
-                subtitle="Como se locomover no destino — metrô, passes e dicas de mobilidade"
-                hint="Adicione ao menos 1 orientação de transporte com descrição e tipo de passe."
+                subtitle="How to get around the destination — transit, passes and mobility tips"
+                hint="Add at least 1 transportation tip with a description and pass type."
             />
             <Repeater
-                title="Transportes adicionados"
+                title="Transportation added"
                 items={form.transports}
                 onChange={v => update('transports', v)}
                 factory={emptyTransport}
                 render={(item, set) => (
                     <>
                         <FormInput
-                            label="Descrição do transporte / Passe"
+                            label="Transportation / pass description"
                             required
                             placeholder="Ex: JR Pass (Japan Rail Pass)"
                             value={item.description}
@@ -2140,16 +2142,16 @@ function StepTransport({ form, update, token }: StepProps) {
                             style={{ minHeight: 60, textAlignVertical: 'top' }}
                         />
                         <FormInput
-                            label="Tipo de passe / bilhete"
+                            label="Pass / ticket type"
                             required
-                            placeholder="Ex: Passe Semanal Nacional (7 dias)"
+                            placeholder="E.g. National Weekly Pass (7 days)"
                             value={item.passTypes}
                             onChangeText={v => set({ passTypes: v })}
                         />
-                        <DatePickerField label="Data" value={item.startDate} onChange={v => set({ startDate: v })} />
+                        <DatePickerField label="Date" value={item.startDate} onChange={v => set({ startDate: v })} />
                         <FormInput
-                            label="Notas e dicas adicionais"
-                            placeholder="Ex: Leve uma foto 3x4..."
+                            label="Additional notes and tips"
+                            placeholder="E.g. Bring a passport-size photo..."
                             multiline value={item.notes}
                             onChangeText={v => set({ notes: v })}
                             style={{ minHeight: 50, textAlignVertical: 'top' }}
@@ -2159,7 +2161,7 @@ function StepTransport({ form, update, token }: StepProps) {
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
                             defaultCurrency={form.currency || BASE_CURRENCY}
-                            helperShort="Valor por pessoa do passe/transporte — opcional. Use estimativa para transporte local."
+                            helperShort="Cost per person for the pass/transportation — optional. Use an estimate for local transit."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                         />
@@ -2179,22 +2181,22 @@ function StepRestaurants({ form, update, token }: StepProps) {
         <View>
             <ModuleStepHeader
                 icon={Utensils}
-                title="Restaurantes & Gastronomia"
-                subtitle="Onde comer bem — experiências gastronômicas autênticas e locais"
-                hint="Adicione ao menos 1 restaurante com nome e local."
+                title="Restaurants & Dining"
+                subtitle="Where to eat well — authentic, local dining experiences"
+                hint="Add at least 1 restaurant with a name and location."
             />
             <Repeater
-                title="Restaurantes adicionados"
+                title="Restaurants added"
                 items={form.restaurants}
                 onChange={v => update('restaurants', v)}
                 factory={emptyRestaurant}
                 render={(item, set) => (
                     <>
-                        <FormInput label="Nome do restaurante" required placeholder="Ex: Le Jules Verne" value={item.name} onChangeText={v => set({ name: v })} />
-                        <Text style={s.label}>Culinária</Text>
+                        <FormInput label="Restaurant name" required placeholder="Ex: Le Jules Verne" value={item.name} onChangeText={v => set({ name: v })} />
+                        <Text style={s.label}>Cuisine</Text>
                         <View style={s.chipRow}>
                             {CUISINE_OPTIONS.map(c => {
-                                const active = item.cuisine === c;
+                                const active = getCuisineLabel(item.cuisine) === c;
                                 return (
                                     <TouchableOpacity key={c} style={[s.chip, active && s.chipActive]} onPress={() => set({ cuisine: c })}>
                                         <Text style={[s.chipText, active && s.chipTextActive]}>{c}</Text>
@@ -2202,22 +2204,22 @@ function StepRestaurants({ form, update, token }: StepProps) {
                                 );
                             })}
                         </View>
-                        <FormInput label="Localização / Bairro" required placeholder="Ex: Montmartre" value={item.location} onChangeText={v => set({ location: v })} />
+                        <FormInput label="Location / Neighborhood" required placeholder="Ex: Montmartre" value={item.location} onChangeText={v => set({ location: v })} />
                         <FormInput label="Link do Google Maps" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink || ''} onChangeText={v => set({ mapLink: v })} />
                         <FormInput
-                            label="Descrição / Por que recomendar"
-                            placeholder="Ex: O melhor croque monsieur da cidade com vista incrível..."
+                            label="Description / Why you recommend it"
+                            placeholder="E.g. The best croque monsieur in town with an amazing view..."
                             multiline value={item.description}
                             onChangeText={v => set({ description: v })}
                             style={{ minHeight: 60, textAlignVertical: 'top' }}
                         />
                         <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                            <TimePickerField label="Horário" value={item.hoursStart} onChange={v => set({ hoursStart: v })} placeholder="11:00 AM" />
-                            <DatePickerField label="Data"    value={item.startDate}  onChange={v => set({ startDate: v })} />
+                            <TimePickerField label="Time" value={item.hoursStart} onChange={v => set({ hoursStart: v })} placeholder="11:00 AM" />
+                            <DatePickerField label="Date"    value={item.startDate}  onChange={v => set({ startDate: v })} />
                         </View>
                         <FormInput
-                            label="Link do restaurante"
-                            placeholder="Ex: site, cardápio ou reserva"
+                            label="Restaurant link"
+                            placeholder="E.g. website, menu or reservation"
                             autoCapitalize="none"
                             autoCorrect={false}
                             keyboardType="url"
@@ -2225,7 +2227,7 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             onChangeText={v => set({ externalLink: v })}
                             onBlur={() => {
                                 if (item.externalLink && !validateOptionalUrl(item.externalLink)) {
-                                    notify({ title: 'Link inválido', message: 'Informe um link válido ou deixe o campo em branco.' });
+                                    notify({ title: 'Invalid link', message: 'Enter a valid link or leave the field blank.' });
                                 } else if (item.externalLink) {
                                     const normalized = normalizeUrl(item.externalLink);
                                     if (normalized !== item.externalLink) set({ externalLink: normalized });
@@ -2233,8 +2235,8 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             }}
                         />
                         <FormInput
-                            label="Dicas de experiência"
-                            placeholder="Ex: Chegue cedo ou faça reserva, o local lota rápido..."
+                            label="Experience tips"
+                            placeholder="E.g. Arrive early or make a reservation, it fills up fast..."
                             multiline value={item.tips}
                             onChangeText={v => set({ tips: v })}
                             style={{ minHeight: 50, textAlignVertical: 'top' }}
@@ -2244,7 +2246,7 @@ function StepRestaurants({ form, update, token }: StepProps) {
                             legacySpending={item.spending}
                             onChange={c => set({ cost: c, spending: costToLegacySpending(c) })}
                             defaultCurrency={form.currency || BASE_CURRENCY}
-                            helperShort="Valor por pessoa da refeição — opcional. Use estimativa quando o preço varia."
+                            helperShort="Cost per person for the meal — optional. Use an estimate when prices vary."
                             encourageProof
                             uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                         />
@@ -2270,15 +2272,15 @@ function StepFlight({ form, update, token }: StepProps) {
     ) => (
         <View style={s.activityCard}>
             <Text style={[s.repeaterTitle, { marginTop: 0 }]}>{title}</Text>
-            <FormInput label="Companhia aérea" placeholder="Ex: LATAM, Gol, Air France" value={leg.airline} onChangeText={v => setLeg(legKey, { airline: v })} />
-            <FormInput label="Cidade de Saída" required placeholder="Ex: São Paulo, Rio de Janeiro, Brasília" value={leg.originCity} onChangeText={v => setLeg(legKey, { originCity: v })} />
-            <FormInput label="Aeroporto de Origem" placeholder="Ex: GRU — São Paulo/Guarulhos" value={leg.originAirport} onChangeText={v => setLeg(legKey, { originAirport: v })} />
-            <FormInput label="Aeroporto de Destino" placeholder="Ex: CDG — Paris/Charles de Gaulle" value={leg.destinationAirport} onChangeText={v => setLeg(legKey, { destinationAirport: v })} />
+            <FormInput label="Airline" placeholder="E.g. Delta, United, Air France" value={leg.airline} onChangeText={v => setLeg(legKey, { airline: v })} />
+            <FormInput label="Departure City" required placeholder="E.g. New York, Los Angeles, Chicago" value={leg.originCity} onChangeText={v => setLeg(legKey, { originCity: v })} />
+            <FormInput label="Origin Airport" placeholder="E.g. JFK — New York/John F. Kennedy" value={leg.originAirport} onChangeText={v => setLeg(legKey, { originAirport: v })} />
+            <FormInput label="Destination Airport" placeholder="Ex: CDG — Paris/Charles de Gaulle" value={leg.destinationAirport} onChangeText={v => setLeg(legKey, { destinationAirport: v })} />
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                <DatePickerField label="Data de Saída"   required value={leg.departureDate} onChange={v => setLeg(legKey, { departureDate: v })} />
-                <DatePickerField label="Data de Chegada" required value={leg.arrivalDate}   onChange={v => setLeg(legKey, { arrivalDate: v })} />
+                <DatePickerField label="Departure Date"   required value={leg.departureDate} onChange={v => setLeg(legKey, { departureDate: v })} />
+                <DatePickerField label="Arrival Date" required value={leg.arrivalDate}   onChange={v => setLeg(legKey, { arrivalDate: v })} />
                 <View>
-                    <Text style={s.label}>Paradas</Text>
+                    <Text style={s.label}>Stops</Text>
                     <QuantityStepper
                         value={leg.stops ?? 0}
                         onChange={n => setLeg(legKey, { stops: Math.max(0, n) })}
@@ -2294,19 +2296,19 @@ function StepFlight({ form, update, token }: StepProps) {
         <View>
             <ModuleStepHeader
                 icon={Plane}
-                title="Meu Voo"
-                subtitle="Sugestões de voo para o destino — aumenta a confiança do comprador"
-                hint="Preencha cidade de origem e datas de ida e volta para o módulo ficar completo."
+                title="My Flight"
+                subtitle="Flight suggestions for the destination — builds buyer confidence"
+                hint="Fill in the origin city and outbound/return dates to complete the module."
             />
 
             {renderLeg('flightOutbound', form.flightOutbound, 'Voo de Ida')}
             {renderLeg('flightReturn', form.flightReturn, 'Voo de Volta')}
 
-            <Text style={[s.repeaterTitle, { marginTop: 16 }]}>Dicas sobre o Voo</Text>
+            <Text style={[s.repeaterTitle, { marginTop: 16 }]}>Flight Tips</Text>
             <EditableList
                 items={form.flightTips}
                 onItemsChange={items => update('flightTips', items)}
-                placeholder="Ex: Voo noturno é a melhor opção — dormi no avião e cheguei descansado de manhã"
+                placeholder="E.g. The red-eye is the best option — I slept on the plane and arrived rested in the morning"
             />
 
             {/* Gasto da passagem aérea (opcional). Comprovante de reserva
@@ -2319,7 +2321,7 @@ function StepFlight({ form, update, token }: StepProps) {
                     update('flightSpending', costToLegacySpending(c));
                 }}
                 defaultCurrency={form.currency || BASE_CURRENCY}
-                helperShort="Valor da passagem por pessoa — opcional. Reserva/recibo aumenta a confiança."
+                helperShort="Airfare per person — optional. A booking/receipt builds trust."
                 encourageProof
                 uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
             />
@@ -2344,9 +2346,9 @@ function StepTips({ form, update }: StepProps) {
         <View>
             <ModuleStepHeader
                 icon={Lightbulb}
-                title="Dicas Exclusivas"
-                subtitle="Segredos e dicas práticas que só quem foi sabe — seu grande diferencial"
-                hint={`Adicione no mínimo ${MIN_TIPS} dicas exclusivas para esse módulo ficar completo.`}
+                title="Insider Tips"
+                subtitle="Secrets and practical tips only someone who's been there knows — your big differentiator"
+                hint={`Add at least ${MIN_TIPS} insider tips to complete this module.`}
             />
             <View style={[s.daysProgressCard, filled >= MIN_TIPS && s.daysProgressCardOk]}>
                 <Ionicons
@@ -2361,7 +2363,7 @@ function StepTips({ form, update }: StepProps) {
             <EditableList
                 items={form.generalTips}
                 onItemsChange={v => update('generalTips', v)}
-                placeholder="Ex: Compre o passe Navigo na segunda-feira"
+                placeholder="E.g. Buy the Navigo pass on Monday"
             />
         </View>
     );
@@ -2378,8 +2380,8 @@ function StepChecklist({ form, update }: StepProps) {
             <ModuleStepHeader
                 icon={ListChecks}
                 title="Checklist"
-                subtitle="Lista de preparação que o viajante usa antes e durante a viagem"
-                hint={`Adicione no mínimo ${MIN_CHECKLIST} itens para esse módulo ficar completo.`}
+                subtitle="A preparation list travelers use before and during the trip"
+                hint={`Add at least ${MIN_CHECKLIST} items to complete this module.`}
             />
             <View style={[s.daysProgressCard, filled >= MIN_CHECKLIST && s.daysProgressCardOk]}>
                 <Ionicons
@@ -2394,7 +2396,7 @@ function StepChecklist({ form, update }: StepProps) {
             {form.checklistItems.map((c, i) => (
                 <View key={i} style={s.checkRow}>
                     <View style={{ flex: 1 }}>
-                        <Text style={s.checkCat}>{c.category}</Text>
+                        <Text style={s.checkCat}>{getChecklistCategoryLabel(c.category)}</Text>
                         <TextInput
                             style={s.checkInput}
                             placeholder="Item do checklist"
@@ -2412,7 +2414,7 @@ function StepChecklist({ form, update }: StepProps) {
                     </TouchableOpacity>
                 </View>
             ))}
-            <Text style={[s.label, { marginTop: 14 }]}>Adicionar item por categoria</Text>
+            <Text style={[s.label, { marginTop: 14 }]}>Add item by category</Text>
             <View style={s.chipRow}>
                 {CHECKLIST_CATS.map(cat => (
                     <TouchableOpacity
@@ -2421,7 +2423,7 @@ function StepChecklist({ form, update }: StepProps) {
                         onPress={() => update('checklistItems', [...form.checklistItems, { category: cat, item: '', isDefault: false }])}
                     >
                         <Ionicons name="add" size={14} color={theme.colors.primary} />
-                        <Text style={s.chipGhostText}>{cat}</Text>
+                        <Text style={s.chipGhostText}>{getChecklistCategoryLabel(cat)}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
@@ -2464,17 +2466,17 @@ function StepExtraSpending({ form, update, token }: StepProps) {
         <View>
             <ModuleStepHeader
                 icon={Wallet}
-                title="Gastos Extras"
-                subtitle="Chip, seguro, taxas, gorjetas, lavanderia e outros gastos da viagem"
-                hint="Adicione gastos que não se encaixam nos outros módulos. Valor é opcional."
+                title="Extra Expenses"
+                subtitle="SIM card, insurance, fees, tips, laundry and other trip expenses"
+                hint="Add expenses that don't fit the other modules. Amount is optional."
             />
 
             {items.length === 0 ? (
                 <View style={s.spendingEmpty}>
                     <Wallet size={36} strokeWidth={1.4} color={theme.colors.primary + '88'} />
-                    <Text style={s.spendingEmptyTitle}>Nenhum gasto extra adicionado</Text>
+                    <Text style={s.spendingEmptyTitle}>No extra expenses added</Text>
                     <Text style={s.spendingEmptyText}>
-                        Adicione gastos que não se encaixam nos outros módulos (chip, seguro, taxas, gorjetas, etc.).
+                        Add expenses that don't fit the other modules (SIM card, insurance, fees, tips, etc.).
                     </Text>
                 </View>
             ) : null}
@@ -2513,15 +2515,15 @@ function StepExtraSpending({ form, update, token }: StepProps) {
                     </View>
 
                     <FormInput
-                        label="Título/nome do gasto"
+                        label="Expense title/name"
                         required
                         placeholder="Ex: Chip de internet 10GB"
                         value={e.title}
                         onChangeText={v => updateItem(i, { title: v })}
                     />
                     <FormInput
-                        label="Descrição (opcional)"
-                        placeholder="Detalhes ou contexto do gasto"
+                        label="Description (optional)"
+                        placeholder="Details or context for the expense"
                         multiline
                         value={e.description}
                         onChangeText={v => updateItem(i, { description: v })}
@@ -2540,7 +2542,7 @@ function StepExtraSpending({ form, update, token }: StepProps) {
                             });
                         }}
                         defaultCurrency={form.currency || BASE_CURRENCY}
-                        helperShort="Gastos variáveis (chip, taxas, gorjetas) costumam ser estimativas."
+                        helperShort="Variable expenses (SIM card, fees, tips) are usually estimates."
                         encourageProof
                         uploadProof={(uri, name, mime) => uploadOne(uri, token, name, mime, 'costProof')}
                     />
@@ -2549,7 +2551,7 @@ function StepExtraSpending({ form, update, token }: StepProps) {
 
             <TouchableOpacity style={s.addInline} onPress={() => setItems([...items, emptyExtraSpending()])}>
                 <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
-                <Text style={s.addInlineText}>Adicionar gasto extra</Text>
+                <Text style={s.addInlineText}>Add extra expense</Text>
             </TouchableOpacity>
         </View>
     );
@@ -2600,8 +2602,8 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
             const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!perm.granted) {
                 notify({
-                    title: 'Permissão necessária',
-                    message: 'Permita acesso aos arquivos para continuar.',
+                    title: 'Permission needed',
+                    message: 'Allow access to your files to continue.',
                     variant: 'warning',
                 });
                 return;
@@ -2643,7 +2645,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
         });
         if (validationFailures.length > 0) {
             notify({
-                title: 'Alguns arquivos não podem ser enviados',
+                title: 'Some files can\'t be uploaded',
                 message: validationFailures.join('\n'),
                 variant: 'warning',
             });
@@ -2673,7 +2675,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
                     if (validAssets[i]?.mediaType === 'video') freshVideos.push(r.value);
                     else freshImages.push(r.value);
                 } else {
-                    failures.push(`Arquivo ${i + 1}: ${r.reason?.message || 'erro desconhecido'}`);
+                    failures.push(`File ${i + 1}: ${r.reason?.message || 'unknown error'}`);
                 }
             });
             if (slot === 'cover') {
@@ -2689,15 +2691,15 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
             }
             if (failures.length > 0) {
                 notify({
-                    title: `${failures.length} arquivo(s) não enviado(s)`,
+                    title: `${failures.length} file(s) not uploaded`,
                     message: failures.join('\n'),
                     variant: 'warning',
                 });
             }
         } catch (e: any) {
             notify({
-                title: 'Falha no upload',
-                message: e?.message || 'Tente novamente.',
+                title: 'Upload failed',
+                message: e?.message || 'Please try again.',
                 variant: 'error',
             });
         } finally {
@@ -2719,13 +2721,13 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
         <View>
             <ModuleStepHeader
                 icon={Camera}
-                title="Fotos e Vídeos"
-                subtitle="Imagens reais da sua viagem — fotos autênticas aumentam a conversão"
+                title="Photos & Videos"
+                subtitle="Real images from your trip — authentic photos boost sales"
                 required
-                hint="Capa: pelo menos 1 foto principal. Galeria: até 10 fotos extras."
+                hint="Cover: at least 1 main photo. Gallery: up to 10 extra photos."
             />
 
-            <Text style={s.repeaterTitle}>Capa (até 3 fotos)</Text>
+            <Text style={s.repeaterTitle}>Cover (up to 3 photos)</Text>
             <View style={s.imgGrid}>
                 {form.highlightPhotos.map((url, i) => (
                     <View key={i} style={s.imgThumbWrap}>
@@ -2742,7 +2744,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
                 )}
             </View>
 
-            <Text style={[s.repeaterTitle, { marginTop: 20 }]}>Galeria (até 10 fotos)</Text>
+            <Text style={[s.repeaterTitle, { marginTop: 20 }]}>Gallery (up to 10 photos)</Text>
             <View style={s.imgGrid}>
                 {galleryItems.map((item, i) => (
                     <View key={i} style={s.imgThumbWrap}>
@@ -2783,10 +2785,10 @@ function StepReview({ form, onPreview, onFixIssue }: { form: ItineraryFormState;
 
     return (
         <View>
-            <SectionHeader title="Revisão final" subtitle="Confira tudo antes de enviar para análise." />
+            <SectionHeader title="Final review" subtitle="Check everything before submitting for review." />
 
             <View style={s.scoreCard}>
-                <Text style={s.scoreLabel}>Força do roteiro</Text>
+                <Text style={s.scoreLabel}>Itinerary strength</Text>
                 <Text style={s.scoreValue}>{totalScore}/100</Text>
                 <View style={s.scoreBar}>
                     <View style={[s.scoreBarFill, { width: `${totalScore}%` }]} />
@@ -2795,8 +2797,8 @@ function StepReview({ form, onPreview, onFixIssue }: { form: ItineraryFormState;
 
             {issues.length > 0 ? (
                 <View style={s.issuesCard}>
-                    <Text style={s.issuesTitle}>⚠️ Pendências para envio</Text>
-                    <Text style={s.issueHint}>Toque para ir até a etapa e corrigir.</Text>
+                    <Text style={s.issuesTitle}>⚠️ Open items before submitting</Text>
+                    <Text style={s.issueHint}>Tap to go to the step and fix it.</Text>
                     {issues.map((i, idx) => (
                         <TouchableOpacity
                             key={idx}
@@ -2812,16 +2814,16 @@ function StepReview({ form, onPreview, onFixIssue }: { form: ItineraryFormState;
             ) : (
                 <View style={s.okCard}>
                     <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
-                    <Text style={s.okText}>Pronto para enviar para análise!</Text>
+                    <Text style={s.okText}>Ready to submit for review!</Text>
                 </View>
             )}
 
             {/* ── Prévia do roteiro ── */}
             <View style={s.previewBlock}>
                 <View style={{ flex: 1 }}>
-                    <Text style={s.previewTitle}>Prévia do roteiro</Text>
+                    <Text style={s.previewTitle}>Itinerary preview</Text>
                     <Text style={s.previewSubtitle}>
-                        Visualize como o roteiro vai aparecer para o viajante antes de enviar.
+                        See how the itinerary will appear to travelers before you submit.
                     </Text>
                 </View>
                 <TouchableOpacity
@@ -2830,11 +2832,11 @@ function StepReview({ form, onPreview, onFixIssue }: { form: ItineraryFormState;
                     activeOpacity={0.85}
                 >
                     <Ionicons name="eye-outline" size={16} color="#fff" />
-                    <Text style={s.previewCtaText}>Ver prévia</Text>
+                    <Text style={s.previewCtaText}>View preview</Text>
                 </TouchableOpacity>
             </View>
 
-            <Text style={s.repeaterTitle}>Detalhamento por bloco</Text>
+            <Text style={s.repeaterTitle}>Breakdown by block</Text>
             {blocks.map(b => (
                 <View key={b.label} style={s.blockCard}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2915,7 +2917,7 @@ function Repeater<T>({ title, items, onChange, factory, render }: {
             ))}
             <TouchableOpacity style={s.addInline} onPress={() => onChange([...items, factory()])}>
                 <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
-                <Text style={s.addInlineText}>Adicionar</Text>
+                <Text style={s.addInlineText}>Add</Text>
             </TouchableOpacity>
         </View>
     );

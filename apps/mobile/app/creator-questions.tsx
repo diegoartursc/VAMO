@@ -49,7 +49,7 @@ export default function CreatorQuestionsScreen() {
             setQuestions([]);
             setLoadError(err instanceof Error
                 ? err.message
-                : 'Não foi possível carregar as perguntas recebidas.');
+                : 'We couldn\'t load the received questions.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -86,9 +86,9 @@ export default function CreatorQuestionsScreen() {
                     <Icon name="chevron-left" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
-                    <Text style={styles.headerTitle}>Perguntas recebidas</Text>
+                    <Text style={styles.headerTitle}>Received questions</Text>
                     <Text style={styles.headerSubtitle}>
-                        {questions.length} {questions.length === 1 ? 'pergunta' : 'perguntas'} • {pending.length} aguardando
+                        {questions.length} {questions.length === 1 ? 'question' : 'questions'} • {pending.length} pending
                     </Text>
                 </View>
                 <View style={{ width: 40 }} />
@@ -99,9 +99,9 @@ export default function CreatorQuestionsScreen() {
             ) : questions.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.text.tertiary} />
-                    <Text style={styles.emptyTitle}>Nenhuma pergunta ainda</Text>
+                    <Text style={styles.emptyTitle}>No questions yet</Text>
                     <Text style={styles.emptyText}>
-                        Quando viajantes tiverem dúvidas sobre seus roteiros, as perguntas aparecerão aqui.
+                        When travelers have questions about your itineraries, they'll show up here.
                     </Text>
                 </View>
             ) : (
@@ -136,7 +136,7 @@ export default function CreatorQuestionsScreen() {
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.primary} />
-                                <Text style={styles.sectionTitle}>Já respondidas ({answered.length})</Text>
+                                <Text style={styles.sectionTitle}>Answered ({answered.length})</Text>
                             </View>
                             {answered.map(q => (
                                 <QuestionCard key={q.id} question={q} onAnswered={() => load()} />
@@ -171,9 +171,9 @@ function QuestionCard({
     const handleSend = async () => {
         if (sending) return;
         const text = draft.trim();
-        if (!text) { notify({ title: 'Resposta', message: 'Digite sua resposta antes de enviar.' }); return; }
+        if (!text) { notify({ title: 'Answer', message: 'Type your answer before sending.' }); return; }
         if (text.length > MAX_ANSWER_LEN) {
-            notify({ title: 'Resposta', message: `Resposta deve ter no máximo ${MAX_ANSWER_LEN} caracteres.` });
+            notify({ title: 'Answer', message: `Answers can be at most ${MAX_ANSWER_LEN} characters.` });
             return;
         }
         setSending(true);
@@ -181,12 +181,12 @@ function QuestionCard({
         try {
             await answerQuestion(question.id, text, accessToken);
             haptics.success?.();
-            notify({ title: 'Resposta enviada!', message: 'Sua resposta agora é pública em "Detalhes do Roteiro".' });
+            notify({ title: 'Answer sent!', message: 'Your answer is now public in "Itinerary Details".' });
             setDraft('');
             onAnswered();
         } catch (err: any) {
             haptics.error?.();
-            notify({ title: 'Erro', message: err?.message || 'Não foi possível enviar sua resposta.' });
+            notify({ title: 'Error', message: err?.message || 'We couldn\'t send your answer.' });
         } finally {
             setSending(false);
         }
@@ -197,10 +197,10 @@ function QuestionCard({
             <TouchableOpacity style={styles.cardItinerary} onPress={toggle} activeOpacity={0.7}>
                 <View style={styles.cardItineraryInfo}>
                     <Text style={styles.cardItineraryTitle} numberOfLines={1}>
-                        {question.itinerary?.title || 'Roteiro'}
+                        {question.itinerary?.title || 'Itinerary'}
                     </Text>
                     <Text style={styles.cardItineraryMeta}>
-                        Perguntado por {question.user?.name || 'Viajante'} • {new Date(question.createdAt).toLocaleDateString('pt-BR')}
+                        Perguntado por {question.user?.name || 'Traveler'} • {new Date(question.createdAt).toLocaleDateString('en-US')}
                     </Text>
                 </View>
                 <Ionicons
@@ -213,7 +213,7 @@ function QuestionCard({
             <View style={styles.questionBlock}>
                 <View style={styles.questionHeader}>
                     <Ionicons name="chatbubble-outline" size={14} color={theme.colors.text.secondary} />
-                    <Text style={styles.questionLabel}>Pergunta</Text>
+                    <Text style={styles.questionLabel}>Question</Text>
                 </View>
                 <Text style={styles.questionText}>{question.question}</Text>
             </View>
@@ -224,7 +224,7 @@ function QuestionCard({
                         <View style={styles.composer}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Escreva sua resposta..."
+                                placeholder="Write your answer..."
                                 placeholderTextColor={theme.colors.text.tertiary}
                                 multiline
                                 maxLength={MAX_ANSWER_LEN}
@@ -245,7 +245,7 @@ function QuestionCard({
                                     ) : (
                                         <Ionicons name="paper-plane" size={14} color="#fff" />
                                     )}
-                                    <Text style={styles.sendBtnText}>{sending ? 'Enviando...' : 'Enviar resposta'}</Text>
+                                    <Text style={styles.sendBtnText}>{sending ? 'Enviando...' : 'Send answer'}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -253,10 +253,10 @@ function QuestionCard({
                         <View style={styles.answerBlock}>
                             <View style={styles.answerHeader}>
                                 <Ionicons name="person-circle-outline" size={14} color={theme.colors.primary} />
-                                <Text style={styles.answerLabel}>Sua resposta</Text>
+                                <Text style={styles.answerLabel}>Your answer</Text>
                                 <Text style={styles.answerDate}>
                                     {question.answer?.createdAt
-                                        ? new Date(question.answer.createdAt).toLocaleDateString('pt-BR')
+                                        ? new Date(question.answer.createdAt).toLocaleDateString('en-US')
                                         : ''}
                                 </Text>
                             </View>

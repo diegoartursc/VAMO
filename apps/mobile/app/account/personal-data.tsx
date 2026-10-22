@@ -65,12 +65,12 @@ export default function PersonalDataScreen() {
             setInitialName(updated.name ?? '');
             setInitialPhone(updated.phone ?? '');
             haptics.success();
-            notify({ title: 'Dados atualizados', message: 'Suas informações foram salvas.', variant: 'success' });
+            notify({ title: 'Details updated', message: 'Your information was saved.', variant: 'success' });
         } catch (err: any) {
             haptics.error?.();
             notify({
-                title: 'Não foi possível salvar',
-                message: typeof err?.message === 'string' ? err.message : 'Tente novamente em instantes.',
+                title: 'Couldn\'t save',
+                message: typeof err?.message === 'string' ? err.message : 'Please try again in a moment.',
                 variant: 'error',
             });
         } finally {
@@ -84,10 +84,10 @@ export default function PersonalDataScreen() {
                 <ScreenHeader title="Dados pessoais" />
                 <View style={s.center}>
                     <Icon name="lock" size={40} color={theme.colors.text.tertiary} />
-                    <Text style={s.emptyTitle}>Login necessário</Text>
-                    <Text style={s.emptyText}>Entre na sua conta para ver e editar seus dados.</Text>
+                    <Text style={s.emptyTitle}>Sign-in required</Text>
+                    <Text style={s.emptyText}>Sign in to your account to view and edit your details.</Text>
                     <TouchableOpacity style={s.primaryBtn} onPress={() => router.push('/login')}>
-                        <Text style={s.primaryBtnText}>Entrar</Text>
+                        <Text style={s.primaryBtnText}>Sign in</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -96,42 +96,42 @@ export default function PersonalDataScreen() {
 
     return (
         <View style={s.container}>
-            <ScreenHeader title="Dados pessoais" subtitle="Veja e edite suas informações de conta." />
+            <ScreenHeader title="Dados pessoais" subtitle="View and edit your account information." />
             <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
                 {hydrating ? (
                     <View style={s.center}><ActivityIndicator color={theme.colors.primary} /></View>
                 ) : (
                     <>
                         {/* Nome */}
-                        <Text style={s.label}>Nome</Text>
+                        <Text style={s.label}>Name</Text>
                         <TextInput
                             style={s.input}
                             value={name}
                             onChangeText={setName}
-                            placeholder="Seu nome"
+                            placeholder="Your name"
                             placeholderTextColor={theme.colors.text.tertiary}
                             autoCapitalize="words"
                             maxLength={80}
                         />
                         {!nameValid && name.length > 0 && (
-                            <Text style={s.errorHint}>O nome precisa ter pelo menos 2 caracteres.</Text>
+                            <Text style={s.errorHint}>Your name must be at least 2 characters.</Text>
                         )}
 
                         {/* E-mail (read-only) */}
-                        <Text style={s.label}>E-mail</Text>
+                        <Text style={s.label}>Email</Text>
                         <View style={[s.input, s.inputReadonly]}>
                             <Text style={s.readonlyValue} numberOfLines={1}>{user?.email || '—'}</Text>
                             <Icon name="lock" size={16} color={theme.colors.text.tertiary} />
                         </View>
-                        <Text style={s.hint}>O e-mail da conta não pode ser alterado por aqui.</Text>
+                        <Text style={s.hint}>Your account email can't be changed here.</Text>
 
                         {/* Telefone */}
-                        <Text style={s.label}>Telefone</Text>
+                        <Text style={s.label}>Phone</Text>
                         <TextInput
                             style={s.input}
                             value={phone}
                             onChangeText={setPhone}
-                            placeholder="(opcional)"
+                            placeholder="(optional)"
                             placeholderTextColor={theme.colors.text.tertiary}
                             keyboardType={Platform.OS === 'web' ? 'default' : 'phone-pad'}
                             maxLength={40}
@@ -143,7 +143,7 @@ export default function PersonalDataScreen() {
                             onPress={() => { haptics.light(); router.push('/(tabs)/profile'); }}
                         >
                             <Icon name="camera" size={18} color={theme.colors.primary} />
-                            <Text style={s.linkText}>Alterar foto de perfil e capa</Text>
+                            <Text style={s.linkText}>Change profile and cover photo</Text>
                             <Icon name="chevron-right" size={18} color={theme.colors.text.tertiary} />
                         </TouchableOpacity>
 
@@ -154,7 +154,7 @@ export default function PersonalDataScreen() {
                         >
                             {saving
                                 ? <ActivityIndicator color="#fff" />
-                                : <Text style={s.saveBtnText}>Salvar alterações</Text>}
+                                : <Text style={s.saveBtnText}>Save changes</Text>}
                         </TouchableOpacity>
                     </>
                 )}

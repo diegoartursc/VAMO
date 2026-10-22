@@ -83,9 +83,9 @@ export default function NotesCard({
                     <Ionicons name="reader-outline" size={16} color={theme.colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.title}>Minhas anotações</Text>
+                    <Text style={styles.title}>My notes</Text>
                     <Text style={styles.subtitle}>
-                        Visíveis só para você. Salva automaticamente.
+                        Visible only to you. Saved automatically.
                     </Text>
                 </View>
             </View>
@@ -111,7 +111,7 @@ export default function NotesCard({
                         onChange(trimmed.length > 0 ? draft : null);
                     }
                 }}
-                placeholder="Escreva lembretes, dicas pessoais, links..."
+                placeholder="Write reminders, personal tips, links..."
                 placeholderTextColor={theme.colors.text.tertiary}
                 multiline
                 editable={!readOnly}

@@ -32,13 +32,13 @@ import { DEFAULT_RATES_TO_BASE } from '@vamo/shared/itinerary';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
 // ─── Erro de API ─────────────────────────────────────────────────
-const MSG_TIMEOUT = 'O servidor demorou demais para responder. Verifique sua conexão e tente novamente.';
-const MSG_NETWORK = 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.';
-const MSG_SERVER = 'Nosso servidor está com problemas no momento. Tente novamente em instantes.';
-const MSG_UNAUTHORIZED = 'Sua sessão expirou. Faça login novamente.';
-const MSG_FORBIDDEN = 'Você não tem permissão para acessar este conteúdo.';
-const MSG_NOT_FOUND = 'Conteúdo não encontrado.';
-const MSG_GENERIC = 'Algo deu errado. Tente novamente.';
+const MSG_TIMEOUT = 'The server took too long to respond. Check your connection and try again.';
+const MSG_NETWORK = 'We couldn\'t connect to the server. Check your connection and try again.';
+const MSG_SERVER = 'Our server is having problems right now. Please try again in a moment.';
+const MSG_UNAUTHORIZED = 'Your session expired. Please sign in again.';
+const MSG_FORBIDDEN = 'You don\'t have permission to access this content.';
+const MSG_NOT_FOUND = 'Content not found.';
+const MSG_GENERIC = 'Something went wrong. Please try again.';
 
 export class ApiError extends Error {
     /** Status HTTP da resposta. `null` quando a requisição nem chegou ao servidor. */
@@ -88,7 +88,7 @@ export function describeDashboardError(err: unknown): string {
             console.warn(`[dashboard] ${err.endpoint} falhou — status=${err.status ?? 'network'} msg="${err.message}"`);
         }
         if (err.status === 404) {
-            return 'Este recurso ainda não está disponível no servidor. Se o problema continuar, o backend pode precisar ser atualizado.';
+            return 'This feature isn\'t available on the server yet. If the problem continues, the backend may need to be updated.';
         }
         // .message já é status-aware (401/403/5xx/rede/timeout).
         return err.message;

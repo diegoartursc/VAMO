@@ -87,8 +87,8 @@ export function SearchModal({
 
     // Títulos por contexto
     const contextTitles = {
-        home: 'Buscar Roteiros',
-        itineraries: 'Buscar Roteiros',
+        home: 'Search Itineraries',
+        itineraries: 'Search Itineraries',
     };
 
     const resultLabel = 'roteiro';
@@ -247,7 +247,7 @@ export function SearchModal({
                         <View>
                             <Text style={styles.title}>{contextTitles[context]}</Text>
                             <Text style={styles.microcopy}>
-                                Use apenas os filtros que quiser para refinar sua busca.
+                                Use only the filters you want to refine your search.
                             </Text>
                         </View>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -266,7 +266,7 @@ export function SearchModal({
                 >
                     {/* ── 1. DESTINO ── */}
                     <View style={styles.filterSection}>
-                        <FilterHeader icon="location" label="Destino" />
+                        <FilterHeader icon="location" label="Destination" />
                         <DestinationAutocomplete
                             value={destination}
                             suggestions={destinationSuggestions}
@@ -277,7 +277,7 @@ export function SearchModal({
 
                     {/* ── 2. DURAÇÃO DA VIAGEM ── */}
                     <View style={styles.filterSection}>
-                        <FilterHeader icon="calendar" label="Duração da viagem" />
+                        <FilterHeader icon="calendar" label="Trip length" />
                         <View style={styles.durationChips}>
                             {DURATION_PRESETS.map((preset) => {
                                 const isActive = durationPreset === preset.id;
@@ -312,7 +312,7 @@ export function SearchModal({
 
                     {/* ── 3. COMO VOCÊ QUER VIAJAR? ── */}
                     <View style={styles.filterSection}>
-                        <FilterHeader icon="compass" label="Como você quer viajar?" />
+                        <FilterHeader icon="compass" label="How do you want to travel?" />
                         <View style={styles.intentGrid}>
                             {INTENT_CATEGORIES.map((intent) => {
                                 const isSelected = travelIntent === intent.id;
@@ -327,7 +327,7 @@ export function SearchModal({
                                         activeOpacity={0.8}
                                         accessibilityRole="button"
                                         accessibilityState={{ selected: isSelected }}
-                                        accessibilityLabel={`Filtrar roteiros de estilo ${intent.label}`}
+                                        accessibilityLabel={`Filter ${intent.label} style itineraries`}
                                     >
                                         <Icon
                                             name={intent.icon as IconName}
@@ -357,7 +357,7 @@ export function SearchModal({
 
                     {/* ── 4. CATEGORIAS ── */}
                     <View style={styles.filterSection}>
-                        <FilterHeader icon="filter" label="Categorias" />
+                        <FilterHeader icon="filter" label="Categories" />
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -376,7 +376,7 @@ export function SearchModal({
                                         onPress={() => handleToggleCategory(cat.id)}
                                         accessibilityRole="button"
                                         accessibilityState={{ selected: isActive }}
-                                        accessibilityLabel={`Filtrar roteiros da categoria ${cat.label}`}
+                                        accessibilityLabel={`Filter ${cat.label} category itineraries`}
                                     >
                                         <Icon
                                             name={cat.icon as IconName}
@@ -451,7 +451,7 @@ export function SearchModal({
                             >
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <Icon name="search" size={18} color="#FFFFFF" strokeWidth={2.5} />
-                                    <Text style={styles.searchButtonText}>Buscar</Text>
+                                    <Text style={styles.searchButtonText}>Search</Text>
                                 </View>
                             </LinearGradient>
                         </TouchableOpacity>

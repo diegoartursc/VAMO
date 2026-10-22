@@ -34,27 +34,27 @@ export default function SecurityScreen() {
 
     return (
         <View style={s.container}>
-            <ScreenHeader title="Segurança" subtitle="Recursos de proteção e acesso da sua conta." />
+            <ScreenHeader title="Security" subtitle="Protection and access features for your account." />
             <ScrollView contentContainerStyle={s.scroll}>
                 {/* E-mail da conta */}
-                <InfoCard icon="circle-user" title="Conta">
-                    <Text style={s.cardLabel}>E-mail de acesso</Text>
+                <InfoCard icon="circle-user" title="Account">
+                    <Text style={s.cardLabel}>Sign-in email</Text>
                     <Text style={s.cardValue}>{user?.email || '—'}</Text>
                 </InfoCard>
 
                 {/* Login / senha */}
-                <InfoCard icon="shield-check" title="Login e senha">
+                <InfoCard icon="shield-check" title="Sign-in and password">
                     <Text style={s.cardText}>
-                        Sua conta é protegida pelo método de login usado no cadastro. Mantenha
-                        seu e-mail seguro — ele é a chave de acesso à sua conta VAMO.
+                        Your account is protected by the sign-in method you used to register. Keep
+                        your email secure — it's the key to your VAMO account.
                     </Text>
                 </InfoCard>
 
                 {/* Alteração de senha — honesto, sem botão falso */}
-                <InfoCard icon="lock" title="Alteração de senha">
+                <InfoCard icon="lock" title="Change password">
                     <Text style={s.cardText}>
-                        Para trocar sua senha, enviamos um link de redefinição para o seu
-                        e-mail. O link vale por 1 hora.
+                        To change your password, we send a reset link to your
+                        email. The link is valid for 1 hour.
                     </Text>
                     <TouchableOpacity
                         style={s.linkBtn}
@@ -64,15 +64,15 @@ export default function SecurityScreen() {
                         }}
                     >
                         <Icon name="lock" size={16} color={theme.colors.primary} />
-                        <Text style={s.linkBtnText}>Redefinir senha por e-mail</Text>
+                        <Text style={s.linkBtnText}>Reset password by email</Text>
                     </TouchableOpacity>
                 </InfoCard>
 
                 {/* Acesso indevido */}
-                <InfoCard icon="info" title="Acesso indevido?">
+                <InfoCard icon="info" title="Unauthorized access?">
                     <Text style={s.cardText}>
-                        Se você suspeitar de acesso não autorizado à sua conta, saia da conta
-                        e entre em contato com o suporte imediatamente.
+                        If you suspect unauthorized access to your account, sign out
+                        and contact support right away.
                     </Text>
                 </InfoCard>
             </ScrollView>

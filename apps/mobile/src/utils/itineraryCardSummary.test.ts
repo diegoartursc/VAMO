@@ -32,7 +32,7 @@ test('2. destino combina cidades e país em uma linha', () => {
     );
     assert.equal(
         formatItineraryDestination({ destination: 'Tóquio', extraCities: ['Kyoto', 'Osaka'], country: 'Japão' }),
-        'Tóquio, Kyoto e Osaka · Japão',
+        'Tóquio, Kyoto, and Osaka · Japão',
     );
 });
 
@@ -154,13 +154,13 @@ test('18. rótulo acessível nomeia TODOS os itens reais, não "mais 2"', () => 
         ['Cultura', 'Gastronomia'].map(item),
         ['Itinerário', 'Passeios', 'Hospedagens'].map(item),
     );
-    assert.equal(label, 'Estilo: Cultura e Gastronomia. Inclui: Itinerário, Passeios e Hospedagens.');
+    assert.equal(label, 'Style: Cultura and Gastronomia. Includes: Itinerário, Passeios, and Hospedagens.');
     assert.ok(!label!.includes('+'), 'não pode vazar o "+X" visual para o leitor de tela');
 });
 
 test('rótulo acessível omite a parte que não existe', () => {
-    assert.equal(buildSummaryAccessibilityLabel([item('Cultura')], []), 'Estilo: Cultura.');
-    assert.equal(buildSummaryAccessibilityLabel([], [item('Voos')]), 'Inclui: Voos.');
+    assert.equal(buildSummaryAccessibilityLabel([item('Cultura')], []), 'Style: Cultura.');
+    assert.equal(buildSummaryAccessibilityLabel([], [item('Voos')]), 'Includes: Voos.');
     assert.equal(buildSummaryAccessibilityLabel([], []), undefined);
 });
 
@@ -182,8 +182,8 @@ test('4/5. Estilo vem de getCategoryChips e Inclui de getModuleBadges', () => {
     const categorias = getCategoryChips(itinerarioReal);
     const modulos = getModuleBadges(itinerarioReal);
 
-    assert.deepEqual(categorias.map(c => c.label), ['Cultura', 'Gastronomia', 'Histórico']);
-    assert.deepEqual(modulos.map(m => m.label), ['Itinerário', 'Passeios', 'Hospedagens', 'Dicas exclusivas']);
+    assert.deepEqual(categorias.map(c => c.label), ['Culture', 'Food & Drink', 'Historic']);
+    assert.deepEqual(modulos.map(m => m.label), ['Itinerary', 'Tours', 'Lodging', 'Insider tips']);
 
     // "Gastronomia" (estilo) e "Gastronomia" (módulo restaurantes) são coisas
     // diferentes e vivem em linhas diferentes — nunca no mesmo conjunto.

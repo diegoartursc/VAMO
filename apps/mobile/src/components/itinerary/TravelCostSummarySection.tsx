@@ -50,9 +50,9 @@ const MODULE_ICONS: Record<CostReferencesGroup['moduleKey'], IconName> = {
 };
 
 const STATUS_META: Record<ConsolidatedCostCategory['status'], { label: string; color: string }> = {
-    verified: { label: 'Valor comprovado', color: theme.colors.verified },
-    estimated: { label: 'Valor estimado', color: theme.colors.info },
-    mixed: { label: 'Parcialmente comprovado', color: theme.colors.warning },
+    verified: { label: 'Verified amount', color: theme.colors.verified },
+    estimated: { label: 'Estimated amount', color: theme.colors.info },
+    mixed: { label: 'Partially verified', color: theme.colors.warning },
 };
 
 const SIM_MIN = 1;
@@ -80,21 +80,21 @@ export function TravelCostSummarySection({
                 <View style={styles.headerIcon}>
                     <Icon name="wallet" size={18} color={theme.colors.primaryDark} />
                 </View>
-                <Text style={styles.title}>Referência de custos da viagem</Text>
+                <Text style={styles.title}>Trip cost reference</Text>
             </View>
 
             {!summary.hasAnyData ? (
                 <Text style={styles.emptyText}>
-                    Ainda não há uma estimativa de custos disponível para este roteiro.
+                    There's no cost estimate available for this itinerary yet.
                 </Text>
             ) : (
                 <>
                     <Text
                         style={styles.totalValue}
-                        accessibilityLabel={`Valor de referência por pessoa: ${formatMoney(summary.perPersonTotalBase, BASE_CURRENCY)}`}
+                        accessibilityLabel={`Reference amount per person: ${formatMoney(summary.perPersonTotalBase, BASE_CURRENCY)}`}
                     >
                         {formatMoney(summary.perPersonTotalBase, BASE_CURRENCY)}
-                        <Text style={styles.totalSuffix}> por pessoa</Text>
+                        <Text style={styles.totalSuffix}> per person</Text>
                     </Text>
 
                     {isMixedTotal && (
@@ -102,7 +102,7 @@ export function TravelCostSummarySection({
                             <View
                                 style={styles.progressBar}
                                 accessibilityRole="progressbar"
-                                accessibilityLabel={`${summary.verifiedPercentage}% comprovado, ${summary.estimatedPercentage}% estimado`}
+                                accessibilityLabel={`${summary.verifiedPercentage}% verified, ${summary.estimatedPercentage}% estimated`}
                             >
                                 <View style={[styles.progressVerified, { flex: summary.verifiedPercentage || 0.0001 }]} />
                                 <View style={[styles.progressEstimated, { flex: summary.estimatedPercentage || 0.0001 }]} />
@@ -110,16 +110,16 @@ export function TravelCostSummarySection({
                             <Text style={styles.progressLabel}>
                                 {summary.verifiedPercentage}% comprovado · {summary.estimatedPercentage}% estimado
                                 {summary.missingCategories.length > 0 && (
-                                    ` · ${summary.missingCategories.length} ${summary.missingCategories.length === 1 ? 'categoria sem valor' : 'categorias sem valor'}`
+                                    ` · ${summary.missingCategories.length} ${summary.missingCategories.length === 1 ? 'category without an amount' : 'categories without an amount'}`
                                 )}
                             </Text>
                         </>
                     )}
                     {(isPureVerified || isPureEstimated) && (
                         <Text style={[styles.progressLabel, { color: isPureVerified ? theme.colors.verified : theme.colors.info, fontWeight: '700' }]}>
-                            {isPureVerified ? '100% comprovado' : '100% estimado'}
+                            {isPureVerified ? '100% verified' : '100% estimated'}
                             {summary.missingCategories.length > 0 && (
-                                ` · ${summary.missingCategories.length} ${summary.missingCategories.length === 1 ? 'categoria sem valor' : 'categorias sem valor'}`
+                                ` · ${summary.missingCategories.length} ${summary.missingCategories.length === 1 ? 'category without an amount' : 'categories without an amount'}`
                             )}
                         </Text>
                     )}
@@ -147,12 +147,12 @@ export function TravelCostSummarySection({
                             onPress={() => setMissingExpanded((v) => !v)}
                             activeOpacity={0.7}
                             accessibilityRole="button"
-                            accessibilityLabel={missingExpanded ? 'Ocultar categorias sem valor' : 'Ver categorias sem valor'}
+                            accessibilityLabel={missingExpanded ? 'Hide categories without an amount' : 'Show categories without an amount'}
                         >
                             <Text style={styles.missingText}>
                                 {missingExpanded
-                                    ? `Ainda sem valor: ${summary.missingCategories.join(', ')}.`
-                                    : `${summary.missingCategories.length} ${summary.missingCategories.length === 1 ? 'categoria sem valor' : 'categorias sem valor'}`}
+                                    ? `No amount yet: ${summary.missingCategories.join(', ')}.`
+                                    : `${summary.missingCategories.length} ${summary.missingCategories.length === 1 ? 'category without an amount' : 'categories without an amount'}`}
                             </Text>
                             <Ionicons
                                 name={missingExpanded ? 'chevron-up' : 'chevron-down'}
@@ -175,10 +175,10 @@ export function TravelCostSummarySection({
                     <View style={styles.disclaimerRow}>
                         <Icon name="info" size={13} color={theme.colors.text.tertiary} />
                         <Text style={styles.disclaimerText}>
-                            Os valores são referências informadas pelo criador e podem variar conforme data, temporada,
-                            câmbio, antecedência, disponibilidade e estilo de consumo.
+                            Amounts are references provided by the creator and can vary by date, season,
+                            exchange rate, how far ahead you book, availability and spending style.
                             {summary.verifiedAmountBase > 0 && (
-                                ' Comprovantes aprovados representam valores pagos pelo criador naquele contexto e não garantem o mesmo preço para outras datas ou viajantes.'
+                                ' Approved proof reflects amounts the creator paid in that context and does not guarantee the same price for other dates or travelers.'
                             )}
                         </Text>
                     </View>
@@ -195,7 +195,7 @@ function CategoryRow({ category }: { category: ConsolidatedCostCategory }) {
 
     const a11yLabel = [
         category.moduleLabel,
-        formatMoney(category.perPersonBase, BASE_CURRENCY) + ' por pessoa',
+        formatMoney(category.perPersonBase, BASE_CURRENCY) + ' per person',
         meta.label,
     ].join(', ');
 
@@ -212,23 +212,23 @@ function CategoryRow({ category }: { category: ConsolidatedCostCategory }) {
 
                 {showOriginal && (
                     <Text style={styles.categorySub} numberOfLines={1}>
-                        {formatMoney(category.originalAmountPerPerson ?? 0, category.originalCurrency!)} por pessoa
+                        {formatMoney(category.originalAmountPerPerson ?? 0, category.originalCurrency!)} per person
                         {' ≈ '}{formatMoney(category.perPersonBase, BASE_CURRENCY)}
                     </Text>
                 )}
                 {showMixedOriginals && (
                     <Text style={styles.categorySub} numberOfLines={1}>
-                        Valores originalmente informados em {category.originalCurrencies.join(' e ')}
+                        Amounts originally provided in {category.originalCurrencies.join(' and ')}
                     </Text>
                 )}
                 {category.sharedBase && (
                     <Text style={styles.categoryMeta}>
-                        Base: {formatMoney(category.sharedBase.amountTotal, category.sharedBase.currency)} para {category.sharedBase.people} pessoas
+                        Base: {formatMoney(category.sharedBase.amountTotal, category.sharedBase.currency)} for {category.sharedBase.people} people
                     </Text>
                 )}
                 {category.hasConversionGap && (
                     <Text style={styles.conversionGapText}>
-                        Equivalente em {BASE_CURRENCY} indisponível para parte deste valor.
+                        {BASE_CURRENCY} equivalent unavailable for part of this amount.
                     </Text>
                 )}
 
@@ -236,7 +236,7 @@ function CategoryRow({ category }: { category: ConsolidatedCostCategory }) {
                     <Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text>
                     {category.status === 'mixed' && (
                         <Text style={styles.statusMixedDetail}>
-                            {' · '}{formatMoney(category.verifiedBase, BASE_CURRENCY)} comprovados · {formatMoney(category.estimatedBase, BASE_CURRENCY)} estimados
+                            {' · '}{formatMoney(category.verifiedBase, BASE_CURRENCY)} verified · {formatMoney(category.estimatedBase, BASE_CURRENCY)} estimated
                         </Text>
                     )}
                 </View>
@@ -250,7 +250,7 @@ function GroupSimulatorBlock({
 }: { perPersonBase: number; value: number; onChange: (n: number) => void }) {
     const safeValue = Math.max(SIM_MIN, Math.min(SIM_MAX, value || SIM_MIN));
     const totalGroup = Math.round(perPersonBase * safeValue * 100) / 100;
-    const peopleLabel = safeValue === 1 ? '1 pessoa' : `${safeValue} pessoas`;
+    const peopleLabel = safeValue === 1 ? '1 person' : `${safeValue} people`;
 
     const dec = () => onChange(Math.max(SIM_MIN, safeValue - 1));
     const inc = () => onChange(Math.min(SIM_MAX, safeValue + 1));
@@ -259,14 +259,14 @@ function GroupSimulatorBlock({
         <View>
             <View style={styles.simHeaderRow}>
                 <Icon name="users" size={16} color={theme.colors.primary} />
-                <Text style={styles.simTitle}>Simule para o seu grupo</Text>
+                <Text style={styles.simTitle}>Estimate for your group</Text>
             </View>
             <Text style={styles.simHelper}>
-                O valor de referência é calculado por pessoa. Ajuste a quantidade para estimar o total do grupo.
+                The reference amount is calculated per person. Adjust the number to estimate the group total.
             </Text>
 
             <View style={styles.simStepperRow}>
-                <Text style={styles.simStepperLabel}>Quantidade de pessoas</Text>
+                <Text style={styles.simStepperLabel}>Number of people</Text>
                 <View style={styles.stepper}>
                     <TouchableOpacity
                         style={[styles.stepperBtn, safeValue <= SIM_MIN && styles.stepperBtnDisabled]}
@@ -274,7 +274,7 @@ function GroupSimulatorBlock({
                         disabled={safeValue <= SIM_MIN}
                         activeOpacity={0.7}
                         accessibilityRole="button"
-                        accessibilityLabel="Diminuir quantidade de pessoas"
+                        accessibilityLabel="Decrease number of people"
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
                         <Ionicons name="remove" size={18} color={safeValue <= SIM_MIN ? theme.colors.text.tertiary : theme.colors.primary} />
@@ -286,7 +286,7 @@ function GroupSimulatorBlock({
                         disabled={safeValue >= SIM_MAX}
                         activeOpacity={0.7}
                         accessibilityRole="button"
-                        accessibilityLabel="Aumentar quantidade de pessoas"
+                        accessibilityLabel="Increase number of people"
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
                         <Ionicons name="add" size={18} color={safeValue >= SIM_MAX ? theme.colors.text.tertiary : theme.colors.primary} />
@@ -296,12 +296,12 @@ function GroupSimulatorBlock({
 
             <View style={styles.simSummaryRow}>
                 <View style={styles.simSummaryCell}>
-                    <Text style={styles.simSummaryLabel}>Por pessoa</Text>
+                    <Text style={styles.simSummaryLabel}>Per person</Text>
                     <Text style={styles.simSummaryValue}>{formatMoney(perPersonBase, BASE_CURRENCY)}</Text>
                 </View>
                 <View style={styles.simSummaryDivider} />
                 <View style={styles.simSummaryCell}>
-                    <Text style={styles.simSummaryLabel}>Total para {peopleLabel}</Text>
+                    <Text style={styles.simSummaryLabel}>Total for {peopleLabel}</Text>
                     <Text style={[styles.simSummaryValue, styles.simSummaryValueGroup]}>
                         {formatMoney(totalGroup, BASE_CURRENCY)}
                     </Text>

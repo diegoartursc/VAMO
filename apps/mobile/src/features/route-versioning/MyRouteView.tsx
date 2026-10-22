@@ -71,7 +71,7 @@ export interface MyRouteViewProps {
      */
     onMoveDay: (day: MergedDay, direction: 'up' | 'down') => void;
     /**
-     * Registra ref do bloco "Itinerário por Dia" da Minha versão pra atalhos
+     * Registra ref do bloco "Daily Itinerary" da Minha versão pra atalhos
      * do "Comece por aqui" do pai. (Checklist da Minha versão vive no
      * mineExtras → TripCenter — o pai já registra esse ref direto.)
      */
@@ -107,10 +107,10 @@ async function promptItemAction(
     const title = pickItemTitle(merged);
 
     const hide = await confirm({
-        title: 'Ocultar item?',
-        message: `"${title}" sumirá da sua versão do roteiro. Você pode restaurar depois.`,
-        confirmText: 'Ocultar',
-        cancelText: 'Editar',
+        title: 'Hide item?',
+        message: `"${title}" will disappear from your version of the itinerary. You can restore it later.`,
+        confirmText: 'Hide',
+        cancelText: 'Edit',
         // Ocultar é reversível (HiddenItemsSection restaura) — action 'hide'
         // resolve warning + eye-off-outline a partir do mapa central.
         action: 'hide',
@@ -184,12 +184,12 @@ export default function MyRouteView({
         if (!canEdit) return;
         haptics.selection();
         const ok = await confirm({
-            title: 'Remover este item?',
+            title: 'Remove this item?',
             message: label
-                ? `"${label}" será removido apenas da sua versão. A versão original continua intacta.`
-                : 'Esse item será removido apenas da sua versão. A versão original continua intacta.',
-            confirmText: 'Remover',
-            cancelText: 'Cancelar',
+                ? `"${label}" will be removed from your version only. The original version stays intact.`
+                : 'This item will be removed from your version only. The original version stays intact.',
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
             action: 'remove',
         });
         if (ok) onHideItem(item);
@@ -229,12 +229,12 @@ export default function MyRouteView({
     const handleRemoveDay = async (day: MergedDay) => {
         if (!canEdit) return;
         haptics.selection();
-        const dayLabel = day.title ? `Dia ${day.dayNumber} · ${day.title}` : `Dia ${day.dayNumber}`;
+        const dayLabel = day.title ? `Day ${day.dayNumber} · ${day.title}` : `Day ${day.dayNumber}`;
         const ok = await confirm({
-            title: 'Remover este dia?',
-            message: `${dayLabel} será removido apenas da sua versão. A versão original continua intacta.`,
-            confirmText: 'Remover dia',
-            cancelText: 'Cancelar',
+            title: 'Remove this day?',
+            message: `${dayLabel} will be removed from your version only. The original version stays intact.`,
+            confirmText: 'Remove day',
+            cancelText: 'Cancel',
             action: 'remove',
         });
         if (ok) onHideItem(dayToMergedItem(day));
@@ -277,8 +277,8 @@ export default function MyRouteView({
                 kind="accommodations"
                 items={sections.accommodations}
                 icon="home-outline"
-                label="Onde Fiquei"
-                addLabel="Adicionar hospedagem"
+                label="Where I Stayed"
+                addLabel="Add lodging"
                 canEdit={canEdit}
                 onAdd={() => onAddItem('accommodations')}
                 onTap={handleCardPress}
@@ -291,8 +291,8 @@ export default function MyRouteView({
                 kind="attractions"
                 items={sections.attractions}
                 icon="camera-outline"
-                label="Passeios & Atrações"
-                addLabel="Adicionar passeio"
+                label="Tours & Attractions"
+                addLabel="Add tour"
                 canEdit={canEdit}
                 onAdd={() => onAddItem('attractions')}
                 onTap={handleCardPress}
@@ -309,8 +309,8 @@ export default function MyRouteView({
                 >
                     <SectionTitle
                         icon="map-outline"
-                        label="Itinerário por Dia"
-                        subtitle={canEdit ? 'Edite ou remova dias. Adicione novos dias no fim da lista.' : undefined}
+                        label="Daily Itinerary"
+                        subtitle={canEdit ? 'Edit or remove days. Add new days at the end of the list.' : undefined}
                     />
                     {sections.days.map((day) => {
                         const expanded = expandedDays.has(day.dayNumber);
@@ -336,12 +336,12 @@ export default function MyRouteView({
                                         style={styles.dayBadge}
                                     >
                                         <Text style={styles.dayBadgeNum}>{day.position}</Text>
-                                        <Text style={styles.dayBadgeLabel}>DIA</Text>
+                                        <Text style={styles.dayBadgeLabel}>DAY</Text>
                                     </LinearGradient>
                                     <View style={{ flex: 1 }}>
                                         <View style={styles.dayTitleRow}>
                                             <Text style={styles.dayTitle} numberOfLines={1}>
-                                                {day.title || `Dia ${day.position}`}
+                                                {day.title || `Day ${day.position}`}
                                             </Text>
                                             {isAdded ? (
                                                 <View style={styles.dayBadgePill}>
@@ -349,7 +349,7 @@ export default function MyRouteView({
                                                 </View>
                                             ) : isEdited ? (
                                                 <View style={[styles.dayBadgePill, styles.dayBadgePillEdited]}>
-                                                    <Text style={styles.dayBadgePillText}>EDITADO</Text>
+                                                    <Text style={styles.dayBadgePillText}>EDITED</Text>
                                                 </View>
                                             ) : null}
                                         </View>
@@ -388,7 +388,7 @@ export default function MyRouteView({
                                             }}
                                             disabled={!canMoveUp}
                                             activeOpacity={0.85}
-                                            accessibilityLabel="Mover dia para cima"
+                                            accessibilityLabel="Move day up"
                                         >
                                             <Ionicons
                                                 name="arrow-up"
@@ -416,7 +416,7 @@ export default function MyRouteView({
                                             }}
                                             disabled={!canMoveDown}
                                             activeOpacity={0.85}
-                                            accessibilityLabel="Mover dia para baixo"
+                                            accessibilityLabel="Move day down"
                                         >
                                             <Ionicons
                                                 name="arrow-down"
@@ -438,7 +438,7 @@ export default function MyRouteView({
                                             activeOpacity={0.85}
                                         >
                                             <Ionicons name="pencil-outline" size={14} color={theme.colors.primary} />
-                                            <Text style={styles.dayActionLabel}>Editar</Text>
+                                            <Text style={styles.dayActionLabel}>Edit</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={styles.dayActionBtn}
@@ -457,7 +457,7 @@ export default function MyRouteView({
                                     <View style={styles.dayContent}>
                                         {day.activities.length === 0 ? (
                                             <Text style={styles.emptyDayText}>
-                                                Nenhuma atividade para este dia.
+                                                No activities for this day.
                                             </Text>
                                         ) : (
                                             day.activities.map((activity, idx) => (
@@ -494,7 +494,7 @@ export default function MyRouteView({
 
                                         {canEdit ? (
                                             <AddRowButton
-                                                label="Adicionar atividade"
+                                                label="Add activity"
                                                 onPress={() =>
                                                     onAddItem('dayActivity', { dayNumber: day.dayNumber })
                                                 }
@@ -508,7 +508,7 @@ export default function MyRouteView({
 
                     {canEdit ? (
                         <AddRowButton
-                            label={`Adicionar dia ${nextAvailableDayNumber}`}
+                            label={`Add day ${nextAvailableDayNumber}`}
                             onPress={handleAddDay}
                         />
                     ) : null}
@@ -520,8 +520,8 @@ export default function MyRouteView({
                 kind="transports"
                 items={sections.transports}
                 icon="navigate-outline"
-                label="Transporte"
-                addLabel="Adicionar transporte"
+                label="Transportation"
+                addLabel="Add transportation"
                 canEdit={canEdit}
                 onAdd={() => onAddItem('transports')}
                 onTap={handleCardPress}
@@ -534,8 +534,8 @@ export default function MyRouteView({
                 kind="restaurants"
                 items={sections.restaurants}
                 icon="restaurant-outline"
-                label="Restaurantes"
-                addLabel="Adicionar restaurante"
+                label="Restaurants"
+                addLabel="Add restaurant"
                 canEdit={canEdit}
                 onAdd={() => onAddItem('restaurants')}
                 onTap={handleCardPress}
@@ -544,7 +544,7 @@ export default function MyRouteView({
             />
 
             {/* ── Dicas ── (read mode limpo + toggle de edição) ──
-                Diferente das outras seções, "Dicas do Viajante" usa um
+                Diferente das outras seções, "Traveler Tips" usa um
                 modo edição: read-only por padrão (bullets + texto, sem
                 ações por item) e edição ativada por um único botão no
                 cabeçalho. O CardActions repetido por item poluía visual
@@ -558,7 +558,7 @@ export default function MyRouteView({
             />
 
             {/* ── Gastos Extras ── (read mode limpo + toggle de edição) ──
-                Mesmo padrão visual das Dicas: o "Editar"/"Remover" sob
+                Mesmo padrão visual das Dicas: o "Edit"/"Remove" sob
                 cada item virava ruído num bloco com vários gastos curtos.
                 Modo edição centralizado por seção tira essa poluição. */}
             <ExtraSpendingSection
@@ -570,7 +570,7 @@ export default function MyRouteView({
             />
 
             {/* ── Checklist ── REMOVIDO daqui.
-                O checklist vive APENAS dentro da "Minha Central da Viagem"
+                O checklist vive APENAS dentro da "My Trip Center"
                 (ChecklistTab), nunca solto na Minha Versão. O mergeEngine
                 continua agregando `checklistItems` para compat com PDF,
                 snapshots e migrations, mas a UI não renderiza essa seção
@@ -666,7 +666,7 @@ function ListSection({
             </View>
         ))
     ) : (
-        <Text style={styles.emptyText}>Nenhum item nesta seção.</Text>
+        <Text style={styles.emptyText}>No items in this section.</Text>
     );
 
     return (
@@ -683,10 +683,10 @@ function ListSection({
 }
 
 /**
- * Seção "Dicas do Viajante" com modo edição.
+ * Seção "Traveler Tips" com modo edição.
  *
  * Por padrão a lista é puramente textual (bullets + texto). Quando o
- * usuário toca em "Editar", a seção entra em modo edição:
+ * usuário toca em "Edit", a seção entra em modo edição:
  *  - cada dica vira tocável (tap abre EditItemModal);
  *  - aparece um ícone de lixeira discreto à direita de cada dica;
  *  - o botão troca pra "Concluir".
@@ -721,7 +721,7 @@ function TipsSection({
             {/* Header: título + toggle de modo edição */}
             <SectionHeader
                 sectionKey="tips"
-                label="Dicas do Viajante"
+                label="Traveler Tips"
                 right={canShowToggle ? (
                     <TouchableOpacity
                         style={[styles.tipsToggleBtn, editMode && styles.tipsToggleBtnActive]}
@@ -731,7 +731,7 @@ function TipsSection({
                         }}
                         activeOpacity={0.85}
                         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        accessibilityLabel={editMode ? 'Concluir edição das dicas' : 'Editar dicas'}
+                        accessibilityLabel={editMode ? 'Done editing tips' : 'Edit tips'}
                     >
                         <Ionicons
                             name={editMode ? 'checkmark' : 'pencil'}
@@ -744,7 +744,7 @@ function TipsSection({
                                 editMode && styles.tipsToggleLabelActive,
                             ]}
                         >
-                            {editMode ? 'Concluir' : 'Editar'}
+                            {editMode ? 'Done' : 'Edit'}
                         </Text>
                     </TouchableOpacity>
                 ) : null}
@@ -753,7 +753,7 @@ function TipsSection({
             {/* Hint sutil mostrando que está em modo edição */}
             {editMode && items.length > 0 ? (
                 <Text style={styles.tipsEditHint}>
-                    Toque numa dica para editar. Use a lixeira para remover.
+                    Tap a tip to edit it. Use the trash can to remove it.
                 </Text>
             ) : null}
 
@@ -778,7 +778,7 @@ function TipsSection({
                                         style={styles.tipDeleteBtn}
                                         onPress={() => onRequestRemove(tip)}
                                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                        accessibilityLabel="Remover dica"
+                                        accessibilityLabel="Remove tip"
                                     >
                                         <Ionicons
                                             name="trash-outline"
@@ -795,22 +795,22 @@ function TipsSection({
 
             {items.length === 0 ? (
                 <Text style={styles.emptySectionHint}>
-                    Você ainda não adicionou dicas. Guarde aqui lembretes e dicas pessoais desta viagem.
+                    You haven't added any tips yet. Keep personal reminders and tips for this trip here.
                 </Text>
             ) : null}
 
             {canEdit ? (
-                <AddRowButton label="Adicionar dica" onPress={onAdd} />
+                <AddRowButton label="Add tip" onPress={onAdd} />
             ) : null}
         </View>
     );
 }
 
 /**
- * Seção "Gastos Extras" com modo edição.
+ * Seção "Extra Expenses" com modo edição.
  *
  * Mesmo padrão do TipsSection: read mode limpo (cards puros, zero
- * CardActions abaixo) + toggle "Editar"/"Concluir" no canto direito do
+ * CardActions abaixo) + toggle "Edit"/"Concluir" no canto direito do
  * header. Em edit mode aparece lixeira discreta à direita de cada card
  * e tocar no card abre o EditItemModal.
  *
@@ -840,7 +840,7 @@ function ExtraSpendingSection({
         <View style={styles.block}>
             <SectionHeader
                 sectionKey="costs"
-                label="Gastos Extras"
+                label="Extra Expenses"
                 right={canShowToggle ? (
                     <TouchableOpacity
                         style={[styles.tipsToggleBtn, editMode && styles.tipsToggleBtnActive]}
@@ -850,7 +850,7 @@ function ExtraSpendingSection({
                         }}
                         activeOpacity={0.85}
                         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        accessibilityLabel={editMode ? 'Concluir edição dos gastos' : 'Editar seção'}
+                        accessibilityLabel={editMode ? 'Done editing expenses' : 'Edit section'}
                     >
                         <Ionicons
                             name={editMode ? 'checkmark' : 'pencil'}
@@ -863,7 +863,7 @@ function ExtraSpendingSection({
                                 editMode && styles.tipsToggleLabelActive,
                             ]}
                         >
-                            {editMode ? 'Concluir' : 'Editar seção'}
+                            {editMode ? 'Done' : 'Edit section'}
                         </Text>
                     </TouchableOpacity>
                 ) : null}
@@ -871,7 +871,7 @@ function ExtraSpendingSection({
 
             {editMode && items.length > 0 ? (
                 <Text style={styles.tipsEditHint}>
-                    Toque num gasto para editar. Use a lixeira para remover.
+                    Tap an expense to edit it. Use the trash can to remove it.
                 </Text>
             ) : null}
 
@@ -894,7 +894,7 @@ function ExtraSpendingSection({
                                     style={styles.tipDeleteBtn}
                                     onPress={() => onRequestRemove(it)}
                                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                    accessibilityLabel="Remover gasto"
+                                    accessibilityLabel="Remove expense"
                                 >
                                     <Ionicons
                                         name="trash-outline"
@@ -912,10 +912,10 @@ function ExtraSpendingSection({
                 <>
                     {items.length === 0 ? (
                         <Text style={styles.emptySectionHint}>
-                            Nenhum gasto extra adicionado. Inclua chip, seguro, bagagem e outros custos da viagem.
+                            No extra expenses added. Include SIM card, insurance, baggage and other trip costs.
                         </Text>
                     ) : null}
-                    <AddRowButton label="Adicionar gasto extra" onPress={onAdd} />
+                    <AddRowButton label="Add extra expense" onPress={onAdd} />
                 </>
             ) : null}
         </View>
@@ -925,7 +925,7 @@ function ExtraSpendingSection({
 /**
  * Row de ações visíveis abaixo de um ItemCard. Garante que o usuário
  * NÃO precise descobrir o long-press — todo card mostra explicitamente
- * "Editar" e "Remover".
+ * "Edit" e "Remove".
  *
  * Compacta (32px altura) pra não competir visualmente com o conteúdo
  * do card. Some quando o usuário não pode editar.
@@ -949,7 +949,7 @@ function CardActions({
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
                 <Ionicons name="pencil-outline" size={13} color={theme.colors.primary} />
-                <Text style={styles.cardActionLabel}>Editar</Text>
+                <Text style={styles.cardActionLabel}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity
                 style={styles.cardActionBtn}
@@ -991,7 +991,7 @@ function FlightSection({
 
     return (
         <View style={styles.block}>
-            <SectionTitle icon="airplane-outline" label="Meu Voo" />
+            <SectionTitle icon="airplane-outline" label="My Flight" />
 
             {outbound ? (
                 <View>
@@ -1010,7 +1010,7 @@ function FlightSection({
                     />
                 </View>
             ) : canEdit ? (
-                <AddRowButton label="Adicionar voo de ida" onPress={onAddOutbound} />
+                <AddRowButton label="Add outbound flight" onPress={onAddOutbound} />
             ) : null}
 
             {inbound ? (
@@ -1030,7 +1030,7 @@ function FlightSection({
                     />
                 </View>
             ) : canEdit ? (
-                <AddRowButton label="Adicionar voo de volta" onPress={onAddInbound} />
+                <AddRowButton label="Add return flight" onPress={onAddInbound} />
             ) : null}
         </View>
     );
@@ -1215,7 +1215,7 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
 
-    // Seção "Dicas do Viajante" — header com toggle de edição.
+    // Seção "Traveler Tips" — header com toggle de edição.
     tipsHeader: {
         flexDirection: 'row',
         alignItems: 'center',

@@ -33,23 +33,23 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
     try {
         const travelerId = req.traveler?.travelerId;
         if (!travelerId) {
-            return res.status(401).json({ error: 'Autenticação necessária para enviar pergunta' });
+            return res.status(401).json({ error: 'Sign in to ask a question' });
         }
 
         const { itineraryId, questionText } = req.body || {};
         const text = typeof questionText === 'string' ? questionText.trim() : '';
 
         if (!itineraryId || typeof itineraryId !== 'string') {
-            return res.status(400).json({ error: 'itineraryId é obrigatório' });
+            return res.status(400).json({ error: 'itineraryId is required' });
         }
         if (!text) {
-            return res.status(400).json({ error: 'Digite sua pergunta antes de enviar' });
+            return res.status(400).json({ error: 'Type your question before sending' });
         }
         if (text.length < MIN_QUESTION_LEN) {
-            return res.status(400).json({ error: 'Escreva uma pergunta um pouco mais completa' });
+            return res.status(400).json({ error: 'Please write a slightly more detailed question' });
         }
         if (text.length > MAX_QUESTION_LEN) {
-            return res.status(400).json({ error: `Pergunta deve ter no máximo ${MAX_QUESTION_LEN} caracteres` });
+            return res.status(400).json({ error: `Questions can be at most ${MAX_QUESTION_LEN} characters` });
         }
 
         // Roteiro existe e tem criador?
@@ -63,14 +63,14 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
             },
         });
         if (!itinerary) {
-            return res.status(404).json({ error: 'Roteiro não encontrado' });
+            return res.status(404).json({ error: 'Itinerary not found' });
         }
         if (!isPublicItineraryStatus(itinerary.status)) {
-            return res.status(400).json({ error: 'Este roteiro ainda não está disponível para perguntas' });
+            return res.status(400).json({ error: 'This itinerary isn\'t available for questions yet' });
         }
         // Criador não pode perguntar no próprio roteiro.
         if (itinerary.creator?.travelerId === travelerId) {
-            return res.status(403).json({ error: 'Você é o criador deste roteiro' });
+            return res.status(403).json({ error: 'You are the creator of this itinerary' });
         }
 
         // Anti-spam básico: bloqueia envio repetido em menos de X segundos.
@@ -83,7 +83,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
             const elapsed = (Date.now() - recent.createdAt.getTime()) / 1000;
             if (elapsed < ANTI_SPAM_WINDOW_SECONDS) {
                 return res.status(429).json({
-                    error: 'Você acabou de enviar uma pergunta. Aguarde alguns segundos antes de enviar outra.',
+                    error: 'You just sent a question. Please wait a few seconds before sending another.',
                 });
             }
         }
@@ -97,8 +97,8 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
                 data: {
                     travelerId: itinerary.creator.travelerId,
                     type: 'SYSTEM',
-                    title: 'Nova pergunta recebida',
-                    body: `Você recebeu uma nova pergunta no roteiro ${itinerary.title}.`,
+                    title: 'New question received',
+                    body: `You received a new question on the itinerary ${itinerary.title}.`,
                     data: {
                         questionId: question.id,
                         itineraryId,
@@ -134,7 +134,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
         });
     } catch (error) {
         console.error('Error creating question:', error);
-        res.status(500).json({ error: 'Falha ao enviar pergunta' });
+        res.status(500).json({ error: 'Failed to send question' });
     }
 });
 
@@ -189,7 +189,7 @@ router.get('/itinerary/:id', optionalAuthMiddleware, async (req: AuthRequest, re
         res.json({ questions: result });
     } catch (error) {
         console.error('Error fetching itinerary questions:', error);
-        res.status(500).json({ error: 'Falha ao carregar perguntas' });
+        res.status(500).json({ error: 'Failed to load questions' });
     }
 });
 
@@ -199,7 +199,7 @@ router.get('/mine', optionalAuthMiddleware, async (req: AuthRequest, res: Respon
     try {
         const travelerId = req.traveler?.travelerId;
         if (!travelerId) {
-            return res.status(401).json({ error: 'Autenticação necessária' });
+            return res.status(401).json({ error: 'Authentication required' });
         }
 
         const questions: any[] = await prisma.faqQuestion.findMany({
@@ -234,7 +234,7 @@ router.get('/mine', optionalAuthMiddleware, async (req: AuthRequest, res: Respon
                           destination: q.itinerary.destination,
                           country: q.itinerary.country,
                           image: q.itinerary.images[0]?.url || null,
-                          creatorName: q.itinerary.creator?.traveler?.name || 'Criador VAMO',
+                          creatorName: q.itinerary.creator?.traveler?.name || 'VAMO Creator',
                       }
                     : null,
             };
@@ -243,7 +243,7 @@ router.get('/mine', optionalAuthMiddleware, async (req: AuthRequest, res: Respon
         res.json({ questions: result });
     } catch (error) {
         console.error('Error fetching user questions:', error);
-        res.status(500).json({ error: 'Falha ao carregar perguntas' });
+        res.status(500).json({ error: 'Failed to load questions' });
     }
 });
 
@@ -253,7 +253,7 @@ router.get('/creator/mine', optionalAuthMiddleware, async (req: AuthRequest, res
     try {
         const travelerId = req.traveler?.travelerId;
         if (!travelerId) {
-            return res.status(401).json({ error: 'Autenticação necessária' });
+            return res.status(401).json({ error: 'Authentication required' });
         }
 
         const creator = await prisma.creator.findUnique({
@@ -261,7 +261,7 @@ router.get('/creator/mine', optionalAuthMiddleware, async (req: AuthRequest, res
             select: { id: true },
         });
         if (!creator) {
-            return res.status(403).json({ error: 'Apenas criadores podem ver esta área' });
+            return res.status(403).json({ error: 'Only creators can view this area' });
         }
 
         const questions: any[] = await prisma.faqQuestion.findMany({
@@ -294,7 +294,7 @@ router.get('/creator/mine', optionalAuthMiddleware, async (req: AuthRequest, res
         res.json({ questions: result });
     } catch (error) {
         console.error('Error fetching creator questions:', error);
-        res.status(500).json({ error: 'Falha ao carregar perguntas' });
+        res.status(500).json({ error: 'Failed to load questions' });
     }
 });
 
@@ -304,14 +304,14 @@ router.post('/:id/answer', optionalAuthMiddleware, async (req: AuthRequest, res:
     try {
         const travelerId = req.traveler?.travelerId;
         if (!travelerId) {
-            return res.status(401).json({ error: 'Autenticação necessária' });
+            return res.status(401).json({ error: 'Authentication required' });
         }
 
         const { answerText } = req.body || {};
         const text = typeof answerText === 'string' ? answerText.trim() : '';
-        if (!text) return res.status(400).json({ error: 'Digite sua resposta' });
+        if (!text) return res.status(400).json({ error: 'Type your answer' });
         if (text.length > MAX_ANSWER_LEN) {
-            return res.status(400).json({ error: `Resposta deve ter no máximo ${MAX_ANSWER_LEN} caracteres` });
+            return res.status(400).json({ error: `Answers can be at most ${MAX_ANSWER_LEN} characters` });
         }
 
         const questionId = req.params.id as string;
@@ -323,14 +323,14 @@ router.post('/:id/answer', optionalAuthMiddleware, async (req: AuthRequest, res:
                 answers: { select: { id: true }, take: 1 },
             },
         });
-        if (!question) return res.status(404).json({ error: 'Pergunta não encontrada' });
+        if (!question) return res.status(404).json({ error: 'Question not found' });
 
         // Apenas o criador dono do roteiro pode responder.
         if (question.itinerary?.creator?.travelerId !== travelerId) {
-            return res.status(403).json({ error: 'Apenas o criador do roteiro pode responder' });
+            return res.status(403).json({ error: 'Only the creator of the itinerary can answer' });
         }
         if (question.answers.length > 0) {
-            return res.status(409).json({ error: 'Esta pergunta já foi respondida' });
+            return res.status(409).json({ error: 'This question has already been answered' });
         }
 
         const answer = await prisma.faqAnswer.create({
@@ -345,8 +345,8 @@ router.post('/:id/answer', optionalAuthMiddleware, async (req: AuthRequest, res:
             data: {
                 travelerId: question.travelerId,
                 type: 'SYSTEM',
-                title: 'Sua pergunta foi respondida',
-                body: 'O criador respondeu sua pergunta sobre o roteiro.',
+                title: 'Your question was answered',
+                body: 'The creator answered your question about the itinerary.',
                 data: {
                     questionId,
                     itineraryId: question.itineraryId,
@@ -360,7 +360,7 @@ router.post('/:id/answer', optionalAuthMiddleware, async (req: AuthRequest, res:
             void sendQuestionAnsweredEmail({
                 to: question.traveler.email,
                 name: question.traveler.name,
-                itineraryTitle: question.itinerary?.title || 'seu roteiro',
+                itineraryTitle: question.itinerary?.title || 'your itinerary',
                 question: question.question,
                 answer: text,
             });
@@ -375,7 +375,7 @@ router.post('/:id/answer', optionalAuthMiddleware, async (req: AuthRequest, res:
         });
     } catch (error) {
         console.error('Error answering question:', error);
-        res.status(500).json({ error: 'Falha ao enviar resposta' });
+        res.status(500).json({ error: 'Failed to send answer' });
     }
 });
 

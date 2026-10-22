@@ -47,7 +47,7 @@ export default function CheckoutPaymentScreen() {
     const [promoCode, setPromoCode] = useState('');
 
     const formatDate = (date: Date) => {
-        return date.toLocaleDateString('pt-BR', {
+        return date.toLocaleDateString('en-US', {
             weekday: 'short',
             day: 'numeric',
             month: 'short',
@@ -79,7 +79,7 @@ export default function CheckoutPaymentScreen() {
         return (
             <View style={[styles.container, styles.loadingContainer]}>
                 <Ionicons name="airplane" size={48} color={theme.colors.primary} />
-                <Text style={styles.loadingText}>Preparando seu pedido...</Text>
+                <Text style={styles.loadingText}>Preparing your order...</Text>
             </View>
         );
     }
@@ -91,7 +91,7 @@ export default function CheckoutPaymentScreen() {
                 <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Pedido</Text>
+                <Text style={styles.headerTitle}>Order</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -109,14 +109,14 @@ export default function CheckoutPaymentScreen() {
                         <View style={[styles.stepCircle, styles.stepCircleActive]}>
                             <Text style={styles.stepNumber}>2</Text>
                         </View>
-                        <Text style={[styles.stepLabel, styles.stepLabelActive]}>Pagamento</Text>
+                        <Text style={[styles.stepLabel, styles.stepLabelActive]}>Payment</Text>
                     </View>
                 </View>
 
 
                 {/* Payment Timing */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Quando você prefere pagar?</Text>
+                    <Text style={styles.sectionTitle}>When would you like to pay?</Text>
 
                     <Pressable
                         style={[styles.option, paymentTiming === 'now' && styles.optionSelected]}
@@ -125,7 +125,7 @@ export default function CheckoutPaymentScreen() {
                         <View style={[styles.radio, paymentTiming === 'now' && styles.radioSelected]}>
                             {paymentTiming === 'now' && <View style={styles.radioDot} />}
                         </View>
-                        <Text style={styles.optionText}>Pagar agora</Text>
+                        <Text style={styles.optionText}>Pay now</Text>
                     </Pressable>
 
                     <Pressable
@@ -136,13 +136,13 @@ export default function CheckoutPaymentScreen() {
                             {paymentTiming === 'later' && <View style={styles.radioDot} />}
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.optionText}>Pagar depois</Text>
+                            <Text style={styles.optionText}>Pay later</Text>
                             <Text style={styles.optionSubtext}>
-                                Efetuaremos a cobrança em seu cartão em{' '}
+                                We'll charge your card on{' '}
                                 {(() => {
                                     const d = new Date();
                                     d.setDate(d.getDate() + 3);
-                                    return d.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
+                                    return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
                                 })()}
                             </Text>
                         </View>
@@ -151,11 +151,11 @@ export default function CheckoutPaymentScreen() {
 
                 {/* Payment Method */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Forma de pagamento</Text>
+                    <Text style={styles.sectionTitle}>Payment method</Text>
 
                     <View style={styles.securityBadge}>
                         <Ionicons name="lock-closed" size={16} color="#14b8a6" />
-                        <Text style={styles.securityText}>Todos os pagamentos são criptografados e seguros</Text>
+                        <Text style={styles.securityText}>All payments are encrypted and secure</Text>
                     </View>
 
                     <Pressable
@@ -176,14 +176,14 @@ export default function CheckoutPaymentScreen() {
                         <View style={[styles.radio, paymentMethod === 'card' && styles.radioSelected]}>
                             {paymentMethod === 'card' && <View style={styles.radioDot} />}
                         </View>
-                        <Text style={styles.paymentOptionText}>Cartão de débito ou crédito</Text>
+                        <Text style={styles.paymentOptionText}>Debit or credit card</Text>
                         <Ionicons name="card" size={20} color="#999" style={{ marginLeft: 'auto' }} />
                     </Pressable>
                 </View>
 
                 {/* Review Details */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Revise os detalhes</Text>
+                    <Text style={styles.sectionTitle}>Review the details</Text>
 
                     {/* Contact Info */}
                     <View style={styles.reviewCard}>
@@ -194,7 +194,7 @@ export default function CheckoutPaymentScreen() {
                                 <Text style={styles.reviewSubtext}>{countryCode} {phone}</Text>
                             </View>
                             <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')}>
-                                <Text style={styles.editButton}>✏️ Editar</Text>
+                                <Text style={styles.editButton}>✏️ Edit</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -206,8 +206,8 @@ export default function CheckoutPaymentScreen() {
                     >
                         <View style={styles.reviewCardHeader}>
                             <View>
-                                <Text style={styles.reviewTitle}>Resumo da solicitação de reserva</Text>
-                                <Text style={styles.reviewSubtext}>1 atividade</Text>
+                                <Text style={styles.reviewTitle}>Booking request summary</Text>
+                                <Text style={styles.reviewSubtext}>1 activity</Text>
                             </View>
                             <Ionicons
                                 name={summaryExpanded ? 'chevron-up' : 'chevron-down'}
@@ -229,7 +229,7 @@ export default function CheckoutPaymentScreen() {
                                             </Text>
                                         );
                                     })()}
-                                    <Text style={styles.badge}>💗 Melhores avaliações</Text>
+                                    <Text style={styles.badge}>💗 Top reviews</Text>
                                 </View>
 
                                 <View style={styles.detailsGrid}>
@@ -242,7 +242,7 @@ export default function CheckoutPaymentScreen() {
                                     <View style={styles.detailRow}>
                                         <Ionicons name="people" size={16} color="#999" />
                                         <Text style={styles.detailText}>
-                                            {adults} Adultos{parseInt(children as string) > 0 && `, ${children} Crianças`}
+                                            {adults} Adultos{parseInt(children as string) > 0 && `, ${children} Children`}
                                         </Text>
                                     </View>
                                     <View style={styles.detailRow}>
@@ -256,7 +256,7 @@ export default function CheckoutPaymentScreen() {
                                         <View style={styles.detailRow}>
                                             <Ionicons name="bag" size={16} color="#999" />
                                             <Text style={styles.detailText}>
-                                                {checkedBags === '0' ? 'Sem bagagem despachada (só de mão)' : `${checkedBags} bagagem(ns) despachada(s) de 23kg`}
+                                                {checkedBags === '0' ? 'No checked bag (carry-on only)' : `${checkedBags} checked bag(s) (50 lb each)`}
                                             </Text>
                                         </View>
                                     ) : null}
@@ -275,14 +275,14 @@ export default function CheckoutPaymentScreen() {
                     style={styles.promoButton}
                     onPress={() => {
                         Alert.alert(
-                            '🏷️ Código Promocional',
-                            'Entre em contato com a agência para obter códigos promocionais ou vales-presente.\n\nEsta funcionalidade será disponibilizada em breve!',
+                            '🏷️ Promo Code',
+                            'Contact the agency to get promo codes or gift cards.\n\nThis feature is coming soon!',
                             [{ text: 'Entendi' }]
                         );
                     }}
                 >
                     <Ionicons name="pricetag" size={18} color="#14b8a6" />
-                    <Text style={styles.promoButtonText}>Inserir código promocional ou vale-presente</Text>
+                    <Text style={styles.promoButtonText}>Enter a promo code or gift card</Text>
                     <Ionicons name="chevron-forward" size={18} color="#999" />
                 </TouchableOpacity>
 
@@ -294,17 +294,19 @@ export default function CheckoutPaymentScreen() {
                 <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total</Text>
                     <Text style={styles.totalPrice}>{formatMoney(parseFloat(totalPrice as string))}</Text>
-                    <Text style={styles.taxIncluded}>Todos os impostos e taxas inclusos</Text>
+                    <Text style={styles.taxIncluded}>All taxes and fees included</Text>
                 </View>
 
                 <View style={styles.policyRow}>
                     <Ionicons name="checkmark-circle" size={18} color="#14b8a6" />
-                    <Text style={styles.policyText}>Cancelamento gratuito</Text>
+                    <Text style={styles.policyText}>Free cancellation</Text>
                 </View>
 
                 <Text style={styles.terms}>
-                    Ao prosseguir, você confirma estar de acordo com os{' '}
-                    <Text style={styles.link}>Termos e condições</Text>.
+                    By continuing, you agree to the{' '}
+                    <Text style={styles.link} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })}>Terms of Use</Text>{' '}
+                    and{' '}
+                    <Text style={styles.link} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'refunds' } })}>Refund Policy</Text>.
                 </Text>
 
                 {paymentMethod === 'apple' && (
@@ -323,7 +325,7 @@ export default function CheckoutPaymentScreen() {
                         onPress={handleConfirmPayment}
                     >
                         <Text style={styles.confirmButtonText}>
-                            Confirmar pagamento
+                            Confirm payment
                         </Text>
                     </Pressable>
                 )}

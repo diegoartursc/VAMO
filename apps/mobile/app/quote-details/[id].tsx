@@ -42,9 +42,9 @@ export default function QuoteDetailsScreen() {
             <View style={styles.container}>
                 <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle" size={48} color={theme.colors.text.tertiary} />
-                    <Text style={styles.errorText}>Reserva não encontrada</Text>
+                    <Text style={styles.errorText}>Booking not found</Text>
                     <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/my-trips')} style={styles.errorButton}>
-                        <Text style={styles.errorButtonText}>Voltar</Text>
+                        <Text style={styles.errorButtonText}>Back</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -56,21 +56,21 @@ export default function QuoteDetailsScreen() {
     // Mock flight quote data — will come from API in production
     const q = {
         status: 'QUOTED' as const,
-        originCity: 'Florianópolis',
-        airline: 'LATAM',
-        flightDetails: 'FLN → CDG · 1 escala (GRU) · Embarque 10:45 · Chegada 07:30+1',
+        originCity: 'Chicago',
+        airline: 'United Airlines',
+        flightDetails: 'ORD → CDG · 1 stop (JFK) · Departs 10:45 AM · Arrives 7:30 AM +1',
         airfarePrice: 3200,
         totalPrice: 8400,
         terrestrePrice: booking.price || 5200,
         expiresAt: new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString(),
-        agencyNote: 'Encontramos a melhor tarifa! Inclui 1 bagagem despachada.',
+        agencyNote: 'We found the best fare! Includes 1 checked bag.',
     };
 
     // Calculate remaining time
     const getTimeRemaining = () => {
         if (!q.expiresAt) return '';
         const diff = new Date(q.expiresAt).getTime() - now.getTime();
-        if (diff <= 0) return 'Expirada';
+        if (diff <= 0) return 'Expired';
         const hours = Math.floor(diff / 3600000);
         const mins = Math.floor((diff % 3600000) / 60000);
         return `${hours}h ${mins}min`;
@@ -111,9 +111,9 @@ export default function QuoteDetailsScreen() {
                         <TouchableOpacity style={styles.navButton} onPress={() => safeBack(router, '/(tabs)/my-trips')}>
                             <Ionicons name="arrow-back" size={22} color="#fff" />
                         </TouchableOpacity>
-                        <Text style={styles.navTitle}>Resumo da Cotação</Text>
+                        <Text style={styles.navTitle}>Quote Summary</Text>
                         <TouchableOpacity style={styles.navButton} onPress={() => {
-                            Alert.alert('Ajuda', 'Entre em contato com a agência para qualquer dúvida.');
+                            Alert.alert('Help', 'Contact the agency with any questions.');
                         }}>
                             <Ionicons name="help-circle-outline" size={22} color="#fff" />
                         </TouchableOpacity>
@@ -130,7 +130,7 @@ export default function QuoteDetailsScreen() {
                         
                         <View style={styles.passengersContainer}>
                             <Ionicons name="people" size={14} color="rgba(255,255,255,0.8)" />
-                            <Text style={styles.headerLocation}>{booking.travelers.adults} Adultos{booking.travelers.children > 0 ? `, ${booking.travelers.children} Crianças` : ''}</Text>
+                            <Text style={styles.headerLocation}>{booking.travelers.adults} Adultos{booking.travelers.children > 0 ? `, ${booking.travelers.children} Children` : ''}</Text>
                         </View>
                     </View>
                 </View>
@@ -138,9 +138,9 @@ export default function QuoteDetailsScreen() {
                 {/* ═══ CONTEÚDO DA COTAÇÃO ═══ */}
                 <View style={styles.contentSection}>
                     
-                    <Text style={styles.sectionTitle}>Sua tarifa bloqueada</Text>
+                    <Text style={styles.sectionTitle}>Your locked fare</Text>
                     <Text style={styles.sectionDescription}>
-                        A agência encontrou uma excelente opção saindo de {q.originCity} com {booking.checkedBags > 0 ? `${booking.checkedBags} bagagem(ns) despachada(s)` : 'apenas bagagem de mão'}. Aceite a proposta para garantir esta tarifa.
+                        The agency found a great option departing from {q.originCity} with {booking.checkedBags > 0 ? `${booking.checkedBags} checked bag(s)` : 'carry-on only'}. Accept the proposal to lock in this fare.
                     </Text>
 
                     {/* Flight details Card */}
@@ -176,7 +176,7 @@ export default function QuoteDetailsScreen() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 12 }}>
                                 <Ionicons name="bag" size={14} color={theme.colors.text.secondary} />
                                 <Text style={{ fontSize: 13, color: theme.colors.text.secondary }}>
-                                    {booking.checkedBags === 0 ? 'Somente bagagem de mão (10kg)' : `${booking.checkedBags} bagagem(ns) despachada(s) de 23kg inclusa(s)`}
+                                    {booking.checkedBags === 0 ? 'Carry-on only (22 lb)' : `${booking.checkedBags} checked bag(s) (50 lb each) included`}
                                 </Text>
                             </View>
 
@@ -189,14 +189,14 @@ export default function QuoteDetailsScreen() {
                                     </Text>
                                 </View>
                                 <View style={styles.priceRow}>
-                                    <Text style={styles.priceLabel}>Aéreo ({q.airline})</Text>
+                                    <Text style={styles.priceLabel}>Airfare ({q.airline})</Text>
                                     <Text style={styles.priceLabel}>
                                         {formatMoney(q.airfarePrice)}
                                     </Text>
                                 </View>
                                 <View style={styles.priceDivider} />
                                 <View style={styles.priceRow}>
-                                    <Text style={styles.totalLabel}>Total/pessoa</Text>
+                                    <Text style={styles.totalLabel}>Total/person</Text>
                                     <Text style={styles.totalValue}>
                                         {formatMoney(q.totalPrice)}
                                     </Text>
@@ -223,8 +223,8 @@ export default function QuoteDetailsScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.rejectButton}
-                                onPress={() => Alert.alert('Recusar proposta', 'Tem certeza? A agência poderá enviar uma nova cotação.', [
-                                    { text: 'Cancelar', style: 'cancel' },
+                                onPress={() => Alert.alert('Decline proposal', 'Are you sure? The agency may send a new quote.', [
+                                    { text: 'Cancel', style: 'cancel' },
                                     { text: 'Recusar', style: 'destructive' },
                                 ])}
                             >
@@ -241,7 +241,7 @@ export default function QuoteDetailsScreen() {
                         onPress={() => router.push(`/package/${booking.packageId}`)}
                     >
                         <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
-                        <Text style={styles.viewPackageButtonText}>Ver detalhes do pacote</Text>
+                        <Text style={styles.viewPackageButtonText}>View package details</Text>
                     </TouchableOpacity>
 
                 </View>

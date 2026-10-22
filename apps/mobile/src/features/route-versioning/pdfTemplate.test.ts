@@ -1,5 +1,5 @@
 /**
- * Testes da seção "Dicas" no PDF (buildPdfHtml). Cobre o bug relatado:
+ * Testes da seção "Tips" no PDF (buildPdfHtml). Cobre o bug relatado:
  * título "Dicas" renderizava, mas os cards saíam vazios porque
  * `generalTips` é `string[]` no snapshot e o renderer assumia `{ text }`.
  *
@@ -14,9 +14,9 @@ function countOccurrences(haystack: string, needle: string): number {
     return haystack.split(needle).length - 1;
 }
 
-/** Extrai o HTML da seção "Dicas" (entre o h2 e o próximo </section>). */
+/** Extrai o HTML da seção "Tips" (entre o h2 e o próximo </section>). */
 function extractTipsSection(html: string): string | null {
-    const marker = '<h2 class="section-title">Dicas</h2>';
+    const marker = '<h2 class="section-title">Tips</h2>';
     const start = html.indexOf(marker);
     if (start === -1) return null;
     const end = html.indexOf('</section>', start);
@@ -45,7 +45,7 @@ test('original: roteiro sem dicas não renderiza título nem seção', () => {
         variant: 'original',
     });
     assert.equal(extractTipsSection(html), null);
-    assert.ok(!html.includes('>Dicas<'));
+    assert.ok(!html.includes('>Tips<'));
 });
 
 test('original: generalTips ausente (undefined) não quebra e não renderiza seção', () => {

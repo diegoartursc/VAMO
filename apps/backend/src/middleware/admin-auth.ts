@@ -20,7 +20,7 @@ export async function adminAuthMiddleware(
 ): Promise<void> {
     const auth = req.headers.authorization;
     if (!auth?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Token obrigatório' });
+        res.status(401).json({ error: 'Token required' });
         return;
     }
     try {
@@ -32,12 +32,12 @@ export async function adminAuthMiddleware(
         const payload = jwt.verify(token, JWT_SECRET) as { adminId: string };
         const admin = await prisma.admin.findUnique({ where: { id: payload.adminId } });
         if (!admin || !admin.active) {
-            res.status(401).json({ error: 'Admin inválido' });
+            res.status(401).json({ error: 'Invalid admin' });
             return;
         }
         req.admin = admin;
         next();
     } catch {
-        res.status(401).json({ error: 'Token inválido' });
+        res.status(401).json({ error: 'Invalid token' });
     }
 }

@@ -16,7 +16,7 @@ export function PriceSlider({ min, max, value, onChange, step = 100 }: PriceSlid
     const [minValue, maxValue] = value;
 
     const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('pt-BR', {
+        return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: BASE_CURRENCY,
             minimumFractionDigits: 0,
@@ -27,7 +27,7 @@ export function PriceSlider({ min, max, value, onChange, step = 100 }: PriceSlid
     return (
         <View style={styles.container}>
             <View style={styles.labelContainer}>
-                <Text style={styles.label}>Faixa de Preço</Text>
+                <Text style={styles.label}>Price Range</Text>
                 <Text style={styles.valueText}>
                     {formatPrice(minValue)} - {formatPrice(maxValue)}
                 </Text>
@@ -35,7 +35,7 @@ export function PriceSlider({ min, max, value, onChange, step = 100 }: PriceSlid
 
             {/* Slider de Valor Mínimo */}
             <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Mínimo</Text>
+                <Text style={styles.sliderLabel}>Minimum</Text>
                 <Slider
                     style={styles.slider}
                     minimumValue={min}
@@ -52,7 +52,7 @@ export function PriceSlider({ min, max, value, onChange, step = 100 }: PriceSlid
 
             {/* Slider de Valor Máximo */}
             <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Máximo</Text>
+                <Text style={styles.sliderLabel}>Maximum</Text>
                 <Slider
                     style={styles.slider}
                     minimumValue={minValue} // Não pode ser menor que o mínimo atual

@@ -95,7 +95,7 @@ test('7. a ordem interna é ícone → texto → CTA', () => {
 });
 
 test('9. o CTA continua renderizado em todos os slides', () => {
-    assert.ok(/styles\.ctaText/.test(code) && />Explorar</.test(code));
+    assert.ok(/styles\.ctaText/.test(code) && />Explore</.test(code));
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -158,7 +158,7 @@ test('13. um slide novo não exige nenhuma alteração de estilo', () => {
 
 test('12. o card inteiro é uma ação acessível com nome descritivo', () => {
     assert.ok(/accessibilityRole="button"/.test(code));
-    assert.ok(/accessibilityLabel=\{`\$\{slide\.title\}\. \$\{slide\.subtitle\}\. Explorar\.`\}/.test(code));
+    assert.ok(/accessibilityLabel=\{`\$\{slide\.title\}\. \$\{slide\.subtitle\}\. Explore\.`\}/.test(code));
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -179,10 +179,10 @@ test('18. nenhuma tela passa altura ou corrige o carrossel por fora', () => {
 
 test('14. os textos dos slides não foram encurtados para "caber"', () => {
     // A correção é estrutural: o conteúdo original continua íntegro.
-    assert.ok(carousel.includes('Conheça os roteiros dos viajantes'));
-    assert.ok(carousel.includes('Explore experiências autênticas compartilhadas pela comunidade'));
-    assert.ok(carousel.includes('Quer vender seus roteiros?'));
-    assert.ok(carousel.includes('Já viajou bastante? Transforme sua experiência em renda extra'));
+    assert.ok(carousel.includes('Discover traveler itineraries'));
+    assert.ok(carousel.includes('Explore authentic experiences shared by the community'));
+    assert.ok(carousel.includes('Want to sell your itineraries?'));
+    assert.ok(carousel.includes('Traveled a lot? Turn your experience into extra income'));
 });
 
 test('os gradientes originais foram preservados', () => {

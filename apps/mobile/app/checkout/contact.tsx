@@ -18,8 +18,8 @@ import { formatMoney } from '@vamo/shared/itinerary';
 
 // Mock user data for auto-fill
 const USER = {
-    name: 'Usuário VAMO',
-    email: 'usuario@email.com',
+    name: 'VAMO User',
+    email: 'user@email.com',
     phone: '(11) 99999-9999',
 };
 
@@ -49,7 +49,7 @@ export default function CheckoutContactScreen() {
     // Form states
     const [fullName, setFullName] = useState(USER.name);
     const [email, setEmail] = useState(USER.email);
-    const [countryCode, setCountryCode] = useState('+55');
+    const [countryCode, setCountryCode] = useState('+1');
     const [phone, setPhone] = useState(USER.phone);
     const [summaryExpanded, setSummaryExpanded] = useState(false);
 
@@ -60,7 +60,7 @@ export default function CheckoutContactScreen() {
             setTimeRemaining((prev) => {
                 if (prev <= 0) {
                     clearInterval(interval);
-                    alert('Tempo esgotado! Sua reserva expirou.');
+                    alert('Time\'s up! Your reservation expired.');
                     safeBack(router, '/(tabs)/cart');
                     return 0;
                 }
@@ -78,7 +78,7 @@ export default function CheckoutContactScreen() {
     };
 
     const formatDate = (date: Date) => {
-        return date.toLocaleDateString('pt-BR', {
+        return date.toLocaleDateString('en-US', {
             weekday: 'short',
             day: 'numeric',
             month: 'short',
@@ -88,7 +88,7 @@ export default function CheckoutContactScreen() {
 
     const handleContinue = () => {
         if (!fullName || !email || !phone) {
-            alert('Por favor, preencha todos os campos obrigatórios');
+            alert('Please fill in all required fields');
             return;
         }
 
@@ -137,7 +137,7 @@ export default function CheckoutContactScreen() {
         return (
             <View style={[styles.container, styles.loadingContainer]}>
                 <Ionicons name="airplane" size={48} color={theme.colors.primary} />
-                <Text style={styles.loadingText}>Preparando seu pedido...</Text>
+                <Text style={styles.loadingText}>Preparing your order...</Text>
             </View>
         );
     }
@@ -149,7 +149,7 @@ export default function CheckoutContactScreen() {
                 <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Pedido</Text>
+                <Text style={styles.headerTitle}>Order</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -167,7 +167,7 @@ export default function CheckoutContactScreen() {
                         <View style={styles.stepCircle}>
                             <Text style={styles.stepNumber}>2</Text>
                         </View>
-                        <Text style={styles.stepLabel}>Pagamento</Text>
+                        <Text style={styles.stepLabel}>Payment</Text>
                     </View>
                 </View>
 
@@ -191,10 +191,10 @@ export default function CheckoutContactScreen() {
                         <Ionicons name="airplane" size={22} color="#14b8a6" style={{ marginTop: 2 }} />
                         <View style={{ flex: 1 }}>
                             <Text style={{ fontSize: 15, fontWeight: '700', color: '#14b8a6', marginBottom: 4 }}>
-                                Cotação aérea personalizada
+                                Custom flight quote
                             </Text>
                             <Text style={{ fontSize: 13, color: theme.colors.text.secondary, lineHeight: 19 }}>
-                                Seu voo saindo de {originCity} com {checkedBags === '0' || !checkedBags ? 'apenas bagagem de mão (10kg) inclusa' : `${checkedBags} bagagem(ns) despachada(s) de 23kg`} será cotado pela agência. Preencha seus dados para solicitar!
+                                Your flight departing from {originCity} with {checkedBags === '0' || !checkedBags ? 'carry-on only (22 lb) included' : `${checkedBags} checked bag(s) (50 lb each)`} will be quoted by the agency. Fill in your details to request it!
                             </Text>
                         </View>
                     </View>
@@ -202,19 +202,19 @@ export default function CheckoutContactScreen() {
 
                 {/* Contact Form */}
                 <View style={styles.formSection}>
-                    <Text style={styles.formTitle}>Insira seus dados pessoais</Text>
+                    <Text style={styles.formTitle}>Enter your personal details</Text>
                     <View style={styles.securityBadge}>
                         <Ionicons name="lock-closed" size={16} color="#14b8a6" />
-                        <Text style={styles.securityText}>Reserva rápida e segura</Text>
+                        <Text style={styles.securityText}>Fast, secure booking</Text>
                     </View>
 
-                    <Text style={styles.requiredLabel}>*Preenchimento obrigatório</Text>
+                    <Text style={styles.requiredLabel}>*Required</Text>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Nome completo*</Text>
+                        <Text style={styles.inputLabel}>Full name*</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Ana Paula de Araujo Beckenkamp"
+                            placeholder="Your full name"
                             placeholderTextColor="#666"
                             value={fullName}
                             onChangeText={setFullName}
@@ -222,10 +222,10 @@ export default function CheckoutContactScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Endereço de e-mail*</Text>
+                        <Text style={styles.inputLabel}>Email address*</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="anapaula_beckencamp@hotmail.com"
+                            placeholder="you@email.com"
                             placeholderTextColor="#666"
                             value={email}
                             onChangeText={setEmail}
@@ -235,15 +235,15 @@ export default function CheckoutContactScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Código do país*</Text>
+                        <Text style={styles.inputLabel}>Country code*</Text>
                         <View style={styles.pickerContainer}>
-                            <Text style={styles.pickerValue}>Brasil (+55)</Text>
+                            <Text style={styles.pickerValue}>United States (+1)</Text>
                             <Ionicons name="chevron-down" size={20} color="#999" />
                         </View>
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Telefone celular*</Text>
+                        <Text style={styles.inputLabel}>Mobile phone*</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="5548998385188"
@@ -255,7 +255,7 @@ export default function CheckoutContactScreen() {
                     </View>
 
                     <Text style={styles.disclaimer}>
-                        Entraremos em contato apenas em caso de mudanças ou atualizações importantes em sua reserva
+                        We'll only contact you about important changes or updates to your booking
                     </Text>
                 </View>
 
@@ -265,9 +265,9 @@ export default function CheckoutContactScreen() {
                     onPress={() => setSummaryExpanded(!summaryExpanded)}
                 >
                     <View style={styles.summaryHeader}>
-                        <Text style={styles.summaryTitle}>Resumo da solicitação de reserva</Text>
+                        <Text style={styles.summaryTitle}>Booking request summary</Text>
                         <View style={styles.summaryHeaderRight}>
-                            <Text style={styles.summaryCountText}>1 atividade</Text>
+                            <Text style={styles.summaryCountText}>1 activity</Text>
                             <Ionicons
                                 name={summaryExpanded ? 'chevron-up' : 'chevron-down'}
                                 size={20}
@@ -288,7 +288,7 @@ export default function CheckoutContactScreen() {
                             <View style={styles.detailRow}>
                                 <Ionicons name="people-outline" size={16} color="#999" />
                                 <Text style={styles.detailText}>
-                                    {adults} Adultos{parseInt(children!) > 0 && `, ${children} Crianças`}
+                                    {adults} Adultos{parseInt(children!) > 0 && `, ${children} Children`}
                                 </Text>
                             </View>
                             <View style={styles.detailRow}>
@@ -312,7 +312,7 @@ export default function CheckoutContactScreen() {
                 </View>
                 <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
                     <Text style={styles.continueButtonText}>
-                        {isQuoteFlow ? '✈️ Solicitar cotação aérea' : 'Ir para pagamento'}
+                        {isQuoteFlow ? '✈️ Request flight quote' : 'Go to payment'}
                     </Text>
                 </TouchableOpacity>
             </View>

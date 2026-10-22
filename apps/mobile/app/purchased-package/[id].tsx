@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../src/theme/theme';
 import { Icon } from '../../src/components/common/Icons';
-import { formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
+import { formatTimeForDisplay } from '@vamo/shared/itinerary';
 import {
     getBookingById,
     getDaysUntilTrip,
@@ -43,15 +43,15 @@ export default function PurchasedPackageScreen() {
 
     const handleUpload = (doc: RequiredDocItem) => {
         Alert.alert(
-            `Enviar: ${doc.name}`,
-            `Selecione o arquivo para enviar.\n\n${doc.description}`,
+            `Upload: ${doc.name}`,
+            `Select the file to upload.\n\n${doc.description}`,
             [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Cancel', style: 'cancel' },
                 {
-                    text: '📎 Selecionar Arquivo',
+                    text: '📎 Select File',
                     onPress: () => {
                         setUploadStatuses(prev => ({ ...prev, [doc.id]: 'reviewing' }));
-                        Alert.alert('Enviado!', `${doc.name} foi enviado para análise da agência.`);
+                        Alert.alert('Enviado!', `${doc.name} was sent to the agency for review.`);
                     },
                 },
             ]
@@ -69,9 +69,9 @@ export default function PurchasedPackageScreen() {
             <View style={styles.container}>
                 <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle" size={48} color={theme.colors.text.tertiary} />
-                    <Text style={styles.errorText}>Reserva não encontrada</Text>
+                    <Text style={styles.errorText}>Booking not found</Text>
                     <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/my-trips')} style={styles.errorButton}>
-                        <Text style={styles.errorButtonText}>Voltar</Text>
+                        <Text style={styles.errorButtonText}>Back</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -83,9 +83,9 @@ export default function PurchasedPackageScreen() {
     const dateRange = formatTripDates(booking.travelDate, booking.travelEndDate);
 
     const statusConfig = {
-        confirmed: { label: 'Confirmado', color: theme.colors.success, icon: 'checkmark-circle' as const },
-        pending_payment: { label: 'Aguardando pagamento', color: '#F59E0B', icon: 'time' as const },
-        cancelled: { label: 'Cancelado', color: '#EF4444', icon: 'close-circle' as const },
+        confirmed: { label: 'Confirmed', color: theme.colors.success, icon: 'checkmark-circle' as const },
+        pending_payment: { label: 'Awaiting payment', color: '#F59E0B', icon: 'time' as const },
+        cancelled: { label: 'Canceled', color: '#EF4444', icon: 'close-circle' as const },
     };
     const currentStatus = statusConfig[booking.status];
 
@@ -96,10 +96,10 @@ export default function PurchasedPackageScreen() {
     };
 
     const countdownText = () => {
-        if (postTrip) return 'Viagem realizada';
-        if (daysUntil <= 0) return 'Hoje!';
-        if (daysUntil === 1) return 'Amanhã!';
-        return `${daysUntil} dias`;
+        if (postTrip) return 'Trip completed';
+        if (daysUntil <= 0) return 'Today!';
+        if (daysUntil === 1) return 'Tomorrow!';
+        return `${daysUntil} days`;
     };
 
     return (
@@ -120,9 +120,9 @@ export default function PurchasedPackageScreen() {
                         <TouchableOpacity style={styles.navButton} onPress={() => safeBack(router, '/(tabs)/my-trips')}>
                             <Ionicons name="arrow-back" size={22} color="#fff" />
                         </TouchableOpacity>
-                        <Text style={styles.navTitle}>Central da Viagem</Text>
+                        <Text style={styles.navTitle}>Trip Center</Text>
                         <TouchableOpacity style={styles.navButton} onPress={() => {
-                            Alert.alert('Ajuda', 'Entre em contato com a agência para qualquer dúvida.');
+                            Alert.alert('Help', 'Contact the agency with any questions.');
                         }}>
                             <Ionicons name="help-circle-outline" size={22} color="#fff" />
                         </TouchableOpacity>
@@ -165,7 +165,7 @@ export default function PurchasedPackageScreen() {
                     const mockAgencyDocs = [
                         {
                             id: 'ad-1',
-                            title: 'Bilhete Aéreo LATAM — FLN → CDG',
+                            title: 'Airline Ticket — JFK → CDG',
                             type: 'BOARDING_PASS',
                             sentAt: '2026-03-10',
                             viewedAt: null,
@@ -205,7 +205,7 @@ export default function PurchasedPackageScreen() {
                             }}>
                                 <Icon name="verified" size={20} color="#14b8a6" />
                                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#14b8a6', flex: 1 }}>
-                                    A agência enviou seus documentos de viagem!
+                                    The agency sent your travel documents!
                                 </Text>
                             </View>
 
@@ -218,7 +218,7 @@ export default function PurchasedPackageScreen() {
                                         borderWidth: 1, borderColor: theme.colors.border,
                                         flexDirection: 'row', alignItems: 'center', gap: 12,
                                     }}
-                                    onPress={() => Alert.alert('Abrir documento', doc.title)}
+                                    onPress={() => Alert.alert('Open document', doc.title)}
                                     activeOpacity={0.7}
                                 >
                                     <View style={{
@@ -235,7 +235,7 @@ export default function PurchasedPackageScreen() {
                                             {doc.title}
                                         </Text>
                                         <Text style={{ fontSize: 12, color: theme.colors.text.tertiary }}>
-                                            Enviado em {new Date(doc.sentAt).toLocaleDateString('pt-BR')}
+                                            Enviado em {new Date(doc.sentAt).toLocaleDateString('en-US')}
                                             {doc.viewedAt ? ' · ✅ Visualizado' : ''}
                                         </Text>
                                     </View>
@@ -257,8 +257,8 @@ export default function PurchasedPackageScreen() {
                             <Ionicons name="document-text" size={20} color={theme.colors.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.viewPackageTitle}>Ver Detalhes do Pacote</Text>
-                            <Text style={styles.viewPackageSubtitle}>Veja todas as informações, fotos e avaliações</Text>
+                            <Text style={styles.viewPackageTitle}>View Package Details</Text>
+                            <Text style={styles.viewPackageSubtitle}>See all the information, photos and reviews</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color={theme.colors.primary} />
                     </View>
@@ -269,7 +269,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* ═══ BLOCO 2 — LINHA DO TEMPO ═══ */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Linha do Tempo</Text>
+                        <Text style={styles.sectionTitle}>Timeline</Text>
                         <View style={styles.timelineContainer}>
                             {booking.timeline.map((step, index) => {
                                 const config = timelineStatusConfig[step.status];
@@ -304,7 +304,7 @@ export default function PurchasedPackageScreen() {
                                             <Text style={styles.timelineDescription}>{step.description}</Text>
                                             {step.completedDate && (
                                                 <Text style={styles.timelineDate}>
-                                                    {new Date(step.completedDate).toLocaleDateString('pt-BR')}
+                                                    {new Date(step.completedDate).toLocaleDateString('en-US')}
                                                 </Text>
                                             )}
                                         </View>
@@ -317,7 +317,7 @@ export default function PurchasedPackageScreen() {
                     {/* ═══ BLOCO 2.5 — ITINERÁRIO DETALHADO ═══ */}
                     {booking.detailedItinerary && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Itinerário Detalhado</Text>
+                            <Text style={styles.sectionTitle}>Detailed Itinerary</Text>
                             <View style={styles.itineraryContainer}>
                                 {booking.detailedItinerary.map((dayItem) => {
                                     const isExpanded = expandedDay === dayItem.day;
@@ -349,7 +349,7 @@ export default function PurchasedPackageScreen() {
                                                             <View key={activity.id} style={styles.activityItem}>
                                                                 {/* Time Column */}
                                                                 <View style={styles.activityTimeCol}>
-                                                                    <Text style={styles.activityTime}>{formatTimeForAustraliaDisplay(activity.time)}</Text>
+                                                                    <Text style={styles.activityTime}>{formatTimeForDisplay(activity.time)}</Text>
                                                                     {!isLast && <View style={styles.activityLine} />}
                                                                 </View>
 
@@ -406,13 +406,13 @@ export default function PurchasedPackageScreen() {
                     {booking.requiredDocuments && booking.requiredDocuments.length > 0 && (
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Documentos Exigidos</Text>
-                            <Text style={styles.reqDocSubtitle}>A agência precisa verificar estes documentos antes da viagem.</Text>
+                            <Text style={styles.reqDocSubtitle}>The agency needs to verify these documents before the trip.</Text>
                             {booking.requiredDocuments.map((doc) => {
                                 const status: UploadStatus = uploadStatuses[doc.id] || 'pending';
                                 const statusConfig = {
                                     pending:   { label: 'Pendente',    bg: '#FEF3C7', color: '#D97706', icon: 'time-outline' as const },
                                     uploading: { label: 'Enviando…',   bg: '#EFF6FF', color: '#3B82F6', icon: 'cloud-upload-outline' as const },
-                                    reviewing: { label: 'Em análise',  bg: '#EFF6FF', color: '#3B82F6', icon: 'hourglass-outline' as const },
+                                    reviewing: { label: 'Under review',  bg: '#EFF6FF', color: '#3B82F6', icon: 'hourglass-outline' as const },
                                     approved:  { label: 'Aprovado ✓',  bg: '#DCFCE7', color: '#16A34A', icon: 'checkmark-circle' as const },
                                     rejected:  { label: 'Rejeitado',   bg: '#FEE2E2', color: '#DC2626', icon: 'close-circle' as const },
                                 };
@@ -438,13 +438,13 @@ export default function PurchasedPackageScreen() {
                                                     activeOpacity={0.7}
                                                 >
                                                     <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
-                                                    <Text style={styles.reqDocUploadBtnText}>Enviar</Text>
+                                                    <Text style={styles.reqDocUploadBtnText}>Upload</Text>
                                                 </TouchableOpacity>
                                             )}
                                             {status === 'reviewing' && (
                                                 <TouchableOpacity
                                                     style={[styles.reqDocUploadBtn, { backgroundColor: '#94A3B8' }]}
-                                                    onPress={() => Alert.alert('Em análise', 'Seu documento está sendo revisado pela agência.')}
+                                                    onPress={() => Alert.alert('Under review', 'Your document is being reviewed by the agency.')}
                                                 >
                                                     <Ionicons name="hourglass-outline" size={14} color="#fff" />
                                                     <Text style={styles.reqDocUploadBtnText}>Ver status</Text>
@@ -454,7 +454,7 @@ export default function PurchasedPackageScreen() {
                                     </View>
                                 );
                             })}
-                            <Text style={styles.reqDocNote}>* Documentos obrigatórios para confirmação da viagem</Text>
+                            <Text style={styles.reqDocNote}>* Documents required to confirm the trip</Text>
                         </View>
                     )}
 
@@ -471,9 +471,9 @@ export default function PurchasedPackageScreen() {
                                     ]}
                                     onPress={() => {
                                         if (doc.available) {
-                                            Alert.alert(doc.title, `Abrindo ${doc.title.toLowerCase()}...`);
+                                            Alert.alert(doc.title, `Opening ${doc.title.toLowerCase()}...`);
                                         } else {
-                                            Alert.alert('Indisponível', 'Este documento estará disponível em breve.');
+                                            Alert.alert('Unavailable', 'This document will be available soon.');
                                         }
                                     }}
                                 >
@@ -496,7 +496,7 @@ export default function PurchasedPackageScreen() {
                                     <Text style={styles.documentDescription}>{doc.description}</Text>
                                     {!doc.available && (
                                         <View style={styles.unavailableBadge}>
-                                            <Text style={styles.unavailableText}>Em breve</Text>
+                                            <Text style={styles.unavailableText}>Coming soon</Text>
                                         </View>
                                     )}
                                 </TouchableOpacity>
@@ -506,7 +506,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* ═══ BLOCO 4 — INCLUSÕES OBJETIVAS ═══ */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>O que está incluso</Text>
+                        <Text style={styles.sectionTitle}>What's included</Text>
                         <View style={styles.inclusionsContainer}>
                             {booking.inclusions.map((inc) => (
                                 <View key={inc.id} style={styles.inclusionRow}>
@@ -522,7 +522,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* ═══ BLOCO 5 — PREPARAÇÃO PARA A VIAGEM ═══ */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Preparação para a Viagem</Text>
+                        <Text style={styles.sectionTitle}>Trip Preparation</Text>
                         {booking.preparation.map((prep) => (
                             <View key={prep.id} style={styles.prepCard}>
                                 <View style={styles.prepHeader}>
@@ -542,11 +542,11 @@ export default function PurchasedPackageScreen() {
                     {/* ═══ BLOCO 6 — PÓS-VIAGEM (CONDICIONAL) ═══ */}
                     {postTrip && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Pós-Viagem</Text>
+                            <Text style={styles.sectionTitle}>Post-Trip</Text>
                             <View style={styles.postTripCard}>
-                                <Text style={styles.postTripTitle}>Como foi sua experiência?</Text>
+                                <Text style={styles.postTripTitle}>How was your experience?</Text>
                                 <Text style={styles.postTripSubtitle}>
-                                    Ajude outros viajantes compartilhando sua opinião
+                                    Help other travelers by sharing your opinion
                                 </Text>
 
                                 <TouchableOpacity
@@ -554,12 +554,12 @@ export default function PurchasedPackageScreen() {
                                     onPress={() => Alert.alert('Avaliar', 'Funcionalidade em desenvolvimento')}
                                 >
                                     <Ionicons name="star" size={20} color="#fff" />
-                                    <Text style={styles.postTripPrimaryText}>Avaliar viagem</Text>
+                                    <Text style={styles.postTripPrimaryText}>Review trip</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
                                     style={styles.postTripSecondaryButton}
-                                    onPress={() => Alert.alert('Repetir', 'Buscando pacote semelhante...')}
+                                    onPress={() => Alert.alert('Repetir', 'Looking for a similar package...')}
                                 >
                                     <Ionicons name="refresh" size={20} color={theme.colors.primary} />
                                     <Text style={styles.postTripSecondaryText}>Repetir pacote</Text>
@@ -567,10 +567,10 @@ export default function PurchasedPackageScreen() {
 
                                 <TouchableOpacity
                                     style={styles.postTripSecondaryButton}
-                                    onPress={() => Alert.alert('Fotos', 'Galeria da comunidade em breve!')}
+                                    onPress={() => Alert.alert('Photos', 'Community gallery coming soon!')}
                                 >
                                     <Ionicons name="images" size={20} color={theme.colors.primary} />
-                                    <Text style={styles.postTripSecondaryText}>Ver fotos da comunidade</Text>
+                                    <Text style={styles.postTripSecondaryText}>View community photos</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -581,11 +581,11 @@ export default function PurchasedPackageScreen() {
                         <Text style={styles.agencyLogo}>{booking.agencyLogo}</Text>
                         <View style={styles.agencyContent}>
                             <Text style={styles.agencyName}>{booking.agencyName}</Text>
-                            <Text style={styles.agencyLabel}>Agência responsável</Text>
+                            <Text style={styles.agencyLabel}>Responsible agency</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.agencyContact}
-                            onPress={() => Alert.alert('Contato', `Entrando em contato com ${booking.agencyName}...`)}
+                            onPress={() => Alert.alert('Contato', `Contacting ${booking.agencyName}...`)}
                         >
                             <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
                         </TouchableOpacity>
@@ -611,7 +611,7 @@ export default function PurchasedPackageScreen() {
                         >
                             <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
                             <Text style={{ color: theme.colors.primary, fontSize: 15, fontWeight: '600' }}>
-                                Ver detalhes do pacote
+                                View package details
                             </Text>
                         </TouchableOpacity>
                     </View>

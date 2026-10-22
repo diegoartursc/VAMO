@@ -41,7 +41,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
                     ) : pkg.agency?.verified ? (
                         <View style={styles.verifiedBadge}>
                             <Icon name="verified" size={12} color="#FFF" />
-                            <Text style={styles.verifiedText}>Agência Verificada</Text>
+                            <Text style={styles.verifiedText}>Verified Agency</Text>
                         </View>
                     ) : null}
                 </View>
@@ -80,7 +80,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
                         <>
                             <Text style={styles.separator}>•</Text>
                             <Icon name="verified" size={12} color={theme.colors.primary} strokeWidth={2} />
-                            <Text style={styles.compactText}>Agência verificada</Text>
+                            <Text style={styles.compactText}>Verified agency</Text>
                         </>
                     )}
                     <Text style={styles.separator}>•</Text>
@@ -135,7 +135,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
                     {pkg.inclusions?.tours && pkg.inclusions.tours.length > 0 && (
                         <View style={styles.strategicChip}>
                             <Icon name="compass" size={14} color={theme.colors.primary} />
-                            <Text style={styles.chipLabel}>Passeios inclusos</Text>
+                            <Text style={styles.chipLabel}>Tours included</Text>
                         </View>
                     )}
                     {pkg.inclusions?.extras && pkg.inclusions.extras.length > 0 && (
@@ -152,7 +152,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
                         <Text style={styles.priceValue}>
                             {typeof pkg.price.min === 'number' ? formatMoney(pkg.price.min) : pkg.price.min}
                         </Text>
-                        <Text style={styles.priceLabel}>por pessoa</Text>
+                        <Text style={styles.priceLabel}>per person</Text>
                         <Text style={styles.reviewCountFooter}>
                             ({pkg.reviewCount} avaliações)
                         </Text>
@@ -163,7 +163,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
                         )}
                     </View>
                     <TouchableOpacity style={styles.ctaButton} onPress={onPress}>
-                        <Text style={styles.ctaButtonText}>Ver pacote completo</Text>
+                        <Text style={styles.ctaButtonText}>View full package</Text>
                         <Text style={styles.ctaArrow}>→</Text>
                     </TouchableOpacity>
                 </View>

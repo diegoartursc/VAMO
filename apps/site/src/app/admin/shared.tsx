@@ -317,7 +317,7 @@ export function ItemList({ items, type, onApprove, onReject, onCostProofs, empty
                                         <span style={{ fontSize: "11px", fontWeight: "700", color: item.qualityScore >= 70 ? "#16A34A" : item.qualityScore >= 40 ? "#D97706" : "#DC2626" }}>Score: {item.qualityScore}%</span>
                                     )
                                 )}
-                                <span style={{ fontSize: "11px", color: "#98989D" }}>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</span>
+                                <span style={{ fontSize: "11px", color: "#98989D" }}>{new Date(item.createdAt).toLocaleDateString("en-US")}</span>
                                 {item.approvalNote && <span style={{ fontSize: "11px", color: "#DC2626", fontStyle: "italic" }}>Nota: {item.approvalNote}</span>}
                                 {type === "itineraries" && item.travelProofUrl && (
                                     <a

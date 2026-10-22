@@ -15,8 +15,8 @@ const NAVY_BG = '#EEF1F8';
 export const TRAVELER_LEVELS: LevelConfig<TravelerLevel>[] = [
     {
         level: 'explorer',
-        label: 'Explorador',
-        description: 'Você começou sua jornada na VAMO. Complete seu perfil, salve roteiros e dê os primeiros passos para planejar sua próxima viagem.',
+        label: 'Explorer',
+        description: 'You\'ve started your journey on VAMO. Complete your profile, save itineraries and take your first steps toward planning your next trip.',
         icon: '🌍',
         color: SECONDARY,
         bgColor: NAVY_BG,
@@ -24,8 +24,8 @@ export const TRAVELER_LEVELS: LevelConfig<TravelerLevel>[] = [
     },
     {
         level: 'active_traveler',
-        label: 'Viajante Ativo',
-        description: 'Você já está planejando melhor suas viagens. Continue salvando experiências, montando seu carrinho e avançando para sua primeira compra.',
+        label: 'Active Traveler',
+        description: 'You\'re already planning your trips better. Keep saving experiences, building your cart and moving toward your first purchase.',
         icon: '✈️',
         color: SECONDARY,
         bgColor: NAVY_BG,
@@ -33,8 +33,8 @@ export const TRAVELER_LEVELS: LevelConfig<TravelerLevel>[] = [
     },
     {
         level: 'planner',
-        label: 'Planejador',
-        description: 'Você já transforma inspiração em planejamento real. Agora sua experiência começa a ajudar outros viajantes também.',
+        label: 'Planner',
+        description: 'You already turn inspiration into real planning. Now your experience starts helping other travelers too.',
         icon: '🗺️',
         color: SECONDARY,
         bgColor: NAVY_BG,
@@ -45,8 +45,8 @@ export const TRAVELER_LEVELS: LevelConfig<TravelerLevel>[] = [
         // não é persistido, mas manter a key evita qualquer regressão sutil.
         // O rótulo público virou "Viajante Criador".
         level: 'backpacker',
-        label: 'Viajante Criador',
-        description: 'Você já pode transformar sua experiência em roteiros publicados e começar a construir presença como criador.',
+        label: 'Creator Traveler',
+        description: 'You can now turn your experience into published itineraries and start building your presence as a creator.',
         icon: '🧭',
         color: PRIMARY,
         bgColor: PRIMARY_BG,
@@ -54,8 +54,8 @@ export const TRAVELER_LEVELS: LevelConfig<TravelerLevel>[] = [
     },
     {
         level: 'experienced',
-        label: 'Viajante Experiente',
-        description: 'Você já participa de verdade da VAMO: compra, avalia, publica e começa a construir reputação.',
+        label: 'Seasoned Traveler',
+        description: 'You\'re now a real part of VAMO: you buy, review, publish and start building a reputation.',
         icon: '⭐',
         color: PRIMARY,
         bgColor: PRIMARY_BG,
@@ -63,8 +63,8 @@ export const TRAVELER_LEVELS: LevelConfig<TravelerLevel>[] = [
     },
     {
         level: 'pathfinder',
-        label: 'Desbravador',
-        description: 'Você já é uma referência dentro da VAMO. Suas compras, avaliações e roteiros ajudam a comunidade a crescer.',
+        label: 'Pathfinder',
+        description: 'You\'re already a reference on VAMO. Your purchases, reviews and itineraries help the community grow.',
         icon: '🚀',
         color: PRIMARY,
         bgColor: PRIMARY_BG,
@@ -72,8 +72,8 @@ export const TRAVELER_LEVELS: LevelConfig<TravelerLevel>[] = [
     },
     {
         level: 'ambassador',
-        label: 'Embaixador VAMO',
-        description: 'Você alcançou um status especial na VAMO. Sua jornada inspira viajantes e fortalece a comunidade.',
+        label: 'VAMO Ambassador',
+        description: 'You\'ve reached a special status on VAMO. Your journey inspires travelers and strengthens the community.',
         icon: '👑',
         color: PRIMARY,
         bgColor: PRIMARY_BG,

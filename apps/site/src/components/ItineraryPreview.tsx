@@ -462,7 +462,7 @@ export default function ItineraryPreview({
               <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.accent }}>{curSymbol}</span>
                 <span style={{ fontSize: 22, fontWeight: 700 }}>
-                  {priceNum.toFixed(2).replace(".", ",")}
+                  {priceNum.toFixed(2)}
                 </span>
               </div>
               <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
@@ -561,7 +561,7 @@ export default function ItineraryPreview({
                   Estimativa total · {durationNum} dia{durationNum !== 1 ? "s" : ""}
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>
-                  {curSymbol} {estimatedSpending.max.toLocaleString("pt-BR")}
+                  {curSymbol} {estimatedSpending.max.toLocaleString("en-US")}
                 </div>
                 {estimatedSpending.manualEntries && estimatedSpending.manualEntries.length > 0 && (
                    <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>

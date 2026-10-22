@@ -86,19 +86,19 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
     const country = (loc0?.country     || data.country     || "").trim();
 
     const b1: ScoreCriterion[] = [
-        { text: "Título do roteiro preenchido",          done: !!(data.title?.trim()),                                pts: 5 },
-        { text: "Cidade de destino informada",           done: !!city,                                                pts: 3 },
-        { text: "País de destino informado",             done: !!country,                                             pts: 2 },
-        { text: "Descrição preenchida",                  done: !!(data.description?.trim()),                          pts: 2 },
-        { text: "Descrição com 150+ caracteres",         done: (data.description?.trim().length ?? 0) >= 150,         pts: 2 },
-        { text: "Estilo de viagem selecionado (1+)",     done: (data.travelStyles?.length ?? 0) >= 1,                 pts: 3 },
-        { text: "Categoria temática selecionada (1+)",   done: (data.categories?.length ?? 0) >= 1,                   pts: 3 },
+        { text: "Itinerary title filled in",          done: !!(data.title?.trim()),                                pts: 5 },
+        { text: "Destination city provided",           done: !!city,                                                pts: 3 },
+        { text: "Destination country provided",             done: !!country,                                             pts: 2 },
+        { text: "Description filled in",                  done: !!(data.description?.trim()),                          pts: 2 },
+        { text: "Description with 150+ characters",         done: (data.description?.trim().length ?? 0) >= 150,         pts: 2 },
+        { text: "Travel style selected (1+)",     done: (data.travelStyles?.length ?? 0) >= 1,                 pts: 3 },
+        { text: "Theme category selected (1+)",   done: (data.categories?.length ?? 0) >= 1,                   pts: 3 },
     ];
 
     // ─── Bloco 2: Preço & Comercial (10 pts) ───
     const priceOk = (data.price ?? 0) > 0;
     const b2: ScoreCriterion[] = [
-        { text: "Preço de venda definido", done: priceOk, pts: 10 },
+        { text: "Sale price set", done: priceOk, pts: 10 },
     ];
 
     // ─── Bloco 3: Fotos de capa (8 pts) ───
@@ -106,8 +106,8 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
     const galleryImgs = (data.images ?? []).filter(Boolean);
     const totalImgs   = new Set([...coverPhotos, ...galleryImgs]).size;
     const b3: ScoreCriterion[] = [
-        { text: "Pelo menos 1 foto de capa adicionada", done: totalImgs >= 1, pts: 5 },
-        { text: "3 fotos de capa (ideal)",              done: totalImgs >= 3, pts: 3 },
+        { text: "At least 1 cover photo added", done: totalImgs >= 1, pts: 5 },
+        { text: "3 cover photos (ideal)",              done: totalImgs >= 3, pts: 3 },
     ];
 
     // ─── Bloco 4: Roteiro dia a dia (20 pts) ───
@@ -121,25 +121,25 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
     const actsWithTime = days.some(d => d.activities?.some(a => a.time?.trim()));
 
     const daysLabel = allDaysDone
-        ? `${daysCreated}/${duration} dias preenchidos ✓`
-        : `${daysCreated}/${duration} dias preenchidos`;
+        ? `${daysCreated}/${duration} days completed ✓`
+        : `${daysCreated}/${duration} days completed`;
 
     const b4: ScoreCriterion[] = [
-        { text: "Ao menos 1 dia de roteiro criado",                    done: daysCreated >= 1,                              pts: 4 },
+        { text: "At least 1 itinerary day created",                    done: daysCreated >= 1,                              pts: 4 },
         { text: daysLabel,                                              done: allDaysDone,                                   pts: 6 },
-        { text: "Todos os dias com descrição",                         done: daysCreated > 0 && daysWithDesc === daysCreated, pts: 4 },
-        { text: "Ao menos 1 atividade por dia (média)",                done: avgActs >= 1,                                  pts: 4 },
-        { text: "Horários definidos nas atividades",                   done: actsWithTime,                                  pts: 2 },
+        { text: "Every day has a description",                         done: daysCreated > 0 && daysWithDesc === daysCreated, pts: 4 },
+        { text: "At least 1 activity per day (average)",                done: avgActs >= 1,                                  pts: 4 },
+        { text: "Times set on activities",                   done: actsWithTime,                                  pts: 2 },
     ];
 
     // ─── Bloco 5: Módulos de conteúdo (15 pts) ───
     const b5: ScoreCriterion[] = [
-        { text: "Hospedagem recomendada adicionada",   done: (data.accommodations?.length ?? 0) >= 1,                                pts: 3 },
-        { text: "Passeio/atração adicionado",          done: (data.attractions?.length ?? 0) >= 1,                                   pts: 3 },
-        { text: "Restaurante recomendado adicionado",  done: (data.restaurants?.length ?? 0) >= 1,                                   pts: 3 },
-        { text: "Dicas de transporte local",           done: (data.transports?.length ?? 0) >= 1,                                    pts: 3 },
-        { text: "Dicas gerais de viagem (1+)",         done: (data.generalTips ?? []).filter(t => t?.trim()).length >= 1,            pts: 2 },
-        { text: "Checklist de viagem adicionado",      done: (data.checklistItems?.length ?? 0) >= 1,                                pts: 1 },
+        { text: "Recommended lodging added",   done: (data.accommodations?.length ?? 0) >= 1,                                pts: 3 },
+        { text: "Tour/attraction added",          done: (data.attractions?.length ?? 0) >= 1,                                   pts: 3 },
+        { text: "Recommended restaurant added",  done: (data.restaurants?.length ?? 0) >= 1,                                   pts: 3 },
+        { text: "Local transportation tips",           done: (data.transports?.length ?? 0) >= 1,                                    pts: 3 },
+        { text: "General travel tips (1+)",         done: (data.generalTips ?? []).filter(t => t?.trim()).length >= 1,            pts: 2 },
+        { text: "Travel checklist added",      done: (data.checklistItems?.length ?? 0) >= 1,                                pts: 1 },
     ];
 
     // ─── Bloco 6: Transparência financeira (8 pts) ───
@@ -214,13 +214,13 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
     const informedCount = estimatedCount + verifiedCount;
 
     const b6Raw: ScoreCriterion[] = [
-        { text: "Pelo menos 1 custo informado",
+        { text: "At least 1 cost provided",
           done: informedCount >= 1, pts: 2 },
-        { text: "3+ custos informados (transparência)",
+        { text: "3+ costs provided (transparency)",
           done: informedCount >= 3, pts: 2 },
-        { text: "Custo comprovado com arquivo anexado",
+        { text: "Verified cost with attached proof",
           done: verifiedWithProofCount >= 1, pts: 2 },
-        { text: "Observação contextual em algum custo",
+        { text: "Context note on at least one cost",
           done: notesCount >= 1, pts: 2 },
     ];
     // Satura em 8 pontos (ver doc do bloco).
@@ -228,20 +228,20 @@ export function calcQualityBlocks(data: ScoreInput): ScoreBlock[] {
 
     // ─── Bloco 7: Confiança & Qualidade (12 pts) ───
     const b7: ScoreCriterion[] = [
-        { text: "Comprovante de viagem enviado",         done: !!(data.travelProofUrl?.trim()),                       pts: 7 },
-        { text: "Destaques do roteiro preenchidos (2+)", done: (data.highlights ?? []).filter(Boolean).length >= 2,   pts: 5 },
+        { text: "Proof of travel uploaded",         done: !!(data.travelProofUrl?.trim()),                       pts: 7 },
+        { text: "Itinerary highlights filled in (2+)", done: (data.highlights ?? []).filter(Boolean).length >= 2,   pts: 5 },
     ];
 
     const sum = (arr: ScoreCriterion[]) => arr.reduce((s, c) => s + (c.done ? c.pts : 0), 0);
 
     return [
-        { label: "Identidade & Indexação",          earned: sum(b1), max: 20, criteria: b1 },
-        { label: "Preço & Comercial",               earned: sum(b2), max: 10, criteria: b2 },
-        { label: "Fotos de capa",                   earned: sum(b3), max: 8,  criteria: b3 },
-        { label: "Roteiro dia a dia",               earned: sum(b4), max: 20, criteria: b4 },
-        { label: "Módulos de conteúdo",             earned: sum(b5), max: 15, criteria: b5 },
-        { label: "Transparência financeira",        earned: sum(b6), max: 8,  criteria: b6 },
-        { label: "Confiança & Qualidade",           earned: sum(b7), max: 12, criteria: b7 },
+        { label: "Identity & Discoverability",          earned: sum(b1), max: 20, criteria: b1 },
+        { label: "Price & Commerce",               earned: sum(b2), max: 10, criteria: b2 },
+        { label: "Cover photos",                   earned: sum(b3), max: 8,  criteria: b3 },
+        { label: "Day-by-day plan",               earned: sum(b4), max: 20, criteria: b4 },
+        { label: "Content modules",             earned: sum(b5), max: 15, criteria: b5 },
+        { label: "Financial transparency",        earned: sum(b6), max: 8,  criteria: b6 },
+        { label: "Trust & Quality",           earned: sum(b7), max: 12, criteria: b7 },
     ];
 }
 

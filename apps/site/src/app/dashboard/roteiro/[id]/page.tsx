@@ -1856,7 +1856,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
             /* ═══ BLOCO 5: GASTO (manual por módulo ativo) ═══ */
             case "spending": {
                 const getCurrencySymbol = (code: string) => CURRENCIES.find(c => c.code === code)?.symbol || code;
-                const fmt = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
                 // Sync spending entries with active modules that have spending
                 const spendingModuleKeys = Object.keys(SPENDING_MODULE_MAP).filter(k => activeModules.includes(k));

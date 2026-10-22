@@ -33,17 +33,17 @@ export interface HiddenItemsSectionProps {
 // ─── Labels por kind ──────────────────────────────────────────
 
 const KIND_LABEL: Record<string, string> = {
-    accommodations: 'Hospedagem',
-    transports: 'Transporte',
-    attractions: 'Passeio',
-    restaurants: 'Restaurante',
-    generalTips: 'Dica',
+    accommodations: 'Lodging',
+    transports: 'Transportation',
+    attractions: 'Tour',
+    restaurants: 'Restaurant',
+    generalTips: 'Tip',
     checklistItems: 'Checklist',
-    extraSpendingItems: 'Gasto extra',
-    flightOutbound: 'Voo de ida',
-    flightReturn: 'Voo de volta',
-    dayActivity: 'Atividade',
-    day: 'Dia',
+    extraSpendingItems: 'Extra expense',
+    flightOutbound: 'Outbound flight',
+    flightReturn: 'Return flight',
+    dayActivity: 'Activity',
+    day: 'Day',
 };
 
 function pickTitle(merged: MergedItem): string {
@@ -51,7 +51,7 @@ function pickTitle(merged: MergedItem): string {
     // Dia: monta "Dia N · título" — fica claro qual dia está ocultado.
     if (merged.kind === 'day') {
         const dayNumber = typeof d.dayNumber === 'number' ? d.dayNumber : '?';
-        return d.title ? `Dia ${dayNumber} · ${d.title}` : `Dia ${dayNumber}`;
+        return d.title ? `Day ${dayNumber} · ${d.title}` : `Day ${dayNumber}`;
     }
     return (
         d.title ||
@@ -76,7 +76,7 @@ export default function HiddenItemsSection({
     if (!hidden || hidden.length === 0) return null;
 
     const count = hidden.length;
-    const word = count === 1 ? 'item ocultado' : 'itens ocultados';
+    const word = count === 1 ? 'hidden item' : 'hidden items';
 
     return (
         <View style={styles.wrap}>
@@ -94,7 +94,7 @@ export default function HiddenItemsSection({
                     color={theme.colors.text.secondary}
                 />
                 <Text style={styles.chipText}>
-                    {expanded ? 'Esconder' : `Mostrar ${count} ${word}`}
+                    {expanded ? 'Hide' : `Show ${count} ${word}`}
                 </Text>
                 <Ionicons
                     name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -131,7 +131,7 @@ export default function HiddenItemsSection({
                                             size={13}
                                             color={theme.colors.primary}
                                         />
-                                        <Text style={styles.restoreText}>Restaurar</Text>
+                                        <Text style={styles.restoreText}>Restore</Text>
                                     </TouchableOpacity>
                                 ) : null}
                             </View>

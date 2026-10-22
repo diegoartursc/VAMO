@@ -136,7 +136,7 @@ export default function VendasPage() {
     const [docDesc, setDocDesc] = useState("");
 
     const formatDate = (d: string) =>
-        new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+        new Date(d).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
 
     const formatCurrency = (v: number) =>
         `${BASE_CURRENCY_SYMBOL}${v.toLocaleString(BASE_LOCALE, { minimumFractionDigits: 0 })}`;

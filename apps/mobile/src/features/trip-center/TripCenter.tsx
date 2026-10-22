@@ -105,7 +105,7 @@ export default function TripCenter({
         } catch (e: any) {
             // Erro silencioso na UI principal (a Central é complementar).
             // Guardamos a mensagem para mostrar um banner discreto.
-            setLoadError(e?.message || 'Não foi possível carregar sua Central da Viagem.');
+            setLoadError(e?.message || 'We couldn\'t load your Trip Center.');
         } finally {
             setLoading(false);
         }
@@ -118,7 +118,7 @@ export default function TripCenter({
 
     const updateCreatorProgress = useCallback(
         async (next: Record<string, boolean>) => {
-            if (!accessToken) throw new Error('Sessão expirada');
+            if (!accessToken) throw new Error('Session expired');
             if (onUpdateCreatorChecklistProgress) {
                 await onUpdateCreatorChecklistProgress(next);
                 return;
@@ -139,8 +139,8 @@ export default function TripCenter({
             } catch (error) {
                 setCustomization(prev);
                 notify({
-                    title: 'Não foi possível salvar',
-                    message: 'O progresso do checklist não foi atualizado. Tente novamente.',
+                    title: 'Couldn\'t save',
+                    message: 'Your checklist progress wasn\'t updated. Please try again.',
                     variant: 'error',
                 });
                 throw error;
@@ -169,9 +169,9 @@ export default function TripCenter({
                     <Ionicons name="briefcase" size={18} color={theme.colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.title}>Minha Central da Viagem</Text>
+                    <Text style={styles.title}>My Trip Center</Text>
                     <Text style={styles.subtitle}>
-                        Guarde documentos, bilhetes, reservas e tarefas importantes em um só lugar.
+                        Keep documents, tickets, bookings and important tasks in one place.
                     </Text>
                 </View>
             </View>
@@ -217,8 +217,8 @@ export default function TripCenter({
                     <Ionicons name="lock-closed-outline" size={14} color={theme.colors.text.secondary} />
                     <Text style={styles.readOnlyText}>
                         {isAuthenticated
-                            ? 'Esta Central é só leitura porque sua sessão está limitada.'
-                            : 'Entre na sua conta para editar a Central da Viagem.'}
+                            ? 'This Trip Center is read-only because your session is limited.'
+                            : 'Sign in to your account to edit the Trip Center.'}
                     </Text>
                 </View>
             )}

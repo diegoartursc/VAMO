@@ -41,11 +41,11 @@ export function ExperienceSummaryCard({
 
     return (
         <View style={styles.card}>
-            <Text style={styles.title}>Resumo da experiência</Text>
+            <Text style={styles.title}>Experience summary</Text>
 
             {hasStyle && (
                 <View style={styles.row}>
-                    <Text style={styles.rowLabel}>Estilo</Text>
+                    <Text style={styles.rowLabel}>Style</Text>
                     <View style={styles.styleValueWrap}>
                         <Text style={styles.styleValue}>{styleLabel}</Text>
                         {!!styleBlurb && <Text style={styles.styleBlurb}>{styleBlurb}</Text>}
@@ -53,10 +53,10 @@ export function ExperienceSummaryCard({
                             onPress={onOpenStyleGuide}
                             hitSlop={6}
                             style={styles.styleLink}
-                            accessibilityLabel="Entenda o estilo"
+                            accessibilityLabel="Understand the style"
                         >
                             <Ionicons name="help-circle-outline" size={13} color={theme.colors.primary} />
-                            <Text style={styles.styleLinkText}>Entenda o estilo</Text>
+                            <Text style={styles.styleLinkText}>Understand the style</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -66,7 +66,7 @@ export function ExperienceSummaryCard({
 
             {hasCategories && (
                 <View style={styles.row}>
-                    <Text style={styles.rowLabel}>Categorias</Text>
+                    <Text style={styles.rowLabel}>Categories</Text>
                     <View style={styles.chipsWrap}>
                         {categories.map((chip) => (
                             <View key={chip.key} style={styles.chip}>

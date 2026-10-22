@@ -13,7 +13,7 @@
  * calculada pela largura REAL medida (onLayout), não por Dimensions da janela
  * — o mesmo card aparece em lista full-width e em carrossel de 320px.
  *
- * "Estilo" e "Inclui" nunca se misturam: rótulo textual + tom de cor
+ * "Style" e "Includes" nunca se misturam: rótulo textual + tom de cor
  * diferentes (navy para tema, teal para conteúdo entregue). A diferenciação
  * não depende só da cor.
  */
@@ -50,7 +50,7 @@ const DEFAULT_MAX_MODULES = 3;
 
 /** Padding horizontal do painel — precisa bater com `styles.panel`. */
 export const PANEL_PADDING_HORIZONTAL = 10;
-/** Coluna fixa do rótulo — mantém "Estilo" e "Inclui" alinhados verticalmente. */
+/** Coluna fixa do rótulo — mantém "Style" e "Includes" alinhados verticalmente. */
 const LABEL_COLUMN_WIDTH = 44;
 const LABEL_GAP = 8;
 
@@ -78,7 +78,7 @@ export function ItinerarySummaryPanel({
         >
             {hasCategories && (
                 <CompactInfoRow
-                    label="Estilo"
+                    label="Style"
                     items={categories}
                     itemsWidth={itemsWidth}
                     maxItems={maxCategories}
@@ -90,7 +90,7 @@ export function ItinerarySummaryPanel({
 
             {hasModules && (
                 <CompactInfoRow
-                    label="Inclui"
+                    label="Includes"
                     items={modules}
                     itemsWidth={itemsWidth}
                     maxItems={maxModules}

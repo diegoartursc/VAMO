@@ -28,7 +28,7 @@ const getParam = (value: string | string[] | undefined): string => {
 };
 
 const formatPrice = (value: number, currency?: string | null) => (
-    value > 0 ? formatMoney(value, currency || undefined) : 'Grátis'
+    value > 0 ? formatMoney(value, currency || undefined) : 'Free'
 );
 
 const hasValidContactData = ({
@@ -89,7 +89,7 @@ export default function ItineraryPaymentScreen() {
 
         const loadItinerary = async () => {
             if (!itineraryId) {
-                setLoadError('Roteiro inválido.');
+                setLoadError('Invalid itinerary.');
                 setLoading(false);
                 return;
             }
@@ -101,7 +101,7 @@ export default function ItineraryPaymentScreen() {
                 if (!mounted) return;
                 if (!data) {
                     setItinerary(null);
-                    setLoadError('Roteiro não encontrado ou indisponível.');
+                    setLoadError('Itinerary not found or unavailable.');
                     return;
                 }
                 setItinerary(data);
@@ -109,7 +109,7 @@ export default function ItineraryPaymentScreen() {
                 console.error('Error loading payment itinerary:', error);
                 if (!mounted) return;
                 setItinerary(null);
-                setLoadError('Não foi possível carregar o pagamento.');
+                setLoadError('We couldn\'t load the payment.');
             } finally {
                 if (mounted) setLoading(false);
             }
@@ -130,7 +130,7 @@ export default function ItineraryPaymentScreen() {
         : Number.isFinite(routePrice) && routePrice >= 0
         ? routePrice
         : 0;
-    const destinationLabel = [itinerary?.destination, itinerary?.country].filter(Boolean).join(', ') || 'Destino a confirmar';
+    const destinationLabel = [itinerary?.destination, itinerary?.country].filter(Boolean).join(', ') || 'Destination to be confirmed';
     const duration = Number(itinerary?.duration) || 0;
     const rating = Number(itinerary?.rating) || 0;
     const reviewCount = Number(itinerary?.reviewCount) || 0;
@@ -139,11 +139,11 @@ export default function ItineraryPaymentScreen() {
     const handleConfirmPayment = async () => {
         if (processing) return;
         if (!itineraryId || !itinerary) {
-            setPaymentError('Não foi possível identificar o roteiro desta compra.');
+            setPaymentError('We couldn\'t identify the itinerary for this purchase.');
             return;
         }
         if (!hasContactData) {
-            setPaymentError('Revise seus dados de contato antes de confirmar o pagamento.');
+            setPaymentError('Review your contact details before confirming payment.');
             return;
         }
         setProcessing(true);
@@ -167,7 +167,7 @@ export default function ItineraryPaymentScreen() {
             }
 
             if (!result.url) {
-                throw new Error('Não foi possível iniciar o pagamento. Tente novamente.');
+                throw new Error('We couldn\'t start the payment. Please try again.');
             }
 
             // Redireciona para o checkout hospedado do Stripe. Ao concluir,
@@ -182,7 +182,7 @@ export default function ItineraryPaymentScreen() {
             await Linking.openURL(result.url);
             setProcessing(false);
         } catch (err: any) {
-            const msg = err?.message || 'Não foi possível concluir a compra agora. Tente novamente.';
+            const msg = err?.message || 'We couldn\'t complete the purchase right now. Please try again.';
             console.warn('[checkout] erro:', msg);
             setPaymentError(msg);
             setProcessing(false);
@@ -193,8 +193,8 @@ export default function ItineraryPaymentScreen() {
         return (
             <View style={styles.stateContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={styles.stateTitle}>Carregando pagamento...</Text>
-                <Text style={styles.stateText}>Buscando o roteiro e preparando o resumo da compra.</Text>
+                <Text style={styles.stateTitle}>Loading payment...</Text>
+                <Text style={styles.stateText}>Fetching the itinerary and preparing your purchase summary.</Text>
             </View>
         );
     }
@@ -203,12 +203,12 @@ export default function ItineraryPaymentScreen() {
         return (
             <View style={styles.stateContainer}>
                 <Ionicons name="alert-circle-outline" size={42} color={theme.colors.text.tertiary} />
-                <Text style={styles.stateTitle}>{loadError || 'Pagamento indisponível'}</Text>
+                <Text style={styles.stateTitle}>{loadError || 'Payment unavailable'}</Text>
                 <Text style={styles.stateText}>
-                    Não foi possível continuar sem um roteiro válido.
+                    We can't continue without a valid itinerary.
                 </Text>
                 <TouchableOpacity style={styles.stateButton} onPress={() => router.replace('/(tabs)/itineraries' as any)}>
-                    <Text style={styles.stateButtonText}>Explorar roteiros</Text>
+                    <Text style={styles.stateButtonText}>Explore itineraries</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -221,7 +221,7 @@ export default function ItineraryPaymentScreen() {
                 <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Pagamento</Text>
+                <Text style={styles.headerTitle}>Payment</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -239,7 +239,7 @@ export default function ItineraryPaymentScreen() {
                         <View style={[styles.stepCircle, styles.stepCircleActive]}>
                             <Text style={styles.stepNumber}>2</Text>
                         </View>
-                        <Text style={[styles.stepLabel, styles.stepLabelActive]}>Pagamento</Text>
+                        <Text style={[styles.stepLabel, styles.stepLabelActive]}>Payment</Text>
                     </View>
                 </View>
 
@@ -248,19 +248,19 @@ export default function ItineraryPaymentScreen() {
                     cosmético e ainda mandava metadata enganosa (o estado
                     inicial era 'pix', que nem é oferecido na Austrália). */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Pagamento seguro</Text>
+                    <Text style={styles.sectionTitle}>Secure payment</Text>
 
                     <View style={styles.securityBadge}>
                         <Ionicons name="lock-closed" size={16} color={theme.colors.primary} />
                         <Text style={styles.securityText}>
-                            Você será redirecionado para a Stripe para concluir o pagamento.
+                            You'll be redirected to Stripe to complete your payment.
                         </Text>
                     </View>
                 </View>
 
                 {/* Review Details */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Revise os detalhes</Text>
+                    <Text style={styles.sectionTitle}>Review the details</Text>
 
                     {/* Contact Info */}
                     <View style={styles.reviewCard}>
@@ -271,7 +271,7 @@ export default function ItineraryPaymentScreen() {
                                 <Text style={styles.reviewSubtext}>{countryCode} {phone}</Text>
                             </View>
                             <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/cart')}>
-                                <Text style={styles.editButton}>✏️ Editar</Text>
+                                <Text style={styles.editButton}>✏️ Edit</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -283,8 +283,8 @@ export default function ItineraryPaymentScreen() {
                     >
                         <View style={styles.reviewCardHeader}>
                             <View>
-                                <Text style={styles.reviewTitle}>Resumo da compra</Text>
-                                <Text style={styles.reviewSubtext}>1 roteiro digital</Text>
+                                <Text style={styles.reviewTitle}>Purchase summary</Text>
+                                <Text style={styles.reviewSubtext}>1 digital itinerary</Text>
                             </View>
                             <Ionicons
                                 name={summaryExpanded ? 'chevron-up' : 'chevron-down'}
@@ -311,13 +311,13 @@ export default function ItineraryPaymentScreen() {
                                     <View style={styles.detailRow}>
                                         <Ionicons name="calendar" size={16} color={theme.colors.text.secondary} />
                                         <Text style={styles.detailText}>
-                                            {duration > 0 ? `${duration} dias de viagem` : 'Duração a confirmar'}
+                                            {duration > 0 ? `${duration} days of travel` : 'Duration to be confirmed'}
                                         </Text>
                                     </View>
                                     <View style={styles.detailRow}>
                                         <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
                                         <Text style={[styles.detailText, { color: theme.colors.success }]}>
-                                            Liberação em Meus Roteiros após confirmação
+                                            Unlocked in My Itineraries after confirmation
                                         </Text>
                                     </View>
                                 </View>
@@ -335,8 +335,8 @@ export default function ItineraryPaymentScreen() {
                     <View style={styles.postPurchaseHint}>
                         <Ionicons name="map-outline" size={18} color={theme.colors.primary} />
                         <Text style={styles.postPurchaseHintText}>
-                            Depois da compra, o roteiro fica disponível em Meus Roteiros com sua
-                            central de viagem: documentos, checklist e versão personalizada.
+                            After purchase, the itinerary is available in My Itineraries with your
+                            trip center: documents, checklist and a personalized version.
                         </Text>
                     </View>
                 )}
@@ -349,21 +349,23 @@ export default function ItineraryPaymentScreen() {
                 <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total</Text>
                     <Text style={styles.totalPrice}>{formatPrice(paymentAmount, itinerary?.currency)}</Text>
-                    <Text style={styles.taxIncluded}>Todos os impostos e taxas inclusos</Text>
+                    <Text style={styles.taxIncluded}>All taxes and fees included</Text>
                 </View>
 
                 {!hasContactData && (
                     <View style={styles.errorBox}>
                         <Ionicons name="alert-circle" size={16} color={theme.colors.error} />
                         <Text style={styles.errorBoxText}>
-                            Dados de contato incompletos. Volte para revisar antes de pagar.
+                            Contact details are incomplete. Go back to review them before paying.
                         </Text>
                     </View>
                 )}
 
                 <Text style={styles.terms}>
-                    Ao prosseguir, você confirma estar de acordo com os{' '}
-                    <Text style={styles.link}>Termos e condições</Text>.
+                    By continuing, you agree to the{' '}
+                    <Text style={styles.link} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })}>Terms of Use</Text>{' '}
+                    and{' '}
+                    <Text style={styles.link} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'refunds' } })}>Refund Policy</Text>.
                 </Text>
 
                 {paymentError && (
@@ -386,7 +388,7 @@ export default function ItineraryPaymentScreen() {
                         </View>
                     ) : (
                         <Text style={styles.confirmButtonText}>
-                            {paymentAmount > 0 ? `Pagar ${formatPrice(paymentAmount, itinerary?.currency)}` : 'Resgatar grátis'}
+                            {paymentAmount > 0 ? `Pagar ${formatPrice(paymentAmount, itinerary?.currency)}` : 'Claim for free'}
                         </Text>
                     )}
                 </TouchableOpacity>

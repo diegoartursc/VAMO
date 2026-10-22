@@ -15,11 +15,11 @@ import { getCategoryChips } from './itineraryCardBadges';
 // ─── Estilo da experiência ─────────────────────────────────────────
 const STYLE_COPY: Record<string, string> = {
     economico:
-        'Pensado para quem quer aproveitar mais gastando menos: escolhas com foco em custo-benefício.',
+        'Made for people who want to get more for less: choices focused on value.',
     moderado:
-        'Equilíbrio entre conforto, boas experiências e controle de gastos — sem exageros.',
+        'A balance of comfort, great experiences and controlled spending — without overdoing it.',
     luxo:
-        'Experiência mais confortável e premium, com escolhas de maior padrão.',
+        'A more comfortable, premium experience with higher-end choices.',
 };
 
 export interface ExperienceStyle {
@@ -100,20 +100,20 @@ function countMedia(itinerary: any): number {
 export function getWhyBuyBullets(itinerary: any): string[] {
     const bullets: string[] = [];
     const active: string[] = arr(itinerary?.activeModules);
-    const creatorName: string = itinerary?.creator?.name || 'um criador VAMO';
+    const creatorName: string = itinerary?.creator?.name || 'a VAMO creator';
 
-    bullets.push(`Criado por ${creatorName} — alguém que já esteve no destino e organizou o que funciona.`);
+    bullets.push(`Created by ${creatorName} — someone who has been to the destination and organized what works.`);
 
     if (active.includes('itinerario') && countDays(itinerary) > 0) {
-        bullets.push(`Planejamento dia a dia já estruturado para ${countDays(itinerary)} dias.`);
+        bullets.push(`Day-by-day plan already structured for ${countDays(itinerary)} days.`);
     } else if (active.includes('itinerario')) {
-        bullets.push('Planejamento dia a dia já estruturado para economizar seu tempo.');
+        bullets.push('Day-by-day plan already structured to save you time.');
     }
 
     if (active.includes('dicas') && countTips(itinerary) > 0) {
-        bullets.push(`${countTips(itinerary)} dicas práticas que normalmente só se descobrem viajando.`);
+        bullets.push(`${countTips(itinerary)} practical tips you'd normally only learn by traveling.`);
     } else if (active.includes('dicas')) {
-        bullets.push('Dicas práticas que normalmente só se descobrem viajando.');
+        bullets.push('Practical tips you\'d normally only learn by traveling.');
     }
 
     const hasCostInfo =
@@ -122,40 +122,40 @@ export function getWhyBuyBullets(itinerary: any): string[] {
         countRestaurants(itinerary) > 0 ||
         arr(itinerary?.extraSpendingItems).length > 0;
     if (hasCostInfo) {
-        bullets.push('Referências de custos por categoria para você planejar melhor o orçamento.');
+        bullets.push('Cost references by category to help you plan your budget.');
     }
 
     if (active.includes('checklist') && countChecklist(itinerary) > 0) {
-        bullets.push('Checklist pronto para acompanhar a preparação da viagem.');
+        bullets.push('A ready-to-use checklist to track your trip preparation.');
     }
 
-    bullets.push('Produto digital com acesso imediato após a confirmação do pagamento.');
+    bullets.push('A digital product with instant access after payment is confirmed.');
 
     return bullets;
 }
 
 // ─── "Para quem é este roteiro?" ───────────────────────────────────
 const CATEGORY_AUDIENCE: Record<string, string> = {
-    natureza: 'experiências em meio à natureza',
-    gastronomia: 'experiências gastronômicas',
-    cultura: 'imersão cultural',
-    praia: 'destinos de praia',
-    mochilao: 'mochilão e viagens econômicas',
-    familia: 'viagens em família',
-    romantico: 'viagens a dois',
-    historico: 'destinos com forte carga histórica',
-    festivais: 'festivais e eventos locais',
-    cruzeiros: 'cruzeiros e viagens marítimas',
-    aventura: 'aventuras e atividades ao ar livre',
-    eurotrip: 'eurotrips e viagens internacionais',
-    relax: 'descanso e bem-estar',
-    esportes: 'esportes e atividades físicas',
+    natureza: 'nature experiences',
+    gastronomia: 'food and drink experiences',
+    cultura: 'cultural immersion',
+    praia: 'beach destinations',
+    mochilao: 'backpacking and budget travel',
+    familia: 'family trips',
+    romantico: 'trips for two',
+    historico: 'destinations rich in history',
+    festivais: 'festivals and local events',
+    cruzeiros: 'cruises and sea voyages',
+    aventura: 'adventures and outdoor activities',
+    eurotrip: 'Europe trips and international travel',
+    relax: 'rest and relaxation',
+    esportes: 'sports and physical activities',
 };
 
 const STYLE_AUDIENCE: Record<string, string> = {
-    economico: 'planejamento econômico, com foco em custo-benefício',
-    moderado: 'planejamento moderado, equilibrando conforto e gastos',
-    luxo: 'experiência mais premium e confortável',
+    economico: 'budget-friendly planning focused on value',
+    moderado: 'moderate planning that balances comfort and spending',
+    luxo: 'a more premium, comfortable experience',
 };
 
 export function getIdealForBullets(itinerary: any): string[] {
@@ -176,11 +176,11 @@ export function getIdealForBullets(itinerary: any): string[] {
     }
 
     if (duration > 0) {
-        bullets.push(`viagens de aproximadamente ${duration} dias`);
+        bullets.push(`trips of about ${duration} days`);
     }
 
     if (active.includes('dicas') || active.includes('checklist')) {
-        bullets.push('quem quer chegar preparado, com dicas e checklist na mão');
+        bullets.push('people who want to arrive prepared, with tips and a checklist in hand');
     }
 
     if (
@@ -188,7 +188,7 @@ export function getIdealForBullets(itinerary: any): string[] {
         arr(itinerary?.attractions).length > 0 ||
         arr(itinerary?.restaurants).length > 0
     ) {
-        bullets.push('quem prefere ter referência de custos antes de fechar a viagem');
+        bullets.push('people who want cost references before booking the trip');
     }
 
     // Deduplicar mantendo ordem
@@ -212,8 +212,8 @@ export function getUnlockPreviewCards(itinerary: any): UnlockCard[] {
         const days = countDays(itinerary) || duration;
         cards.push({
             key: 'itinerario',
-            title: 'Itinerário completo',
-            subtitle: days > 0 ? `${days} dias organizados passo a passo` : 'Programação dia a dia detalhada',
+            title: 'Complete itinerary',
+            subtitle: days > 0 ? `${days} days organized step by step` : 'Detailed day-by-day schedule',
             icon: 'calendar',
         });
     }
@@ -222,8 +222,8 @@ export function getUnlockPreviewCards(itinerary: any): UnlockCard[] {
         const tips = countTips(itinerary);
         cards.push({
             key: 'dicas',
-            title: tips > 0 ? `${tips} dicas exclusivas` : 'Dicas exclusivas',
-            subtitle: 'Sugestões práticas de quem esteve lá',
+            title: tips > 0 ? `${tips} insider tips` : 'Insider tips',
+            subtitle: 'Practical suggestions from someone who\'s been there',
             icon: 'gem',
         });
     }
@@ -232,8 +232,8 @@ export function getUnlockPreviewCards(itinerary: any): UnlockCard[] {
         const n = countAttractions(itinerary);
         cards.push({
             key: 'passeios',
-            title: n > 0 ? `${n} passeios mapeados` : 'Passeios & atrações',
-            subtitle: 'Atrações imperdíveis com horários e dicas',
+            title: n > 0 ? `${n} tours mapped out` : 'Tours & attractions',
+            subtitle: 'Must-see attractions with times and tips',
             icon: 'landmark',
         });
     }
@@ -242,8 +242,8 @@ export function getUnlockPreviewCards(itinerary: any): UnlockCard[] {
         const n = countRestaurants(itinerary);
         cards.push({
             key: 'restaurantes',
-            title: n > 0 ? `${n} indicações gastronômicas` : 'Restaurantes & gastronomia',
-            subtitle: 'Onde comer bem e experiências locais',
+            title: n > 0 ? `${n} dining picks` : 'Restaurants & dining',
+            subtitle: 'Where to eat well and local experiences',
             icon: 'utensils',
         });
     }
@@ -252,8 +252,8 @@ export function getUnlockPreviewCards(itinerary: any): UnlockCard[] {
         const n = countAccommodations(itinerary);
         cards.push({
             key: 'hospedagem',
-            title: n > 0 ? `${n} hospedagens sugeridas` : 'Hospedagens',
-            subtitle: 'Onde ficar e por que escolher cada região',
+            title: n > 0 ? `${n} suggested stays` : 'Lodging',
+            subtitle: 'Where to stay and why to choose each area',
             icon: 'hotel',
         });
     }
@@ -262,11 +262,11 @@ export function getUnlockPreviewCards(itinerary: any): UnlockCard[] {
         const cats = checklistCategories(itinerary);
         const total = countChecklist(itinerary);
         const catSuffix = cats.length > 0
-            ? `Inclui ${cats.slice(0, 4).join(', ')}${cats.length > 4 ? '…' : ''}`
-            : 'Lista completa para acompanhar a preparação';
+            ? `Includes ${cats.slice(0, 4).join(', ')}${cats.length > 4 ? '…' : ''}`
+            : 'A complete list to track your preparation';
         cards.push({
             key: 'checklist',
-            title: total > 0 ? `Checklist com ${total} itens` : 'Checklist de planejamento',
+            title: total > 0 ? `Checklist with ${total} items` : 'Planning checklist',
             subtitle: catSuffix,
             icon: 'clipboard-list',
         });
@@ -280,8 +280,8 @@ export function getUnlockPreviewCards(itinerary: any): UnlockCard[] {
     if (hasCosts) {
         cards.push({
             key: 'custos',
-            title: 'Referências de custos',
-            subtitle: 'Valores estimados ou comprovados por categoria',
+            title: 'Cost references',
+            subtitle: 'Estimated or verified amounts by category',
             icon: 'wallet',
         });
     }
@@ -297,12 +297,12 @@ export interface BeforeBuyItem {
 
 export function getBeforeBuyItems(itinerary: any): BeforeBuyItem[] {
     const items: BeforeBuyItem[] = [
-        { icon: 'download', text: 'Este é um produto digital — você recebe acesso ao conteúdo do roteiro.' },
-        { icon: 'lock', text: 'Não inclui passagens, hospedagens, passeios ou reservas — gastos de viagem são apenas referências informativas.' },
-        { icon: 'briefcase', text: 'O roteiro fica disponível em Meus Roteiros após a confirmação do pagamento.' },
+        { icon: 'download', text: 'This is a digital product — you get access to the itinerary\'s content.' },
+        { icon: 'lock', text: 'It doesn\'t include flights, lodging, tours or bookings — travel costs are for reference only.' },
+        { icon: 'briefcase', text: 'The itinerary is available in My Itineraries once payment is confirmed.' },
     ];
     if (itinerary?.lifetimeAccess) {
-        items.push({ icon: 'eye', text: 'Acesso permanente: consulte o roteiro quando quiser, quantas vezes precisar.' });
+        items.push({ icon: 'eye', text: 'Lifetime access: open the itinerary whenever you want, as many times as you need.' });
     }
     return items;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { formatTimeForAustraliaDisplay } from "@vamo/shared/itinerary";
+import { formatTimeForDisplay } from "@vamo/shared/itinerary";
 import { BASE_CURRENCY } from "@vamo/shared/itinerary";
 
 interface PhonePreviewProps {
@@ -50,7 +50,7 @@ export default function PhonePreview({
     type = "roteiro",
 }: PhonePreviewProps) {
     const currencySymbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "BRL" ? "R$" : currency === "AUD" ? "A$" : currency;
-    const formattedPrice = price > 0 ? `${currencySymbol} ${price.toLocaleString("pt-BR")}` : "—";
+    const formattedPrice = price > 0 ? `${currencySymbol} ${price.toLocaleString("en-US")}` : "—";
     const hasContent = !!(title || destination);
 
     // Track previous score to know when content first appears
@@ -171,7 +171,7 @@ export default function PhonePreview({
                                                     <div className="phone-day-activities">
                                                         {day.activities.slice(0, 2).map((act, j) => (
                                                             <span key={j} className="phone-day-act">
-                                                                {act.time && <span className="phone-act-time">{formatTimeForAustraliaDisplay(act.time)}</span>}
+                                                                {act.time && <span className="phone-act-time">{formatTimeForDisplay(act.time)}</span>}
                                                                 {act.title}
                                                             </span>
                                                         ))}

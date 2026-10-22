@@ -121,3 +121,22 @@ export function iconForCategory(category: FileCategory): string {
         case 'Outros':                return 'folder';
     }
 }
+
+/**
+ * Rótulos em inglês das categorias. Os VALORES (acima) são gravados no banco e
+ * validados pelo backend — não renomear. Para exibir, use fileCategoryLabel().
+ */
+const FILE_CATEGORY_LABELS: Record<FileCategory, string> = {
+    'Voos': 'Flights',
+    'Hospedagem': 'Lodging',
+    'Passeios e ingressos': 'Tours & tickets',
+    'Documentos': 'Documents',
+    'Seguro': 'Insurance',
+    'Recibos': 'Receipts',
+    'Transporte': 'Transportation',
+    'Outros': 'Other',
+};
+
+export function fileCategoryLabel(category: FileCategory): string {
+    return FILE_CATEGORY_LABELS[category] ?? 'Other';
+}

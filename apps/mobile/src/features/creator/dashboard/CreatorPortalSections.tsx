@@ -32,19 +32,19 @@ export function CreatorPortalHero({
             end={{ x: 1, y: 1 }}
             style={s.hero}
         >
-            <Text style={s.heroEyebrow}>PORTAL DO ROTEIRISTA</Text>
-            <Text style={s.heroTitle}>{userName ? `Olá, ${userName}` : 'Portal do Roteirista'}</Text>
+            <Text style={s.heroEyebrow}>CREATOR PORTAL</Text>
+            <Text style={s.heroTitle}>{userName ? `Hi, ${userName}` : 'Creator Portal'}</Text>
             <Text style={s.heroSubtitle}>
-                Gerencie seus roteiros, acompanhe vendas e veja o desempenho das suas experiências.
+                Manage your itineraries, track sales and see how your experiences perform.
             </Text>
             <View style={[s.heroCtas, isWide ? s.heroCtasWide : s.heroCtasNarrow]}>
                 <TouchableOpacity style={[s.heroBtn, s.heroPrimary]} onPress={onCreate} activeOpacity={0.85}>
                     <Ionicons name="add-circle-outline" size={16} color={theme.colors.secondary} />
-                    <Text style={s.heroPrimaryText}>Novo roteiro</Text>
+                    <Text style={s.heroPrimaryText}>New itinerary</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.heroBtn, s.heroSecondary]} onPress={onSeeList} activeOpacity={0.85}>
                     <Ionicons name="albums-outline" size={16} color="#fff" />
-                    <Text style={s.heroSecondaryText}>Meus roteiros</Text>
+                    <Text style={s.heroSecondaryText}>My itineraries</Text>
                 </TouchableOpacity>
             </View>
         </LinearGradient>
@@ -64,12 +64,12 @@ export function CreatorRevenueCard({
     const body = (
         <>
             <View style={{ flex: 1 }}>
-                <Text style={s.revLabel}>Total recebido</Text>
+                <Text style={s.revLabel}>Total received</Text>
                 <Text style={s.revValue}>{formatMoney(Math.round(totalRevenue))}</Text>
                 <Text style={s.revSub}>
                     {totalSales > 0
-                        ? `${totalSales} venda${totalSales === 1 ? '' : 's'} concluída${totalSales === 1 ? '' : 's'}`
-                        : 'Aguardando sua primeira venda'}
+                        ? `${totalSales} completed sale${totalSales === 1 ? '' : 's'}`
+                        : 'Waiting for your first sale'}
                 </Text>
             </View>
             <View style={s.revIcon}>
@@ -88,11 +88,11 @@ export function CreatorProTipCard() {
         <View style={s.tipCard}>
             <View style={s.tipHeader}>
                 <Ionicons name="flash" size={18} color={theme.colors.primary} />
-                <Text style={s.tipTitle}>DICA PRO</Text>
+                <Text style={s.tipTitle}>PRO TIP</Text>
             </View>
             <Text style={s.tipBody}>
-                Roteiros com pontuação acima de <Text style={s.tipHighlight}>80%</Text> são aprovados mais
-                facilmente pelos revisores e podem ganhar mais visibilidade no app.
+                Itineraries scoring above <Text style={s.tipHighlight}>80%</Text> are approved more
+                easily by reviewers and can get more visibility in the app.
             </Text>
         </View>
     );

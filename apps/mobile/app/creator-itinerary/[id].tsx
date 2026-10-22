@@ -47,13 +47,13 @@ interface FullItinerary {
 
 // ─── Status display config ─────────────────────────────────────
 const STATUS = {
-    draft:          { label: 'Rascunho',     color: '#64748B', bg: '#F1F5F9', icon: 'create-outline',           gradient: ['#64748B', '#94A3B8'] },
-    pending_review: { label: 'Em análise',   color: '#D97706', bg: '#FEF3C7', icon: 'time-outline',             gradient: ['#D97706', '#F59E0B'] },
-    approved:       { label: 'Aprovado',     color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle-outline', gradient: ['#059669', '#10B981'] },
-    active:         { label: 'Publicado',    color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle',         gradient: ['#059669', '#10B981'] },
-    rejected:       { label: 'Reprovado',    color: '#DC2626', bg: '#FEE2E2', icon: 'close-circle-outline',     gradient: ['#DC2626', '#EF4444'] },
-    paused:         { label: 'Pausado',      color: '#9333EA', bg: '#F3E8FF', icon: 'pause-circle-outline',     gradient: ['#9333EA', '#A855F7'] },
-    archived:       { label: 'Arquivado',    color: '#94A3B8', bg: '#F8FAFC', icon: 'archive-outline',          gradient: ['#94A3B8', '#CBD5E1'] },
+    draft:          { label: 'Draft',     color: '#64748B', bg: '#F1F5F9', icon: 'create-outline',           gradient: ['#64748B', '#94A3B8'] },
+    pending_review: { label: 'Under review',   color: '#D97706', bg: '#FEF3C7', icon: 'time-outline',             gradient: ['#D97706', '#F59E0B'] },
+    approved:       { label: 'Approved',     color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle-outline', gradient: ['#059669', '#10B981'] },
+    active:         { label: 'Published',    color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle',         gradient: ['#059669', '#10B981'] },
+    rejected:       { label: 'Rejected',    color: '#DC2626', bg: '#FEE2E2', icon: 'close-circle-outline',     gradient: ['#DC2626', '#EF4444'] },
+    paused:         { label: 'Paused',      color: '#9333EA', bg: '#F3E8FF', icon: 'pause-circle-outline',     gradient: ['#9333EA', '#A855F7'] },
+    archived:       { label: 'Archived',    color: '#94A3B8', bg: '#F8FAFC', icon: 'archive-outline',          gradient: ['#94A3B8', '#CBD5E1'] },
 } as const;
 
 // ─── Metric tile ───────────────────────────────────────────────
@@ -91,7 +91,7 @@ export default function CreatorItineraryScreen() {
     const fetchItinerary = useCallback(async () => {
         if (authLoading) return;
         if (!isAuthenticated || !accessToken) {
-            setError('Faça login para acessar a área do criador.');
+            setError('Sign in to access the creator area.');
             setLoading(false);
             return;
         }
@@ -102,14 +102,14 @@ export default function CreatorItineraryScreen() {
             const res = await fetch(`${API_BASE}/itineraries/${id}/creator`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-            if (res.status === 403) throw new Error('Você não tem permissão para acessar este roteiro.');
-            if (res.status === 401) throw new Error('Faça login para acessar a área do criador.');
+            if (res.status === 403) throw new Error('You don\'t have permission to access this itinerary.');
+            if (res.status === 401) throw new Error('Sign in to access the creator area.');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             // Normalise status to lowercase
             setItinerary({ ...data, status: (data.status ?? 'draft').toLowerCase() as ItineraryStatus });
         } catch (err: any) {
-            setError(err?.message || 'Não foi possível carregar o roteiro.');
+            setError(err?.message || 'We couldn\'t load the itinerary.');
             console.error('[creator-itinerary] erro:', err?.message);
         } finally {
             setLoading(false);
@@ -132,13 +132,13 @@ export default function CreatorItineraryScreen() {
     // web, e o botão não fazia nada no navegador do celular.
     const resubmit = async () => {
         if (!itinerary || !accessToken) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para continuar.', variant: 'warning' });
+            notify({ title: 'Session expired', message: 'Sign in again to continue.', variant: 'warning' });
             return;
         }
         haptics.medium();
         const ok = await confirm({
-            title: 'Reenviar para análise',
-            message: 'Certifique-se de ter corrigido os pontos apontados na reprovação antes de reenviar.',
+            title: 'Resubmit for review',
+            message: 'Make sure you\'ve fixed the points raised in the rejection before resubmitting.',
             confirmText: 'Reenviar',
             variant: 'info',
         });
@@ -152,13 +152,13 @@ export default function CreatorItineraryScreen() {
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err?.error || 'Falha ao reenviar');
+                throw new Error(err?.error || 'Couldn\'t resubmit');
             }
             haptics.success();
             setItinerary(prev => prev ? { ...prev, status: 'pending_review', approvalNote: null } : prev);
-            notify({ title: 'Enviado para análise', message: 'A equipe VAMO vai revisar e você recebe um e-mail com o resultado.', variant: 'success' });
+            notify({ title: 'Submitted for review', message: 'The VAMO team will review it and you\'ll get an email with the result.', variant: 'success' });
         } catch (err: any) {
-            notify({ title: 'Erro', message: err?.message || 'Não foi possível reenviar.', variant: 'error' });
+            notify({ title: 'Error', message: err?.message || 'We couldn\'t resubmit.', variant: 'error' });
         } finally {
             setSubmitting(false);
         }
@@ -167,18 +167,18 @@ export default function CreatorItineraryScreen() {
     // ── Pausar / publicar novamente ──────────────────────────────
     const togglePause = async () => {
         if (!itinerary || !accessToken) {
-            notify({ title: 'Sessão expirada', message: 'Faça login novamente para continuar.', variant: 'warning' });
+            notify({ title: 'Session expired', message: 'Sign in again to continue.', variant: 'warning' });
             return;
         }
         const isActive = itinerary.status === 'active';
         const newStatus = isActive ? 'PAUSED' : 'ACTIVE';
-        const label = isActive ? 'Pausar roteiro' : 'Publicar roteiro';
+        const label = isActive ? 'Pause itinerary' : 'Publish itinerary';
         haptics.light();
         const ok = await confirm({
             title: label,
             message: isActive
-                ? 'O roteiro ficará invisível no marketplace enquanto pausado. Quem já comprou continua com acesso.'
-                : 'O roteiro vai aparecer no marketplace e poderá ser comprado.',
+                ? 'The itinerary will be hidden from the marketplace while paused. People who already bought it keep their access.'
+                : 'The itinerary will appear in the marketplace and can be purchased.',
             confirmText: label,
             variant: isActive ? 'warning' : 'success',
         });
@@ -191,13 +191,13 @@ export default function CreatorItineraryScreen() {
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err?.error || 'Falha');
+                throw new Error(err?.error || 'Failed');
             }
             haptics.success();
             setItinerary(prev => prev ? { ...prev, status: newStatus.toLowerCase() as ItineraryStatus } : prev);
-            notify({ title: isActive ? 'Roteiro pausado' : 'Roteiro publicado!', message: isActive ? 'Ele saiu do marketplace.' : 'Ele já aparece no marketplace.', variant: 'success' });
+            notify({ title: isActive ? 'Itinerary paused' : 'Itinerary published!', message: isActive ? 'Ele saiu do marketplace.' : 'It now appears in the marketplace.', variant: 'success' });
         } catch (err: any) {
-            notify({ title: 'Erro', message: err?.message || 'Não foi possível alterar o status.', variant: 'error' });
+            notify({ title: 'Error', message: err?.message || 'We couldn\'t change the status.', variant: 'error' });
         }
     };
 
@@ -213,14 +213,14 @@ export default function CreatorItineraryScreen() {
         return (
             <View style={s.center}>
                 <Ionicons name="cloud-offline-outline" size={48} color={theme.colors.text.tertiary} />
-                <Text style={s.errorText}>{error ?? 'Roteiro não encontrado'}</Text>
+                <Text style={s.errorText}>{error ?? 'Itinerary not found'}</Text>
                 {isAuthenticated ? (
                     <TouchableOpacity style={s.retryBtn} onPress={fetchItinerary}>
-                        <Text style={s.retryText}>Tentar novamente</Text>
+                        <Text style={s.retryText}>Try again</Text>
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity style={s.retryBtn} onPress={() => router.replace({ pathname: '/login' as any, params: { next: `/creator-itinerary/${id}` } })}>
-                        <Text style={s.retryText}>Entrar na conta</Text>
+                        <Text style={s.retryText}>Sign in</Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -267,7 +267,7 @@ export default function CreatorItineraryScreen() {
                     <View style={s.rejectionCard}>
                         <View style={s.rejectionHeader}>
                             <Ionicons name="close-circle" size={20} color={theme.colors.error} />
-                            <Text style={s.rejectionTitle}>Motivo da reprovação</Text>
+                            <Text style={s.rejectionTitle}>Reason for rejection</Text>
                         </View>
                         <Text style={s.rejectionNote}>{itinerary.approvalNote}</Text>
                         <TouchableOpacity
@@ -279,7 +279,7 @@ export default function CreatorItineraryScreen() {
                                 ? <ActivityIndicator color="#fff" size="small" />
                                 : <>
                                     <Ionicons name="refresh" size={16} color="#fff" />
-                                    <Text style={s.actionBtnText}>Reenviar para análise</Text>
+                                    <Text style={s.actionBtnText}>Resubmit for review</Text>
                                 </>
                             }
                         </TouchableOpacity>
@@ -291,8 +291,8 @@ export default function CreatorItineraryScreen() {
                     <View style={s.pendingCard}>
                         <Ionicons name="time" size={24} color="#D97706" />
                         <View style={{ flex: 1 }}>
-                            <Text style={s.pendingTitle}>Aguardando análise</Text>
-                            <Text style={s.pendingText}>Nossa equipe analisa em até 48h. Você receberá uma notificação quando for aprovado.</Text>
+                            <Text style={s.pendingTitle}>Waiting for review</Text>
+                            <Text style={s.pendingText}>Our team reviews within 48 hours. You'll be notified when it's approved.</Text>
                         </View>
                     </View>
                 )}
@@ -302,8 +302,8 @@ export default function CreatorItineraryScreen() {
                     <View style={s.approvedCard}>
                         <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
                         <View style={{ flex: 1 }}>
-                            <Text style={s.approvedTitle}>Roteiro aprovado! 🎉</Text>
-                            <Text style={s.approvedText}>Seu roteiro foi aprovado pela equipe VAMO. Publique quando estiver pronto para vender no marketplace.</Text>
+                            <Text style={s.approvedTitle}>Itinerary approved! 🎉</Text>
+                            <Text style={s.approvedText}>Your itinerary was approved by the VAMO team. Publish it when you're ready to sell in the marketplace.</Text>
                         </View>
                     </View>
                 )}
@@ -313,8 +313,8 @@ export default function CreatorItineraryScreen() {
                     <View style={s.draftCard}>
                         <Ionicons name="create-outline" size={20} color="#64748B" />
                         <View style={{ flex: 1 }}>
-                            <Text style={s.draftTitle}>Rascunho não enviado</Text>
-                            <Text style={s.draftText}>Complete e envie para análise para publicar no marketplace.</Text>
+                            <Text style={s.draftTitle}>Draft not submitted</Text>
+                            <Text style={s.draftText}>Complete it and submit for review to publish in the marketplace.</Text>
                         </View>
                     </View>
                 )}
@@ -322,24 +322,24 @@ export default function CreatorItineraryScreen() {
                 {/* ── Métricas (só se publicado) ── */}
                 {(itinerary.status === 'active' || itinerary.status === 'paused') && (
                     <>
-                        <Text style={s.sectionTitle}>Desempenho</Text>
+                        <Text style={s.sectionTitle}>Performance</Text>
                         <View style={s.metricsRow}>
-                            <MetricTile icon="cart-outline" value={String(totalSales)} label="vendas" color={theme.colors.primary} />
+                            <MetricTile icon="cart-outline" value={String(totalSales)} label="sales" color={theme.colors.primary} />
                             <MetricTile icon="cash-outline" value={formatMoney(totalRevenue)} label="receita" color={theme.colors.success} />
                             {itinerary.rating > 0 && (
-                                <MetricTile icon="star" value={itinerary.rating.toFixed(1)} label="avaliação" color="#F59E0B" />
+                                <MetricTile icon="star" value={itinerary.rating.toFixed(1)} label="review" color="#F59E0B" />
                             )}
                         </View>
                     </>
                 )}
 
                 {/* ── Detalhes do roteiro ── */}
-                <Text style={s.sectionTitle}>Descrição</Text>
+                <Text style={s.sectionTitle}>Description</Text>
                 <Text style={s.description}>{itinerary.description || '—'}</Text>
 
                 {itinerary.highlights?.length > 0 && (
                     <>
-                        <Text style={s.sectionTitle}>Destaques</Text>
+                        <Text style={s.sectionTitle}>Highlights</Text>
                         <View style={s.listCard}>
                             {itinerary.highlights.map((h, i) => (
                                 <View key={i} style={s.listRow}>
@@ -353,7 +353,7 @@ export default function CreatorItineraryScreen() {
 
                 {itinerary.inclusions?.length > 0 && (
                     <>
-                        <Text style={s.sectionTitle}>O que inclui</Text>
+                        <Text style={s.sectionTitle}>What's included</Text>
                         <View style={s.listCard}>
                             {itinerary.inclusions.map((inc, i) => (
                                 <View key={i} style={s.listRow}>
@@ -369,16 +369,16 @@ export default function CreatorItineraryScreen() {
                 <View style={s.datesCard}>
                     <View style={s.dateRow}>
                         <Text style={s.dateLabel}>Criado em</Text>
-                        <Text style={s.dateValue}>{new Date(itinerary.createdAt).toLocaleDateString('pt-BR')}</Text>
+                        <Text style={s.dateValue}>{new Date(itinerary.createdAt).toLocaleDateString('en-US')}</Text>
                     </View>
                     <View style={s.dateRow}>
-                        <Text style={s.dateLabel}>Última atualização</Text>
-                        <Text style={s.dateValue}>{new Date(itinerary.updatedAt).toLocaleDateString('pt-BR')}</Text>
+                        <Text style={s.dateLabel}>Last updated</Text>
+                        <Text style={s.dateValue}>{new Date(itinerary.updatedAt).toLocaleDateString('en-US')}</Text>
                     </View>
                     {itinerary.approvedAt && (
                         <View style={s.dateRow}>
                             <Text style={s.dateLabel}>Aprovado em</Text>
-                            <Text style={s.dateValue}>{new Date(itinerary.approvedAt).toLocaleDateString('pt-BR')}</Text>
+                            <Text style={s.dateValue}>{new Date(itinerary.approvedAt).toLocaleDateString('en-US')}</Text>
                         </View>
                     )}
                 </View>
@@ -388,19 +388,19 @@ export default function CreatorItineraryScreen() {
                     {itinerary.status === 'active' && (
                         <TouchableOpacity style={[s.actionBtn, s.actionBtnSecondary]} onPress={togglePause}>
                             <Ionicons name="pause-circle-outline" size={16} color="#9333EA" />
-                            <Text style={[s.actionBtnText, { color: '#9333EA' }]}>Pausar roteiro</Text>
+                            <Text style={[s.actionBtnText, { color: '#9333EA' }]}>Pause itinerary</Text>
                         </TouchableOpacity>
                     )}
                     {itinerary.status === 'paused' && (
                         <TouchableOpacity style={[s.actionBtn, s.actionBtnSecondary]} onPress={togglePause}>
                             <Ionicons name="play-circle-outline" size={16} color={theme.colors.success} />
-                            <Text style={[s.actionBtnText, { color: theme.colors.success }]}>Publicar novamente</Text>
+                            <Text style={[s.actionBtnText, { color: theme.colors.success }]}>Publish again</Text>
                         </TouchableOpacity>
                     )}
                     {itinerary.status === 'approved' && (
                         <TouchableOpacity style={[s.actionBtn, s.actionBtnSecondary]} onPress={togglePause}>
                             <Ionicons name="play-circle-outline" size={16} color={theme.colors.success} />
-                            <Text style={[s.actionBtnText, { color: theme.colors.success }]}>Publicar roteiro</Text>
+                            <Text style={[s.actionBtnText, { color: theme.colors.success }]}>Publish itinerary</Text>
                         </TouchableOpacity>
                     )}
                     {(itinerary.status === 'draft' || itinerary.status === 'rejected') && (
@@ -412,7 +412,7 @@ export default function CreatorItineraryScreen() {
                             }}
                         >
                             <Ionicons name="create-outline" size={16} color="#fff" />
-                            <Text style={s.actionBtnText}>Editar roteiro</Text>
+                            <Text style={s.actionBtnText}>Edit itinerary</Text>
                         </TouchableOpacity>
                     )}
                 </View>

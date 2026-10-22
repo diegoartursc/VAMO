@@ -21,9 +21,15 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { getCoverImages } from '../../src/utils/itineraryMedia';
 import { formatMoney } from '@vamo/shared/itinerary';
 
-// Formata telefone BR (xx) xxxxx-xxxx; demais países: agrupa em blocos.
+// Formats US phone (xxx) xxx-xxxx and BR (xx) xxxxx-xxxx; other countries: groups in blocks.
 function formatPhone(digits: string, countryCode: string): string {
     const d = digits.replace(/\D/g, '').slice(0, 13);
+    if (countryCode === '+1') {
+        const n = d.slice(0, 10);
+        if (n.length <= 3) return n.length ? `(${n}` : '';
+        if (n.length <= 6) return `(${n.slice(0, 3)}) ${n.slice(3)}`;
+        return `(${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6)}`;
+    }
     if (countryCode === '+55') {
         if (d.length <= 2) return d.length ? `(${d}` : '';
         if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
@@ -71,7 +77,7 @@ export default function ItineraryContactScreen() {
         let mounted = true;
         const load = async () => {
             if (!itineraryId) {
-                setLoadError('Roteiro inválido.');
+                setLoadError('Invalid itinerary.');
                 setLoading(false);
                 return;
             }
@@ -82,7 +88,7 @@ export default function ItineraryContactScreen() {
                 if (!mounted) return;
                 if (!data) {
                     setItinerary(null);
-                    setLoadError('Roteiro não encontrado ou indisponível.');
+                    setLoadError('Itinerary not found or unavailable.');
                     return;
                 }
                 setItinerary(data);
@@ -90,7 +96,7 @@ export default function ItineraryContactScreen() {
                 console.error('Error loading checkout itinerary:', error);
                 if (!mounted) return;
                 setItinerary(null);
-                setLoadError('Não foi possível carregar o resumo da compra.');
+                setLoadError('We couldn\'t load the purchase summary.');
             } finally {
                 if (mounted) setLoading(false);
             }
@@ -102,7 +108,7 @@ export default function ItineraryContactScreen() {
     // ─── Form state ────────────────────────────────────────────────
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
-    const [countryCode, setCountryCode] = useState('+55');
+    const [countryCode, setCountryCode] = useState('+1');
     const [phone, setPhone] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
@@ -114,7 +120,7 @@ export default function ItineraryContactScreen() {
         if (user.name) setFullName(user.name);
         if (user.email) setEmail(user.email);
         if (user.phone) {
-            // Heurística: se phone começa com +, separa código de país; senão assume +55
+            // Heuristic: if the phone starts with +, split off the country code; otherwise assume +1
             const raw = user.phone.trim();
             if (raw.startsWith('+')) {
                 // separa +<1-3 dígitos> do resto
@@ -143,15 +149,15 @@ export default function ItineraryContactScreen() {
             : 0;
 
     const destinationLabel = useMemo(() => {
-        return [itinerary?.destination, itinerary?.country].filter(Boolean).join(', ') || 'Destino a confirmar';
+        return [itinerary?.destination, itinerary?.country].filter(Boolean).join(', ') || 'Destination to be confirmed';
     }, [itinerary]);
 
     const duration = Number(itinerary?.duration) || 0;
-    const creatorName = itinerary?.creator?.name || 'Criador VAMO';
+    const creatorName = itinerary?.creator?.name || 'VAMO Creator';
 
     const formattedPrice = checkoutPrice > 0
         ? formatMoney(checkoutPrice, itinerary?.currency || undefined)
-        : 'Grátis';
+        : 'Free';
 
     const coverImage = useMemo(() => {
         if (!itinerary) return null;
@@ -172,16 +178,16 @@ export default function ItineraryContactScreen() {
         const countryDigits = digitsOnly(countryCode);
 
         if (cleanName.length < 5 || cleanName.split(' ').length < 2) {
-            nextErrors.fullName = 'Informe nome e sobrenome.';
+            nextErrors.fullName = 'Enter your first and last name.';
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)) {
-            nextErrors.email = 'Digite um e-mail válido.';
+            nextErrors.email = 'Enter a valid email address.';
         }
         if (!countryDigits || countryDigits.length < 1 || countryDigits.length > 4) {
-            nextErrors.countryCode = 'Código inválido.';
+            nextErrors.countryCode = 'Invalid code.';
         }
         if (phoneDigits.length < 8) {
-            nextErrors.phone = 'Informe um telefone válido.';
+            nextErrors.phone = 'Enter a valid phone number.';
         }
 
         setErrors(nextErrors);
@@ -220,7 +226,7 @@ export default function ItineraryContactScreen() {
 
     const cycleCountryCode = () => {
         // Toggle simples entre os códigos mais comuns. Sem modal extra agora.
-        const cycle = ['+55', '+1', '+44', '+34', '+351', '+54'];
+        const cycle = ['+1', '+55', '+44', '+34', '+351', '+54'];
         const idx = cycle.indexOf(countryCode);
         const nextCC = cycle[(idx + 1) % cycle.length];
         setCountryCode(nextCC);
@@ -242,8 +248,8 @@ export default function ItineraryContactScreen() {
         return (
             <View style={styles.stateContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={styles.stateTitle}>Carregando checkout...</Text>
-                <Text style={styles.stateText}>Buscando os dados do roteiro escolhido.</Text>
+                <Text style={styles.stateTitle}>Loading checkout...</Text>
+                <Text style={styles.stateText}>Fetching the details of the itinerary you chose.</Text>
             </View>
         );
     }
@@ -252,12 +258,12 @@ export default function ItineraryContactScreen() {
         return (
             <View style={styles.stateContainer}>
                 <Ionicons name="alert-circle-outline" size={42} color={theme.colors.text.tertiary} />
-                <Text style={styles.stateTitle}>{loadError || 'Roteiro indisponível'}</Text>
+                <Text style={styles.stateTitle}>{loadError || 'Itinerary unavailable'}</Text>
                 <Text style={styles.stateText}>
-                    Não foi possível continuar a compra sem um roteiro válido.
+                    We can't continue the purchase without a valid itinerary.
                 </Text>
                 <TouchableOpacity style={styles.stateButton} onPress={() => router.replace('/(tabs)/itineraries' as any)}>
-                    <Text style={styles.stateButtonText}>Explorar roteiros</Text>
+                    <Text style={styles.stateButtonText}>Explore itineraries</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -271,8 +277,8 @@ export default function ItineraryContactScreen() {
                     <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
-                    <Text style={styles.headerTitle}>Compra de Roteiro</Text>
-                    <Text style={styles.headerSubtitle}>Etapa 1 de 2 · Dados</Text>
+                    <Text style={styles.headerTitle}>Itinerary Purchase</Text>
+                    <Text style={styles.headerSubtitle}>Step 1 of 2 · Details</Text>
                 </View>
                 <View style={{ width: 40 }} />
             </View>
@@ -301,7 +307,7 @@ export default function ItineraryContactScreen() {
                             <View style={styles.stepDot}>
                                 <Text style={styles.stepDotText}>2</Text>
                             </View>
-                            <Text style={styles.stepPillText}>Pagamento</Text>
+                            <Text style={styles.stepPillText}>Payment</Text>
                         </View>
                     </View>
 
@@ -333,7 +339,7 @@ export default function ItineraryContactScreen() {
                                 {duration > 0 && (
                                     <View style={styles.productMetaItem}>
                                         <Ionicons name="calendar-outline" size={12} color={theme.colors.text.secondary} />
-                                        <Text style={styles.productMetaText}>{duration} dias</Text>
+                                        <Text style={styles.productMetaText}>{duration} {duration === 1 ? 'day' : 'days'}</Text>
                                     </View>
                                 )}
                             </View>
@@ -347,28 +353,28 @@ export default function ItineraryContactScreen() {
                             <Ionicons name="lock-closed-outline" size={16} color={theme.colors.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.digitalBadgeTitle}>Acesso imediato após confirmação</Text>
+                            <Text style={styles.digitalBadgeTitle}>Instant access after confirmation</Text>
                             <Text style={styles.digitalBadgeDesc}>
-                                O roteiro fica disponível em <Text style={{ fontWeight: '700' }}>Meus Roteiros</Text> assim que o pagamento for aprovado.
+                                The itinerary is available in <Text style={{ fontWeight: '700' }}>My Itineraries</Text> as soon as payment is approved.
                             </Text>
                         </View>
                     </View>
 
                     {/* Formulário */}
                     <View style={styles.formCard}>
-                        <Text style={styles.formTitle}>Dados para liberação</Text>
+                        <Text style={styles.formTitle}>Details to unlock your itinerary</Text>
                         <Text style={styles.formSubtitle}>
-                            Usamos seus dados apenas para identificar a compra e liberar o roteiro.
+                            We use your details only to identify the purchase and unlock the itinerary.
                         </Text>
 
                         {/* Nome */}
                         <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Nome completo</Text>
+                            <Text style={styles.inputLabel}>Full name</Text>
                             <View style={[styles.inputWrapper, Boolean(errors.fullName) && styles.inputWrapperError]}>
                                 <Ionicons name="person-outline" size={18} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Seu nome completo"
+                                    placeholder="Your full name"
                                     placeholderTextColor={theme.colors.text.tertiary}
                                     value={fullName}
                                     onChangeText={(value) => {
@@ -384,12 +390,12 @@ export default function ItineraryContactScreen() {
 
                         {/* Email */}
                         <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>E-mail</Text>
+                            <Text style={styles.inputLabel}>Email</Text>
                             <View style={[styles.inputWrapper, Boolean(errors.email) && styles.inputWrapperError]}>
                                 <Ionicons name="mail-outline" size={18} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="seu@email.com"
+                                    placeholder="you@email.com"
                                     placeholderTextColor={theme.colors.text.tertiary}
                                     value={email}
                                     onChangeText={(value) => {
@@ -405,13 +411,13 @@ export default function ItineraryContactScreen() {
                             {errors.email ? (
                                 <Text style={styles.errorMessage}>{errors.email}</Text>
                             ) : (
-                                <Text style={styles.inputHint}>Enviamos a confirmação e o recibo para este e-mail.</Text>
+                                <Text style={styles.inputHint}>We'll send your confirmation and receipt to this email.</Text>
                             )}
                         </View>
 
                         {/* Telefone (código + número) */}
                         <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Telefone</Text>
+                            <Text style={styles.inputLabel}>Phone</Text>
                             <View style={styles.phoneRow}>
                                 <TouchableOpacity
                                     style={[styles.countrySelector, Boolean(errors.countryCode) && styles.inputWrapperError]}
@@ -425,7 +431,7 @@ export default function ItineraryContactScreen() {
                                 <View style={[styles.phoneInputWrapper, Boolean(errors.phone) && styles.inputWrapperError]}>
                                     <TextInput
                                         style={styles.input}
-                                        placeholder={countryCode === '+55' ? '(48) 99999-9999' : 'Número'}
+                                        placeholder={countryCode === '+1' ? '(555) 123-4567' : countryCode === '+55' ? '(48) 99999-9999' : 'Phone number'}
                                         placeholderTextColor={theme.colors.text.tertiary}
                                         value={phone}
                                         onChangeText={(value) => {
@@ -447,7 +453,7 @@ export default function ItineraryContactScreen() {
                     <View style={styles.scopeNotice}>
                         <Ionicons name="information-circle-outline" size={14} color={theme.colors.text.secondary} />
                         <Text style={styles.scopeNoticeText}>
-                            Este valor é referente ao roteiro digital. Não inclui passagens, hospedagens, passeios ou reservas — gastos de viagem mostrados no roteiro são apenas referências informativas.
+                            This amount is for the digital itinerary only. It doesn't include flights, lodging, tours or bookings — the travel costs shown in the itinerary are for reference only.
                         </Text>
                     </View>
                 </ScrollView>
@@ -468,7 +474,7 @@ export default function ItineraryContactScreen() {
                             <ActivityIndicator size="small" color="#fff" />
                         ) : (
                             <>
-                                <Text style={styles.continueButtonText}>Ir para pagamento</Text>
+                                <Text style={styles.continueButtonText}>Go to payment</Text>
                                 <Ionicons name="arrow-forward" size={18} color="#fff" />
                             </>
                         )}

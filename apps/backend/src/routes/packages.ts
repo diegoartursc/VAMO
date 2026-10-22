@@ -341,7 +341,7 @@ router.post('/', authMiddleware, createAuditMiddleware('CREATE'), async (req: Au
         const parsed = CreatePackageSchema.safeParse(bodyData);
         if (!parsed.success) {
             res.status(422).json({
-                error: 'Validação falhou',
+                error: 'Validation failed',
                 details: parsed.error.flatten().fieldErrors
             });
             return;
@@ -420,23 +420,23 @@ router.put('/:id', authMiddleware, createAuditMiddleware('UPDATE'), async (req: 
         });
 
         if (!existing) {
-            res.status(404).json({ error: 'Pacote não encontrado' });
+            res.status(404).json({ error: 'Package not found' });
             return;
         }
 
         if (existing.agencyId !== req.agency!.agencyId) {
-            res.status(403).json({ error: 'Acesso negado: este pacote não pertence à sua agência' });
+            res.status(403).json({ error: 'Access denied: this package doesn\'t belong to your agency' });
             return;
         }
 
         // Validation
         const errors: string[] = [];
-        if (data.travelStyles && data.travelStyles.length > 3) errors.push('Máximo 3 estilos de viagem');
-        if (data.categories && data.categories.length > 5) errors.push('Máximo 5 categorias');
-        if (data.categories && data.categories.length < 1) errors.push('Mínimo 1 categoria');
+        if (data.travelStyles && data.travelStyles.length > 3) errors.push('Maximum of 3 travel styles');
+        if (data.categories && data.categories.length > 5) errors.push('Maximum of 5 categories');
+        if (data.categories && data.categories.length < 1) errors.push('Minimum of 1 category');
 
         if (errors.length > 0) {
-            res.status(400).json({ error: 'Validação falhou', details: errors });
+            res.status(400).json({ error: 'Validation failed', details: errors });
             return;
         }
 
@@ -487,12 +487,12 @@ router.delete('/:id', authMiddleware, createAuditMiddleware('DELETE'), async (re
         });
 
         if (!existing) {
-            res.status(404).json({ error: 'Pacote não encontrado' });
+            res.status(404).json({ error: 'Package not found' });
             return;
         }
 
         if (existing.agencyId !== req.agency!.agencyId) {
-            res.status(403).json({ error: 'Acesso negado: este pacote não pertence à sua agência' });
+            res.status(403).json({ error: 'Access denied: this package doesn\'t belong to your agency' });
             return;
         }
 
@@ -500,7 +500,7 @@ router.delete('/:id', authMiddleware, createAuditMiddleware('DELETE'), async (re
             where: { id: req.params.id as string },
             data: { status: 'ARCHIVED' },
         });
-        res.json({ message: 'Pacote arquivado', id: pkg.id });
+        res.json({ message: 'Package archived', id: pkg.id });
     } catch (error) {
         console.error('Error archiving package:', error);
         res.status(500).json({ error: 'Failed to archive package' });

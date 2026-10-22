@@ -60,7 +60,7 @@ export function useDollarRate() {
 
     // Propriedades mantidas estritamente para retrocompatibilidade
     const dollarRate = rates["USD"] || 5.0;
-    const formattedRate = dollarRate.toLocaleString("pt-BR", {
+    const formattedRate = dollarRate.toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 4,
     });

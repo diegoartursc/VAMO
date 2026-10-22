@@ -335,7 +335,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                 await updateItinerary(id, buildPayload());
                 setDirty(false);
                 setSaveStatus("saved");
-                setLastSaved(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+                setLastSaved(new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
             } catch { setSaveStatus("idle"); }
         }, 5000);
         return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
@@ -777,7 +777,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                         <div className="editor-breakdown-total">
                             <span className="editor-breakdown-total-label">Total estimado por pessoa</span>
                             <span className="editor-breakdown-total-value">
-                                {BASE_CURRENCY_SYMBOL}{spendingBreakdown.reduce((s, b) => s + (parseFloat(b.min) || 0), 0).toLocaleString("pt-BR")} – {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.max) || 0), 0).toLocaleString("pt-BR")}
+                                {BASE_CURRENCY_SYMBOL}{spendingBreakdown.reduce((s, b) => s + (parseFloat(b.min) || 0), 0).toLocaleString("en-US")} – {spendingBreakdown.reduce((s, b) => s + (parseFloat(b.max) || 0), 0).toLocaleString("en-US")}
                             </span>
                         </div>
                     </>

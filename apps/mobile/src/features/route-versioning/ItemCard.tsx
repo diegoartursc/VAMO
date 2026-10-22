@@ -52,7 +52,7 @@ export interface ItemCardProps {
 // silenciosamente o legacy do snapshot. Se o valor editado for limpo,
 // cai pra legacy original.
 
-import { CURRENCIES, formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
+import { CURRENCIES, formatTimeForDisplay } from '@vamo/shared/itinerary';
 import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
 const CURRENCY_SYMBOL: Record<string, string> = CURRENCIES.reduce(
@@ -98,10 +98,10 @@ function pickDisplayCost(data: any): string | null {
     return null;
 }
 
-/** Formata "200" / "200,00" + "AUD" → "A$ 200,00 AUD" (compacto). */
+/** Formats "200" / "200.00" + "USD" → "$ 200.00" (compact). */
 function formatCostString(rawValue: string | number, currency: string): string {
     const valueStr = typeof rawValue === 'number'
-        ? rawValue.toFixed(2).replace('.', ',')
+        ? rawValue.toFixed(2)
         : String(rawValue);
     const symbol = CURRENCY_SYMBOL[currency] || '';
     return symbol ? `${symbol} ${valueStr}` : `${valueStr} ${currency}`;
@@ -113,7 +113,7 @@ function SourceBadge({ source }: { source: ItemSource }) {
     if (source === 'original') return null;
     const isAdded = source === 'added';
     const bg = isAdded ? theme.colors.primary : theme.colors.secondary;
-    const label = isAdded ? 'Adicionado' : 'Editado';
+    const label = isAdded ? 'Added' : 'Edited';
     const icon = isAdded ? 'add-circle' : 'create';
     return (
         <View style={[styles.badge, { backgroundColor: bg }]}>
@@ -134,12 +134,12 @@ function MapButton({ url }: { url?: string | null }) {
             activeOpacity={0.8}
         >
             <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
-            <Text style={styles.mapBtnText}>Ver no mapa</Text>
+            <Text style={styles.mapBtnText}>View on map</Text>
         </TouchableOpacity>
     );
 }
 
-function ExternalButton({ url, label = 'Site oficial' }: { url?: string | null; label?: string }) {
+function ExternalButton({ url, label = 'Official website' }: { url?: string | null; label?: string }) {
     if (!url) return null;
     return (
         <TouchableOpacity
@@ -160,7 +160,7 @@ function AccommodationCard({ data }: { data: any }) {
     return (
         <>
             <View style={styles.row}>
-                <Text style={styles.title} numberOfLines={2}>{data?.name || 'Hospedagem'}</Text>
+                <Text style={styles.title} numberOfLines={2}>{data?.name || 'Lodging'}</Text>
                 {cost ? (
                     <View style={styles.pricePill}>
                         <Text style={styles.pricePillText}>{cost}</Text>
@@ -198,7 +198,7 @@ function AttractionCard({ data }: { data: any }) {
         <>
             {/* Linha 1: título (largura quase total) + preço (recua/encolhe) */}
             <View style={styles.row}>
-                <Text style={styles.title} numberOfLines={2}>{data?.name || 'Atração'}</Text>
+                <Text style={styles.title} numberOfLines={2}>{data?.name || 'Attraction'}</Text>
                 {(() => {
                     const cost = pickDisplayCost(data) ?? (data?.ticketPrice ? String(data.ticketPrice) : null);
                     if (!cost) return null;
@@ -222,7 +222,7 @@ function AttractionCard({ data }: { data: any }) {
                     {data?.hours ? (
                         <View style={styles.infoChip}>
                             <Ionicons name="time-outline" size={11} color={theme.colors.text.secondary} />
-                            <Text style={styles.infoChipText}>{formatTimeForAustraliaDisplay(data.hours)}</Text>
+                            <Text style={styles.infoChipText}>{formatTimeForDisplay(data.hours)}</Text>
                         </View>
                     ) : null}
                     {data?.duration ? (
@@ -242,7 +242,7 @@ function AttractionCard({ data }: { data: any }) {
                 </View>
             ) : null}
             <View style={styles.actionsRow}>
-                <ExternalButton url={data?.externalLink} label="Site oficial" />
+                <ExternalButton url={data?.externalLink} label="Official website" />
                 <MapButton url={data?.mapLink} />
             </View>
         </>
@@ -255,7 +255,7 @@ function RestaurantCard({ data }: { data: any }) {
             <View style={styles.row}>
                 <View style={styles.flexCol}>
                     <View style={styles.titleRow}>
-                        <Text style={styles.title} numberOfLines={2}>{data?.name || 'Restaurante'}</Text>
+                        <Text style={styles.title} numberOfLines={2}>{data?.name || 'Restaurant'}</Text>
                         {data?.cuisine ? (
                             <View style={styles.cuisineTag}>
                                 <Text style={styles.cuisineTagText}>{String(data.cuisine)}</Text>
@@ -283,7 +283,7 @@ function RestaurantCard({ data }: { data: any }) {
                 <Text style={styles.desc}>{String(data.description)}</Text>
             ) : null}
             {(data?.hoursStart || data?.hours) ? (
-                <Text style={styles.metaText}>🕐 {formatTimeForAustraliaDisplay(data.hoursStart || data.hours)}</Text>
+                <Text style={styles.metaText}>🕐 {formatTimeForDisplay(data.hoursStart || data.hours)}</Text>
             ) : null}
             {data?.tips ? (
                 <View style={styles.tipBox}>
@@ -291,7 +291,7 @@ function RestaurantCard({ data }: { data: any }) {
                 </View>
             ) : null}
             <MapButton url={data?.mapLink} />
-            <ExternalButton url={data?.externalLink} label="Ver reservas" />
+            <ExternalButton url={data?.externalLink} label="View bookings" />
         </>
     );
 }
@@ -301,7 +301,7 @@ function TransportCard({ data }: { data: any }) {
     return (
         <>
             <View style={styles.row}>
-                <Text style={styles.title} numberOfLines={2}>{data?.description || 'Transporte'}</Text>
+                <Text style={styles.title} numberOfLines={2}>{data?.description || 'Transportation'}</Text>
                 {price ? (
                     <View style={styles.pricePill}>
                         <Text style={styles.pricePillText}>{price}</Text>
@@ -351,7 +351,7 @@ function ExtraSpendingCard({ data }: { data: any }) {
     const display = pickDisplayCost(data);
     return (
         <>
-            <Text style={styles.title}>{data?.title || 'Gasto extra'}</Text>
+            <Text style={styles.title}>{data?.title || 'Extra expense'}</Text>
             {data?.description ? (
                 <Text style={styles.desc}>{String(data.description)}</Text>
             ) : null}
@@ -368,12 +368,12 @@ function FlightLegCard({ data, leg }: { data: any; leg: 'outbound' | 'return' })
         <>
             <View style={styles.row}>
                 <Text style={styles.title}>
-                    {leg === 'outbound' ? '✈ Ida' : '✈ Volta'} — {data?.airline || 'Voo'}
+                    {leg === 'outbound' ? '✈ Ida' : '✈ Volta'} — {data?.airline || 'Flight'}
                 </Text>
                 {stops !== null ? (
                     <View style={styles.stopsBadge}>
                         <Text style={styles.stopsText}>
-                            {stops === 0 ? 'Direto' : `${stops} parada${stops > 1 ? 's' : ''}`}
+                            {stops === 0 ? 'Direto' : `${stops} stop${stops > 1 ? 's' : ''}`}
                         </Text>
                     </View>
                 ) : null}
@@ -400,14 +400,14 @@ function DayActivityCard({ data }: { data: any }) {
         <>
             <View style={styles.activityHeader}>
                 {data?.icon ? <Text style={styles.activityIcon}>{String(data.icon)}</Text> : null}
-                {data?.time ? <Text style={styles.activityTime}>{formatTimeForAustraliaDisplay(data.time)}</Text> : null}
+                {data?.time ? <Text style={styles.activityTime}>{formatTimeForDisplay(data.time)}</Text> : null}
                 {data?.duration ? (
                     <View style={styles.durationChip}>
                         <Text style={styles.durationText}>{String(data.duration)}</Text>
                     </View>
                 ) : null}
             </View>
-            <Text style={styles.title}>{data?.title || 'Atividade'}</Text>
+            <Text style={styles.title}>{data?.title || 'Activity'}</Text>
             {data?.location ? (
                 <View style={styles.locRow}>
                     <Ionicons name="location-outline" size={11} color={theme.colors.text.tertiary} style={styles.locIcon} />

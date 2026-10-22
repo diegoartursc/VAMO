@@ -32,9 +32,9 @@ export default function BookingAwaitingQuoteScreen() {
             <View style={styles.container}>
                 <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle" size={48} color={theme.colors.text.tertiary} />
-                    <Text style={styles.errorText}>Reserva não encontrada</Text>
+                    <Text style={styles.errorText}>Booking not found</Text>
                     <TouchableOpacity onPress={() => safeBack(router, '/(tabs)/my-trips')} style={styles.errorButton}>
-                        <Text style={styles.errorButtonText}>Voltar</Text>
+                        <Text style={styles.errorButtonText}>Back</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -59,7 +59,7 @@ export default function BookingAwaitingQuoteScreen() {
                         <TouchableOpacity style={styles.navButton} onPress={() => safeBack(router, '/(tabs)/my-trips')}>
                             <Ionicons name="arrow-back" size={22} color="#fff" />
                         </TouchableOpacity>
-                        <Text style={styles.navTitle}>Detalhes do Pedido</Text>
+                        <Text style={styles.navTitle}>Order Details</Text>
                         <View style={{ width: 40 }} />
                     </View>
                     <View style={styles.headerInfo}>
@@ -73,7 +73,7 @@ export default function BookingAwaitingQuoteScreen() {
                             <Ionicons name="people" size={14} color="rgba(255,255,255,0.8)" />
                             <Text style={styles.headerLocation}>
                                 {booking.travelers.adults} Adulto{booking.travelers.adults > 1 ? 's' : ''}
-                                {booking.travelers.children > 0 ? `, ${booking.travelers.children} Criança${booking.travelers.children > 1 ? 's' : ''}` : ''}
+                                {booking.travelers.children > 0 ? `, ${booking.travelers.children} Child${booking.travelers.children > 1 ? 'ren' : ''}` : ''}
                             </Text>
                         </View>
                     </View>
@@ -85,10 +85,10 @@ export default function BookingAwaitingQuoteScreen() {
                         <View style={styles.statusIconContainer}>
                             <Ionicons name="search" size={32} color="#0891B2" />
                         </View>
-                        <Text style={styles.statusTitle}>Cotação em andamento</Text>
+                        <Text style={styles.statusTitle}>Quote in progress</Text>
                         <Text style={styles.statusDescription}>
-                            A agência {booking.agencyName} está buscando as melhores passagens aéreas saindo da sua cidade.
-                            Assim que a proposta estiver pronta, você receberá uma notificação para revisar e pagar.
+                            {booking.agencyName} is looking for the best airfares departing from your city.
+                            As soon as the proposal is ready, you'll get a notification to review and pay.
                         </Text>
                     </View>
 
@@ -122,7 +122,7 @@ export default function BookingAwaitingQuoteScreen() {
                                         <Text style={styles.timelineDescription}>{step.description}</Text>
                                         {step.completedDate && (
                                             <Text style={styles.timelineDate}>
-                                                {new Date(step.completedDate).toLocaleDateString('pt-BR')}
+                                                {new Date(step.completedDate).toLocaleDateString('en-US')}
                                             </Text>
                                         )}
                                     </View>
@@ -132,14 +132,14 @@ export default function BookingAwaitingQuoteScreen() {
                     </View>
 
                     {/* ─── O que está incluso ─── */}
-                    <Text style={styles.sectionTitle}>✅ O que está incluso</Text>
+                    <Text style={styles.sectionTitle}>✅ What's included</Text>
                     <View style={styles.inclusionsContainer}>
                         {booking.checkedBags > 0 && (
                             <View style={styles.inclusionRow}>
                                 <Text style={styles.inclusionIcon}>🧳</Text>
                                 <View style={styles.inclusionContent}>
                                     <Text style={styles.inclusionLabel}>{booking.checkedBags} Bagagem(ns) Despachada(s)</Text>
-                                    <Text style={styles.inclusionDetail}>Malas de até 23kg inclusas na cotação que a agência fará</Text>
+                                    <Text style={styles.inclusionDetail}>Bags up to 50 lb included in the quote the agency will prepare</Text>
                                 </View>
                             </View>
                         )}
@@ -159,23 +159,23 @@ export default function BookingAwaitingQuoteScreen() {
                         <Text style={styles.agencyLogo}>{booking.agencyLogo}</Text>
                         <View style={styles.agencyContent}>
                             <Text style={styles.agencyName}>{booking.agencyName}</Text>
-                            <Text style={styles.agencyLabel}>Agência responsável</Text>
+                            <Text style={styles.agencyLabel}>Responsible agency</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.agencyContact}
-                            onPress={() => Alert.alert('Contato', `Entrando em contato com ${booking.agencyName}...`)}
+                            onPress={() => Alert.alert('Contato', `Contacting ${booking.agencyName}...`)}
                         >
                             <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
                         </TouchableOpacity>
                     </View>
 
-                    {/* ─── Ver detalhes do pacote (Universal) ─── */}
+                    {/* ─── View package details (Universal) ─── */}
                     <TouchableOpacity
                         style={styles.viewPackageButton}
                         onPress={() => router.push(`/package/${booking.packageId}`)}
                     >
                         <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
-                        <Text style={styles.viewPackageButtonText}>Ver detalhes do pacote</Text>
+                        <Text style={styles.viewPackageButtonText}>View package details</Text>
                     </TouchableOpacity>
 
                     <View style={{ height: 40 }} />

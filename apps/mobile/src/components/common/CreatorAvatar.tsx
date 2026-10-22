@@ -61,7 +61,7 @@ export const CreatorAvatar: React.FC<CreatorAvatarProps> = ({
                 style={[dimension, styles.image, style as StyleProp<ImageStyle>]}
                 resizeMode="cover"
                 onError={() => setErrored(true)}
-                accessibilityLabel={displayName ? `Foto de ${displayName}` : 'Foto de perfil'}
+                accessibilityLabel={displayName ? `Photo of ${displayName}` : 'Profile photo'}
             />
         );
     }

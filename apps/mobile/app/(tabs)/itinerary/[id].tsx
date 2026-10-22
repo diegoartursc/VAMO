@@ -97,7 +97,7 @@ export default function ItineraryDetailScreen() {
     const loadItinerary = useCallback(async () => {
         if (!itineraryId) {
             setItinerary(null);
-            setLoadError('Roteiro inválido.');
+            setLoadError('Invalid itinerary.');
             setIsLoading(false);
             return;
         }
@@ -108,14 +108,14 @@ export default function ItineraryDetailScreen() {
             const data = await getItineraryById(itineraryId);
             if (!data) {
                 setItinerary(null);
-                setLoadError('Roteiro não encontrado ou indisponível.');
+                setLoadError('Itinerary not found or unavailable.');
                 return;
             }
             setItinerary(data);
         } catch (error) {
             console.error('Error loading itinerary:', error);
             setItinerary(null);
-            setLoadError('Não foi possível carregar este roteiro agora.');
+            setLoadError('We couldn\'t load this itinerary right now.');
         } finally {
             setIsLoading(false);
         }
@@ -149,8 +149,8 @@ export default function ItineraryDetailScreen() {
         return (
             <View style={styles.stateContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={styles.stateTitle}>Carregando roteiro...</Text>
-                <Text style={styles.stateText}>Estamos buscando os detalhes, imagens e avaliações deste roteiro digital.</Text>
+                <Text style={styles.stateTitle}>Loading itinerary...</Text>
+                <Text style={styles.stateText}>We're fetching the details, photos and reviews for this digital itinerary.</Text>
             </View>
         );
     }
@@ -159,18 +159,18 @@ export default function ItineraryDetailScreen() {
         return (
             <View style={styles.stateContainer}>
                 <Ionicons name="map-outline" size={42} color={theme.colors.text.tertiary} />
-                <Text style={styles.stateTitle}>{loadError || 'Roteiro indisponível'}</Text>
+                <Text style={styles.stateTitle}>{loadError || 'Itinerary unavailable'}</Text>
                 <Text style={styles.stateText}>
-                    Ele pode ter sido removido, pausado ou ainda não estar aprovado para a vitrine.
+                    It may have been removed, paused or not yet approved for the storefront.
                 </Text>
                 <View style={styles.stateActions}>
                     <TouchableOpacity style={styles.stateSecondaryButton} onPress={goBackOrExplore}>
                         <Ionicons name="arrow-back" size={17} color={theme.colors.primary} />
-                        <Text style={styles.stateSecondaryText}>Voltar</Text>
+                        <Text style={styles.stateSecondaryText}>Back</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.statePrimaryButton} onPress={loadItinerary}>
                         <Ionicons name="refresh" size={17} color="#fff" />
-                        <Text style={styles.statePrimaryText}>Tentar novamente</Text>
+                        <Text style={styles.statePrimaryText}>Try again</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -188,7 +188,7 @@ export default function ItineraryDetailScreen() {
     const creatorProfileHref = buildCreatorProfileHref(creatorId, {
         from: `/itinerary/${itineraryId}`,
     });
-    const creatorName = creator.name || 'Criador VAMO';
+    const creatorName = creator.name || 'VAMO Creator';
     const creatorRating = Number(creator.rating) || 0;
     // `creatorSales` agora representa as VENDAS REAIS DESTE ROTEIRO
     // (top-level `itinerary.salesCount` = ItinerarySale.count no backend).
@@ -198,7 +198,7 @@ export default function ItineraryDetailScreen() {
     const creatorReputation =
         VERIFICATION_CONFIGS[(creator.verificationLevel || 'basic') as VerificationLevel]
         ?? VERIFICATION_CONFIGS.basic;
-    const destinationLabel = [itinerary.destination, itinerary.country].filter(Boolean).join(', ') || 'Destino VAMO';
+    const destinationLabel = [itinerary.destination, itinerary.country].filter(Boolean).join(', ') || 'VAMO Destination';
     const reviews = Array.isArray(itinerary.reviews) ? itinerary.reviews : [];
     const averageReviewRating = reviews.length > 0
         ? Number((reviews.reduce((sum: number, review: any) => sum + (Number(review.rating) || 0), 0) / reviews.length).toFixed(1))
@@ -238,7 +238,7 @@ export default function ItineraryDetailScreen() {
      *  uma intenção sugerida pra UX (login, ir pra meus roteiros, etc.). */
     const purchaseGate = (): { ok: true } | { ok: false; reason: string; intent?: 'view-purchased' } => {
         if (isOwned(itineraryId)) {
-            return { ok: false, reason: 'Você já comprou este roteiro.', intent: 'view-purchased' };
+            return { ok: false, reason: 'You\'ve already purchased this itinerary.', intent: 'view-purchased' };
         }
         const avail = evaluateItineraryAvailability(itinerary);
         if (!avail.ok) return { ok: false, reason: avail.reason };
@@ -260,7 +260,7 @@ export default function ItineraryDetailScreen() {
                 router.replace(`/purchased-itinerary/${itineraryId}` as any);
                 return;
             }
-            notify({ title: 'Não foi possível comprar agora', message: gate.reason, variant: 'warning' });
+            notify({ title: 'Couldn\'t complete the purchase', message: gate.reason, variant: 'warning' });
             return;
         }
         router.push({
@@ -289,7 +289,7 @@ export default function ItineraryDetailScreen() {
                 router.replace(`/purchased-itinerary/${itineraryId}` as any);
                 return;
             }
-            notify({ title: 'Não pode entrar no carrinho', message: gate.reason, variant: 'warning' });
+            notify({ title: 'Can\'t be added to the cart', message: gate.reason, variant: 'warning' });
             return;
         }
         await addToCart(itineraryId);
@@ -339,7 +339,7 @@ export default function ItineraryDetailScreen() {
                                     style={styles.navIconButton}
                                     onPress={() => { haptics.light(); shareItinerary(); }}
                                     disabled={isSharing}
-                                    accessibilityLabel="Compartilhar roteiro"
+                                    accessibilityLabel="Share itinerary"
                                 >
                                     <Ionicons name="share-outline" size={22} color="#fff" />
                                 </TouchableOpacity>
@@ -416,7 +416,7 @@ export default function ItineraryDetailScreen() {
                         <View style={styles.statDivider} />
                         <View style={styles.statItem}>
                             <Icon name="calendar" size={16} color={theme.colors.primary} />
-                            <Text style={styles.statText}>{duration} dias</Text>
+                            <Text style={styles.statText}>{duration} {duration === 1 ? 'day' : 'days'}</Text>
                         </View>
                     </View>
 
@@ -428,7 +428,7 @@ export default function ItineraryDetailScreen() {
                     )}
 
                     {/* Sobre o Roteiro */}
-                    <CollapsibleSection title="Sobre o Roteiro" defaultExpanded>
+                    <CollapsibleSection title="About this Itinerary" defaultExpanded>
                         <Text style={styles.description}>{itinerary.description}</Text>
                     </CollapsibleSection>
 
@@ -448,7 +448,7 @@ export default function ItineraryDetailScreen() {
 
                     {/* Destaques */}
                     {itinerary.highlights && itinerary.highlights.length > 0 && (
-                        <CollapsibleSection title="Destaques da viagem" defaultExpanded>
+                        <CollapsibleSection title="Trip highlights" defaultExpanded>
                             <View style={styles.highlightsContainer}>
                                 {itinerary.highlights.map((highlight: any, index: number) => (
                                     <View key={index} style={styles.highlightRow}>
@@ -473,9 +473,9 @@ export default function ItineraryDetailScreen() {
                             <View style={styles.idealForCard}>
                                 <View style={styles.idealForHeader}>
                                     <Ionicons name="people-circle-outline" size={20} color={theme.colors.primaryDark} />
-                                    <Text style={styles.idealForTitle}>Para quem é este roteiro</Text>
+                                    <Text style={styles.idealForTitle}>Who this itinerary is for</Text>
                                 </View>
-                                <Text style={styles.idealForIntro}>Este roteiro é ideal para quem busca:</Text>
+                                <Text style={styles.idealForIntro}>This itinerary is ideal if you're looking for:</Text>
                                 <View style={styles.idealForList}>
                                     {bullets.map((b, i) => (
                                         <View key={i} style={styles.idealForItem}>
@@ -496,7 +496,7 @@ export default function ItineraryDetailScreen() {
                             <View style={styles.whyBuyCard}>
                                 <View style={styles.whyBuyHeader}>
                                     <Ionicons name="ribbon" size={18} color={theme.colors.primary} />
-                                    <Text style={styles.whyBuyTitle}>Por que comprar este roteiro?</Text>
+                                    <Text style={styles.whyBuyTitle}>Why buy this itinerary?</Text>
                                 </View>
                                 <View style={styles.whyBuyList}>
                                     {bullets.map((text, i) => (
@@ -529,7 +529,7 @@ export default function ItineraryDetailScreen() {
                             onPress={() => router.push('/verification-explained' as any)}
                         >
                             <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
-                            <Text style={styles.verificationLinkText}>Como verificamos os criadores</Text>
+                            <Text style={styles.verificationLinkText}>How we verify creators</Text>
                             <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
                         </TouchableOpacity>
                     </View>
@@ -544,16 +544,16 @@ export default function ItineraryDetailScreen() {
                         end={{ x: 1, y: 1 }}
                     >
                         <View style={styles.priceInfo}>
-                            <Text style={styles.priceLabelText}>Roteiro completo</Text>
+                            <Text style={styles.priceLabelText}>Complete itinerary</Text>
                             <View style={styles.priceRow}>
                                 <Text style={styles.priceSymbolText}>{getCurrencySymbol(itinerary.currency)}</Text>
                                 <Text style={styles.priceValueText}>
-                                    {price.toFixed(2).replace('.', ',')}
+                                    {price.toFixed(2)}
                                 </Text>
                             </View>
                             <View style={styles.priceMeta}>
                                 <Ionicons name="flash" size={12} color="#28C9BF" />
-                                <Text style={styles.priceMetaText}>Acesso imediato após a compra</Text>
+                                <Text style={styles.priceMetaText}>Instant access after purchase</Text>
                             </View>
                         </View>
 
@@ -563,7 +563,7 @@ export default function ItineraryDetailScreen() {
                                 style={[styles.cartCtaWide, isInCart(itineraryId) && styles.cartCtaWideActive]}
                                 onPress={handleAddToCart}
                                 activeOpacity={0.85}
-                                accessibilityLabel={isInCart(itineraryId) ? 'No carrinho' : 'Adicionar ao carrinho'}
+                                accessibilityLabel={isInCart(itineraryId) ? 'In cart' : 'Add to cart'}
                             >
                                 <Icon
                                     name={isInCart(itineraryId) ? 'verified' : 'shopping-cart'}
@@ -571,7 +571,7 @@ export default function ItineraryDetailScreen() {
                                     color={isInCart(itineraryId) ? '#28C9BF' : '#FFFFFF'}
                                 />
                                 <Text style={[styles.cartCtaWideText, isInCart(itineraryId) && styles.cartCtaWideTextActive]}>
-                                    {isInCart(itineraryId) ? 'No carrinho' : 'Adicionar'}
+                                    {isInCart(itineraryId) ? 'In cart' : 'Add'}
                                 </Text>
                             </TouchableOpacity>
 
@@ -581,7 +581,7 @@ export default function ItineraryDetailScreen() {
                                 onPress={handleBuyNow}
                                 activeOpacity={0.85}
                             >
-                                <Text style={styles.buyButtonText}>Comprar agora</Text>
+                                <Text style={styles.buyButtonText}>Buy now</Text>
                                 <Icon name="chevron-right" size={16} color="#fff" strokeWidth={2.5} />
                             </TouchableOpacity>
                         </View>
@@ -591,7 +591,7 @@ export default function ItineraryDetailScreen() {
                     {cartToast && (
                         <View style={styles.cartToast}>
                             <Ionicons name="cart-outline" size={16} color="#fff" />
-                            <Text style={styles.cartToastText}>Adicionado ao carrinho!</Text>
+                            <Text style={styles.cartToastText}>Added to cart!</Text>
                         </View>
                     )}
 
@@ -605,9 +605,9 @@ export default function ItineraryDetailScreen() {
                         const receivedModules = getReceivedModules(itinerary);
                         if (receivedModules.length === 0) return null;
                         return (
-                            <CollapsibleSection title="O que você vai receber" defaultExpanded>
+                            <CollapsibleSection title="What you'll get" defaultExpanded>
                                 <Text style={styles.inclusionsIntro}>
-                                    Ao comprar este roteiro, você terá acesso a:
+                                    When you buy this itinerary, you'll get access to:
                                 </Text>
 
                                 <View style={styles.inclusionsList}>
@@ -637,10 +637,10 @@ export default function ItineraryDetailScreen() {
                             <View style={styles.unlockSection}>
                                 <View style={styles.unlockHeader}>
                                     <Ionicons name="lock-closed" size={16} color={theme.colors.primary} />
-                                    <Text style={styles.unlockTitle}>Prévia do que você vai desbloquear</Text>
+                                    <Text style={styles.unlockTitle}>Preview of what you'll unlock</Text>
                                 </View>
                                 <Text style={styles.unlockSubtitle}>
-                                    Conteúdo completo liberado em Meus Roteiros após a compra.
+                                    Full content unlocked in My Itineraries after purchase.
                                 </Text>
                                 <View style={styles.unlockGrid}>
                                     {cards.map((card) => (
@@ -652,7 +652,7 @@ export default function ItineraryDetailScreen() {
                                             <Text style={styles.unlockCardSub} numberOfLines={2}>{card.subtitle}</Text>
                                             <View style={styles.unlockLockRow}>
                                                 <Ionicons name="lock-closed" size={11} color={theme.colors.text.tertiary} />
-                                                <Text style={styles.unlockLockText}>Após a compra</Text>
+                                                <Text style={styles.unlockLockText}>After purchase</Text>
                                             </View>
                                         </View>
                                     ))}
@@ -679,11 +679,11 @@ export default function ItineraryDetailScreen() {
                         };
                         const hasCostData = getCostReferences(costForm as any).length > 0;
                         const trustItems: TrustSignal[] = [
-                            { icon: 'shield-checkmark', label: 'Roteirista verificado' },
-                            { icon: 'flash', label: 'Acesso imediato' },
+                            { icon: 'shield-checkmark', label: 'Verified creator' },
+                            { icon: 'flash', label: 'Instant access' },
                         ];
                         if (hasCostData) {
-                            trustItems.push({ icon: 'wallet-outline', label: 'Custos informados' });
+                            trustItems.push({ icon: 'wallet-outline', label: 'Costs provided' });
                         }
                         return (
                             <>
@@ -705,8 +705,8 @@ export default function ItineraryDetailScreen() {
                         <View style={styles.trustContent}>
                             <Text style={styles.trustTitle}>{creatorReputation.label}</Text>
                             <Text style={styles.trustText}>
-                                {creatorName} tem {creatorReputation.description.toLowerCase()}
-                                {creatorSales > 0 ? ` e ${creatorSales.toLocaleString('pt-BR')} roteiro${creatorSales === 1 ? '' : 's'} vendido${creatorSales === 1 ? '' : 's'}` : ''}.
+                                {creatorName} has {creatorReputation.description.toLowerCase()}
+                                {creatorSales > 0 ? ` and ${creatorSales.toLocaleString('en-US')} itinerar${creatorSales === 1 ? 'y' : 'ies'} sold` : ''}.
                             </Text>
                         </View>
                     </View>
@@ -719,21 +719,21 @@ export default function ItineraryDetailScreen() {
                                 averageRating={averageReviewRating}
                                 totalReviews={reviews.length}
                                 communityPhotos={reviewPhotos}
-                                topRatedSummary="Avaliações de viajantes que compraram este roteiro"
+                                topRatedSummary="Reviews from travelers who purchased this itinerary"
                             />
                         </View>
                     )}
 
                     {/* Como você vai receber */}
-                    <CollapsibleSection title="Como você vai receber">
+                    <CollapsibleSection title="How you'll receive it">
                         <View style={styles.howReceiveContainer}>
                             <View style={styles.howReceiveStep}>
                                 <View style={styles.howReceiveIconBox}>
                                     <Ionicons name="cart-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>1. Compre o roteiro</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Pagamento seguro e acesso imediato após a confirmação</Text>
+                                    <Text style={styles.howReceiveStepTitle}>1. Buy the itinerary</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Secure payment and instant access after confirmation</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
@@ -742,8 +742,8 @@ export default function ItineraryDetailScreen() {
                                     <Ionicons name="phone-portrait-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>2. Acesse pelo app</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Seu roteiro aparece em Meus Roteiros instantaneamente</Text>
+                                    <Text style={styles.howReceiveStepTitle}>2. Open it in the app</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Your itinerary appears in My Itineraries instantly</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
@@ -752,8 +752,8 @@ export default function ItineraryDetailScreen() {
                                     <Ionicons name="document-text-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>3. Salve em PDF</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Depois da compra, exporte o roteiro em PDF para consultar fora da VAMO</Text>
+                                    <Text style={styles.howReceiveStepTitle}>3. Save as PDF</Text>
+                                    <Text style={styles.howReceiveStepDesc}>After purchase, export the itinerary as a PDF to use outside VAMO</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
@@ -763,12 +763,12 @@ export default function ItineraryDetailScreen() {
                                 </View>
                                 <View style={styles.howReceiveContent}>
                                     <Text style={styles.howReceiveStepTitle}>
-                                        {itinerary.lifetimeAccess ? '4. Acesso permanente' : '4. Conteúdo salvo na conta'}
+                                        {itinerary.lifetimeAccess ? '4. Acesso permanente' : '4. Content saved to your account'}
                                     </Text>
                                     <Text style={styles.howReceiveStepDesc}>
                                         {itinerary.lifetimeAccess
-                                            ? 'Consulte o roteiro quando quiser, quantas vezes precisar'
-                                            : 'Consulte o roteiro pelo app sempre que estiver logado na sua conta'}
+                                            ? 'Open the itinerary whenever you want, as many times as you need'
+                                            : 'Open the itinerary in the app any time you\'re signed in to your account'}
                                     </Text>
                                 </View>
                             </View>
@@ -779,7 +779,7 @@ export default function ItineraryDetailScreen() {
                     <View style={styles.beforeBuyBox}>
                         <View style={styles.beforeBuyHeader}>
                             <Ionicons name="information-circle-outline" size={18} color={theme.colors.text.primary} />
-                            <Text style={styles.beforeBuyTitle}>Antes de comprar, saiba</Text>
+                            <Text style={styles.beforeBuyTitle}>Before you buy</Text>
                         </View>
                         <View style={styles.beforeBuyList}>
                             {getBeforeBuyItems(itinerary).map((item, i) => (
@@ -790,7 +790,7 @@ export default function ItineraryDetailScreen() {
                             ))}
                         </View>
                         <Text style={styles.beforeBuyDisclaimer}>
-                            Os valores são referências informadas pelo criador e podem variar conforme data, temporada, câmbio, disponibilidade e estilo de consumo.
+                            Amounts are references provided by the creator and can vary by date, season, exchange rate, availability and spending style.
                         </Text>
                     </View>
 

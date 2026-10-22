@@ -24,8 +24,8 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-    title = 'Algo deu errado',
-    message = 'Não foi possível carregar as informações. Verifique sua conexão e tente novamente.',
+    title = 'Something went wrong',
+    message = 'We couldn\'t load the information. Check your connection and try again.',
     onRetry,
     compact = false,
 }: ErrorStateProps) {
@@ -39,7 +39,7 @@ export function ErrorState({
             {onRetry && (
                 <TouchableOpacity style={styles.retryButton} onPress={onRetry} activeOpacity={0.8}>
                     <Icon name="refresh" size={16} color={theme.colors.text.inverse} />
-                    <Text style={styles.retryText}>Tentar novamente</Text>
+                    <Text style={styles.retryText}>Try again</Text>
                 </TouchableOpacity>
             )}
         </View>

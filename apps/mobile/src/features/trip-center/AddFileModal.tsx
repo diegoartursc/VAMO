@@ -41,7 +41,7 @@ import {
     uploadHint,
 } from '../../utils/uploadContexts';
 import { kindFromMime, type FileKind } from './FileCard';
-import { FILE_CATEGORIES, type FileCategory } from './fileCategories';
+import { FILE_CATEGORIES, fileCategoryLabel, type FileCategory } from './fileCategories';
 
 interface PickedAsset {
     uri: string;
@@ -90,7 +90,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
 
     const sanitizeFilenameForTitle = (filename: string): string => {
         const base = filename.replace(/\.[a-zA-Z0-9]+$/, '');
-        return base.length > 0 ? base.slice(0, 80) : 'Arquivo';
+        return base.length > 0 ? base.slice(0, 80) : 'File';
     };
 
     const acceptAsset = (raw: {
@@ -101,7 +101,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
     }) => {
         const validation = validateUploadFile(raw, 'travelerFile');
         if (!validation.valid) {
-            notify({ title: 'Arquivo inválido', message: validation.reason });
+            notify({ title: 'Invalid file', message: validation.reason });
             haptics.error();
             return;
         }
@@ -143,7 +143,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                 size: a.size,
             });
         } catch (e: any) {
-            notify({ title: 'Falha ao escolher arquivo', message: e?.message || 'Tente novamente.', variant: 'error' });
+            notify({ title: 'Couldn\'t choose file', message: e?.message || 'Please try again.', variant: 'error' });
         } finally {
             setPicking(false);
         }
@@ -167,18 +167,18 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
         if (!asset) return;
         const trimmedTitle = title.trim();
         if (!trimmedTitle) {
-            notify({ title: 'Dê um nome ao arquivo', message: 'O título ajuda você a encontrar depois.' });
+            notify({ title: 'Give the file a name', message: 'A title helps you find it later.' });
             return;
         }
         if (!category) {
             notify({
-                title: 'Escolha uma categoria',
-                message: 'Categorize o arquivo para encontrá-lo depois (Voos, Hospedagem, etc).',
+                title: 'Choose a category',
+                message: 'Categorize the file so you can find it later (Flights, Lodging, etc.).',
             });
             return;
         }
         if (!token) {
-            notify({ title: 'Sessão expirada', message: 'Entre na conta novamente para enviar arquivos.', variant: 'warning' });
+            notify({ title: 'Session expired', message: 'Sign in again to upload files.', variant: 'warning' });
             return;
         }
         try {
@@ -196,7 +196,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
             onClose();
         } catch (e: any) {
             haptics.error();
-            notify({ title: 'Falha ao enviar arquivo', message: e?.message || 'Tente novamente.', variant: 'error' });
+            notify({ title: 'Couldn\'t upload file', message: e?.message || 'Please try again.', variant: 'error' });
         } finally {
             setUploading(false);
         }
@@ -213,7 +213,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
             >
                 <View style={styles.card}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Adicionar arquivo</Text>
+                        <Text style={styles.title}>Add file</Text>
                         <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} disabled={uploading}>
                             <Ionicons name="close" size={22} color={theme.colors.text.secondary} />
                         </TouchableOpacity>
@@ -225,7 +225,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                                 <View style={styles.iconCircle}>
                                     <Ionicons name="cloud-upload" size={26} color={theme.colors.primary} />
                                 </View>
-                                <Text style={styles.pickTitle}>Escolha um arquivo</Text>
+                                <Text style={styles.pickTitle}>Choose a file</Text>
                                 <Text style={styles.pickHint}>
                                     {uploadHint('travelerFile')}
                                 </Text>
@@ -240,7 +240,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                                     ) : (
                                         <>
                                             <Ionicons name="folder-open" size={16} color="#fff" />
-                                            <Text style={styles.pickBtnLabel}>Selecionar</Text>
+                                            <Text style={styles.pickBtnLabel}>Select</Text>
                                         </>
                                     )}
                                 </TouchableOpacity>
@@ -278,10 +278,10 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                                     </TouchableOpacity>
                                 </View>
 
-                                <Text style={styles.label}>Título</Text>
+                                <Text style={styles.label}>Title</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Ex: Voucher do hotel"
+                                    placeholder="E.g. Hotel voucher"
                                     placeholderTextColor={theme.colors.text.tertiary}
                                     value={title}
                                     onChangeText={setTitle}
@@ -291,7 +291,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                                 <View style={styles.labelRow}>
                                     <Text style={styles.label}>Categoria</Text>
                                     {!category && (
-                                        <Text style={styles.labelRequired}>obrigatória</Text>
+                                        <Text style={styles.labelRequired}>required</Text>
                                     )}
                                 </View>
                                 <View
@@ -310,17 +310,17 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                                                 disabled={uploading}
                                             >
                                                 <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
-                                                    {cat}
+                                                    {fileCategoryLabel(cat)}
                                                 </Text>
                                             </TouchableOpacity>
                                         );
                                     })}
                                 </View>
 
-                                <Text style={styles.label}>Observação (opcional)</Text>
+                                <Text style={styles.label}>Note (optional)</Text>
                                 <TextInput
                                     style={[styles.input, styles.noteInput]}
-                                    placeholder="Ex: apresentar no check-in"
+                                    placeholder="E.g. show at check-in"
                                     placeholderTextColor={theme.colors.text.tertiary}
                                     value={note}
                                     onChangeText={setNote}
@@ -333,7 +333,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
 
                     <View style={styles.actions}>
                         <TouchableOpacity style={styles.btnGhost} onPress={onClose} disabled={uploading}>
-                            <Text style={styles.btnGhostText}>Cancelar</Text>
+                            <Text style={styles.btnGhostText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[
@@ -347,7 +347,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                             {uploading ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                                <Text style={styles.btnPrimaryText}>Salvar</Text>
+                                <Text style={styles.btnPrimaryText}>Save</Text>
                             )}
                         </TouchableOpacity>
                     </View>

@@ -57,7 +57,7 @@ import { BASE_CURRENCY } from '@vamo/shared/itinerary';
  */
 interface CostValue { value: string; currency: string; }
 
-/** Estado vazio padrão pra um campo cost. AUD por ser o mercado canônico. */
+/** Default empty state for a cost field, in the market's base currency. */
 const EMPTY_COST: CostValue = { value: '', currency: BASE_CURRENCY };
 
 export interface ItemFormModalProps {
@@ -181,7 +181,7 @@ export default function ItemFormModal({
     initial,
     isOriginal,
     title,
-    primaryLabel = 'Salvar',
+    primaryLabel = 'Save',
     subtitle,
     onSave,
 }: ItemFormModalProps) {
@@ -261,8 +261,8 @@ export default function ItemFormModal({
                                 color={theme.colors.info}
                             />
                             <Text style={styles.warningText}>
-                                Sua edição é salva apenas no seu roteiro. O original do criador
-                                permanece intacto.
+                                Your edit is saved only to your itinerary. The creator's original
+                                stays untouched.
                             </Text>
                         </View>
                     ) : null}
@@ -285,10 +285,10 @@ export default function ItemFormModal({
 
                     {/* Actions — usam VamoButton (texto centralizado mesmo
                         em 2 linhas; minHeight confortável; sem ellipsize que
-                        cortaria "Adicionar ao meu roteiro" no meio). */}
+                        cortaria "Add to my itinerary" no meio). */}
                     <View style={styles.actions}>
                         <VamoButton
-                            label="Cancelar"
+                            label="Cancel"
                             variant="secondary"
                             size="md"
                             onPress={onClose}
@@ -441,7 +441,7 @@ function CostField({
             <View style={costStyles.row}>
                 <View style={costStyles.moneyWrap}>
                     <MoneyInput
-                        label="Valor"
+                        label="Amount"
                         value={current.value}
                         onChangeText={(v) => onChange({ ...current, value: v })}
                         placeholder="0,00"
@@ -451,7 +451,7 @@ function CostField({
                     <CurrencyPicker
                         value={current.currency}
                         onChange={(c) => onChange({ ...current, currency: c })}
-                        label="Moeda"
+                        label="Currency"
                         compact
                     />
                 </View>

@@ -114,7 +114,7 @@ async function buildUploadFormData(body: {
     if (body.note?.trim()) form.append('note', body.note.trim());
     if (Platform.OS === 'web') {
         const source = await fetch(body.uri);
-        if (!source.ok) throw new Error('Não foi possível ler o arquivo selecionado.');
+        if (!source.ok) throw new Error('We couldn\'t read the selected file.');
         const blob = await source.blob();
         const typedBlob = blob.type ? blob : new Blob([blob], { type: body.mimeType });
         form.append('file', typedBlob, body.filename);

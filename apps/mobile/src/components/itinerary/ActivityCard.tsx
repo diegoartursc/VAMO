@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme/theme';
 import { DayActivity } from '../../data/mockPurchasedItineraries';
-import { formatTimeForAustraliaDisplay } from '@vamo/shared/itinerary';
+import { formatTimeForDisplay } from '@vamo/shared/itinerary';
 import { useMediaLightbox } from '../common/MediaLightbox';
 
 interface ActivityCardProps {
@@ -83,7 +83,7 @@ export function ActivityCard({
                             <Text style={styles.icon}>{activity.icon}</Text>
                         </View>
                         <View style={styles.headerInfo}>
-                            <Text style={styles.time}>{formatTimeForAustraliaDisplay(activity.time)}</Text>
+                            <Text style={styles.time}>{formatTimeForDisplay(activity.time)}</Text>
                             <Text style={styles.duration}>{activity.duration}</Text>
                         </View>
                     </View>
@@ -127,7 +127,7 @@ export function ActivityCard({
                                         <TouchableOpacity
                                             key={index}
                                             activeOpacity={0.85}
-                                            accessibilityLabel={`Foto ${index + 1} de ${activity.title}`}
+                                            accessibilityLabel={`Photo ${index + 1} of ${activity.title}`}
                                             onPress={() => lightbox.open(items, index, activity.title)}
                                         >
                                             <Image
@@ -146,7 +146,7 @@ export function ActivityCard({
                             <View style={styles.tipsContainer}>
                                 <View style={styles.tipsHeader}>
                                     <Ionicons name="bulb" size={16} color={theme.colors.warning} />
-                                    <Text style={styles.tipsTitle}>Dicas Importantes</Text>
+                                    <Text style={styles.tipsTitle}>Important Tips</Text>
                                 </View>
                                 {activity.tips.map((tip, index) => (
                                     <View key={index} style={styles.tipItem}>
@@ -165,7 +165,7 @@ export function ActivityCard({
                                     onPress={() => onOpenMap?.(activity.mapLink!)}
                                 >
                                     <Ionicons name="map-outline" size={18} color={theme.colors.primary} />
-                                    <Text style={styles.actionText}>Ver no Mapa</Text>
+                                    <Text style={styles.actionText}>View on Map</Text>
                                 </TouchableOpacity>
                             )}
                             <TouchableOpacity
@@ -178,7 +178,7 @@ export function ActivityCard({
                                     color={theme.colors.primary}
                                 />
                                 <Text style={styles.actionText}>
-                                    {isEditingNotes ? 'Cancelar' : 'Adicionar Nota'}
+                                    {isEditingNotes ? 'Cancel' : 'Add Note'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -190,13 +190,13 @@ export function ActivityCard({
                                     style={styles.notesInput}
                                     value={notes}
                                     onChangeText={setNotes}
-                                    placeholder="Adicione suas observações..."
+                                    placeholder="Add your notes..."
                                     placeholderTextColor={theme.colors.text.tertiary}
                                     multiline
                                     numberOfLines={3}
                                 />
                                 <TouchableOpacity style={styles.saveButton} onPress={handleSaveNotes}>
-                                    <Text style={styles.saveButtonText}>Salvar Nota</Text>
+                                    <Text style={styles.saveButtonText}>Save Note</Text>
                                 </TouchableOpacity>
                             </View>
                         ) : (
@@ -204,7 +204,7 @@ export function ActivityCard({
                                 <View style={styles.notesDisplay}>
                                     <View style={styles.notesHeader}>
                                         <Ionicons name="document-text" size={16} color={theme.colors.primary} />
-                                        <Text style={styles.notesLabel}>Suas Notas</Text>
+                                        <Text style={styles.notesLabel}>Your Notes</Text>
                                     </View>
                                     <Text style={styles.notesText}>{notes}</Text>
                                 </View>

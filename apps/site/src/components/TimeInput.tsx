@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { to12HourTime, parseAustralianTimeInput } from "@vamo/shared/itinerary";
+import { to12HourTime, parseTimeInput } from "@vamo/shared/itinerary";
 
 export interface TimeInputProps {
     /** Valor canônico "HH:mm" 24h (ou "" quando vazio). */
@@ -62,7 +62,7 @@ export default function TimeInput({
                     setText("");
                     return;
                 }
-                const parsed = parseAustralianTimeInput(trimmed);
+                const parsed = parseTimeInput(trimmed);
                 if (parsed) {
                     if (parsed !== value) onCommit(parsed);
                     setText(to12HourTime(parsed));

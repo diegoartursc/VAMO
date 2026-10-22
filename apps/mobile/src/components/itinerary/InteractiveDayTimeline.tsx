@@ -65,7 +65,7 @@ export function InteractiveDayTimeline({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>Roteiro Dia a Dia</Text>
+            <Text style={styles.sectionTitle}>Day-by-Day Itinerary</Text>
 
             {days.map((day, index) => {
                 const isExpanded = expandedDays.has(day.dayNumber);
@@ -98,7 +98,7 @@ export function InteractiveDayTimeline({
                                     <Text style={styles.dayTitle}>{day.title}</Text>
                                     {day.date && (
                                         <Text style={styles.dayDate}>
-                                            {new Date(day.date).toLocaleDateString('pt-BR', {
+                                            {new Date(day.date).toLocaleDateString('en-US', {
                                                 weekday: 'short',
                                                 day: '2-digit',
                                                 month: 'short',
@@ -134,7 +134,7 @@ export function InteractiveDayTimeline({
                                     <View style={styles.costBadge}>
                                         <Ionicons name="wallet-outline" size={16} color={theme.colors.success} />
                                         <Text style={styles.costText}>
-                                            Custo estimado: {day.estimatedCost.currency}{' '}
+                                            Estimated cost: {day.estimatedCost.currency}{' '}
                                             {day.estimatedCost.min} - {day.estimatedCost.max}
                                         </Text>
                                     </View>

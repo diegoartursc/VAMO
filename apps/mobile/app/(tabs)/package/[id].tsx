@@ -19,7 +19,7 @@ export default function LegacyPackageDetailRedirect() {
     return (
         <View style={styles.container}>
             <ActivityIndicator color={theme.colors.primary} />
-            <Text style={styles.text}>Abrindo roteiro digital...</Text>
+            <Text style={styles.text}>Opening digital itinerary...</Text>
         </View>
     );
 }

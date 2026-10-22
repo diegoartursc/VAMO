@@ -1,5 +1,7 @@
 # Pagamentos no piloto — Stripe (CPF) + repasse manual aos roteiristas
 
+> ⚠️ **DESATUALIZADO (2026-10-22):** este plano foi escrito para o mercado australiano (AUD) com conta Stripe no Brasil. O mercado agora é **EUA (USD)** e a conta Stripe de produção será da **sócia, com LLC americana**. Com conta americana, o Stripe Connect passa a ser possível para roteiristas nos EUA. Use `LANCAMENTO-TASKS.md` e `STRIPE-PRODUCAO.md` como fonte atual; este arquivo fica como histórico.
+
 Decidido em 2026-10-15. Substitui o Stripe Connect (item 5.3 do LANCAMENTO-TASKS) por enquanto.
 
 ## Por que não Connect agora

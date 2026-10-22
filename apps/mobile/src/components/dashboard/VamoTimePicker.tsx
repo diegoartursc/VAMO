@@ -217,7 +217,7 @@ export default function VamoTimePicker({
                         hitSlop={8}
                         style={styles.clearBtn}
                         accessibilityRole="button"
-                        accessibilityLabel="Limpar horário"
+                        accessibilityLabel="Clear time"
                     >
                         <X size={16} color={theme.colors.text.tertiary} />
                     </Pressable>
@@ -242,7 +242,7 @@ export default function VamoTimePicker({
                     ]}
                 >
                     <View style={styles.handle} />
-                    <Text style={styles.title}>Selecionar horário</Text>
+                    <Text style={styles.title}>Select time</Text>
 
                     {/* Time display */}
                     <View style={styles.timeDisplay}>
@@ -252,7 +252,7 @@ export default function VamoTimePicker({
                                 setMode('hours');
                             }}
                             accessibilityRole="button"
-                            accessibilityLabel="Editar hora"
+                            accessibilityLabel="Edit hour"
                         >
                             <Text
                                 style={[
@@ -270,7 +270,7 @@ export default function VamoTimePicker({
                                 setMode('minutes');
                             }}
                             accessibilityRole="button"
-                            accessibilityLabel="Editar minutos"
+                            accessibilityLabel="Edit minutes"
                         >
                             <Text
                                 style={[
@@ -408,9 +408,9 @@ export default function VamoTimePicker({
                             onPress={handleClose}
                             style={styles.cancelBtn}
                             accessibilityRole="button"
-                            accessibilityLabel="Cancelar"
+                            accessibilityLabel="Cancel"
                         >
-                            <Text style={styles.cancelText}>Cancelar</Text>
+                            <Text style={styles.cancelText}>Cancel</Text>
                         </Pressable>
                         <Pressable
                             onPress={handleConfirm}
@@ -419,9 +419,9 @@ export default function VamoTimePicker({
                                 pressed && { opacity: 0.9 },
                             ]}
                             accessibilityRole="button"
-                            accessibilityLabel="Confirmar"
+                            accessibilityLabel="Confirm"
                         >
-                            <Text style={styles.confirmText}>Confirmar</Text>
+                            <Text style={styles.confirmText}>Confirm</Text>
                         </Pressable>
                     </View>
                 </View>

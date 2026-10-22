@@ -22,26 +22,26 @@ interface DecisionAssistantProps {
 const QUESTIONS = [
     {
         id: 1,
-        question: 'Qual é o seu estilo de viagem?',
+        question: 'What\'s your travel style?',
         options: [
-            { label: '🎒 Mochilão e aventura', value: 'aventura' },
-            { label: '🏨 Conforto e tranquilidade', value: 'conforto' },
+            { label: '🎒 Backpacking and adventure', value: 'aventura' },
+            { label: '🏨 Comfort and calm', value: 'conforto' },
         ],
     },
     {
         id: 2,
-        question: 'O que te move a viajar?',
+        question: 'What moves you to travel?',
         options: [
-            { label: '🍝 Gastronomia e cultura', value: 'gastronomia' },
-            { label: '📸 Paisagens e experiências', value: 'experiencias' },
+            { label: '🍝 Food and culture', value: 'gastronomia' },
+            { label: '📸 Scenery and experiences', value: 'experiencias' },
         ],
     },
     {
         id: 3,
-        question: 'Com quem você viaja?',
+        question: 'Who are you traveling with?',
         options: [
-            { label: '👫 Casal ou amigos', value: 'casal' },
-            { label: '👨‍👩‍👧‍👦 Família com crianças', value: 'familia' },
+            { label: '👫 Partner or friends', value: 'casal' },
+            { label: '👨‍👩‍👧‍👦 Family with kids', value: 'familia' },
         ],
     },
 ];
@@ -116,7 +116,7 @@ export default function DecisionAssistant({ visible, onClose }: DecisionAssistan
 
                     {/* Footer hint */}
                     <Text style={styles.hint}>
-                        Vamos encontrar o roteiro ideal para você
+                        Let's find the ideal itinerary for you
                     </Text>
                 </View>
             </BlurView>

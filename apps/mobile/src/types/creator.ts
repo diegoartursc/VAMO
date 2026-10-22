@@ -49,33 +49,33 @@ export const VERIFICATION_CONFIGS: Record<VerificationLevel, VerificationBadgeCo
     basic: {
         level: 'basic',
         icon: '🛡️',
-        label: 'Roteirista Verificado',
+        label: 'Verified Creator',
         color: '#1A3263',         // VAMO Navy
         bgColor: '#EEF1F8',
-        description: 'Identidade confirmada e perfil aprovado',
+        description: 'Identity confirmed and profile approved',
     },
     trusted: {
         level: 'trusted',
         icon: '⭐',
-        label: 'Roteirista Recomendado',
+        label: 'Recommended Creator',
         color: '#B8860B',
         bgColor: '#FBF4E1',
-        description: 'Bons roteiros, avaliações positivas e histórico consistente',
+        description: 'Good itineraries, positive reviews and a consistent track record',
     },
     expert: {
         level: 'expert',
         icon: '🧭',
-        label: 'Curador de Viagens',
+        label: 'Travel Curator',
         color: '#0E7C74',         // Deep Teal — sofisticado e temático
         bgColor: '#E6FAF8',
-        description: 'Cria roteiros consistentes, bem avaliados e úteis para outros viajantes',
+        description: 'Creates consistent, well-reviewed itineraries that help other travelers',
     },
     ambassador: {
         level: 'ambassador',
         icon: '💎',
-        label: 'Embaixador VAMO',
+        label: 'VAMO Ambassador',
         color: '#28C9BF',         // VAMO Teal
         bgColor: '#E6FAF8',       // Light Teal
-        description: 'Selecionado pela equipe VAMO como referência da comunidade',
+        description: 'Selected by the VAMO team as a community reference',
     },
 };

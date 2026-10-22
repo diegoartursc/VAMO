@@ -81,7 +81,7 @@ async function exportNative(html: string, _fileLabel: string): Promise<ExportRes
     try {
         Print = require('expo-print');
     } catch (err) {
-        throw new Error('expo-print não está instalado. Rode `pnpm install` na raiz do monorepo.');
+        throw new Error('expo-print is not installed. Run `pnpm install` at the monorepo root.');
     }
     try {
         Sharing = require('expo-sharing');
@@ -103,7 +103,7 @@ async function exportNative(html: string, _fileLabel: string): Promise<ExportRes
                 await Sharing.shareAsync(uri, {
                     mimeType: 'application/pdf',
                     UTI: 'com.adobe.pdf',
-                    dialogTitle: 'Salvar / compartilhar roteiro',
+                    dialogTitle: 'Save / share itinerary',
                 });
                 shared = true;
             }

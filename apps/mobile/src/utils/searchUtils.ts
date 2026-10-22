@@ -37,15 +37,15 @@ export function normalizeArray(value: unknown): string[] {
 }
 
 const CATEGORY_ALIASES: Record<string, string[]> = {
-    aventura: ['aventura', 'trilha', 'trilhas', 'radical', 'outdoor'],
-    cultura: ['cultura', 'cultural', 'arte', 'museu', 'museus'],
-    gastronomia: ['gastronomia', 'gastronomico', 'gastronomica', 'culinaria', 'comida', 'restaurantes'],
-    historico: ['historico', 'historia', 'histórico', 'história'],
-    familia: ['familia', 'criancas', 'crianca', 'kids', 'com criancas'],
-    mochilao: ['mochilao', 'mochileiro', 'backpack', 'backpacking', 'economico'],
-    natureza: ['natureza', 'natural', 'trilha', 'trilhas', 'parque', 'parques'],
-    praia: ['praia', 'praias', 'litoral', 'mar'],
-    romantico: ['romantico', 'romance', 'casal', 'lua de mel'],
+    aventura: ['aventura', 'trilha', 'trilhas', 'radical', 'outdoor', 'adventure', 'hiking', 'outdoors'],
+    cultura: ['cultura', 'cultural', 'arte', 'museu', 'museus', 'culture', 'art', 'museum', 'museums'],
+    gastronomia: ['gastronomia', 'gastronomico', 'gastronomica', 'culinaria', 'comida', 'restaurantes', 'food', 'dining', 'restaurant', 'restaurants', 'foodie', 'cuisine'],
+    historico: ['historico', 'historia', 'histórico', 'história', 'historic', 'historical', 'history'],
+    familia: ['familia', 'criancas', 'crianca', 'kids', 'com criancas', 'family', 'children', 'with kids'],
+    mochilao: ['mochilao', 'mochileiro', 'backpack', 'backpacking', 'economico', 'budget', 'cheap', 'hostel'],
+    natureza: ['natureza', 'natural', 'trilha', 'trilhas', 'parque', 'parques', 'nature', 'park', 'parks', 'national park'],
+    praia: ['praia', 'praias', 'litoral', 'mar', 'beach', 'beaches', 'coast', 'seaside'],
+    romantico: ['romantico', 'romance', 'casal', 'lua de mel', 'romantic', 'couple', 'couples', 'honeymoon'],
 };
 
 function getCategoryTerms(category: string): string[] {
@@ -309,7 +309,7 @@ export function buildDestinationSuggestions(itineraries: any[]): DestinationSugg
 
 function compareSuggestions(a: DestinationSuggestion, b: DestinationSuggestion): number {
     if (b.itineraryCount !== a.itineraryCount) return b.itineraryCount - a.itineraryCount;
-    return a.label.localeCompare(b.label, 'pt-BR');
+    return a.label.localeCompare(b.label, 'en-US');
 }
 
 /** Limite padrão do dropdown — poucas opções, sem virar lista virtualizada. */

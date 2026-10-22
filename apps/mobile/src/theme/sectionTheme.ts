@@ -60,15 +60,15 @@ export function sectionThemeFor(key?: SectionKey | null): SectionThemeEntry {
  * dos cabeçalhos existentes — basta inferir pela label já passada.
  */
 const LABEL_TO_KEY: Record<string, SectionKey> = {
-    'Itinerário por Dia': 'itinerary',
-    'Onde Fiquei': 'stays',
-    'Meu Voo': 'flight',
-    'Passeios & Atrações': 'attractions',
-    'Transporte': 'transport',
-    'Restaurantes & Gastronomia': 'food',
-    'Dicas do Viajante': 'tips',
-    'Gastos Extras': 'costs',
-    'Checklist do roteiro': 'checklist',
+    'Daily Itinerary': 'itinerary',
+    'Where I Stayed': 'stays',
+    'My Flight': 'flight',
+    'Tours & Attractions': 'attractions',
+    'Transportation': 'transport',
+    'Restaurants & Dining': 'food',
+    'Traveler Tips': 'tips',
+    'Extra Expenses': 'costs',
+    'Itinerary checklist': 'checklist',
 };
 
 export function inferSectionKey(label?: string): SectionKey | undefined {

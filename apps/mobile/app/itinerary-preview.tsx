@@ -46,7 +46,7 @@ import type {
     RestaurantItem, AttractionItem, ChecklistItem,
     CostReferencesGroup,
 } from '@vamo/shared/itinerary';
-import { getCostReferences, calculateBudgetSummary, formatMoney, formatTimeForAustraliaDisplay, getCurrencySymbol } from '@vamo/shared/itinerary';
+import { getCostReferences, calculateBudgetSummary, formatMoney, formatTimeForDisplay, getCurrencySymbol } from '@vamo/shared/itinerary';
 import { convertToBase } from '../src/utils/currencyConversion';
 import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
@@ -65,12 +65,12 @@ export const PREVIEW_KEY = LEGACY_PREVIEW_KEY;
 const { width: SCREEN_W } = Dimensions.get('window');
 
 const MODULE_LABELS: Record<string, string> = {
-    voo: 'Passagem Aérea',
-    hospedagem: 'Hospedagem',
-    passeios: 'Passeios & Atrações',
-    transporte: 'Transporte Local',
-    restaurantes: 'Alimentação',
-    extras: 'Gastos Extras',
+    voo: 'Airfare',
+    hospedagem: 'Lodging',
+    passeios: 'Tours & Attractions',
+    transporte: 'Local Transportation',
+    restaurantes: 'Food',
+    extras: 'Extra Expenses',
 };
 const MODULE_ICONS: Record<string, string> = {
     voo: 'plane',
@@ -225,10 +225,10 @@ export default function ItineraryPreviewScreen() {
             <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 24 }]}>
                 <Ionicons name="alert-circle-outline" size={48} color={theme.colors.text.tertiary} />
                 <Text style={{ marginTop: 12, fontSize: 16, color: theme.colors.text.secondary, textAlign: 'center' }}>
-                    Não foi possível carregar a prévia. Volte para a criação e tente novamente.
+                    We couldn't load the preview. Go back to editing and try again.
                 </Text>
                 <TouchableOpacity onPress={() => safeBack(router, '/created-itineraries')} style={[styles.ghostBtn, { marginTop: 20 }]}>
-                    <Text style={styles.ghostBtnText}>Voltar</Text>
+                    <Text style={styles.ghostBtnText}>Back</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -250,8 +250,8 @@ export default function ItineraryPreviewScreen() {
     const formatInRefCurrency = (value: string | number, currency: string): string => {
         const n = typeof value === 'number' ? value : parseValue(String(value));
         if (n <= 0) return formatMoney(0);
-        const aud = convertToBase(n, currency, rates);
-        return formatMoney(aud ?? n);
+        const converted = convertToBase(n, currency, rates);
+        return formatMoney(converted ?? n);
     };
 
     const totalBase = manualEntries.reduce((s, e) => {
@@ -263,7 +263,7 @@ export default function ItineraryPreviewScreen() {
         ? formatMoney(totalBase)
         : null;
 
-    const creatorName = user?.name || 'Você';
+    const creatorName = user?.name || 'You';
     const verificationLevel = 'basic' as const;
     const creatorReputation = VERIFICATION_CONFIGS[verificationLevel];
 
@@ -336,7 +336,7 @@ export default function ItineraryPreviewScreen() {
                     <View style={styles.previewBadgeWrap} pointerEvents="none">
                         <View style={styles.previewBadge}>
                             <Ionicons name="eye-outline" size={13} color="#1A3263" />
-                            <Text style={styles.previewBadgeText}>Prévia</Text>
+                            <Text style={styles.previewBadgeText}>Preview</Text>
                         </View>
                     </View>
                 </View>
@@ -347,7 +347,7 @@ export default function ItineraryPreviewScreen() {
                     <View style={styles.previewNotice}>
                         <Ionicons name="information-circle" size={16} color={theme.colors.primary} />
                         <Text style={styles.previewNoticeText}>
-                            Esta é uma simulação de como o roteiro aparecerá para o comprador após a aprovação.
+                            This is a simulation of how the itinerary will appear to buyers after approval.
                         </Text>
                     </View>
 
@@ -362,20 +362,20 @@ export default function ItineraryPreviewScreen() {
                                 </View>
                                 <View style={styles.creatorStatsRow}>
                                     <Icon name="star" size={11} color="#F59E0B" strokeWidth={2.5} />
-                                    <Text style={styles.creatorStats}>Criador deste roteiro</Text>
+                                    <Text style={styles.creatorStats}>Creator of this itinerary</Text>
                                 </View>
                             </View>
                         </View>
 
                         <View style={styles.verificationLink}>
                             <Ionicons name="shield-checkmark" size={16} color={theme.colors.verified} />
-                            <Text style={styles.verificationLinkText}>Como verificamos os criadores</Text>
+                            <Text style={styles.verificationLinkText}>How we verify creators</Text>
                             <Ionicons name="chevron-forward" size={16} color={theme.colors.text.tertiary} />
                         </View>
                     </View>
 
                     {/* Título */}
-                    <Text style={styles.title}>{form.title || 'Título do roteiro'}</Text>
+                    <Text style={styles.title}>{form.title || 'Itinerary title'}</Text>
 
                     {/* Localizações */}
                     <View style={[styles.locationRow, { flexWrap: 'wrap', gap: 10 }]}>
@@ -387,7 +387,7 @@ export default function ItineraryPreviewScreen() {
                         )) : (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                 <Ionicons name="location" size={16} color={theme.colors.text.tertiary} />
-                                <Text style={[styles.location, { color: theme.colors.text.tertiary }]}>Defina o destino</Text>
+                                <Text style={[styles.location, { color: theme.colors.text.tertiary }]}>Set the destination</Text>
                             </View>
                         )}
                     </View>
@@ -397,12 +397,12 @@ export default function ItineraryPreviewScreen() {
                         <View style={styles.statItem}>
                             <Icon name="star" size={16} color="#F59E0B" strokeWidth={2.5} />
                             <Text style={styles.statText}>—</Text>
-                            <Text style={styles.statLabel}>(sem avaliações)</Text>
+                            <Text style={styles.statLabel}>(no reviews)</Text>
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.statItem}>
                             <Icon name="calendar" size={16} color={theme.colors.primary} />
-                            <Text style={styles.statText}>{form.duration || 0} dias</Text>
+                            <Text style={styles.statText}>{form.duration || 0} {(form.duration || 0) === 1 ? 'day' : 'days'}</Text>
                         </View>
                     </View>
 
@@ -414,12 +414,12 @@ export default function ItineraryPreviewScreen() {
                         end={{ x: 1, y: 1 }}
                     >
                         <View>
-                            <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.65)' }]}>Roteiro completo</Text>
+                            <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.65)' }]}>Complete itinerary</Text>
                             <View style={styles.priceRow}>
                                 <Text style={[styles.priceSymbol, { color: '#28C9BF' }]}>{getCurrencySymbol(form.currency)}</Text>
                                 <Text style={[styles.priceValue, { color: '#FFFFFF' }]}>
                                     {effectivePrice > 0
-                                        ? effectivePrice.toFixed(2).replace('.', ',')
+                                        ? effectivePrice.toFixed(2)
                                         : '—'}
                                 </Text>
                             </View>
@@ -429,7 +429,7 @@ export default function ItineraryPreviewScreen() {
                                 </Text>
                             ) : null}
                             <Text style={[styles.priceNote, { color: 'rgba(255,255,255,0.5)' }]}>
-                                • {effectivePrice > 0 ? 'Acesso imediato após compra' : 'Defina um preço de venda'}
+                                • {effectivePrice > 0 ? 'Instant access after purchase' : 'Set a sale price'}
                             </Text>
                         </View>
                         <View style={styles.priceCtas}>
@@ -446,17 +446,17 @@ export default function ItineraryPreviewScreen() {
                                 activeOpacity={0.7}
                             >
                                 <Ionicons name="lock-closed" size={14} color="#fff" />
-                                <Text style={styles.buyButtonText}>Comprar Agora</Text>
+                                <Text style={styles.buyButtonText}>Buy Now</Text>
                             </TouchableOpacity>
                         </View>
                     </LinearGradient>
-                    <Text style={styles.disabledHint}>Indisponível na prévia — ações habilitadas após aprovação</Text>
+                    <Text style={styles.disabledHint}>Unavailable in preview — actions are enabled after approval</Text>
 
                     {/* Aviso: Produto Digital */}
                     <View style={styles.productNotice}>
                         <Ionicons name="information-circle" size={18} color={theme.colors.primary} />
                         <Text style={styles.productNoticeText}>
-                            Este é um <Text style={styles.productNoticeBold}>produto digital</Text>. Ao comprar, você terá acesso a informações, dicas e planejamento de viagem. O pagamento é referente ao conteúdo informativo, não a serviços turísticos.
+                            This is a <Text style={styles.productNoticeBold}>digital product</Text>. When you buy, you get access to information, tips and travel planning. Payment is for the informational content, not for tourism services.
                         </Text>
                     </View>
 
@@ -464,8 +464,8 @@ export default function ItineraryPreviewScreen() {
                     <View style={styles.offlineNotice}>
                         <Ionicons name="document-text-outline" size={20} color={theme.colors.primary} />
                         <Text style={styles.offlineNoticeText}>
-                            <Text style={styles.offlineNoticeBold}>Exporta em PDF</Text>
-                            {' — '}Após a compra, o roteiro pode ser salvo em PDF para consultar fora da VAMO.
+                            <Text style={styles.offlineNoticeBold}>Exports to PDF</Text>
+                            {' — '}After purchase, the itinerary can be saved as a PDF to use outside VAMO.
                         </Text>
                     </View>
 
@@ -503,7 +503,7 @@ export default function ItineraryPreviewScreen() {
                             gastos_extras: 'star',
                         };
                         return (
-                            <CollapsibleSection title="Referência de Gastos por Pessoa">
+                            <CollapsibleSection title="Per-Person Cost Reference">
                                 {costGroups.map(group => (
                                     <View key={group.moduleKey} style={{ marginBottom: 12 }}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -523,15 +523,15 @@ export default function ItineraryPreviewScreen() {
                                                         <Text style={styles.breakdownCategory}>{item.title}</Text>
                                                         <Text style={styles.breakdownDescription}>
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
-                                                            {' por pessoa'}
+                                                            {' per person'}
                                                             {item.currency !== BASE_CURRENCY && (
                                                                 <Text> ≈ {formatInRefCurrency(item.amountPerPerson, item.currency)}</Text>
                                                             )}
                                                         </Text>
                                                         <Text style={[styles.breakdownDescription, { fontSize: 11, color: theme.colors.text.tertiary, marginTop: 2 }]}>
                                                             {isShared
-                                                                ? `Base: ${formatMoney(item.amountTotal, item.currency)} total ÷ ${item.sharedByPeople} pessoas`
-                                                                : 'Gasto individual'}
+                                                                ? `Base: ${formatMoney(item.amountTotal, item.currency)} total ÷ ${item.sharedByPeople} people`
+                                                                : 'Individual cost'}
                                                         </Text>
                                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
                                                             <Ionicons
@@ -540,7 +540,7 @@ export default function ItineraryPreviewScreen() {
                                                                 color={showVerifiedBadge ? theme.colors.verified : theme.colors.info}
                                                             />
                                                             <Text style={{ fontSize: 11, color: showVerifiedBadge ? theme.colors.verified : theme.colors.info, fontWeight: '600' }}>
-                                                                {showVerifiedBadge ? 'Valor comprovado' : 'Valor estimado'}
+                                                                {showVerifiedBadge ? 'Verified amount' : 'Estimated amount'}
                                                             </Text>
                                                         </View>
                                                     </View>
@@ -552,7 +552,7 @@ export default function ItineraryPreviewScreen() {
                                 <View style={styles.spendingDisclaimer}>
                                     <Icon name="info" size={15} color={theme.colors.text.tertiary} />
                                     <Text style={styles.disclaimerText}>
-                                        Valores informados pelo criador como referência. Podem variar por época, câmbio e disponibilidade.
+                                        Amounts provided by the creator as a reference. They can vary by season, exchange rate and availability.
                                     </Text>
                                 </View>
                             </CollapsibleSection>
@@ -561,7 +561,7 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Sobre o Roteiro */}
                     {form.description?.trim() ? (
-                        <CollapsibleSection title="Sobre o Roteiro" defaultExpanded>
+                        <CollapsibleSection title="About this Itinerary" defaultExpanded>
                             <Text style={styles.description}>{form.description}</Text>
                         </CollapsibleSection>
                     ) : null}
@@ -571,7 +571,7 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Destaques */}
                     {form.highlights && form.highlights.filter(Boolean).length > 0 && (
-                        <CollapsibleSection title="Destaques" defaultExpanded>
+                        <CollapsibleSection title="Highlights" defaultExpanded>
                             <View style={styles.highlightsContainer}>
                                 {form.highlights.filter(Boolean).map((highlight, index) => (
                                     <View key={index} style={styles.highlightRow}>
@@ -590,9 +590,9 @@ export default function ItineraryPreviewScreen() {
                         const receivedModules = getReceivedModules(form);
                         if (receivedModules.length === 0) return null;
                         return (
-                            <CollapsibleSection title="O que você vai receber" defaultExpanded>
+                            <CollapsibleSection title="What you'll get" defaultExpanded>
                                 <Text style={styles.inclusionsIntro}>
-                                    Ao comprar este roteiro, o viajante terá acesso a:
+                                    When buying this itinerary, travelers will get access to:
                                 </Text>
                                 <View style={styles.inclusionsList}>
                                     {receivedModules.map((item) => (
@@ -612,15 +612,15 @@ export default function ItineraryPreviewScreen() {
                     })()}
 
                     {/* Como você vai receber */}
-                    <CollapsibleSection title="Como você vai receber">
+                    <CollapsibleSection title="How you'll receive it">
                         <View style={styles.howReceiveContainer}>
                             <View style={styles.howReceiveStep}>
                                 <View style={styles.howReceiveIconBox}>
                                     <Ionicons name="cart-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>1. Compre o roteiro</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Pagamento seguro e acesso imediato após a confirmação</Text>
+                                    <Text style={styles.howReceiveStepTitle}>1. Buy the itinerary</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Secure payment and instant access after confirmation</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
@@ -629,8 +629,8 @@ export default function ItineraryPreviewScreen() {
                                     <Ionicons name="phone-portrait-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>2. Acesse pelo app</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Seu roteiro aparece em "Minhas Viagens" instantaneamente</Text>
+                                    <Text style={styles.howReceiveStepTitle}>2. Open it in the app</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Your itinerary appears in My Itineraries instantly</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
@@ -639,8 +639,8 @@ export default function ItineraryPreviewScreen() {
                                     <Ionicons name="document-text-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>3. Salve em PDF</Text>
-                                    <Text style={styles.howReceiveStepDesc}>Exporte o roteiro em PDF para consultar fora da VAMO durante a viagem</Text>
+                                    <Text style={styles.howReceiveStepTitle}>3. Save as PDF</Text>
+                                    <Text style={styles.howReceiveStepDesc}>Export the itinerary as a PDF to use outside VAMO during your trip</Text>
                                 </View>
                             </View>
                             <View style={styles.howReceiveLine} />
@@ -649,8 +649,8 @@ export default function ItineraryPreviewScreen() {
                                     <Ionicons name="infinite-outline" size={22} color={theme.colors.primary} />
                                 </View>
                                 <View style={styles.howReceiveContent}>
-                                    <Text style={styles.howReceiveStepTitle}>4. Acesso vitalício</Text>
-                                    <Text style={styles.howReceiveStepDesc}>O roteiro é seu para sempre — consulte quando quiser, quantas vezes precisar</Text>
+                                    <Text style={styles.howReceiveStepTitle}>4. Lifetime access</Text>
+                                    <Text style={styles.howReceiveStepDesc}>The itinerary is yours for good — open it whenever you want, as many times as you need</Text>
                                 </View>
                             </View>
                         </View>
@@ -670,14 +670,14 @@ export default function ItineraryPreviewScreen() {
                         <View style={styles.deepContentHeader}>
                             <Ionicons name="lock-open-outline" size={16} color={theme.colors.text.secondary} />
                             <Text style={styles.deepContentHeaderText}>
-                                Conteúdo desbloqueado após a compra
+                                Content unlocked after purchase
                             </Text>
                         </View>
                     )}
 
                     {/* Roteiro dia a dia */}
                     {hasActiveItinerary && (
-                        <CollapsibleSection title={`Roteiro dia a dia (${form.days.length})`}>
+                        <CollapsibleSection title={`Day-by-day plan (${form.days.length})`}>
                             {form.days.map((day: Day, i) => (
                                 <View key={i} style={styles.dayCard}>
                                     <View style={styles.dayHeader}>
@@ -685,7 +685,7 @@ export default function ItineraryPreviewScreen() {
                                             <Text style={styles.dayBadgeText}>Dia {day.dayNumber || i + 1}</Text>
                                         </View>
                                         <Text style={styles.dayTitle} numberOfLines={2}>
-                                            {day.title || `Dia ${i + 1}`}
+                                            {day.title || `Day ${i + 1}`}
                                         </Text>
                                     </View>
                                     {day.summary ? <Text style={styles.daySummary}>{day.summary}</Text> : null}
@@ -696,10 +696,10 @@ export default function ItineraryPreviewScreen() {
                                                 <View key={j} style={styles.activityItem}>
                                                     <Text style={styles.activityIcon}>{a.icon || '📍'}</Text>
                                                     <View style={{ flex: 1 }}>
-                                                        <Text style={styles.activityTitle}>{a.title || 'Atividade'}</Text>
+                                                        <Text style={styles.activityTitle}>{a.title || 'Activity'}</Text>
                                                         {a.time ? (
                                                             <Text style={styles.activityMeta}>
-                                                                {formatTimeForAustraliaDisplay(a.time)}{a.duration ? ` · ${a.duration}` : ''}
+                                                                {formatTimeForDisplay(a.time)}{a.duration ? ` · ${a.duration}` : ''}
                                                             </Text>
                                                         ) : null}
                                                         {a.location ? <Text style={styles.activityMeta}>📍 {a.location}</Text> : null}
@@ -716,7 +716,7 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Voo */}
                     {hasActiveFlight && (
-                        <CollapsibleSection title="Sobre o voo">
+                        <CollapsibleSection title="About the flight">
                             {form.flightOutbound?.airline || form.flightOutbound?.originCity ? (
                                 <View style={styles.subCard}>
                                     <Text style={styles.subCardTitle}>
@@ -752,10 +752,10 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Hospedagens */}
                     {hasActiveAcc && (
-                        <CollapsibleSection title={`Hospedagens (${form.accommodations.length})`}>
+                        <CollapsibleSection title={`Lodging (${form.accommodations.length})`}>
                             {form.accommodations.map((acc: Accommodation, i) => (
                                 <View key={i} style={styles.subCard}>
-                                    <Text style={styles.subCardTitle}>{acc.name || `Hospedagem ${i + 1}`}</Text>
+                                    <Text style={styles.subCardTitle}>{acc.name || `Lodging ${i + 1}`}</Text>
                                     {acc.address ? <Text style={styles.subCardMeta}>📍 {acc.address}</Text> : null}
                                     {acc.nights ? <Text style={styles.subCardMeta}>🌙 {acc.nights} noite(s)</Text> : null}
                                     {acc.description ? <Text style={styles.subCardDesc}>{acc.description}</Text> : null}
@@ -766,10 +766,10 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Atrações */}
                     {hasActiveAttr && (
-                        <CollapsibleSection title={`Passeios & Atrações (${form.attractions.length})`}>
+                        <CollapsibleSection title={`Tours & Attractions (${form.attractions.length})`}>
                             {form.attractions.map((a: AttractionItem, i) => (
                                 <View key={i} style={styles.subCard}>
-                                    <Text style={styles.subCardTitle}>{a.name || `Atração ${i + 1}`}</Text>
+                                    <Text style={styles.subCardTitle}>{a.name || `Attraction ${i + 1}`}</Text>
                                     {a.duration ? <Text style={styles.subCardMeta}>{a.duration}</Text> : null}
                                     {a.location ? <Text style={styles.subCardMeta}>📍 {a.location}</Text> : null}
                                     {a.description ? <Text style={styles.subCardDesc}>{a.description}</Text> : null}
@@ -780,10 +780,10 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Restaurantes */}
                     {hasActiveRest && (
-                        <CollapsibleSection title={`Restaurantes (${form.restaurants.length})`}>
+                        <CollapsibleSection title={`Restaurants (${form.restaurants.length})`}>
                             {form.restaurants.map((r: RestaurantItem, i) => (
                                 <View key={i} style={styles.subCard}>
-                                    <Text style={styles.subCardTitle}>{r.name || `Restaurante ${i + 1}`}</Text>
+                                    <Text style={styles.subCardTitle}>{r.name || `Restaurant ${i + 1}`}</Text>
                                     {r.cuisine ? <Text style={styles.subCardMeta}>{r.cuisine}</Text> : null}
                                     {r.location ? <Text style={styles.subCardMeta}>📍 {r.location}</Text> : null}
                                     {r.description ? <Text style={styles.subCardDesc}>{r.description}</Text> : null}
@@ -794,7 +794,7 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Transporte */}
                     {hasActiveTrans && (
-                        <CollapsibleSection title="Transporte">
+                        <CollapsibleSection title="Transportation">
                             {form.transports.map((t: Transport, i) => (
                                 <View key={i} style={styles.subCard}>
                                     {t.description ? <Text style={styles.subCardDesc}>{t.description}</Text> : null}
@@ -807,7 +807,7 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Dicas */}
                     {hasActiveTips && (
-                        <CollapsibleSection title="Dicas exclusivas">
+                        <CollapsibleSection title="Insider tips">
                             {form.generalTips.filter(t => t.trim()).map((t, i) => (
                                 <View key={i} style={styles.bulletRow}>
                                     <Ionicons name="bulb-outline" size={16} color={theme.colors.primary} />
@@ -819,7 +819,7 @@ export default function ItineraryPreviewScreen() {
 
                     {/* Checklist */}
                     {hasActiveCheck && (
-                        <CollapsibleSection title="Checklist do viajante">
+                        <CollapsibleSection title="Traveler checklist">
                             {form.checklistItems.filter(c => c.item?.trim()).map((c: ChecklistItem, i) => (
                                 <View key={i} style={styles.bulletRow}>
                                     <Ionicons name="square-outline" size={16} color={theme.colors.text.secondary} />
@@ -838,7 +838,7 @@ export default function ItineraryPreviewScreen() {
                         <View style={styles.trustContent}>
                             <Text style={styles.trustTitle}>{creatorReputation.label}</Text>
                             <Text style={styles.trustText}>
-                                {creatorName} tem {creatorReputation.description.toLowerCase()}.
+                                {creatorName} has {creatorReputation.description.toLowerCase()}.
                             </Text>
                         </View>
                     </View>
@@ -847,31 +847,31 @@ export default function ItineraryPreviewScreen() {
                     <View style={styles.disclaimerBox}>
                         <View style={styles.disclaimerHeader}>
                             <Ionicons name="document-text-outline" size={18} color={theme.colors.text.tertiary} />
-                            <Text style={styles.disclaimerTitle}>Informações Importantes</Text>
+                            <Text style={styles.disclaimerTitle}>Important Information</Text>
                         </View>
                         <View style={styles.disclaimerItems}>
                             <View style={styles.disclaimerItem}>
                                 <Ionicons name="document-text-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
                                 <Text style={styles.disclaimerItemText}>
-                                    <Text style={styles.disclaimerItemBold}>Produto digital:</Text> Você está adquirindo acesso a um roteiro com informações, dicas e planejamento de viagem elaborados por um viajante experiente.
+                                    <Text style={styles.disclaimerItemBold}>Digital product:</Text> You're buying access to an itinerary with information, tips and travel planning written by an experienced traveler.
                                 </Text>
                             </View>
                             <View style={styles.disclaimerItem}>
                                 <Ionicons name="bulb-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
                                 <Text style={styles.disclaimerItemText}>
-                                    <Text style={styles.disclaimerItemBold}>Conteúdo informativo:</Text> O pagamento é pelo acesso à informação em si. A VAMO não comercializa nem garante a execução dos serviços, passeios ou experiências descritos no roteiro.
+                                    <Text style={styles.disclaimerItemBold}>Informational content:</Text> Payment is for access to the information itself. VAMO does not sell or guarantee the services, tours or experiences described in the itinerary.
                                 </Text>
                             </View>
                             <View style={styles.disclaimerItem}>
                                 <Ionicons name="lock-closed-outline" size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 8 }} />
                                 <Text style={styles.disclaimerItemText}>
-                                    <Text style={styles.disclaimerItemBold}>Acesso permanente:</Text> Após a compra, o conteúdo ficará disponível na sua conta para consulta a qualquer momento.
+                                    <Text style={styles.disclaimerItemBold}>Lifetime access:</Text> After purchase, the content stays available in your account to open at any time.
                                 </Text>
                             </View>
                             <View style={styles.disclaimerItem}>
                                 <Ionicons name="warning-outline" size={16} color={theme.colors.warning || '#F59E0B'} style={{ marginTop: 2, marginRight: 8 }} />
                                 <Text style={styles.disclaimerItemText}>
-                                    Preços, horários e disponibilidade dos locais mencionados podem sofrer alterações. Recomendamos confirmar as informações antes da viagem.
+                                    Prices, hours and availability of the places mentioned may change. We recommend confirming the information before your trip.
                                 </Text>
                             </View>
                         </View>
@@ -889,7 +889,7 @@ export default function ItineraryPreviewScreen() {
                     activeOpacity={0.85}
                 >
                     <Ionicons name="arrow-back" size={18} color="#fff" />
-                    <Text style={styles.actionBtnPrimaryText}>Voltar para edição</Text>
+                    <Text style={styles.actionBtnPrimaryText}>Back to editing</Text>
                 </TouchableOpacity>
             </View>
         </View>

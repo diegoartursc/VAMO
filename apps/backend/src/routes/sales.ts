@@ -11,7 +11,7 @@ router.get('/:agencyId', authMiddleware, async (req: AuthRequest, res) => {
 
         // Ownership check: the logged-in employee must belong to the requested agency
         if (req.agency?.agencyId !== agencyId) {
-            return res.status(403).json({ error: 'Acesso negado: você não pertence a esta agência' });
+            return res.status(403).json({ error: 'Access denied: you don\'t belong to this agency' });
         }
 
         const sales = await prisma.purchaseHistory.findMany({
@@ -62,11 +62,11 @@ router.put('/:purchaseId', authMiddleware, async (req: AuthRequest, res) => {
         });
 
         if (!sale) {
-            return res.status(404).json({ error: 'Venda não encontrada' });
+            return res.status(404).json({ error: 'Sale not found' });
         }
 
         if (sale.package.agencyId !== req.agency?.agencyId) {
-            return res.status(403).json({ error: 'Acesso negado: esta venda não pertence à sua agência' });
+            return res.status(403).json({ error: 'Access denied: this sale doesn\'t belong to your agency' });
         }
 
         const updatedSale = await prisma.purchaseHistory.update({

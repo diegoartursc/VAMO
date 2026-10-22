@@ -36,7 +36,7 @@ let client: SupabaseClient | null = null;
 export function getSupabaseClient(): SupabaseClient {
     if (!isCloudStorageEnabled()) {
         throw new Error(
-            'Supabase Storage não configurado: defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env',
+            'Supabase Storage is not configured: set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env',
         );
     }
     if (!client) {
@@ -59,7 +59,7 @@ async function ensureBucket(): Promise<void> {
             const { error } = await supabase.storage.createBucket(UPLOADS_BUCKET, { public: true });
             // Corrida benigna: outro processo pode ter criado entre o get e o create.
             if (error && !/already exists/i.test(error.message)) {
-                throw new Error(`Falha ao criar bucket "${UPLOADS_BUCKET}": ${error.message}`);
+                throw new Error(`Failed to create bucket "${UPLOADS_BUCKET}": ${error.message}`);
             }
         })().catch((err) => {
             // Não memoizar falha — permite retry na próxima operação.
@@ -115,7 +115,7 @@ export async function uploadBufferToCloud(
         cacheControl: '31536000', // nomes são únicos (timestamp+random) → cache agressivo ok
     });
     if (error) {
-        throw new Error(`Falha no upload para Supabase Storage (${storagePath}): ${error.message}`);
+        throw new Error(`Upload to Supabase Storage failed (${storagePath}): ${error.message}`);
     }
     const { data } = supabase.storage.from(UPLOADS_BUCKET).getPublicUrl(storagePath);
     return { url: data.publicUrl, storagePath };
@@ -126,13 +126,13 @@ export async function deleteUpload(storagePath: string): Promise<void> {
     if (isCloudStorageEnabled()) {
         const supabase = getSupabaseClient();
         const { error } = await supabase.storage.from(UPLOADS_BUCKET).remove([storagePath]);
-        if (error) throw new Error(`Falha ao remover ${storagePath} do Supabase: ${error.message}`);
+        if (error) throw new Error(`Failed to remove ${storagePath} from Supabase: ${error.message}`);
         return;
     }
     const localPath = path.join(LOCAL_UPLOADS_ROOT, storagePath);
     // Proteção contra path traversal antes de tocar no filesystem.
     if (!localPath.startsWith(LOCAL_UPLOADS_ROOT + path.sep)) {
-        throw new Error(`Caminho inválido: ${storagePath}`);
+        throw new Error(`Invalid path: ${storagePath}`);
     }
     await fs.promises.rm(localPath, { force: true });
 }

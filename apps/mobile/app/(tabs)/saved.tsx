@@ -108,7 +108,7 @@ export default function SavedScreen() {
             staleIds.forEach((id) => { removeFavorite(id).catch(() => {}); });
         } catch {
             setItems([]);
-            setLoadError('Não foi possível carregar seus favoritos agora.');
+            setLoadError('We couldn\'t load your favorites right now.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -128,10 +128,10 @@ export default function SavedScreen() {
     const handleRemove = async (item: FavItem) => {
         haptics.medium();
         const ok = await confirm({
-            title: 'Remover dos favoritos?',
-            message: `"${item.title}" será removido da sua lista.`,
-            confirmText: 'Remover',
-            cancelText: 'Cancelar',
+            title: 'Remove from favorites?',
+            message: `"${item.title}" will be removed from your list.`,
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
             action: 'removeFavorite',
         });
         if (!ok) return;
@@ -161,8 +161,8 @@ export default function SavedScreen() {
                 ]}>
                     <View style={styles.headerRow}>
                         <View>
-                            <Text style={styles.headerLabel}>SUA COLEÇÃO</Text>
-                            <Text style={styles.headerTitle}>Favoritos</Text>
+                            <Text style={styles.headerLabel}>YOUR COLLECTION</Text>
+                            <Text style={styles.headerTitle}>Favorites</Text>
                         </View>
                         <View style={styles.headerIconCircle}>
                             <Ionicons name="heart" size={22} color={theme.colors.primary} />
@@ -175,7 +175,7 @@ export default function SavedScreen() {
                             {/* Só conta favoritos confirmados como ACTIVE — nunca inclui
                                 IDs obsoletos (pausados/arquivados/removidos), que já
                                 foram podados de `favorites` antes de chegar aqui. */}
-                            {loading ? '...' : `${items.length} roteiro${items.length !== 1 ? 's' : ''} salvos`}
+                            {loading ? '...' : `${items.length} saved itinerar${items.length !== 1 ? 'ies' : 'y'}`}
                         </Text>
                     </View>
                 </Animated.View>
@@ -185,7 +185,7 @@ export default function SavedScreen() {
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.primary} />
-                    <Text style={styles.loadingText}>Carregando favoritos...</Text>
+                    <Text style={styles.loadingText}>Loading favorites...</Text>
                 </View>
             ) : isEmpty ? (
                 <EmptyState onExplore={() => router.push('/(tabs)/index' as any)} />
@@ -261,9 +261,9 @@ function SavedCard({
         reviewCount: item.reviewCount,
     });
     const priceFormatted = price > 0
-        ? (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ','))
-        : 'Grátis';
-    const destinationLabel = [item.destination, item.country].filter(Boolean).join(', ') || 'Destino a confirmar';
+        ? (price % 1 === 0 ? String(price) : price.toFixed(2))
+        : 'Free';
+    const destinationLabel = [item.destination, item.country].filter(Boolean).join(', ') || 'Destination to be confirmed';
 
     return (
         <Animated.View style={[
@@ -317,7 +317,7 @@ function SavedCard({
                             onRemove();
                         }}
                         activeOpacity={0.8}
-                        accessibilityLabel={`Remover ${item.title} dos favoritos`}
+                        accessibilityLabel={`Remove ${item.title} from favorites`}
                     >
                         <Ionicons name="heart" size={18} color="#FF5A6E" />
                     </TouchableOpacity>
@@ -326,7 +326,7 @@ function SavedCard({
                     <View style={styles.cardBottom}>
                         <View style={styles.durationChip}>
                             <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.9)" />
-                            <Text style={styles.durationText}>{duration} dias</Text>
+                            <Text style={styles.durationText}>{duration} {duration === 1 ? 'day' : 'days'}</Text>
                         </View>
 
                         <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
@@ -382,12 +382,12 @@ function LoadErrorState({
             >
                 <Ionicons name="cloud-offline-outline" size={40} color="#fff" />
             </LinearGradient>
-            <Text style={styles.emptyTitle}>Erro ao carregar favoritos</Text>
+            <Text style={styles.emptyTitle}>Couldn't load favorites</Text>
             <Text style={styles.emptySubtitle}>{message}</Text>
             <View style={styles.emptyActionsRow}>
                 <TouchableOpacity style={styles.secondaryCTA} onPress={onRefresh} activeOpacity={0.85}>
                     <Ionicons name="refresh" size={17} color={theme.colors.primary} />
-                    <Text style={styles.secondaryCTAText}>Tentar novamente</Text>
+                    <Text style={styles.secondaryCTAText}>Try again</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={onExplore} activeOpacity={0.85}>
                     <LinearGradient
@@ -397,7 +397,7 @@ function LoadErrorState({
                         end={{ x: 1, y: 0 }}
                     >
                         <Icon name="compass" size={18} color="#fff" />
-                        <Text style={styles.exploreCTAText}>Explorar roteiros</Text>
+                        <Text style={styles.exploreCTAText}>Explore itineraries</Text>
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
@@ -437,15 +437,15 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
                 </LinearGradient>
             </Animated.View>
 
-            <Text style={styles.emptyTitle}>Nenhum favorito ainda</Text>
+            <Text style={styles.emptyTitle}>No favorites yet</Text>
             <Text style={styles.emptySubtitle}>
-                Salve roteiros que te interessam tocando no{' '}
+                Save itineraries you like by tapping{' '}
                 <Ionicons name="heart-outline" size={13} color={theme.colors.primary} />{' '}
-                e eles aparecerão aqui.
+                and they'll show up here.
             </Text>
 
             <View style={styles.emptyBadgesRow}>
-                {['Acesso rápido', 'Offline em breve', 'Compartilhar'].map((b, i) => (
+                {['Quick access', 'Offline coming soon', 'Share'].map((b, i) => (
                     <View key={i} style={styles.emptyBadge}>
                         <Text style={styles.emptyBadgeText}>{b}</Text>
                     </View>
@@ -460,7 +460,7 @@ function EmptyState({ onExplore }: { onExplore: () => void }) {
                     end={{ x: 1, y: 0 }}
                 >
                     <Icon name="compass" size={18} color="#fff" />
-                    <Text style={styles.exploreCTAText}>Explorar roteiros</Text>
+                    <Text style={styles.exploreCTAText}>Explore itineraries</Text>
                 </LinearGradient>
             </TouchableOpacity>
         </Animated.View>

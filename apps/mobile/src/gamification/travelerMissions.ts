@@ -100,46 +100,46 @@ const bool = (pick: (s: NormStats) => boolean): Pick<MissionDef, 'value' | 'done
  */
 const MISSION_DEFS: MissionDef[] = [
     // ── 1. EXPLORADOR ──
-    { key: 'profile_ready', level: 'explorer', label: 'Perfil pronto para viajar', hint: 'Complete seu perfil com nome, informações e foto.', xp: XP.PROFILE_READY, category: 'profile', ...bool((s) => s.profileCompleted) },
-    { key: 'first_saved_itinerary', level: 'explorer', label: 'Primeiro roteiro salvo', hint: 'Salve/favorite o seu primeiro roteiro.', xp: XP.FIRST_SAVED_ITINERARY, category: 'discovery', ...bool((s) => s.savedCount >= 1) },
-    { key: 'first_cart_itinerary', level: 'explorer', label: 'Primeiro roteiro no carrinho', hint: 'Adicione o primeiro roteiro ao carrinho.', xp: XP.FIRST_CART_ITINERARY, category: 'cart', ...bool((s) => s.cartCount >= 1) },
-    { key: 'first_question_sent', level: 'explorer', label: 'Primeira dúvida enviada', hint: 'Faça uma pergunta sobre um roteiro.', xp: XP.FIRST_QUESTION_SENT, category: 'engagement', ...bool((s) => s.questionsCount >= 1) },
+    { key: 'profile_ready', level: 'explorer', label: 'Profile ready to travel', hint: 'Complete your profile with your name, details and photo.', xp: XP.PROFILE_READY, category: 'profile', ...bool((s) => s.profileCompleted) },
+    { key: 'first_saved_itinerary', level: 'explorer', label: 'First itinerary saved', hint: 'Save or favorite your first itinerary.', xp: XP.FIRST_SAVED_ITINERARY, category: 'discovery', ...bool((s) => s.savedCount >= 1) },
+    { key: 'first_cart_itinerary', level: 'explorer', label: 'First itinerary in cart', hint: 'Add your first itinerary to your cart.', xp: XP.FIRST_CART_ITINERARY, category: 'cart', ...bool((s) => s.cartCount >= 1) },
+    { key: 'first_question_sent', level: 'explorer', label: 'First question sent', hint: 'Ask a question about an itinerary.', xp: XP.FIRST_QUESTION_SENT, category: 'engagement', ...bool((s) => s.questionsCount >= 1) },
 
     // ── 2. VIAJANTE ATIVO ──
-    { key: 'three_saved_itineraries', level: 'active_traveler', label: 'Lista de viagem criada', hint: 'Tenha 3 roteiros salvos.', xp: XP.THREE_SAVED_ITINERARIES, category: 'discovery', ...count((s) => s.savedCount, 3) },
-    { key: 'two_cart_itineraries', level: 'active_traveler', label: 'Carrinho de viagem montado', hint: 'Tenha 2 roteiros no carrinho.', xp: XP.TWO_CART_ITINERARIES, category: 'cart', ...count((s) => s.cartCount, 2) },
-    { key: 'first_itinerary_shared', level: 'active_traveler', label: 'Roteiro compartilhado', hint: 'Compartilhe um roteiro com alguém.', xp: XP.FIRST_ITINERARY_SHARED, category: 'engagement', ...bool((s) => s.sharedCount >= 1) },
-    { key: 'first_purchase', level: 'active_traveler', label: 'Primeira compra na VAMO', hint: 'Compre o seu primeiro roteiro.', xp: XP.FIRST_PURCHASE, category: 'purchase', ...bool((s) => s.purchasesCount >= 1) },
+    { key: 'three_saved_itineraries', level: 'active_traveler', label: 'Trip list created', hint: 'Have 3 saved itineraries.', xp: XP.THREE_SAVED_ITINERARIES, category: 'discovery', ...count((s) => s.savedCount, 3) },
+    { key: 'two_cart_itineraries', level: 'active_traveler', label: 'Trip cart built', hint: 'Have 2 itineraries in your cart.', xp: XP.TWO_CART_ITINERARIES, category: 'cart', ...count((s) => s.cartCount, 2) },
+    { key: 'first_itinerary_shared', level: 'active_traveler', label: 'Itinerary shared', hint: 'Share an itinerary with someone.', xp: XP.FIRST_ITINERARY_SHARED, category: 'engagement', ...bool((s) => s.sharedCount >= 1) },
+    { key: 'first_purchase', level: 'active_traveler', label: 'First purchase on VAMO', hint: 'Buy your first itinerary.', xp: XP.FIRST_PURCHASE, category: 'purchase', ...bool((s) => s.purchasesCount >= 1) },
 
     // ── 3. PLANEJADOR ──
-    { key: 'first_purchased_itinerary_customized', level: 'planner', label: 'Roteiro personalizado', hint: 'Personalize um roteiro comprado em "Meus Roteiros".', xp: XP.FIRST_PURCHASED_ITINERARY_CUSTOMIZED, category: 'engagement', ...bool((s) => s.customizedPurchasedItinerariesCount >= 1) },
-    { key: 'first_review_created', level: 'planner', label: 'Primeira avaliação publicada', hint: 'Avalie um roteiro comprado.', xp: XP.FIRST_REVIEW_CREATED, category: 'review', ...bool((s) => s.reviewsCount >= 1) },
-    { key: 'first_review_with_photo', level: 'planner', label: 'Avaliação com foto', hint: 'Adicione ao menos 1 foto na avaliação de um roteiro comprado.', xp: XP.FIRST_REVIEW_WITH_PHOTO, category: 'review', ...bool((s) => s.reviewsWithPhotoCount >= 1) },
-    { key: 'second_purchase', level: 'planner', label: 'Segunda compra na VAMO', hint: 'Compre o seu segundo roteiro.', xp: XP.SECOND_PURCHASE, category: 'purchase', ...count((s) => s.purchasesCount, 2) },
+    { key: 'first_purchased_itinerary_customized', level: 'planner', label: 'Itinerary personalized', hint: 'Personalize a purchased itinerary in "My Itineraries".', xp: XP.FIRST_PURCHASED_ITINERARY_CUSTOMIZED, category: 'engagement', ...bool((s) => s.customizedPurchasedItinerariesCount >= 1) },
+    { key: 'first_review_created', level: 'planner', label: 'First review published', hint: 'Review a purchased itinerary.', xp: XP.FIRST_REVIEW_CREATED, category: 'review', ...bool((s) => s.reviewsCount >= 1) },
+    { key: 'first_review_with_photo', level: 'planner', label: 'Review with a photo', hint: 'Add at least 1 photo to a review of a purchased itinerary.', xp: XP.FIRST_REVIEW_WITH_PHOTO, category: 'review', ...bool((s) => s.reviewsWithPhotoCount >= 1) },
+    { key: 'second_purchase', level: 'planner', label: 'Second purchase on VAMO', hint: 'Buy your second itinerary.', xp: XP.SECOND_PURCHASE, category: 'purchase', ...count((s) => s.purchasesCount, 2) },
 
     // ── 4. VIAJANTE CRIADOR (key 'backpacker') ──
-    { key: 'first_itinerary_published', level: 'backpacker', label: 'Primeiro roteiro publicado', hint: 'Crie e publique o seu primeiro roteiro como roteirista.', xp: XP.FIRST_ITINERARY_PUBLISHED, category: 'creator', ...bool((s) => s.publishedItinerariesCount >= 1) },
-    { key: 'first_itinerary_approved', level: 'backpacker', label: 'Roteiro aprovado pela VAMO', hint: 'Tenha o primeiro roteiro aprovado na análise.', xp: XP.FIRST_ITINERARY_APPROVED, category: 'creator', ...bool((s) => s.approvedItinerariesCount >= 1) },
-    { key: 'itinerary_quality_80', level: 'backpacker', label: 'Roteiro de qualidade', hint: 'Tenha um roteiro publicado com Quality Score acima de 80%.', xp: XP.ITINERARY_QUALITY_80, category: 'creator', ...bool((s) => s.maxPublishedItineraryQualityScore >= 80) },
-    { key: 'own_itinerary_shared', level: 'backpacker', label: 'Roteiro enviado para divulgação', hint: 'Compartilhe o seu próprio roteiro publicado.', xp: XP.OWN_ITINERARY_SHARED, category: 'creator', ...bool((s) => s.ownItinerarySharesCount >= 1) },
+    { key: 'first_itinerary_published', level: 'backpacker', label: 'First itinerary published', hint: 'Create and publish your first itinerary as a creator.', xp: XP.FIRST_ITINERARY_PUBLISHED, category: 'creator', ...bool((s) => s.publishedItinerariesCount >= 1) },
+    { key: 'first_itinerary_approved', level: 'backpacker', label: 'Itinerary approved by VAMO', hint: 'Get your first itinerary approved in review.', xp: XP.FIRST_ITINERARY_APPROVED, category: 'creator', ...bool((s) => s.approvedItinerariesCount >= 1) },
+    { key: 'itinerary_quality_80', level: 'backpacker', label: 'Quality itinerary', hint: 'Have a published itinerary with a Quality Score above 80%.', xp: XP.ITINERARY_QUALITY_80, category: 'creator', ...bool((s) => s.maxPublishedItineraryQualityScore >= 80) },
+    { key: 'own_itinerary_shared', level: 'backpacker', label: 'Itinerary shared for promotion', hint: 'Share your own published itinerary.', xp: XP.OWN_ITINERARY_SHARED, category: 'creator', ...bool((s) => s.ownItinerarySharesCount >= 1) },
 
     // ── 5. VIAJANTE EXPERIENTE ──
-    { key: 'three_purchases', level: 'experienced', label: '3 roteiros comprados', hint: 'Compre 3 roteiros no total.', xp: XP.THREE_PURCHASES, category: 'purchase', ...count((s) => s.purchasesCount, 3) },
-    { key: 'three_reviews', level: 'experienced', label: '3 avaliações publicadas', hint: 'Avalie 3 roteiros comprados.', xp: XP.THREE_REVIEWS, category: 'review', ...count((s) => s.reviewsCount, 3) },
-    { key: 'itinerary_quality_90', level: 'experienced', label: 'Roteiro excelente', hint: 'Tenha um roteiro publicado com Quality Score acima de 90%.', xp: XP.ITINERARY_QUALITY_90, category: 'creator', ...bool((s) => s.maxPublishedItineraryQualityScore >= 90) },
-    { key: 'first_creator_sale', level: 'experienced', label: 'Primeira venda como roteirista', hint: 'Venda o seu primeiro roteiro publicado.', xp: XP.FIRST_CREATOR_SALE, category: 'creator', ...bool((s) => s.creatorSalesCount >= 1) },
+    { key: 'three_purchases', level: 'experienced', label: '3 itineraries purchased', hint: 'Buy 3 itineraries in total.', xp: XP.THREE_PURCHASES, category: 'purchase', ...count((s) => s.purchasesCount, 3) },
+    { key: 'three_reviews', level: 'experienced', label: '3 reviews published', hint: 'Review 3 purchased itineraries.', xp: XP.THREE_REVIEWS, category: 'review', ...count((s) => s.reviewsCount, 3) },
+    { key: 'itinerary_quality_90', level: 'experienced', label: 'Excellent itinerary', hint: 'Have a published itinerary with a Quality Score above 90%.', xp: XP.ITINERARY_QUALITY_90, category: 'creator', ...bool((s) => s.maxPublishedItineraryQualityScore >= 90) },
+    { key: 'first_creator_sale', level: 'experienced', label: 'First sale as a creator', hint: 'Sell your first published itinerary.', xp: XP.FIRST_CREATOR_SALE, category: 'creator', ...bool((s) => s.creatorSalesCount >= 1) },
 
     // ── 6. DESBRAVADOR ──
-    { key: 'five_purchases', level: 'pathfinder', label: '5 roteiros comprados', hint: 'Compre 5 roteiros no total.', xp: XP.FIVE_PURCHASES, category: 'purchase', ...count((s) => s.purchasesCount, 5) },
-    { key: 'five_reviews', level: 'pathfinder', label: '5 avaliações publicadas', hint: 'Publique 5 avaliações de roteiros comprados.', xp: XP.FIVE_REVIEWS, category: 'review', ...count((s) => s.reviewsCount, 5) },
-    { key: 'three_itineraries_published', level: 'pathfinder', label: '3 roteiros publicados', hint: 'Tenha 3 roteiros aprovados/publicados.', xp: XP.THREE_ITINERARIES_PUBLISHED, category: 'creator', ...count((s) => Math.max(s.publishedItinerariesCount, s.approvedItinerariesCount), 3) },
-    { key: 'five_creator_sales', level: 'pathfinder', label: '5 vendas realizadas', hint: 'Alcance 5 vendas como roteirista.', xp: XP.FIVE_CREATOR_SALES, category: 'creator', ...count((s) => s.creatorSalesCount, 5) },
+    { key: 'five_purchases', level: 'pathfinder', label: '5 itineraries purchased', hint: 'Buy 5 itineraries in total.', xp: XP.FIVE_PURCHASES, category: 'purchase', ...count((s) => s.purchasesCount, 5) },
+    { key: 'five_reviews', level: 'pathfinder', label: '5 reviews published', hint: 'Publish 5 reviews of purchased itineraries.', xp: XP.FIVE_REVIEWS, category: 'review', ...count((s) => s.reviewsCount, 5) },
+    { key: 'three_itineraries_published', level: 'pathfinder', label: '3 itineraries published', hint: 'Have 3 approved/published itineraries.', xp: XP.THREE_ITINERARIES_PUBLISHED, category: 'creator', ...count((s) => Math.max(s.publishedItinerariesCount, s.approvedItinerariesCount), 3) },
+    { key: 'five_creator_sales', level: 'pathfinder', label: '5 sales made', hint: 'Reach 5 sales as a creator.', xp: XP.FIVE_CREATOR_SALES, category: 'creator', ...count((s) => s.creatorSalesCount, 5) },
 
     // ── 7. EMBAIXADOR VAMO ──
-    { key: 'ten_purchases', level: 'ambassador', label: '10 roteiros comprados', hint: 'Compre 10 roteiros no total.', xp: XP.TEN_PURCHASES, category: 'purchase', ...count((s) => s.purchasesCount, 10) },
-    { key: 'ten_reviews', level: 'ambassador', label: '10 avaliações publicadas', hint: 'Publique 10 avaliações reais.', xp: XP.TEN_REVIEWS, category: 'review', ...count((s) => s.reviewsCount, 10) },
-    { key: 'ten_creator_sales', level: 'ambassador', label: '10 vendas como roteirista', hint: 'Alcance 10 vendas de roteiros publicados.', xp: XP.TEN_CREATOR_SALES, category: 'creator', ...count((s) => s.creatorSalesCount, 10) },
-    { key: 'featured_itinerary', level: 'ambassador', label: 'Roteiro em destaque', hint: 'Tenha um roteiro classificado em "Roteiros em Destaque".', xp: XP.FEATURED_ITINERARY, category: 'milestone', ...bool((s) => s.featuredItinerariesCount >= 1) },
+    { key: 'ten_purchases', level: 'ambassador', label: '10 itineraries purchased', hint: 'Buy 10 itineraries in total.', xp: XP.TEN_PURCHASES, category: 'purchase', ...count((s) => s.purchasesCount, 10) },
+    { key: 'ten_reviews', level: 'ambassador', label: '10 reviews published', hint: 'Publish 10 real reviews.', xp: XP.TEN_REVIEWS, category: 'review', ...count((s) => s.reviewsCount, 10) },
+    { key: 'ten_creator_sales', level: 'ambassador', label: '10 sales as a creator', hint: 'Reach 10 sales of published itineraries.', xp: XP.TEN_CREATOR_SALES, category: 'creator', ...count((s) => s.creatorSalesCount, 10) },
+    { key: 'featured_itinerary', level: 'ambassador', label: 'Featured itinerary', hint: 'Have an itinerary ranked in "Featured Itineraries".', xp: XP.FEATURED_ITINERARY, category: 'milestone', ...bool((s) => s.featuredItinerariesCount >= 1) },
 ];
 
 /** Ordem dos níveis (espelha TRAVELER_LEVELS) — para fatiar missões. */

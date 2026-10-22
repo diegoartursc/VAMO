@@ -69,13 +69,13 @@ export function CreatorIdentityLink({
                 <View style={styles.statsRow}>
                     <Icon name="star" size={11} color="#F59E0B" strokeWidth={2.5} />
                     <Text style={styles.stats}>
-                        {rating.toFixed(1)} · {salesCount.toLocaleString('pt-BR')} vendas
+                        {rating.toFixed(1)} · {salesCount.toLocaleString('en-US')} {salesCount === 1 ? 'sale' : 'sales'}
                     </Text>
                 </View>
             </View>
             {!!href && (
                 <View style={styles.cta} pointerEvents="none">
-                    <Text style={styles.ctaText}>Ver perfil</Text>
+                    <Text style={styles.ctaText}>View profile</Text>
                     <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
                 </View>
             )}
@@ -115,8 +115,8 @@ export function CreatorIdentityLink({
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
                 accessibilityRole="link"
-                accessibilityLabel={`Ver perfil de ${name}`}
-                accessibilityHint="Abre o perfil público do roteirista"
+                accessibilityLabel={`View ${name}'s profile`}
+                accessibilityHint="Opens the creator's public profile"
             >
                 {content}
             </Pressable>

@@ -33,13 +33,13 @@ export function getRouteRatingDisplay(input: {
 }): RouteRatingDisplay {
     const count = toFiniteNonNegative(input.reviewCount);
     if (count < 1) {
-        return { type: 'new', label: 'Novo', reviewCount: 0 };
+        return { type: 'new', label: 'New', reviewCount: 0 };
     }
     const raw = toFiniteNonNegative(input.averageRating);
     // Defensivo: se o caller bateu o gate de reviewCount mas o backend mandou
     // averageRating null/0 (inconsistência), preferimos "Novo" a um falso 0.0.
     if (raw <= 0) {
-        return { type: 'new', label: 'Novo', reviewCount: count };
+        return { type: 'new', label: 'New', reviewCount: count };
     }
     const clamped = Math.min(5, raw);
     return {

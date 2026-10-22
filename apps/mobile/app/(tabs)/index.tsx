@@ -49,10 +49,10 @@ const HeroHeader = ({
     onShortcutPress: (params?: Record<string, string>) => void;
 }) => {
     const shortcuts: Array<{ label: string; icon: 'star' | 'utensils' | 'backpack' | 'heart'; params: Record<string, string> }> = [
-        { label: 'Mais populares', icon: 'star' as const, params: { sort: 'popular' } },
-        { label: 'Gastronômicos', icon: 'utensils' as const, params: { category: 'gastronomia' } },
-        { label: 'Mochilão', icon: 'backpack' as const, params: { category: 'mochilao', intent: 'mochilao' } },
-        { label: 'Romântico', icon: 'heart' as const, params: { category: 'romantico' } },
+        { label: 'Most popular', icon: 'star' as const, params: { sort: 'popular' } },
+        { label: 'Food & Drink', icon: 'utensils' as const, params: { category: 'gastronomia' } },
+        { label: 'Backpacking', icon: 'backpack' as const, params: { category: 'mochilao', intent: 'mochilao' } },
+        { label: 'Romantic', icon: 'heart' as const, params: { category: 'romantico' } },
     ];
 
     return (
@@ -73,8 +73,8 @@ const HeroHeader = ({
                     <VamoLogo size={120} style={styles.brandLogo} />
                     <View style={{ flexDirection: 'row', gap: 12 }}>
                         <TouchableOpacity style={styles.iconButton} onPress={() => notify({
-                            title: 'Notificações',
-                            message: 'Os avisos importantes chegam por e-mail: compras, segurança da conta, respostas às suas perguntas e, para roteiristas, vendas, aprovações e avaliações. A central de notificações no app chega em breve.',
+                            title: 'Notifications',
+                            message: 'Important updates arrive by email: purchases, account security, answers to your questions and, for creators, sales, approvals and reviews. An in-app notification center is coming soon.',
                             icon: 'notifications-outline',
                         })}>
                             <Icon name="bell" size={24} color="#FFF" />
@@ -83,14 +83,14 @@ const HeroHeader = ({
                 </View>
 
                 <View style={styles.heroContent}>
-                    <Text style={styles.heroTitle}>Onde será sua{'\n'}próxima aventura?</Text>
-                    <Text style={styles.heroTagline}>Roteiros de quem já viveu.</Text>
-                    <Text style={styles.heroSubtitle}>Planejamentos detalhados por{'\n'}especialistas que já estiveram lá.</Text>
+                    <Text style={styles.heroTitle}>Where will your{'\n'}next adventure be?</Text>
+                    <Text style={styles.heroTagline}>Itineraries from people who've lived it.</Text>
+                    <Text style={styles.heroSubtitle}>Detailed plans from{'\n'}experts who've been there.</Text>
 
                     {/* Search Bar - Glassmorphism */}
                     <TouchableOpacity style={styles.heroSearchBar} activeOpacity={0.9} onPress={onSearchPress}>
                         <Icon name="search" size={20} color="rgba(255,255,255,0.7)" />
-                        <Text style={styles.heroSearchPlaceholder}>Para onde você quer ir?</Text>
+                        <Text style={styles.heroSearchPlaceholder}>Where do you want to go?</Text>
                         <View style={styles.heroFilterIcon}>
                             <Icon name="filter" size={16} color={theme.colors.primary} />
                         </View>
@@ -139,24 +139,24 @@ export default function HomeScreen() {
         [allItineraries],
     );
 
-    // Roteiros recém-publicados (seção "Novos Roteiros") — ordenados por
+    // Roteiros recém-publicados (seção "New Itineraries") — ordenados por
     // approvedAt DESC (com fallback a createdAt) via selectNew.
     const newItineraries = useMemo(() => selectNew(publicItineraries, 5), [publicItineraries]);
 
-    // "Roteiros em Destaque" — mais bem avaliados E validados pela comunidade.
+    // "Featured Itineraries" — mais bem avaliados E validados pela comunidade.
     // Critério: reviewCount >= 1 e rating >= 4.5 (sem isso é "Novo"), ordenados
     // por um ranking de CONFIANÇA (nota ponderada por volume de reviews + vendas
     // reais + qualidade — não rating puro). Lógica central em selectFeatured.
     const featuredItineraries = useMemo(() => selectFeatured(publicItineraries, 5), [publicItineraries]);
 
-    // "Continue sua busca": só ganha itens quando há histórico real de intenção
+    // "Continue your search": só ganha itens quando há histórico real de intenção
     // e existem roteiros relacionados a ele. Sem isso, devolve [] e a seção some.
     const continueSearchItems = useMemo(
         () => selectContinueSearch(publicItineraries, searchIntent),
         [publicItineraries, searchIntent],
     );
 
-    // "Experiências inesquecíveis": roteiros que atingem o score mínimo de
+    // "Unforgettable experiences": roteiros que atingem o score mínimo de
     // apelo experiencial (fotos, destaques, categorias fortes, avaliação...).
     const unforgettableItems = useMemo(
         () => selectUnforgettable(publicItineraries),
@@ -199,7 +199,7 @@ export default function HomeScreen() {
                 b[1].featured - a[1].featured ||
                 b[1].count - a[1].count ||
                 b[1].rating - a[1].rating ||
-                a[1].label.localeCompare(b[1].label, 'pt-BR'),
+                a[1].label.localeCompare(b[1].label, 'en-US'),
             )
             .slice(0, 6)
             .map(([key, data]) => ({
@@ -272,11 +272,11 @@ export default function HomeScreen() {
                 <View style={styles.trustBar}>
                     <View style={styles.trustItem}>
                         <Icon name="verified" size={14} color={theme.colors.text.secondary} />
-                        <Text style={styles.trustText}>Roteiros Verificados</Text>
+                        <Text style={styles.trustText}>Verified Itineraries</Text>
                     </View>
                     <View style={styles.trustItem}>
                         <Icon name="shield-check" size={14} color={theme.colors.text.secondary} />
-                        <Text style={styles.trustText}>Compra Segura</Text>
+                        <Text style={styles.trustText}>Secure Checkout</Text>
                     </View>
                 </View>
 
@@ -290,16 +290,16 @@ export default function HomeScreen() {
                         <Icon name="compass" size={24} color={theme.colors.primary} />
                     </View>
                     <View style={styles.quizContent}>
-                        <Text style={styles.quizTitle}>Não sabe para onde ir?</Text>
-                        <Text style={styles.quizSubtitle}>Encontre o roteiro perfeito em 3 passos</Text>
+                        <Text style={styles.quizTitle}>Not sure where to go?</Text>
+                        <Text style={styles.quizSubtitle}>Find the perfect itinerary in 3 steps</Text>
                     </View>
                     <Icon name="chevron-right" size={20} color={theme.colors.text.tertiary} />
                 </TouchableOpacity>
 
                 {/* 4. Roteiros em Destaque */}
                 <HomeItinerarySection
-                    title="Roteiros em Destaque"
-                    subtitle="Os mais bem avaliados e validados pela comunidade VAMO."
+                    title="Featured Itineraries"
+                    subtitle="The top-rated and community-verified picks on VAMO."
                     itineraries={featuredItineraries}
                     onSeeAll={() => goToItineraries()}
                     onOpenItinerary={(id) => openItinerary(id, 'featured')}
@@ -317,10 +317,10 @@ export default function HomeScreen() {
                 {/* 5. Novos Roteiros — oculta se não houver roteiros */}
                 {!loading && (
                     <HomeItinerarySection
-                        title="Novos Roteiros"
-                        subtitle="Planejamentos recém-publicados por especialistas."
+                        title="New Itineraries"
+                        subtitle="Freshly published plans from local experts."
                         itineraries={newItineraries}
-                        seeAllLabel="Explorar"
+                        seeAllLabel="Explore"
                         onSeeAll={() => goToItineraries({ sort: 'newest' })}
                         onOpenItinerary={(id) => openItinerary(id, 'new')}
                     />
@@ -329,8 +329,8 @@ export default function HomeScreen() {
                 {/* 6a. Continue sua busca — só com histórico real + roteiros relacionados */}
                 {!loading && (
                     <HomeItinerarySection
-                        title="Continue sua busca"
-                        subtitle="Roteiros que podem te interessar."
+                        title="Continue your search"
+                        subtitle="Itineraries you might like."
                         itineraries={continueSearchItems}
                         onSeeAll={() => goToItineraries()}
                         onOpenItinerary={(id) => openItinerary(id, 'continue_search')}
@@ -340,8 +340,8 @@ export default function HomeScreen() {
                 {/* 6b. Experiencias inesqueciveis — só com roteiros que batem o score */}
                 {!loading && (
                     <HomeItinerarySection
-                        title="Experiências inesquecíveis"
-                        subtitle="Vivências que você nunca vai esquecer."
+                        title="Unforgettable experiences"
+                        subtitle="Experiences you'll never forget."
                         itineraries={unforgettableItems}
                         onSeeAll={() => goToItineraries({ sort: 'score' })}
                         onOpenItinerary={(id) => openItinerary(id, 'unforgettable')}
@@ -352,9 +352,9 @@ export default function HomeScreen() {
                 {!loading && popularDestinations.length > 0 && (
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Text style={[styles.sectionTitle, { paddingLeft: 0 }]}>Destinos em Alta</Text>
+                            <Text style={[styles.sectionTitle, { paddingLeft: 0 }]}>Trending Destinations</Text>
                             <TouchableOpacity onPress={() => goToItineraries()}>
-                                <Text style={styles.seeAllText}>Ver todos</Text>
+                                <Text style={styles.seeAllText}>See all</Text>
                             </TouchableOpacity>
                         </View>
                         <View style={styles.destinationsGrid}>
@@ -372,7 +372,7 @@ export default function HomeScreen() {
                                     />
                                     <View style={styles.destinationNameContainer}>
                                         <Text style={styles.destinationName}>{dest.name}</Text>
-                                        <Text style={styles.destinationCount}>{dest.count} {dest.count === 1 ? 'roteiro' : 'roteiros'}</Text>
+                                        <Text style={styles.destinationCount}>{dest.count} {dest.count === 1 ? 'itinerary' : 'itineraries'}</Text>
                                     </View>
                                 </TouchableOpacity>
                             ))}
@@ -423,7 +423,7 @@ function HomeLoading() {
     return (
         <View style={styles.homeStateContainer}>
             <ActivityIndicator color={theme.colors.primary} />
-            <Text style={styles.homeStateText}>Carregando roteiros digitais...</Text>
+            <Text style={styles.homeStateText}>Loading digital itineraries...</Text>
         </View>
     );
 }
@@ -432,10 +432,10 @@ function HomeEmptyState({ onPress }: { onPress: () => void }) {
     return (
         <View style={styles.homeStateContainer}>
             <Icon name="map" size={28} color={theme.colors.text.tertiary} />
-            <Text style={styles.homeStateTitle}>Nenhum roteiro em destaque por enquanto</Text>
-            <Text style={styles.homeStateText}>Os roteiros aparecerão aqui quando receberem avaliações reais da comunidade.</Text>
+            <Text style={styles.homeStateTitle}>No featured itineraries yet</Text>
+            <Text style={styles.homeStateText}>Itineraries will appear here once they receive real reviews from the community.</Text>
             <TouchableOpacity style={styles.homeStateButton} onPress={onPress} activeOpacity={0.85}>
-                <Text style={styles.homeStateButtonText}>Explorar roteiros</Text>
+                <Text style={styles.homeStateButtonText}>Explore itineraries</Text>
                 <Icon name="chevron-right" size={16} color="#FFF" />
             </TouchableOpacity>
         </View>

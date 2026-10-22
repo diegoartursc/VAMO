@@ -140,10 +140,10 @@ export default function OriginalView({
         return (
             <View style={styles.emptyWrap}>
                 <Ionicons name="documents-outline" size={28} color={theme.colors.text.tertiary} />
-                <Text style={styles.emptyTitle}>Versão original indisponível</Text>
+                <Text style={styles.emptyTitle}>Original version unavailable</Text>
                 <Text style={styles.emptyText}>
-                    Não foi possível carregar o snapshot original deste roteiro. Tente novamente
-                    em alguns segundos.
+                    We couldn't load the original snapshot of this itinerary. Please try again
+                    in a few seconds.
                 </Text>
             </View>
         );
@@ -167,7 +167,7 @@ export default function OriginalView({
             {/* ── Voos ── */}
             {(sections.flightOutbound || sections.flightReturn) ? (
                 <View style={styles.block}>
-                    <SectionTitle icon="airplane-outline" label="Meu Voo" />
+                    <SectionTitle icon="airplane-outline" label="My Flight" />
                     {sections.flightTotalPrice ? (
                         <View style={styles.flightTotalPill}>
                             <Ionicons name="cash-outline" size={14} color={theme.colors.success} />
@@ -191,7 +191,7 @@ export default function OriginalView({
                     ) : null}
                     {sections.flightTips.length > 0 ? (
                         <View style={styles.tipsBox}>
-                            <Text style={styles.tipsTitle}>💡 Dicas do viajante</Text>
+                            <Text style={styles.tipsTitle}>💡 Traveler tips</Text>
                             {sections.flightTips.map((tip: string, i: number) => (
                                 <View key={i} style={styles.tipRow}>
                                     <View style={styles.tipDot} />
@@ -206,7 +206,7 @@ export default function OriginalView({
             {/* ── Hospedagens ── */}
             {sections.accommodations.length > 0 ? (
                 <View style={styles.block}>
-                    <SectionTitle icon="home-outline" label="Onde Fiquei" />
+                    <SectionTitle icon="home-outline" label="Where I Stayed" />
                     {sections.accommodations.map((acc: any, i: number) => (
                         <ItemCard
                             key={acc?.id ?? `acc-${i}`}
@@ -222,8 +222,8 @@ export default function OriginalView({
                 <View style={styles.block}>
                     <SectionTitle
                         icon="camera-outline"
-                        label="Passeios & Atrações"
-                        subtitle={`${sections.attractions.length} atrações selecionadas pelo criador`}
+                        label="Tours & Attractions"
+                        subtitle={`${sections.attractions.length} attractions selected by the creator`}
                     />
                     {sections.attractions.map((att: any, i: number) => (
                         <ItemCard
@@ -242,7 +242,7 @@ export default function OriginalView({
                     ref={(node) => onRegisterSectionRef?.('itinerary', node)}
                     collapsable={false}
                 >
-                    <SectionTitle icon="map-outline" label="Itinerário por Dia" />
+                    <SectionTitle icon="map-outline" label="Daily Itinerary" />
                     {sections.days.map((day: any) => {
                         const dayNumber = typeof day?.dayNumber === 'number' ? day.dayNumber : 0;
                         const expanded = expandedDays.has(dayNumber);
@@ -259,11 +259,11 @@ export default function OriginalView({
                                         style={styles.dayBadge}
                                     >
                                         <Text style={styles.dayBadgeNum}>{dayNumber}</Text>
-                                        <Text style={styles.dayBadgeLabel}>DIA</Text>
+                                        <Text style={styles.dayBadgeLabel}>DAY</Text>
                                     </LinearGradient>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.dayTitle} numberOfLines={1}>
-                                            {day?.title || `Dia ${dayNumber}`}
+                                            {day?.title || `Day ${dayNumber}`}
                                         </Text>
                                         {day?.summary ? (
                                             <Text style={styles.daySummary} numberOfLines={1}>
@@ -284,7 +284,7 @@ export default function OriginalView({
                                     <View style={styles.dayContent}>
                                         {activities.length === 0 ? (
                                             <Text style={styles.emptyDayText}>
-                                                Nenhuma atividade para este dia.
+                                                No activities for this day.
                                             </Text>
                                         ) : (
                                             activities.map((act: any, idx: number) => (
@@ -310,7 +310,7 @@ export default function OriginalView({
             {/* ── Transporte ── */}
             {sections.transports.length > 0 ? (
                 <View style={styles.block}>
-                    <SectionTitle icon="navigate-outline" label="Transporte" />
+                    <SectionTitle icon="navigate-outline" label="Transportation" />
                     {sections.transports.map((t: any, i: number) => (
                         <ItemCard
                             key={t?.id ?? `tr-${i}`}
@@ -324,7 +324,7 @@ export default function OriginalView({
             {/* ── Restaurantes ── */}
             {sections.restaurants.length > 0 ? (
                 <View style={styles.block}>
-                    <SectionTitle icon="restaurant-outline" label="Restaurantes & Gastronomia" />
+                    <SectionTitle icon="restaurant-outline" label="Restaurants & Dining" />
                     {sections.restaurants.map((r: any, i: number) => (
                         <ItemCard
                             key={r?.id ?? `rest-${i}`}
@@ -340,9 +340,9 @@ export default function OriginalView({
                 <View style={styles.block}>
                     <SectionTitle
                         icon="bulb-outline"
-                        label="Dicas do Viajante"
+                        label="Traveler Tips"
                         subtitle={sections.creatorName
-                            ? `Recomendações de ${sections.creatorName}`
+                            ? `Recommendations from ${sections.creatorName}`
                             : undefined}
                     />
                     <View style={styles.tipsListCard}>
@@ -362,8 +362,8 @@ export default function OriginalView({
                 <View style={styles.block}>
                     <SectionTitle
                         icon="wallet-outline"
-                        label="Gastos Extras"
-                        subtitle={`${sections.extraSpendingItems.length} ${sections.extraSpendingItems.length === 1 ? 'item' : 'itens'}`}
+                        label="Extra Expenses"
+                        subtitle={`${sections.extraSpendingItems.length} ${sections.extraSpendingItems.length === 1 ? 'item' : 'items'}`}
                     />
                     {sections.extraSpendingItems.map((e: any, i: number) => (
                         <ItemCard
@@ -389,10 +389,10 @@ export default function OriginalView({
                 >
                     <SectionTitle
                         icon="checkmark-circle-outline"
-                        label="Checklist do roteiro"
+                        label="Itinerary checklist"
                         subtitle={canToggleChecklist
-                            ? 'Marque o que já resolveu. Seu progresso é privado e não altera o roteiro do criador.'
-                            : 'Versão comprada do checklist, preservada em modo somente leitura.'}
+                            ? 'Check off what you\'ve done. Your progress is private and doesn\'t change the creator\'s itinerary.'
+                            : 'Purchased version of the checklist, preserved in read-only mode.'}
                     />
                     <View style={styles.checklistCard}>
                         {sections.checklistItems.map((c: any, i: number) => {
@@ -423,7 +423,7 @@ export default function OriginalView({
                                         checked: done,
                                         disabled: !canToggleChecklist || checklistPending,
                                     }}
-                                    accessibilityLabel={`${done ? 'Desmarcar' : 'Marcar'}: ${text}`}
+                                    accessibilityLabel={`${done ? 'Uncheck' : 'Check'}: ${text}`}
                                 >
                                     <View style={[styles.checkBox, done && styles.checkBoxActive]}>
                                         {done && <Ionicons name="checkmark" size={14} color="#fff" />}

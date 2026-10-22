@@ -37,19 +37,19 @@ interface RecommendedCreatorsSectionProps {
 function sectionCopy(opts: { hasResults: boolean; hasActiveFilters: boolean; type: RecommendedCreatorsResultType }) {
     if (!opts.hasResults) {
         return {
-            title: 'Talvez estes criadores possam inspirar você',
-            subtitle: 'Não encontramos um roteiro exato, mas estes perfis possuem excelente reputação na comunidade.',
+            title: 'These creators might inspire you',
+            subtitle: 'We didn\'t find an exact itinerary, but these profiles have an excellent reputation in the community.',
         };
     }
     if (opts.hasActiveFilters && opts.type === 'contextual') {
         return {
-            title: 'Criadores relacionados à sua busca',
-            subtitle: 'Selecionados pela experiência, avaliações e afinidade com seus filtros.',
+            title: 'Creators related to your search',
+            subtitle: 'Selected for experience, reviews and fit with your filters.',
         };
     }
     return {
-        title: 'Criadores que vale conhecer',
-        subtitle: 'Perfis bem avaliados com roteiros que podem inspirar sua próxima viagem.',
+        title: 'Creators worth knowing',
+        subtitle: 'Well-reviewed profiles with itineraries that could inspire your next trip.',
     };
 }
 

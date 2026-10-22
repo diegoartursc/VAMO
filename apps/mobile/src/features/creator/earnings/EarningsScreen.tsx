@@ -101,12 +101,12 @@ export default function EarningsScreen() {
         haptics.medium();
         try {
             const { url } = await createCreatorOnboardingLink(accessToken);
-            await openExternalUrl(url, { fallbackMessage: 'Não foi possível abrir a configuração de recebimentos agora.' });
+            await openExternalUrl(url, { fallbackMessage: 'We couldn\'t open payout setup right now.' });
         } catch (e: any) {
             haptics.error?.();
             notify({
-                title: 'Configuração de recebimentos',
-                message: e?.message || 'Não foi possível iniciar agora. Tente novamente em instantes.',
+                title: 'Payout setup',
+                message: e?.message || 'We couldn\'t start right now. Please try again in a moment.',
                 variant: 'error',
             });
         } finally {

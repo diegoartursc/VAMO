@@ -149,7 +149,7 @@ export default function PurchasedItineraryScreen() {
     };
 
     // ── Aba forçada no RouteVersioning ────────────────────────────────
-    // O atalho "Abrir checklist" do "Comece por aqui" precisa levar o
+    // O atalho "Abrir checklist" do "Start here" precisa levar o
     // usuário pra Minha Versão (a Central da Viagem só aparece lá).
     // Quando o caller seta `routeTargetTab`, o RouteVersioning sincroniza
     // via useEffect interno e o usuário continua livre pra trocar de aba
@@ -158,7 +158,7 @@ export default function PurchasedItineraryScreen() {
     const [routeTargetTab, setRouteTargetTab] = useState<'original' | 'mine' | undefined>(undefined);
 
     // Aba ATUALMENTE ativa no RouteVersioning — alimentada via onTabChange.
-    // Os atalhos do "Comece por aqui" consultam isto pra rolar até a versão
+    // Os atalhos do "Start here" consultam isto pra rolar até a versão
     // certa (itinerary:original vs itinerary:mine etc) SEM trocar de aba.
     const [routeActiveTab, setRouteActiveTab] = useState<'original' | 'mine'>('original');
 
@@ -268,10 +268,10 @@ export default function PurchasedItineraryScreen() {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!id) { setLoadError('Roteiro inválido.'); setIsLoading(false); return; }
+        if (!id) { setLoadError('Invalid itinerary.'); setIsLoading(false); return; }
         if (!isAuthenticated || !accessToken) {
             setItinerary(null);
-            setLoadError('Faça login para acessar este roteiro comprado.');
+            setLoadError('Sign in to access this purchased itinerary.');
             setIsLoading(false);
             return;
         }
@@ -287,22 +287,22 @@ export default function PurchasedItineraryScreen() {
                     setLoadError(null);
                     Animated.timing(headerAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start();
                 } else {
-                    setLoadError('Este roteiro não está liberado para esta conta.');
+                    setLoadError('This itinerary isn\'t unlocked for this account.');
                 }
             })
-            .catch(() => { if (mounted) setLoadError('Não foi possível carregar o roteiro comprado.'); })
+            .catch(() => { if (mounted) setLoadError('We couldn\'t load the purchased itinerary.'); })
             .finally(() => { if (mounted) setIsLoading(false); });
         getCurrencyRates().then(r => { if (mounted) setCurrencyRates(r); }).catch(() => {});
         return () => { mounted = false; };
     }, [authLoading, id, accessToken, isAuthenticated]);
 
-    /** Converte valor em qualquer moeda para AUD sem inventar taxa ausente. */
+    /** Converts an amount in any currency to the base currency without inventing a missing rate. */
     const toBase = (value: string | number, currency: string): string | null => {
         const n = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
         if (n <= 0) return formatMoney(0);
-        const aud = convertToBase(n, currency, currencyRates);
-        if (aud === null) return null;
-        return formatMoney(aud);
+        const converted = convertToBase(n, currency, currencyRates);
+        if (converted === null) return null;
+        return formatMoney(converted);
     };
 
     /** Quantidade de pessoas escolhida pelo comprador pra este roteiro. */
@@ -336,7 +336,7 @@ export default function PurchasedItineraryScreen() {
             <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
                 <Text style={{ marginTop: 16, color: theme.colors.text.secondary, fontSize: 14 }}>
-                    Carregando roteiro…
+                    Loading itinerary…
                 </Text>
             </View>
         );
@@ -347,7 +347,7 @@ export default function PurchasedItineraryScreen() {
             <View style={styles.container}>
                 <View style={styles.errorContainer}>
                     <Icon name="file" size={48} color={theme.colors.text.tertiary} />
-                    <Text style={styles.errorText}>{loadError || 'Roteiro não encontrado'}</Text>
+                    <Text style={styles.errorText}>{loadError || 'Itinerary not found'}</Text>
                     <TouchableOpacity
                         style={styles.errorButton}
                         onPress={() => {
@@ -362,7 +362,7 @@ export default function PurchasedItineraryScreen() {
                         }}
                     >
                         <Text style={styles.errorButtonText}>
-                            {!isAuthenticated && id ? 'Entrar' : 'Voltar'}
+                            {!isAuthenticated && id ? 'Sign in' : 'Back'}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -403,8 +403,8 @@ export default function PurchasedItineraryScreen() {
     const openExternalUrl = async (url?: string) => {
         haptics.light();
         await openSafeExternalUrl(url, {
-            invalidMessage: 'Este item ainda não tem um link válido.',
-            fallbackMessage: 'Não foi possível abrir este link no dispositivo.',
+            invalidMessage: 'This item doesn\'t have a valid link yet.',
+            fallbackMessage: 'We couldn\'t open this link on your device.',
         });
     };
 
@@ -446,8 +446,8 @@ export default function PurchasedItineraryScreen() {
             });
         } catch (e: any) {
             notify({
-                title: 'Não foi possível exportar',
-                message: e?.message || 'Tente novamente em instantes.',
+                title: 'Couldn\'t export',
+                message: e?.message || 'Please try again in a moment.',
                 variant: 'error',
             });
         }
@@ -493,7 +493,7 @@ export default function PurchasedItineraryScreen() {
                             },
                         ]}>
                             <Ionicons name="checkmark-circle" size={14} color="#fff" />
-                            <Text style={styles.purchasedBadgeText}>ROTEIRO COMPRADO</Text>
+                            <Text style={styles.purchasedBadgeText}>PURCHASED ITINERARY</Text>
                         </Animated.View>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
                             <TouchableOpacity
@@ -512,7 +512,7 @@ export default function PurchasedItineraryScreen() {
                                     style={styles.navBtn}
                                     onPress={handleShare}
                                     disabled={isShareInProgress}
-                                    accessibilityLabel="Compartilhar roteiro (página pública)"
+                                    accessibilityLabel="Share itinerary (public page)"
                                 >
                                     <Ionicons name="share-outline" size={22} color="#fff" />
                                 </TouchableOpacity>
@@ -534,7 +534,7 @@ export default function PurchasedItineraryScreen() {
                             <Text style={styles.heroDest}>{itinerary.destination}, {itinerary.country}</Text>
                             <Text style={styles.heroDot}>·</Text>
                             <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.85)" />
-                            <Text style={styles.heroDest}>{itinerary.duration} dias</Text>
+                            <Text style={styles.heroDest}>{itinerary.duration} {itinerary.duration === 1 ? 'day' : 'days'}</Text>
                         </View>
                         <View style={styles.heroMeta}>
                             <View style={styles.creatorPill}>
@@ -562,8 +562,8 @@ export default function PurchasedItineraryScreen() {
                             <Ionicons name="document-text-outline" size={18} color={theme.colors.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.downloadBarTitle}>Salvar roteiro em PDF</Text>
-                            <Text style={styles.downloadBarSub}>Exporte a versão original ou a sua para consultar fora da VAMO.</Text>
+                            <Text style={styles.downloadBarTitle}>Save itinerary as PDF</Text>
+                            <Text style={styles.downloadBarSub}>Export the original version or yours to use outside VAMO.</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={18} color={theme.colors.primary} />
                     </LinearGradient>
@@ -573,7 +573,7 @@ export default function PurchasedItineraryScreen() {
 
                     {/* Ordem da página (depois do hero):
                         1. Onboarding (1ª vez)
-                        2. "Comece por aqui" — atalhos rápidos
+                        2. "Start here" — atalhos rápidos
                         3. Sobre a Experiência
                         4. Custos e orçamento
                         5. Meu roteiro (Original / Minha versão) com módulos
@@ -591,19 +591,19 @@ export default function PurchasedItineraryScreen() {
                                     <View style={styles.onboardIconWrap}>
                                         <Ionicons name="map-outline" size={18} color={theme.colors.primary} />
                                     </View>
-                                    <Text style={styles.onboardTitle}>Este é seu roteiro interativo</Text>
+                                    <Text style={styles.onboardTitle}>This is your interactive itinerary</Text>
                                     <TouchableOpacity
                                         onPress={dismissInteractiveOnboarding}
                                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                        accessibilityLabel="Dispensar"
+                                        accessibilityLabel="Dismiss"
                                     >
                                         <Ionicons name="close" size={18} color={theme.colors.text.tertiary} />
                                     </TouchableOpacity>
                                 </View>
                                 <Text style={styles.onboardText}>
-                                    Você pode consultar a versão original, personalizar sua viagem,
-                                    adicionar arquivos e acompanhar seu checklist. Suas alterações
-                                    ficam salvas apenas na sua versão.
+                                    You can view the original version, personalize your trip,
+                                    add files and track your checklist. Your changes
+                                    are saved only to your own version.
                                 </Text>
                             </View>
                         </View>
@@ -620,10 +620,10 @@ export default function PurchasedItineraryScreen() {
 
                         type QA = { key: string; iconName: any; label: string; meta: string; sectionKey: string };
                         const actions: QA[] = [];
-                        if (daysCount > 0) actions.push({ key: 'days', iconName: 'map-outline', label: 'Ver roteiro por dia', meta: `${daysCount} ${daysCount === 1 ? 'dia' : 'dias'}`, sectionKey: 'itinerary' });
-                        if (checklistCount > 0) actions.push({ key: 'checklist', iconName: 'checkmark-done-outline', label: 'Abrir checklist', meta: `${checklistCount} ${checklistCount === 1 ? 'item' : 'itens'}`, sectionKey: 'checklist' });
-                        actions.push({ key: 'costs', iconName: 'wallet-outline', label: 'Ver custos', meta: 'orçamento referência', sectionKey: 'costs' });
-                        if (mediaCount > 0) actions.push({ key: 'media', iconName: 'images-outline', label: 'Fotos e vídeos', meta: `${mediaCount} ${mediaCount === 1 ? 'mídia' : 'mídias'}`, sectionKey: 'media' });
+                        if (daysCount > 0) actions.push({ key: 'days', iconName: 'map-outline', label: 'View day by day', meta: `${daysCount} ${daysCount === 1 ? 'day' : 'days'}`, sectionKey: 'itinerary' });
+                        if (checklistCount > 0) actions.push({ key: 'checklist', iconName: 'checkmark-done-outline', label: 'Open checklist', meta: `${checklistCount} ${checklistCount === 1 ? 'item' : 'items'}`, sectionKey: 'checklist' });
+                        actions.push({ key: 'costs', iconName: 'wallet-outline', label: 'View costs', meta: 'reference budget', sectionKey: 'costs' });
+                        if (mediaCount > 0) actions.push({ key: 'media', iconName: 'images-outline', label: 'Photos & videos', meta: `${mediaCount} ${mediaCount === 1 ? 'file' : 'files'}`, sectionKey: 'media' });
 
                         return (
                             <View style={styles.block}>
@@ -638,9 +638,9 @@ export default function PurchasedItineraryScreen() {
                                             <Ionicons name="rocket-outline" size={18} color={theme.colors.primary} />
                                         </View>
                                         <View style={{ flex: 1 }}>
-                                            <Text style={styles.quickCardTitle}>Seu roteiro está pronto para usar</Text>
+                                            <Text style={styles.quickCardTitle}>Your itinerary is ready to use</Text>
                                             <Text style={styles.quickCardSubtitle}>
-                                                Acesse rapidamente as partes mais importantes da sua viagem.
+                                                Quickly jump to the most important parts of your trip.
                                             </Text>
                                         </View>
                                     </View>
@@ -680,23 +680,23 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ SOBRE A EXPERIÊNCIA ══════════ */}
                     <View style={styles.block}>
-                        <CollapsibleSectionTitle icon="compass-outline" label="Sobre a Experiência" open={openAbout} onToggle={() => setOpenAbout(v => !v)} />
+                        <CollapsibleSectionTitle icon="compass-outline" label="About the Experience" open={openAbout} onToggle={() => setOpenAbout(v => !v)} />
                         {openAbout && (
                         <View style={styles.card}>
                             {itinerary.tripStartDate && itinerary.tripEndDate && (
                                 <>
                                     <InfoRow
                                         icon="calendar-outline"
-                                        label="Período da viagem"
-                                        value={`${new Date(itinerary.tripStartDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })} — ${new Date(itinerary.tripEndDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                                        label="Trip dates"
+                                        value={`${new Date(itinerary.tripStartDate).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} — ${new Date(itinerary.tripEndDate).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`}
                                     />
                                     <View style={styles.cardDivider} />
                                 </>
                             )}
 
-                            <InfoRow icon="time-outline" label="Duração" value={`${itinerary.duration} dias`} />
+                            <InfoRow icon="time-outline" label="Duration" value={`${itinerary.duration} days`} />
                             <View style={styles.cardDivider} />
-                            <InfoRow icon="location-outline" label="Destino" value={`${itinerary.destination}, ${itinerary.country}`} />
+                            <InfoRow icon="location-outline" label="Destination" value={`${itinerary.destination}, ${itinerary.country}`} />
                             {itinerary.highlights && itinerary.highlights.length > 0 && (
                                 <>
                                     <View style={styles.cardDivider} />
@@ -705,7 +705,7 @@ export default function PurchasedItineraryScreen() {
                                             <Ionicons name="star-outline" size={16} color={theme.colors.primary} />
                                         </View>
                                         <View style={styles.infoContent}>
-                                            <Text style={styles.infoLabel}>Destaques</Text>
+                                            <Text style={styles.infoLabel}>Highlights</Text>
                                             <View style={styles.highlightChips}>
                                                 {itinerary.highlights.map((h: string, i: number) => (
                                                     <View key={i} style={styles.highlightChip}>
@@ -733,7 +733,7 @@ export default function PurchasedItineraryScreen() {
                         original enquanto o merge não chegou (primeiros
                         ms da carga ou sessão sem auth). */}
                     <View style={styles.block} ref={trackSection('costs')} collapsable={false}>
-                        <CollapsibleSectionTitle icon="wallet-outline" label="Custos e orçamento do roteiro" open={openCosts} onToggle={() => setOpenCosts(v => !v)} />
+                        <CollapsibleSectionTitle icon="wallet-outline" label="Itinerary costs & budget" open={openCosts} onToggle={() => setOpenCosts(v => !v)} />
                         {openCosts && (() => {
                             // Helper: extrai array do merged se houver, senão cai no itinerary original.
                             // mergedItinerary tem shape MergedItinerary com arrays de MergedItem
@@ -811,8 +811,8 @@ export default function PurchasedItineraryScreen() {
                                         <View style={styles.currencyWarning}>
                                             <Ionicons name="alert-circle-outline" size={16} color={theme.colors.warning} />
                                             <Text style={styles.currencyWarningText}>
-                                                Total em {BASE_CURRENCY} indisponível: falta cotação para {converted.missingCurrencies.join(', ')}.
-                                                Os valores originais continuam listados abaixo.
+                                                Total in {BASE_CURRENCY} unavailable: missing exchange rate for {converted.missingCurrencies.join(', ')}.
+                                                The original amounts are still listed below.
                                             </Text>
                                         </View>
                                     )}
@@ -857,7 +857,7 @@ export default function PurchasedItineraryScreen() {
 
                             return (
                                 <View style={{ marginTop: 16 }}>
-                                    <Text style={styles.costRefTitle}>Referência de Gastos por Pessoa</Text>
+                                    <Text style={styles.costRefTitle}>Per-Person Cost Reference</Text>
                                     {costGroups.map(group => (
                                         <View key={group.moduleKey} style={styles.costRefGroup}>
                                             <View style={styles.costRefGroupHeader}>
@@ -877,19 +877,19 @@ export default function PurchasedItineraryScreen() {
                                                         <Text style={styles.costRefItemTitle}>{item.title}</Text>
                                                         <Text style={styles.costRefItemValue}>
                                                             <Text style={{ fontWeight: '700' }}>{formatMoney(item.amountPerPerson, item.currency)}</Text>
-                                                            {' por pessoa'}
+                                                            {' per person'}
                                                             {item.currency !== BASE_CURRENCY && (
                                                                 <Text style={styles.costRefItemConverted}>
                                                                     {convertedLabel
                                                                         ? ` ≈ ${convertedLabel}`
-                                                                        : ` · cotação ${BASE_CURRENCY} indisponível`}
+                                                                        : ` · ${BASE_CURRENCY} rate unavailable`}
                                                                 </Text>
                                                             )}
                                                         </Text>
                                                         <Text style={[styles.costRefItemConverted, { marginTop: 2 }]}>
                                                             {isShared
-                                                                ? `Base: ${formatMoney(item.amountTotal, item.currency)} total ÷ ${item.sharedByPeople} pessoas`
-                                                                : 'Gasto individual'}
+                                                                ? `Base: ${formatMoney(item.amountTotal, item.currency)} total ÷ ${item.sharedByPeople} people`
+                                                                : 'Individual cost'}
                                                         </Text>
                                                         <View style={styles.costRefBadgeRow}>
                                                             <Ionicons
@@ -898,7 +898,7 @@ export default function PurchasedItineraryScreen() {
                                                                 color={showVerifiedBadge ? theme.colors.verified : theme.colors.info}
                                                             />
                                                             <Text style={[styles.costRefBadgeText, { color: showVerifiedBadge ? theme.colors.verified : theme.colors.info }]}>
-                                                                {showVerifiedBadge ? 'Valor comprovado' : 'Valor estimado'}
+                                                                {showVerifiedBadge ? 'Verified amount' : 'Estimated amount'}
                                                             </Text>
                                                             {showVerifiedBadge && item.proofStatus === 'approved' && (
                                                                 <Text style={[styles.costRefBadgeText, { color: theme.colors.verified }]}>
@@ -912,7 +912,7 @@ export default function PurchasedItineraryScreen() {
                                         </View>
                                     ))}
                                     <Text style={styles.costRefDisclaimer}>
-                                        Valores informados pela criadora como referência. Podem variar por época, câmbio e disponibilidade.
+                                        Amounts provided by the creator as a reference. They can vary by season, exchange rate and availability.
                                     </Text>
                                 </View>
                             );
@@ -927,13 +927,13 @@ export default function PurchasedItineraryScreen() {
                         Refs internos:
                         - 'itinerary:original' / 'itinerary:mine' → o RouteVersioning
                           passa onRegisterSectionRef pra OriginalView/MyRouteView, que
-                          envolvem o bloco "Itinerário por Dia" da sua versão.
-                        - 'checklist:original' → bloco "Checklist do roteiro" da
+                          envolvem o bloco "Daily Itinerary" da sua versão.
+                        - 'checklist:original' → bloco "Itinerary checklist" da
                           OriginalView (read-only com toggle de progresso).
                         - 'checklist:mine' → TripCenter (Central da Viagem) montada
                           no mineExtras abaixo, registrada via trackSection direto.
 
-                        Atalhos do "Comece por aqui" consultam routeActiveTab e rolam
+                        Atalhos do "Start here" consultam routeActiveTab e rolam
                         pra versão certa SEM trocar de aba. */}
                     <View>
                         <RouteVersioning
@@ -981,7 +981,7 @@ export default function PurchasedItineraryScreen() {
                     {/* ══════════ O QUE VOCÊ RECEBEU ══════════ */}
                     {itinerary.receiveList && (
                         <View style={styles.block}>
-                            <SectionTitle icon="gift-outline" label="O que você recebeu" />
+                            <SectionTitle icon="gift-outline" label="What you received" />
                             <View style={styles.card}>
                                 {itinerary.receiveList.map((item: ReceiveItem, i: number) => (
                                     <View
@@ -1004,19 +1004,19 @@ export default function PurchasedItineraryScreen() {
 
                     {/* ══════════ FOTOS E VÍDEOS DA VIAGEM ══════════
                         Penúltima seção da página — antes era logo após Custos,
-                        empurrando o "O que você recebeu" e Avaliar pro pé. */}
+                        empurrando o "What you received" e Avaliar pro pé. */}
                     <View ref={trackSection('media')} collapsable={false}>
                         <MediaGallery itinerary={itinerary} />
                     </View>
 
                     {/* ══════════ AVALIAR ESTE ROTEIRO ══════════ */}
                     <View style={styles.block}>
-                        <SectionTitle icon="star-outline" label="Avaliar este Roteiro" />
+                        <SectionTitle icon="star-outline" label="Rate this Itinerary" />
                         {userReview ? (
                             <View style={styles.reviewDoneCard}>
                                 <View style={styles.reviewDoneHeader}>
                                     <Icon name="verified" size={20} color={theme.colors.primary} />
-                                    <Text style={styles.reviewDoneTitle}>Sua avaliação</Text>
+                                    <Text style={styles.reviewDoneTitle}>Your review</Text>
                                 </View>
                                 <View style={styles.reviewDoneStars}>
                                     {[1, 2, 3, 4, 5].map(s => (
@@ -1059,9 +1059,9 @@ export default function PurchasedItineraryScreen() {
                                 end={{ x: 1, y: 1 }}
                             >
                                 <Ionicons name="chatbubble-ellipses-outline" size={40} color="rgba(255,255,255,0.9)" />
-                                <Text style={styles.reviewCTATitle}>Como foi sua experiência?</Text>
+                                <Text style={styles.reviewCTATitle}>How was your experience?</Text>
                                 <Text style={styles.reviewCTASub}>
-                                    Sua avaliação ajuda outros viajantes a decidirem.
+                                    Your review helps other travelers decide.
                                 </Text>
                                 <TouchableOpacity
                                     style={styles.reviewCTABtn}
@@ -1072,7 +1072,7 @@ export default function PurchasedItineraryScreen() {
                                     activeOpacity={0.85}
                                 >
                                     <Ionicons name="star" size={18} color={theme.colors.primary} />
-                                    <Text style={styles.reviewCTABtnText}>Escrever Avaliação</Text>
+                                    <Text style={styles.reviewCTABtnText}>Write a Review</Text>
                                 </TouchableOpacity>
                             </LinearGradient>
                         )}
@@ -1102,7 +1102,7 @@ function CollapsibleSectionTitle({ icon, label, open, onToggle }: { icon: string
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityState={{ expanded: open }}
-            accessibilityLabel={`${label}: ${open ? 'recolher' : 'expandir'}`}
+            accessibilityLabel={`${label}: ${open ? 'collapse' : 'expand'}`}
             style={{ flexDirection: 'row', alignItems: 'center' }}
         >
             <View style={{ flex: 1 }}>
@@ -1255,8 +1255,8 @@ function FlightCard({ flight }: { flight: any }) {
                 <View style={fcStyles.stopsBadge}>
                     <Text style={fcStyles.stopsText}>
                         {flight.stops === 0
-                            ? 'Direto'
-                            : `${flight.stops} parada${flight.stops > 1 ? 's' : ''}`}
+                            ? 'Nonstop'
+                            : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`}
                     </Text>
                 </View>
             </View>
@@ -2158,7 +2158,7 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
 
-    // ─── "Comece por aqui" — central da viagem ───
+    // ─── "Start here" — central da viagem ───
     quickCard: {
         padding: 16,
         borderRadius: 16,

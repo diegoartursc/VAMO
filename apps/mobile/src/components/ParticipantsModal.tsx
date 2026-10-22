@@ -48,7 +48,7 @@ export default function ParticipantsModal({
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
-                        <Text style={styles.cancelText}>Cancelar</Text>
+                        <Text style={styles.cancelText}>Cancel</Text>
                     </TouchableOpacity>
                     <Text style={styles.title}>Participantes</Text>
                     <View style={{ width: 70 }} />
@@ -94,8 +94,8 @@ export default function ParticipantsModal({
                     {/* Children */}
                     <View style={styles.row}>
                         <View style={styles.labelContainer}>
-                            <Text style={styles.label}>Crianças</Text>
-                            <Text style={styles.sublabel}>(Até 12 anos)</Text>
+                            <Text style={styles.label}>Children</Text>
+                            <Text style={styles.sublabel}>(Up to 12 years)</Text>
                         </View>
                         <View style={styles.counter}>
                             <TouchableOpacity

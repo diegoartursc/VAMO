@@ -59,15 +59,15 @@ export interface ReceivedModule {
 
 // Short badge config (card chips)
 const MODULE_BADGE_CONFIG: Record<string, { label: string; icon: IconName }> = {
-    itinerario:    { label: "Itinerário",       icon: "calendar" },
-    passeios:      { label: "Passeios",         icon: "landmark" },
-    hospedagem:    { label: "Hospedagens",      icon: "hotel" },
-    transporte:    { label: "Transporte",       icon: "car" },
-    restaurantes:  { label: "Gastronomia",      icon: "utensils" },
-    dicas:         { label: "Dicas exclusivas", icon: "gem" },
+    itinerario:    { label: "Itinerary",       icon: "calendar" },
+    passeios:      { label: "Tours",         icon: "landmark" },
+    hospedagem:    { label: "Lodging",      icon: "hotel" },
+    transporte:    { label: "Transportation",       icon: "car" },
+    restaurantes:  { label: "Dining",      icon: "utensils" },
+    dicas:         { label: "Insider tips", icon: "gem" },
     checklist:     { label: "Checklist",        icon: "clipboard-list" },
-    voo:           { label: "Voos",             icon: "plane" },
-    gastos_extras: { label: "Gastos extras",    icon: "wallet" },
+    voo:           { label: "Flights",             icon: "plane" },
+    gastos_extras: { label: "Extra costs",    icon: "wallet" },
 };
 
 // Full module details (for "O que você vai receber" sections in preview/detail)
@@ -78,48 +78,48 @@ const TEAL_BG = '#F0FAF9';
 
 const MODULE_DETAILS: Record<string, Omit<ReceivedModule, 'key'>> = {
     itinerario: {
-        title: 'Diário de Viagem Detalhado',
-        description: 'Programação dia a dia com horários, locais e dicas práticas para cada atividade',
+        title: 'Detailed Travel Diary',
+        description: 'Day-by-day schedule with times, places and practical tips for every activity',
         icon: 'calendar', iconColor: NAVY, bgColor: NAVY_BG,
     },
     voo: {
-        title: 'Voos & Itinerário Aéreo',
-        description: 'Voos recomendados, horários, companhias aéreas e dicas para sua chegada',
+        title: 'Flights & Air Itinerary',
+        description: 'Recommended flights, times, airlines and tips for your arrival',
         icon: 'plane', iconColor: TEAL, bgColor: TEAL_BG,
     },
     hospedagem: {
-        title: 'Hotéis & Hospedagens',
-        description: 'Lista com os melhores lugares para se hospedar e localização estratégica',
+        title: 'Hotels & Lodging',
+        description: 'A list of the best places to stay, in strategic locations',
         icon: 'hotel', iconColor: NAVY, bgColor: NAVY_BG,
     },
     passeios: {
-        title: 'Passeios & Atrações',
-        description: 'Atrações imperdíveis, preços de ingressos e como evitar filas',
+        title: 'Tours & Attractions',
+        description: 'Must-see attractions, ticket prices and how to skip the lines',
         icon: 'landmark', iconColor: TEAL, bgColor: TEAL_BG,
     },
     transporte: {
-        title: 'Locomoção',
-        description: 'Como se locomover na cidade: metrô, ônibus, apps e passes de transporte',
+        title: 'Getting Around',
+        description: 'How to get around the city: subway, buses, apps and transit passes',
         icon: 'car', iconColor: NAVY, bgColor: NAVY_BG,
     },
     dicas: {
-        title: 'Dicas Exclusivas',
-        description: 'Truques de quem já foi: melhores horários, segredos locais e como economizar',
+        title: 'Insider Tips',
+        description: 'Tricks from someone who\'s been: best times, local secrets and how to save',
         icon: 'gem', iconColor: TEAL, bgColor: TEAL_BG,
     },
     restaurantes: {
-        title: 'Restaurantes & Gastronomia',
-        description: 'Onde comer bem, opções para todos os bolsos e pratos típicos imperdíveis',
+        title: 'Restaurants & Dining',
+        description: 'Where to eat well, options for every budget and must-try local dishes',
         icon: 'utensils', iconColor: NAVY, bgColor: NAVY_BG,
     },
     checklist: {
-        title: 'Checklist de Planejamento',
-        description: 'Lista interativa com documentos, itens de mala e tarefas pré-viagem',
+        title: 'Planning Checklist',
+        description: 'An interactive list of documents, packing items and pre-trip tasks',
         icon: 'clipboard-list', iconColor: TEAL, bgColor: TEAL_BG,
     },
     gastos_extras: {
-        title: 'Gastos Extras',
-        description: 'Chip de internet, seguro, taxas, gorjetas e outros custos da viagem',
+        title: 'Extra Expenses',
+        description: 'SIM card, insurance, fees, tips and other trip costs',
         icon: 'wallet', iconColor: NAVY, bgColor: NAVY_BG,
     },
 };

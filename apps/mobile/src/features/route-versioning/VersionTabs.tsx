@@ -1,5 +1,5 @@
 /**
- * VersionTabs — segmented control "Original" / "Minha versão".
+ * VersionTabs — segmented control "Original" / "My version".
  *
  * Emula visualmente o toggle de TripCenter (pill segmentado: pílula
  * teal quando ativa, label claro com ícone). Mantido local ao
@@ -23,7 +23,7 @@ export type RouteVersionTab = 'original' | 'mine';
 export interface VersionTabsProps {
     value: RouteVersionTab;
     onChange: (next: RouteVersionTab) => void;
-    /** Quando true, esconde "Minha versão" — útil enquanto o snapshot ainda carrega. */
+    /** Quando true, esconde "My version" — útil enquanto o snapshot ainda carrega. */
     disableMine?: boolean;
 }
 
@@ -81,7 +81,7 @@ export default function VersionTabs({ value, onChange, disableMine }: VersionTab
                         disableMine && styles.toggleLabelDisabled,
                     ]}
                 >
-                    Minha versão
+                    My version
                 </Text>
             </TouchableOpacity>
         </View>

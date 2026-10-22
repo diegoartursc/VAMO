@@ -33,8 +33,8 @@ export interface MediaGalleryProps {
 export default function MediaGallery({
     itinerary,
     media: mediaProp,
-    title = 'Fotos e Vídeos da Viagem',
-    subtitle = 'Registros reais enviados pelo roteirista',
+    title = 'Trip Photos & Videos',
+    subtitle = 'Real moments uploaded by the creator',
     initialCount = 6,
 }: MediaGalleryProps) {
     const allMedia = mediaProp ?? getGalleryMedia(itinerary);
@@ -120,7 +120,7 @@ export default function MediaGallery({
                     activeOpacity={0.85}
                 >
                     <Text style={styles.expandText}>
-                        Ver todas as {validMedia.length} mídias
+                        View all {validMedia.length} photos & videos
                     </Text>
                     <Ionicons name="chevron-down" size={16} color={theme.colors.primary} />
                 </TouchableOpacity>

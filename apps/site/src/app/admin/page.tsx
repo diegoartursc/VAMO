@@ -34,7 +34,7 @@ function OverviewContent() {
             <header className="dash-header">
                 <div>
                     <h1 className="dash-title">Visão Geral</h1>
-                    <p className="dash-subtitle">{new Date().toLocaleDateString("pt-BR", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+                    <p className="dash-subtitle">{new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
                 </div>
             </header>
 

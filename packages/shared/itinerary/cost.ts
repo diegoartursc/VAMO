@@ -26,7 +26,7 @@ import { BASE_CURRENCY, BASE_LOCALE } from "./market";
 // Parsing
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Converte string monetária pt-BR ("1.234,56") ou en-US ("1234.56") para number. Retorna 0 se inválido. */
+/** Converte string monetária en-US ("1.234,56") ou en-US ("1234.56") para number. Retorna 0 se inválido. */
 export function parseMoney(raw?: string | number | null): number {
     if (raw == null) return 0;
     if (typeof raw === "number") return Number.isFinite(raw) ? raw : 0;
@@ -35,7 +35,7 @@ export function parseMoney(raw?: string | number | null): number {
     // Remove tudo que não for dígito, vírgula, ponto ou sinal de menos.
     const cleaned = s.replace(/[^0-9.,-]/g, "");
     if (!cleaned) return 0;
-    // Heurística: se tem vírgula e ponto, assume formato pt-BR (1.234,56).
+    // Heurística: se tem vírgula e ponto, assume formato en-US (1.234,56).
     // Se só tem vírgula, troca por ponto. Se só tem ponto, mantém.
     const hasComma = cleaned.includes(",");
     const hasDot = cleaned.includes(".");
@@ -197,7 +197,7 @@ export function formatMoney(amount: number, currency: string = BASE_CURRENCY, lo
  * principal quanto o badge (selo) quando aplicável.
  */
 export interface CostLabel {
-    /** Texto principal (ex: "Custo estimado: cerca de A$ 250"). */
+    /** Texto principal (ex: "Estimated cost: about $250"). */
     text: string;
     /** Selo curto (ex: "Comprovado"). null se não aplica. */
     badge: string | null;
@@ -205,7 +205,7 @@ export interface CostLabel {
     badgeTone: "info" | "success" | "warning" | "muted" | null;
     /** Tipo bruto para lógica de UI. */
     disclosureType: CostDisclosureType;
-    /** Tem comprovante público (aprovado pela VAMO) — pode usar texto "Verificado pela VAMO". */
+    /** Tem comprovante público (aprovado pela VAMO) — pode usar texto "Verified by VAMO". */
     isVamoVerified: boolean;
     /** Tem arquivo enviado (mas não necessariamente aprovado). */
     hasProof: boolean;
@@ -213,17 +213,17 @@ export interface CostLabel {
 
 /**
  * Gera os textos de exibição de um custo, seguindo a regra de produto:
- *  - not_informed:           "Valor não informado"
+ *  - not_informed:           "Amount not provided"
  *  - estimated + valor:      "Custo estimado: cerca de A$ X"
- *  - verified + aprovado:    "Custo comprovado: A$ X" + selo "Verificado pela VAMO"
- *  - verified + uploaded:    "Custo com comprovante enviado: A$ X" + selo "Comprovado pelo criador"
- *  - verified + sem arquivo: "Custo: A$ X" + selo "Aguardando comprovante"
+ *  - verified + aprovado:    "Custo comprovado: A$ X" + selo "Verified by VAMO"
+ *  - verified + uploaded:    "Custo com comprovante enviado: A$ X" + selo "Verified by the creator"
+ *  - verified + sem arquivo: "Custo: A$ X" + selo "Awaiting proof"
  */
 export function formatCostLabel(
     info: ModuleCostInfo | null | undefined,
     opts: { locale?: string; compact?: boolean } = {},
 ): CostLabel {
-    const locale = opts.locale ?? "pt-BR";
+    const locale = opts.locale ?? "en-US";
     const resolved = info ?? { disclosureType: "not_informed" as CostDisclosureType };
     const type = resolved.disclosureType;
     const amount = parseMoney(resolved.amount);
@@ -235,8 +235,8 @@ export function formatCostLabel(
 
     if (type === "not_informed") {
         return {
-            text: "Valor não informado",
-            badge: opts.compact ? null : "Sem valor",
+            text: "Amount not provided",
+            badge: opts.compact ? null : "No amount",
             badgeTone: "muted",
             disclosureType: type,
             isVamoVerified: false,
@@ -247,9 +247,9 @@ export function formatCostLabel(
     if (type === "estimated") {
         return {
             text: amount > 0
-                ? `Custo estimado: cerca de ${moneyStr}`
-                : "Custo estimado pelo criador",
-            badge: "Estimado",
+                ? `Estimated cost: about ${moneyStr}`
+                : "Cost estimated by the creator",
+            badge: "Estimated",
             badgeTone: "info",
             disclosureType: type,
             isVamoVerified: false,
@@ -260,8 +260,8 @@ export function formatCostLabel(
     // verified
     if (isVamoVerified) {
         return {
-            text: amount > 0 ? `Custo comprovado: ${moneyStr}` : "Custo comprovado pelo criador",
-            badge: "Verificado pela VAMO",
+            text: amount > 0 ? `Verified cost: ${moneyStr}` : "Cost verified by the creator",
+            badge: "Verified by VAMO",
             badgeTone: "success",
             disclosureType: type,
             isVamoVerified: true,
@@ -271,9 +271,9 @@ export function formatCostLabel(
     if (hasFile) {
         return {
             text: amount > 0
-                ? `Custo com comprovante enviado: ${moneyStr}`
-                : "Comprovante enviado pelo criador",
-            badge: "Comprovado pelo criador",
+                ? `Cost with proof uploaded: ${moneyStr}`
+                : "Proof uploaded by the creator",
+            badge: "Verified by the creator",
             badgeTone: "success",
             disclosureType: type,
             isVamoVerified: false,
@@ -281,8 +281,8 @@ export function formatCostLabel(
         };
     }
     return {
-        text: amount > 0 ? `Custo informado: ${moneyStr}` : "Custo informado pelo criador",
-        badge: "Aguardando comprovante",
+        text: amount > 0 ? `Reported cost: ${moneyStr}` : "Cost reported by the creator",
+        badge: "Awaiting proof",
         badgeTone: "warning",
         disclosureType: type,
         isVamoVerified: false,
@@ -324,7 +324,7 @@ export function validateCostInfo(
         if (amount <= 0) {
             return {
                 ok: false,
-                message: "Informe um valor aproximado ou escolha \"Não informar valor\".",
+                message: "Enter an approximate amount or choose \"Don't provide amount\".",
             };
         }
         return { ok: true };
@@ -334,13 +334,13 @@ export function validateCostInfo(
         if (amount <= 0) {
             return {
                 ok: false,
-                message: "Informe o valor pago ou escolha \"Valor estimado\".",
+                message: "Enter the amount paid or choose \"Estimated amount\".",
             };
         }
         if (opts.requireProof && (info.proofFiles?.length ?? 0) === 0) {
             return {
                 ok: false,
-                message: "Envie um comprovante ou altere para \"Valor estimado\".",
+                message: "Upload proof or switch to \"Estimated amount\".",
             };
         }
         return { ok: true };
@@ -529,32 +529,32 @@ export function formatBudgetConfidence(level: BudgetConfidenceLevel): {
     switch (level) {
         case "none":
             return {
-                label: "Orçamento não informado",
-                description: "Este roteiro não possui referência de custos detalhada.",
+                label: "Budget not provided",
+                description: "This itinerary has no detailed cost reference.",
                 tone: "muted",
             };
         case "low":
             return {
-                label: "Orçamento parcial",
-                description: "Poucos itens têm valor informado. Use como referência inicial.",
+                label: "Partial budget",
+                description: "Few items have an amount listed. Use as a rough reference.",
                 tone: "muted",
             };
         case "medium":
             return {
-                label: "Orçamento estimado",
-                description: "Boa parte dos itens tem valor estimado pelo criador.",
+                label: "Estimated budget",
+                description: "Most items have an amount estimated by the creator.",
                 tone: "info",
             };
         case "high":
             return {
-                label: "Orçamento parcialmente comprovado",
-                description: "O criador anexou comprovantes para alguns itens.",
+                label: "Partially verified budget",
+                description: "The creator attached proof for some items.",
                 tone: "success",
             };
         case "verified":
             return {
-                label: "Orçamento com comprovantes analisados",
-                description: "Comprovantes revisados e aprovados pela VAMO.",
+                label: "Budget with reviewed proof",
+                description: "Proof reviewed and approved by VAMO.",
                 tone: "success",
             };
     }
@@ -565,37 +565,37 @@ export function formatBudgetConfidence(level: BudgetConfidenceLevel): {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const COST_DISCLOSURE_COPY = {
-    sectionTitle: "Custo deste item",
+    sectionTitle: "Cost of this item",
     sectionSubtitle:
-        "Ajude o viajante a entender quanto essa experiência pode custar. Você pode informar um valor aproximado. Comprovantes são opcionais, mas aumentam a confiança do roteiro.",
+        "Help travelers understand what this experience may cost. You can enter an approximate amount. Proof is optional, but it builds trust in your itinerary.",
     options: {
         not_informed: {
-            label: "Não informar valor",
+            label: "Don't provide amount",
             description:
-                "Use se você não lembra, se o custo varia muito ou se prefere não informar.",
+                "Use this if you don't remember, if the cost varies a lot, or if you'd rather not say.",
         },
         estimated: {
-            label: "Valor estimado",
-            description: "Use para informar aproximadamente quanto você gastou.",
+            label: "Estimated amount",
+            description: "Use this to enter roughly how much you spent.",
         },
         verified: {
-            label: "Valor comprovado",
+            label: "Verified amount",
             description:
-                "Use quando você tem comprovante, reserva, recibo, print ou confirmação.",
+                "Use this when you have a receipt, booking, invoice, screenshot or confirmation.",
         },
     },
     notesPlaceholder:
-        "Ex: valor por pessoa, valor total do casal, comprado com antecedência, baixa temporada...",
+        "E.g. price per person, total for the couple, booked in advance, low season...",
     proofUploadHelp:
-        "Envie print, recibo, reserva, nota, confirmação de compra ou fatura. O arquivo não será exibido integralmente ao comprador; ele serve para validação e selo de confiança.",
+        "Upload a screenshot, receipt, booking, invoice, purchase confirmation or bill. The file is not shown in full to buyers; it is used for verification and the trust badge.",
     proofPrivacyTip:
-        "Antes de enviar, oculte dados sensíveis como CPF, endereço completo, número de cartão ou código de reserva se não forem necessários.",
+        "Before uploading, hide sensitive details such as your full address, card number, ID numbers or booking codes if they aren't needed.",
     publicReferenceWarning:
-        "Os valores deste roteiro são referências informadas pelo criador. Eles não representam preço garantido.",
+        "The amounts in this itinerary are references provided by the creator. They are not guaranteed prices.",
     variabilityWarning:
-        "Valores podem variar conforme data, temporada, câmbio, antecedência da compra, disponibilidade e estilo de consumo.",
+        "Prices can vary by date, season, exchange rate, how far ahead you book, availability and spending style.",
     purchasedPlanningTip:
-        "Use os custos como guia de planejamento. Antes de viajar, confirme preços atuais nos canais oficiais.",
+        "Use the costs as a planning guide. Before you travel, confirm current prices through official channels.",
 } as const;
 
 /** Categorias com incentivo amigável para anexar comprovante. */
@@ -620,7 +620,7 @@ export function shouldEncourageProof(moduleOrCategory: string): boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CostReferenceItem {
-    /** Título legível do item (ex.: "Hotel Central", "Passagem aérea"). */
+    /** Título legível do item (ex.: "Hotel Central", "Airfare"). */
     title: string;
     /**
      * @deprecated Use `amountPerPerson` ou `amountTotal`. Mantido para
@@ -662,12 +662,12 @@ export interface CostReferencesGroup {
 }
 
 const MODULE_LABEL_PT: Record<CostReferencesGroup["moduleKey"], string> = {
-    voo:           "Meu Voo",
-    hospedagem:    "Hospedagens",
-    passeios:      "Passeios & Atrações",
-    transporte:    "Transporte",
-    restaurantes:  "Restaurantes & Gastronomia",
-    gastos_extras: "Gastos Extras",
+    voo:           "My Flight",
+    hospedagem:    "Lodging",
+    passeios:      "Tours & Attractions",
+    transporte:    "Transportation",
+    restaurantes:  "Restaurants & Dining",
+    gastos_extras: "Extra Expenses",
 };
 
 /**
@@ -680,7 +680,7 @@ function toReferenceItem(
     title: string,
     legacySource?: LegacyShape | null,
 ): CostReferenceItem | null {
-    if (!title?.trim()) title = "Item sem título";
+    if (!title?.trim()) title = "Untitled item";
     const info = resolveCostInfo({
         ...(legacySource ?? {}),
         cost: cost ?? legacySource?.cost,
@@ -722,7 +722,7 @@ export function getCostReferences(
         const item = toReferenceItem(
             form.flightCost,
             form.flightSpending as ModuleSpending | null,
-            "Passagem aérea",
+            "Airfare",
         );
         if (item) {
             groups.push({ moduleKey: "voo", moduleLabel: MODULE_LABEL_PT.voo, items: [item] });
@@ -749,7 +749,7 @@ export function getCostReferences(
         .map(t => toReferenceItem(
             t.cost,
             t.spending,
-            t.description || t.passTypes || "Transporte",
+            t.description || t.passTypes || "Transportation",
             t as LegacyShape,
         ))
         .filter((x): x is CostReferenceItem => x !== null));

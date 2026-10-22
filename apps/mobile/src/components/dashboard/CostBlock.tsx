@@ -163,7 +163,7 @@ export default function CostBlock({
             'costProof',
         );
         if (!validation.valid) {
-            Alert.alert('Comprovante inválido', validation.reason);
+            Alert.alert('Invalid proof', validation.reason);
             return;
         }
         setUploading(true);
@@ -186,7 +186,7 @@ export default function CostBlock({
                 proofStatus: 'uploaded',
             });
         } catch (e: any) {
-            Alert.alert('Falha no envio', e?.message || 'Tente novamente.');
+            Alert.alert('Upload failed', e?.message || 'Please try again.');
         } finally {
             setUploading(false);
         }
@@ -251,7 +251,7 @@ export default function CostBlock({
                     <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
                         <View style={{ flex: 2 }}>
                             <MoneyInput
-                                label="Valor total pago"
+                                label="Total amount paid"
                                 placeholder="Ex: 3000,00"
                                 value={amount || ''}
                                 onChangeText={v => patch({ amount: v })}
@@ -269,8 +269,8 @@ export default function CostBlock({
                     {amountInvalid && (
                         <Text style={styles.errorText}>
                             {isVerified
-                                ? 'Informe o valor pago ou escolha "Valor estimado".'
-                                : 'Informe um valor aproximado ou escolha "Não informar valor".'}
+                                ? 'Enter the amount paid or choose "Estimated amount".'
+                                : 'Enter an approximate amount or choose "Don\'t provide amount".'}
                         </Text>
                     )}
 
@@ -285,11 +285,11 @@ export default function CostBlock({
                             <View style={styles.sharedBlock}>
                                 <View style={styles.sharedRow}>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.sharedLabel}>Pessoas que dividiram esse gasto</Text>
+                                        <Text style={styles.sharedLabel}>People who split this expense</Text>
                                         <Text style={styles.sharedHelper}>
                                             {shared === 1
-                                                ? 'Gasto individual (apenas você)'
-                                                : `Compartilhado entre ${shared} pessoas`}
+                                                ? 'Individual cost (just you)'
+                                                : `Shared among ${shared} people`}
                                         </Text>
                                     </View>
                                     <View style={styles.sharedStepper}>
@@ -316,7 +316,7 @@ export default function CostBlock({
                                     <View style={styles.sharedResult}>
                                         <Ionicons name="calculator-outline" size={13} color={theme.colors.primary} />
                                         <Text style={styles.sharedResultText}>
-                                            Referência por pessoa:{' '}
+                                            Reference per person:{' '}
                                             <Text style={styles.sharedResultValue}>{formatMoney(perPerson, currency)}</Text>
                                             <Text style={styles.sharedResultMeta}>
                                                 {' '}({formatMoney(totalNum, currency)} ÷ {shared})
@@ -329,7 +329,7 @@ export default function CostBlock({
                     })()}
 
                     <FormInput
-                        label="Observação (opcional)"
+                        label="Note (optional)"
                         placeholder={COST_DISCLOSURE_COPY.notesPlaceholder}
                         value={resolved.notes ?? ''}
                         onChangeText={v => patch({ notes: v })}
@@ -365,10 +365,10 @@ export default function CostBlock({
                                     {file.name || 'Comprovante'}
                                 </Text>
                                 <Text style={styles.fileStatus}>
-                                    {resolved.proofStatus === 'approved' ? 'Aprovado pela VAMO'
+                                    {resolved.proofStatus === 'approved' ? 'Approved by VAMO'
                                         : resolved.proofStatus === 'rejected' ? 'Comprovante rejeitado'
-                                        : resolved.proofStatus === 'pending_review' ? 'Em análise pela VAMO'
-                                        : 'Enviado (aguardando análise)'}
+                                        : resolved.proofStatus === 'pending_review' ? 'Under VAMO review'
+                                        : 'Uploaded (awaiting review)'}
                                 </Text>
                             </View>
                             <TouchableOpacity onPress={() => removeProof(i)} style={styles.removeBtn}>
@@ -389,8 +389,8 @@ export default function CostBlock({
                                 <Ionicons name="cloud-upload-outline" size={18} color={theme.colors.primary} />
                                 <Text style={styles.uploadBtnText}>
                                     {(resolved.proofFiles?.length ?? 0) === 0
-                                        ? 'Anexar comprovante'
-                                        : 'Adicionar outro comprovante'}
+                                        ? 'Attach proof'
+                                        : 'Add another proof'}
                                 </Text>
                             </>
                         )}
@@ -400,7 +400,7 @@ export default function CostBlock({
                         <View style={styles.requiredBox}>
                             <Ionicons name="alert-circle" size={14} color={theme.colors.error} />
                             <Text style={styles.requiredText}>
-                                Obrigatório para "Valor comprovado". Anexe um arquivo ou troque para "Valor estimado" / "Não informar valor".
+                                Required for "Verified amount". Attach a file or switch to "Estimated amount" / "Don't provide amount".
                             </Text>
                         </View>
                     )}
@@ -412,7 +412,7 @@ export default function CostBlock({
                 <View style={styles.encourageBox}>
                     <Ionicons name="ribbon-outline" size={14} color={theme.colors.primary} />
                     <Text style={styles.encourageText}>
-                        Adicionar comprovante aumenta a confiança do roteiro e pode melhorar seu destaque na VAMO.
+                        Adding proof builds trust in your itinerary and can improve its visibility on VAMO.
                     </Text>
                 </View>
             )}

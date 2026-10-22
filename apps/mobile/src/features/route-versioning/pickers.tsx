@@ -69,7 +69,7 @@ export function DatePickerField({
     value,
     onChange,
     required,
-    placeholder = 'Selecionar data',
+    placeholder = 'Select date',
 }: {
     label: string;
     value: string;
@@ -188,11 +188,11 @@ export function DatePickerField({
                                 display="spinner"
                                 onChange={onPickerChange}
                                 themeVariant="light"
-                                locale="pt-BR"
+                                locale="en-US"
                             />
                             <View style={styles.modalActions}>
                                 <TouchableOpacity style={styles.modalGhost} onPress={() => setOpen(false)}>
-                                    <Text style={styles.modalGhostText}>Cancelar</Text>
+                                    <Text style={styles.modalGhostText}>Cancel</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.modalPrimary}

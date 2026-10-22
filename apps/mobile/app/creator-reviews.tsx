@@ -1,5 +1,5 @@
 /**
- * VAMO Mobile — "Avaliações" recebidas pelo roteirista.
+ * VAMO Mobile — "Reviews" recebidas pelo roteirista.
  * Mini-dashboard: resumo (média, total, melhor avaliado, roteiros avaliados),
  * distribuição de estrelas, lista de avaliações com nota/comentário/fotos.
  * Dados reais via GET /api/itineraries/dashboard/reviews (auth por token).
@@ -27,7 +27,7 @@ import {
 function formatDate(iso: string): string {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
@@ -54,7 +54,7 @@ function DistributionBar({ star, count, total }: { star: number; count: number; 
 }
 
 function ReviewCard({ review, onOpenPhoto }: { review: CreatorReview; onOpenPhoto: (photos: string[], i: number) => void }) {
-    const name = review.user.name || 'Viajante';
+    const name = review.user.name || 'Traveler';
     return (
         <View style={s.reviewCard}>
             <View style={s.reviewHead}>
@@ -83,7 +83,7 @@ function ReviewCard({ review, onOpenPhoto }: { review: CreatorReview; onOpenPhot
             )}
             {review.response && (
                 <View style={s.responseBox}>
-                    <Text style={s.responseLabel}>Sua resposta</Text>
+                    <Text style={s.responseLabel}>Your answer</Text>
                     <Text style={s.responseText}>{review.response.text}</Text>
                 </View>
             )}
@@ -129,15 +129,15 @@ export default function CreatorReviewsScreen() {
         return (
             <View style={s.loading}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={s.loadingText}>Carregando avaliações...</Text>
+                <Text style={s.loadingText}>Loading reviews...</Text>
             </View>
         );
     }
 
     const header = (
         <CreatorSubHeader
-            title="Avaliações"
-            subtitle="Veja notas, comentários e desempenho por roteiro."
+            title="Reviews"
+            subtitle="See ratings, comments and performance by itinerary."
             onBack={() => safeBack(router, '/created-itineraries')}
         />
     );
@@ -147,7 +147,7 @@ export default function CreatorReviewsScreen() {
             <View style={s.container}>
                 {header}
                 <View style={s.center}>
-                    <CreatorEmptyState icon="lock-closed-outline" title="Login necessário" text="Faça login para ver suas avaliações." ctaLabel="Entrar" onCta={() => router.push({ pathname: '/login' as any, params: { next: '/creator-reviews' } })} />
+                    <CreatorEmptyState icon="lock-closed-outline" title="Sign-in required" text="Sign in to see your reviews." ctaLabel="Sign in" onCta={() => router.push({ pathname: '/login' as any, params: { next: '/creator-reviews' } })} />
                 </View>
             </View>
         );
@@ -157,7 +157,7 @@ export default function CreatorReviewsScreen() {
             <View style={s.container}>
                 {header}
                 <View style={s.center}>
-                    <CreatorEmptyState icon="cloud-offline-outline" title="Erro ao carregar" text={error} ctaLabel="Tentar novamente" ctaIcon="refresh-outline" onCta={() => fetchData()} />
+                    <CreatorEmptyState icon="cloud-offline-outline" title="Couldn't load" text={error} ctaLabel="Try again" ctaIcon="refresh-outline" onCta={() => fetchData()} />
                 </View>
             </View>
         );
@@ -167,10 +167,10 @@ export default function CreatorReviewsScreen() {
     const hasReviews = d.totalReviews > 0;
 
     const metrics: CreatorMetric[] = [
-        { key: 'avg', icon: 'star-outline', tone: theme.colors.warning, value: hasReviews ? d.averageRating.toFixed(1) : '—', label: 'Média', hint: 'Nota geral', empty: !hasReviews, emptyHint: 'Sem nota ainda' },
-        { key: 'total', icon: 'chatbubble-ellipses-outline', tone: theme.colors.secondary, value: String(d.totalReviews), label: 'Avaliações', hint: 'Total recebidas', empty: !hasReviews, emptyHint: 'Nenhuma ainda' },
-        { key: 'rated', icon: 'albums-outline', tone: theme.colors.primary, value: String(d.ratedItinerariesCount), label: 'Roteiros avaliados', hint: 'Com ao menos 1 nota', empty: d.ratedItinerariesCount === 0, emptyHint: '—' },
-        { key: 'top', icon: 'ribbon-outline', tone: theme.colors.success, value: d.topItinerary ? d.topItinerary.averageRating.toFixed(1) : '—', label: 'Melhor avaliado', hint: d.topItinerary ? d.topItinerary.title : 'Sem destaque ainda', empty: !d.topItinerary, emptyHint: 'Sem destaque ainda', onPress: d.topItinerary ? () => router.push(`/creator-itinerary/${d.topItinerary!.itineraryId}`) : undefined },
+        { key: 'avg', icon: 'star-outline', tone: theme.colors.warning, value: hasReviews ? d.averageRating.toFixed(1) : '—', label: 'Average', hint: 'Overall rating', empty: !hasReviews, emptyHint: 'No rating yet' },
+        { key: 'total', icon: 'chatbubble-ellipses-outline', tone: theme.colors.secondary, value: String(d.totalReviews), label: 'Reviews', hint: 'Total received', empty: !hasReviews, emptyHint: 'None yet' },
+        { key: 'rated', icon: 'albums-outline', tone: theme.colors.primary, value: String(d.ratedItinerariesCount), label: 'Reviewed itineraries', hint: 'With at least 1 rating', empty: d.ratedItinerariesCount === 0, emptyHint: '—' },
+        { key: 'top', icon: 'ribbon-outline', tone: theme.colors.success, value: d.topItinerary ? d.topItinerary.averageRating.toFixed(1) : '—', label: 'Top rated', hint: d.topItinerary ? d.topItinerary.title : 'No standout yet', empty: !d.topItinerary, emptyHint: 'No standout yet', onPress: d.topItinerary ? () => router.push(`/creator-itinerary/${d.topItinerary!.itineraryId}`) : undefined },
     ];
 
     return (
@@ -186,29 +186,29 @@ export default function CreatorReviewsScreen() {
                     {!hasReviews ? (
                         <CreatorEmptyState
                             icon="star-outline"
-                            title="Nenhuma avaliação ainda"
-                            text="Quando seus roteiros forem avaliados, os comentários e notas aparecerão aqui."
-                            ctaLabel="Ver roteiros publicados"
+                            title="No reviews yet"
+                            text="When your itineraries are reviewed, the comments and ratings will show up here."
+                            ctaLabel="View published itineraries"
                             ctaIcon="albums-outline"
                             onCta={() => router.push('/created-itineraries')}
                         />
                     ) : (
                         <>
-                            <Text style={s.sectionLabel}>Resumo</Text>
+                            <Text style={s.sectionLabel}>Summary</Text>
                             <View style={s.metricsGrid}>
                                 {metrics.map(m => (
                                     <CreatorMetricCard key={m.key} metric={m} style={isWide ? s.metricWide : s.metricNarrow} />
                                 ))}
                             </View>
 
-                            <Text style={s.sectionLabel}>Distribuição de estrelas</Text>
+                            <Text style={s.sectionLabel}>Star distribution</Text>
                             <View style={s.distCard}>
                                 {[5, 4, 3, 2, 1].map(star => (
                                     <DistributionBar key={star} star={star} count={d.ratingDistribution[String(star) as '5'] ?? 0} total={d.totalReviews} />
                                 ))}
                             </View>
 
-                            <Text style={s.sectionLabel}>Avaliações recebidas</Text>
+                            <Text style={s.sectionLabel}>Reviews received</Text>
                             {d.recentReviews.map(r => (
                                 <ReviewCard key={r.id} review={r} onOpenPhoto={onOpenPhoto} />
                             ))}

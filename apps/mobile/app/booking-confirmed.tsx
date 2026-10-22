@@ -53,7 +53,7 @@ export default function BookingConfirmedScreen() {
 
     const formatDate = (dateStr: string) => {
         const d = new Date(dateStr);
-        return d.toLocaleDateString('pt-BR', {
+        return d.toLocaleDateString('en-US', {
             day: '2-digit',
             month: 'long',
             year: 'numeric',
@@ -63,8 +63,8 @@ export default function BookingConfirmedScreen() {
     const travelersText = () => {
         const a = parseInt(adults as string) || 2;
         const c = parseInt(children as string) || 0;
-        let text = `${a} adulto${a > 1 ? 's' : ''}`;
-        if (c > 0) text += ` + ${c} criança${c > 1 ? 's' : ''}`;
+        let text = `${a} adult${a > 1 ? 's' : ''}`;
+        if (c > 0) text += ` + ${c} child${c > 1 ? 'ren' : ''}`;
         return text;
     };
 
@@ -72,14 +72,14 @@ export default function BookingConfirmedScreen() {
         const method = paymentMethod as string;
         if (method === 'apple') return ' Pay';
         if (method === 'pix') return 'PIX';
-        if (method === 'card') return 'Cartão de crédito';
-        return method || 'Cartão de crédito';
+        if (method === 'card') return 'Credit card';
+        return method || 'Credit card';
     };
 
     if (!packageData) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>Carregando...</Text>
+                <Text style={styles.errorText}>Loading...</Text>
             </View>
         );
     }
@@ -109,7 +109,7 @@ export default function BookingConfirmedScreen() {
 
                     {/* Hero Text */}
                     <View style={styles.heroTextContainer}>
-                        <Text style={styles.heroTitle}>Sua viagem está confirmada!</Text>
+                        <Text style={styles.heroTitle}>Your trip is confirmed!</Text>
                         <Text style={styles.heroSubtitle}>{packageData.title}</Text>
                         {date && (
                             <Text style={styles.heroDate}>{formatDate(date as string)}</Text>
@@ -121,7 +121,7 @@ export default function BookingConfirmedScreen() {
                 <View style={styles.contentSheet}>
                     {/* Booking Summary Card */}
                     <View style={styles.summaryCard}>
-                        <Text style={styles.summaryTitle}>Resumo da Reserva</Text>
+                        <Text style={styles.summaryTitle}>Booking Summary</Text>
 
                         <View style={styles.summaryRow}>
                             <View style={styles.summaryIcon}>
@@ -140,7 +140,7 @@ export default function BookingConfirmedScreen() {
                                 <Ionicons name="calendar" size={20} color={theme.colors.primary} />
                             </View>
                             <View style={styles.summaryContent}>
-                                <Text style={styles.summaryLabel}>Datas</Text>
+                                <Text style={styles.summaryLabel}>Dates</Text>
                                 <Text style={styles.summaryValue}>
                                     {date ? formatDate(date as string) : 'A confirmar'}
                                 </Text>
@@ -154,7 +154,7 @@ export default function BookingConfirmedScreen() {
                                 <Ionicons name="people" size={20} color={theme.colors.primary} />
                             </View>
                             <View style={styles.summaryContent}>
-                                <Text style={styles.summaryLabel}>Viajantes</Text>
+                                <Text style={styles.summaryLabel}>Travelers</Text>
                                 <Text style={styles.summaryValue}>{travelersText()}</Text>
                             </View>
                         </View>
@@ -166,7 +166,7 @@ export default function BookingConfirmedScreen() {
                                 <Ionicons name="card" size={20} color={theme.colors.primary} />
                             </View>
                             <View style={styles.summaryContent}>
-                                <Text style={styles.summaryLabel}>Forma de pagamento</Text>
+                                <Text style={styles.summaryLabel}>Payment method</Text>
                                 <Text style={styles.summaryValue}>{paymentLabel()}</Text>
                             </View>
                         </View>
@@ -178,7 +178,7 @@ export default function BookingConfirmedScreen() {
                                 <Ionicons name="ticket" size={20} color={theme.colors.primary} />
                             </View>
                             <View style={styles.summaryContent}>
-                                <Text style={styles.summaryLabel}>Código da reserva</Text>
+                                <Text style={styles.summaryLabel}>Booking code</Text>
                                 <Text style={[styles.summaryValue, styles.bookingCode]}>
                                     #{bookingId || 'VAMO-2026'}
                                 </Text>
@@ -187,7 +187,7 @@ export default function BookingConfirmedScreen() {
 
                         {/* Total */}
                         <View style={styles.totalRow}>
-                            <Text style={styles.totalLabel}>Total pago</Text>
+                            <Text style={styles.totalLabel}>Total paid</Text>
                             <Text style={styles.totalValue}>
                                 {formatMoney(parseFloat(totalPrice as string || '0'))}
                             </Text>
@@ -199,7 +199,7 @@ export default function BookingConfirmedScreen() {
                         <View style={styles.emailNotice}>
                             <Ionicons name="mail" size={20} color={theme.colors.primary} />
                             <Text style={styles.emailNoticeText}>
-                                E-mail de confirmação enviado para{' '}
+                                Confirmation email sent to{' '}
                                 <Text style={styles.emailHighlight}>{email}</Text>
                             </Text>
                         </View>
@@ -207,8 +207,8 @@ export default function BookingConfirmedScreen() {
                         <View style={[styles.emailNotice, { backgroundColor: '#25D36615', borderColor: '#25D36630' }]}>
                             <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
                             <Text style={styles.emailNoticeText}>
-                                Voucher enviado para o WhatsApp{' '}
-                                <Text style={styles.whatsappHighlight}>vinculado ao seu perfil</Text>
+                                Voucher sent to the WhatsApp{' '}
+                                <Text style={styles.whatsappHighlight}>linked to your profile</Text>
                             </Text>
                         </View>
                     </View>
@@ -223,18 +223,18 @@ export default function BookingConfirmedScreen() {
                         }}
                     >
                         <Ionicons name="airplane" size={22} color="#fff" />
-                        <Text style={styles.primaryButtonText}>Ver minha viagem</Text>
+                        <Text style={styles.primaryButtonText}>View my trip</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         style={styles.whatsappButton}
                         onPress={() => {
                             haptics.light();
-                            Alert.alert('Suporte', 'Conectando ao WhatsApp da agência...');
+                            Alert.alert('Suporte', 'Connecting to the agency\'s WhatsApp...');
                         }}
                     >
                         <Ionicons name="logo-whatsapp" size={20} color="#fff" />
-                        <Text style={styles.whatsappButtonText}>Falar com a agência</Text>
+                        <Text style={styles.whatsappButtonText}>Contact the agency</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -243,13 +243,13 @@ export default function BookingConfirmedScreen() {
                             haptics.light();
                             Alert.alert(
                                 '📄 Comprovante',
-                                'O comprovante foi enviado para seu e-mail. Em breve estará disponível para download no app.',
+                                'The receipt was sent to your email. It will be available to download in the app soon.',
                                 [{ text: 'OK' }]
                             );
                         }}
                     >
                         <Ionicons name="download" size={20} color={theme.colors.primary} />
-                        <Text style={styles.secondaryButtonText}>Baixar comprovante</Text>
+                        <Text style={styles.secondaryButtonText}>Download receipt</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -257,14 +257,14 @@ export default function BookingConfirmedScreen() {
                         onPress={() => {
                             haptics.light();
                             Alert.alert(
-                                '📅 Calendário',
-                                'A viagem foi adicionada ao seu calendário!',
+                                '📅 Calendar',
+                                'The trip was added to your calendar!',
                                 [{ text: 'OK' }]
                             );
                         }}
                     >
                         <Ionicons name="calendar-outline" size={20} color={theme.colors.text.secondary} />
-                        <Text style={styles.tertiaryButtonText}>Adicionar ao calendário</Text>
+                        <Text style={styles.tertiaryButtonText}>Add to calendar</Text>
                     </TouchableOpacity>
 
                     <View style={{ height: 40 }} />

@@ -38,9 +38,9 @@ export interface FieldSpec {
     hint?: string;
     /** Quando true, marca como obrigatório (não bloqueia salvar, só visual). */
     required?: boolean;
-    /** Prefixo para money (ex: "A$"). */
+    /** Prefix for money (e.g. "$"). */
     prefix?: string;
-    /** Sufixo para money (ex: "AUD"). */
+    /** Suffix for money (e.g. "USD"). */
     suffix?: string;
     /**
      * Opções para `type: 'picker'`. Cada opção tem um `value` (salvo no data)
@@ -58,36 +58,36 @@ export interface FieldSpec {
 // aqui também.
 
 const CUISINE_OPTIONS = [
-    { value: 'brasileira', label: 'Brasileira' },
-    { value: 'francesa', label: 'Francesa' },
-    { value: 'italiana', label: 'Italiana' },
-    { value: 'japonesa', label: 'Japonesa' },
-    { value: 'chinesa', label: 'Chinesa' },
-    { value: 'mexicana', label: 'Mexicana' },
-    { value: 'arabe', label: 'Árabe' },
-    { value: 'indiana', label: 'Indiana' },
-    { value: 'mediterranea', label: 'Mediterrânea' },
-    { value: 'tailandesa', label: 'Tailandesa' },
+    { value: 'brasileira', label: 'Brazilian' },
+    { value: 'francesa', label: 'French' },
+    { value: 'italiana', label: 'Italian' },
+    { value: 'japonesa', label: 'Japanese' },
+    { value: 'chinesa', label: 'Chinese' },
+    { value: 'mexicana', label: 'Mexican' },
+    { value: 'arabe', label: 'Arabic' },
+    { value: 'indiana', label: 'Indian' },
+    { value: 'mediterranea', label: 'Mediterranean' },
+    { value: 'tailandesa', label: 'Thai' },
     { value: 'fastfood', label: 'Fast food' },
-    { value: 'vegana', label: 'Vegana' },
-    { value: 'cafeteria', label: 'Cafeteria' },
-    { value: 'outros', label: 'Outros' },
+    { value: 'vegana', label: 'Vegan' },
+    { value: 'cafeteria', label: 'Cafe' },
+    { value: 'outros', label: 'Other' },
 ] as const;
 
 const EXTRA_SPENDING_CATEGORY_OPTIONS = [
-    { value: 'internet', label: 'Internet / Chip' },
-    { value: 'seguro', label: 'Seguro' },
-    { value: 'taxas', label: 'Taxas' },
-    { value: 'visto', label: 'Visto' },
-    { value: 'lavanderia', label: 'Lavanderia' },
-    { value: 'guardavolume', label: 'Guarda-volume' },
-    { value: 'gorjetas', label: 'Gorjetas' },
-    { value: 'compras', label: 'Compras' },
-    { value: 'bagagem', label: 'Bagagem' },
-    { value: 'aluguel', label: 'Aluguel' },
-    { value: 'farmacia', label: 'Farmácia' },
-    { value: 'estacionamento', label: 'Estacionamento' },
-    { value: 'outros', label: 'Outros' },
+    { value: 'internet', label: 'Internet / SIM card' },
+    { value: 'seguro', label: 'Insurance' },
+    { value: 'taxas', label: 'Fees' },
+    { value: 'visto', label: 'Visa' },
+    { value: 'lavanderia', label: 'Laundry' },
+    { value: 'guardavolume', label: 'Luggage storage' },
+    { value: 'gorjetas', label: 'Tips' },
+    { value: 'compras', label: 'Shopping' },
+    { value: 'bagagem', label: 'Baggage' },
+    { value: 'aluguel', label: 'Rental' },
+    { value: 'farmacia', label: 'Pharmacy' },
+    { value: 'estacionamento', label: 'Parking' },
+    { value: 'outros', label: 'Other' },
 ] as const;
 
 // ─── Field sets por kind ────────────────────────────────────────────
@@ -105,117 +105,117 @@ const EXTRA_SPENDING_CATEGORY_OPTIONS = [
 // guardar comprovantes próprios. Registrado como pendência futura.
 
 const ACCOMMODATIONS: FieldSpec[] = [
-    { key: 'name', label: 'Nome do hotel / hostel', type: 'text', placeholder: 'Ex: Waldorf Astoria', required: true },
-    { key: 'rating', label: 'Classificação (estrelas)', type: 'stars' },
-    { key: 'address', label: 'Nome do local ou endereço', type: 'text', placeholder: 'Ex: Rue de Rivoli, 228' },
-    { key: 'mapLink', label: 'Link da localização (Google Maps)', type: 'text', placeholder: 'Ex: https://goo.gl/maps/…' },
-    { key: 'nights', label: 'Noites', type: 'number', placeholder: '1', hint: 'Quantas noites a sua estadia.' },
-    { key: 'description', label: 'O que torna essa hospedagem especial?', type: 'multiline', placeholder: 'Ex: A localização é excelente…' },
+    { key: 'name', label: 'Hotel / hostel name', type: 'text', placeholder: 'E.g. Waldorf Astoria', required: true },
+    { key: 'rating', label: 'Rating (stars)', type: 'stars' },
+    { key: 'address', label: 'Place name or address', type: 'text', placeholder: 'E.g. 228 Rue de Rivoli' },
+    { key: 'mapLink', label: 'Location link (Google Maps)', type: 'text', placeholder: 'E.g. https://goo.gl/maps/…' },
+    { key: 'nights', label: 'Nights', type: 'number', placeholder: '1', hint: 'How many nights you\'re staying.' },
+    { key: 'description', label: 'What makes this lodging special?', type: 'multiline', placeholder: 'E.g. The location is excellent…' },
     { key: 'startDate', label: 'Check-in', type: 'date' },
     { key: 'endDate', label: 'Check-out', type: 'date' },
-    { key: 'externalLink', label: 'Link da hospedagem', type: 'text', placeholder: 'Ex: Booking, site do hotel, Airbnb' },
-    { key: 'tips', label: 'Dica extra', type: 'multiline', placeholder: 'Ex: Peça o quarto no último andar…' },
-    { key: 'cost', label: 'Valor da hospedagem', type: 'cost' },
+    { key: 'externalLink', label: 'Lodging link', type: 'text', placeholder: 'E.g. Booking, hotel website, Airbnb' },
+    { key: 'tips', label: 'Extra tip', type: 'multiline', placeholder: 'E.g. Ask for a room on the top floor…' },
+    { key: 'cost', label: 'Lodging cost', type: 'cost' },
 ];
 
 const TRANSPORTS: FieldSpec[] = [
-    { key: 'description', label: 'Descrição do transporte / Passe', type: 'multiline', placeholder: 'Ex: JR Pass (Japan Rail Pass)', required: true },
-    { key: 'passTypes', label: 'Tipo de passe / bilhete', type: 'text', placeholder: 'Ex: Passe Semanal Nacional (7 dias)' },
-    { key: 'startDate', label: 'Data', type: 'date' },
-    { key: 'notes', label: 'Notas e dicas adicionais', type: 'multiline', placeholder: 'Ex: Leve uma foto 3x4…' },
-    { key: 'cost', label: 'Valor por pessoa', type: 'cost' },
+    { key: 'description', label: 'Transportation / pass description', type: 'multiline', placeholder: 'E.g. JR Pass (Japan Rail Pass)', required: true },
+    { key: 'passTypes', label: 'Pass / ticket type', type: 'text', placeholder: 'E.g. National Weekly Pass (7 days)' },
+    { key: 'startDate', label: 'Date', type: 'date' },
+    { key: 'notes', label: 'Additional notes and tips', type: 'multiline', placeholder: 'E.g. Bring a passport-size photo…' },
+    { key: 'cost', label: 'Cost per person', type: 'cost' },
 ];
 
 const ATTRACTIONS: FieldSpec[] = [
-    { key: 'name', label: 'Nome da atração', type: 'text', placeholder: 'Ex: Torre Eiffel', required: true },
-    { key: 'location', label: 'Nome do local ou endereço', type: 'text', placeholder: 'Ex: Champ de Mars, 5 Ave…' },
-    { key: 'mapLink', label: 'Link do Google Maps', type: 'text', placeholder: 'Ex: https://goo.gl/maps/…' },
-    { key: 'startDate', label: 'Data de início', type: 'date' },
-    { key: 'endDate', label: 'Data de fim', type: 'date' },
-    { key: 'duration', label: 'Duração', type: 'text', placeholder: 'Ex: 2h' },
-    { key: 'description', label: 'Descrição / Por que recomendar', type: 'multiline', placeholder: 'Ex: Uma vista imperdível…', required: true },
-    { key: 'externalLink', label: 'Link de compra ou reserva', type: 'text', placeholder: 'Ex: site oficial, ingresso ou reserva' },
-    { key: 'hours', label: 'Horário recomendado', type: 'time' },
-    { key: 'tips', label: 'Dica de experiência', type: 'multiline', placeholder: 'Ex: Vá próximo ao pôr do sol…' },
-    { key: 'cost', label: 'Valor por pessoa', type: 'cost' },
+    { key: 'name', label: 'Attraction name', type: 'text', placeholder: 'E.g. Eiffel Tower', required: true },
+    { key: 'location', label: 'Place name or address', type: 'text', placeholder: 'E.g. Champ de Mars, 5 Ave…' },
+    { key: 'mapLink', label: 'Google Maps link', type: 'text', placeholder: 'E.g. https://goo.gl/maps/…' },
+    { key: 'startDate', label: 'Start date', type: 'date' },
+    { key: 'endDate', label: 'End date', type: 'date' },
+    { key: 'duration', label: 'Duration', type: 'text', placeholder: 'Ex: 2h' },
+    { key: 'description', label: 'Description / Why you recommend it', type: 'multiline', placeholder: 'E.g. An unmissable view…', required: true },
+    { key: 'externalLink', label: 'Purchase or booking link', type: 'text', placeholder: 'E.g. official site, ticket or booking' },
+    { key: 'hours', label: 'Recommended time', type: 'time' },
+    { key: 'tips', label: 'Experience tip', type: 'multiline', placeholder: 'E.g. Go near sunset…' },
+    { key: 'cost', label: 'Cost per person', type: 'cost' },
 ];
 
 const RESTAURANTS: FieldSpec[] = [
-    { key: 'name', label: 'Nome do restaurante', type: 'text', placeholder: 'Ex: Le Jules Verne', required: true },
-    { key: 'cuisine', label: 'Culinária', type: 'picker', options: CUISINE_OPTIONS },
-    { key: 'location', label: 'Cidade ou localização', type: 'text', placeholder: 'Ex: Tóquio, Shibuya, região central ou perto da estação', hint: 'Informe cidade, bairro, região ou ponto de referência.', required: true },
-    { key: 'mapLink', label: 'Link do Google Maps', type: 'text', placeholder: 'Ex: https://goo.gl/maps/…' },
-    { key: 'description', label: 'Descrição / Por que recomendar', type: 'multiline', placeholder: 'Ex: O melhor croque monsieur da cidade…' },
-    { key: 'hoursStart', label: 'Horário', type: 'time' },
-    { key: 'startDate', label: 'Data', type: 'date' },
-    { key: 'externalLink', label: 'Link do restaurante', type: 'text', placeholder: 'Ex: site, cardápio ou reserva' },
-    { key: 'tips', label: 'Dicas de experiência', type: 'multiline', placeholder: 'Ex: Chegue cedo ou faça reserva…' },
-    { key: 'cost', label: 'Valor por pessoa', type: 'cost' },
+    { key: 'name', label: 'Restaurant name', type: 'text', placeholder: 'E.g. Le Jules Verne', required: true },
+    { key: 'cuisine', label: 'Cuisine', type: 'picker', options: CUISINE_OPTIONS },
+    { key: 'location', label: 'City or location', type: 'text', placeholder: 'E.g. Tokyo, Shibuya, downtown or near the station', hint: 'Enter a city, neighborhood, area or landmark.', required: true },
+    { key: 'mapLink', label: 'Google Maps link', type: 'text', placeholder: 'E.g. https://goo.gl/maps/…' },
+    { key: 'description', label: 'Description / Why you recommend it', type: 'multiline', placeholder: 'E.g. The best croque monsieur in town…' },
+    { key: 'hoursStart', label: 'Time', type: 'time' },
+    { key: 'startDate', label: 'Date', type: 'date' },
+    { key: 'externalLink', label: 'Restaurant link', type: 'text', placeholder: 'E.g. website, menu or reservation' },
+    { key: 'tips', label: 'Experience tips', type: 'multiline', placeholder: 'E.g. Arrive early or make a reservation…' },
+    { key: 'cost', label: 'Cost per person', type: 'cost' },
 ];
 
 const GENERAL_TIPS: FieldSpec[] = [
-    { key: 'text', label: 'Dica', type: 'multiline', placeholder: 'Ex: Compre o passe Navigo na segunda-feira', required: true },
+    { key: 'text', label: 'Tip', type: 'multiline', placeholder: 'E.g. Buy the Navigo pass on Monday', required: true },
 ];
 
 // Checklist segue vivendo no TripCenter (UI separada) — esta spec
 // permanece pra back-compat se algum item vier do mergeEngine com
 // kind 'checklistItems'. Mantido alinhado com chips do criador.
 const CHECKLIST_CATEGORY_OPTIONS = [
-    { value: 'documentos', label: 'Documentos' },
-    { value: 'saude', label: 'Saúde' },
-    { value: 'bagagem', label: 'Bagagem' },
-    { value: 'dinheiro', label: 'Dinheiro' },
-    { value: 'eletronicos', label: 'Eletrônicos' },
-    { value: 'roupas', label: 'Roupas' },
-    { value: 'outros', label: 'Outros' },
+    { value: 'documentos', label: 'Documents' },
+    { value: 'saude', label: 'Health' },
+    { value: 'bagagem', label: 'Baggage' },
+    { value: 'dinheiro', label: 'Money' },
+    { value: 'eletronicos', label: 'Electronics' },
+    { value: 'roupas', label: 'Clothing' },
+    { value: 'outros', label: 'Other' },
 ] as const;
 
 const CHECKLIST: FieldSpec[] = [
-    { key: 'category', label: 'Categoria', type: 'picker', options: CHECKLIST_CATEGORY_OPTIONS },
-    { key: 'item', label: 'Item do checklist', type: 'text', placeholder: 'Ex: Renovar passaporte', required: true },
+    { key: 'category', label: 'Category', type: 'picker', options: CHECKLIST_CATEGORY_OPTIONS },
+    { key: 'item', label: 'Checklist item', type: 'text', placeholder: 'E.g. Renew passport', required: true },
 ];
 
 const EXTRA_SPENDING: FieldSpec[] = [
-    { key: 'category', label: 'Categoria', type: 'picker', options: EXTRA_SPENDING_CATEGORY_OPTIONS },
-    { key: 'title', label: 'Título / nome do gasto', type: 'text', placeholder: 'Ex: Chip de internet 10GB', required: true },
-    { key: 'description', label: 'Descrição', type: 'multiline', placeholder: 'Detalhes ou contexto do gasto' },
-    { key: 'cost', label: 'Valor por pessoa', type: 'cost' },
+    { key: 'category', label: 'Category', type: 'picker', options: EXTRA_SPENDING_CATEGORY_OPTIONS },
+    { key: 'title', label: 'Expense title / name', type: 'text', placeholder: 'E.g. 10GB SIM card', required: true },
+    { key: 'description', label: 'Description', type: 'multiline', placeholder: 'Details or context for the expense' },
+    { key: 'cost', label: 'Cost per person', type: 'cost' },
 ];
 
 const FLIGHT: FieldSpec[] = [
-    { key: 'airline', label: 'Companhia aérea', type: 'text', placeholder: 'Ex: LATAM, Gol, Air France' },
-    { key: 'originCity', label: 'Cidade de saída', type: 'text', placeholder: 'Ex: São Paulo, Rio de Janeiro, Brasília', required: true },
-    { key: 'originAirport', label: 'Aeroporto de origem', type: 'text', placeholder: 'Ex: GRU — São Paulo/Guarulhos' },
-    { key: 'destinationAirport', label: 'Aeroporto de destino', type: 'text', placeholder: 'Ex: CDG — Paris/Charles de Gaulle' },
-    { key: 'departureDate', label: 'Data de saída', type: 'date', required: true },
-    { key: 'arrivalDate', label: 'Data de chegada', type: 'date', required: true },
-    { key: 'stops', label: 'Paradas', type: 'number', placeholder: '0 = direto' },
+    { key: 'airline', label: 'Airline', type: 'text', placeholder: 'E.g. Delta, United, Air France' },
+    { key: 'originCity', label: 'Departure city', type: 'text', placeholder: 'E.g. New York, Los Angeles, Chicago', required: true },
+    { key: 'originAirport', label: 'Origin airport', type: 'text', placeholder: 'E.g. JFK — New York/John F. Kennedy' },
+    { key: 'destinationAirport', label: 'Destination airport', type: 'text', placeholder: 'E.g. CDG — Paris/Charles de Gaulle' },
+    { key: 'departureDate', label: 'Departure date', type: 'date', required: true },
+    { key: 'arrivalDate', label: 'Arrival date', type: 'date', required: true },
+    { key: 'stops', label: 'Stops', type: 'number', placeholder: '0 = nonstop' },
 ];
 
 const DAY_ACTIVITY: FieldSpec[] = [
-    { key: 'title', label: 'O que fazer', type: 'text', placeholder: 'Ex: Visita ao Museu do Louvre', required: true },
-    { key: 'time', label: 'Horário', type: 'time' },
-    { key: 'duration', label: 'Duração', type: 'text', placeholder: 'Ex: 1h, 30min' },
-    { key: 'location', label: 'Nome do local ou endereço', type: 'text', placeholder: 'Ex: Rua Direita, 250' },
-    { key: 'mapLink', label: 'Link da localização (Google Maps)', type: 'text', placeholder: 'Ex: https://goo.gl/maps/…' },
-    { key: 'tips', label: 'Dica opcional', type: 'multiline', placeholder: 'Ex: Tente chegar 20 minutos antes…' },
+    { key: 'title', label: 'What to do', type: 'text', placeholder: 'E.g. Visit the Louvre Museum', required: true },
+    { key: 'time', label: 'Time', type: 'time' },
+    { key: 'duration', label: 'Duration', type: 'text', placeholder: 'E.g. 1h, 30min' },
+    { key: 'location', label: 'Place name or address', type: 'text', placeholder: 'E.g. 250 Main Street' },
+    { key: 'mapLink', label: 'Location link (Google Maps)', type: 'text', placeholder: 'E.g. https://goo.gl/maps/…' },
+    { key: 'tips', label: 'Optional tip', type: 'multiline', placeholder: 'E.g. Try to arrive 20 minutes early…' },
 ];
 
 const DAY: FieldSpec[] = [
     {
         key: 'dayNumber',
-        label: 'Número do dia',
+        label: 'Day number',
         type: 'number',
-        placeholder: 'Ex: 8',
+        placeholder: 'E.g. 8',
         required: true,
-        hint: 'Sugerimos o próximo número livre. Você pode trocar se preferir.',
+        hint: 'We suggest the next free number. You can change it if you prefer.',
     },
-    { key: 'title', label: 'Título do dia', type: 'text', placeholder: 'Ex: Torre Eiffel e Trocadéro' },
+    { key: 'title', label: 'Day title', type: 'text', placeholder: 'E.g. Eiffel Tower and Trocadéro' },
     {
         key: 'description',
-        label: 'O que esperar nesse dia',
+        label: 'What to expect that day',
         type: 'multiline',
-        placeholder: 'Ex: Manhã de passeios no centro…',
+        placeholder: 'E.g. A morning of sightseeing downtown…',
         required: true,
     },
 ];
@@ -237,15 +237,15 @@ export const FIELDS_BY_KIND: Record<ItemKind, FieldSpec[]> = {
 };
 
 export const KIND_TITLE: Record<ItemKind, { singular: string; addLabel: string }> = {
-    accommodations: { singular: 'Hospedagem', addLabel: 'Adicionar hospedagem' },
-    transports: { singular: 'Transporte', addLabel: 'Adicionar transporte' },
-    attractions: { singular: 'Passeio', addLabel: 'Adicionar passeio' },
-    restaurants: { singular: 'Restaurante', addLabel: 'Adicionar restaurante' },
-    generalTips: { singular: 'Dica', addLabel: 'Adicionar dica' },
-    checklistItems: { singular: 'Item do checklist', addLabel: 'Adicionar item ao checklist' },
-    extraSpendingItems: { singular: 'Gasto extra', addLabel: 'Adicionar gasto extra' },
-    flightOutbound: { singular: 'Voo de ida', addLabel: 'Adicionar voo de ida' },
-    flightReturn: { singular: 'Voo de volta', addLabel: 'Adicionar voo de volta' },
-    dayActivity: { singular: 'Atividade do dia', addLabel: 'Adicionar atividade' },
-    day: { singular: 'Dia', addLabel: 'Adicionar dia' },
+    accommodations: { singular: 'Lodging', addLabel: 'Add lodging' },
+    transports: { singular: 'Transportation', addLabel: 'Add transportation' },
+    attractions: { singular: 'Tour', addLabel: 'Add tour' },
+    restaurants: { singular: 'Restaurant', addLabel: 'Add restaurant' },
+    generalTips: { singular: 'Tip', addLabel: 'Add tip' },
+    checklistItems: { singular: 'Checklist item', addLabel: 'Add checklist item' },
+    extraSpendingItems: { singular: 'Extra expense', addLabel: 'Add extra expense' },
+    flightOutbound: { singular: 'Outbound flight', addLabel: 'Add outbound flight' },
+    flightReturn: { singular: 'Return flight', addLabel: 'Add return flight' },
+    dayActivity: { singular: 'Day activity', addLabel: 'Add activity' },
+    day: { singular: 'Day', addLabel: 'Add day' },
 };

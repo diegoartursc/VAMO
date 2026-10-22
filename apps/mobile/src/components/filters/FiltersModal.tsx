@@ -42,20 +42,20 @@ interface FiltersModalProps {
 }
 
 const CATEGORIES = [
-    { id: 'beach', label: 'Praia', icon: '🏖️' },
-    { id: 'adventure', label: 'Aventura', icon: '🏔️' },
+    { id: 'beach', label: 'Beach', icon: '🏖️' },
+    { id: 'adventure', label: 'Adventure', icon: '🏔️' },
     { id: 'cultural', label: 'Cultural', icon: '🏛️' },
-    { id: 'romantic', label: 'Romântico', icon: '💕' },
-    { id: 'relaxation', label: 'Relaxamento', icon: '🧘' },
-    { id: 'family', label: 'Família', icon: '👨‍👩‍👧‍👦' },
+    { id: 'romantic', label: 'Romantic', icon: '💕' },
+    { id: 'relaxation', label: 'Relaxation', icon: '🧘' },
+    { id: 'family', label: 'Family', icon: '👨‍👩‍👧‍👦' },
 ];
 
 const BUDGET_OPTIONS = [
-    { label: `Até ${BASE_CURRENCY_SYMBOL}500`, min: 0, max: 500 },
+    { label: `Up to ${BASE_CURRENCY_SYMBOL}500`, min: 0, max: 500 },
     { label: `${BASE_CURRENCY_SYMBOL}500 - ${BASE_CURRENCY_SYMBOL}1,500`, min: 500, max: 1500 },
     { label: `${BASE_CURRENCY_SYMBOL}1,500 - ${BASE_CURRENCY_SYMBOL}3,000`, min: 1500, max: 3000 },
-    { label: `Acima de ${BASE_CURRENCY_SYMBOL}3,000`, min: 3000, max: 100000 },
-    { label: 'Qualquer valor', min: 0, max: 100000 },
+    { label: `Over ${BASE_CURRENCY_SYMBOL}3,000`, min: 3000, max: 100000 },
+    { label: 'Any price', min: 0, max: 100000 },
 ];
 
 export function FiltersModal({ visible, onClose, onApply, currentFilters }: FiltersModalProps) {
@@ -125,16 +125,16 @@ export function FiltersModal({ visible, onClose, onApply, currentFilters }: Filt
                     <View style={styles.handle} />
 
                     <View style={styles.header}>
-                        <Text style={styles.title}>Filtros</Text>
+                        <Text style={styles.title}>Filters</Text>
                         <TouchableOpacity onPress={handleReset}>
-                            <Text style={styles.resetButton}>Limpar tudo</Text>
+                            <Text style={styles.resetButton}>Clear all</Text>
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                         {/* Budget Section */}
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>💰 Orçamento</Text>
+                            <Text style={styles.sectionTitle}>💰 Budget</Text>
                             <View style={styles.optionsGrid}>
                                 {BUDGET_OPTIONS.map((option, index) => (
                                     <TouchableOpacity
@@ -160,7 +160,7 @@ export function FiltersModal({ visible, onClose, onApply, currentFilters }: Filt
 
                         {/* Duration Section */}
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>📅 Duração</Text>
+                            <Text style={styles.sectionTitle}>📅 Duration</Text>
                             <View style={styles.optionsRow}>
                                 <TouchableOpacity
                                     style={[styles.durationButton, filters.duration.short && styles.durationButtonActive]}
@@ -191,7 +191,7 @@ export function FiltersModal({ visible, onClose, onApply, currentFilters }: Filt
 
                         {/* Rating Section */}
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>⭐ Avaliação mínima</Text>
+                            <Text style={styles.sectionTitle}>⭐ Minimum rating</Text>
                             <View style={styles.ratingRow}>
                                 {[4.5, 4.0, 3.5, 3.0].map((rating) => (
                                     <TouchableOpacity
@@ -239,7 +239,7 @@ export function FiltersModal({ visible, onClose, onApply, currentFilters }: Filt
                     {/* Footer */}
                     <View style={styles.footer}>
                         <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                            <Text style={styles.cancelButtonText}>Cancelar</Text>
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
                             <Text style={styles.applyButtonText}>

@@ -7,24 +7,24 @@ export default function WhyDifferent() {
     const features = [
         {
             icon: '✓',
-            title: 'Sem enrolação',
-            description: 'Tudo que você precisa em um lugar'
+            title: 'No fluff',
+            description: 'Everything you need in one place'
         },
         {
             icon: '✓',
-            title: 'Sem surpresas',
-            description: 'Preço final real, sem taxas ocultas'
+            title: 'No surprises',
+            description: 'Real final price, no hidden fees'
         },
         {
             icon: '✓',
-            title: 'Sem riscos',
-            description: 'Roteiros verificados + compra segura'
+            title: 'No risk',
+            description: 'Verified itineraries + secure checkout'
         }
     ];
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Por que o VAMO é diferente?</Text>
+            <Text style={styles.title}>Why is VAMO different?</Text>
 
             {features.map((feature, index) => (
                 <View key={index} style={styles.feature}>
