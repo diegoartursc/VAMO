@@ -6,7 +6,8 @@
  *  - só para quem ainda não avaliou, nunca para o criador do próprio roteiro;
  *  - só vendas dos últimos 60 dias (nunca dispara e-mail em massa sobre compras antigas);
  *  - cada etapa é gravada ANTES de enviar (updateMany condicional), então reinício do
- *    servidor ou duas instâncias nunca mandam o mesmo e-mail duas vezes.
+ *    servidor ou duas instâncias nunca mandam o mesmo e-mail duas vezes;
+ *  - se o envio falhar (mailer devolve false), a marca é desfeita para tentar na próxima varredura.
  */
 import prisma from '../lib/prisma';
 import { sendReviewRequestEmail } from '../lib/mailer';
@@ -69,13 +70,21 @@ export async function runReviewRequestSweep(now: Date = new Date()): Promise<{ i
         });
         if (claimed.count !== 1) continue;
 
-        await sendReviewRequestEmail({
+        const sent = await sendReviewRequestEmail({
             to: sale.traveler.email,
             name: sale.traveler.name,
             itineraryId: sale.itineraryId,
             itineraryTitle: sale.itinerary.title,
             reminder: stage === 'reminder',
         });
+        if (!sent) {
+            // Envio falhou: devolve a marca para a próxima varredura tentar de novo.
+            await prisma.itinerarySale.updateMany({
+                where: { id: sale.id },
+                data: stage === 'invite' ? { reviewRequestSentAt: null } : { reviewReminderSentAt: null },
+            });
+            continue;
+        }
         if (stage === 'invite') invites++; else reminders++;
     }
     return { invites, reminders };
