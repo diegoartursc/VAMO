@@ -39,7 +39,7 @@
 - **B · Compra:** título, valor pago (ex.: A$29.90); fica em Meus Roteiros; o recibo vem da Stripe. Botão *Abrir meu roteiro*.
 - **C · Recuperação:** link de 1 hora, uso único, com a URL também em texto.
 - **D · Senha alterada:** data e hora (horário de Sydney); "se não foi você, fale com o suporte imediatamente". Nunca inclui a senha.
-- **E · Venda:** título, valor da venda, comissão VAMO (15%, a registrada na venda) e valor líquido estimado. Botão *Ver minhas vendas*.
+- **E · Venda:** título, valor da venda, comissão VAMO (20% desde 2026-10-27; a registrada na venda) e valor líquido estimado. Botão *Ver minhas vendas*.
 - **F · Aprovado:** avisa que **aprovado ainda não é publicado** e orienta tocar em "Publicar roteiro". Botão *Abrir e publicar*.
 - **G · Reprovado:** motivo real do admin (`approvalNote`), orientação para corrigir e reenviar. Botão *Corrigir roteiro*.
 - **H · Admin:** roteirista, título, destino, duração, preço e ID. Link para o painel se `ADMIN_APP_URL` estiver definido; senão, o caminho "painel admin → Roteiros → Em análise".

@@ -33,11 +33,11 @@ Ordem de execução. Cada bloco só começa quando o anterior tem o essencial pr
 
 **Estado atual no código (verificado em 2026-10-26):**
 - Já existe: rota de onboarding Express (`POST /api/creators/me/stripe/onboarding-link`) e consulta de status (`apps/backend/src/routes/creators.ts`).
-- Não existe o dinheiro andando: o checkout é cobrança simples na conta da plataforma (sem `application_fee` nem transferência ao roteirista). A comissão é só um número gravado na venda, **fixo em 15%** em dois lugares (`payments.ts:212` e `itineraries.ts:1890`); a decisão registrada é **20% VAMO / 80% roteirista**.
+- Não existe o dinheiro andando: o checkout é cobrança simples na conta da plataforma (sem `application_fee` nem transferência ao roteirista). A comissão é só um número gravado na venda, agora **20% VAMO / 80% roteirista** (decidido pelo Diego em 2026-10-27, lido de `commission.ts` em `payments.ts` e `itineraries.ts`). Vendas antigas já gravadas seguem com 15%.
 - A tela de ganhos mostra estimativa (`payoutAccountStatus` fixo em `not_started`); reembolso não desfaz repasse; o vínculo roteirista↔conta Connect fica só na *metadata* da Stripe (sem coluna no banco); não há webhooks de Connect.
 
 **Decisões que dependem de vocês (👤):**
-- [ ] Comissão final: **20%** (decidido) ou outro valor. Quem paga a taxa da Stripe (a plataforma, o roteirista ou dividida)?
+- [x] Comissão final: **20% VAMO / 80% roteirista** (decidido em 2026-10-27, já no código, nos Termos do Criador, no app e no site). Pendente: quem paga a taxa da Stripe (a plataforma, o roteirista ou dividida)?
 - [ ] Quando o roteirista recebe: **recomendação** → cobrar na plataforma e **transferir após a janela de reembolso (7 dias)**, o mesmo prazo da Política de Reembolso. Evita ter de reverter repasse. A alternativa (cobrança direta com `transfer_data`) paga na hora, mas exige conta do roteirista já ativa e complica reembolso.
 - [ ] Roteirista fora dos EUA: a Stripe só permite repasse automático entre países limitados. Definir se o piloto é só EUA ou se fora dos EUA o repasse segue manual (relatório "a pagar" no admin).
 - [ ] Contador: tributação do repasse e declarações americanas (a Stripe Connect Express emite 1099 para roteiristas dos EUA).
@@ -45,7 +45,7 @@ Ordem de execução. Cada bloco só começa quando o anterior tem o essencial pr
 **Passos técnicos (🤖 depois das decisões):**
 - [ ] 👤 Ativar a conta Stripe da LLC (dados da empresa, banco, documentos) e **habilitar o Connect** em Settings → Connect (sem isso a API responde `connect_not_enabled`).
 - [ ] 🤖 Migration aditiva: `Creator.stripeAccountId` + status de recebimento (substitui a busca por metadata).
-- [x] 🤖 Comissão em **um só lugar** (`packages/shared/itinerary/commission.ts`, 2026-10-27): pagamento, e-mails, página de recebimento e Help leem de lá. Valor atual 15%. **Mudar para o valor decidido = editar 1 número** (e o prazo `PAYOUT_HOLD_DAYS`). Falta a tela de ganhos e o admin usarem a mesma função.
+- [x] 🤖 Comissão em **um só lugar** (`packages/shared/itinerary/commission.ts`, 2026-10-27): pagamento, e-mails, página de recebimento e Help leem de lá. Valor atual **20%**. Mudar de novo = editar 1 número (e o prazo `PAYOUT_HOLD_DAYS`). Falta a tela de ganhos e o admin usarem a mesma função.
 - [ ] 🤖 Fluxo de dinheiro: cobrança na plataforma + transferência ao roteirista após 7 dias (job agendado e idempotente), ou `application_fee` + `transfer_data` se a decisão for pagar na hora.
 - [ ] 🤖 Reembolso desfaz o repasse (antes do pagamento: cancela a transferência; depois: `reverse_transfer`). Roteirista sem conta ativa: saldo fica retido e vira repasse quando ele concluir o cadastro.
 - [ ] 🤖 Webhooks de Connect no endpoint de produção: `account.updated`, `transfer.created/failed/reversed`, `payout.failed`, `charge.refunded`, `charge.dispute.created`.
@@ -269,7 +269,7 @@ Passo a passo do Stripe em [STRIPE-PRODUCAO.md](STRIPE-PRODUCAO.md).
 - [ ] 👥 Fazer uma compra real com o seu cartão, conferir no Stripe, no webhook e em "Meus Roteiros", e depois reembolsar.
 
 **5.3 Repasse aos roteiristas:**
-- [ ] 👤 Definir a comissão do VAMO (hoje o código grava 15% em `commission`) e a frequência do repasse.
+- [x] 👤 Comissão do VAMO definida: 20% (2026-10-27). Falta definir a frequência do repasse.
 - [ ] 👤 Confirmar que o Stripe Connect está disponível para a conta: depende do país da conta e do país dos roteiristas.
 - [ ] 🤖 Cadastro do roteirista no Stripe Connect (conta Express), iniciado pelo Portal do Roteirista.
 - [ ] 🤖 Checkout dividindo o pagamento: parte do roteirista e comissão do VAMO.
@@ -297,7 +297,7 @@ Exigidos pelo Stripe e pelas leis americanas de consumidor (FTC e leis estaduais
 - [ ] 👤 Definir a **política de reembolso**. Ex.: reembolso em até 7 dias se o roteiro não foi aberto. Nos EUA, regras estaduais e as exigências do Stripe e dos bancos fazem recusar reembolso de produto com defeito ou diferente do anunciado virar disputa (chargeback). A política rascunhada em `legal/` reembolsa nesses casos.
 - [x] 🤖 Rascunho dos textos em inglês (Termos de Uso, Privacidade, Reembolso): feito em `packages/shared/legal/`.
 - [ ] 👥 Revisão por advogado americano e preenchimento de `LEGAL_PLACEHOLDERS` (razão social, estado, endereço).
-- [x] 🤖 Rascunho dos Termos do Criador (feito). A comissão exibida no painel (15%) e a frequência de repasse ainda precisam ser decididas (👤).
+- [x] 🤖 Rascunho dos Termos do Criador (feito). A comissão (20%/80%) já consta nos Termos; a frequência de repasse ainda precisa ser decidida (👤).
 - [x] 🤖 Páginas no app e no site, com link no cadastro, no checkout e no Perfil (feito).
 - [ ] 🤖 Link no rodapé do site.
 - [ ] 🤖 Incluir no checkout "Ao comprar você concorda com os Termos" e ligar os termos no Stripe (Configurações → Checkout).

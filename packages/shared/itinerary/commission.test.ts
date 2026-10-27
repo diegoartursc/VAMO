@@ -12,10 +12,12 @@ test('comissão e ganho do roteirista somam o preço (sem perder centavo)', () =
     }
 });
 
-test('roteiro de 26.90 com a taxa atual', () => {
+test('roteiro de 26.90 com a taxa atual (20% VAMO / 80% roteirista)', () => {
+    assert.equal(PLATFORM_COMMISSION_PERCENT, 20);
+    assert.equal(CREATOR_SHARE_PERCENT, 80);
+    assert.equal(computeCommission(26.9), 5.38);
+    assert.equal(computeCreatorEarning(26.9), 21.52);
     assert.equal(computeCommission(26.9, 0.15), 4.04);
-    assert.equal(computeCreatorEarning(26.9, 0.15), 22.86);
-    assert.equal(computeCommission(26.9, 0.2), 5.38);
 });
 
 test('preço inválido ou grátis não gera comissão', () => {

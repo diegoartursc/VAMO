@@ -47,10 +47,10 @@ test('conteúdo vindo do usuário é escapado no HTML', async () => {
 
 test('venda ao roteirista: comissão e líquido', async () => {
     const m = await load();
-    await m.sendCreatorSaleEmail({ to: 'c@x.test', name: 'Carla', itineraryTitle: 'Japão', price: 100, commission: 15, currency: 'AUD' });
+    await m.sendCreatorSaleEmail({ to: 'c@x.test', name: 'Carla', itineraryTitle: 'Japão', price: 100, commission: 20, currency: 'AUD' });
     assert.ok(last().html.includes('$100.00'));
-    assert.ok(last().html.includes('15%'));
-    assert.ok(last().html.includes('$85.00'));
+    assert.ok(last().html.includes('20%'));
+    assert.ok(last().html.includes('$80.00'));
     assert.ok(last().html.includes('https://app.exemplo.test/creator-sales'));
 });
 

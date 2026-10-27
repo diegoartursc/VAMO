@@ -203,7 +203,7 @@ export default function Home() {
           </Link>
           <div className="creators-benefits">
             <div className="creator-benefit"><IconCheck /> Cadastro gratuito</div>
-            <div className="creator-benefit"><IconDollar /> Até 85% de comissão</div>
+            <div className="creator-benefit"><IconDollar /> 80% de cada venda</div>
             <div className="creator-benefit"><IconTrendingUp /> Dashboard completo</div>
             <div className="creator-benefit"><IconGlobe /> Alcance global</div>
           </div>
@@ -301,8 +301,8 @@ export default function Home() {
           <div className="faq-item">
             <div className="faq-question">Qual a comissão para criadores?</div>
             <p className="faq-answer">
-              Criadores recebem até 85% do valor de cada venda. O restante cobre taxas de
-              pagamento e manutenção da plataforma.
+              Criadores recebem 80% do valor de cada venda e a VAMO fica com 20%. A
+              comissão da VAMO cobre a plataforma, o suporte e a divulgação do roteiro.
             </p>
           </div>
         </div>

@@ -4,13 +4,11 @@
  * Tudo que fala de comissão (venda gravada no banco, e-mail ao roteirista, tela de ganhos,
  * página "How you get paid") lê daqui. Para mudar a comissão, mude APENAS este número.
  *
- * ⚠️ PENDENTE DE DECISÃO (docs/LANCAMENTO-TASKS.md, bloco A): o valor decidido em conversa
- * foi 20% VAMO / 80% roteirista; o sistema ainda opera com 15%, que é o que está em produção.
- * Não alterar o valor sem decidir também o prazo de repasse e avisar os roteiristas.
+ * Decisão do Diego em 2026-10-27: 20% VAMO / 80% roteirista (taxas da Stripe: ver docs/LANCAMENTO-TASKS.md, bloco A).
  */
 
-/** Fração do preço que fica com a VAMO (0.15 = 15%). */
-export const PLATFORM_COMMISSION_RATE = 0.15;
+/** Fração do preço que fica com a VAMO (0.20 = 20%). */
+export const PLATFORM_COMMISSION_RATE = 0.20;
 
 /** Dias após a compra até o ganho do roteirista ser liberado (= janela de reembolso). */
 export const PAYOUT_HOLD_DAYS = 7;
