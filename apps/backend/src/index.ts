@@ -21,6 +21,7 @@ import paymentRoutes, { stripeWebhookHandler } from './routes/payments';
 import shareRoutes from './routes/shares';
 import prisma from './lib/prisma';
 import { startReviewRequestScheduler } from './jobs/reviewRequests';
+import { startPayoutScheduler } from './jobs/payouts';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -168,6 +169,7 @@ app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
     startReviewRequestScheduler();
+    startPayoutScheduler();
 });
 
 export default app;

@@ -19,10 +19,9 @@ import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 const router = Router();
 
 // ─── Stripe Connect (payouts do roteirista) ─────────────────────
-// MVP sem migration: o vínculo criador→conta Connect fica na METADATA da
-// própria conta Stripe (metadata.creatorId). Em escala maior, migrar para uma
-// coluna `stripeAccountId` no Creator. Volume atual (poucos criadores) torna o
-// scan por metadata barato e seguro.
+// O vínculo criador→conta Connect fica na coluna `creators.stripeAccountId`
+// (e também em metadata.creatorId da conta, usado só para recuperar contas antigas).
+// O repasse dos 80% é feito por src/jobs/payouts.ts.
 
 type PayoutStatus = 'not_started' | 'pending' | 'verified' | 'restricted' | 'disabled';
 
@@ -60,10 +59,22 @@ async function resolveCreatorFromToken(req: TravelerAuthRequest): Promise<{ id: 
     return creator || null;
 }
 
-/** Acha a conta Connect do criador via metadata.creatorId (scan paginado). */
+/** Acha a conta Connect do criador: pela coluna `stripeAccountId` e, se vazia, pela metadata (e grava a coluna). */
 async function findCreatorStripeAccount(stripe: Stripe, creatorId: string): Promise<Stripe.Account | null> {
+    const saved = await prisma.creator.findUnique({ where: { id: creatorId }, select: { stripeAccountId: true } });
+    if (saved?.stripeAccountId) {
+        try {
+            const account = await stripe.accounts.retrieve(saved.stripeAccountId);
+            if (!(account as any).deleted) return account as Stripe.Account;
+        } catch (e: any) {
+            console.error('[stripe] conta Connect salva não encontrada:', e?.message || e);
+        }
+    }
     for await (const account of stripe.accounts.list({ limit: 100 })) {
-        if (account.metadata?.creatorId === creatorId) return account;
+        if (account.metadata?.creatorId === creatorId) {
+            await prisma.creator.update({ where: { id: creatorId }, data: { stripeAccountId: account.id } }).catch(() => {});
+            return account;
+        }
     }
     return null;
 }
@@ -109,6 +120,7 @@ router.post('/me/stripe/onboarding-link', travelerAuthMiddleware, async (req: Tr
                 capabilities: { transfers: { requested: true } },
                 business_type: 'individual',
             });
+            await prisma.creator.update({ where: { id: creator.id }, data: { stripeAccountId: account.id } });
         }
 
         const link = await stripe.accountLinks.create({
@@ -146,7 +158,7 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
                         id: true,
                         title: true,
                         sales: {
-                            select: { id: true, price: true, commission: true, createdAt: true },
+                            select: { id: true, price: true, commission: true, createdAt: true, payoutTransferredAt: true },
                             orderBy: { createdAt: 'desc' },
                         },
                     },
@@ -168,18 +180,21 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
                 platformFee: sale.commission,
                 estimatedPayout: Math.max(0, sale.price - sale.commission),
                 currency: BASE_CURRENCY,
-                status: 'pending',
+                status: sale.payoutTransferredAt ? 'paid_out' : 'pending',
             })),
         ).sort((a, b) => b.saleDate.localeCompare(a.saleDate));
 
-        const pendingFromSales = transactions.reduce((sum, transaction) => sum + transaction.estimatedPayout, 0);
+        const totalEarned = transactions.reduce((sum, t) => sum + t.estimatedPayout, 0);
+        const paidOut = transactions.filter((t) => t.status === 'paid_out').reduce((sum, t) => sum + t.estimatedPayout, 0);
+        const pendingFromSales = totalEarned - paidOut;
         res.json({
             summary: {
                 currency: BASE_CURRENCY,
                 availableBalance: creator.balance?.availableBalance ?? 0,
                 pendingBalance: creator.balance?.pendingBalance ?? pendingFromSales,
-                totalEarned: pendingFromSales,
-                payoutAccountStatus: 'not_started',
+                totalEarned,
+                paidOut,
+                payoutAccountStatus: creator.stripeAccountId ? 'pending' : 'not_started',
             },
             transactions,
         });

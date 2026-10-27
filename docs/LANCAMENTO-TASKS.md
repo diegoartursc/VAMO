@@ -33,11 +33,11 @@ Ordem de execução. Cada bloco só começa quando o anterior tem o essencial pr
 
 **Estado atual no código (verificado em 2026-10-26):**
 - Já existe: rota de onboarding Express (`POST /api/creators/me/stripe/onboarding-link`) e consulta de status (`apps/backend/src/routes/creators.ts`).
-- Não existe o dinheiro andando: o checkout é cobrança simples na conta da plataforma (sem `application_fee` nem transferência ao roteirista). A comissão é só um número gravado na venda, agora **20% VAMO / 80% roteirista** (decidido pelo Diego em 2026-10-27, lido de `commission.ts` em `payments.ts` e `itineraries.ts`). Vendas antigas já gravadas seguem com 15%.
+- **Atualização 2026-10-27:** o repasse existe. O checkout cobra tudo na conta da plataforma (que paga a taxa da Stripe) e `src/jobs/payouts.ts` transfere os 80% ao roteirista 7 dias depois (`creators.stripeAccountId`, `itinerary_sales.payoutTransferId`). Pendente: testar ponta a ponta em modo teste, estorno de repasse já feito, webhooks de Connect. Antes disso, a comissão era só um número gravado na venda, agora **20% VAMO / 80% roteirista** (decidido pelo Diego em 2026-10-27, lido de `commission.ts` em `payments.ts` e `itineraries.ts`). Vendas antigas já gravadas seguem com 15%.
 - A tela de ganhos mostra estimativa (`payoutAccountStatus` fixo em `not_started`); reembolso não desfaz repasse; o vínculo roteirista↔conta Connect fica só na *metadata* da Stripe (sem coluna no banco); não há webhooks de Connect.
 
 **Decisões que dependem de vocês (👤):**
-- [x] Comissão final: **20% VAMO / 80% roteirista** (decidido em 2026-10-27, já no código, nos Termos do Criador, no app e no site). Pendente: quem paga a taxa da Stripe (a plataforma, o roteirista ou dividida)?
+- [x] Comissão final: **20% VAMO / 80% roteirista** (decidido em 2026-10-27, já no código, nos Termos do Criador, no app e no site). Quem paga a taxa da Stripe: **a VAMO** (decidido em 2026-10-27; sai dos 20%). Antes constava: quem paga a taxa da Stripe (a plataforma, o roteirista ou dividida)?
 - [ ] Quando o roteirista recebe: **recomendação** → cobrar na plataforma e **transferir após a janela de reembolso (7 dias)**, o mesmo prazo da Política de Reembolso. Evita ter de reverter repasse. A alternativa (cobrança direta com `transfer_data`) paga na hora, mas exige conta do roteirista já ativa e complica reembolso.
 - [ ] Roteirista fora dos EUA: a Stripe só permite repasse automático entre países limitados. Definir se o piloto é só EUA ou se fora dos EUA o repasse segue manual (relatório "a pagar" no admin).
 - [ ] Contador: tributação do repasse e declarações americanas (a Stripe Connect Express emite 1099 para roteiristas dos EUA).

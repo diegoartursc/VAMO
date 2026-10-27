@@ -266,6 +266,8 @@ model TravelerPersonalData {
 model Creator {
   id                String            @id @default(cuid())
   travelerId        String            @unique
+  // Conta Stripe Connect (Express) que recebe os 80% de cada venda.
+  stripeAccountId   String?           @unique
   verificationLevel VerificationLevel @default(BASIC)
   bio               String            @db.Text
   destinations      String[]
@@ -717,6 +719,10 @@ model ItinerarySale {
   // E-mail pedindo avaliação (1 convite + 1 lembrete por venda; nunca repetir).
   reviewRequestSentAt  DateTime?
   reviewReminderSentAt DateTime?
+  // Repasse ao roteirista (Stripe Transfer), feito depois de PAYOUT_HOLD_DAYS.
+  payoutTransferId     String?
+  payoutTransferredAt  DateTime?
+  payoutAmount         Float?
   createdAt    DateTime @default(now())
 
   itinerary      Itinerary                        @relation(fields: [itineraryId], references: [id], onDelete: Restrict)
