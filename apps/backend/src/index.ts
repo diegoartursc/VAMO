@@ -20,6 +20,7 @@ import savedItemsRoutes from './routes/saved-items';
 import paymentRoutes, { stripeWebhookHandler } from './routes/payments';
 import shareRoutes from './routes/shares';
 import prisma from './lib/prisma';
+import { startReviewRequestScheduler } from './jobs/reviewRequests';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -166,6 +167,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+    startReviewRequestScheduler();
 });
 
 export default app;

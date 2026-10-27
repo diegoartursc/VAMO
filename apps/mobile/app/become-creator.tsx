@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { safeBack } from '../src/utils/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { CREATOR_SHARE_PERCENT } from '@vamo/shared/itinerary';
 import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
 import { useAuth } from '../src/contexts/AuthContext';
@@ -59,6 +60,7 @@ const SLIDES = [
             { icon: 'create-outline' as IoniconName, num: 1, title: 'Create itinerary', text: 'Fill in the destination, modules, photos, costs and real tips.' },
             { icon: 'search-outline' as IoniconName, num: 2, title: 'Submit for review', text: 'VAMO reviews the quality and authenticity of the content.' },
             { icon: 'storefront-outline' as IoniconName, num: 3, title: 'Publish and sell', text: 'Once approved, your itinerary appears for travelers to buy.' },
+            { icon: 'wallet-outline' as IoniconName, num: 4, title: 'Get paid', text: `You keep ${CREATOR_SHARE_PERCENT}% of every sale, paid to your bank through Stripe. See "How you get paid" in the Creator Portal.` },
         ],
         cta: 'Continue',
     },

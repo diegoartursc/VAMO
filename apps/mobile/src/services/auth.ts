@@ -57,6 +57,8 @@ export async function registerWithEmail(params: {
     profileName?: string;
     cpf?: string;
     phone?: string;
+    /** Aceite dos Termos de Uso, Privacidade e Reembolso (obrigatório). */
+    acceptTerms: true;
 }): Promise<TravelerSession> {
     console.log('[auth.register] criando conta:', params.email);
 

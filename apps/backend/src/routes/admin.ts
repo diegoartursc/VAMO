@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { sendItineraryApprovedEmail, sendItineraryRejectedEmail, sendCreatorApprovedEmail } from '../lib/mailer';
+import { recalculateItineraryAndCreatorRating } from './reviews';
 
 const router = Router();
 const JWT_SECRET: string = process.env.JWT_SECRET || (() => {
@@ -201,6 +202,71 @@ router.post('/creators/:id/approve', verifyAdmin, async (req: Request, res: Resp
 });
 
 // GET /api/admin/stats
+// ─── Moderação de avaliações ─────────────────────────────────────
+// GET /api/admin/reviews?filter=reported|hidden|all — avaliações com denúncia (padrão), escondidas ou todas.
+router.get('/reviews', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const filter = String(req.query.filter || 'reported');
+        const where: any = filter === 'hidden' ? { hidden: true } : filter === 'all' ? {} : { reports: { some: {} } };
+        const reviews = await prisma.review.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+            include: {
+                itinerary: { select: { id: true, title: true } },
+                reports: { select: { reason: true, details: true, createdAt: true }, orderBy: { createdAt: 'desc' } },
+            },
+        });
+        res.json(reviews.map(r => ({
+            id: r.id,
+            itineraryId: r.itineraryId,
+            itineraryTitle: r.itinerary?.title ?? '',
+            userName: r.userName,
+            rating: r.rating,
+            comment: r.comment,
+            createdAt: r.createdAt,
+            hidden: r.hidden,
+            hiddenReason: r.hiddenReason,
+            reports: r.reports,
+        })));
+    } catch (error) {
+        console.error('Error loading reviews for moderation:', error);
+        res.status(500).json({ error: 'Failed to load reviews' });
+    }
+});
+
+// POST /api/admin/reviews/:id/hide { reason } — esconde (não apaga) e recalcula as notas.
+router.post('/reviews/:id/hide', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const id = String(req.params.id);
+        const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : '';
+        if (!reason) { res.status(400).json({ error: 'Informe o motivo para esconder a avaliação.' }); return; }
+        const review = await prisma.review.findUnique({ where: { id }, select: { id: true, itineraryId: true } });
+        if (!review) { res.status(404).json({ error: 'Avaliação não encontrada' }); return; }
+        await prisma.review.update({ where: { id }, data: { hidden: true, hiddenReason: reason, hiddenAt: new Date() } });
+        if (review.itineraryId) await recalculateItineraryAndCreatorRating(review.itineraryId);
+        res.json({ hidden: true });
+    } catch (error) {
+        console.error('Error hiding review:', error);
+        res.status(500).json({ error: 'Failed to hide review' });
+    }
+});
+
+// POST /api/admin/reviews/:id/unhide — volta a exibir e recalcula as notas.
+router.post('/reviews/:id/unhide', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        const id = String(req.params.id);
+        const review = await prisma.review.findUnique({ where: { id }, select: { id: true, itineraryId: true } });
+        if (!review) { res.status(404).json({ error: 'Avaliação não encontrada' }); return; }
+        await prisma.review.update({ where: { id }, data: { hidden: false, hiddenReason: null, hiddenAt: null } });
+        if (review.itineraryId) await recalculateItineraryAndCreatorRating(review.itineraryId);
+        res.json({ hidden: false });
+    } catch (error) {
+        console.error('Error unhiding review:', error);
+        res.status(500).json({ error: 'Failed to unhide review' });
+    }
+});
+
 router.get('/stats', verifyAdmin, async (_req: Request, res: Response) => {
     try {
         const today = new Date();

@@ -8,6 +8,7 @@ import { hashPassword, comparePassword, generateAccessToken, generateRefreshToke
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordChangedEmail, buildPasswordResetUrl } from '../lib/mailer';
+import { LEGAL_VERSION } from '@vamo/shared/legal';
 import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
 import { hasValidFileSignature } from '../lib/file-signature';
 
@@ -26,6 +27,8 @@ const travelerRegisterSchema = z.object({
     profileName: z.string().min(2).optional(),
     cpf: z.string().optional(),
     phone: z.string().optional(),
+    // Aceite obrigatório dos Termos de Uso, Privacidade e Reembolso (a versão gravada é a do servidor).
+    acceptTerms: z.literal(true, { errorMap: () => ({ message: 'You must accept the Terms of Use, Privacy Policy and Refund Policy to create an account.' }) }),
 });
 
 const travelerLoginSchema = z.object({
@@ -67,6 +70,8 @@ router.post('/register', async (req: Request, res: Response) => {
                     email: validatedData.email,
                     passwordHash,
                     authProvider: 'EMAIL',
+                    termsAcceptedAt: new Date(),
+                    termsVersion: LEGAL_VERSION,
                 },
             });
 

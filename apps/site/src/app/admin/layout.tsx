@@ -65,6 +65,7 @@ const NAV_SECTIONS = [
         items: [
             { href: "/admin", label: "Visão Geral", icon: ICONS.home, exact: true },
             { href: "/admin/roteiros", label: "Roteiros", icon: ICONS.map },
+            { href: "/admin/avaliacoes", label: "Avaliações", icon: ICONS.pencil },
         ],
     },
     {

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
-import { sendNewReviewEmail } from '../lib/mailer';
+import { sendNewReviewEmail, sendReviewReportedEmail } from '../lib/mailer';
 
 const router = Router();
 
@@ -20,9 +20,10 @@ function normalizePhotoUrls(photos: unknown): string[] {
         .filter((url) => /^https?:\/\//i.test(url));
 }
 
-async function recalculateItineraryAndCreatorRating(itineraryId: string) {
+// Avaliações escondidas pela moderação (hidden=true) não entram na nota nem na contagem.
+export async function recalculateItineraryAndCreatorRating(itineraryId: string) {
     const itineraryReviews = await prisma.review.findMany({
-        where: { itineraryId },
+        where: { itineraryId, hidden: false },
         select: { rating: true },
     });
     const newAvg = itineraryReviews.length > 0
@@ -39,7 +40,7 @@ async function recalculateItineraryAndCreatorRating(itineraryId: string) {
     });
 
     const creatorReviews = await prisma.review.findMany({
-        where: { itinerary: { creatorId: itinerary.creatorId } },
+        where: { itinerary: { creatorId: itinerary.creatorId }, hidden: false },
         select: { rating: true },
     });
     const creatorAvg = creatorReviews.length > 0
@@ -56,7 +57,7 @@ async function recalculateItineraryAndCreatorRating(itineraryId: string) {
 router.get('/', async (req: Request, res: Response) => {
     try {
         const { packageId, itineraryId } = req.query;
-        const where: any = {};
+        const where: any = { hidden: false };
         if (packageId) where.packageId = packageId as string;
         if (itineraryId) where.itineraryId = itineraryId as string;
 
@@ -231,6 +232,53 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
     } catch (error) {
         console.error('Error creating review:', error);
         res.status(500).json({ error: 'Failed to submit review' });
+    }
+});
+
+// POST /api/reviews/:id/report
+// Denuncia uma avaliação (spam, ofensiva, falsa...). Uma denúncia por pessoa. A avaliação
+// NÃO some sozinha: o admin é avisado por e-mail e decide no painel (Avaliações).
+export const REVIEW_REPORT_REASONS = ['spam', 'offensive', 'fake', 'irrelevant', 'other'] as const;
+router.post('/:id/report', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
+    try {
+        const reviewId = String(req.params.id);
+        const reporterId = req.traveler!.travelerId;
+        const reason = String(req.body?.reason || '').trim().toLowerCase();
+        const details = typeof req.body?.details === 'string' ? req.body.details.trim().slice(0, 1000) : null;
+        if (!(REVIEW_REPORT_REASONS as readonly string[]).includes(reason)) {
+            return res.status(400).json({ error: 'Choose a valid reason for the report.' });
+        }
+
+        const review = await prisma.review.findUnique({
+            where: { id: reviewId },
+            select: { id: true, travelerId: true, hidden: true, comment: true, rating: true, itinerary: { select: { id: true, title: true } } },
+        });
+        if (!review || review.hidden) return res.status(404).json({ error: 'Review not found' });
+        if (review.travelerId === reporterId) {
+            return res.status(400).json({ error: 'You can\'t report your own review.' });
+        }
+
+        try {
+            await prisma.reviewReport.create({ data: { reviewId, reporterId, reason, details } });
+        } catch (err: any) {
+            if (err?.code === 'P2002') return res.status(409).json({ error: 'You\'ve already reported this review.' });
+            throw err;
+        }
+
+        const totalReports = await prisma.reviewReport.count({ where: { reviewId } });
+        void sendReviewReportedEmail({
+            reviewId,
+            itineraryTitle: review.itinerary?.title ?? '',
+            rating: review.rating,
+            comment: review.comment,
+            reason,
+            details,
+            totalReports,
+        });
+        res.status(201).json({ reported: true });
+    } catch (error) {
+        console.error('Error reporting review:', error);
+        res.status(500).json({ error: 'Failed to report review' });
     }
 });
 

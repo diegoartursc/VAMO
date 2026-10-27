@@ -1,5 +1,5 @@
 import nodemailer, { Transporter } from 'nodemailer';
-import { BASE_CURRENCY, BASE_LOCALE, BASE_TIMEZONE, BASE_TIMEZONE_LABEL } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY, BASE_LOCALE, BASE_TIMEZONE, BASE_TIMEZONE_LABEL, CREATOR_SHARE_PERCENT, PAYOUT_HOLD_DAYS } from '@vamo/shared/itinerary';
 
 // Único ponto de envio de e-mail do VAMO: Gmail (SMTP) com "senha de app".
 // Sem SMTP_USER/SMTP_PASS o envio é pulado com log. Nenhuma função daqui lança
@@ -367,10 +367,12 @@ export function sendCreatorApprovedEmail(opts: { to: string; name: string }): Pr
         body: P(`Congrats, ${escapeHtml(first)}! The VAMO team approved your creator profile.`)
             + P('Your level is now <strong>Recommended Creator</strong>: the badge appears on your public profile and your itineraries, giving buyers more confidence.'),
         cta: { label: 'Open Creator Portal', url },
+        footer: FOOTNOTE(`<strong>How you get paid:</strong> you keep ${CREATOR_SHARE_PERCENT}% of every sale, sent to your bank through Stripe ${PAYOUT_HOLD_DAYS} days after each purchase (after the refund window). Details and tax info: <a href="${escapeHtml(appLink('/how-you-get-paid'))}">How you get paid</a>.`),
     });
     return send(opts.to, 'Your creator profile was approved', html, textOf(
         `Congrats, ${first}! The VAMO team approved your creator profile.`,
         'Your level is now Recommended Creator, with a badge on your profile and itineraries.',
+        `How you get paid: you keep ${CREATOR_SHARE_PERCENT}% of every sale, sent to your bank through Stripe ${PAYOUT_HOLD_DAYS} days after each purchase. Details: ${appLink('/how-you-get-paid')}`,
         url,
     ));
 }
@@ -408,5 +410,68 @@ export function sendItinerarySubmittedForReviewEmail(opts: {
         place && `Destination: ${place}`,
         `ID: ${opts.itineraryId}`,
         reviewUrl ? `Review: ${reviewUrl}` : 'Review in: admin panel (site) → Itineraries → Under review.',
+    ));
+}
+
+// ─── Reviews: convite + denúncia ────────────────────────────────
+
+/** Convite (e um único lembrete) para o comprador avaliar o roteiro que comprou. */
+export function sendReviewRequestEmail(opts: {
+    to: string;
+    name: string;
+    itineraryId: string;
+    itineraryTitle: string;
+    reminder?: boolean;
+}): Promise<boolean> {
+    const first = firstName(opts.name);
+    const url = appLink(`/write-review?itineraryId=${encodeURIComponent(opts.itineraryId)}`);
+    const subject = opts.reminder
+        ? `Reminder: how was "${opts.itineraryTitle}"?`
+        : `How was "${opts.itineraryTitle}"?`;
+    const html = layout({
+        title: opts.reminder ? 'Still want to share your experience?' : 'How was your itinerary?',
+        body: P(`Hi ${escapeHtml(first)}! ${opts.reminder ? 'A quick reminder:' : 'Thanks for buying'} your itinerary:`)
+            + HIGHLIGHT(opts.itineraryTitle)
+            + P('Your honest review takes a minute and helps other travelers choose well — and helps the creator improve. You can add photos from your trip too.')
+            + FOOTNOTE('You\'re getting this one-time email because you bought this itinerary on VAMO. We won\'t send more than one reminder.'),
+        cta: { label: 'Write my review', url },
+    });
+    return send(opts.to, subject, html, textOf(
+        `Hi ${first}!`,
+        `How was "${opts.itineraryTitle}"? Your honest review helps other travelers choose well.`,
+        `Write your review: ${url}`,
+        'You\'re getting this one-time email because you bought this itinerary on VAMO.',
+    ));
+}
+
+/** Aviso ao admin de que uma avaliação foi denunciada. */
+export function sendReviewReportedEmail(opts: {
+    reviewId: string;
+    itineraryTitle: string;
+    rating: number;
+    comment: string;
+    reason: string;
+    details?: string | null;
+    totalReports: number;
+}): Promise<boolean> {
+    const { adminEmail, adminUrl } = env();
+    const reviewsUrl = adminUrl ? `${adminUrl}/admin/avaliacoes` : null;
+    const html = layout({
+        title: 'A review was reported',
+        body: P(`A review on <strong>${escapeHtml(opts.itineraryTitle)}</strong> was reported (${opts.totalReports} report${opts.totalReports === 1 ? '' : 's'} so far).`)
+            + ROWS([
+                ['Reason', opts.reason],
+                ['Rating', `${opts.rating}/5`],
+                ['Review ID', opts.reviewId],
+            ])
+            + QUOTE('Review', opts.comment || '(no text)')
+            + (opts.details ? QUOTE('Reporter\'s note', opts.details) : '')
+            + (reviewsUrl ? '' : P('Review it in: admin panel (site) → Reviews.')),
+        cta: reviewsUrl ? { label: 'Moderate in the admin panel', url: reviewsUrl } : undefined,
+    });
+    return send(adminEmail, `[Admin] Review reported: ${opts.itineraryTitle}`, html, textOf(
+        `A review on "${opts.itineraryTitle}" was reported (${opts.totalReports} so far). Reason: ${opts.reason}.`,
+        `Review: ${opts.comment || '(no text)'}`,
+        reviewsUrl ? `Moderate: ${reviewsUrl}` : 'Review it in the admin panel → Reviews.',
     ));
 }

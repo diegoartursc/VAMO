@@ -61,6 +61,7 @@ export default function RootLayout() {
                                     <Stack.Screen name="how-it-works" />
                                     <Stack.Screen name="about-vamo" />
                                     <Stack.Screen name="legal/[doc]" />
+                                    <Stack.Screen name="how-you-get-paid" />
                                     <Stack.Screen name="help/index" />
                                     <Stack.Screen name="help/contact-support" />
                                 </Stack>

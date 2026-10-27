@@ -9,26 +9,97 @@
 - **Esforço:** ⚡ minutos · 🟢 horas · 🟡 1–3 dias · 🔴 1+ semana.
 - **Quem faz:** 👤 Diego · 🤖 Claude · 👥 os dois.
 
-## 🚨 PENDÊNCIA URGENTE: 6 vulnerabilidades de dependências no backend
+## 🚨 Vulnerabilidades de dependências: 38 → 13 (2026-10-27)
 
-Identificada em 2026-10-22 pelo aviso do Render no deploy (`6 vulnerabilities (2 low, 1 moderate, 2 high, 1 critical)`) e confirmada com `npm audit` em `apps/backend`. **Resolver antes de qualquer venda real.** Nenhuma foi corrigida ainda.
+Corrigidas em 2026-10-27, com `npm audit fix`, Nodemailer 10.2.1 e Next.js 16.4.3, e validadas com instalação limpa e build do app, do backend e do site (como Vercel e Render fazem). **Críticas: 0. Altas do backend: só o Zod.**
 
-| Pacote | Gravidade | Problema | Correção |
+**O que ainda aparece no `npm audit` (13):**
+| Pacote | Gravidade | Por que sobrou | Plano |
 |---|---|---|---|
-| `proxy-addr` | **crítica** | Falsificação de IP (IPv4-mapped IPv6 em sub-rede confiável). Afeta rate limit e qualquer decisão baseada no IP do cliente. | `npm audit fix` (sem quebra) |
-| `nodemailer` (≤ 10.0.9) | **alta** | 15+ avisos: injeção de comandos SMTP e de cabeçalhos (CRLF), entrega para domínio indevido, leitura de arquivo/SSRF via opção `raw`, divulgação de credencial SMTP entre transportes, DoS. O backend envia os 13 e-mails por aqui (`src/lib/mailer.ts`). | `npm audit fix --force` → `nodemailer@10.2.1` (**quebra de versão**: testar os 13 e-mails depois) |
-| `path-to-regexp` (< 0.1.13) | **alta** | DoS por expressão regular em rotas com vários parâmetros. | `npm audit fix` (sem quebra) |
-| `qs` (≤ 6.15.3) | média | 3 avisos de DoS (parsing/stringify). | `npm audit fix` (sem quebra) |
-| `body-parser` (< 1.20.6) | baixa | Um `limit` inválido desliga o limite de tamanho do corpo (DoS). | `npm audit fix` (sem quebra) |
-| `esbuild` (0.27.3 – 0.28.0) | baixa | Leitura arbitrária de arquivo no servidor de dev, **só no Windows**. Não afeta produção. | `npm audit fix` (sem quebra) |
+| `expo`, `@expo/cli`, `expo-router`, `postcss`, `node-forge`, `@expo/metro-config`, `decode-uri-component`, `query-string`, `esbuild` | alta/moderada/baixa | Ferramentas de **build do Expo** (não rodam em produção). A correção exige subir o Expo SDK inteiro (breaking). | Migração planejada do Expo SDK (🤖, 1 a 2 dias + teste em celular). Não bloqueia o lançamento. |
+| `zod` (backend) | alta | DoS com coleções enormes. A correção é a versão 4 (breaking). O corpo das requisições já tem limite de tamanho. | Migrar schemas do Zod 3 → 4 (🤖, algumas horas). |
+| `image-size`, `qs`, `@expo/code-signing-certificates` | alta/moderada | Dependências transitivas sem correção compatível ainda. | O Dependabot abre o PR assim que sair a versão corrigida. |
 
-**Plano (🤖, com revisão antes do push):**
-- [ ] Rodar `npm audit fix` (sem `--force`) em `apps/backend` e conferir o diff do `package-lock.json`. Resolve 5 dos 6 pacotes.
-- [ ] Atualizar o `nodemailer` para 10.2.1 em passo separado e rodar o teste dos e-mails (`mailer.test.ts` + envio real de boas-vindas e recuperação de senha).
-- [ ] Rodar `tsc`, os testes do backend e o `health.sh` locais; só então commit e push na `main`. O Render publica sozinho.
-- [ ] Depois do deploy: conferir `/health` e que o aviso do Render caiu para 0 vulnerabilidades.
-- [ ] Rodar `npm audit` também em `apps/site`, `apps/mobile` e na raiz do monorepo (nesta checagem só o backend foi auditado).
-- [ ] Opcional: ligar o Dependabot no GitHub para avisar de novas vulnerabilidades.
+- [x] 🤖 Dependências corrigidas e validadas em instalação limpa (2026-10-27). Cuidado aprendido: `npm audit fix --legacy-peer-deps` removeu o peer `expo-font`, e o build do app quebrou; ele foi fixado no `apps/mobile/package.json`.
+- [x] 🤖 Dependabot ligado (`.github/dependabot.yml`, semanal, agrupando patch e minor).
+- [ ] 🤖 Migração do Zod 3 → 4.
+- [ ] 🤖 Migração do Expo SDK (resolve a maior parte do que resta).
+
+## 🎯 FASE FINAL (definida em 2026-10-26): Connect em produção → auditorias → publicação
+
+Ordem de execução. Cada bloco só começa quando o anterior tem o essencial pronto. Legenda: 👤 Diego/sócia · 🤖 Claude · 👥 os dois.
+
+### A. Stripe Connect em produção, com a comissão funcionando · 🔴 · 👥
+
+**Estado atual no código (verificado em 2026-10-26):**
+- Já existe: rota de onboarding Express (`POST /api/creators/me/stripe/onboarding-link`) e consulta de status (`apps/backend/src/routes/creators.ts`).
+- Não existe o dinheiro andando: o checkout é cobrança simples na conta da plataforma (sem `application_fee` nem transferência ao roteirista). A comissão é só um número gravado na venda, **fixo em 15%** em dois lugares (`payments.ts:212` e `itineraries.ts:1890`); a decisão registrada é **20% VAMO / 80% roteirista**.
+- A tela de ganhos mostra estimativa (`payoutAccountStatus` fixo em `not_started`); reembolso não desfaz repasse; o vínculo roteirista↔conta Connect fica só na *metadata* da Stripe (sem coluna no banco); não há webhooks de Connect.
+
+**Decisões que dependem de vocês (👤):**
+- [ ] Comissão final: **20%** (decidido) ou outro valor. Quem paga a taxa da Stripe (a plataforma, o roteirista ou dividida)?
+- [ ] Quando o roteirista recebe: **recomendação** → cobrar na plataforma e **transferir após a janela de reembolso (7 dias)**, o mesmo prazo da Política de Reembolso. Evita ter de reverter repasse. A alternativa (cobrança direta com `transfer_data`) paga na hora, mas exige conta do roteirista já ativa e complica reembolso.
+- [ ] Roteirista fora dos EUA: a Stripe só permite repasse automático entre países limitados. Definir se o piloto é só EUA ou se fora dos EUA o repasse segue manual (relatório "a pagar" no admin).
+- [ ] Contador: tributação do repasse e declarações americanas (a Stripe Connect Express emite 1099 para roteiristas dos EUA).
+
+**Passos técnicos (🤖 depois das decisões):**
+- [ ] 👤 Ativar a conta Stripe da LLC (dados da empresa, banco, documentos) e **habilitar o Connect** em Settings → Connect (sem isso a API responde `connect_not_enabled`).
+- [ ] 🤖 Migration aditiva: `Creator.stripeAccountId` + status de recebimento (substitui a busca por metadata).
+- [x] 🤖 Comissão em **um só lugar** (`packages/shared/itinerary/commission.ts`, 2026-10-27): pagamento, e-mails, página de recebimento e Help leem de lá. Valor atual 15%. **Mudar para o valor decidido = editar 1 número** (e o prazo `PAYOUT_HOLD_DAYS`). Falta a tela de ganhos e o admin usarem a mesma função.
+- [ ] 🤖 Fluxo de dinheiro: cobrança na plataforma + transferência ao roteirista após 7 dias (job agendado e idempotente), ou `application_fee` + `transfer_data` se a decisão for pagar na hora.
+- [ ] 🤖 Reembolso desfaz o repasse (antes do pagamento: cancela a transferência; depois: `reverse_transfer`). Roteirista sem conta ativa: saldo fica retido e vira repasse quando ele concluir o cadastro.
+- [ ] 🤖 Webhooks de Connect no endpoint de produção: `account.updated`, `transfer.created/failed/reversed`, `payout.failed`, `charge.refunded`, `charge.dispute.created`.
+- [ ] 🤖 Tela de ganhos do roteirista com dados reais (disponível, a liberar, pago, histórico) e relatório no admin; remover o mock.
+- [ ] 🤖 Testes automatizados com a Stripe em modo teste (conta Connect de teste): compra → comissão → transferência → reembolso.
+- [ ] 👥 Teste real de ponta a ponta no modo teste com 2 contas (viajante e roteirista), depois a **troca para chaves `sk_live_`/`whsec_` de produção**, compra real de baixo valor, reembolso e conferência do saldo.
+
+### B. Auditoria de funcionamento (QA completo) · 🟡 · 👥
+- [ ] 🤖 Roteiro de testes ponta a ponta em produção: cadastro, login, recuperar senha pelo link, busca e filtros, compra com cartão, e-mail de compra, Meus Roteiros, roteiro comprado (Original / Minha versão / PDF), avaliação, pergunta e resposta, favoritos, carrinho.
+- [ ] 🤖 Fluxo do roteirista: tornar-se roteirista, criar roteiro (com módulos desativados), enviar, admin aprova, venda, e-mail de venda, ganhos, pausar/arquivar.
+- [ ] 🤖 Fluxo do admin: aprovar/reprovar roteiro e roteirista, financeiro, conversão de moedas, histórico.
+- [ ] 🤖 Os 13 e-mails em produção, conferindo texto, links e caixa de spam.
+- [ ] 🤖 Celular real (iOS Safari e Android Chrome) e desktop; conexão lenta; app depois de ficar parado.
+- [ ] 🤖 Corrigir o roteiro da Califórnia (15 dias vazios) e impedir aprovação de roteiro sem conteúdo nos módulos ativos.
+- [x] 🤖 Alerta de queda (2026-10-27): GitHub Actions `uptime.yml` testa `/health`, a API e o app a cada 15 min e o GitHub avisa por e-mail se falhar. `render.yaml` já declara `healthCheckPath: /health`.
+- [ ] 👤 Preencher **Health Check Path = `/health`** no painel do Render (Settings → Health Checks): o painel é a fonte da verdade.
+- [ ] 🤖 Monitoramento de erros (Sentry ou similar): precisa de uma conta e da chave (DSN).
+- [ ] 👤 Teste com 3 a 5 pessoas reais (americanas, de preferência) e lista de bloqueadores.
+
+### C. Auditoria de segurança · 🔴 · 🤖 (👤 nas chaves)
+Base: [AUDITORIA-SEGURANCA-2026-10-15.md](AUDITORIA-SEGURANCA-2026-10-15.md) (achados ainda a conferir) + as 6 vulnerabilidades do topo.
+- [x] 🤖 Dependências corrigidas (raiz, backend, site e mobile) e Dependabot ligado (2026-10-27). Restam Zod e Expo (seção acima). Multer ainda a conferir.
+- [x] 🤖 Pagamentos (2026-10-27): checkout idempotente (mesma sessão para duplo clique, janela de 30 min), segundo pagamento do mesmo roteiro estornado automaticamente com e-mail, estorno que falha faz o webhook responder 500 para a Stripe tentar de novo. Testes novos. Falta: deduplicar eventos do webhook por ID e fila persistente de estornos.
+- [ ] 🤖 Rodar de novo a auditoria da lista de 15/10 e marcar o que já foi resolvido.
+- [ ] 🤖 Autorização por rota: um usuário nunca acessa roteiro, venda, ganhos ou arquivos de outro; rotas de admin protegidas; token do Trip Center e uploads privados.
+- [ ] 🤖 CORS (`ALLOWED_ORIGINS`), limites de requisição, cabeçalhos de segurança, validação de uploads, logs sem dados pessoais nem tokens.
+- [ ] 🤖 Supabase: RLS ligado em todas as tabelas, bucket de uploads, backup diário (Pro) e restauração testada.
+- [ ] 👤 Rotacionar segredos antes de produção: chave do Supabase que passou pelo chat, senha de app do Gmail, `JWT_SECRET`; chaves Stripe com permissões mínimas (restricted key) quando possível.
+- [ ] 👤 Ativar 2FA na Stripe, Render, Vercel, Supabase, GitHub e Gmail do projeto.
+
+### D. Subir nas plataformas · 🟡 · 👥
+- [ ] 🤖 Pré-requisitos: A concluído, B e C sem bloqueadores, backup do banco logo antes.
+- [ ] 👤 Domínio próprio (task 6) e atualizar `APP_BASE_URL`, `ALLOWED_ORIGINS`, webhook e links dos e-mails.
+- [ ] 👤 Variáveis de produção conferidas no Render e nas Vercels (`vamo`, `vamo-admin`): chaves live, SMTP, `ADMIN_APP_URL`, URL da API.
+- [ ] 🤖 Publicar a `main` (Render e Vercel) e conferir `/health`, compra real de teste, webhook 200 e e-mail.
+- [ ] 👥 Decidir App Store e Google Play (task 11): a Apple e o Google exigem pagamento deles para conteúdo digital dentro do app.
+- [ ] 👥 Acompanhar as primeiras vendas por 48 horas (Stripe, e-mails, repasses).
+
+### E. Avaliações nos roteiros · 🟡 · 🤖
+Hoje: só quem comprou avalia (1 por roteiro), com fotos; não há nenhuma avaliação real, então "Destaque" (nota ≥ 4,5 e ≥ 1 avaliação) fica vazio.
+- [ ] 🤖 Testar o fluxo inteiro em produção: avaliar, editar, nota média e contagem no card e na página, foto, resposta do criador.
+- [x] 🤖 **E-mail de convite para avaliar** (2026-10-27): 3 dias depois da compra + 1 lembrete 7 dias depois, só para quem não avaliou, só compras dos últimos 60 dias, sem repetir mesmo com reinício do servidor (roda de 6 em 6 horas em produção; desligável com `REVIEW_REQUESTS_ENABLED=false`).
+- [x] 🤖 Moderação (2026-10-27): botão de denunciar na avaliação (5 motivos, 1 por pessoa), e-mail ao admin e tela **Avaliações** no painel admin para esconder ou restaurar. Esconder não apaga, tira da página e da nota média e recalcula.
+- [ ] 🤖 Resposta pública do roteirista à avaliação (e e-mail ao viajante).
+- [ ] 👤 Conseguir as primeiras avaliações reais (convidar compradores do piloto, sem incentivo que fira as regras da Stripe/FTC: avaliações compradas ou incentivadas precisam ser divulgadas).
+- [ ] 🤖 Rever as regras de Destaque e do selo "Novo" quando houver avaliações.
+
+### F. Orientar os novos roteiristas sobre saque e finanças · 🟡 · 👥
+- [x] 🤖 (2026-10-27) Passo "Get paid" no `become-creator` e página **How you get paid** (Central do Roteirista → Settings), que lê comissão e prazo do arquivo único. Explica: **comissão (X%)**, **como e quando recebe** (após 7 dias da compra, via Stripe), cadastro de banco e identidade, **reembolso desfaz o ganho**, taxas, valor mínimo, moeda (USD), prazos de saque.
+- [ ] 🤖 Impostos: roteirista dos EUA preenche o formulário fiscal no cadastro da Stripe (W-9) e recebe 1099 quando aplicável; fora dos EUA, outro formulário. Texto aprovado pelo contador.
+- [x] 🤖 O e-mail de roteirista aprovado agora traz o resumo de como recebe e o link da página. Falta o atalho "Configurar recebimentos" enquanto a conta não estiver ativa (depende do Connect).
+- [x] 🤖 Perguntas frequentes no Help: quanto ganho, quando recebo, saldo retido, reembolso e impostos.
+- [ ] 🤖 Atualizar os Termos do Criador (`packages/shared/legal`) com a comissão final, o prazo de repasse e o tratamento de reembolso e disputa.
+- [ ] 👤 Definir quem responde dúvidas financeiras dos roteiristas (e-mail de suporte) e o prazo de resposta.
 
 ## Resumo
 
@@ -38,7 +109,13 @@ Identificada em 2026-10-22 pelo aviso do Render no deploy (`6 vulnerabilities (2
 | 2 | "Esqueci minha senha" | 🟡 no ar e o e-mail chega; falta testar a troca de senha pelo link em produção |
 | 3 | Migrations automáticas no deploy | ✅ concluída |
 | 4 | Render pago + Supabase Pro | 🟡 Render Starter ✅; falta o Supabase Pro |
-| 0 | 🚨 Vulnerabilidades de dependências no backend | 🔴 URGENTE: 6 abertas (1 crítica, 2 altas), nenhuma corrigida |
+| 0 | Vulnerabilidades de dependências | 🟡 38 → 13; críticas 0; sobra ferramenta de build do Expo e o Zod (ver seção) |
+| A | 🎯 Stripe Connect em produção com comissão | 🔴 só o onboarding existe; falta o fluxo de dinheiro, comissão única, reembolso e ganhos reais |
+| B | 🎯 Auditoria de funcionamento (QA) | ⬜ |
+| C | 🎯 Auditoria de segurança | 🟡 dependências e pagamentos feitos; faltam autorização por rota, RLS, segredos e 2FA |
+| D | 🎯 Subir nas plataformas | ⬜ depende de A, B e C |
+| E | 🎯 Avaliações nos roteiros | 🟡 convite por e-mail, denúncia e moderação feitos; faltam resposta do roteirista e as primeiras avaliações |
+| F | 🎯 Orientação financeira dos roteiristas | 🟡 página "How you get paid", FAQ e e-mail feitos; falta fechar comissão e prazo e a revisão do contador |
 | 5 | Stripe em produção + repasse aos roteiristas | 🟡 conta da sócia (LLC nos EUA) aberta; webhook de teste criado; falta colar as chaves no Render e testar a compra |
 | 6 | Domínio próprio | ⬜ |
 | 7 | Termos, privacidade, reembolso e termos dos roteiristas | 🟡 rascunhos em inglês escritos e publicados no app e no site; falta revisão de advogado, dados da LLC e aceite no cadastro |
@@ -52,6 +129,7 @@ Identificada em 2026-10-22 pelo aviso do Render no deploy (`6 vulnerabilities (2
 
 | Data | O que foi feito | Commit |
 |---|---|---|
+| 2026-10-27 | **Segurança, avaliações e recebimento:** 38 → 13 vulnerabilidades; checkout idempotente e estorno de pagamento duplicado/falho; Dependabot e alerta de queda; convite e moderação de avaliações (migration aditiva); aceite dos termos no cadastro; comissão em um arquivo; página "How you get paid". | — |
 | 2026-10-22 | **Correção de validação de roteiro:** módulo desativado não gera mais pendência nem bloqueia o envio (dias do itinerário e links); validação do app e do backend alinhadas, com 14 testes novos. Causa do roteiro da Califórnia ter 15 dias vazios. | — |
 | 2026-10-22 | **Textos legais (US):** Termos de Uso, Privacidade, Reembolso e Termos do Criador em inglês (`packages/shared/legal/`), publicados no app (`/legal/[doc]`, ligados ao cadastro, ao checkout e ao Perfil) e no site (`/termos`, `/privacidade`, `/reembolsos`, `/termos-criadores`). **Rascunho para advogado**: preencher `LEGAL_PLACEHOLDERS` (razão social da LLC, estado e endereço). | — |
 | 2026-10-22 | **Tradução para inglês americano:** app mobile inteiro, mensagens e e-mails do backend, pontuação, validações e gamificação; telefone, ponto decimal, feriados e cidades dos EUA; auditoria de Austrália/AUD feita (AUD segue só como moeda estrangeira e Austrália como destino). Categorias gravadas em português (checklist, arquivos da viagem, culinária) foram mantidas no banco e ganharam rótulos em inglês na tela. | — |
@@ -244,7 +322,7 @@ Hoje há só 3 roteiros ativos, 2 deles do Japão. O público americano procura 
 - [ ] 🤖 Extrair os textos tela por tela, nesta ordem: Home e busca → detalhe do roteiro → checkout → login e cadastro → Meus Roteiros e roteiro comprado → perfil → portal do roteirista → admin.
 - [x] 🤖 Traduzir e-mails, mensagens de erro, confirmações e as páginas legais da task 7 (feito).
 - [ ] 🤖 Traduzir o painel admin, o editor web do criador (`apps/site` dashboards) e a área de agências: ainda em português, uso interno.
-- [ ] 🤖 Aceite obrigatório dos termos no cadastro com data e versão (`LEGAL_VERSION`): precisa de migration.
+- [x] 🤖 Aceite obrigatório dos termos no cadastro com data e versão (`LEGAL_VERSION`), gravado em `travelers.termsAcceptedAt/termsVersion` (migration `20261027120000`, 2026-10-27). Contas antigas ficam sem registro. Falta: pedir novo aceite quando `LEGAL_VERSION` mudar.
 - [x] 🤖 Formatos americanos: datas (mm/dd/aaaa), moeda (US$), vírgula/ponto decimal e horário AM/PM (feito; ponto como separador decimal, feriados dos EUA na busca por datas).
 - [ ] 👤 Revisar as traduções com um falante nativo.
 - [ ] 👤 Decidir o que fazer com os roteiros escritos em português: exigir inglês dos roteiristas ou traduzir.

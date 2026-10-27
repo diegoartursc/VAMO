@@ -869,6 +869,15 @@ export async function updateItineraryReview(
     return request(`/reviews/${reviewId}`, { method: 'PUT', body: params, accessToken });
 }
 
+/** Denuncia uma avaliação (uma por pessoa). reason: spam | offensive | fake | irrelevant | other. */
+export async function reportReview(
+    reviewId: string,
+    params: { reason: string; details?: string },
+    accessToken?: string | null,
+): Promise<{ reported: boolean }> {
+    return request(`/reviews/${reviewId}/report`, { method: 'POST', body: params, accessToken });
+}
+
 /** Item de GET /api/reviews/my. */
 export interface MyReview {
     id: string;

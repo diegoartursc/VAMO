@@ -26,7 +26,7 @@ services:
     # .ts fonte, sem build próprio, e `node` puro não consegue fazer require()
     # dele.
     startCommand: npm run start
-    # healthCheckPath: vazio no painel. Recomendado configurar /health.
+    healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: 22

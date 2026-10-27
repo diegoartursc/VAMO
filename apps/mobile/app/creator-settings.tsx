@@ -101,10 +101,11 @@ export default function CreatorSettingsScreen() {
                     {/* Recebimentos */}
                     <Text style={s.sectionLabel}>Payouts</Text>
                     <Row icon="card-outline" title="Payouts and balance" hint="Balance, transactions and payments" onPress={() => { haptics.light(); router.push('/creator-earnings'); }} tone={theme.colors.success} />
+                    <Row icon="help-circle-outline" title="How you get paid" hint="Commission, payout timing and taxes" onPress={() => { haptics.light(); router.push('/how-you-get-paid'); }} tone={theme.colors.primary} />
                     <View style={s.infoCard}>
                         <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
                         <Text style={s.infoText}>
-                            Your sales earnings become available for payout once the purchase is confirmed. Payout account setup will be available soon.
+                            Payouts are being rolled out. We'll email you when your payout account can be set up.
                         </Text>
                     </View>
 

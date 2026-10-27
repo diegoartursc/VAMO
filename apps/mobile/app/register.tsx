@@ -27,6 +27,7 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
 
     const handleRegister = async () => {
         setError(null);
@@ -44,6 +45,11 @@ export default function RegisterScreen() {
             return;
         }
 
+        if (!acceptedTerms) {
+            setError('Please accept the Terms of Use, Privacy Policy and Refund Policy to continue.');
+            return;
+        }
+
         haptics.light();
         setLoading(true);
 
@@ -52,6 +58,7 @@ export default function RegisterScreen() {
                 name: name.trim(),
                 email: email.trim().toLowerCase(),
                 password,
+                acceptTerms: true,
             });
             haptics.success();
             router.replace('/(tabs)/profile');
@@ -181,8 +188,21 @@ export default function RegisterScreen() {
                         )}
                     </TouchableOpacity>
 
+                    <TouchableOpacity
+                        style={styles.termsRow}
+                        onPress={() => setAcceptedTerms(v => !v)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: acceptedTerms }}
+                        activeOpacity={0.8}
+                    >
+                        <View style={[styles.checkbox, acceptedTerms && styles.checkboxOn]}>
+                            {acceptedTerms && <Text style={styles.checkboxTick}>✓</Text>}
+                        </View>
+                        <Text style={styles.termsText}>I agree to the Terms of Use, Privacy Policy and Refund Policy below.</Text>
+                    </TouchableOpacity>
+
                     <Text style={styles.legalNote}>
-                        By creating an account you agree to our{' '}
+                        Read our{' '}
                         <Text style={styles.legalLink} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })}>Terms of Use</Text>
                         {', '}
                         <Text style={styles.legalLink} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } })}>Privacy Policy</Text>
@@ -204,6 +224,11 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+    termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
+    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: theme.colors.text.tertiary, alignItems: 'center', justifyContent: 'center' },
+    checkboxOn: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+    checkboxTick: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    termsText: { flex: 1, fontSize: 13, color: theme.colors.text.secondary, lineHeight: 18 },
     legalNote: { fontSize: 12.5, color: theme.colors.text.secondary, textAlign: 'center', lineHeight: 18, marginTop: 14 },
     legalLink: { color: theme.colors.primary, fontWeight: '600' },
     root: { flex: 1, backgroundColor: theme.colors.background },

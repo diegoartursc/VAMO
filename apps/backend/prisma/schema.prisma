@@ -205,6 +205,9 @@ model Traveler {
   bio               String?
   // Refresh tokens emitidos antes disso são recusados (revogação pós-reset de senha).
   passwordChangedAt DateTime?
+  // Aceite dos Termos de Uso / Privacidade / Reembolso (data e versão de packages/shared/legal).
+  termsAcceptedAt   DateTime?
+  termsVersion      String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -220,6 +223,7 @@ model Traveler {
   tripFiles           TravelerFile[]
   routeCustomizations TravelerItineraryCustomization[]
   passwordResetTokens PasswordResetToken[]
+  reviewReports       ReviewReport[]
 
   @@map("travelers")
 }
@@ -710,6 +714,9 @@ model ItinerarySale {
   // feature de Roteiro Editável Pós-Compra (Original vs. Minha versão);
   // não há `purchasedSnapshot` separado.
   purchaseData Json? // { routeSnapshot, checklist, weather, accommodation, emergencyContacts, spendingProfile, transport, flightInfo, accommodationOptions, receiveList }
+  // E-mail pedindo avaliação (1 convite + 1 lembrete por venda; nunca repetir).
+  reviewRequestSentAt  DateTime?
+  reviewReminderSentAt DateTime?
   createdAt    DateTime @default(now())
 
   itinerary      Itinerary                        @relation(fields: [itineraryId], references: [id], onDelete: Restrict)
@@ -786,6 +793,10 @@ model Review {
   userAvatar   String?
   userInitial  String?
   helpful      Int      @default(0)
+  // Moderação: avaliação escondida pelo admin sai das listas e da nota média, mas não é apagada.
+  hidden       Boolean  @default(false)
+  hiddenReason String?
+  hiddenAt     DateTime?
   createdAt    DateTime @default(now())
 
   traveler  Traveler         @relation(fields: [travelerId], references: [id], onDelete: Cascade)
@@ -793,8 +804,26 @@ model Review {
   itinerary Itinerary?       @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
   images    ReviewImage[]
   responses ReviewResponse[]
+  reports   ReviewReport[]
 
   @@map("reviews")
+}
+
+// Denúncia de avaliação feita por um usuário (uma por pessoa por avaliação).
+model ReviewReport {
+  id         String   @id @default(cuid())
+  reviewId   String
+  reporterId String
+  reason     String
+  details    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  review   Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporter Traveler @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, reporterId])
+  @@index([reviewId])
+  @@map("review_reports")
 }
 
 model ReviewImage {

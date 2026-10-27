@@ -5,7 +5,7 @@ import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/trave
 import { PURCHASED_ITINERARY_INCLUDE, buildPurchasedItineraryPayload, toJsonSafe } from './itineraries';
 import { isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 import { sendPurchaseConfirmationEmail, sendCreatorSaleEmail, sendPurchaseAutoRefundEmail } from '../lib/mailer';
-import { BASE_CURRENCY } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY, computeCommission } from '@vamo/shared/itinerary';
 
 const router = Router();
 
@@ -75,6 +75,70 @@ export async function refundPaymentIntentIfNeeded(
     } catch (err: any) {
         console.error('[payments] refund failed for', paymentIntentId, err?.message);
         return { refunded: false, newlyCreated: false };
+    }
+}
+
+/**
+ * Chave de idempotência do Checkout: o mesmo comprador clicando duas vezes (ou em
+ * duas abas) no mesmo roteiro, dentro da mesma janela, recebe a MESMA sessão da
+ * Stripe, em vez de duas cobranças possíveis. A sessão expira em 30 min, igual à
+ * janela da chave.
+ */
+export const CHECKOUT_WINDOW_MS = 30 * 60 * 1000;
+export function checkoutIdempotencyKey(travelerId: string, itineraryId: string, now = Date.now(), attempt = 0): string {
+    return `vamo-checkout-${travelerId}-${itineraryId}-${Math.floor(now / CHECKOUT_WINDOW_MS)}${attempt ? `-${attempt}` : ''}`;
+}
+
+/**
+ * Já existe venda deste roteiro para este comprador. Se o pagamento que chegou agora
+ * é OUTRO (outro PaymentIntent), ele é uma cobrança em duplicidade e precisa ser
+ * estornado. O mesmo pagamento chegando de novo (webhook + tela de retorno) não é.
+ */
+export function isDuplicatePayment(existingPaymentIntentId: string | null | undefined, incomingPaymentIntentId: string | null | undefined): boolean {
+    if (!incomingPaymentIntentId) return false;
+    return existingPaymentIntentId !== incomingPaymentIntentId;
+}
+
+function savedPaymentIntentId(purchaseData: unknown): string | null {
+    const pd = purchaseData as { payment?: { paymentIntentId?: string | null } } | null;
+    return pd?.payment?.paymentIntentId ?? null;
+}
+
+export class DuplicateRefundPendingError extends Error {
+    constructor() {
+        super('Duplicate payment refund is pending');
+        this.name = 'DuplicateRefundPendingError';
+    }
+}
+
+// Estorna a cobrança duplicada (idempotente) e avisa o comprador uma única vez.
+async function refundDuplicatePayment(
+    travelerId: string,
+    itineraryTitle: string,
+    currencyFallback: string,
+    payment: { provider: 'stripe' | 'free'; paymentIntentId?: string | null; amountTotal?: number | null; currency?: string | null },
+): Promise<void> {
+    if (payment.provider !== 'stripe' || !payment.paymentIntentId) return;
+    const stripe = getStripe();
+    if (!stripe) return;
+    const refund = await refundPaymentIntentIfNeeded(stripe, payment.paymentIntentId, 'duplicate_payment_for_owned_itinerary');
+    if (!refund.refunded) {
+        // O webhook responde 500 nesse caso e a Stripe tenta de novo (ver stripeWebhookHandler).
+        console.error(`[payments][ACTION NEEDED] duplicate payment ${payment.paymentIntentId} was NOT refunded; will retry on webhook redelivery`);
+        throw new DuplicateRefundPendingError();
+    }
+    console.warn(`[payments] duplicate payment ${payment.paymentIntentId} refunded (itinerary already owned)`);
+    if (refund.newlyCreated) {
+        prisma.traveler
+            .findUnique({ where: { id: travelerId }, select: { email: true, name: true } })
+            .then((t) => t && sendPurchaseAutoRefundEmail({
+                to: t.email,
+                name: t.name,
+                itineraryTitle,
+                amount: payment.amountTotal,
+                currency: payment.currency || currencyFallback,
+            }))
+            .catch((e) => console.error('[payments] duplicate-refund email failed:', e?.message || e));
     }
 }
 
@@ -151,9 +215,15 @@ async function fulfillItineraryPurchase(opts: {
 
     const existing = await prisma.itinerarySale.findFirst({
         where: { itineraryId, travelerId },
-        select: { id: true },
+        select: { id: true, purchaseData: true, itinerary: { select: { title: true, currency: true } } },
     });
-    if (existing) return { saleId: existing.id, alreadyPurchased: true };
+    if (existing) {
+        // Pagou de novo um roteiro que já é dele: devolve o dinheiro.
+        if (isDuplicatePayment(savedPaymentIntentId(existing.purchaseData), payment.paymentIntentId)) {
+            await refundDuplicatePayment(travelerId, existing.itinerary.title, existing.itinerary.currency, payment);
+        }
+        return { saleId: existing.id, alreadyPurchased: true };
+    }
 
     const itinerary = await prisma.itinerary.findUnique({
         where: { id: itineraryId },
@@ -209,7 +279,7 @@ async function fulfillItineraryPurchase(opts: {
                     itineraryId,
                     travelerId,
                     price: itinerary.price,
-                    commission: itinerary.price * 0.15, // 15% platform commission
+                    commission: computeCommission(itinerary.price), // taxa única em packages/shared/itinerary/commission.ts
                     purchaseData: {
                         routeSnapshot: snapshotPayload,
                         payment: toJsonSafe(payment),
@@ -234,9 +304,14 @@ async function fulfillItineraryPurchase(opts: {
         if (err?.code === 'P2002') {
             const winner = await prisma.itinerarySale.findFirst({
                 where: { itineraryId, travelerId },
-                select: { id: true },
+                select: { id: true, purchaseData: true },
             });
-            if (winner) return { saleId: winner.id, alreadyPurchased: true };
+            if (winner) {
+                if (isDuplicatePayment(savedPaymentIntentId(winner.purchaseData), payment.paymentIntentId)) {
+                    await refundDuplicatePayment(travelerId, itinerary.title, itinerary.currency, payment);
+                }
+                return { saleId: winner.id, alreadyPurchased: true };
+            }
         }
         throw err;
     }
@@ -301,8 +376,10 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
         const destinationLabel = [itinerary.destination, itinerary.country].filter(Boolean).join(', ');
         const sourceParam = typeof source === 'string' && source ? `&source=${encodeURIComponent(source)}` : '';
 
-        const session = await stripe.checkout.sessions.create({
+        const sessionParams: Stripe.Checkout.SessionCreateParams = {
             mode: 'payment',
+            // A sessão vive o mesmo tempo da janela da chave de idempotência (mínimo da Stripe: 30 min).
+            expires_at: Math.floor(Date.now() / 1000) + Math.ceil(CHECKOUT_WINDOW_MS / 1000) + 60,
             // REGRA DE PRODUTO: o VAMO não oferece parcelamento nem BNPL.
             //
             // Sem `payment_method_types` explícito, o Checkout usa os métodos
@@ -332,7 +409,22 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
             payment_intent_data: { metadata: { itineraryId, travelerId } },
             success_url: `${APP_BASE_URL}/checkout/itinerary-confirm?session_id={CHECKOUT_SESSION_ID}&itineraryId=${encodeURIComponent(itineraryId)}${sourceParam}`,
             cancel_url: `${APP_BASE_URL}/checkout/itinerary-confirm?canceled=true&itineraryId=${encodeURIComponent(itineraryId)}${sourceParam}`,
-        });
+        };
+
+        // Mesma chave dentro da janela => mesma sessão (sem cobrança dupla por duplo clique).
+        // Se o roteiro mudou de preço dentro da janela, a Stripe rejeita a chave com parâmetros
+        // diferentes: aí usamos uma chave nova.
+        let session: Stripe.Checkout.Session;
+        try {
+            session = await stripe.checkout.sessions.create(sessionParams, {
+                idempotencyKey: checkoutIdempotencyKey(travelerId, itineraryId),
+            });
+        } catch (err: any) {
+            if (err?.type !== 'StripeIdempotencyError') throw err;
+            session = await stripe.checkout.sessions.create(sessionParams, {
+                idempotencyKey: checkoutIdempotencyKey(travelerId, itineraryId, Date.now(), 1),
+            });
+        }
 
         res.json({ itineraryId, sessionId: session.id, url: session.url });
     } catch (error) {
@@ -463,11 +555,15 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
                     console.log(`[stripe webhook] ${event.type}: sale ${result.saleId} (alreadyPurchased=${result.alreadyPurchased})`);
                 } catch (err) {
                     if (err instanceof PurchaseBlockedError) {
-                        // Decisão de produto definitiva (roteiro não é mais
-                        // compravel), não falha transiente — não deixamos o
-                        // Stripe reenviar o evento pra sempre. O refund (se
-                        // aplicável) já foi tentado dentro do fulfillment.
-                        console.warn(`[stripe webhook] ${event.type}: blocked — ${err.message}`);
+                        // Roteiro deixou de estar à venda. Se o estorno AUTOMÁTICO funcionou, é
+                        // decisão definitiva: responde 200. Se o estorno FALHOU, o comprador
+                        // ficou cobrado sem acesso: responde 500 para a Stripe reenviar o evento
+                        // e o estorno ser tentado de novo (é idempotente).
+                        if (!err.refunded) {
+                            console.error(`[payments][ACTION NEEDED] ${event.type}: blocked and NOT refunded (session ${session.id}); asking Stripe to retry`);
+                            throw err;
+                        }
+                        console.warn(`[stripe webhook] ${event.type}: blocked and refunded — ${err.message}`);
                     } else {
                         throw err;
                     }

@@ -53,6 +53,7 @@ interface AuthContextType {
         profileName?: string;
         cpf?: string;
         phone?: string;
+        acceptTerms: true;
     }) => Promise<void>;
     logout: () => Promise<void>;
     /** Atualiza o usuário localmente (ex.: após upload de avatar/cover).

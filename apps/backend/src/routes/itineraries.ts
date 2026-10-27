@@ -6,7 +6,7 @@ import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/trave
 import { selectFeaturedRanked } from '../utils/featuredRanking';
 import { PUBLIC_ITINERARY_WHERE, isPublicItineraryStatus, isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 import { sendItinerarySubmittedForReviewEmail } from '../lib/mailer';
-import { BASE_CURRENCY } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY, computeCommission } from '@vamo/shared/itinerary';
 
 const router = Router();
 
@@ -214,7 +214,7 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
             where,
             include: {
                 sales: { select: { id: true, price: true } },
-                reviews: { select: { id: true, rating: true } },
+                reviews: { where: { hidden: false }, select: { id: true, rating: true } },
             },
         });
 
@@ -391,6 +391,7 @@ router.get('/dashboard/reviews', optionalAuthMiddleware, async (req: AuthRequest
             select: {
                 id: true, title: true, rating: true, reviewCount: true,
                 reviews: {
+                    where: { hidden: false },
                     select: {
                         id: true, rating: true, comment: true, createdAt: true,
                         userName: true, userLocation: true, userAvatar: true, userInitial: true,
@@ -462,7 +463,7 @@ export const PURCHASED_ITINERARY_INCLUDE = {
     accommodations: { orderBy: { order: 'asc' as const } },
     transports: { orderBy: { order: 'asc' as const } },
     checklists: { orderBy: { order: 'asc' as const } },
-    reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' as const }, take: 10 },
+    reviews: { where: { hidden: false }, include: { images: true, responses: true }, orderBy: { createdAt: 'desc' as const }, take: 10 },
     _count: { select: { sales: true } },
 };
 
@@ -887,7 +888,7 @@ router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
                 accommodations: { orderBy: { order: 'asc' } },
                 transports:     { orderBy: { order: 'asc' } },
                 checklists:     { orderBy: { order: 'asc' } },
-                reviews: { include: { images: true, responses: true }, orderBy: { createdAt: 'desc' }, take: 10 },
+                reviews: { where: { hidden: false }, include: { images: true, responses: true }, orderBy: { createdAt: 'desc' }, take: 10 },
                 _count: { select: { sales: true } },
             },
         });
@@ -1887,7 +1888,7 @@ router.post('/:id/purchase', travelerAuthMiddleware, async (req: TravelerAuthReq
                         itineraryId,
                         travelerId,
                         price: itinerary.price,
-                        commission: itinerary.price * 0.15, // 15% platform commission
+                        commission: computeCommission(itinerary.price), // taxa única em packages/shared/itinerary/commission.ts
                         purchaseData: {
                             routeSnapshot: snapshotPayload,
                         },

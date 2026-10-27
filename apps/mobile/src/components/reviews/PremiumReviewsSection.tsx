@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Pressable } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
+import { reportReview } from '../../services/api';
+import { notify } from '../../utils/notify';
 import { theme } from '../../theme/theme';
 import { Icon } from '../common/Icons';
 import { CreatorAvatar } from '../common/CreatorAvatar';
@@ -25,6 +28,14 @@ interface Review {
     };
 }
 
+const REPORT_REASONS: { key: string; label: string }[] = [
+    { key: 'spam', label: 'Spam or advertising' },
+    { key: 'offensive', label: 'Offensive or abusive' },
+    { key: 'fake', label: 'Fake or not from a real buyer' },
+    { key: 'irrelevant', label: 'Not about this itinerary' },
+    { key: 'other', label: 'Something else' },
+];
+
 interface ReviewsSectionProps {
     reviews: Review[];
     averageRating: number;
@@ -47,6 +58,32 @@ export default function PremiumReviewsSection({
     topRatedSummary,
 }: ReviewsSectionProps) {
     const [showAllReviews, setShowAllReviews] = useState(false);
+    const { accessToken, isAuthenticated } = useAuth();
+    const [reportingId, setReportingId] = useState<string | null>(null);
+    const [sendingReport, setSendingReport] = useState(false);
+
+    const openReport = (reviewId: string) => {
+        if (!isAuthenticated) {
+            notify({ title: 'Sign in to report', message: 'Sign in to your account to report a review.' });
+            return;
+        }
+        setReportingId(reviewId);
+    };
+
+    const submitReport = async (reason: string) => {
+        if (!reportingId) return;
+        setSendingReport(true);
+        try {
+            await reportReview(reportingId, { reason }, accessToken);
+            setReportingId(null);
+            notify({ title: 'Report sent', message: 'Thanks. Our team will review it.', variant: 'success' });
+        } catch (err: any) {
+            setReportingId(null);
+            notify({ title: 'Couldn\'t send report', message: err?.message || 'Please try again.', variant: 'error' });
+        } finally {
+            setSendingReport(false);
+        }
+    };
     const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
     // Lightbox compartilhado pra fotos da comunidade e por review. `open`
@@ -184,7 +221,11 @@ export default function PremiumReviewsSection({
                                     <Text style={styles.reviewDate}>{review.date}</Text>
                                 </View>
                             </View>
-                            <TouchableOpacity style={styles.menuButton}>
+                            <TouchableOpacity
+                                style={styles.menuButton}
+                                accessibilityLabel="Report this review"
+                                onPress={() => openReport(review.id)}
+                            >
                                 <Icon name="more-horizontal" size={18} color={theme.colors.text.tertiary} />
                             </TouchableOpacity>
                         </View>
@@ -255,11 +296,41 @@ export default function PremiumReviewsSection({
 
             {/* Lightbox compartilhado — renderiza apenas quando uma foto é tocada. */}
             {lightbox.element}
+
+            <Modal visible={!!reportingId} transparent animationType="fade" onRequestClose={() => setReportingId(null)}>
+                <Pressable style={styles.reportBackdrop} onPress={() => setReportingId(null)}>
+                    <Pressable style={styles.reportSheet} onPress={() => undefined}>
+                        <Text style={styles.reportTitle}>Report this review</Text>
+                        <Text style={styles.reportSubtitle}>Why are you reporting it? Our team reviews every report.</Text>
+                        {REPORT_REASONS.map(r => (
+                            <TouchableOpacity
+                                key={r.key}
+                                style={styles.reportOption}
+                                disabled={sendingReport}
+                                onPress={() => submitReport(r.key)}
+                            >
+                                <Text style={styles.reportOptionText}>{r.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity style={styles.reportCancel} onPress={() => setReportingId(null)}>
+                            <Text style={styles.reportCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    reportBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 24 },
+    reportSheet: { backgroundColor: '#fff', borderRadius: 18, padding: 20, maxWidth: 420, width: '100%', alignSelf: 'center' },
+    reportTitle: { fontSize: 17, fontWeight: '800', color: theme.colors.text.primary },
+    reportSubtitle: { fontSize: 13, color: theme.colors.text.secondary, marginTop: 4, marginBottom: 12, lineHeight: 18 },
+    reportOption: { paddingVertical: 13, borderTopWidth: 1, borderTopColor: theme.colors.borderLight },
+    reportOptionText: { fontSize: 15, color: theme.colors.text.primary, fontWeight: '600' },
+    reportCancel: { paddingTop: 14, alignItems: 'center' },
+    reportCancelText: { fontSize: 15, color: theme.colors.text.secondary, fontWeight: '700' },
     container: {
         paddingVertical: 8,
     },

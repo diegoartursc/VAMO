@@ -10,6 +10,7 @@ import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { ScreenHeader } from '../../src/components/common/ScreenHeader';
+import { CREATOR_SHARE_PERCENT, PLATFORM_COMMISSION_PERCENT, PAYOUT_HOLD_DAYS } from '@vamo/shared/itinerary';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -41,6 +42,11 @@ const CATEGORIES: Category[] = [
             { q: 'How do I publish an itinerary?', a: 'In Profile, open the Creator Center and tap "New itinerary". Fill in the steps and submit for review.' },
             { q: 'How do I track my sales?', a: 'In the Creator Center, open "My sales" to see sales and revenue by itinerary.' },
             { q: 'How does itinerary approval work?', a: 'After you submit, the VAMO team reviews the itinerary (up to 48 hours). You\'re notified when it\'s approved or needs changes.' },
+            { q: 'How much do I earn from each sale?', a: `You keep ${CREATOR_SHARE_PERCENT}% of the itinerary price. VAMO's commission is ${PLATFORM_COMMISSION_PERCENT}%. Card processing fees are shown in your earnings. Details: Creator Portal → Settings → How you get paid.` },
+            { q: 'When and how do I get paid?', a: `Earnings from a sale are released ${PAYOUT_HOLD_DAYS} days after the purchase, once the refund window has passed, and are sent to the bank account you connect through Stripe (Creator Portal → Settings → Payouts). Payouts are being rolled out and we'll email you when your account can be set up.` },
+            { q: 'Why is some of my balance on hold?', a: `Each sale is held for ${PAYOUT_HOLD_DAYS} days so that refunds never take back money that was already paid out. After that, it becomes available.` },
+            { q: 'What happens to my earnings if a buyer gets a refund?', a: 'If a buyer is refunded under our Refund Policy, the earnings from that sale are reversed. If they were not paid out yet, they are simply removed from your balance.' },
+            { q: 'Do I owe taxes on what I earn?', a: 'Yes, you are responsible for reporting and paying your own taxes. Stripe may ask for tax information (such as a Form W-9) when you set up payouts and may send tax forms where required. Talk to a tax professional if you are unsure.' },
             { q: 'How do I improve my Quality Score?', a: 'Fill in every module in detail: daily itinerary, lodging, transportation, tips, cover photos and cost estimates.' },
         ],
     },
