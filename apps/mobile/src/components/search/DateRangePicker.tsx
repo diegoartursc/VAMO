@@ -55,7 +55,7 @@ export function DateRangePicker({
             <View style={styles.dateRow}>
                 {/* Data de Ida */}
                 <View style={styles.dateInputContainer}>
-                    <Text style={styles.dateLabel}>Ida</Text>
+                    <Text style={styles.dateLabel}>Depart</Text>
                     <TouchableOpacity
                         style={styles.dateButton}
                         onPress={() => setShowStartPicker(true)}
@@ -72,7 +72,7 @@ export function DateRangePicker({
 
                 {/* Data de Volta */}
                 <View style={styles.dateInputContainer}>
-                    <Text style={styles.dateLabel}>Volta</Text>
+                    <Text style={styles.dateLabel}>Return</Text>
                     <TouchableOpacity
                         style={styles.dateButton}
                         onPress={() => setShowEndPicker(true)}

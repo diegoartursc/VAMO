@@ -81,7 +81,7 @@ export default function PersonalDataScreen() {
     if (!isLoading && !isAuthenticated) {
         return (
             <View style={s.container}>
-                <ScreenHeader title="Dados pessoais" />
+                <ScreenHeader title="Personal data" />
                 <View style={s.center}>
                     <Icon name="lock" size={40} color={theme.colors.text.tertiary} />
                     <Text style={s.emptyTitle}>Sign-in required</Text>
@@ -96,7 +96,7 @@ export default function PersonalDataScreen() {
 
     return (
         <View style={s.container}>
-            <ScreenHeader title="Dados pessoais" subtitle="View and edit your account information." />
+            <ScreenHeader title="Personal data" subtitle="View and edit your account information." />
             <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
                 {hydrating ? (
                     <View style={s.center}><ActivityIndicator color={theme.colors.primary} /></View>

@@ -234,7 +234,7 @@ export default function TripCenter({
                 >
                     <Ionicons name="alert-circle" size={14} color={theme.colors.error} />
                     <Text style={styles.errorText} numberOfLines={2}>
-                        {loadError} Toque para tentar novamente.
+                        {loadError} Tap to try again.
                     </Text>
                 </TouchableOpacity>
             )}

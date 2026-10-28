@@ -298,7 +298,7 @@ export default function FAQSection({
                                         <Ionicons name="paper-plane" size={14} color="#fff" />
                                     )}
                                     <Text style={styles.sendBtnText}>
-                                        {sending ? 'Enviando...' : 'Send question'}
+                                        {sending ? 'Sending...' : 'Send question'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>

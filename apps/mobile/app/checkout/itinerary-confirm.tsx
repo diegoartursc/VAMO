@@ -172,7 +172,7 @@ export default function ItineraryConfirmScreen() {
     return (
         <View style={styles.container}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.title}>Confirmando pagamento...</Text>
+            <Text style={styles.title}>Confirming payment...</Text>
             <Text style={styles.text}>
                 We're verifying your purchase with Stripe. This only takes a few seconds.
             </Text>

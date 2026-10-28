@@ -70,7 +70,7 @@ export function TravelChecklist({
                 <View>
                     <Text style={styles.title}>Travel Checklist</Text>
                     <Text style={styles.subtitle}>
-                        {completedItems} de {totalItems} itens completos
+                        {completedItems} of {totalItems} items completed
                     </Text>
                 </View>
                 <TouchableOpacity

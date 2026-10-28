@@ -134,7 +134,7 @@ export function PurchaseSuccessModal({
                     </Animated.View>
 
                     {/* Title */}
-                    <Text style={styles.title}>Pagamento confirmado!</Text>
+                    <Text style={styles.title}>Payment confirmed!</Text>
 
                     {/* Message */}
                     <Text style={styles.message}>

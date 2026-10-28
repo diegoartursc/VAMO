@@ -91,8 +91,6 @@ export function SearchModal({
         itineraries: 'Search Itineraries',
     };
 
-    const resultLabel = 'roteiro';
-
     /**
      * Hidrata o estado local a cada abertura, a partir do que está realmente
      * aplicado. Reabrir o modal mostra os filtros vigentes marcados.
@@ -406,11 +404,11 @@ export function SearchModal({
                         {localActiveCount > 0 ? (
                             <Text style={styles.resultCounterText}>
                                 <Text style={styles.resultCounterBold}>{resultCount}</Text>
-                                {' '}{resultLabel}{resultCount !== 1 ? 's' : ''} encontrado{resultCount !== 1 ? 's' : ''}
+                                {' '}{resultCount !== 1 ? 'itineraries' : 'itinerary'} found
                             </Text>
                         ) : (
                             <Text style={styles.resultCounterText}>
-                                Mostrando todos os {resultLabel}s disponíveis
+                                Showing all available itineraries
                             </Text>
                         )}
                     </View>

@@ -98,7 +98,7 @@ export default function PeopleSimulator({
                 </View>
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryCell}>
-                    <Text style={styles.summaryLabel}>Para {peopleLabel}</Text>
+                    <Text style={styles.summaryLabel}>For {peopleLabel}</Text>
                     <Text style={[styles.summaryValue, styles.summaryValueGroup]}>
                         {formatMoney(totalForGroup, currency)}
                     </Text>

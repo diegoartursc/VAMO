@@ -186,7 +186,7 @@ export function DatePickerModal({ visible, onClose, onSelect }: DatePickerModalP
 
                     <View style={styles.divider}>
                         <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>ou</Text>
+                        <Text style={styles.dividerText}>or</Text>
                         <View style={styles.dividerLine} />
                     </View>
 

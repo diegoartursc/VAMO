@@ -138,7 +138,7 @@ export default function BookingAwaitingQuoteScreen() {
                             <View style={styles.inclusionRow}>
                                 <Text style={styles.inclusionIcon}>🧳</Text>
                                 <View style={styles.inclusionContent}>
-                                    <Text style={styles.inclusionLabel}>{booking.checkedBags} Bagagem(ns) Despachada(s)</Text>
+                                    <Text style={styles.inclusionLabel}>{booking.checkedBags} Checked bag(s)</Text>
                                     <Text style={styles.inclusionDetail}>Bags up to 50 lb included in the quote the agency will prepare</Text>
                                 </View>
                             </View>

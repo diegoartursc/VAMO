@@ -42,13 +42,13 @@ export interface ExportResult {
  * acentos, caracteres especiais e troca espaços por underscore.
  */
 function sanitizeFilename(raw: string): string {
-    const s = (raw ?? '').toString().trim() || 'roteiro';
+    const s = (raw ?? '').toString().trim() || 'itinerary';
     return s
         .normalize('NFD')
         .replace(/[̀-ͯ]/g, '')      // remove acentos
         .replace(/[^a-zA-Z0-9\- ]/g, '')       // remove especiais
         .replace(/\s+/g, '_')
-        .slice(0, 80) || 'roteiro';
+        .slice(0, 80) || 'itinerary';
 }
 
 /**
@@ -61,7 +61,7 @@ function sanitizeFilename(raw: string): string {
  */
 export async function exportRoutePdf(opts: PdfBuildOpts): Promise<ExportResult> {
     const html = buildPdfHtml(opts);
-    const titleBase = sanitizeFilename(opts.itinerary?.title ?? 'roteiro');
+    const titleBase = sanitizeFilename(opts.itinerary?.title ?? 'itinerary');
     const variantSuffix = opts.variant === 'personalized' ? 'minha-versao' : 'original';
     const fileLabel = `${titleBase}_${variantSuffix}`;
 

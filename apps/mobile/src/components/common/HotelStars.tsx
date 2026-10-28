@@ -16,7 +16,7 @@ export function HotelStarsInput({ label = 'Rating (stars)', value, onChange }: {
     return (
         <View style={st.field}>
             <Text style={st.label}>{label}</Text>
-            <View style={st.row} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${current} de 5`}>
+            <View style={st.row} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${current} of 5`}>
                 {[1, 2, 3, 4, 5].map(n => (
                     <TouchableOpacity
                         key={n}
@@ -27,7 +27,7 @@ export function HotelStarsInput({ label = 'Rating (stars)', value, onChange }: {
                         <Ionicons name={n <= current ? 'star' : 'star-outline'} size={28} color={n <= current ? STAR_COLOR : theme.colors.text.tertiary} />
                     </TouchableOpacity>
                 ))}
-                <Text style={st.hint}>{current ? `${current} de 5` : 'No rating'}</Text>
+                <Text style={st.hint}>{current ? `${current} of 5` : 'No rating'}</Text>
             </View>
         </View>
     );

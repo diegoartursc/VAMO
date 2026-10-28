@@ -300,7 +300,7 @@ export default function ItineraryContactScreen() {
                             <View style={[styles.stepDot, styles.stepDotActive]}>
                                 <Text style={styles.stepDotTextActive}>1</Text>
                             </View>
-                            <Text style={styles.stepPillTextActive}>Dados</Text>
+                            <Text style={styles.stepPillTextActive}>Details</Text>
                         </View>
                         <View style={styles.stepConnector} />
                         <View style={styles.stepPill}>
@@ -330,7 +330,7 @@ export default function ItineraryContactScreen() {
                             <Text style={styles.productTitle} numberOfLines={2}>
                                 {itinerary.title}
                             </Text>
-                            <Text style={styles.productCreator} numberOfLines={1}>por {creatorName}</Text>
+                            <Text style={styles.productCreator} numberOfLines={1}>by {creatorName}</Text>
                             <View style={styles.productMetaRow}>
                                 <View style={styles.productMetaItem}>
                                     <Ionicons name="location-outline" size={12} color={theme.colors.text.secondary} />

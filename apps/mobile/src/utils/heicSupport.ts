@@ -98,8 +98,8 @@ export function inferMimeFromExtension(filename: string, fallback = 'image/jpeg'
 }
 
 /** Lista legível dos formatos aceitos — para textos de UI. */
-export const ACCEPTED_IMAGE_FORMATS_LABEL = 'JPG, PNG, WEBP ou HEIC';
-export const ACCEPTED_PROOF_FORMATS_LABEL = 'JPG, PNG, WEBP, HEIC ou PDF';
+export const ACCEPTED_IMAGE_FORMATS_LABEL = 'JPG, PNG, WEBP or HEIC';
+export const ACCEPTED_PROOF_FORMATS_LABEL = 'JPG, PNG, WEBP, HEIC or PDF';
 
 /**
  * Verifica se um arquivo é aceito como imagem — passa se o MIME ou

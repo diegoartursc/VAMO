@@ -197,9 +197,9 @@ export default function AvailabilityScreen() {
                             <View style={styles.summaryRow}>
                                 <Ionicons name="bag-outline" size={20} color="#fff" />
                                 <View style={styles.summaryRowContent}>
-                                    <Text style={styles.summaryLabel}>Bagagens despachadas</Text>
+                                    <Text style={styles.summaryLabel}>Checked bags</Text>
                                     <Text style={styles.summaryValue}>
-                                        {checkedBags} mala{checkedBags > 1 ? 's' : ''} de 23kg
+                                        {checkedBags} bag{checkedBags > 1 ? 's' : ''}, 23 kg each
                                     </Text>
                                 </View>
                             </View>

@@ -22,7 +22,7 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
                         <VerifiedBadge level={creator.verificationLevel} size="small" showLabel={false} />
                     </View>
                     <Text style={styles.compactStats}>
-                        ⭐ {creator.stats.averageRating} • {creator.stats.itinerariesCount} roteiros
+                        ⭐ {creator.stats.averageRating} • {creator.stats.itinerariesCount} itineraries
                     </Text>
                 </View>
             </TouchableOpacity>
@@ -50,7 +50,7 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>
                     <Text style={styles.statValue}>{creator.stats.totalSales}</Text>
-                    <Text style={styles.statLabel}>Vendas</Text>
+                    <Text style={styles.statLabel}>Sales</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>

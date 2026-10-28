@@ -105,7 +105,7 @@ export default function ContactSupportScreen() {
                 />
 
                 {/* Mensagem */}
-                <Text style={s.label}>Mensagem</Text>
+                <Text style={s.label}>Message</Text>
                 <TextInput
                     style={[s.input, s.textarea]}
                     value={message}

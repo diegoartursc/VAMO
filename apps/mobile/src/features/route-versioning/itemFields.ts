@@ -132,7 +132,7 @@ const ATTRACTIONS: FieldSpec[] = [
     { key: 'mapLink', label: 'Google Maps link', type: 'text', placeholder: 'E.g. https://goo.gl/maps/…' },
     { key: 'startDate', label: 'Start date', type: 'date' },
     { key: 'endDate', label: 'End date', type: 'date' },
-    { key: 'duration', label: 'Duration', type: 'text', placeholder: 'Ex: 2h' },
+    { key: 'duration', label: 'Duration', type: 'text', placeholder: 'E.g. 2h' },
     { key: 'description', label: 'Description / Why you recommend it', type: 'multiline', placeholder: 'E.g. An unmissable view…', required: true },
     { key: 'externalLink', label: 'Purchase or booking link', type: 'text', placeholder: 'E.g. official site, ticket or booking' },
     { key: 'hours', label: 'Recommended time', type: 'time' },

@@ -447,7 +447,7 @@ export default function ProfileScreen() {
                             ? <ActivityIndicator size="small" color="#fff" />
                             : <Icon name="camera" size={14} color="#fff" />}
                         <Text style={styles.editCoverText}>
-                            {coverUploading ? 'Enviando…' : (user?.coverUrl ? 'Change cover' : 'Add cover')}
+                            {coverUploading ? 'Uploading…' : (user?.coverUrl ? 'Change cover' : 'Add cover')}
                         </Text>
                     </TouchableOpacity>
 
@@ -648,7 +648,7 @@ export default function ProfileScreen() {
                 <View style={styles.sectionSpaced}>
                     <Text style={styles.sectionTitle}>Account</Text>
                     <View style={styles.sectionCard}>
-                        <SettingItem icon="circle-user" title="Dados pessoais" onPress={() => {
+                        <SettingItem icon="circle-user" title="Personal data" onPress={() => {
                             haptics.light(); router.push('/account/personal-data');
                         }} />
                         <SettingItem icon="bell" title="Notifications" onPress={() => {
@@ -721,7 +721,7 @@ export default function ProfileScreen() {
                 >
                     <Icon name="logout" size={18} color={theme.colors.text.tertiary} />
                     <Text style={styles.logoutText}>
-                        {loggingOut ? 'Saindo…' : 'Sign out'}
+                        {loggingOut ? 'Signing out…' : 'Sign out'}
                     </Text>
                 </TouchableOpacity>
 

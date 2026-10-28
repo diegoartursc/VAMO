@@ -192,7 +192,7 @@ export default function MoneyInput({
             hint={hint}
             prefix={prefix}
             suffix={suffix}
-            placeholder={placeholder ?? 'Ex: 29,90'}
+            placeholder={placeholder ?? 'E.g. 29.90'}
             // keyboardType "decimal-pad" mostra vírgula em locale en-US
             // (iOS) e teclado numérico c/ ponto em outros. Não bloqueia
             // digitação — quem normaliza é o sanitize().

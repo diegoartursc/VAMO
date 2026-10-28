@@ -108,12 +108,12 @@ export default function BookingAwaitingQuoteScreen() {
                     </View>
                     <View style={styles.summaryRow}>
                         <Ionicons name="airplane" size={18} color="#14b8a6" />
-                        <Text style={styles.summaryText}>Saindo de {originCity as string}</Text>
+                        <Text style={styles.summaryText}>Departing from {originCity as string}</Text>
                     </View>
                     {checkedBags && checkedBags !== '0' ? (
                         <View style={styles.summaryRow}>
                             <Ionicons name="bag" size={18} color="#14b8a6" />
-                            <Text style={styles.summaryText}>{checkedBags} bagagem(ns) despachada(s) de 23kg</Text>
+                            <Text style={styles.summaryText}>{checkedBags} checked bag(s), 23 kg each</Text>
                         </View>
                     ) : (
                         <View style={styles.summaryRow}>

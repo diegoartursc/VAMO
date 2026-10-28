@@ -198,7 +198,7 @@ export function DatePickerField({
                                     style={styles.modalPrimary}
                                     onPress={() => { onChange(toISODate(tempDate)); setOpen(false); }}
                                 >
-                                    <Text style={styles.modalPrimaryText}>Confirmar</Text>
+                                    <Text style={styles.modalPrimaryText}>Confirm</Text>
                                 </TouchableOpacity>
                             </View>
                         </TouchableOpacity>

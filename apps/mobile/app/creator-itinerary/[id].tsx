@@ -195,7 +195,7 @@ export default function CreatorItineraryScreen() {
             }
             haptics.success();
             setItinerary(prev => prev ? { ...prev, status: newStatus.toLowerCase() as ItineraryStatus } : prev);
-            notify({ title: isActive ? 'Itinerary paused' : 'Itinerary published!', message: isActive ? 'Ele saiu do marketplace.' : 'It now appears in the marketplace.', variant: 'success' });
+            notify({ title: isActive ? 'Itinerary paused' : 'Itinerary published!', message: isActive ? 'It is no longer in the marketplace.' : 'It now appears in the marketplace.', variant: 'success' });
         } catch (err: any) {
             notify({ title: 'Error', message: err?.message || 'We couldn\'t change the status.', variant: 'error' });
         }
@@ -368,7 +368,7 @@ export default function CreatorItineraryScreen() {
                 {/* ── Datas ── */}
                 <View style={s.datesCard}>
                     <View style={s.dateRow}>
-                        <Text style={s.dateLabel}>Criado em</Text>
+                        <Text style={s.dateLabel}>Created on</Text>
                         <Text style={s.dateValue}>{new Date(itinerary.createdAt).toLocaleDateString('en-US')}</Text>
                     </View>
                     <View style={s.dateRow}>
@@ -377,7 +377,7 @@ export default function CreatorItineraryScreen() {
                     </View>
                     {itinerary.approvedAt && (
                         <View style={s.dateRow}>
-                            <Text style={s.dateLabel}>Aprovado em</Text>
+                            <Text style={s.dateLabel}>Approved on</Text>
                             <Text style={s.dateValue}>{new Date(itinerary.approvedAt).toLocaleDateString('en-US')}</Text>
                         </View>
                     )}

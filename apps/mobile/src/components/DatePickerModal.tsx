@@ -352,7 +352,7 @@ export default function DatePickerModal({
                 <TouchableOpacity onPress={() => setViewMode('dates')} style={styles.closeButton}>
                     <Ionicons name="arrow-back" size={28} color="#1A3263" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Bagagens</Text>
+                <Text style={styles.headerTitle}>Bags</Text>
             </View>
 
             <ScrollView style={{ flex: 1, paddingHorizontal: 20 }}>
@@ -753,7 +753,7 @@ export default function DatePickerModal({
                             <Text style={styles.stepNumberText}>2</Text>
                         </View>
                         <Text style={styles.stepText}>
-                            {agencyName || 'The agency'} entrará em contato em até 24h
+                            {agencyName || 'The agency'} will contact you within 24 hours
                         </Text>
                     </View>
                     <View style={styles.stepItem}>

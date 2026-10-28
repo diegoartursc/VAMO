@@ -206,7 +206,7 @@ export default function CreatorDetailScreen() {
                         <View style={styles.statDivider} />
                         <View style={styles.stat}>
                             <Text style={styles.statValue}>{creator.stats.totalSales}</Text>
-                            <Text style={styles.statLabel}>Vendas</Text>
+                            <Text style={styles.statLabel}>Sales</Text>
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.stat}>

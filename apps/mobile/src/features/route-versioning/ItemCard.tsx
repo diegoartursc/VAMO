@@ -368,7 +368,7 @@ function FlightLegCard({ data, leg }: { data: any; leg: 'outbound' | 'return' })
         <>
             <View style={styles.row}>
                 <Text style={styles.title}>
-                    {leg === 'outbound' ? '✈ Ida' : '✈ Volta'} — {data?.airline || 'Flight'}
+                    {leg === 'outbound' ? '✈ Outbound' : '✈ Return'} — {data?.airline || 'Flight'}
                 </Text>
                 {stops !== null ? (
                     <View style={styles.stopsBadge}>

@@ -128,7 +128,7 @@ export default function ParticipantsModal({
                 {/* Apply Button */}
                 <View style={styles.footer}>
                     <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-                        <Text style={styles.applyButtonText}>Aplicar</Text>
+                        <Text style={styles.applyButtonText}>Apply</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>

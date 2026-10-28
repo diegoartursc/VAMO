@@ -81,7 +81,7 @@ export default function FileCard({ file, onPress, onLongPress, onDelete, uploadi
                     )}
                     {uploading && (
                         <View style={styles.uploadingOverlay}>
-                            <Text style={styles.uploadingText}>Enviando…</Text>
+                            <Text style={styles.uploadingText}>Uploading…</Text>
                         </View>
                     )}
                     {/* Lixeira sobre o thumb — descobrível sem long-press.

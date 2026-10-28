@@ -120,7 +120,7 @@ export default function CreatorQuestionsScreen() {
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <Ionicons name="time-outline" size={18} color="#F59E0B" />
-                                <Text style={styles.sectionTitle}>Aguardando sua resposta ({pending.length})</Text>
+                                <Text style={styles.sectionTitle}>Awaiting your answer ({pending.length})</Text>
                             </View>
                             {pending.map(q => (
                                 <QuestionCard
@@ -245,7 +245,7 @@ function QuestionCard({
                                     ) : (
                                         <Ionicons name="paper-plane" size={14} color="#fff" />
                                     )}
-                                    <Text style={styles.sendBtnText}>{sending ? 'Enviando...' : 'Send answer'}</Text>
+                                    <Text style={styles.sendBtnText}>{sending ? 'Sending...' : 'Send answer'}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>

@@ -470,7 +470,7 @@ export default function WriteReviewScreen() {
                         <Icon name="send" size={20} color="#fff" />
                     )}
                     <Text style={styles.submitButtonText}>
-                        {submitting ? 'Enviando...' : existingReview ? 'Update review' : 'Submit review'}
+                        {submitting ? 'Sending...' : existingReview ? 'Update review' : 'Submit review'}
                     </Text>
                 </TouchableOpacity>
 

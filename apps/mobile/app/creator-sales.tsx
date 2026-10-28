@@ -104,8 +104,8 @@ export default function CreatorSalesScreen() {
     const hasSales = d.totalSales > 0;
 
     const metrics: CreatorMetric[] = [
-        { key: 'sales', icon: 'receipt-outline', tone: theme.colors.secondary, value: String(d.totalSales), label: 'Vendas', hint: 'Confirmadas', empty: !hasSales, emptyHint: 'None yet' },
-        { key: 'revenue', icon: 'wallet-outline', tone: theme.colors.success, value: formatMoney(Math.round(d.totalRevenue)), label: 'Revenue', hint: 'Total in vendas', empty: !hasSales, emptyHint: 'No revenue' },
+        { key: 'sales', icon: 'receipt-outline', tone: theme.colors.secondary, value: String(d.totalSales), label: 'Sales', hint: 'Confirmed', empty: !hasSales, emptyHint: 'None yet' },
+        { key: 'revenue', icon: 'wallet-outline', tone: theme.colors.success, value: formatMoney(Math.round(d.totalRevenue)), label: 'Revenue', hint: 'Total from sales', empty: !hasSales, emptyHint: 'No revenue' },
         { key: 'ticket', icon: 'pricetag-outline', tone: theme.colors.primary, value: formatMoney(Math.round(d.averageTicket)), label: 'Average order', hint: 'Per sale', empty: !hasSales, emptyHint: '—' },
         { key: 'top', icon: 'trophy-outline', tone: theme.colors.warning, value: d.topItinerary ? String(d.topItinerary.salesCount) : '—', label: 'Best seller', hint: d.topItinerary ? d.topItinerary.title : 'No standout yet', empty: !d.topItinerary, emptyHint: 'No standout yet', onPress: d.topItinerary ? () => router.push(`/creator-itinerary/${d.topItinerary!.itineraryId}`) : undefined },
     ];

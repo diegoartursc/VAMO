@@ -51,7 +51,7 @@ export default function PurchasedPackageScreen() {
                     text: '📎 Select File',
                     onPress: () => {
                         setUploadStatuses(prev => ({ ...prev, [doc.id]: 'reviewing' }));
-                        Alert.alert('Enviado!', `${doc.name} was sent to the agency for review.`);
+                        Alert.alert('Sent!', `${doc.name} was sent to the agency for review.`);
                     },
                 },
             ]
@@ -410,11 +410,11 @@ export default function PurchasedPackageScreen() {
                             {booking.requiredDocuments.map((doc) => {
                                 const status: UploadStatus = uploadStatuses[doc.id] || 'pending';
                                 const statusConfig = {
-                                    pending:   { label: 'Pendente',    bg: '#FEF3C7', color: '#D97706', icon: 'time-outline' as const },
-                                    uploading: { label: 'Enviando…',   bg: '#EFF6FF', color: '#3B82F6', icon: 'cloud-upload-outline' as const },
+                                    pending:   { label: 'Pending',    bg: '#FEF3C7', color: '#D97706', icon: 'time-outline' as const },
+                                    uploading: { label: 'Uploading…',   bg: '#EFF6FF', color: '#3B82F6', icon: 'cloud-upload-outline' as const },
                                     reviewing: { label: 'Under review',  bg: '#EFF6FF', color: '#3B82F6', icon: 'hourglass-outline' as const },
-                                    approved:  { label: 'Aprovado ✓',  bg: '#DCFCE7', color: '#16A34A', icon: 'checkmark-circle' as const },
-                                    rejected:  { label: 'Rejeitado',   bg: '#FEE2E2', color: '#DC2626', icon: 'close-circle' as const },
+                                    approved:  { label: 'Approved ✓',  bg: '#DCFCE7', color: '#16A34A', icon: 'checkmark-circle' as const },
+                                    rejected:  { label: 'Rejected',   bg: '#FEE2E2', color: '#DC2626', icon: 'close-circle' as const },
                                 };
                                 const sc = statusConfig[status];
                                 return (
@@ -447,7 +447,7 @@ export default function PurchasedPackageScreen() {
                                                     onPress={() => Alert.alert('Under review', 'Your document is being reviewed by the agency.')}
                                                 >
                                                     <Ionicons name="hourglass-outline" size={14} color="#fff" />
-                                                    <Text style={styles.reqDocUploadBtnText}>Ver status</Text>
+                                                    <Text style={styles.reqDocUploadBtnText}>View status</Text>
                                                 </TouchableOpacity>
                                             )}
                                         </View>
@@ -551,7 +551,7 @@ export default function PurchasedPackageScreen() {
 
                                 <TouchableOpacity
                                     style={styles.postTripPrimaryButton}
-                                    onPress={() => Alert.alert('Avaliar', 'Funcionalidade em desenvolvimento')}
+                                    onPress={() => Alert.alert('Review', 'This feature is coming soon.')}
                                 >
                                     <Ionicons name="star" size={20} color="#fff" />
                                     <Text style={styles.postTripPrimaryText}>Review trip</Text>

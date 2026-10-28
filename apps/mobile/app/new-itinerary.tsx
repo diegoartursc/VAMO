@@ -562,7 +562,7 @@ export default function NewItineraryScreen() {
                 <View style={{ flex: 1, alignItems: 'center' }}>
                     <Text style={s.headerLabel}>{STEP_LABEL_MAP[stepKey]}</Text>
                     <Text style={s.headerStep}>
-                        {isEdit ? 'Edit itinerary · ' : ''}Passo {step} de {totalSteps} · Score {score}
+                        {isEdit ? 'Edit itinerary · ' : ''}Step {step} of {totalSteps} · Score {score}
                     </Text>
                 </View>
                 <TouchableOpacity onPress={saveDraft} style={s.headerBtn} disabled={saving}>
@@ -908,7 +908,7 @@ function DatePickerField({
                                         setOpen(false);
                                     }}
                                 >
-                                    <Text style={s.modalBtnPrimaryText}>Confirmar</Text>
+                                    <Text style={s.modalBtnPrimaryText}>Confirm</Text>
                                 </TouchableOpacity>
                             </View>
                         </TouchableOpacity>
@@ -1463,7 +1463,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                         <>
                             <ActivityIndicator color={theme.colors.primary} />
                             <Text style={s.uploadText}>
-                                {uploadStage === 'preparing' ? 'Preparing file...' : 'Enviando...'}
+                                {uploadStage === 'preparing' ? 'Preparing file...' : 'Sending...'}
                             </Text>
                             {meta?.name && (
                                 <Text style={s.uploadHint} numberOfLines={1}>{meta.name}</Text>
@@ -1501,7 +1501,7 @@ function StepCommerce({ form, update }: StepProps) {
             <MoneyInput
                 label="Price"
                 required
-                placeholder="Ex: 89,90"
+                placeholder="E.g. 89.90"
                 value={form.price > 0 ? form.price : ''}
                 onChangeNumber={n => update('price', Math.max(0, n))}
             />
@@ -1806,7 +1806,7 @@ function StepDays({ form, update }: StepProps) {
                                             />
                                             <FormInput
                                                 label="Location link (Google Maps)"
-                                                placeholder="Ex: https://goo.gl/maps/..."
+                                                placeholder="E.g. https://goo.gl/maps/..."
                                                 autoCapitalize="none"
                                                 value={a.mapLink}
                                                 onChangeText={v => updateActivity(i, ai, { mapLink: v })}
@@ -1909,10 +1909,10 @@ function StepAccommodations({ form, update, token }: StepProps) {
                 factory={emptyAccommodation}
                 render={(item, set) => (
                     <>
-                        <FormInput label="Hotel / hostel name" required placeholder="Ex: Waldorf Astoria" value={item.name} onChangeText={v => set({ name: v })} />
+                        <FormInput label="Hotel / hostel name" required placeholder="E.g. Waldorf Astoria" value={item.name} onChangeText={v => set({ name: v })} />
                         <HotelStarsInput value={item.rating} onChange={v => set({ rating: v })} />
-                        <FormInput label="Place name or address" placeholder="Ex: Rue de Rivoli, 228" value={item.address} onChangeText={v => set({ address: v })} />
-                        <FormInput label="Location link (Google Maps)" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
+                        <FormInput label="Place name or address" placeholder="E.g. 228 Rue de Rivoli" value={item.address} onChangeText={v => set({ address: v })} />
+                        <FormInput label="Location link (Google Maps)" placeholder="E.g. https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
                         <Text style={s.label}>Nights <Text style={s.requiredAsterisk}>*</Text></Text>
                         <QuantityStepper
                             value={Math.max(1, parseInt(item.nights, 10) || 1)}
@@ -1950,7 +1950,7 @@ function StepAccommodations({ form, update, token }: StepProps) {
                         </View>
                         <FormInput
                             label="Lodging link"
-                            placeholder="Ex: Booking, site do hotel, Airbnb"
+                            placeholder="E.g. Booking, hotel website, Airbnb"
                             autoCapitalize="none"
                             autoCorrect={false}
                             keyboardType="url"
@@ -2011,8 +2011,8 @@ function StepAttractions({ form, update, token }: StepProps) {
                     return (
                         <>
                             <FormInput label="Attraction name" required placeholder="E.g. Eiffel Tower" value={item.name} onChangeText={v => set({ name: v })} />
-                            <FormInput label="Place name or address" placeholder="Ex: Champ de Mars, 5 Ave..." value={item.location} onChangeText={v => set({ location: v })} />
-                            <FormInput label="Link do Google Maps" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
+                            <FormInput label="Place name or address" placeholder="E.g. Champ de Mars, 5 Ave..." value={item.location} onChangeText={v => set({ location: v })} />
+                            <FormInput label="Google Maps link" placeholder="E.g. https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink} onChangeText={v => set({ mapLink: v })} />
                             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                                 <DatePickerField label="Start Date" value={item.startDate} onChange={v => {
                                     const next: Partial<AttractionItem> = { startDate: v };
@@ -2135,7 +2135,7 @@ function StepTransport({ form, update, token }: StepProps) {
                         <FormInput
                             label="Transportation / pass description"
                             required
-                            placeholder="Ex: JR Pass (Japan Rail Pass)"
+                            placeholder="E.g. JR Pass (Japan Rail Pass)"
                             value={item.description}
                             onChangeText={v => set({ description: v })}
                             multiline
@@ -2192,7 +2192,7 @@ function StepRestaurants({ form, update, token }: StepProps) {
                 factory={emptyRestaurant}
                 render={(item, set) => (
                     <>
-                        <FormInput label="Restaurant name" required placeholder="Ex: Le Jules Verne" value={item.name} onChangeText={v => set({ name: v })} />
+                        <FormInput label="Restaurant name" required placeholder="E.g. Le Jules Verne" value={item.name} onChangeText={v => set({ name: v })} />
                         <Text style={s.label}>Cuisine</Text>
                         <View style={s.chipRow}>
                             {CUISINE_OPTIONS.map(c => {
@@ -2204,8 +2204,8 @@ function StepRestaurants({ form, update, token }: StepProps) {
                                 );
                             })}
                         </View>
-                        <FormInput label="Location / Neighborhood" required placeholder="Ex: Montmartre" value={item.location} onChangeText={v => set({ location: v })} />
-                        <FormInput label="Link do Google Maps" placeholder="Ex: https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink || ''} onChangeText={v => set({ mapLink: v })} />
+                        <FormInput label="Location / Neighborhood" required placeholder="E.g. Montmartre" value={item.location} onChangeText={v => set({ location: v })} />
+                        <FormInput label="Google Maps link" placeholder="E.g. https://goo.gl/maps/..." autoCapitalize="none" value={item.mapLink || ''} onChangeText={v => set({ mapLink: v })} />
                         <FormInput
                             label="Description / Why you recommend it"
                             placeholder="E.g. The best croque monsieur in town with an amazing view..."
@@ -2275,7 +2275,7 @@ function StepFlight({ form, update, token }: StepProps) {
             <FormInput label="Airline" placeholder="E.g. Delta, United, Air France" value={leg.airline} onChangeText={v => setLeg(legKey, { airline: v })} />
             <FormInput label="Departure City" required placeholder="E.g. New York, Los Angeles, Chicago" value={leg.originCity} onChangeText={v => setLeg(legKey, { originCity: v })} />
             <FormInput label="Origin Airport" placeholder="E.g. JFK — New York/John F. Kennedy" value={leg.originAirport} onChangeText={v => setLeg(legKey, { originAirport: v })} />
-            <FormInput label="Destination Airport" placeholder="Ex: CDG — Paris/Charles de Gaulle" value={leg.destinationAirport} onChangeText={v => setLeg(legKey, { destinationAirport: v })} />
+            <FormInput label="Destination Airport" placeholder="E.g. CDG — Paris/Charles de Gaulle" value={leg.destinationAirport} onChangeText={v => setLeg(legKey, { destinationAirport: v })} />
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                 <DatePickerField label="Departure Date"   required value={leg.departureDate} onChange={v => setLeg(legKey, { departureDate: v })} />
                 <DatePickerField label="Arrival Date" required value={leg.arrivalDate}   onChange={v => setLeg(legKey, { arrivalDate: v })} />
@@ -2301,8 +2301,8 @@ function StepFlight({ form, update, token }: StepProps) {
                 hint="Fill in the origin city and outbound/return dates to complete the module."
             />
 
-            {renderLeg('flightOutbound', form.flightOutbound, 'Voo de Ida')}
-            {renderLeg('flightReturn', form.flightReturn, 'Voo de Volta')}
+            {renderLeg('flightOutbound', form.flightOutbound, 'Outbound flight')}
+            {renderLeg('flightReturn', form.flightReturn, 'Return flight')}
 
             <Text style={[s.repeaterTitle, { marginTop: 16 }]}>Flight Tips</Text>
             <EditableList
@@ -2390,7 +2390,7 @@ function StepChecklist({ form, update }: StepProps) {
                     color={filled >= MIN_CHECKLIST ? theme.colors.success : theme.colors.primary}
                 />
                 <Text style={s.daysProgressText}>
-                    {filled}/{MIN_CHECKLIST} itens preenchidos{filled >= MIN_CHECKLIST ? ' ✓' : ''}
+                    {filled}/{MIN_CHECKLIST} items filled{filled >= MIN_CHECKLIST ? ' ✓' : ''}
                 </Text>
             </View>
             {form.checklistItems.map((c, i) => (
@@ -2399,7 +2399,7 @@ function StepChecklist({ form, update }: StepProps) {
                         <Text style={s.checkCat}>{getChecklistCategoryLabel(c.category)}</Text>
                         <TextInput
                             style={s.checkInput}
-                            placeholder="Item do checklist"
+                            placeholder="Checklist item"
                             placeholderTextColor={theme.colors.text.disabled}
                             value={c.item}
                             onChangeText={v => {
@@ -2517,7 +2517,7 @@ function StepExtraSpending({ form, update, token }: StepProps) {
                     <FormInput
                         label="Expense title/name"
                         required
-                        placeholder="Ex: Chip de internet 10GB"
+                        placeholder="E.g. 10GB data SIM card"
                         value={e.title}
                         onChangeText={v => updateItem(i, { title: v })}
                     />

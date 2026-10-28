@@ -105,7 +105,7 @@ export default function EditableList({
             )}
 
             {items.length > 0 && (
-                <Text style={styles.countText}>{items.length}/{maxItems} itens</Text>
+                <Text style={styles.countText}>{items.length}/{maxItems} items</Text>
             )}
         </View>
     );

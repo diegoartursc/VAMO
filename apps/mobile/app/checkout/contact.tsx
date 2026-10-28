@@ -175,7 +175,7 @@ export default function CheckoutContactScreen() {
                 {!isQuoteFlow && (
                     <View style={styles.timerBadge}>
                         <Ionicons name="time" size={16} color="#fff" />
-                        <Text style={styles.timerText}>Reservado por {formatTime(timeRemaining)} minutos</Text>
+                        <Text style={styles.timerText}>Held for {formatTime(timeRemaining)} minutes</Text>
                     </View>
                 )}
 

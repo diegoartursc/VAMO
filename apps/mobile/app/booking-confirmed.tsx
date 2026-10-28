@@ -129,7 +129,7 @@ export default function BookingConfirmedScreen() {
                             </View>
                             <View style={styles.summaryContent}>
                                 <Text style={styles.summaryLabel}>Status</Text>
-                                <Text style={[styles.summaryValue, { color: theme.colors.success }]}>Confirmado</Text>
+                                <Text style={[styles.summaryValue, { color: theme.colors.success }]}>Confirmed</Text>
                             </View>
                         </View>
 

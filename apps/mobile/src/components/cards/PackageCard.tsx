@@ -115,7 +115,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
                     {pkg.inclusions?.flight && (
                         <View style={styles.strategicChip}>
                             <Icon name="plane" size={14} color={theme.colors.primary} />
-                            <Text style={styles.chipLabel}>Voo ida e volta</Text>
+                            <Text style={styles.chipLabel}>Round-trip flight</Text>
                         </View>
                     )}
                     {pkg.inclusions?.hotel && (
@@ -148,7 +148,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
 
                 <View style={styles.cardFooter}>
                     <View style={styles.priceSection}>
-                        <Text style={styles.priceLabel}>A partir de</Text>
+                        <Text style={styles.priceLabel}>From</Text>
                         <Text style={styles.priceValue}>
                             {typeof pkg.price.min === 'number' ? formatMoney(pkg.price.min) : pkg.price.min}
                         </Text>

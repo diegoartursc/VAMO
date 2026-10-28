@@ -128,7 +128,7 @@ export function TravelCostSummarySection({
                         <View style={styles.conversionWarningRow}>
                             <Icon name="info" size={12} color={theme.colors.warning} />
                             <Text style={styles.conversionWarningText}>
-                                Alguns valores não puderam ser convertidos para {BASE_CURRENCY} agora — o total pode estar subestimado.
+                                Some values couldn't be converted to {BASE_CURRENCY} right now, so the total may be underestimated.
                             </Text>
                         </View>
                     )}

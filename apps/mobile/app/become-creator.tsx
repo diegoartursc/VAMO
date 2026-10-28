@@ -46,7 +46,7 @@ const SLIDES = [
             { icon: 'wallet-outline' as IoniconName, title: 'Income from content', text: 'Your itinerary can keep selling long after the trip.' },
             { icon: 'globe-outline' as IoniconName, title: 'Reach travelers', text: 'Your knowledge helps people choose better.' },
             { icon: 'star-outline' as IoniconName, title: 'Credibilidade', text: 'Well-reviewed itineraries strengthen your reputation.' },
-            { icon: 'shield-checkmark-outline' as IoniconName, title: 'Apoio da VAMO', text: 'Our team reviews itineraries before publication.' },
+            { icon: 'shield-checkmark-outline' as IoniconName, title: 'VAMO support', text: 'Our team reviews itineraries before publication.' },
         ],
         cta: 'Continue',
     },
@@ -94,7 +94,7 @@ function ProgressDots({ current, total, bg }: { current: number; total: number; 
                     ]}
                 />
             ))}
-            <Text style={[pd.label, { color: labelColor }]}>{current + 1} de {total}</Text>
+            <Text style={[pd.label, { color: labelColor }]}>{current + 1} of {total}</Text>
         </View>
     );
 }

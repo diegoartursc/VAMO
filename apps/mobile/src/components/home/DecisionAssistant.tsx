@@ -92,7 +92,7 @@ export default function DecisionAssistant({ visible, onClose }: DecisionAssistan
                     {/* Question */}
                     <View style={styles.content}>
                         <Text style={styles.step}>
-                            Pergunta {currentQuestion + 1} de {QUESTIONS.length}
+                            Question {currentQuestion + 1} of {QUESTIONS.length}
                         </Text>
                         <Text style={styles.question}>
                             {QUESTIONS[currentQuestion].question}

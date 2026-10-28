@@ -252,7 +252,7 @@ export default function CostBlock({
                         <View style={{ flex: 2 }}>
                             <MoneyInput
                                 label="Total amount paid"
-                                placeholder="Ex: 3000,00"
+                                placeholder="E.g. 3000.00"
                                 value={amount || ''}
                                 onChangeText={v => patch({ amount: v })}
                             />
@@ -366,7 +366,7 @@ export default function CostBlock({
                                 </Text>
                                 <Text style={styles.fileStatus}>
                                     {resolved.proofStatus === 'approved' ? 'Approved by VAMO'
-                                        : resolved.proofStatus === 'rejected' ? 'Comprovante rejeitado'
+                                        : resolved.proofStatus === 'rejected' ? 'Proof rejected'
                                         : resolved.proofStatus === 'pending_review' ? 'Under VAMO review'
                                         : 'Uploaded (awaiting review)'}
                                 </Text>

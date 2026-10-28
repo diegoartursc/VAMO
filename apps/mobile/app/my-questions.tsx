@@ -107,7 +107,7 @@ export default function MyQuestionsScreen() {
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <Ionicons name="time-outline" size={18} color="#F59E0B" />
-                                <Text style={styles.sectionTitle}>Aguardando resposta ({pending.length})</Text>
+                                <Text style={styles.sectionTitle}>Awaiting answer ({pending.length})</Text>
                             </View>
                             {pending.map(q => (
                                 <QuestionCard key={q.id} question={q} />
@@ -197,7 +197,7 @@ function QuestionCard({ question }: { question: ItineraryQuestion }) {
                     <View style={styles.answerHeader}>
                         <Ionicons name="person-circle-outline" size={16} color={theme.colors.primary} />
                         <Text style={styles.answerLabel}>
-                            Resposta de {question.itinerary?.creatorName ?? 'criador'}
+                            Answer from {question.itinerary?.creatorName ?? 'the creator'}
                         </Text>
                         <Text style={styles.answerDate}>{question.answer?.createdAt ? new Date(question.answer.createdAt).toLocaleDateString('en-US') : ''}</Text>
                     </View>
