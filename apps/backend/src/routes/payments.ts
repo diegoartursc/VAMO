@@ -393,6 +393,8 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
             // Apple Pay e Google Pay continuam funcionando — no Checkout eles
             // são wallets do próprio método `card`, não métodos separados.
             payment_method_types: ['card'],
+            // Página de pagamento sempre em inglês americano (mercado EUA), independente do navegador.
+            locale: 'en',
             line_items: [{
                 quantity: 1,
                 price_data: {
