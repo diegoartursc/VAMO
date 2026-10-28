@@ -72,7 +72,7 @@ export default function BookingAwaitingQuoteScreen() {
                         <View style={styles.passengersRow}>
                             <Ionicons name="people" size={14} color="rgba(255,255,255,0.8)" />
                             <Text style={styles.headerLocation}>
-                                {booking.travelers.adults} Adulto{booking.travelers.adults > 1 ? 's' : ''}
+                                {booking.travelers.adults} Adult{booking.travelers.adults > 1 ? 's' : ''}
                                 {booking.travelers.children > 0 ? `, ${booking.travelers.children} Child${booking.travelers.children > 1 ? 'ren' : ''}` : ''}
                             </Text>
                         </View>
@@ -93,7 +93,7 @@ export default function BookingAwaitingQuoteScreen() {
                     </View>
 
                     {/* ─── Timeline do Pedido ─── */}
-                    <Text style={styles.sectionTitle}>📋 Acompanhamento</Text>
+                    <Text style={styles.sectionTitle}>📋 Status updates</Text>
                     <View style={styles.timelineContainer}>
                         {booking.timeline.map((step, index) => {
                             const isLast = index === booking.timeline.length - 1;
@@ -163,7 +163,7 @@ export default function BookingAwaitingQuoteScreen() {
                         </View>
                         <TouchableOpacity
                             style={styles.agencyContact}
-                            onPress={() => Alert.alert('Contato', `Contacting ${booking.agencyName}...`)}
+                            onPress={() => Alert.alert('Contact', `Contacting ${booking.agencyName}...`)}
                         >
                             <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
                         </TouchableOpacity>

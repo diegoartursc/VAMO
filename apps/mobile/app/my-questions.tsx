@@ -120,7 +120,7 @@ export default function MyQuestionsScreen() {
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.primary} />
-                                <Text style={styles.sectionTitle}>Respondidas ({answered.length})</Text>
+                                <Text style={styles.sectionTitle}>Answered ({answered.length})</Text>
                             </View>
                             {answered.map(q => (
                                 <QuestionCard key={q.id} question={q} />

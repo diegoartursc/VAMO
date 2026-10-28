@@ -124,7 +124,7 @@ export default function CreatorDetailScreen() {
                         )}
                     </View>
                     <View style={styles.sinceBadge}>
-                        <Text style={styles.sinceText}>Membro desde {creator.memberSince}</Text>
+                        <Text style={styles.sinceText}>Member since {creator.memberSince}</Text>
                     </View>
                 </View>
             ) : (

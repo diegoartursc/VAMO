@@ -259,7 +259,7 @@ export default function CostBlock({
                         </View>
                         <View style={{ flex: 1 }}>
                             <CurrencyPicker
-                                label="Moeda"
+                                label="Currency"
                                 compact
                                 value={resolved.currency || defaultCurrency}
                                 onChange={code => patch({ currency: code })}
@@ -344,7 +344,7 @@ export default function CostBlock({
                 <View style={styles.proofBlock}>
                     <View style={styles.proofHeader}>
                         <Ionicons name="document-attach-outline" size={14} color={theme.colors.primary} />
-                        <Text style={styles.proofTitle}>Comprovante</Text>
+                        <Text style={styles.proofTitle}>Proof</Text>
                     </View>
                     <Text style={styles.helper}>
                         {COST_DISCLOSURE_COPY.proofUploadHelp} {uploadHint('costProof')}.
@@ -362,7 +362,7 @@ export default function CostBlock({
                             )}
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.fileName} numberOfLines={1}>
-                                    {file.name || 'Comprovante'}
+                                    {file.name || 'Proof'}
                                 </Text>
                                 <Text style={styles.fileStatus}>
                                     {resolved.proofStatus === 'approved' ? 'Approved by VAMO'

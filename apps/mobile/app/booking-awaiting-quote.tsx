@@ -102,7 +102,7 @@ export default function BookingAwaitingQuoteScreen() {
                     <View style={styles.summaryRow}>
                         <Ionicons name="people" size={18} color="#14b8a6" />
                         <Text style={styles.summaryText}>
-                            {adults} Adulto{parseInt(adults as string) > 1 ? 's' : ''}
+                            {adults} Adult{parseInt(adults as string) > 1 ? 's' : ''}
                             {parseInt(children as string) > 0 && `, ${children} Child${parseInt(children as string) > 1 ? 'ren' : ''}`}
                         </Text>
                     </View>
@@ -124,7 +124,7 @@ export default function BookingAwaitingQuoteScreen() {
                     <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#3a3a3a', paddingTop: 12, marginTop: 4 }]}>
                         <Ionicons name="pricetag" size={18} color="#14b8a6" />
                         <Text style={[styles.summaryText, { fontWeight: '700' }]}>
-                            Terrestre: {formatMoney(parseFloat(totalPrice as string))}
+                            Land package: {formatMoney(parseFloat(totalPrice as string))}
                         </Text>
                     </View>
                     <Text style={styles.summaryNote}>

@@ -94,7 +94,7 @@ export default function ContactSupportScreen() {
                 </View>
 
                 {/* Assunto */}
-                <Text style={s.label}>Assunto</Text>
+                <Text style={s.label}>Subject</Text>
                 <TextInput
                     style={s.input}
                     value={subject}

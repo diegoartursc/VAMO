@@ -164,7 +164,7 @@ export default function PremiumReviewsSection({
             {categoryRatings && (
                 <View style={styles.categorySection}>
                     {categoryRatings.guide && renderRatingBar('Guide', categoryRatings.guide)}
-                    {categoryRatings.transport && renderRatingBar('Transporte', categoryRatings.transport)}
+                    {categoryRatings.transport && renderRatingBar('Transportation', categoryRatings.transport)}
                     {categoryRatings.value && renderRatingBar('Value', categoryRatings.value)}
                 </View>
             )}

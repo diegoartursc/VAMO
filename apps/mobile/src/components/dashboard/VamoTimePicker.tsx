@@ -346,7 +346,7 @@ export default function VamoTimePicker({
                                                   selected && styles.numberCellSelected,
                                               ]}
                                               accessibilityRole="button"
-                                              accessibilityLabel={`Minuto ${m}`}
+                                              accessibilityLabel={`Minute ${m}`}
                                           >
                                               <Text
                                                   style={[
@@ -371,7 +371,7 @@ export default function VamoTimePicker({
                                 period === 'AM' && styles.periodBtnActive,
                             ]}
                             accessibilityRole="button"
-                            accessibilityLabel="Definir AM"
+                            accessibilityLabel="Set AM"
                         >
                             <Text
                                 style={[
@@ -389,7 +389,7 @@ export default function VamoTimePicker({
                                 period === 'PM' && styles.periodBtnActive,
                             ]}
                             accessibilityRole="button"
-                            accessibilityLabel="Definir PM"
+                            accessibilityLabel="Set PM"
                         >
                             <Text
                                 style={[

@@ -10,7 +10,7 @@ export default function GlassHomeScreen() {
                 image="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1000"
                 title="Your next adventure starts here."
                 subtitle="Discover digital itineraries created by experienced travelers."
-                badge="Futurista"
+                badge="Futuristic"
             />
             <View style={styles.content}>
                 <Text style={styles.sectionTitle}>Explore Destinations</Text>

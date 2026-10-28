@@ -48,7 +48,7 @@ import type {
 } from '@vamo/shared/itinerary';
 import { getCostReferences, calculateBudgetSummary, formatMoney, formatTimeForDisplay, getCurrencySymbol } from '@vamo/shared/itinerary';
 import { convertToBase } from '../src/utils/currencyConversion';
-import { BASE_CURRENCY } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY, getCuisineLabel, getChecklistCategoryLabel } from '@vamo/shared/itinerary';
 
 // Handoff one-shot: payload do form serializado em new-itinerary é lido aqui
 // e APAGADO no mesmo useEffect. Sem isso, dois usuários no mesmo dispositivo
@@ -784,7 +784,7 @@ export default function ItineraryPreviewScreen() {
                             {form.restaurants.map((r: RestaurantItem, i) => (
                                 <View key={i} style={styles.subCard}>
                                     <Text style={styles.subCardTitle}>{r.name || `Restaurant ${i + 1}`}</Text>
-                                    {r.cuisine ? <Text style={styles.subCardMeta}>{r.cuisine}</Text> : null}
+                                    {r.cuisine ? <Text style={styles.subCardMeta}>{getCuisineLabel(r.cuisine)}</Text> : null}
                                     {r.location ? <Text style={styles.subCardMeta}>📍 {r.location}</Text> : null}
                                     {r.description ? <Text style={styles.subCardDesc}>{r.description}</Text> : null}
                                 </View>
@@ -825,7 +825,7 @@ export default function ItineraryPreviewScreen() {
                                     <Ionicons name="square-outline" size={16} color={theme.colors.text.secondary} />
                                     <Text style={styles.bulletText}>
                                         {c.item}
-                                        {c.category ? <Text style={styles.subCardMeta}>  · {c.category}</Text> : null}
+                                        {c.category ? <Text style={styles.subCardMeta}>  · {getChecklistCategoryLabel(c.category)}</Text> : null}
                                     </Text>
                                 </View>
                             ))}

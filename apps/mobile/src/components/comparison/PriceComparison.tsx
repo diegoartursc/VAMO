@@ -35,7 +35,7 @@ export function PriceComparison({
         value === 0 ? 'FREE' : formatMoney(value);
 
     const items = [
-        { icon: '✈️', label: 'Voo', agency: agencyPrice.flight, creator: creatorPrice.flight },
+        { icon: '✈️', label: 'Flight', agency: agencyPrice.flight, creator: creatorPrice.flight },
         { icon: '🏨', label: 'Lodging', agency: agencyPrice.hotel, creator: creatorPrice.hotel },
         { icon: '🎫', label: 'Tours', agency: agencyPrice.tours, creator: creatorPrice.tours },
         { icon: '🚗', label: 'Transfer', agency: agencyPrice.transfer, creator: creatorPrice.transfer },

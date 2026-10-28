@@ -214,7 +214,7 @@ export const InteractiveExperienceSection: React.FC = () => {
                             onPress={() => setShowModal(false)}
                             activeOpacity={0.85}
                         >
-                            <Text style={styles.modalButtonText}>Entendi</Text>
+                            <Text style={styles.modalButtonText}>Got it</Text>
                         </TouchableOpacity>
                     </Pressable>
                 </Pressable>

@@ -43,7 +43,7 @@ const BADGE_CONFIGS: Record<BadgeType, BadgeConfig> = {
     },
     luxury: {
         icon: '💎',
-        label: 'Luxo Premium',
+        label: 'Premium Luxury',
         gradient: ['#9B59B6', '#8E44AD'],
         textColor: '#FFFFFF',
     },
@@ -61,14 +61,14 @@ const BADGE_CONFIGS: Record<BadgeType, BadgeConfig> = {
     },
     new: {
         icon: '🆕',
-        label: 'Novidade',
+        label: 'New',
         gradient: ['#9B59B6', '#8E44AD'],
         textColor: '#FFFFFF',
         hasPulse: true,
     },
     featured: {
         icon: '⭐',
-        label: 'Destaque',
+        label: 'Featured',
         gradient: ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)'],
         textColor: theme.colors.text.primary,
     },

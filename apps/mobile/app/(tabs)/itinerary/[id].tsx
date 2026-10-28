@@ -763,7 +763,7 @@ export default function ItineraryDetailScreen() {
                                 </View>
                                 <View style={styles.howReceiveContent}>
                                     <Text style={styles.howReceiveStepTitle}>
-                                        {itinerary.lifetimeAccess ? '4. Acesso permanente' : '4. Content saved to your account'}
+                                        {itinerary.lifetimeAccess ? '4. Lifetime access' : '4. Content saved to your account'}
                                     </Text>
                                     <Text style={styles.howReceiveStepDesc}>
                                         {itinerary.lifetimeAccess

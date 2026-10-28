@@ -108,7 +108,7 @@ export function TravelCostSummarySection({
                                 <View style={[styles.progressEstimated, { flex: summary.estimatedPercentage || 0.0001 }]} />
                             </View>
                             <Text style={styles.progressLabel}>
-                                {summary.verifiedPercentage}% comprovado · {summary.estimatedPercentage}% estimado
+                                {summary.verifiedPercentage}% verified · {summary.estimatedPercentage}% estimated
                                 {summary.missingCategories.length > 0 && (
                                     ` · ${summary.missingCategories.length} ${summary.missingCategories.length === 1 ? 'category without an amount' : 'categories without an amount'}`
                                 )}

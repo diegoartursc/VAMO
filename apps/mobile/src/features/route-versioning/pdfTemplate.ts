@@ -26,7 +26,8 @@
 
 import type { MergedItem, MergedItinerary } from './mergeEngine';
 import { resolveGeneralTipText } from './mergeEngine';
-import { getCostReferences, formatMoney, formatTimeForDisplay, hotelStarsText, getChecklistCategoryLabel } from '@vamo/shared/itinerary';
+import { getCostReferences, formatMoney, formatTimeForDisplay, hotelStarsText, getChecklistCategoryLabel, getCuisineLabel } from '@vamo/shared/itinerary';
+import { fileCategoryLabel, normalizeCategory } from '../trip-center/fileCategories';
 import { convertToBase, summarizeInBase } from '../../utils/currencyConversion';
 import { BASE_CURRENCY } from '@vamo/shared/itinerary';
 
@@ -211,7 +212,7 @@ function renderRestaurant(data: any, source?: MergedItem['source']): string {
                 <h3>${escapeHtml(title)}</h3>
                 ${source ? badgeForSource(source) : ''}
             </div>
-            ${renderField('Cozinha', data?.cuisine)}
+            ${renderField('Cuisine', data?.cuisine ? getCuisineLabel(data.cuisine) : data?.cuisine)}
             ${renderField('Location', data?.location)}
             ${renderField('Price range', data?.priceRange)}
             ${renderField('Time', formatTimeForDisplay(data?.hours))}
@@ -249,7 +250,7 @@ function renderChecklistItem(data: any, source?: MergedItem['source']): string {
         <li class="checklist-item">
             <span class="check-box">☐</span>
             <span class="check-text">${escapeHtml(item)}</span>
-            ${category ? `<span class="check-cat">${escapeHtml(category)}</span>` : ''}
+            ${category ? `<span class="check-cat">${escapeHtml(getChecklistCategoryLabel(category))}</span>` : ''}
             ${source ? badgeForSource(source) : ''}
         </li>`;
 }
@@ -287,7 +288,7 @@ function renderFlight(data: any, label: string, source?: MergedItem['source']): 
             ${renderField('Destination', data?.destinationAirport)}
             ${renderField('Departure', [data?.departureDate, formatTimeForDisplay(data?.departureTime)].filter(Boolean).join(' '))}
             ${renderField('Arrival', [data?.arrivalDate, formatTimeForDisplay(data?.arrivalTime)].filter(Boolean).join(' '))}
-            ${typeof data?.stops === 'number' ? renderField('Stops', data.stops === 0 ? 'Direto' : String(data.stops)) : ''}
+            ${typeof data?.stops === 'number' ? renderField('Stops', data.stops === 0 ? 'Nonstop' : String(data.stops)) : ''}
         </div>`;
 }
 
@@ -379,7 +380,7 @@ function renderFlightsSection(itinerary: any, merged: MergedItinerary | null | u
             outbound ? renderFlight(outbound.data, 'Outbound flight', outbound.source) : '',
             back ? renderFlight(back.data, 'Return flight', back.source) : '',
         ].join('');
-        return sectionWrapper('Voos', html);
+        return sectionWrapper('Flights', html);
     }
     const flightInfo = itinerary?.flightInfo ?? {};
     const outbound = flightInfo?.outbound;
@@ -389,7 +390,7 @@ function renderFlightsSection(itinerary: any, merged: MergedItinerary | null | u
         outbound ? renderFlight(outbound, 'Outbound flight') : '',
         back ? renderFlight(back, 'Return flight') : '',
     ].join('');
-    return sectionWrapper('Voos', html);
+    return sectionWrapper('Flights', html);
 }
 
 function renderAttractionsSection(itinerary: any, merged: MergedItinerary | null | undefined, ctx: SectionContext): string {
@@ -469,7 +470,7 @@ function renderTravelerFiles(items: PdfBuildOpts['travelerFiles'], variant: PdfV
     const body = items.map(file => `
         <div class="card">
             <div class="card-header"><h3>${escapeHtml(file.title)}</h3></div>
-            ${renderField('Categoria', file.category)}
+            ${renderField('Category', file.category ? fileCategoryLabel(normalizeCategory(file.category)) : file.category)}
             ${renderField('File', file.originalFileName)}
             ${renderParagraph(file.note)}
         </div>`).join('');

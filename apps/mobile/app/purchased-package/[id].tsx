@@ -236,7 +236,7 @@ export default function PurchasedPackageScreen() {
                                         </Text>
                                         <Text style={{ fontSize: 12, color: theme.colors.text.tertiary }}>
                                             Enviado em {new Date(doc.sentAt).toLocaleDateString('en-US')}
-                                            {doc.viewedAt ? ' · ✅ Visualizado' : ''}
+                                            {doc.viewedAt ? ' · ✅ Viewed' : ''}
                                         </Text>
                                     </View>
                                     <Ionicons name="open-outline" size={18} color={theme.colors.primary} />
@@ -405,7 +405,7 @@ export default function PurchasedPackageScreen() {
                     {/* ═══ BLOCO 3.5 — DOCUMENTOS EXIGIDOS PELA AGÊNCIA ═══ */}
                     {booking.requiredDocuments && booking.requiredDocuments.length > 0 && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Documentos Exigidos</Text>
+                            <Text style={styles.sectionTitle}>Required documents</Text>
                             <Text style={styles.reqDocSubtitle}>The agency needs to verify these documents before the trip.</Text>
                             {booking.requiredDocuments.map((doc) => {
                                 const status: UploadStatus = uploadStatuses[doc.id] || 'pending';
@@ -460,7 +460,7 @@ export default function PurchasedPackageScreen() {
 
                     {/* ═══ BLOCO 3 — DOCUMENTOS ═══ */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Documentos</Text>
+                        <Text style={styles.sectionTitle}>Documents</Text>
                         <View style={styles.documentsGrid}>
                             {booking.documents.map((doc) => (
                                 <TouchableOpacity
@@ -559,10 +559,10 @@ export default function PurchasedPackageScreen() {
 
                                 <TouchableOpacity
                                     style={styles.postTripSecondaryButton}
-                                    onPress={() => Alert.alert('Repetir', 'Looking for a similar package...')}
+                                    onPress={() => Alert.alert('Book again', 'Looking for a similar package...')}
                                 >
                                     <Ionicons name="refresh" size={20} color={theme.colors.primary} />
-                                    <Text style={styles.postTripSecondaryText}>Repetir pacote</Text>
+                                    <Text style={styles.postTripSecondaryText}>Book this package again</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -585,7 +585,7 @@ export default function PurchasedPackageScreen() {
                         </View>
                         <TouchableOpacity
                             style={styles.agencyContact}
-                            onPress={() => Alert.alert('Contato', `Contacting ${booking.agencyName}...`)}
+                            onPress={() => Alert.alert('Contact', `Contacting ${booking.agencyName}...`)}
                         >
                             <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
                         </TouchableOpacity>

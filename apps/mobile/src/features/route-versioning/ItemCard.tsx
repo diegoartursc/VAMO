@@ -373,7 +373,7 @@ function FlightLegCard({ data, leg }: { data: any; leg: 'outbound' | 'return' })
                 {stops !== null ? (
                     <View style={styles.stopsBadge}>
                         <Text style={styles.stopsText}>
-                            {stops === 0 ? 'Direto' : `${stops} stop${stops > 1 ? 's' : ''}`}
+                            {stops === 0 ? 'Nonstop' : `${stops} stop${stops > 1 ? 's' : ''}`}
                         </Text>
                     </View>
                 ) : null}

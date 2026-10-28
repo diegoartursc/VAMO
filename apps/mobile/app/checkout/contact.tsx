@@ -160,7 +160,7 @@ export default function CheckoutContactScreen() {
                         <View style={[styles.stepCircle, styles.stepCircleActive]}>
                             <Ionicons name="checkmark" size={16} color="#fff" />
                         </View>
-                        <Text style={[styles.stepLabel, styles.stepLabelActive]}>Contato</Text>
+                        <Text style={[styles.stepLabel, styles.stepLabelActive]}>Contact</Text>
                     </View>
                     <View style={styles.progressConnector} />
                     <View style={styles.progressStep}>
@@ -288,7 +288,7 @@ export default function CheckoutContactScreen() {
                             <View style={styles.detailRow}>
                                 <Ionicons name="people-outline" size={16} color="#999" />
                                 <Text style={styles.detailText}>
-                                    {adults} Adultos{parseInt(children!) > 0 && `, ${children} Children`}
+                                    {adults} Adults{parseInt(children!) > 0 && `, ${children} Children`}
                                 </Text>
                             </View>
                             <View style={styles.detailRow}>

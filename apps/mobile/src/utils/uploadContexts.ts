@@ -136,7 +136,7 @@ export const UPLOAD_CONTEXTS: Record<UploadContext, UploadContextDef> = {
     adminAttachment: {
         groups: [IMAGE_FORMATS, VIDEO_FORMATS, DOCUMENT_FORMATS],
         maxBytes: 100 * MB,
-        purpose: 'anexo administrativo',
+        purpose: 'admin attachment',
     },
 };
 

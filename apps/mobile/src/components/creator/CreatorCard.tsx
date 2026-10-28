@@ -38,7 +38,7 @@ export function CreatorCard({ creator, compact = false, onPress }: CreatorCardPr
                         <Text style={styles.name}>{creator.name}</Text>
                         <VerifiedBadge level={creator.verificationLevel} size="medium" />
                     </View>
-                    <Text style={styles.memberSince}>Membro desde {creator.memberSince}</Text>
+                    <Text style={styles.memberSince}>Member since {creator.memberSince}</Text>
                 </View>
             </View>
 

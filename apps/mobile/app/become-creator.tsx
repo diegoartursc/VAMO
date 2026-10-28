@@ -45,7 +45,7 @@ const SLIDES = [
         benefits: [
             { icon: 'wallet-outline' as IoniconName, title: 'Income from content', text: 'Your itinerary can keep selling long after the trip.' },
             { icon: 'globe-outline' as IoniconName, title: 'Reach travelers', text: 'Your knowledge helps people choose better.' },
-            { icon: 'star-outline' as IoniconName, title: 'Credibilidade', text: 'Well-reviewed itineraries strengthen your reputation.' },
+            { icon: 'star-outline' as IoniconName, title: 'Credibility', text: 'Well-reviewed itineraries strengthen your reputation.' },
             { icon: 'shield-checkmark-outline' as IoniconName, title: 'VAMO support', text: 'Our team reviews itineraries before publication.' },
         ],
         cta: 'Continue',
@@ -579,7 +579,7 @@ export default function BecomeCreatorScreen() {
                     onPress={handleSkip}
                     activeOpacity={0.7}
                 >
-                    <Text style={[s.skipText, !isGradient && s.skipTextDark]}>Pular</Text>
+                    <Text style={[s.skipText, !isGradient && s.skipTextDark]}>Skip</Text>
                 </TouchableOpacity>
             )}
         </View>

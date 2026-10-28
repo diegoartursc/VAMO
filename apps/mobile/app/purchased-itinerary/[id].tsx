@@ -503,7 +503,7 @@ export default function PurchasedItineraryScreen() {
                                     setPdfSheetVisible(true);
                                 }}
                                 accessibilityRole="button"
-                                accessibilityLabel="Exportar PDF"
+                                accessibilityLabel="Export PDF"
                             >
                                 <Ionicons name="document-text-outline" size={22} color="#fff" />
                             </TouchableOpacity>

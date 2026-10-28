@@ -59,8 +59,8 @@ export default function ParticipantsModal({
                     {/* Adults */}
                     <View style={styles.row}>
                         <View style={styles.labelContainer}>
-                            <Text style={styles.label}>Adultos</Text>
-                            <Text style={styles.sublabel}>(Idade 13-99)</Text>
+                            <Text style={styles.label}>Adults</Text>
+                            <Text style={styles.sublabel}>(Ages 13-99)</Text>
                         </View>
                         <View style={styles.counter}>
                             <TouchableOpacity

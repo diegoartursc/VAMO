@@ -1358,7 +1358,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
             });
             if (res.canceled || !res.assets?.[0]) return;
             const asset = res.assets[0];
-            const name = asset.name || asset.uri.split('/').pop()?.split('?')[0] || `comprovante-${Date.now()}`;
+            const name = asset.name || asset.uri.split('/').pop()?.split('?')[0] || `proof-${Date.now()}`;
             const size = asset.size;
             const mime = asset.mimeType;
 
@@ -1442,7 +1442,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                     <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={s.proofText} numberOfLines={1}>
                             <Ionicons name="checkmark-circle" size={14} color={theme.colors.success} />
-                            {' '}Comprovante enviado
+                            {' '}Proof uploaded
                         </Text>
                         {meta?.name && (
                             <Text style={{ fontSize: 11, color: theme.colors.text.tertiary }} numberOfLines={1}>
@@ -1451,7 +1451,7 @@ function StepProof({ form, update, token }: StepProps & { token: string | null |
                         )}
                     </View>
                     <TouchableOpacity onPress={pickProof} disabled={uploading} style={{ marginRight: 12 }}>
-                        <Text style={{ color: theme.colors.primary, fontWeight: '600', fontSize: 13 }}>Substituir</Text>
+                        <Text style={{ color: theme.colors.primary, fontWeight: '600', fontSize: 13 }}>Replace</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={removeProof} disabled={uploading}>
                         <Text style={{ color: theme.colors.error, fontWeight: '600', fontSize: 13 }}>Remove</Text>
@@ -1759,13 +1759,13 @@ function StepDays({ form, update }: StepProps) {
                                     onChangeText={v => updateDay(i, { description: v })}
                                 />
 
-                                <Text style={s.label}>Atividades ({d.activities.length})</Text>
+                                <Text style={s.label}>Activities ({d.activities.length})</Text>
                                 {d.activities.map((a, ai) => {
                                     const { num, unit } = parseActivityDuration(a.duration);
                                     return (
                                         <View key={ai} style={s.activityCard}>
                                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <Text style={s.activityBadge}>Atividade {ai + 1}</Text>
+                                                <Text style={s.activityBadge}>Activity {ai + 1}</Text>
                                                 <TouchableOpacity onPress={() => removeActivity(i, ai)}>
                                                     <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
                                                 </TouchableOpacity>
@@ -2121,7 +2121,7 @@ function StepTransport({ form, update, token }: StepProps) {
         <View>
             <ModuleStepHeader
                 icon={Bus}
-                title="Transporte"
+                title="Transportation"
                 subtitle="How to get around the destination — transit, passes and mobility tips"
                 hint="Add at least 1 transportation tip with a description and pass type."
             />
@@ -2357,7 +2357,7 @@ function StepTips({ form, update }: StepProps) {
                     color={filled >= MIN_TIPS ? theme.colors.success : theme.colors.primary}
                 />
                 <Text style={s.daysProgressText}>
-                    {filled}/{MIN_TIPS} dicas preenchidas{filled >= MIN_TIPS ? ' ✓' : ''}
+                    {filled}/{MIN_TIPS} tips filled{filled >= MIN_TIPS ? ' ✓' : ''}
                 </Text>
             </View>
             <EditableList
@@ -2484,13 +2484,13 @@ function StepExtraSpending({ form, update, token }: StepProps) {
             {items.map((e, i) => (
                 <View key={e.id || i} style={s.spendingCard}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={s.activityBadge}>Gasto extra {i + 1}</Text>
+                        <Text style={s.activityBadge}>Extra expense {i + 1}</Text>
                         <TouchableOpacity onPress={() => setItems(items.filter((_, x) => x !== i))}>
                             <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
                         </TouchableOpacity>
                     </View>
 
-                    <Text style={s.label}>Categoria</Text>
+                    <Text style={s.label}>Category</Text>
                     <View style={s.chipRow}>
                         {EXTRA_SPENDING_CATEGORIES.map(c => {
                             const active = e.category === c.key;
@@ -2582,7 +2582,7 @@ function validatePickedAsset(
     index: number,
     slot: 'cover' | 'gallery',
 ): string | null {
-    const { filename, size, mime } = getPickedAssetFileInfo(asset, `foto-${index + 1}`);
+    const { filename, size, mime } = getPickedAssetFileInfo(asset, `photo-${index + 1}`);
     const context = slot === 'cover' ? 'routeCoverMedia' : 'routeGalleryMedia';
     const result = validateUploadFile({ uri: asset.uri, filename, mime, size }, context);
     if (result.valid) return null;
@@ -2626,7 +2626,7 @@ function StepMedia({ form, update, token }: StepProps & { token: string | null |
         }> = [];
         const validationFailures: string[] = [];
         res.assets.forEach((asset, index) => {
-            const info = getPickedAssetFileInfo(asset, `foto-${index + 1}`);
+            const info = getPickedAssetFileInfo(asset, `photo-${index + 1}`);
             const context = slot === 'cover' ? 'routeCoverMedia' : 'routeGalleryMedia';
             const validation = validateUploadFile(
                 { uri: asset.uri, filename: info.filename, mime: info.mime, size: info.size },

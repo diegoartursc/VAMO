@@ -232,7 +232,7 @@ export default function ItineraryPaymentScreen() {
                         <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
                             <Ionicons name="checkmark" size={16} color={theme.colors.primary} />
                         </View>
-                        <Text style={[styles.stepLabel, styles.stepLabelCompleted]}>Contato</Text>
+                        <Text style={[styles.stepLabel, styles.stepLabelCompleted]}>Contact</Text>
                     </View>
                     <View style={[styles.progressConnector, styles.progressConnectorActive]} />
                     <View style={styles.progressStep}>
@@ -388,7 +388,7 @@ export default function ItineraryPaymentScreen() {
                         </View>
                     ) : (
                         <Text style={styles.confirmButtonText}>
-                            {paymentAmount > 0 ? `Pagar ${formatPrice(paymentAmount, itinerary?.currency)}` : 'Claim for free'}
+                            {paymentAmount > 0 ? `Pay ${formatPrice(paymentAmount, itinerary?.currency)}` : 'Claim for free'}
                         </Text>
                     )}
                 </TouchableOpacity>

@@ -166,7 +166,7 @@ export default function AvailabilityScreen() {
                         <View style={styles.summaryRowContent}>
                             <Text style={styles.summaryLabel}>Participantes</Text>
                             <Text style={styles.summaryValue}>
-                                Adultos × {adultsCount}{childrenCount > 0 && `, Children × ${childrenCount}`}
+                                Adults × {adultsCount}{childrenCount > 0 && `, Children × ${childrenCount}`}
                             </Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -295,7 +295,7 @@ export default function AvailabilityScreen() {
                                     <View style={styles.pricingCard}>
                                         <Text style={styles.totalPrice}>{formatPrice(total)}</Text>
                                         <Text style={styles.priceBreakdown}>
-                                            {adultsCount} Adulto{adultsCount > 1 ? 's' : ''} × {formatPrice(option.pricePerAdult)}
+                                            {adultsCount} Adult{adultsCount > 1 ? 's' : ''} × {formatPrice(option.pricePerAdult)}
                                         </Text>
                                         {childrenCount > 0 && (
                                             <Text style={styles.priceBreakdown}>

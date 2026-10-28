@@ -456,7 +456,7 @@ export default function MyTripsScreen() {
                 >
                     <View style={styles.headerTop}>
                         <View>
-                            <Text style={styles.headerLabel}>BIBLIOTECA DIGITAL</Text>
+                            <Text style={styles.headerLabel}>DIGITAL LIBRARY</Text>
                             <Text style={styles.headerTitle}>My Itineraries</Text>
                         </View>
                         <View style={styles.headerIconCircle}>

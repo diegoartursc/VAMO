@@ -414,7 +414,7 @@ function CartItemCard({
                         {item.status === 'checking_error' && (
                             <View style={styles.unavailableBadge}>
                                 <Ionicons name="cloud-offline-outline" size={11} color="#fff" />
-                                <Text style={styles.unavailableBadgeText}>Verificando…</Text>
+                                <Text style={styles.unavailableBadgeText}>Checking…</Text>
                             </View>
                         )}
                     </View>

@@ -121,7 +121,7 @@ export default function WriteReviewScreen() {
 
     const handlePickPhoto = async () => {
         if (photos.length >= 5) {
-            notify({ title: 'Limite', message: 'You can add up to 5 photos.' });
+            notify({ title: 'Limit reached', message: 'You can add up to 5 photos.' });
             return;
         }
 
@@ -389,7 +389,7 @@ export default function WriteReviewScreen() {
                 {/* Photo Upload */}
                 <View style={styles.photoSection}>
                     <Text style={styles.sectionTitle}>
-                        Fotos da viagem <Text style={styles.optional}>(optional)</Text>
+                        Trip photos <Text style={styles.optional}>(optional)</Text>
                     </Text>
                     <Text style={styles.photoHint}>
                         Add up to 5 photos to help other travelers

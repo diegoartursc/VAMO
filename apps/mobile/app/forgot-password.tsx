@@ -91,7 +91,7 @@ export default function ForgotPasswordScreen() {
 
                 <VamoButton label="Back to sign in" onPress={goToLogin} size="lg" fullWidth />
                 <VamoButton
-                    label={cooldown > 0 ? `Resend link in ${cooldown}s` : 'Reenviar link'}
+                    label={cooldown > 0 ? `Resend link in ${cooldown}s` : 'Resend link'}
                     onPress={() => submit(sentTo)}
                     variant="ghost"
                     size="md"

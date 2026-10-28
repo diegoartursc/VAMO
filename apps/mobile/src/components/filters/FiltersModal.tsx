@@ -210,7 +210,7 @@ export function FiltersModal({ visible, onClose, onApply, currentFilters }: Filt
 
                         {/* Categories Section */}
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>🎯 Categoria</Text>
+                            <Text style={styles.sectionTitle}>🎯 Category</Text>
                             <View style={styles.categoriesGrid}>
                                 {CATEGORIES.map((category) => (
                                     <TouchableOpacity

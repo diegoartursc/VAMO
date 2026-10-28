@@ -616,7 +616,7 @@ export default function RouteVersioning({
                 // Sem handler externo (componente usado fora da tela de
                 // roteiro comprado, que é quem conecta o exportRoutePdf).
                 notify({
-                    title: 'Exportar PDF',
+                    title: 'Export PDF',
                     message: 'Open this itinerary in My Itineraries to export the PDF.',
                 });
             }

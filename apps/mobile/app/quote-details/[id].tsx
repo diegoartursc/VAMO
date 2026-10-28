@@ -130,7 +130,7 @@ export default function QuoteDetailsScreen() {
                         
                         <View style={styles.passengersContainer}>
                             <Ionicons name="people" size={14} color="rgba(255,255,255,0.8)" />
-                            <Text style={styles.headerLocation}>{booking.travelers.adults} Adultos{booking.travelers.children > 0 ? `, ${booking.travelers.children} Children` : ''}</Text>
+                            <Text style={styles.headerLocation}>{booking.travelers.adults} Adults{booking.travelers.children > 0 ? `, ${booking.travelers.children} Children` : ''}</Text>
                         </View>
                     </View>
                 </View>
@@ -150,7 +150,7 @@ export default function QuoteDetailsScreen() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                 <Ionicons name="airplane" size={20} color="#14b8a6" />
                                 <Text style={styles.quoteCardTitle}>
-                                    Voo + Pacote
+                                    Flight + Package
                                 </Text>
                             </View>
                             <View style={styles.timerBadge}>
@@ -183,7 +183,7 @@ export default function QuoteDetailsScreen() {
                             {/* Price breakdown */}
                             <View style={styles.priceBreakdownContainer}>
                                 <View style={styles.priceRow}>
-                                    <Text style={styles.priceLabel}>Terrestre</Text>
+                                    <Text style={styles.priceLabel}>Land package</Text>
                                     <Text style={styles.priceLabel}>
                                         {formatMoney(q.terrestrePrice)}
                                     </Text>
@@ -225,11 +225,11 @@ export default function QuoteDetailsScreen() {
                                 style={styles.rejectButton}
                                 onPress={() => Alert.alert('Decline proposal', 'Are you sure? The agency may send a new quote.', [
                                     { text: 'Cancel', style: 'cancel' },
-                                    { text: 'Recusar', style: 'destructive' },
+                                    { text: 'Decline', style: 'destructive' },
                                 ])}
                             >
                                 <Text style={styles.rejectButtonText}>
-                                    Recusar Proposta
+                                    Decline offer
                                 </Text>
                             </TouchableOpacity>
                         </View>

@@ -117,7 +117,7 @@ export default function AddChecklistItemModal({
                             autoFocus
                         />
 
-                        <Text style={styles.label}>Categoria</Text>
+                        <Text style={styles.label}>Category</Text>
                         <View style={styles.chipsRow}>
                             {CHECKLIST_CATEGORIES.map(cat => {
                                 const active = !useCustom && category === cat;
@@ -173,7 +173,7 @@ export default function AddChecklistItemModal({
                             activeOpacity={0.85}
                         >
                             <Text style={styles.btnPrimaryText}>
-                                {saving ? 'Salvando…' : isEdit ? 'Save' : 'Add'}
+                                {saving ? 'Saving…' : isEdit ? 'Save' : 'Add'}
                             </Text>
                         </TouchableOpacity>
                     </View>

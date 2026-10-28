@@ -104,7 +104,7 @@ export function ItineraryHeader({
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
                         <Text style={styles.statValue}>{completedActivities}/{totalActivities}</Text>
-                        <Text style={styles.statLabel}>atividades</Text>
+                        <Text style={styles.statLabel}>activities</Text>
                     </View>
                     {weatherInfo && (
                         <>
@@ -123,7 +123,7 @@ export function ItineraryHeader({
                         <View style={styles.progressBar}>
                             <View style={[styles.progressFill, { width: `${progress}%` }]} />
                         </View>
-                        <Text style={styles.progressText}>{Math.round(progress)}% completo</Text>
+                        <Text style={styles.progressText}>{Math.round(progress)}% complete</Text>
                     </View>
                 )}
 

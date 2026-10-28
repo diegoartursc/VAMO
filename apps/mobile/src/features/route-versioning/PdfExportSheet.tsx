@@ -113,7 +113,7 @@ export default function PdfExportSheet({
                     <View style={styles.grabber} />
 
                     <View style={styles.header}>
-                        <Text style={styles.title}>Exportar PDF</Text>
+                        <Text style={styles.title}>Export PDF</Text>
                         <TouchableOpacity
                             onPress={onClose}
                             accessibilityRole="button"

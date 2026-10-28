@@ -325,7 +325,7 @@ export default function ItineraryContactScreen() {
                         <View style={styles.productInfo}>
                             <View style={styles.digitalChip}>
                                 <Ionicons name="cloud-download-outline" size={11} color={theme.colors.primaryDark} />
-                                <Text style={styles.digitalChipText}>Produto digital</Text>
+                                <Text style={styles.digitalChipText}>Digital product</Text>
                             </View>
                             <Text style={styles.productTitle} numberOfLines={2}>
                                 {itinerary.title}

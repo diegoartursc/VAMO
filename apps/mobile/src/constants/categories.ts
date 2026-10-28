@@ -1,10 +1,10 @@
 // Categorias de viagem - usadas em toda a aplicação
 // VAMO 2.0: Emojis replaced by Lucide icon names (IconName type)
 export const CATEGORIES = [
-    { id: 'cultura', icon: 'landmark', label: 'Cultura' },
-    { id: 'gastronomia', icon: 'utensils', label: 'Gastronomia' },
-    { id: 'natureza', icon: 'trees', label: 'Natureza' },
-    { id: 'esportes', icon: 'trophy', label: 'Esportes' },
+    { id: 'cultura', icon: 'landmark', label: 'Culture' },
+    { id: 'gastronomia', icon: 'utensils', label: 'Food & Drink' },
+    { id: 'natureza', icon: 'trees', label: 'Nature' },
+    { id: 'esportes', icon: 'trophy', label: 'Sports' },
     { id: 'cruzeiros', icon: 'ship', label: 'Cruises' },
     { id: 'eurotrip', icon: 'globe', label: 'Europe Trip' },
     { id: 'relax', icon: 'coffee', label: 'Relax' },

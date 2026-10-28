@@ -142,7 +142,7 @@ export default function BookingConfirmedScreen() {
                             <View style={styles.summaryContent}>
                                 <Text style={styles.summaryLabel}>Dates</Text>
                                 <Text style={styles.summaryValue}>
-                                    {date ? formatDate(date as string) : 'A confirmar'}
+                                    {date ? formatDate(date as string) : 'To be confirmed'}
                                 </Text>
                             </View>
                         </View>
@@ -230,7 +230,7 @@ export default function BookingConfirmedScreen() {
                         style={styles.whatsappButton}
                         onPress={() => {
                             haptics.light();
-                            Alert.alert('Suporte', 'Connecting to the agency\'s WhatsApp...');
+                            Alert.alert('Support', 'Connecting to the agency\'s WhatsApp...');
                         }}
                     >
                         <Ionicons name="logo-whatsapp" size={20} color="#fff" />
@@ -242,7 +242,7 @@ export default function BookingConfirmedScreen() {
                         onPress={() => {
                             haptics.light();
                             Alert.alert(
-                                '📄 Comprovante',
+                                '📄 Receipt',
                                 'The receipt was sent to your email. It will be available to download in the app soon.',
                                 [{ text: 'OK' }]
                             );

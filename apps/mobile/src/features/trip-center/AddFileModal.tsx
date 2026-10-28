@@ -289,7 +289,7 @@ export default function AddFileModal({ visible, onClose, token, onSave }: AddFil
                                 />
 
                                 <View style={styles.labelRow}>
-                                    <Text style={styles.label}>Categoria</Text>
+                                    <Text style={styles.label}>Category</Text>
                                     {!category && (
                                         <Text style={styles.labelRequired}>required</Text>
                                     )}

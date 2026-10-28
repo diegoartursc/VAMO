@@ -139,7 +139,7 @@ export default function CreatorItineraryScreen() {
         const ok = await confirm({
             title: 'Resubmit for review',
             message: 'Make sure you\'ve fixed the points raised in the rejection before resubmitting.',
-            confirmText: 'Reenviar',
+            confirmText: 'Resubmit',
             variant: 'info',
         });
         if (!ok) return;

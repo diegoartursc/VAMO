@@ -275,7 +275,7 @@ export function VamoConfirmHost({ children }: { children?: React.ReactNode }) {
                             )}
                             <VamoButton
                                 label={isConfirm
-                                    ? ((current as ConfirmRequest).opts.confirmText ?? 'Confirmar')
+                                    ? ((current as ConfirmRequest).opts.confirmText ?? 'Confirm')
                                     : ((current as NotifyRequest).opts.okText ?? 'OK')}
                                 variant="primary"
                                 size="md"

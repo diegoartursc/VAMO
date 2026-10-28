@@ -102,7 +102,7 @@ export default function CheckoutPaymentScreen() {
                         <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
                             <Ionicons name="checkmark" size={16} color="#14b8a6" />
                         </View>
-                        <Text style={[styles.stepLabel, styles.stepLabelCompleted]}>Contato</Text>
+                        <Text style={[styles.stepLabel, styles.stepLabelCompleted]}>Contact</Text>
                     </View>
                     <View style={[styles.progressConnector, styles.progressConnectorActive]} />
                     <View style={styles.progressStep}>
@@ -242,7 +242,7 @@ export default function CheckoutPaymentScreen() {
                                     <View style={styles.detailRow}>
                                         <Ionicons name="people" size={16} color="#999" />
                                         <Text style={styles.detailText}>
-                                            {adults} Adultos{parseInt(children as string) > 0 && `, ${children} Children`}
+                                            {adults} Adults{parseInt(children as string) > 0 && `, ${children} Children`}
                                         </Text>
                                     </View>
                                     <View style={styles.detailRow}>
@@ -277,7 +277,7 @@ export default function CheckoutPaymentScreen() {
                         Alert.alert(
                             '🏷️ Promo Code',
                             'Contact the agency to get promo codes or gift cards.\n\nThis feature is coming soon!',
-                            [{ text: 'Entendi' }]
+                            [{ text: 'Got it' }]
                         );
                     }}
                 >

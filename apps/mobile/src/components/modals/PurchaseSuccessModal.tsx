@@ -148,7 +148,7 @@ export function PurchaseSuccessModal({
                     <View style={styles.infoBox}>
                         <Ionicons name="information-circle" size={20} color={theme.colors.primary} />
                         <Text style={styles.infoText}>
-                            Acesse agora o roteiro liberado ou encontre a compra sempre em <Text style={styles.infoTextBold}>My Itineraries</Text>.
+                            Open your itinerary now, or find it anytime in <Text style={styles.infoTextBold}>My Itineraries</Text>.
                         </Text>
                     </View>
 

@@ -145,8 +145,8 @@ export default function DatePickerModal({
                 <View style={styles.summaryCard}>
                     <View style={styles.counterRow}>
                         <View style={styles.counterLabelContainer}>
-                            <Text style={styles.counterLabel}>Adultos</Text>
-                            <Text style={styles.counterSublabel}>Idade 13+</Text>
+                            <Text style={styles.counterLabel}>Adults</Text>
+                            <Text style={styles.counterSublabel}>Ages 13+</Text>
                         </View>
                         <View style={styles.travelerCounter}>
                             <TouchableOpacity
@@ -500,7 +500,7 @@ export default function DatePickerModal({
                     <View style={styles.travelerBadge}>
                         <Ionicons name="people" size={14} color="#14b8a6" />
                         <Text style={styles.travelerBadgeText}>
-                            {adultsCount} adulto{adultsCount > 1 ? 's' : ''}
+                            {adultsCount} adult{adultsCount > 1 ? 's' : ''}
                             {childrenCount > 0 && ` + ${childrenCount} child${childrenCount > 1 ? 'ren' : ''}`}
                         </Text>
                     </View>
@@ -616,7 +616,7 @@ export default function DatePickerModal({
                 {/* Package Summary */}
                 {packageTitle && (
                     <View style={styles.summaryCard}>
-                        <Text style={styles.summaryLabel}>Pacote</Text>
+                        <Text style={styles.summaryLabel}>Package</Text>
                         <Text style={styles.summaryValue}>{packageTitle}</Text>
                     </View>
                 )}
@@ -628,7 +628,7 @@ export default function DatePickerModal({
 
                         <View style={styles.priceRow}>
                             <Text style={styles.priceRowLabel}>
-                                {adultsCount} Adulto{adultsCount > 1 ? 's' : ''} × {formatPrice(selectedPrice)}
+                                {adultsCount} Adult{adultsCount > 1 ? 's' : ''} × {formatPrice(selectedPrice)}
                             </Text>
                             <Text style={styles.priceRowValue}>
                                 {formatPrice(adultsCount * selectedPrice)}
@@ -638,7 +638,7 @@ export default function DatePickerModal({
                         {childrenCount > 0 && (
                             <View style={styles.priceRow}>
                                 <Text style={styles.priceRowLabel}>
-                                    {childrenCount} Criança{childrenCount > 1 ? 's' : ''} × {formatPrice(selectedPrice * 0.5)}
+                                    {childrenCount} Child{childrenCount > 1 ? 'ren' : ''} × {formatPrice(selectedPrice * 0.5)}
                                 </Text>
                                 <Text style={styles.priceRowValue}>
                                     {formatPrice(childrenCount * selectedPrice * 0.5)}
@@ -668,7 +668,7 @@ export default function DatePickerModal({
 
                 <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
                     <Text style={styles.confirmButtonText}>
-                        Confirmar · {formatPrice(calculateTotal())}
+                        Confirm · {formatPrice(calculateTotal())}
                     </Text>
                 </TouchableOpacity>
 
@@ -719,7 +719,7 @@ export default function DatePickerModal({
                         <View style={styles.summaryRowContent}>
                             <Text style={styles.summaryRowLabel}>Travelers</Text>
                             <Text style={styles.summaryRowValue}>
-                                {adultsCount} Adulto{adultsCount > 1 ? 's' : ''}
+                                {adultsCount} Adult{adultsCount > 1 ? 's' : ''}
                                 {childrenCount > 0 && `, ${childrenCount} Child${childrenCount > 1 ? 'ren' : ''}`}
                             </Text>
                         </View>
