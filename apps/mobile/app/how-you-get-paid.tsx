@@ -47,9 +47,9 @@ const BLOCKS: Block[] = [
         icon: 'shield-check',
         title: 'Set up your payout account',
         paragraphs: [
-            'Go to Creator Portal → Settings → Payouts and follow the steps. Stripe, our payment partner, verifies your identity and bank account. It usually takes about 10 minutes.',
+            'Go to Creator Portal → Settings → Payouts and balance and tap “Set up payouts”, then follow the steps. Stripe, our payment partner, verifies your identity and bank account. It usually takes about 10 minutes.',
             'Stripe may ask for tax information (for example a Form W-9 if you are in the United States, or a W-8 form if you are not).',
-            'Payouts are being rolled out. We will email you when your account is ready to receive earnings. If your country is not supported for automatic payouts yet, contact support and we will arrange it with you.',
+            'Until your payout account is set up, your earnings stay on hold and are sent as soon as it is ready. If your country is not supported for automatic payouts yet, contact support and we will arrange it with you.',
         ],
     },
     {

@@ -105,7 +105,7 @@ export default function CreatorSettingsScreen() {
                     <View style={s.infoCard}>
                         <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
                         <Text style={s.infoText}>
-                            Payouts are being rolled out. We'll email you when your payout account can be set up.
+                            To receive your earnings, set up your payout account under Payouts and balance.
                         </Text>
                     </View>
 
