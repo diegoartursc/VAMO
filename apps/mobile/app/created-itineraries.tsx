@@ -368,7 +368,7 @@ export default function CreatedItinerariesScreen() {
         { key: 'new', icon: 'add-circle-outline', label: 'New itinerary', hint: 'Publish a new experience', onPress: () => { haptics.medium(); router.push('/new-itinerary'); } },
         { key: 'all', icon: 'albums-outline', label: 'My itineraries', hint: 'View and manage all', badge: String(stats.totalItineraries), onPress: showAllAndScroll },
         { key: 'sales', icon: 'receipt-outline', label: 'My sales', hint: 'Sales and revenue by itinerary', badge: stats.totalSales > 0 ? String(stats.totalSales) : undefined, onPress: goToSales },
-        { key: 'earnings', icon: 'wallet-outline', label: 'Earnings', hint: 'Saldo e repasses', onPress: goToEarnings },
+        { key: 'earnings', icon: 'wallet-outline', label: 'Earnings', hint: 'Balance and payouts', onPress: goToEarnings },
         { key: 'questions', icon: 'chatbubbles-outline', label: 'Questions', hint: 'Traveler questions', badge: pendingQuestions > 0 ? String(pendingQuestions) : undefined, onPress: goToQuestions },
         { key: 'reviews', icon: 'star-half-outline', label: 'Reviews', hint: 'Ratings and comments', badge: stats.totalReviews > 0 ? String(stats.totalReviews) : undefined, onPress: goToReviews },
         { key: 'settings', icon: 'settings-outline', label: 'Settings', hint: 'Profile and payouts', onPress: goToSettings },
@@ -417,7 +417,7 @@ export default function CreatedItinerariesScreen() {
                     <CreatorProTipCard />
 
                     {/* Atalhos */}
-                    <Text style={s.sectionLabel}>Atalhos</Text>
+                    <Text style={s.sectionLabel}>Shortcuts</Text>
                     <CreatorQuickActions actions={quickActions} isWide={isWide} />
 
                     {/* Lista de roteiros */}

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { CREATOR_SHARE_PERCENT, PAYOUT_HOLD_DAYS } from '@vamo/shared/itinerary';
 import { theme } from '../../../../theme/theme';
 import { Icon } from '../../../../components/common/Icons';
 
 export function PayoutExplanationCard() {
+    const router = useRouter();
     const [expanded, setExpanded] = useState(true);
 
     return (
@@ -37,14 +40,25 @@ export function PayoutExplanationCard() {
                         and tracks your earnings.
                     </Text>
                     <Text style={styles.paragraph}>
-                        Your sales first appear as pending balance. After the protection
-                        period, your balance becomes available and is automatically paid out
-                        to your registered bank account.
+                        You keep {CREATOR_SHARE_PERCENT}% of every sale. Your sales first appear as
+                        pending balance. After the {PAYOUT_HOLD_DAYS}-day protection period, your
+                        earnings are automatically paid out to your registered bank account.
                     </Text>
                     <Text style={styles.paragraph}>
                         VAMO uses Stripe to securely manage payments, identity verification
                         and bank payouts.
                     </Text>
+
+                    <TouchableOpacity
+                        style={styles.link}
+                        onPress={() => router.push('/how-you-get-paid')}
+                        activeOpacity={0.85}
+                        accessibilityRole="link"
+                        accessibilityLabel="See how you get paid"
+                    >
+                        <Text style={styles.linkText}>See how you get paid</Text>
+                        <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+                    </TouchableOpacity>
 
                     <View style={styles.note}>
                         <Ionicons
@@ -106,6 +120,17 @@ const styles = StyleSheet.create({
         fontSize: 13.5,
         lineHeight: 20,
         color: theme.colors.text.secondary,
+    },
+    link: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingVertical: 4,
+    },
+    linkText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.colors.primary,
     },
     note: {
         flexDirection: 'row',
