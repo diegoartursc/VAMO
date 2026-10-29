@@ -30,6 +30,11 @@ export class PurchaseBlockedError extends Error {
 // Lazy: o servidor sobe sem STRIPE_SECRET_KEY (endpoints de pagamento
 // respondem 503 até a chave ser configurada no .env).
 let stripeClient: Stripe | null = null;
+/** Só para testes automatizados: injeta um cliente Stripe falso. */
+export function setStripeClientForTests(client: Stripe | null) {
+    if (process.env.NODE_ENV !== 'test') throw new Error('setStripeClientForTests só em NODE_ENV=test');
+    stripeClient = client;
+}
 function getStripe(): Stripe | null {
     if (stripeClient) return stripeClient;
     const key = process.env.STRIPE_SECRET_KEY;
@@ -237,7 +242,7 @@ async function fulfillItineraryPurchase(opts: {
 
     const existing = await prisma.itinerarySale.findFirst({
         where: { itineraryId, travelerId },
-        select: { id: true, purchaseData: true, paymentStatus: true, paymentIntentId: true, itinerary: { select: { title: true, currency: true } } },
+        select: { id: true, purchaseData: true, paymentStatus: true, paymentIntentId: true, payoutTransferId: true, itinerary: { select: { title: true, currency: true } } },
     });
     // Venda antiga reembolsada/perdida em disputa + pagamento NOVO: é uma recompra.
     // Reaproveita a linha (índice único itinerário+viajante) e zera o estado.
@@ -311,26 +316,71 @@ async function fulfillItineraryPurchase(opts: {
         commissionCents: amounts.commissionCents,
         creatorEarningCents: amounts.creatorEarningCents,
         paymentIntentId: payment.paymentIntentId || null,
-        paymentStatus: PAYMENT_STATUS.paid,
+        paymentStatus: PAYMENT_STATUS.paid as string,
+        refundedCents: 0,
+        payoutStatus: null as string | null,
     };
+
+    // R-M4: o estorno/disputa pode chegar ANTES desta venda existir (o evento é
+    // descartado por não achar venda). Por isso a venda nasce com o estado real
+    // da cobrança na Stripe.
+    if (payment.provider === 'stripe' && payment.paymentIntentId) {
+        const stripe = getStripe();
+        if (stripe) {
+            try {
+                const pi = await stripe.paymentIntents.retrieve(payment.paymentIntentId, { expand: ['latest_charge'] });
+                const charge = pi.latest_charge as Stripe.Charge | null;
+                const refunded = charge?.amount_refunded ?? 0;
+                if (charge?.disputed) {
+                    saleValues.paymentStatus = PAYMENT_STATUS.disputed;
+                    saleValues.payoutStatus = 'on_hold';
+                }
+                if (refunded > 0) {
+                    saleValues.refundedCents = refunded;
+                    const full = refunded >= amounts.paidAmountCents;
+                    saleValues.paymentStatus = full ? PAYMENT_STATUS.refunded : PAYMENT_STATUS.partiallyRefunded;
+                    if (full) saleValues.payoutStatus = 'blocked';
+                }
+            } catch (err: any) {
+                console.error('[payments] não consegui conferir o estado da cobrança no fulfillment:', err?.message || err);
+            }
+        }
+    }
 
     const snapshotPayload = toJsonSafe(buildPurchasedItineraryPayload(itinerary, {
         price: amounts.price,
         createdAt: new Date(),
     }));
 
+    if (isRepurchase && existing && existing.payoutTransferId) {
+        // A venda antiga já teve repasse: zerar a linha apagaria o registro de
+        // reversão devida pelo roteirista. Devolve o pagamento novo e manda ao suporte.
+        let refunded = false;
+        const stripe = getStripe();
+        if (stripe && payment.paymentIntentId) {
+            refunded = (await refundPaymentIntentIfNeeded(stripe, payment.paymentIntentId, 'repurchase_after_payout_needs_support')).refunded;
+        }
+        console.error(`[payments][ACTION NEEDED] recompra da venda ${existing.id} com repasse anterior; pagamento novo ${refunded ? 'estornado' : 'NÃO estornado'}`);
+        throw new PurchaseBlockedError(
+            'We couldn\'t complete this purchase automatically. The amount was refunded; please contact support to get access again.',
+            refunded,
+        );
+    }
+
     if (isRepurchase && existing) {
-        await prisma.itinerarySale.update({
-            where: { id: existing.id },
+        // Transição condicional: só uma chamada (webhook OU tela de retorno) recompra.
+        const reopened = await prisma.itinerarySale.updateMany({
+            where: { id: existing.id, paymentStatus: { in: [PAYMENT_STATUS.refunded, PAYMENT_STATUS.disputeLost] } },
             data: {
-                ...saleValues,
-                refundedCents: 0, disputeStatus: null,
-                payoutTransferId: null, payoutTransferredAt: null, payoutAmount: null, payoutStatus: null,
+                disputeStatus: null, disputeId: null, disputeLostCents: 0,
+                payoutTransferId: null, payoutTransferredAt: null, payoutAmount: null,
                 payoutAttempts: 0, payoutNextAttemptAt: null, payoutLastError: null, payoutReversedCents: 0,
+                ...saleValues,
                 createdAt: new Date(),
                 purchaseData: { routeSnapshot: snapshotPayload, payment: toJsonSafe(payment) },
             },
         });
+        if (reopened.count !== 1) return { saleId: existing.id, alreadyPurchased: true };
         notifySaleCreated(existing.id, payment)
             .catch((e) => console.error('[payments] e-mails da recompra falharam:', e?.message || e));
         return { saleId: existing.id, alreadyPurchased: false };
@@ -656,3 +706,6 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
 }
 
 export default router;
+
+/** Exposto só para os testes de segurança (fulfillment com Stripe falso). */
+export const fulfillItineraryPurchaseForTests = fulfillItineraryPurchase;

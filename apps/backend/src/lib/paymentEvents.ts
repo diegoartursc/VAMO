@@ -126,6 +126,19 @@ async function onTransferReversed(transfer: any) {
     await prisma.itinerarySale.update({ where: { id: sale.id }, data: { payoutReversedCents: reversed } });
 }
 
+/**
+ * Revisa uma venda já repassada e reverte o que for devido. Usado pelo job de
+ * repasse logo depois da transferência: um estorno que chegou ENTRE a checagem
+ * da cobrança e a gravação do repasse não pode ficar sem reversão.
+ */
+export async function reconcileReversalForSale(stripe: Stripe, saleId: string) {
+    const sale = await prisma.itinerarySale.findUnique({ where: { id: saleId } }) as SaleRow | null;
+    if (!sale?.payoutTransferId) return;
+    if (reversalTargetCents(sale as any) > (sale.payoutReversedCents ?? 0)) {
+        await reverseTransfer(stripe, sale, 'late_refund_or_dispute');
+    }
+}
+
 /** Marca o evento como recebido. Retorna false se ele já foi processado antes. */
 export async function beginStripeEvent(event: Pick<Stripe.Event, 'id' | 'type'>): Promise<boolean> {
     const existing = await prisma.stripeEvent.findUnique({ where: { id: event.id } });

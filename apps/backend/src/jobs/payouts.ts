@@ -15,6 +15,7 @@ import prisma from '../lib/prisma';
 import { getStripe } from '../lib/stripe';
 import { PAYOUT_HOLD_DAYS } from '@vamo/shared/itinerary';
 import { PAYMENT_STATUS, payoutDueCents } from '../lib/money';
+import { reconcileReversalForSale } from '../lib/paymentEvents';
 
 const DAY = 24 * 60 * 60 * 1000;
 export const PAYOUT_HOLD_MS = PAYOUT_HOLD_DAYS * DAY;
@@ -141,6 +142,9 @@ export async function runPayoutSweep(now: Date = new Date(), stripeClient?: Stri
                 },
             });
             transferred++;
+            // Estorno/disputa que chegou durante esta transferência: reverte agora.
+            await reconcileReversalForSale(stripe, sale.id).catch((err: any) =>
+                console.error(`[payouts][ACTION NEEDED] reversão pós-repasse da venda ${sale.id} falhou:`, err?.message || err));
         } catch (e: any) {
             skipped++;
             const message = String(e?.message || e);
