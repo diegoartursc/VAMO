@@ -221,37 +221,49 @@ Variáveis **sem valores**. Ordem:
 
 ---
 
-## Fase 5 — Reauditoria independente (EM ANDAMENTO, interrompida por limite de uso)
+## Fase 5 — Reauditoria independente (concluída no código)
 
-Um revisor com contexto novo atacou o diff `4bc6f9e..HEAD` sem editar nada. Os números das fases conferem: backend 126 de 126, mobile 216 de 216. As alegações de SEC-01, 02, 03 (respostas), 04, 05, 06, 07, 08, 09, 10, 12, 13, 15, NEW-01 e NEW-05 **resistiram** aos ataques.
+Um revisor com contexto novo atacou o diff `4bc6f9e..HEAD` sem editar nada. Os números das fases conferem. As alegações de SEC-01, 02, 03 (respostas), 04, 05, 06, 07, 08, 09, 10, 12, 13, 15, NEW-01 e NEW-05 **resistiram** aos ataques. Ele achou os problemas abaixo, todos corrigidos depois.
 
-**Achados novos e estado:**
+Testes novos ou ampliados:
+- `phase5-money.test.ts` (6);
+- `phase1-auth.test.ts` (23, +3);
+- `phase2-content.test.ts` (10, +1);
+- `phase2-private-docs.test.ts` (4, +1);
+- `phase4-trust.test.ts` (4, +1);
+- `phase4-uploads.test.ts` (8, +1).
 
-| ID | Grav. | Achado | Estado |
-| --- | --- | --- | --- |
-| R-M1 | Alta | Reversão calculada sobre o ganho total, não sobre o transferido (estorno antes e depois do repasse tira demais do roteirista) | **corrigido no código** (`reversalTargetCents` = transferido − devido após todas as perdas). Falta teste dedicado. |
-| R-M2 | Média | Estorno + disputa perdida recupera de menos | **corrigido no código** (`disputeLostCents` somado às perdas). Falta teste dedicado. |
-| R-M3 | Média | Disputa já encerrada reaberta por evento atrasado | **corrigido no código** (`disputeId` + status terminal). Falta teste. |
-| R-M4 | Média | Estorno que chega antes da venda é perdido | **não corrigido**: conferir `amount_refunded`/`disputed` da cobrança no fulfillment |
-| R-T1 | Média | Aprovação do comprovante copiada para outro item (casamento só por valor + arquivo) | **não corrigido**: casar por módulo + nome do item + impressão digital, com uso único |
-| R-T2 | Baixa/Média | `cost.notes` e `cost.adminNote` na prévia pública | **não corrigido**: limitar `cost` na prévia e incluir `adminNote` nas chaves removidas |
-| R-U1 | Média | Duas contas gratuitas seguram as 4 vagas globais de upload | **não corrigido**: limite por conta, vagas globais maiores |
-| R-U2 | Baixa | Excluir conta/arquivo deixa o arquivo legado em disco aberto | **não corrigido**: apagar o arquivo do disco junto |
-| R-U3 | Baixa | Nome em maiúsculas burla `/uploads` no Mac | **não corrigido**: `endsWith` com `mode: 'insensitive'` |
-| R-A1 | Média | Refresh sem tolerância: duas abas ou resposta perdida derrubam a sessão | **parcial**: colunas `prevRefreshJti`/`rotatedAt` já na migration; falta a lógica |
-| — | Média | Banco fora do ar vira 401 e o app apaga a sessão | **não corrigido** (responder 503) |
-| — | Média | `/api/private-docs` sem cota de armazenamento | **não corrigido** |
-| — | Média | Recompra apaga registro de reversão pendente | **não corrigido** |
-| — | Baixa/Média | Corrida entre repasse e estorno | **não corrigido** |
-| — | Baixa/Média | Admin forjável fora de produção com o segredo vazado; `approvedBy` exposto ao criador | **não corrigido**: tornar o segredo vazado fatal em qualquer ambiente; remover `approvedBy` |
-| — | Baixa | Limite por IP burlável com IPv6; falta bloqueio por conta | **não corrigido** |
-| — | Baixa | Comprovante por URL pública ainda aceito no salvamento | **não corrigido** |
-| — | Baixa | Exclusão de conta deixa texto de avaliação, imagens de perfil e `PurchaseHistory` | **não corrigido** |
-| — | Baixa | Painéis contam venda estornada como receita | **não corrigido** |
+Totais: backend 138 de 138, mobile 216 de 216, `tsc` sem erro novo no backend, no app e no painel.
 
-**Parecer provisório:** o código local está melhor que antes em todos os 16 SECs, mas **não está aprovado**, por causa dos itens "não corrigido" acima (principalmente R-M4, R-T1, R-U1 e R-A1). **A Fase 6 (publicar) não deve começar** antes de fechar essa lista e repetir a revisão.
+| ID | Grav. | Achado | Correção | Status |
+| --- | --- | --- | --- | --- |
+| R-M1 | Alta | Reversão calculada sobre o ganho total, não sobre o transferido | Alvo = transferido − ganho ainda devido após todas as perdas (`lib/money.ts`) | **corrigido e validado** (cenário do revisor: reverte 16, não 40) |
+| R-M2 | Média | Estorno + disputa perdida recuperava de menos | `disputeLostCents` somado às perdas | **corrigido e validado** (reverte os 80) |
+| R-M3 | Média | Disputa encerrada reaberta por evento atrasado | `disputeId` + status terminal; evento não terminal da mesma disputa é ignorado | **corrigido e validado** |
+| R-M4 | Média | Estorno que chega antes da venda era perdido | A venda nasce com o estado real da cobrança na Stripe (estornada, parcial ou em disputa) | **corrigido e validado** |
+| R-T1 | Média | Aprovação de comprovante copiada para outro item | Decisão vale para módulo + nome do item + impressão digital, uma vez só | **corrigido e validado** |
+| R-T2 | Baixa/Média | `cost.notes` e `cost.adminNote` na prévia pública | A prévia leva só os campos numéricos do custo; `adminNote` removido de toda resposta não dono/admin | **corrigido e validado** |
+| R-U1 | Média | Duas contas seguravam todas as vagas de upload | Cota por conta (60 pedidos e 1 GB por hora) e 12 vagas globais | **corrigido e validado** (risco residual: muitas contas novas ainda podem ocupar vagas por até 5 min) |
+| R-U2 | Baixa | Apagar arquivo ou conta deixava o arquivo legado em disco aberto | Remove a cópia do disco junto com o registro | **corrigido** (sem teste dedicado) |
+| R-U3 | Baixa | Maiúsculas burlavam `/uploads` no Mac | Consulta sem diferenciar maiúsculas | **corrigido e validado** |
+| R-A1 | Média | Duas abas ou resposta perdida derrubavam a sessão | O refresh anterior vale 10 s e devolve o par atual (sem bifurcar); reuso depois disso revoga | **corrigido e validado** |
+| — | Média | Banco fora do ar virava 401 e o app apagava a sessão | 503 no servidor; o app só apaga a sessão em 401/403 | **corrigido e validado** (backend) |
+| — | Média | `/api/private-docs` sem cota | 60 arquivos e 300 MB por dono | **corrigido e validado**. Pendente: limpar documentos não referenciados |
+| — | Média | Recompra apagava registro de reversão pendente | Recompra de venda já repassada é bloqueada e o pagamento novo é estornado; transição condicional | **corrigido e validado** |
+| — | Baixa/Média | Corrida entre repasse e estorno | Releitura da venda logo depois da transferência e reversão do devido | **corrigido e validado** |
+| — | Baixa/Média | Admin forjável fora de produção com o segredo vazado; `approvedBy` exposto | Segredo publicado é **fatal em qualquer ambiente**; fora de produção o backend só escuta em 127.0.0.1; `approvedBy` removido da visão do criador | **corrigido**. Atenção: o backend local **não sobe** até trocar o `JWT_SECRET` do `.env` local |
+| — | Baixa | Limite por IP burlável com IPv6 | Bloqueio por conta: 20 erros por hora, contando só falhas | **corrigido** |
+| — | Baixa | Comprovante por URL pública ainda aceito | Roteiro novo: só armazenamento privado. Edição: URL pública só se já estava gravada (legado até a migração) | **corrigido e validado** |
+| — | Baixa | Exclusão de conta deixava dados | Contato do `PurchaseHistory` limpo e arquivos legados removidos | **parcial**: o texto das avaliações e as imagens de perfil no bucket público continuam |
+| — | Baixa | Painéis contavam venda estornada como receita | `ACTIVE_SALE_WHERE` em `/dashboard/stats` e `/dashboard/sales` | **corrigido** |
 
----
+**Parecer:**
+1. **Código local: aprovado nos cenários testados.** Limitações:
+   - não houve uma segunda rodada de revisão independente depois destas correções;
+   - não houve teste de carga;
+   - itens parciais: texto de avaliações e imagens de perfil na exclusão de conta, limpeza de documentos não referenciados, alerta ativo ao admin para `needs_attention`, `zod` 4 e SDK do Expo.
+2. **Homologação: pendente.** Não há ambiente de teste separado; tudo foi validado com Prisma e Stripe simulados.
+3. **Produção: pendente de implantação.** Nada foi publicado. Ver o checklist (Fase 6).
 
 ## Fases seguintes
 

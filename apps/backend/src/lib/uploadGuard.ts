@@ -18,13 +18,17 @@ export function uploadLimits() {
         maxRequestBytes: num('UPLOAD_MAX_REQUEST_BYTES', 210 * MB),
         maxFiles: num('UPLOAD_MAX_FILES', 10),
         perUser: num('UPLOAD_MAX_CONCURRENT_PER_USER', 2),
-        global: num('UPLOAD_MAX_CONCURRENT', 4),
+        global: num('UPLOAD_MAX_CONCURRENT', 12),
+        // Cota por conta (R-U1): pedidos e bytes por hora.
+        perHour: num('UPLOAD_MAX_PER_HOUR', 60),
+        bytesPerHour: num('UPLOAD_MAX_BYTES_PER_HOUR', 1024 * MB),
         // Conexão lenta não segura a vaga para sempre (slowloris).
         timeoutMs: num('UPLOAD_TIMEOUT_MS', 5 * 60 * 1000),
     };
 }
 
 const activeByUser = new Map<string, number>();
+const hourly = new Map<string, { resetAt: number; count: number; bytes: number }>();
 let activeGlobal = 0;
 
 /** `maxRequestBytes`: teto do pedido nesta rota (o menor entre ele e o global). */
@@ -42,10 +46,23 @@ export function uploadGuard(opts: { maxRequestBytes?: number } = {}) {
             return;
         }
         const key = (req as any).traveler?.travelerId || req.ip || 'anon';
+        const now = Date.now();
+        let usage = hourly.get(key);
+        if (!usage || usage.resetAt <= now) {
+            usage = { resetAt: now + 60 * 60 * 1000, count: 0, bytes: 0 };
+            hourly.set(key, usage);
+        }
+        if (usage.count >= limits.perHour || usage.bytes + length > limits.bytesPerHour) {
+            res.set('Retry-After', String(Math.ceil((usage.resetAt - now) / 1000))).status(429)
+                .json({ error: 'Upload limit reached for now. Please try again later.' });
+            return;
+        }
         if ((activeByUser.get(key) || 0) >= limits.perUser || activeGlobal >= limits.global) {
             res.set('Retry-After', '5').status(429).json({ error: 'Too many uploads at the same time. Please wait a moment.' });
             return;
         }
+        usage.count++;
+        usage.bytes += length;
         activeByUser.set(key, (activeByUser.get(key) || 0) + 1);
         activeGlobal++;
         let released = false;

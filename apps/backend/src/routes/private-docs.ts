@@ -17,6 +17,8 @@ import { uploadGuard } from '../lib/uploadGuard';
 const router = Router();
 
 const MAX_DOC_BYTES = 15 * 1024 * 1024;
+const MAX_DOCS_PER_OWNER = 60;
+const MAX_BYTES_PER_OWNER = 300 * 1024 * 1024;
 const PURPOSES = new Set(['travelProof', 'costProof']);
 const MIME_BY_EXT: Record<string, string> = {
     pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
@@ -54,6 +56,16 @@ router.post('/', travelerAuthMiddleware, uploadGuard({ maxRequestBytes: MAX_DOC_
         }
         if (!hasValidFileSignature(file.buffer, file.originalname)) {
             res.status(415).json({ error: 'The file contents don\'t match the stated format.' });
+            return;
+        }
+        // Cota por dono (comprovantes ficam no Postgres de produção).
+        const usage = await prisma.privateDocument.aggregate({
+            where: { ownerTravelerId: req.traveler!.travelerId },
+            _count: { _all: true },
+            _sum: { sizeBytes: true },
+        });
+        if ((usage._count?._all ?? 0) >= MAX_DOCS_PER_OWNER || (usage._sum?.sizeBytes ?? 0) + file.size > MAX_BYTES_PER_OWNER) {
+            res.status(413).json({ error: 'You reached the storage limit for proof files. Remove unused itineraries or contact support.' });
             return;
         }
         const ext = path.extname(file.originalname).slice(1).toLowerCase();

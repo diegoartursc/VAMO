@@ -28,6 +28,10 @@ before(async () => {
     Object.assign(db.traveler, { findFirst: travelers.findFirst, findUnique: travelers.findUnique });
     Object.assign(db.travelerSession, sessions);
     Object.assign(db.privateDocument, docs, {
+        aggregate: async ({ where }: any) => {
+            const mine = docs.rows.filter((d) => d.ownerTravelerId === where.ownerTravelerId);
+            return { _count: { _all: mine.length }, _sum: { sizeBytes: mine.reduce((n, d) => n + d.sizeBytes, 0) } };
+        },
         findMany: async ({ where }: any) => docs.rows.filter((d) =>
             where.id.in.includes(d.id) && (!where.ownerTravelerId || d.ownerTravelerId === where.ownerTravelerId)),
     });
@@ -90,5 +94,13 @@ test('SEC-03: ao salvar roteiro, comprovante de outra pessoa é descartado e o p
     const out: any = await canonicalizeDocRefs(body, 'trav_creator');
     assert.equal(out.travelProofUrl, '', 'comprovante alheio precisa sair');
     assert.deepEqual(out.accommodations[0].cost.proofFiles.map((f: any) => f.url), [mine.json.ref]);
-    assert.equal(out.attractions[0].cost.proofFiles[0].url, 'https://legacy.example/old.jpg', 'legado não é tocado aqui (migração cuida)');
+    assert.equal(out.attractions[0].cost.proofFiles.length, 0, 'URL pública nova não entra como comprovante');
+    const legacy: any = await canonicalizeDocRefs(body, 'trav_creator', new Set(['https://legacy.example/old.jpg']));
+    assert.equal(legacy.attractions[0].cost.proofFiles[0].url, 'https://legacy.example/old.jpg', 'legado já gravado continua (até a migração)');
+});
+
+test('Cota de armazenamento de comprovantes por dono', async () => {
+    for (let i = 0; i < 60; i++) docs.rows.push({ id: `quota_${i}`, ownerTravelerId: 'trav_other', sizeBytes: 10 });
+    const r = await uploadPdf(await tokenFor('other@test.local'), 'over.pdf');
+    assert.equal(r.status, 413);
 });

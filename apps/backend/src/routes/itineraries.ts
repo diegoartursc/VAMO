@@ -10,7 +10,7 @@ import { PUBLIC_ITINERARY_WHERE, isPublicItineraryStatus, isPurchasableItinerary
 import { sendItinerarySubmittedForReviewEmail } from '../lib/mailer';
 import { BASE_CURRENCY, computeCommission } from '@vamo/shared/itinerary';
 import { toListingModules, toPublicItineraryPreview, toBuyerItinerary } from '../lib/itineraryDto';
-import { canonicalizeDocRefs, signDocRefs } from '../lib/privateDocs';
+import { canonicalizeDocRefs, signDocRefs, existingProofRefs } from '../lib/privateDocs';
 import { enforceProofStatus } from '../lib/costProofs';
 
 const router = Router();
@@ -214,7 +214,7 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
         const itineraries = await prisma.itinerary.findMany({
             where,
             include: {
-                sales: { select: { id: true, price: true } },
+                sales: { where: ACTIVE_SALE_WHERE, select: { id: true, price: true } },
                 reviews: { where: { hidden: false }, select: { id: true, rating: true } },
             },
         });
@@ -319,6 +319,7 @@ router.get('/dashboard/sales', optionalAuthMiddleware, async (req: AuthRequest, 
             select: {
                 id: true, title: true, price: true, rating: true, reviewCount: true,
                 sales: {
+                    where: ACTIVE_SALE_WHERE, // venda estornada não é receita
                     select: {
                         id: true, price: true, createdAt: true,
                         traveler: { select: { name: true, avatar: true } },
@@ -1517,8 +1518,18 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
 // PUT /api/itineraries/:id (requires auth)
 router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), async (req: AuthRequest, res: Response) => {
     try {
-        // Comprovantes: só documentos privados do próprio criador (SEC-03).
-        if (req.traveler?.travelerId) req.body = await canonicalizeDocRefs(req.body ?? {}, req.traveler.travelerId);
+        // Comprovantes: só documentos privados do próprio criador (SEC-03). URL
+        // pública só se já estava gravada neste roteiro (legado até a migração).
+        if (req.traveler?.travelerId) {
+            const stored = await prisma.itinerary.findUnique({
+                where: { id: req.params.id as string },
+                select: {
+                    travelProofUrl: true, attractions: true, restaurants: true, extraSpendingItems: true, flightInfo: true,
+                    accommodations: { select: { cost: true } }, transports: { select: { cost: true } },
+                },
+            });
+            req.body = await canonicalizeDocRefs(req.body ?? {}, req.traveler.travelerId, existingProofRefs(stored));
+        }
         const id = req.params.id as string;
         let {
             title, destination, country, description,

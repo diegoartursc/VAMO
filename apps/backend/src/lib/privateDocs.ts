@@ -75,19 +75,26 @@ function collectDocIds(value: unknown): string[] {
  * descarta documentos que não pertencem a quem está salvando.
  * URLs que não são nossas (legado no bucket público) ficam como estão.
  */
-export async function canonicalizeDocRefs<T>(body: T, ownerTravelerId: string): Promise<T> {
+export async function canonicalizeDocRefs<T>(body: T, ownerTravelerId: string, legacyAllowed: Set<string> = new Set()): Promise<T> {
     const ids = collectDocIds(body);
-    if (ids.length === 0) return body;
-    const owned = await prisma.privateDocument.findMany({
-        where: { id: { in: ids }, ownerTravelerId },
-        select: { id: true },
-    });
+    const owned = ids.length
+        ? await prisma.privateDocument.findMany({ where: { id: { in: ids }, ownerTravelerId }, select: { id: true } })
+        : [];
     const allowed = new Set(owned.map((d) => d.id));
     return mapDocRefs(body, (url) => {
         const id = docIdFromRef(url);
-        if (!id) return url;
+        // Comprovante NOVO só pelo armazenamento privado. URL pública só se já
+        // estava gravada neste roteiro (legado, até a migração).
+        if (!id) return legacyAllowed.has(url) ? url : null;
         return allowed.has(id) ? `${PRIVATE_DOC_PREFIX}${id}` : null;
     });
+}
+
+/** URLs de comprovante já gravadas (legado público aceito só se não mudou). */
+export function existingProofRefs(existing: unknown): Set<string> {
+    const set = new Set<string>();
+    mapDocRefs(existing, (url) => { set.add(url); return url; });
+    return set;
 }
 
 function publicBase(req: Request): string {

@@ -111,3 +111,11 @@ test('SEC-08: upload legítimo pequeno continua funcionando e o servidor segue v
     assert.equal(status, 200);
     assert.equal((await call(base, 'GET', '/health')).status, 200);
 });
+
+test('R-U1: cota por conta (pedidos por hora) recusa o excesso', async () => {
+    process.env.UPLOAD_MAX_PER_HOUR = '1';
+    const one = multipart([{ name: 'q.jpg', data: jpeg(1024), field: 'file' }]);
+    const status = await rawPost('/api/uploads', { authorization: `Bearer ${token}`, 'content-type': one.type, 'content-length': one.body.length }, one.body);
+    delete process.env.UPLOAD_MAX_PER_HOUR;
+    assert.equal(status, 429);
+});
