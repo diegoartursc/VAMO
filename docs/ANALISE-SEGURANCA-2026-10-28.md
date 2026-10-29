@@ -6,6 +6,15 @@ Data: 28/10/2026. Base: checkout local no commit `25823d4`, inicialmente sem alt
 
 Foi produzido um [prompt de correção e nova auditoria para Claude/Fable](PROMPT-CLAUDE-CORRECAO-SEGURANCA-2026-10-28.md). Nenhuma correção foi aplicada ao aplicativo nesta análise.
 
+## Atualização de 28/10/2026 (revisão antes de enviar ao Fable)
+
+- **Código desde a análise:** a base passou de `25823d4` para `4c8a1af`. No backend mudou só `routes/payments.ts` (+2 linhas: `locale: 'en'` no Checkout), então as linhas de `payments.ts` citadas abaixo estão deslocadas em +2 a partir de ~`:345`. O restante (mobile: traduções, tela de ganhos) não toca nos achados.
+- **Conferido por amostragem no código atual:** `mock-admin-token` fora de produção (`routes/admin.ts:26`), `/dashboard/stats` com auth opcional (`routes/itineraries.ts:185`), token de arquivo com o mesmo `JWT_SECRET` (`lib/auth.ts:41`), bloqueio literal antes do `express.static` (`index.ts:108` e `:125`) e `multer ^1.4.5-lts.1` no manifesto. Todos batem.
+- **SEC-16 contido no arquivo atual:** a credencial saiu do hook. O texto agora fica em `scripts/session-start-hook.sh`, sem e-mail/senha, e `.claude/settings.json` só chama esse script. **O valor continua no histórico do Git** (commits anteriores a esta revisão); a conta citada não existe mais no banco desde a limpeza de 29/09, mas a senha não deve ser reutilizada em lugar nenhum. `.claude/settings.local.json` também contém senhas em comandos permitidos, porém é ignorado pelo Git (não versionado).
+- **Boot automático:** criar `.claude/skip-boot` desliga o boot (backend ligado ao banco de produção + `health.sh`) na sessão seguinte. Usar isso antes da sessão de correção.
+- **Ambiente de teste:** não há Docker nesta máquina e o Postgres local foi abandonado; os testes precisam usar Prisma/Stripe simulados, salvo se um banco descartável for preparado à parte.
+- **Decisões de negócio** para estorno, disputa, prévia pública e encerramento de sessões estão no prompt, seção "Decisões já definidas".
+
 ## Escopo e evidências
 
 - Revisão de backend Express/Prisma, autenticação, admin, APIs públicas, compras, Stripe/Connect, jobs, uploads/storage, site Next.js e app Expo.

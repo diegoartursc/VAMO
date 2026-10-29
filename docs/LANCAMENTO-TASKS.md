@@ -67,6 +67,8 @@ Ordem de execução. Cada bloco só começa quando o anterior tem o essencial pr
 
 ### C. Auditoria de segurança · 🔴 · 🤖 (👤 nas chaves)
 Base: [AUDITORIA-SEGURANCA-2026-10-15.md](AUDITORIA-SEGURANCA-2026-10-15.md) (achados ainda a conferir) + as 6 vulnerabilidades do topo.
+
+**Atualização 2026-10-28:** nova análise com 16 achados (2 críticos/altos de sessão e conteúdo pago, financeiros e de upload) em [ANALISE-SEGURANCA-2026-10-28.md](ANALISE-SEGURANCA-2026-10-28.md). A correção será feita pelo Fable com o prompt pronto em [PROMPT-CLAUDE-CORRECAO-SEGURANCA-2026-10-28.md](PROMPT-CLAUDE-CORRECAO-SEGURANCA-2026-10-28.md) (rodar `touch .claude/skip-boot` antes de abrir a sessão). Resultado esperado: `docs/SEGURANCA-POS-CORRECAO-2026-10-28.md` na branch `security-fixes-2026-10-28`.
 - [x] 🤖 Dependências corrigidas (raiz, backend, site e mobile) e Dependabot ligado (2026-10-27). Restam Zod e Expo (seção acima). Multer ainda a conferir.
 - [x] 🤖 Pagamentos (2026-10-27): checkout idempotente (mesma sessão para duplo clique, janela de 30 min), segundo pagamento do mesmo roteiro estornado automaticamente com e-mail, estorno que falha faz o webhook responder 500 para a Stripe tentar de novo. Testes novos. Falta: deduplicar eventos do webhook por ID e fila persistente de estornos.
 - [ ] 🤖 Rodar de novo a auditoria da lista de 15/10 e marcar o que já foi resolvido.

@@ -77,3 +77,6 @@ Thumbs.db
 # ─── Gaveta do desenvolvedor (qualquer coisa local que não deve ir pro repo) ───
 # Veja .local/README.md. Tudo aqui é invisível pro Git.
 .local/
+
+# Desliga o boot automático do Claude (ver scripts/session-start-hook.sh)
+.claude/skip-boot
