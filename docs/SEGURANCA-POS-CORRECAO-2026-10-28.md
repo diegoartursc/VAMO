@@ -173,6 +173,54 @@ Testes:
 
 ---
 
+## Busca de segredos (28/10)
+
+- **Checkout atual:** nenhuma chave real da Stripe, do Supabase ou senha SMTP em arquivo versionado.
+- **Histórico do Git** (repositório **público**), busca por tipo de segredo, mostrando só o tipo:
+  - nenhuma `sk_live_`/`sk_test_`/`whsec_` real, nenhum JWT de service role do Supabase, nenhuma URL de banco com senha;
+  - **o segredo JWT de exemplo** aparece em 2 commits, e o `.env` local usa esse mesmo valor (NEW-08);
+  - **a senha antiga do hook** aparece em 9 commits (SEC-16).
+- Não existem os repositórios espelhados `VAMOsite`/`adminVAMO` nesta máquina; nada a sincronizar.
+
+## Checklist de implantação (Fase 6, cada passo com autorização do Diego)
+
+Variáveis **sem valores**. Ordem:
+
+1. **Backup do banco** (`cd apps/backend && npx tsx scripts/backup-db.ts`). Pegadinha do `CLAUDE.md`: o Prisma local já foi gerado com as colunas novas. Para o backup funcionar ANTES das migrations, rode `npx prisma generate --schema <schema anterior>`, faça o backup e gere de novo. Alternativa: backup pelo painel do Supabase.
+2. **Render, variáveis:**
+   - `JWT_SECRET` **novo** (`openssl rand -base64 48`). Obrigatório se o atual for o de exemplo; recomendado de qualquer forma, porque o repositório é público.
+   - `PUBLIC_BACKEND_URL=https://vamo-699h.onrender.com`, para os links assinados de comprovante.
+   - Conferir se `STRIPE_WEBHOOK_SECRET` existe: sem ele o servidor agora **não sobe**, se a `STRIPE_SECRET_KEY` estiver definida.
+   - `ALLOWED_ORIGINS` precisa incluir o domínio do app e do painel admin na Vercel.
+   - Opcionais: `UPLOAD_MAX_*`, `UPLOAD_TIMEOUT_MS`, `ADMIN_SEED_SECRET` (só se for criar admin).
+3. **Stripe → Webhooks:** acrescentar ao destino `vamo-backend-render` os eventos `charge.refunded`, `charge.dispute.created`, `charge.dispute.updated`, `charge.dispute.closed` e `transfer.reversed`.
+4. **Merge da branch na `main` e push.** O Render aplica 3 migrations, todas aditivas:
+   - `20261029100000_sessions_and_admin_session_version`
+   - `20261029110000_private_documents`
+   - `20261029120000_payment_state_and_payout_queue`
+
+   A Vercel publica o app e o painel. **Todas as sessões caem** (todo mundo entra de novo).
+5. **Verificar:** `/health` 200, `prisma migrate status` sem pendência, bundle novo na Vercel.
+6. **Testes seguros em produção, com as contas do Diego:**
+   - login, refresh e logout;
+   - prévia de roteiro sem login sem conteúdo pago;
+   - roteiro comprado abrindo;
+   - painel admin, com comprovantes abrindo por link assinado;
+   - `/api/itineraries/dashboard/stats?creatorId=…` sem login → 401;
+   - `/uploads/itineraries//x` e `/uploads/%69tineraries/x` → não 200;
+   - token de arquivo como Bearer → 401.
+7. **Migração dos comprovantes:** `npx tsx scripts/migrate-proofs-to-private.ts` (simulação) → revisar → `--apply` → conferir no admin → `--apply --revoke`. Cada etapa é uma autorização separada. Até o `--revoke`, os links públicos antigos seguem abrindo.
+8. **Conciliação das vendas:** `npx tsx scripts/reconcile-sales.ts` (simulação) → revisar → `--apply`.
+9. **Supabase, painel:** confirmar RLS ligada nas 3 tabelas novas (a migration liga); revisar o bucket `vamo-uploads` (público) depois do `--revoke`.
+10. **Decisões do Diego:** tornar o repositório privado (recomendado); 2FA nas contas de Render, Vercel, Supabase, Stripe e GitHub.
+
+**Rollback:**
+- As migrations são aditivas e podem ficar no banco mesmo se o código voltar.
+- Voltar o código para a versão anterior **reabre todas as brechas** (tokens sem tipo, conteúdo pago aberto, webhook sem conciliação) e faz as sessões novas pararem de valer. Use só em caso de quebra grave e com novo login de todos.
+- `--revoke` dos comprovantes não tem volta sem a cópia local que o script grava.
+
+---
+
 ## Fases seguintes
 
 (atualizado ao fim de cada fase)
