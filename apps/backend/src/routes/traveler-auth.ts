@@ -12,7 +12,7 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordChangedEmail, buildPasswordResetUrl } from '../lib/mailer';
 import { LEGAL_VERSION } from '@vamo/shared/legal';
-import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename, LOCAL_UPLOADS_ROOT } from '../lib/storage';
+import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename, LOCAL_UPLOADS_ROOT, removeLegacyLocalFile } from '../lib/storage';
 import { hasValidFileSignature } from '../lib/file-signature';
 import { uploadGuard } from '../lib/uploadGuard';
 
@@ -263,6 +263,7 @@ router.post('/delete-account', deleteAccountLimiter, travelerAuthMiddleware, asy
         });
     }
 
+    const legacyFiles = await prisma.travelerFile.findMany({ where: { travelerId }, select: { url: true } });
     const now = new Date();
     await prisma.$transaction(async (tx) => {
         await tx.traveler.update({
@@ -290,8 +291,11 @@ router.post('/delete-account', deleteAccountLimiter, travelerAuthMiddleware, asy
         await tx.travelerItineraryCustomization.deleteMany({ where: { travelerId } });
         await tx.passwordResetToken.deleteMany({ where: { travelerId } });
         await tx.privateDocument.deleteMany({ where: { ownerTravelerId: travelerId } });
+        // Dados de contato do fluxo antigo de pacotes.
+        await tx.purchaseHistory.updateMany({ where: { travelerId }, data: { contactName: null, contactEmail: null } as any });
         await revokeAllSessions(travelerId, 'account_deleted', tx);
     });
+    for (const f of legacyFiles) await removeLegacyLocalFile(f.url);
     console.log(`[delete-account] conta anonimizada (traveler ${travelerId})`);
     res.json({ ok: true });
 });

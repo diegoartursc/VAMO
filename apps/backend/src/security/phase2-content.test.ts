@@ -26,6 +26,7 @@ const PAID_FILE = 'https://storage.example/vamo-uploads/itineraries/paid-guide.p
 const cost = (amount: string) => ({
     amount, currency: 'USD', disclosureType: 'verified', sharedByPeople: 1,
     proofFiles: [{ url: COST_PROOF, name: 'receipt.jpg' }], proofStatus: 'approved',
+    notes: 'PAID cost note: ask for table 7', adminNote: 'INTERNAL rejection note',
 });
 
 function fullItinerary(status = 'ACTIVE', creatorTravelerId = 'trav_creator') {
@@ -104,8 +105,8 @@ async function tokenFor(email: string) {
     return r.json.accessToken as string;
 }
 
-const PAID_MARKERS = [PAID_TIP, PAID_ACTIVITY, PAID_HOTEL, PAID_FILE, 'PAID day description', 'PAID attraction details', 'PAID metro tip', 'PAID flight tip', 'Secret Diner'];
-const SECRET_MARKERS = [SECRET_PROOF, COST_PROOF, 'INTERNAL admin note'];
+const PAID_MARKERS = ['PAID cost note', PAID_TIP, PAID_ACTIVITY, PAID_HOTEL, PAID_FILE, 'PAID day description', 'PAID attraction details', 'PAID metro tip', 'PAID flight tip', 'Secret Diner'];
+const SECRET_MARKERS = [SECRET_PROOF, COST_PROOF, 'INTERNAL admin note', 'INTERNAL rejection note'];
 
 function assertNoMarkers(body: string, markers: string[], label: string) {
     for (const m of markers) assert.ok(!body.includes(m), `${label}: vazou "${m}"`);
@@ -210,6 +211,15 @@ test('SEC-05: arquivo privado legado não abre por variações de caminho', asyn
             assert.ok(!r.text.includes('synthetic private'), `${method} ${v} devolveu o conteúdo`);
         }
     }
+});
+
+test('R-U3: nome em maiúsculas não burla a checagem (disco que não diferencia maiúsculas)', async () => {
+    const original = db.travelerFile.findFirst;
+    let seen: any = null;
+    db.travelerFile.findFirst = async (args: any) => { seen = args.where.url; return original(args); };
+    await call(base, 'GET', `/uploads/itineraries/${PRIVATE_FILE.toUpperCase()}`);
+    db.travelerFile.findFirst = original;
+    assert.equal(seen?.mode, 'insensitive');
 });
 
 test('SEC-05: arquivo público legítimo continua abrindo', async () => {

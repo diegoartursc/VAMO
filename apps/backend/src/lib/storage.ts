@@ -136,3 +136,15 @@ export async function deleteUpload(storagePath: string): Promise<void> {
     }
     await fs.promises.rm(localPath, { force: true });
 }
+
+/**
+ * Apaga do disco a cópia LEGADA de um arquivo privado da Central da Viagem
+ * (fluxo antigo gravava em public/uploads/itineraries). Sem isso, apagar o
+ * registro tornava o arquivo público de novo (R-U2). Melhor esforço.
+ */
+export async function removeLegacyLocalFile(url: string | null | undefined): Promise<void> {
+    if (!url || !url.includes('/uploads/itineraries/')) return;
+    const name = path.basename(new URL(url, 'http://local').pathname);
+    if (!name || name.startsWith('.')) return;
+    await fs.promises.rm(path.join(LOCAL_UPLOADS_ROOT, 'itineraries', name), { force: true }).catch(() => {});
+}

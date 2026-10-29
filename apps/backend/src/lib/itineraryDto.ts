@@ -13,7 +13,7 @@
  *   cálculo de confiança dos custos (que só conta quantos há) seguir igual.
  */
 
-const STRIPPED_KEYS = new Set(['travelProofUrl', 'receiptUrl', 'approvalNote']);
+const STRIPPED_KEYS = new Set(['travelProofUrl', 'receiptUrl', 'approvalNote', 'adminNote']);
 
 /** Cópia profunda sem documentos internos. Aceita snapshots antigos (qualquer formato). */
 export function redactPrivateDocs<T>(value: T): T {
@@ -77,9 +77,16 @@ const pick = (item: any, keys: string[]) => {
 };
 
 // Só o necessário para getCostReferences/calculateBudgetSummary (valores e moeda).
-const COST_KEYS = ['cost', 'spending'];
+// `cost.notes` é texto livre do criador (pode conter conteúdo pago) e fica de fora (R-T2).
+const COST_FIELDS = ['amount', 'currency', 'disclosureType', 'sharedByPeople', 'proofStatus', 'proofFiles'];
+const costOnly = (item: any) => {
+    const out: Record<string, unknown> = {};
+    if (item?.cost && typeof item.cost === 'object') out.cost = pick(item.cost, COST_FIELDS);
+    if (item?.spending && typeof item.spending === 'object') out.spending = pick(item.spending, ['value', 'currency']);
+    return out;
+};
 const stubs = (list: unknown, extra: string[] = []) =>
-    arr(list).map((item) => pick(item, [...COST_KEYS, ...extra]));
+    arr(list).map((item) => ({ ...pick(item, extra), ...costOnly(item) }));
 
 /** Módulos JSON da listagem/destaque reduzidos a custos + contagens. */
 export function toListingModules(it: any) {
@@ -93,7 +100,7 @@ export function toListingModules(it: any) {
         attractions: stubs(it.attractions, ['price']),
         restaurants: stubs(it.restaurants),
         extraSpendingItems: stubs(it.extraSpendingItems, ['value', 'currency', 'category']),
-        flightInfo: it.flightInfo ? pick(it.flightInfo, COST_KEYS) : null,
+        flightInfo: it.flightInfo ? costOnly(it.flightInfo) : null,
         contentCounts: counts,
     });
 }
@@ -117,7 +124,7 @@ export function toPublicItineraryPreview(full: any) {
     preview.attractions = stubs(full.attractions, ['price']);
     preview.restaurants = stubs(full.restaurants);
     preview.extraSpendingItems = stubs(full.extraSpendingItems, ['value', 'currency', 'category']);
-    preview.flightInfo = full.flightInfo ? pick(full.flightInfo, COST_KEYS) : null;
+    preview.flightInfo = full.flightInfo ? costOnly(full.flightInfo) : null;
     return redactPrivateDocs(preview);
 }
 

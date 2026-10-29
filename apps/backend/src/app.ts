@@ -129,7 +129,8 @@ app.use('/uploads', async (req, res, next) => {
     }
     try {
         const privateRecord = await prisma.travelerFile.findFirst({
-            where: { url: { endsWith: `/${filename}` } },
+            // Sem diferenciar maiúsculas: disco do Mac/Windows não diferencia (R-U3).
+            where: { url: { endsWith: `/${filename}`, mode: 'insensitive' } },
             select: { id: true },
         });
         if (privateRecord) {

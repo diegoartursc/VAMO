@@ -82,3 +82,16 @@ test('SEC-14: sem arquivo de comprovante o status é sempre none', async () => {
     const out: any = enforceProofStatus({ restaurants: [{ name: 'R', cost: { amount: '5', proofStatus: 'approved', proofFiles: [] } }] });
     assert.equal(out.restaurants[0].cost.proofStatus, 'none');
 });
+
+test('R-T1: copiar o bloco aprovado para outro item, duplicar ou renomear o hotel volta para revisão', async () => {
+    const { enforceProofStatus } = await import('../lib/costProofs');
+    const existing = { accommodations: [{ name: 'Hotel', cost: approvedCost }], attractions: [] };
+    const out: any = enforceProofStatus({
+        accommodations: [{ name: 'Hotel', cost: { ...approvedCost } }, { name: 'Hotel', cost: { ...approvedCost } }, { name: 'Other Hotel', cost: { ...approvedCost } }],
+        attractions: [{ name: 'Museum', cost: { ...approvedCost } }],
+        restaurants: [{ name: 'Hotel', cost: { ...approvedCost } }],
+    }, existing);
+    assert.deepEqual(out.accommodations.map((a: any) => a.cost.proofStatus), ['approved', 'uploaded', 'uploaded']);
+    assert.equal(out.attractions[0].cost.proofStatus, 'uploaded');
+    assert.equal(out.restaurants[0].cost.proofStatus, 'uploaded');
+});

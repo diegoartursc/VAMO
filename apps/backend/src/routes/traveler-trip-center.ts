@@ -1,6 +1,6 @@
 import { Response, Request } from 'express';
 import { Router } from '../lib/router';
-import { LOCAL_UPLOADS_ROOT } from '../lib/storage';
+import { LOCAL_UPLOADS_ROOT, removeLegacyLocalFile } from '../lib/storage';
 import { uploadGuard } from '../lib/uploadGuard';
 import { ACTIVE_SALE_WHERE } from '../lib/money';
 import multer from 'multer';
@@ -330,9 +330,14 @@ router.delete('/:itineraryId/files/:fileId', travelerAuthMiddleware, async (req:
         const ownership = await assertOwnership(travelerId, itineraryId);
         if (!ownership) return sendOwnershipError(res);
 
+        const target = await prisma.travelerFile.findFirst({
+            where: { id: fileId, travelerId, itineraryId, saleId: ownership.saleId },
+            select: { url: true },
+        });
         const deleted = await prisma.travelerFile.deleteMany({
             where: { id: fileId, travelerId, itineraryId, saleId: ownership.saleId },
         });
+        if (deleted.count) await removeLegacyLocalFile(target?.url);
         if (!deleted.count) return void res.status(404).json({ error: 'File not found' });
         res.json({ ok: true });
     } catch (error) {

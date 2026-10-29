@@ -26,6 +26,8 @@ before(async () => {
     Object.assign(db.traveler, { findFirst: travelers.findFirst, findUnique: travelers.findUnique, update: travelers.update });
     Object.assign(db.travelerSession, memoryTable<any>([]));
     db.review.updateMany = async () => ({ count: 0 });
+    db.travelerFile.findMany = async () => [];
+    db.purchaseHistory.updateMany = async () => { deleted.push('purchaseHistoryContact'); return { count: 0 }; };
     for (const m of ['travelerPersonalData', 'savedItem', 'notification', 'travelerChecklistItem', 'travelerFile', 'travelerItineraryCustomization', 'passwordResetToken', 'privateDocument']) {
         db[m].deleteMany = async () => { deleted.push(m); return { count: 0 }; };
     }
@@ -63,7 +65,7 @@ test('NEW-01: viajante é anonimizado, dados pessoais apagados, sessão encerrad
     assert.ok(!t.email.includes('a@test.local'));
     assert.equal(t.passwordHash, null);
     assert.equal(t.avatar, null);
-    for (const m of ['travelerPersonalData', 'travelerFile', 'privateDocument', 'savedItem']) assert.ok(deleted.includes(m), `${m} não foi apagado`);
+    for (const m of ['travelerPersonalData', 'travelerFile', 'privateDocument', 'savedItem', 'purchaseHistoryContact']) assert.ok(deleted.includes(m), `${m} não foi apagado`);
     assert.equal((await call(base, 'GET', '/api/auth/traveler/me', { token })).status, 401, 'sessão continuou valendo');
     assert.equal((await call(base, 'POST', '/api/auth/traveler/login', { body: { email: 'a@test.local', password: PASSWORD } })).status, 401);
 });
