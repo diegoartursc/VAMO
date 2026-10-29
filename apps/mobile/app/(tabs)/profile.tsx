@@ -698,16 +698,10 @@ export default function ProfileScreen() {
                         <SettingItem icon="file" title="Refund Policy" onPress={() => {
                             haptics.light(); router.push({ pathname: '/legal/[doc]', params: { doc: 'refunds' } });
                         }} />
-                        <SettingItem icon="trash" title="Delete account" titleColor={theme.colors.error} onPress={async () => {
+                        <SettingItem icon="trash" title="Delete account" titleColor={theme.colors.error} onPress={() => {
+                            // Exclusão real, com senha, na tela de segurança.
                             haptics.warning();
-                            const ok = await confirm({
-                                title: 'Delete account?',
-                                message: 'This action is permanent. All your data will be deleted.',
-                                confirmText: 'Delete account',
-                                action: 'deleteAccount',
-                            });
-                            if (!ok) return;
-                            notify({ title: 'Request sent', message: 'Your account deletion request was received.', variant: 'success' });
+                            router.push('/account/security');
                         }} isLast />
                     </View>
                 </View>

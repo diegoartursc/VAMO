@@ -1,5 +1,7 @@
 import { Response, Request } from 'express';
 import { Router } from '../lib/router';
+import { LOCAL_UPLOADS_ROOT } from '../lib/storage';
+import { uploadGuard } from '../lib/uploadGuard';
 import { ACTIVE_SALE_WHERE } from '../lib/money';
 import multer from 'multer';
 import fs from 'fs';
@@ -40,7 +42,7 @@ type OwnershipResult = { saleId: string };
 
 const privateUpload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_FILE_BYTES, files: 1 },
+    limits: { fileSize: MAX_FILE_BYTES, files: 1, fields: 5, fieldSize: 4096, parts: 7 },
     fileFilter: (_req, file, cb) => {
         const extension = path.extname(file.originalname).slice(1).toLowerCase();
         const mime = (file.mimetype || '').toLowerCase();
@@ -223,6 +225,7 @@ router.get('/:itineraryId/files', travelerAuthMiddleware, async (req: TravelerAu
 router.post(
     '/:itineraryId/files/upload',
     travelerAuthMiddleware,
+    uploadGuard({ maxRequestBytes: MAX_FILE_BYTES + 64 * 1024 }),
     (req: TravelerAuthRequest, res: Response) => {
         privateUpload.single('file')(req, res, async (uploadError) => {
             try {
@@ -308,7 +311,7 @@ router.get('/files/:fileId/content', async (req: Request, res: Response) => {
 
         // Legacy records: serve the old local file only through this signed URL.
         const legacyName = path.basename(new URL(file.url, 'http://local').pathname);
-        const legacyPath = path.join(process.cwd(), 'public/uploads/itineraries', legacyName);
+        const legacyPath = path.join(LOCAL_UPLOADS_ROOT, 'itineraries', legacyName);
         if (!legacyName || !fs.existsSync(legacyPath)) {
             return void res.status(410).json({ error: 'This legacy file is unavailable; please upload it again.' });
         }

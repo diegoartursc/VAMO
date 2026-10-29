@@ -25,6 +25,7 @@ import paymentRoutes, { stripeWebhookHandler } from './routes/payments';
 import shareRoutes from './routes/shares';
 import privateDocsRoutes from './routes/private-docs';
 import prisma from './lib/prisma';
+import { LOCAL_UPLOADS_ROOT } from './lib/storage';
 
 const app = express();
 
@@ -141,7 +142,7 @@ app.use('/uploads', async (req, res, next) => {
         res.status(500).json({ error: 'Failed to validate file' });
     }
 });
-app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
+app.use('/uploads', express.static(LOCAL_UPLOADS_ROOT));
 
 // Health check
 app.get('/health', (req, res) => {

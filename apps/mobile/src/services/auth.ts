@@ -179,3 +179,22 @@ export async function resetPassword(token: string, password: string): Promise<vo
         'We couldn\'t reset your password. Please try again.',
     );
 }
+
+/**
+ * Exclui a conta no servidor (anonimiza e apaga dados pessoais). Exige a senha.
+ * Conta de criador volta `code: 'CREATOR_ACCOUNT'`: o pedido vai para o suporte.
+ */
+export async function deleteAccount(accessToken: string, password: string): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
+    try {
+        const res = await fetch(`${API_BASE_URL}/auth/traveler/delete-account`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) return { ok: true };
+        return { ok: false, error: data?.error || 'We couldn\'t delete your account. Please try again.', code: data?.code };
+    } catch {
+        return { ok: false, error: 'No connection. Please try again.' };
+    }
+}

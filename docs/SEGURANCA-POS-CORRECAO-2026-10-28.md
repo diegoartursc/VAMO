@@ -142,6 +142,37 @@ Teste: `src/security/phase3-money.test.ts` (15). Stripe e Prisma falsos, eventos
 
 ---
 
+## Fase 4 — Upload, dependências e confiança (concluída no código)
+
+Testes:
+- `phase4-uploads.test.ts` (7);
+- `phase4-trust.test.ts` (3);
+- `phase4-account.test.ts` (3);
+- `isolation.test.ts` (2), novo: garante que os testes nunca alcançam serviço real.
+
+**Antes:**
+- uploads: 6 testes, 1 passou (o do Multer, que já tinha sido atualizado no começo da fase) e 4 falharam;
+- confiança: 3 testes, 1 passou (o teste unitário da biblioteca nova) e 2 falharam, porque o criador gravou `featured: true` e manteve `proofStatus: approved` forjado.
+
+**Depois:** 7 de 7, 3 de 3, 3 de 3 e 2 de 2. Suíte do backend: 126 de 126. Mobile: `tsc` sem erro novo.
+
+**Falha encontrada nos meus próprios testes (corrigida):** o `@prisma/client` carrega o `.env` real ao ser importado, e as chaves reais (Supabase, Stripe, SMTP) ficavam visíveis dentro dos testes. O bloqueio só cobria `fetch`. Ele pegou uma tentativa de criar o bucket no Supabase real e impediu a chamada. Agora o setup zera essas variáveis antes, bloqueia `net`, `tls` e `https` para qualquer host fora de localhost, e `isolation.test.ts` prova isso. Na revisão não encontrei chamada real à Stripe nem envio de e-mail: os testes de webhook usaram chave falsa, e o `SMTP_PASS` local está vazio.
+
+| ID | Mudança | Arquivos | Status |
+| --- | --- | --- | --- |
+| SEC-08 | `lib/uploadGuard.ts` recusa pelo `Content-Length` antes de ler o corpo (sem tamanho → 411; acima do teto → 413). Limita uploads simultâneos por usuário (2) e no processo (4) e impõe tempo máximo por upload (5 min). O tempo máximo cobre conexão lenta que seguraria a vaga, um defeito que o teste encontrou no próprio guarda. O upload geral não guarda mais o pedido em memória: grava em temporário, confere a assinatura pelos primeiros bytes, sobe um arquivo por vez e apaga o temporário. Também há limites de arquivos, campos e partes. O guarda vale em `/api/uploads`, `/api/uploads/multiple`, `/api/private-docs`, Central da Viagem e avatar/capa. Orçamento de memória: no pior caso cerca de 4 × 100 MB no upload geral e 4 × 50 MB na Central da Viagem, que ainda guarda em memória porque grava no Postgres. Pasta local de uploads configurável (`LOCAL_UPLOADS_DIR`). | `lib/uploadGuard.ts`, `routes/uploads.ts`, `routes/private-docs.ts`, `routes/traveler-trip-center.ts`, `routes/traveler-auth.ts`, `lib/storage.ts`, `app.ts` | **corrigido e validado** (limites pequenos nos testes). Sem teste de carga real. |
+| SEC-09 | `multer` 2.5.0 fixo (cobre GHSA-wc9g-mqfw-jrwm e GHSA-3pph-fpjx-jg34). `express` 4.22.3 fixo, que leva o `qs` para 6.16.2 e tira o aviso moderado do `qs` no backend. O lockfile só perdeu dependências antigas do Multer 1.x. `expo-font`, `react-refresh`, `next` e `nodemailer` continuam nas mesmas versões. | `apps/backend/package.json`, `package-lock.json` | **corrigido e validado** (código). Atenção: o `qs` 6.16.2 foi publicado em 27/10. Tentei fixar a 6.16.1 por `overrides` e o npm não aplicou. |
+| SEC-14 | O criador não grava `featured` (ignorado no POST/PUT; criação sempre `false`). `proofStatus` e `adminNote` são recalculados pelo servidor: sem arquivo vira `none`; com arquivo vira `uploaded`, a menos que valor, moeda, divisão e arquivos sejam exatamente os da versão já decidida pelo admin. Qualquer mudança derruba a aprovação. | `lib/costProofs.ts`, `routes/itineraries.ts` | **corrigido e validado** |
+| NEW-01 | Exclusão de conta real: `POST /api/auth/traveler/delete-account` com a senha. O viajante é anonimizado; perfil, dados pessoais, favoritos, notificações, checklist, arquivos da viagem, personalizações e comprovantes são apagados; avaliações ficam como "Former traveler"; sessões são encerradas; vendas ficam como registro financeiro, sem nome nem e-mail. Conta de criador responde 409 e vai para o suporte. No app, "Delete account" leva à tela de segurança, com senha e confirmação. | `routes/traveler-auth.ts`, `apps/mobile/app/account/security.tsx`, `apps/mobile/app/(tabs)/profile.tsx`, `apps/mobile/src/services/auth.ts` | **corrigido e validado** (backend). Tela do app sem teste visual. |
+| NEW-05 | Compartilhamento só grava `saleId` se a venda for do próprio viajante e do mesmo roteiro | `routes/itineraries.ts` | **corrigido** (sem teste dedicado) |
+| NEW-06 | URL com o `Host` da requisição em modo disco | — | **condicional/não aplicável**: só existe sem Supabase (ambiente local). Produção usa a URL do storage. |
+
+**`npm audit --omit=dev` (28/10, depois das mudanças):**
+- **Backend:** 1 aviso, `zod` alto (memória ao validar entrada grande demais). Alcance: as rotas validam JSON limitado a 100 KB pelo `express.json()`, então não há entrada grande no backend. A correção exige `zod` 4 (migração grande no backend e no `shared`): **pendente**, sem `audit fix --force`.
+- **Geral:** 17 avisos (4 altos, 6 moderados, 7 baixos). Vêm de `image-size`, `node-forge`, `postcss`, `decode-uri-component`, `deepmerge` e pacotes `@expo/*`, usados na **ferramenta de build do app**, não no servidor. A correção pede atualizar o SDK do Expo (já estava na lista de lançamento) e não pode ser feita às cegas: **pendente**.
+
+---
+
 ## Fases seguintes
 
 (atualizado ao fim de cada fase)

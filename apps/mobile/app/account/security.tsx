@@ -1,18 +1,22 @@
 /**
  * VAMO Mobile — Segurança da conta.
  *
- * Tela informativa/honesta: não há 2FA nem "sair de todos os dispositivos"
- * no backend, então NÃO exibimos botões falsos. A troca de senha usa o fluxo
- * de redefinição por e-mail (/forgot-password).
+ * Tela honesta: não há 2FA no backend, então NÃO exibimos botões falsos. A
+ * troca de senha usa o fluxo de redefinição por e-mail (/forgot-password). A
+ * exclusão de conta é real (POST /auth/traveler/delete-account, com senha).
  */
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { theme } from '../../src/theme/theme';
 import { haptics } from '../../src/services/haptics';
 import { Icon, IconName } from '../../src/components/common/Icons';
 import { ScreenHeader } from '../../src/components/common/ScreenHeader';
 import { useAuth } from '../../src/contexts/AuthContext';
+import VamoButton from '../../src/components/common/VamoButton';
+import { confirm } from '../../src/utils/confirm';
+import { notify } from '../../src/utils/notify';
+import { deleteAccount } from '../../src/services/auth';
 
 function InfoCard({ icon, title, children }: { icon: IconName; title: string; children: React.ReactNode }) {
     return (
@@ -30,7 +34,36 @@ function InfoCard({ icon, title, children }: { icon: IconName; title: string; ch
 
 export default function SecurityScreen() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, accessToken, logout } = useAuth();
+    const [password, setPassword] = useState('');
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    async function handleDelete() {
+        setDeleteError(null);
+        if (!password) {
+            setDeleteError('Enter your password to confirm.');
+            return;
+        }
+        const ok = await confirm({
+            title: 'Delete account?',
+            message: 'This is permanent. Your profile, saved items and trip files will be deleted. Purchase records are kept without your name or email, as required for accounting.',
+            confirmText: 'Delete account',
+            action: 'deleteAccount',
+        });
+        if (!ok || !accessToken) return;
+        setDeleting(true);
+        const result = await deleteAccount(accessToken, password);
+        setDeleting(false);
+        if (!result.ok) {
+            setDeleteError(result.error);
+            return;
+        }
+        haptics.success();
+        await logout();
+        notify({ title: 'Account deleted', message: 'Your account and personal data were deleted.', variant: 'success' });
+        router.replace('/(tabs)/profile');
+    }
 
     return (
         <View style={s.container}>
@@ -68,6 +101,28 @@ export default function SecurityScreen() {
                     </TouchableOpacity>
                 </InfoCard>
 
+                {/* Excluir conta (real, com senha) */}
+                <InfoCard icon="trash" title="Delete account">
+                    <Text style={s.cardText}>
+                        Deletes your profile and personal data. Purchase records are kept
+                        without your name or email. Creator accounts are closed by our support team.
+                    </Text>
+                    <TextInput
+                        style={s.input}
+                        placeholder="Your password"
+                        placeholderTextColor={theme.colors.text.tertiary}
+                        secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
+                        editable={!deleting}
+                        accessibilityLabel="Password to confirm account deletion"
+                    />
+                    {deleteError ? <Text style={s.errorText}>{deleteError}</Text> : null}
+                    <View style={{ marginTop: 12 }}>
+                        <VamoButton label="Delete my account" variant="danger" onPress={handleDelete} loading={deleting} />
+                    </View>
+                </InfoCard>
+
                 {/* Acesso indevido */}
                 <InfoCard icon="info" title="Unauthorized access?">
                     <Text style={s.cardText}>
@@ -100,4 +155,10 @@ const s = StyleSheet.create({
     cardText: { fontSize: 13.5, color: theme.colors.text.secondary, lineHeight: 20 },
     linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
     linkBtnText: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
+    input: {
+        marginTop: 12, height: 46, borderRadius: 12, borderWidth: 1.5,
+        borderColor: theme.colors.borderLight, backgroundColor: theme.colors.surfaceLight,
+        paddingHorizontal: 14, fontSize: 15, color: theme.colors.text.primary,
+    },
+    errorText: { marginTop: 8, fontSize: 13, color: theme.colors.error },
 });

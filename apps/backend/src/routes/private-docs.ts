@@ -12,6 +12,7 @@ import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/trave
 import { verifyDocumentToken } from '../lib/auth';
 import { hasValidFileSignature } from '../lib/file-signature';
 import { PRIVATE_DOC_PREFIX, signedDocUrl } from '../lib/privateDocs';
+import { uploadGuard } from '../lib/uploadGuard';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ const upload = multer({
     },
 });
 
-router.post('/', travelerAuthMiddleware, (req: TravelerAuthRequest, res: Response) => {
+router.post('/', travelerAuthMiddleware, uploadGuard({ maxRequestBytes: MAX_DOC_BYTES + 64 * 1024 }), (req: TravelerAuthRequest, res: Response) => {
     upload.single('file')(req, res, async (err: any) => {
         if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
             res.status(413).json({ error: 'File is too large (max 15 MB).' });

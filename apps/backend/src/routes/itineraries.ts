@@ -11,6 +11,7 @@ import { sendItinerarySubmittedForReviewEmail } from '../lib/mailer';
 import { BASE_CURRENCY, computeCommission } from '@vamo/shared/itinerary';
 import { toListingModules, toPublicItineraryPreview, toBuyerItinerary } from '../lib/itineraryDto';
 import { canonicalizeDocRefs, signDocRefs } from '../lib/privateDocs';
+import { enforceProofStatus } from '../lib/costProofs';
 
 const router = Router();
 
@@ -1259,8 +1260,10 @@ async function requireCreatorOwner(req: AuthRequest, res: Response, creatorId: s
 // POST /api/itineraries (requires auth)
 router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async (req: AuthRequest, res: Response) => {
     try {
-        // Comprovantes: só documentos privados do próprio criador (SEC-03).
+        // Comprovantes: só documentos privados do próprio criador (SEC-03), e o
+        // status de aprovação é sempre do servidor/admin (SEC-14).
         if (req.traveler?.travelerId) req.body = await canonicalizeDocRefs(req.body ?? {}, req.traveler.travelerId);
+        req.body = enforceProofStatus(req.body ?? {});
         const {
             creatorId, title, destination, country, description,
             price, currency, duration, highlights, inclusions,
@@ -1379,7 +1382,7 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
                 highlights: highlights || [],
                 inclusions: inclusions || [],
                 estimatedSpending: estimatedSpending || undefined,
-                featured: featured || false,
+                featured: false, // destaque é decisão do admin (SEC-14)
                 subtitle: subtitle || undefined,
                 travelStyles: travelStyles || [],
                 categories: categories || [],
@@ -1515,7 +1518,7 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         // Comprovantes: só documentos privados do próprio criador (SEC-03).
         if (req.traveler?.travelerId) req.body = await canonicalizeDocRefs(req.body ?? {}, req.traveler.travelerId);
         const id = req.params.id as string;
-        const {
+        let {
             title, destination, country, description,
             price, currency, duration, highlights, inclusions,
             estimatedSpending, featured, status, images, days,
@@ -1554,6 +1557,11 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
 
         if (!(await requireCreatorOwner(req, res, existing.creatorId))) return;
 
+        // SEC-14: status de comprovante recalculado pelo servidor. A aprovação do
+        // admin só continua se valor, moeda e arquivos forem os mesmos.
+        ({ accommodations, transports, attractions, restaurants, extraSpendingItems, flightInfo } =
+            enforceProofStatus({ accommodations, transports, attractions, restaurants, extraSpendingItems, flightInfo }, existing));
+
         // Validate styles max 3
         if (travelStyles && travelStyles.length > 3) {
             res.status(400).json({ error: 'Maximum of 3 travel styles' });
@@ -1576,7 +1584,8 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
         if (highlights !== undefined) updateData.highlights = highlights;
         if (inclusions !== undefined) updateData.inclusions = inclusions;
         if (estimatedSpending !== undefined) updateData.estimatedSpending = estimatedSpending;
-        if (featured !== undefined) updateData.featured = featured;
+        // `featured` é decisão do admin (SEC-14): ignorado quando vem do criador.
+        void featured;
 
         const requestedStatus = normalizeStatus(status);
         if (requestedStatus && !CREATOR_WRITABLE_STATUSES.includes(requestedStatus as any)) {
@@ -2009,6 +2018,10 @@ router.post('/:id/share', optionalAuthMiddleware, async (req: AuthRequest, res: 
         }
 
         const travelerId = req.traveler?.travelerId || null;
+        // NEW-05: só grava saleId se a venda for deste viajante e deste roteiro.
+        const ownedSaleId = saleId && travelerId
+            ? (await prisma.itinerarySale.findFirst({ where: { id: saleId, travelerId, itineraryId }, select: { id: true } }))?.id ?? null
+            : null;
         const actorRole = actorRoleInput === 'creator' || (isOwnerSharing && actorRoleInput !== 'traveler')
             ? 'creator' : 'traveler';
         // Vincula creatorId só quando o ator é o dono.
@@ -2024,7 +2037,7 @@ router.post('/:id/share', optionalAuthMiddleware, async (req: AuthRequest, res: 
                         itineraryId,
                         travelerId,
                         creatorId: creatorIdForRecord,
-                        saleId,
+                        saleId: ownedSaleId,
                         actorRole,
                         surface,
                         channel,

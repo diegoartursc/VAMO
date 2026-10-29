@@ -12,8 +12,9 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordChangedEmail, buildPasswordResetUrl } from '../lib/mailer';
 import { LEGAL_VERSION } from '@vamo/shared/legal';
-import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
+import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename, LOCAL_UPLOADS_ROOT } from '../lib/storage';
 import { hasValidFileSignature } from '../lib/file-signature';
+import { uploadGuard } from '../lib/uploadGuard';
 
 const router = Router();
 
@@ -226,6 +227,73 @@ router.post('/logout', travelerAuthMiddleware, async (req: SessionRequest, res: 
         console.error('Traveler logout error:', error?.message || error);
         res.status(500).json({ error: 'Failed to log out' });
     }
+});
+
+// ─── POST /api/auth/traveler/delete-account ───
+// Exclusão de conta (NEW-01, direito de exclusão da CCPA e exigência das lojas).
+// Exige a senha atual. O viajante é anonimizado e os dados pessoais são apagados;
+// vendas ficam como registro financeiro (obrigação fiscal/contábil), sem nome
+// nem e-mail. Conta de criador (roteiros, ganhos e repasses) vai para o suporte.
+const deleteAccountLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many attempts. Please wait a few minutes and try again.' },
+});
+
+router.post('/delete-account', deleteAccountLimiter, travelerAuthMiddleware, async (req: SessionRequest, res: Response) => {
+    const password = req.body?.password;
+    if (typeof password !== 'string' || !password || password.length > 200) {
+        return res.status(400).json({ error: 'Enter your password to delete your account.' });
+    }
+    const travelerId = req.traveler!.travelerId;
+    const traveler = await prisma.traveler.findUnique({
+        where: { id: travelerId },
+        select: { id: true, passwordHash: true, creator: { select: { id: true } } },
+    });
+    if (!traveler) return res.status(404).json({ error: 'Account not found' });
+    if (!traveler.passwordHash || !(await comparePassword(password, traveler.passwordHash))) {
+        return res.status(401).json({ error: 'Incorrect password.' });
+    }
+    if (traveler.creator) {
+        return res.status(409).json({
+            error: 'Creator accounts have itineraries and earnings that must be closed first. Contact support to delete your account.',
+            code: 'CREATOR_ACCOUNT',
+        });
+    }
+
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+        await tx.traveler.update({
+            where: { id: travelerId },
+            data: {
+                name: 'Deleted user',
+                email: `deleted+${travelerId}@deleted.vamo.invalid`,
+                passwordHash: null,
+                avatar: null,
+                coverUrl: null,
+                bio: null,
+                authProviderId: null,
+                passwordChangedAt: now,
+            },
+        });
+        await tx.review.updateMany({
+            where: { travelerId },
+            data: { userName: 'Former traveler', userAvatar: null, userInitial: 'F', userLocation: null },
+        });
+        await tx.travelerPersonalData.deleteMany({ where: { travelerId } });
+        await tx.savedItem.deleteMany({ where: { travelerId } });
+        await tx.notification.deleteMany({ where: { travelerId } });
+        await tx.travelerChecklistItem.deleteMany({ where: { travelerId } });
+        await tx.travelerFile.deleteMany({ where: { travelerId } });
+        await tx.travelerItineraryCustomization.deleteMany({ where: { travelerId } });
+        await tx.passwordResetToken.deleteMany({ where: { travelerId } });
+        await tx.privateDocument.deleteMany({ where: { ownerTravelerId: travelerId } });
+        await revokeAllSessions(travelerId, 'account_deleted', tx);
+    });
+    console.log(`[delete-account] conta anonimizada (traveler ${travelerId})`);
+    res.json({ ok: true });
 });
 
 // ─── ESQUECI MINHA SENHA ───
@@ -622,7 +690,7 @@ const COVER_MAX_BYTES  = 8 * 1024 * 1024;
 // Garante diretório local — mesma estratégia do /api/uploads. Quando o
 // Supabase Storage está ligado (prod), o multer usa memoryStorage e este
 // diretório fica ocioso.
-const PROFILE_LOCAL_DIR = path.join(process.cwd(), 'public/uploads/profile');
+const PROFILE_LOCAL_DIR = path.join(LOCAL_UPLOADS_ROOT, 'profile');
 fs.mkdirSync(PROFILE_LOCAL_DIR, { recursive: true });
 
 const useCloudStorageProfile = isCloudStorageEnabled();
@@ -643,7 +711,7 @@ function profileStorage(): multer.StorageEngine {
 function buildProfileImageUpload(maxBytes: number) {
     return multer({
         storage: profileStorage(),
-        limits: { fileSize: maxBytes },
+        limits: { fileSize: maxBytes, files: 1, fields: 5, fieldSize: 1024, parts: 7 },
         fileFilter: (_req, file, cb) => {
             const mimeOk = PROFILE_IMAGE_MIME.test(file.mimetype);
             const extOk  = PROFILE_IMAGE_EXT.test(file.originalname || '');
@@ -755,7 +823,7 @@ function buildProfileImageHandler(kind: 'avatar' | 'cover') {
     };
 }
 
-router.patch('/me/avatar', buildProfileImageHandler('avatar'));
-router.patch('/me/cover',  buildProfileImageHandler('cover'));
+router.patch('/me/avatar', uploadGuard({ maxRequestBytes: AVATAR_MAX_BYTES + 64 * 1024 }), buildProfileImageHandler('avatar'));
+router.patch('/me/cover',  uploadGuard({ maxRequestBytes: COVER_MAX_BYTES + 64 * 1024 }), buildProfileImageHandler('cover'));
 
 export default router;

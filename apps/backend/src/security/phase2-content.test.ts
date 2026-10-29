@@ -61,7 +61,7 @@ const travelers = memoryTable<any>([]);
 const sessions = memoryTable<any>([]);
 let base = '';
 let close: () => Promise<void>;
-const PRIVATE_DIR = path.join(process.cwd(), 'public/uploads/itineraries');
+const PRIVATE_DIR = path.join(process.env.LOCAL_UPLOADS_DIR!, 'itineraries');
 const PRIVATE_FILE = 'synthetic-private-test.pdf';
 const PUBLIC_FILE = 'synthetic-public-test.jpg';
 

@@ -1,17 +1,20 @@
 import express from 'express';
 import { Router } from '../lib/router';
 import multer from 'multer';
+import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
-import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
+import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename, LOCAL_UPLOADS_ROOT } from '../lib/storage';
 import { hasValidFileSignature } from '../lib/file-signature';
+import { uploadGuard, uploadLimits } from '../lib/uploadGuard';
 
 const router = Router();
 
 // Garante que o diretório exista (multer não cria recursivamente)
-const UPLOAD_DIR = path.join(process.cwd(), 'public/uploads/itineraries');
+const UPLOAD_DIR = path.join(LOCAL_UPLOADS_ROOT, 'itineraries');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const TEMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'vamo-uploads-'));
 
 // Mesmo esquema de nome usado historicamente pelo diskStorage —
 // compartilhado com o modo cloud para que as URLs sigam o mesmo padrão.
@@ -24,15 +27,16 @@ function generateFilename(fieldname: string, originalname: string): string {
 // Com SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY no env, os uploads vão para o
 // Supabase Storage (bucket público "vamo-uploads") — necessário em produção,
 // onde o disco do Render é efêmero. Sem as env vars, o comportamento local
-// histórico (diskStorage em public/uploads) permanece intacto.
+// histórico (arquivo servido de public/uploads) permanece intacto.
 const useCloudStorage = isCloudStorageEnabled();
 
-const storage = useCloudStorage
-    ? multer.memoryStorage()
-    : multer.diskStorage({
-        destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-        filename: (_req, file, cb) => cb(null, generateFilename(file.fieldname, file.originalname)),
-    });
+// SEC-08: o arquivo sempre vai para um temporário em disco (nunca o pedido
+// inteiro em memória). Em modo cloud ele é lido um por vez para subir e o
+// temporário é apagado; em modo disco é movido para public/uploads.
+const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, TEMP_DIR),
+    filename: (_req, file, cb) => cb(null, generateFilename(file.fieldname, file.originalname)),
+});
 
 // Conjunto canônico de formatos aceitos no upload bruto. A matriz
 // fina de "que formato vale em qual contexto" mora no client
@@ -46,29 +50,31 @@ const ALLOWED_UPLOAD_MIME =
 
 // Extensões aceitas — fallback quando o cliente envia o arquivo com
 // MIME genérico (alguns browsers usam application/octet-stream para
-// HEIC e MOV). Confiar na extensão preserva a experiência do usuário
-// sem abrir a porta para arquivos arbitrários: o sistema continua
-// gravando exatamente o que veio.
+// HEIC e MOV). A assinatura do conteúdo é conferida depois do recebimento.
 const ALLOWED_UPLOAD_EXT = /\.(jpe?g|png|webp|heic|heif|mp4|mov|webm|pdf)$/i;
 
-// Teto único de 100 MB cobre o maior caso (vídeo da galeria). Limites
-// menores por contexto (25 MB para imagens, etc.) são aplicados pelo
-// client antes do upload.
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
-
-const upload = multer({
-    storage,
-    limits: { fileSize: MAX_UPLOAD_BYTES },
-    fileFilter: (_req, file, cb) => {
-        const mimeOk = ALLOWED_UPLOAD_MIME.test(file.mimetype);
-        const extOk  = ALLOWED_UPLOAD_EXT.test(file.originalname || '');
-        if (!mimeOk && !extOk) {
-            cb(new Error('UNSUPPORTED_FILE_TYPE'));
-            return;
-        }
-        cb(null, true);
-    },
-});
+function buildUpload() {
+    const limits = uploadLimits();
+    return multer({
+        storage,
+        limits: {
+            fileSize: limits.maxFileBytes,
+            files: limits.maxFiles,
+            fields: 10,
+            fieldSize: 1024,
+            parts: limits.maxFiles + 10,
+        },
+        fileFilter: (_req, file, cb) => {
+            const mimeOk = ALLOWED_UPLOAD_MIME.test(file.mimetype);
+            const extOk = ALLOWED_UPLOAD_EXT.test(file.originalname || '');
+            if (!mimeOk && !extOk) {
+                cb(new Error('UNSUPPORTED_FILE_TYPE'));
+                return;
+            }
+            cb(null, true);
+        },
+    });
+}
 
 /**
  * Categoriza o arquivo recebido como `image`, `video` ou `document`
@@ -89,115 +95,117 @@ function sendUploadError(res: express.Response, err: unknown): boolean {
     if (!err) return false;
     const error = err as Error & { code?: string };
     if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-        res.status(413).json({ error: 'File is too large (max 100 MB).' });
+        res.status(413).json({ error: 'File is too large.' });
+        return true;
+    }
+    if (error instanceof multer.MulterError) {
+        res.status(413).json({ error: 'Too many files or fields in one upload.' });
         return true;
     }
     if (error.message === 'UNSUPPORTED_FILE_TYPE') {
         res.status(415).json({ error: 'Unsupported format. Use JPG, PNG, WEBP, HEIC, MP4, MOV or PDF.' });
         return true;
     }
-    res.status(400).json({ error: error.message || 'We couldn\'t process the upload.' });
+    res.status(400).json({ error: 'We couldn\'t process the upload.' });
     return true;
 }
 
+/** Só os primeiros bytes, para conferir a assinatura sem carregar o arquivo. */
+async function readHead(file: Express.Multer.File): Promise<Buffer> {
+    const handle = await fs.promises.open(file.path, 'r');
+    try {
+        const buffer = Buffer.alloc(16);
+        const { bytesRead } = await handle.read(buffer, 0, 16, 0);
+        return buffer.subarray(0, bytesRead);
+    } finally {
+        await handle.close();
+    }
+}
+
+async function removeTemp(files: Express.Multer.File[]): Promise<void> {
+    await Promise.all(files.map((f) => (f?.path ? fs.promises.rm(f.path, { force: true }) : Promise.resolve())));
+}
+
 /**
- * Resolve a URL pública final de um arquivo já validado pelo multer.
- *
- * - Disco (modo atual): o multer já gravou em public/uploads/itineraries e
- *   preencheu `file.filename`; a URL aponta para o express.static do host.
- * - Cloud: o arquivo está em `file.buffer` (memoryStorage); geramos o nome
- *   com o mesmo esquema histórico e subimos para o Supabase Storage.
+ * Publica um arquivo já validado e devolve a URL pública final.
+ * - Cloud: lê o temporário (um arquivo por vez) e sobe para o Supabase Storage.
+ * - Disco: move o temporário para public/uploads/itineraries.
  */
 async function persistUploadedFile(
     req: express.Request,
     file: Express.Multer.File,
 ): Promise<{ url: string; filename: string }> {
-    if (!useCloudStorage) {
-        const host = `${req.protocol}://${req.get('host')}`;
-        return { url: `${host}/uploads/itineraries/${file.filename}`, filename: file.filename };
-    }
     const filename = generateFilename(file.fieldname, file.originalname);
+    if (!useCloudStorage) {
+        const target = path.join(UPLOAD_DIR, filename);
+        await fs.promises.rename(file.path, target).catch(async (e: any) => {
+            if (e?.code !== 'EXDEV') throw e; // temporário em outro disco: copia
+            await fs.promises.copyFile(file.path, target);
+        });
+        const host = `${req.protocol}://${req.get('host')}`;
+        return { url: `${host}/uploads/itineraries/${filename}`, filename };
+    }
+    const buffer = await fs.promises.readFile(file.path);
     const contentType = contentTypeForFilename(file.originalname, file.mimetype);
-    const { url } = await uploadBufferToCloud(file.buffer, `itineraries/${filename}`, contentType);
+    const { url } = await uploadBufferToCloud(buffer, `itineraries/${filename}`, contentType);
     return { url, filename };
 }
 
-async function readUploadedBuffer(file: Express.Multer.File): Promise<Buffer> {
-    if (file.buffer) return file.buffer;
-    if (file.path) return fs.promises.readFile(file.path);
-    throw new Error('UPLOAD_CONTENT_UNAVAILABLE');
-}
-
-async function cleanupLocalFiles(files: Express.Multer.File[]): Promise<void> {
-    if (useCloudStorage) return;
-    await Promise.all(files.map(async file => {
-        if (!file.path) return;
-        try {
-            await fs.promises.unlink(file.path);
-        } catch {
-            // O arquivo pode já ter sido removido; não mascara o erro original.
-        }
-    }));
-}
-
-async function validateUploadedContent(file: Express.Multer.File): Promise<boolean> {
-    const buffer = await readUploadedBuffer(file);
-    return hasValidFileSignature(buffer, file.originalname);
-}
-
-// POST /api/uploads — upload de um único arquivo, retorna URL absoluta
-router.post('/', optionalAuthMiddleware, (req: AuthRequest, res) => {
+function requireTraveler(req: AuthRequest, res: express.Response, next: express.NextFunction) {
     if (!req.traveler) {
         res.status(401).json({ error: 'Sign in to upload files' });
         return;
     }
-    upload.single('file')(req, res, async (err) => {
-        if (sendUploadError(res, err)) return;
-        if (!req.file) {
-            res.status(400).json({ error: 'File missing (field "file")' });
-            return;
-        }
+    next();
+}
+
+// POST /api/uploads — upload de um único arquivo, retorna URL absoluta
+router.post('/', optionalAuthMiddleware, requireTraveler, uploadGuard({ maxRequestBytes: uploadLimits().maxFileBytes + 64 * 1024 }), (req: AuthRequest, res) => {
+    buildUpload().single('file')(req, res, async (err) => {
+        const file = req.file as Express.Multer.File | undefined;
         try {
-            if (!await validateUploadedContent(req.file)) {
-                await cleanupLocalFiles([req.file]);
+            if (sendUploadError(res, err)) return;
+            if (!file) {
+                res.status(400).json({ error: 'File missing (field "file")' });
+                return;
+            }
+            if (!hasValidFileSignature(await readHead(file), file.originalname)) {
                 res.status(415).json({ error: 'The file contents don\'t match the stated format.' });
                 return;
             }
-            const { url, filename } = await persistUploadedFile(req, req.file);
+            const { url, filename } = await persistUploadedFile(req, file);
             res.json({
                 url,
                 filename,
-                originalName: req.file.originalname,
-                size: req.file.size,
-                mimetype: req.file.mimetype,
-                mediaType: inferMediaType(req.file.mimetype, req.file.originalname),
+                originalName: file.originalname,
+                size: file.size,
+                mimetype: file.mimetype,
+                mediaType: inferMediaType(file.mimetype, file.originalname),
             });
         } catch (uploadErr) {
             console.error('Error persisting upload:', uploadErr);
-            res.status(500).json({ error: 'We couldn\'t save the file. Please try again.' });
+            if (!res.headersSent) res.status(500).json({ error: 'We couldn\'t save the file. Please try again.' });
+        } finally {
+            if (file) await removeTemp([file]);
         }
     });
 });
 
 // POST /api/uploads/multiple — upload de múltiplos arquivos
-router.post('/multiple', optionalAuthMiddleware, (req: AuthRequest, res) => {
-    if (!req.traveler) {
-        res.status(401).json({ error: 'Sign in to upload files' });
-        return;
-    }
-    upload.array('files', 20)(req, res, async (err) => {
-        if (sendUploadError(res, err)) return;
+router.post('/multiple', optionalAuthMiddleware, requireTraveler, uploadGuard(), (req: AuthRequest, res) => {
+    buildUpload().array('files', uploadLimits().maxFiles)(req, res, async (err) => {
         const files = (req.files as Express.Multer.File[] | undefined) || [];
-        if (files.length === 0) {
-            res.status(400).json({ error: 'No file uploaded (field "files")' });
-            return;
-        }
         try {
-            const validations = await Promise.all(files.map(validateUploadedContent));
-            if (validations.some(valid => !valid)) {
-                await cleanupLocalFiles(files);
-                res.status(415).json({ error: 'One of the files doesn\'t match the stated format.' });
+            if (sendUploadError(res, err)) return;
+            if (files.length === 0) {
+                res.status(400).json({ error: 'No file uploaded (field "files")' });
                 return;
+            }
+            for (const f of files) {
+                if (!hasValidFileSignature(await readHead(f), f.originalname)) {
+                    res.status(415).json({ error: 'One of the files doesn\'t match the stated format.' });
+                    return;
+                }
             }
             const items = [];
             for (const f of files) {
@@ -217,7 +225,9 @@ router.post('/multiple', optionalAuthMiddleware, (req: AuthRequest, res) => {
             });
         } catch (uploadErr) {
             console.error('Error persisting uploads:', uploadErr);
-            res.status(500).json({ error: 'We couldn\'t save the files. Please try again.' });
+            if (!res.headersSent) res.status(500).json({ error: 'We couldn\'t save the files. Please try again.' });
+        } finally {
+            await removeTemp(files);
         }
     });
 });

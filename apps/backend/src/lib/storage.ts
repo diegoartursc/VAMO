@@ -23,7 +23,7 @@ import fs from 'fs';
 export const UPLOADS_BUCKET = 'vamo-uploads';
 
 /** Raiz local dos uploads (modo disco). Mesmo caminho usado desde sempre. */
-export const LOCAL_UPLOADS_ROOT = path.join(process.cwd(), 'public/uploads');
+export const LOCAL_UPLOADS_ROOT = process.env.LOCAL_UPLOADS_DIR || path.join(process.cwd(), 'public/uploads');
 
 /** Cloud storage está configurado? (decide qual implementação as rotas usam) */
 export function isCloudStorageEnabled(): boolean {
