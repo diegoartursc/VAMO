@@ -4,6 +4,8 @@
 ALTER TABLE "itinerary_sales" ADD COLUMN     "commissionCents" INTEGER,
 ADD COLUMN     "creatorEarningCents" INTEGER,
 ADD COLUMN     "disputeStatus" TEXT,
+ADD COLUMN     "disputeId" TEXT,
+ADD COLUMN     "disputeLostCents" INTEGER NOT NULL DEFAULT 0,
 ADD COLUMN     "paidAmountCents" INTEGER,
 ADD COLUMN     "paidCurrency" TEXT,
 ADD COLUMN     "paymentIntentId" TEXT,

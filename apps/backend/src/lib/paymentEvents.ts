@@ -30,9 +30,10 @@ const piOf = (obj: any): string | null =>
     typeof obj?.payment_intent === 'string' ? obj.payment_intent : obj?.payment_intent?.id ?? null;
 
 /** Reverte (parte d)o repasse para chegar a `lostCents` perdidos. Idempotente pelo alvo. */
-async function reverseTransfer(stripe: Stripe, sale: SaleRow, lostCents: number, reason: string) {
+async function reverseTransfer(stripe: Stripe, sale: SaleRow, reason: string) {
     if (!sale.payoutTransferId) return;
-    const target = reversalTargetCents(sale as any, lostCents);
+    // Alvo = transferido − ganho ainda devido após TODAS as perdas (estorno + disputa).
+    const target = reversalTargetCents(sale as any);
     const delta = target - (sale.payoutReversedCents ?? 0);
     if (delta <= 0) return;
     try {
@@ -71,23 +72,27 @@ async function onChargeRefunded(stripe: Stripe, charge: any) {
             payoutStatus: full && !sale.payoutTransferId ? 'blocked' : sale.payoutStatus,
         },
     });
-    if (sale.payoutTransferId) await reverseTransfer(stripe, { ...sale, refundedCents: refunded }, refunded, 'refund');
+    if (sale.payoutTransferId) await reverseTransfer(stripe, { ...sale, refundedCents: refunded }, 'refund');
 }
 
 async function onDispute(stripe: Stripe, dispute: any, closed: boolean) {
     const sale = await findSaleByPaymentIntent(piOf(dispute));
     if (!sale) return;
     const status = String(dispute.status || '');
+    const terminal = (st: unknown) => st === 'won' || st === 'lost' || st === 'warning_closed';
+    // Evento atrasado de uma disputa já encerrada não reabre nada (fora de ordem).
+    if (sale.disputeId === dispute.id && terminal(sale.disputeStatus) && !terminal(status)) return;
     const lost = status === 'lost';
     const resolvedInOurFavor = closed && (status === 'won' || status === 'warning_closed');
     const transferred = Boolean(sale.payoutTransferId);
 
+    const disputeLost = Number(dispute.amount) || paidCentsOf(sale as any);
     if (lost) {
         await prisma.itinerarySale.update({
             where: { id: sale.id },
-            data: { paymentStatus: PAYMENT_STATUS.disputeLost, disputeStatus: status, payoutStatus: transferred ? sale.payoutStatus : 'blocked' },
+            data: { paymentStatus: PAYMENT_STATUS.disputeLost, disputeStatus: status, disputeId: dispute.id, disputeLostCents: disputeLost, payoutStatus: transferred ? sale.payoutStatus : 'blocked' },
         });
-        if (transferred) await reverseTransfer(stripe, sale, Number(dispute.amount) || paidCentsOf(sale as any), 'dispute_lost');
+        if (transferred) await reverseTransfer(stripe, { ...sale, disputeLostCents: disputeLost }, 'dispute_lost');
         return;
     }
     if (resolvedInOurFavor) {
@@ -98,6 +103,7 @@ async function onDispute(stripe: Stripe, dispute: any, closed: boolean) {
                 paymentStatus: refunded <= 0 ? PAYMENT_STATUS.paid
                     : refunded >= paidCentsOf(sale as any) ? PAYMENT_STATUS.refunded : PAYMENT_STATUS.partiallyRefunded,
                 disputeStatus: status,
+                disputeId: dispute.id,
                 payoutStatus: sale.payoutStatus === 'on_hold' ? null : sale.payoutStatus,
                 payoutNextAttemptAt: null,
             },
@@ -108,7 +114,7 @@ async function onDispute(stripe: Stripe, dispute: any, closed: boolean) {
     if (sale.paymentStatus === PAYMENT_STATUS.refunded || sale.paymentStatus === PAYMENT_STATUS.disputeLost) return;
     await prisma.itinerarySale.update({
         where: { id: sale.id },
-        data: { paymentStatus: PAYMENT_STATUS.disputed, disputeStatus: status, payoutStatus: transferred ? sale.payoutStatus : 'on_hold' },
+        data: { paymentStatus: PAYMENT_STATUS.disputed, disputeStatus: status, disputeId: dispute.id, payoutStatus: transferred ? sale.payoutStatus : 'on_hold' },
     });
 }
 

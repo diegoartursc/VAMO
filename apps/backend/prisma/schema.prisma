@@ -740,6 +740,8 @@ model ItinerarySale {
   paymentStatus        String    @default("paid")
   refundedCents        Int       @default(0)
   disputeStatus        String?
+  disputeId            String?
+  disputeLostCents     Int       @default(0)
   // ── Estado do repasse (SEC-15) ──
   // null (aguardando) | transferred | on_hold | blocked | needs_attention
   payoutStatus         String?
@@ -1204,6 +1206,9 @@ model TravelerSession {
   id            String    @id @default(cuid())
   travelerId    String
   refreshJti    String
+  // Refresh anterior, aceito por poucos segundos (duas abas, resposta perdida).
+  prevRefreshJti String?
+  rotatedAt     DateTime?
   createdAt     DateTime  @default(now())
   lastUsedAt    DateTime  @default(now())
   revokedAt     DateTime?

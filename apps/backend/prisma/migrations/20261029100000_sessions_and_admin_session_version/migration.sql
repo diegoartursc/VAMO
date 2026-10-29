@@ -9,6 +9,8 @@ CREATE TABLE "traveler_sessions" (
     "id" TEXT NOT NULL,
     "travelerId" TEXT NOT NULL,
     "refreshJti" TEXT NOT NULL,
+    "prevRefreshJti" TEXT,
+    "rotatedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastUsedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "revokedAt" TIMESTAMP(3),

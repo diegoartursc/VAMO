@@ -165,7 +165,7 @@ test('SEC-11: estorno parcial mantém acesso e reduz o repasse na proporção', 
 
 test('SEC-11: estorno depois do repasse reverte a transferência proporcionalmente, uma vez só', async () => {
     const { handleStripeEvent } = await import('../lib/paymentEvents');
-    sales.rows.push(sale({ id: 's1', payoutTransferId: 'tr_9', payoutStatus: 'transferred', payoutTransferredAt: new Date() }));
+    sales.rows.push(sale({ id: 's1', payoutTransferId: 'tr_9', payoutStatus: 'transferred', payoutTransferredAt: new Date(), payoutAmount: 21.52 }));
     const stripe = fakeStripe();
     const e = ev('evt_r', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount: 2690, amount_refunded: 2690 });
     await handleStripeEvent(stripe, e);
@@ -177,7 +177,7 @@ test('SEC-11: estorno depois do repasse reverte a transferência proporcionalmen
 
 test('SEC-11: falha ao reverter fica registrada para intervenção e não some', async () => {
     const { handleStripeEvent } = await import('../lib/paymentEvents');
-    sales.rows.push(sale({ id: 's1', payoutTransferId: 'tr_9', payoutStatus: 'transferred' }));
+    sales.rows.push(sale({ id: 's1', payoutTransferId: 'tr_9', payoutStatus: 'transferred', payoutAmount: 21.52 }));
     const stripe = fakeStripe();
     stripe.transfers.createReversal = async () => { throw new Error('insufficient_funds'); };
     await assert.rejects(handleStripeEvent(stripe, ev('evt_f', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount: 2690, amount_refunded: 2690 })));
@@ -189,7 +189,7 @@ test('SEC-11: falha ao reverter fica registrada para intervenção e não some',
 test('SEC-11: disputa aberta trava o repasse e mantém o acesso; perdida corta acesso e reverte; ganha libera', async () => {
     const { handleStripeEvent } = await import('../lib/paymentEvents');
     const { hasActiveAccess } = await import('../lib/money');
-    sales.rows.push(sale({ id: 's_lost', paymentIntentId: 'pi_lost', payoutTransferId: 'tr_1', payoutStatus: 'transferred' }));
+    sales.rows.push(sale({ id: 's_lost', paymentIntentId: 'pi_lost', payoutTransferId: 'tr_1', payoutStatus: 'transferred', payoutAmount: 21.52 }));
     sales.rows.push(sale({ id: 's_won', paymentIntentId: 'pi_won' }));
     const stripe = fakeStripe();
     await handleStripeEvent(stripe, ev('evt_d1', 'charge.dispute.created', { id: 'dp_1', payment_intent: 'pi_won', amount: 2690, status: 'needs_response' }));
