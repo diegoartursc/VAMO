@@ -141,6 +141,9 @@ const MODULE_PRIORITY = [
  * API shape (flightInfo, checklists/checklist).
  */
 function isModulePopulated(itinerary: any, key: string): boolean {
+    // Prévia pública/vitrine: o conteúdo não vem, só `contentCounts`.
+    const previewCount = itinerary?.contentCounts?.[key];
+    if (typeof previewCount === 'number') return previewCount > 0;
     switch (key) {
         case "itinerario":
             if (itinerary.days !== undefined) return (itinerary.days?.length ?? 0) > 0;

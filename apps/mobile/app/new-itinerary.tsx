@@ -46,6 +46,7 @@ import {
     uploadHint,
 } from '../src/utils/uploadContexts';
 import { uploadFile as uploadFileUrl } from '../src/utils/uploadFile';
+import { refreshAccessToken } from '../src/services/auth';
 import { isVideoUrl } from '../src/utils/itineraryMedia';
 import { theme } from '../src/theme/theme';
 import { haptics } from '../src/services/haptics';
@@ -2960,19 +2961,11 @@ async function tryRefreshSession(): Promise<string | null> {
         const session = await getStoredSession();
         const refreshToken = session?.refreshToken;
         if (!session || !refreshToken) return null;
-
-        const res = await fetch(`${API_BASE}/auth/traveler/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken }),
-        });
-        if (!res.ok) return null;
-        const data = await res.json();
-        const newToken = data.accessToken;
-        if (!newToken) return null;
-
-        await setStoredSession({ ...session, accessToken: newToken });
-        return newToken;
+        // Mesma chamada compartilhada do app (refresh rotativo + single-flight).
+        const tokens = await refreshAccessToken(refreshToken);
+        if (!tokens) return null;
+        await setStoredSession({ ...session, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+        return tokens.accessToken;
     } catch {
         return null;
     }

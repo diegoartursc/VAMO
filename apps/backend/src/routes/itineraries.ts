@@ -8,6 +8,8 @@ import { selectFeaturedRanked } from '../utils/featuredRanking';
 import { PUBLIC_ITINERARY_WHERE, isPublicItineraryStatus, isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 import { sendItinerarySubmittedForReviewEmail } from '../lib/mailer';
 import { BASE_CURRENCY, computeCommission } from '@vamo/shared/itinerary';
+import { toListingModules, toPublicItineraryPreview, toBuyerItinerary } from '../lib/itineraryDto';
+import { canonicalizeDocRefs, signDocRefs } from '../lib/privateDocs';
 
 const router = Router();
 
@@ -93,10 +95,9 @@ router.get('/', async (req: Request, res: Response) => {
             // Campos para badge de orçamento do card (BudgetSummaryCard).
             // Apenas JSON cols (zero query extra). Accommodations/Transports
             // ficam ausentes na listagem por serem relações.
-            attractions: it.attractions || [],
-            restaurants: it.restaurants || [],
-            extraSpendingItems: (it as any).extraSpendingItems || [],
-            flightInfo: it.flightInfo || null,
+            // Vitrine (SEC-02): módulos reduzidos a custos + contagens; o
+            // conteúdo (nomes, dicas, horários) é só de quem comprou.
+            ...toListingModules(it),
         }));
 
         res.json(result);
@@ -165,10 +166,9 @@ router.get('/featured', async (req: Request, res: Response) => {
             // Campos para badge de orçamento do card (BudgetSummaryCard).
             // Apenas JSON cols (zero query extra). Accommodations/Transports
             // ficam ausentes na listagem por serem relações.
-            attractions: it.attractions || [],
-            restaurants: it.restaurants || [],
-            extraSpendingItems: (it as any).extraSpendingItems || [],
-            flightInfo: it.flightInfo || null,
+            // Vitrine (SEC-02): módulos reduzidos a custos + contagens; o
+            // conteúdo (nomes, dicas, horários) é só de quem comprou.
+            ...toListingModules(it),
         }));
 
         // Aplica pisos (reviews/rating) + ranking de confiança + limite final.
@@ -185,20 +185,18 @@ router.get('/featured', async (req: Request, res: Response) => {
 // NOTE: Must be registered BEFORE /:id to avoid being caught by the catch-all param
 router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        let { creatorId } = req.query as { creatorId?: string };
-
-        // Resolução do creatorId em ordem:
-        // 1. creatorId explícito na query
-        // 2. travelerId do token JWT → resolve creator vinculado
-        // SEM fallback para "primeiro creator" (causa do bug do Diego!)
-        if (!creatorId && req.traveler?.travelerId) {
-            const myCreator = await (prisma.creator as any).findUnique({
-                where: { travelerId: req.traveler.travelerId },
-                select: { id: true },
-            });
-            creatorId = myCreator?.id;
-            console.log('[dashboard/stats] resolved creatorId from token:', { travelerId: req.traveler.travelerId, creatorId });
+        // SEC-04: exige sessão e resolve o criador SÓ pelo token. Um
+        // `?creatorId=` na query é ignorado (era um IDOR: qualquer um lia
+        // receita e rascunhos de outro criador).
+        if (!req.traveler?.travelerId) {
+            res.status(401).json({ error: 'Sign in to see your dashboard.' });
+            return;
         }
+        const myCreator = await (prisma.creator as any).findUnique({
+            where: { travelerId: req.traveler.travelerId },
+            select: { id: true },
+        });
+        const creatorId: string | undefined = myCreator?.id;
 
         if (!creatorId) {
             console.log('[dashboard/stats] no creatorId resolved — returning empty stats');
@@ -714,14 +712,14 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
                     mediaUrls: liveMediaItinerary.mediaUrls || [],
                 }
                 : {};
-            res.json({
+            res.json(toBuyerItinerary({
                 ...snapshot,
                 ...mediaOverride,
                 creator: mergedCreator,
                 purchaseId: sale.id,
                 purchasedAt: serializeDate(sale.createdAt),
                 pricePaid: sale.price,
-            });
+            }));
             return;
         }
 
@@ -734,7 +732,7 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
         // Reaproveita o mesmo shape do GET /:id (a tela pós-compra consome
         // o mesmo payload). Pular o gate de status público: quem comprou
         // tem acesso mesmo se o roteiro depois foi pausado/arquivado.
-        res.json(buildPurchasedItineraryPayload(it, sale));
+        res.json(toBuyerItinerary(buildPurchasedItineraryPayload(it, sale)));
     } catch (error) {
         console.error('Error fetching purchased itinerary:', error);
         res.status(500).json({ error: 'Failed to fetch purchased itinerary' });
@@ -765,7 +763,7 @@ router.get('/:id/creator', optionalAuthMiddleware, async (req: AuthRequest, res:
         }
         if (!(await requireCreatorOwner(req, res, it.creatorId))) return;
 
-        res.json({
+        res.json(await signDocRefs({
             ...it,
             images: it.images.map(img => img.url),
             creator: {
@@ -774,7 +772,7 @@ router.get('/:id/creator', optionalAuthMiddleware, async (req: AuthRequest, res:
                 travelerId: it.creator.traveler.id,
                 avatar: it.creator.traveler.avatar,
             },
-        });
+        }, req));
     } catch (error) {
         console.error('[itineraries.creator.get] Error:', error);
         res.status(500).json({ error: 'Failed to fetch creator itinerary' });
@@ -1008,7 +1006,9 @@ router.get('/:id', optionalAuthMiddleware, async (req: AuthRequest, res: Respons
             })),
         };
 
-        res.json(result);
+        // Dono vê tudo (inclusive os próprios comprovantes). Qualquer outro
+        // recebe só a prévia; o conteúdo completo sai por /:id/purchased.
+        res.json(isOwner ? await signDocRefs(result, req) : toPublicItineraryPreview(result));
     } catch (error) {
         console.error('Error fetching itinerary:', error);
         res.status(500).json({ error: 'Failed to fetch itinerary' });
@@ -1257,6 +1257,8 @@ async function requireCreatorOwner(req: AuthRequest, res: Response, creatorId: s
 // POST /api/itineraries (requires auth)
 router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async (req: AuthRequest, res: Response) => {
     try {
+        // Comprovantes: só documentos privados do próprio criador (SEC-03).
+        if (req.traveler?.travelerId) req.body = await canonicalizeDocRefs(req.body ?? {}, req.traveler.travelerId);
         const {
             creatorId, title, destination, country, description,
             price, currency, duration, highlights, inclusions,
@@ -1508,6 +1510,8 @@ router.post('/', optionalAuthMiddleware, createAuditMiddleware('CREATE'), async 
 // PUT /api/itineraries/:id (requires auth)
 router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), async (req: AuthRequest, res: Response) => {
     try {
+        // Comprovantes: só documentos privados do próprio criador (SEC-03).
+        if (req.traveler?.travelerId) req.body = await canonicalizeDocRefs(req.body ?? {}, req.traveler.travelerId);
         const id = req.params.id as string;
         const {
             title, destination, country, description,

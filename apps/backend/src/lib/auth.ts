@@ -10,6 +10,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 const FILE_TOKEN_EXPIRES_IN = '15m';
 const ADMIN_TOKEN_EXPIRES_IN = '8h';
+const DOC_TOKEN_EXPIRES_IN = '30m';
 
 /**
  * Cada finalidade de token tem chave, audience e claim `typ` próprios. Um token
@@ -17,7 +18,7 @@ const ADMIN_TOKEN_EXPIRES_IN = '8h';
  * mesmo que algum código esqueça de checar o tipo: a assinatura não bate.
  * Tokens antigos (sem `typ`, assinados direto com JWT_SECRET) deixam de valer.
  */
-export type TokenType = 'access' | 'refresh' | 'file' | 'admin';
+export type TokenType = 'access' | 'refresh' | 'file' | 'doc' | 'admin';
 
 const ISSUER = 'vamo-api';
 const ALGORITHM = 'HS256' as const;
@@ -106,6 +107,15 @@ export const verifyPrivateFileToken = (token: unknown) => {
     if (!p || !isId(p.fileId) || !isId(p.travelerId)) return null;
     return { fileId: p.fileId, travelerId: p.travelerId, purpose: 'traveler-file' as const };
 };
+
+// ─── Documento privado (comprovantes, SEC-03) ────────────────────
+
+export const generateDocumentToken = (docId: string) => sign('doc', { docId }, DOC_TOKEN_EXPIRES_IN);
+
+export function verifyDocumentToken(token: unknown): { docId: string } | null {
+    const p = verify('doc', token);
+    return p && isId(p.docId) ? { docId: p.docId } : null;
+}
 
 // ─── Admin ────────────────────────────────────────────────────────
 

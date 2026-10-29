@@ -5,6 +5,7 @@ import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { adminAuthMiddleware } from '../middleware/admin-auth';
 import { generateAdminToken } from '../lib/auth';
+import { signDocRefs } from '../lib/privateDocs';
 import prisma from '../lib/prisma';
 import { sendItineraryApprovedEmail, sendItineraryRejectedEmail, sendCreatorApprovedEmail } from '../lib/mailer';
 import { recalculateItineraryAndCreatorRating } from './reviews';
@@ -382,7 +383,8 @@ router.get('/pending', verifyAdmin, async (req: Request, res: Response) => {
                         : [],
         }));
 
-        res.json({ packages, itineraries });
+        // Comprovantes privados viram links assinados só para o admin (SEC-03).
+        res.json(await signDocRefs({ packages, itineraries }, req));
     } catch (error) {
         console.error('[admin pending] error:', error);
         res.status(500).json({ error: 'Failed to fetch pending admin items' });
@@ -434,7 +436,8 @@ router.get('/all', verifyAdmin, async (req: Request, res: Response) => {
                         : [],
         }));
 
-        res.json({ packages, itineraries });
+        // Comprovantes privados viram links assinados só para o admin (SEC-03).
+        res.json(await signDocRefs({ packages, itineraries }, req));
     } catch (error) {
         console.error('[admin all] error:', error);
         res.status(500).json({ error: 'Failed to fetch admin items' });
@@ -462,7 +465,7 @@ router.get('/itineraries/:id', verifyAdmin, async (req: Request, res: Response) 
             res.status(404).json({ error: 'Itinerary not found' });
             return;
         }
-        res.json(itinerary);
+        res.json(await signDocRefs(itinerary, req));
     } catch (error) {
         console.error('[admin itinerary detail] error:', error);
         res.status(500).json({ error: 'Failed to fetch itinerary detail' });
@@ -666,7 +669,7 @@ router.get('/itineraries/:id/cost-proofs', verifyAdmin, async (req: Request, res
             return;
         }
         const rows = extractCostRowsFromItinerary(it);
-        res.json({
+        res.json(await signDocRefs({
             id: it.id,
             title: it.title,
             destination: it.destination,
@@ -684,7 +687,7 @@ router.get('/itineraries/:id/cost-proofs', verifyAdmin, async (req: Request, res
                 rejected: rows.filter(r => r.proofStatus === 'rejected').length,
             },
             proofs: rows,
-        });
+        }, req));
     } catch (error) {
         console.error('[admin cost-proofs] error:', error);
         res.status(500).json({ error: 'Failed to fetch cost proofs' });

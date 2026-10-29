@@ -23,6 +23,7 @@ import travelerRouteCustomizationRoutes from './routes/traveler-route-customizat
 import savedItemsRoutes from './routes/saved-items';
 import paymentRoutes, { stripeWebhookHandler } from './routes/payments';
 import shareRoutes from './routes/shares';
+import privateDocsRoutes from './routes/private-docs';
 import prisma from './lib/prisma';
 
 const app = express();
@@ -102,15 +103,32 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), str
 app.use(express.json());
 app.use('/api', limiter);
 
-// Traveler files created by the legacy flow shared this public directory
-// with itinerary media. Block direct access when the filename belongs to a
-// private TravelerFile; the signed Trip Center endpoint remains available.
+// Arquivos privados da Central da Viagem gravados pelo fluxo legado dividiam
+// este diretório público com a mídia dos roteiros (SEC-05). A checagem usa o
+// MESMO caminho que o express.static vai servir: decodifica, normaliza barras e
+// pontos e confere pelo nome do arquivo em qualquer subpasta. Falha fechado.
 import path from 'path';
-app.get('/uploads/itineraries/:filename', async (req, res, next) => {
+app.use('/uploads', async (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+        res.status(405).end();
+        return;
+    }
+    let decoded: string;
     try {
-        const filename = path.basename(req.params.filename);
+        decoded = decodeURIComponent(req.path);
+    } catch {
+        res.status(400).end();
+        return;
+    }
+    const normalized = path.posix.normalize(`/${decoded.replace(/\\/g, '/')}`);
+    const filename = path.posix.basename(normalized);
+    if (!filename || normalized.includes('\0')) {
+        res.status(404).end();
+        return;
+    }
+    try {
         const privateRecord = await prisma.travelerFile.findFirst({
-            where: { url: { endsWith: `/uploads/itineraries/${filename}` } },
+            where: { url: { endsWith: `/${filename}` } },
             select: { id: true },
         });
         if (privateRecord) {
@@ -155,6 +173,7 @@ app.use('/api/questions', questionRoutes);
 app.use('/api/saved-items', savedItemsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/private-docs', privateDocsRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

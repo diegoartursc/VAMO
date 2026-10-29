@@ -8,7 +8,7 @@
  * Regra: nunca inventar atributos. Bullets/teasers só são gerados a
  * partir do que o criador realmente preencheu.
  */
-import { STYLE_OPTIONS } from '@vamo/shared/itinerary';
+import { STYLE_OPTIONS, getChecklistCategoryLabel } from '@vamo/shared/itinerary';
 import type { IconName } from '../components/common/Icons';
 import { getCategoryChips } from './itineraryCardBadges';
 
@@ -52,13 +52,22 @@ function arr(x: any): any[] {
     return Array.isArray(x) ? x : [];
 }
 
+// A prévia pública (quem não comprou) não traz o conteúdo dos módulos: o
+// backend manda `contentCounts` com quantos itens existem. Quando houver,
+// as contagens vêm dali.
+function previewCount(itinerary: any, key: string): number | null {
+    const v = itinerary?.contentCounts?.[key];
+    return typeof v === 'number' ? v : null;
+}
 function countDays(itinerary: any): number {
-    return arr(itinerary?.days).length;
+    return previewCount(itinerary, 'itinerario') ?? arr(itinerary?.days).length;
 }
 function countTips(itinerary: any): number {
-    return arr(itinerary?.generalTips).filter((t) => typeof t === 'string' && t.trim()).length;
+    return previewCount(itinerary, 'dicas') ?? arr(itinerary?.generalTips).filter((t) => typeof t === 'string' && t.trim()).length;
 }
 function countChecklist(itinerary: any): number {
+    const fromPreview = previewCount(itinerary, 'checklist');
+    if (fromPreview !== null) return fromPreview;
     const items =
         arr(itinerary?.checklistItems).length > 0
             ? arr(itinerary?.checklistItems)
@@ -68,6 +77,9 @@ function countChecklist(itinerary: any): number {
     return items.filter((c: any) => typeof c?.item === 'string' && c.item.trim()).length;
 }
 function checklistCategories(itinerary: any): string[] {
+    if (Array.isArray(itinerary?.contentCounts?.checklistCategories)) {
+        return itinerary.contentCounts.checklistCategories.map((c: string) => getChecklistCategoryLabel(c));
+    }
     const items =
         arr(itinerary?.checklistItems).length > 0
             ? arr(itinerary?.checklistItems)
@@ -76,18 +88,19 @@ function checklistCategories(itinerary: any): string[] {
             : arr(itinerary?.checklist);
     const set = new Set<string>();
     for (const c of items) {
-        if (c?.cat && typeof c.cat === 'string') set.add(c.cat.trim());
+        const cat = typeof c?.cat === 'string' ? c.cat : typeof c?.category === 'string' ? c.category : '';
+        if (cat.trim()) set.add(getChecklistCategoryLabel(cat.trim()));
     }
     return Array.from(set).filter(Boolean);
 }
 function countAttractions(itinerary: any): number {
-    return arr(itinerary?.attractions).filter((a: any) => a?.name?.trim()).length;
+    return previewCount(itinerary, 'passeios') ?? arr(itinerary?.attractions).filter((a: any) => a?.name?.trim()).length;
 }
 function countRestaurants(itinerary: any): number {
-    return arr(itinerary?.restaurants).filter((r: any) => r?.name?.trim()).length;
+    return previewCount(itinerary, 'restaurantes') ?? arr(itinerary?.restaurants).filter((r: any) => r?.name?.trim()).length;
 }
 function countAccommodations(itinerary: any): number {
-    return arr(itinerary?.accommodations).filter((a: any) => a?.name?.trim()).length;
+    return previewCount(itinerary, 'hospedagem') ?? arr(itinerary?.accommodations).filter((a: any) => a?.name?.trim()).length;
 }
 function countMedia(itinerary: any): number {
     const images = arr(itinerary?.images).length;

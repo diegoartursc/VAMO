@@ -32,6 +32,7 @@
 
 import { Response } from 'express';
 import { Router } from '../lib/router';
+import { toBuyerItinerary } from '../lib/itineraryDto';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import prisma from '../lib/prisma';
 import {
@@ -299,12 +300,12 @@ router.get(
             const existing = getRouteSnapshot(sale.purchaseData);
             if (existing) {
                 res.json({
-                    snapshot: {
+                    snapshot: toBuyerItinerary({
                         ...(existing as any),
                         purchaseId: sale.id,
                         purchasedAt: serializeDate(sale.createdAt),
                         pricePaid: sale.price,
-                    },
+                    }),
                 });
                 return;
             }
@@ -332,7 +333,7 @@ router.get(
                 },
             });
 
-            res.json({ snapshot: rebuilt });
+            res.json({ snapshot: toBuyerItinerary(rebuilt) });
         } catch (error) {
             console.error('Error fetching route snapshot:', error);
             res.status(500).json({ error: 'Failed to load itinerary snapshot' });
@@ -360,12 +361,12 @@ router.post(
             const existing = getRouteSnapshot(sale.purchaseData);
             if (existing) {
                 res.json({
-                    snapshot: {
+                    snapshot: toBuyerItinerary({
                         ...(existing as any),
                         purchaseId: sale.id,
                         purchasedAt: serializeDate(sale.createdAt),
                         pricePaid: sale.price,
-                    },
+                    }),
                     unchanged: true,
                 });
                 return;
@@ -392,7 +393,7 @@ router.post(
                 },
             });
 
-            res.json({ snapshot: rebuilt });
+            res.json({ snapshot: toBuyerItinerary(rebuilt) });
         } catch (error) {
             console.error('Error rebuilding route snapshot:', error);
             res.status(500).json({ error: 'Failed to rebuild snapshot' });

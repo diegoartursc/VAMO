@@ -226,6 +226,7 @@ model Traveler {
   routeCustomizations TravelerItineraryCustomization[]
   passwordResetTokens PasswordResetToken[]
   sessions            TravelerSession[]
+  privateDocuments    PrivateDocument[]
   reviewReports       ReviewReport[]
 
   @@map("travelers")
@@ -1192,4 +1193,24 @@ model TravelerSession {
 
   @@index([travelerId])
   @@map("traveler_sessions")
+}
+
+// Documento privado (comprovante de viagem e de custos). Nunca vai para o bucket
+// público: o conteúdo fica aqui e só abre por link assinado de curta duração,
+// emitido para o dono (criador) ou para o admin. Referência no roteiro:
+// `private-doc://<id>` (SEC-03).
+model PrivateDocument {
+  id               String   @id @default(cuid())
+  ownerTravelerId  String
+  purpose          String
+  mimeType         String
+  originalFileName String
+  sizeBytes        Int
+  content          Bytes
+  createdAt        DateTime @default(now())
+
+  owner Traveler @relation(fields: [ownerTravelerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerTravelerId])
+  @@map("private_documents")
 }

@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { getSession, setSession } from './secureSession';
+import { refreshAccessToken } from '../services/auth';
 import { inferMimeFromExtension } from './heicSupport';
 import {
     detectMediaType,
@@ -52,19 +53,11 @@ async function tryRefreshSession(): Promise<string | null> {
         const session = await getSession();
         const refreshToken = session?.refreshToken;
         if (!session || !refreshToken) return null;
-
-        const res = await fetch(`${API_BASE}/auth/traveler/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken }),
-        });
-        if (!res.ok) return null;
-        const data = await res.json();
-        const newToken = data.accessToken;
-        if (!newToken) return null;
-
-        await setSession({ ...session, accessToken: newToken });
-        return newToken;
+        // Mesma chamada compartilhada do app (refresh rotativo + single-flight).
+        const tokens = await refreshAccessToken(refreshToken);
+        if (!tokens) return null;
+        await setSession({ ...session, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+        return tokens.accessToken;
     } catch {
         return null;
     }
@@ -143,8 +136,14 @@ export async function uploadPreparedFile(
                 type: prepared.mimeType,
             });
         }
+        if (isPrivateProof) fd.append('purpose', prepared.context);
         return fd;
     };
+
+    // Comprovantes (de viagem e de custos) nunca vão para o bucket público:
+    // vão para o armazenamento privado e voltam como link assinado (SEC-03).
+    const isPrivateProof = prepared.context === 'travelProof' || prepared.context === 'costProof';
+    const endpoint = isPrivateProof ? `${API_BASE}/private-docs` : `${API_BASE}/uploads`;
 
     let currentToken = token;
     let res: Response;
@@ -152,7 +151,7 @@ export async function uploadPreparedFile(
         const headers: Record<string, string> = {};
         if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
         const formData = await buildFormData();
-        res = await fetch(`${API_BASE}/uploads`, {
+        res = await fetch(endpoint, {
             method: 'POST',
             headers,
             body: formData,

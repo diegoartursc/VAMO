@@ -88,6 +88,31 @@ Teste: `src/security/phase1-auth.test.ts` (app Express real numa porta local, Pr
 
 ---
 
+## Fase 2 — Conteúdo pago e documentos (concluída no código)
+
+Testes: `src/security/phase2-content.test.ts` (9) e `src/security/phase2-private-docs.test.ts` (3), com o app real e roteiro de teste com marcadores de conteúdo pago e de comprovante.
+
+**Antes** (código `a71490e`): 9 testes de conteúdo, **2 passaram e 7 falharam**. O anônimo recebeu dicas, atividades, hotel e arquivo pagos. A listagem trouxe o conteúdo dos passeios. O comprovante de embarque, o recibo e a nota interna do admin saíram para anônimo e comprador. `/dashboard/stats?creatorId=` anônimo respondeu 200 com o roteiro do criador. `/uploads/itineraries//arquivo.pdf` e `/uploads/%69tineraries/...` abriram o arquivo privado.
+**Depois:** 9 de 9 e 3 de 3. Suíte do backend: 96 de 96. Mobile: 216 de 216 e `tsc` sem erro novo.
+
+| ID | Mudança | Arquivos | Status |
+| --- | --- | --- | --- |
+| SEC-02 | DTO por papel. A vitrine e o detalhe para quem não comprou recebem só a prévia. Os módulos viram "tocos" com o bloco de custo (o resumo de orçamento continua) e `contentCounts` informa quantos itens há. Dias, atividades, dicas, checklist, nomes de hotéis/restaurantes, horários, links e arquivos ficam para comprador (`/:id/purchased`), dono e admin. O app usa `contentCounts` para "O que você vai receber" e para os selos dos cards. | `lib/itineraryDto.ts`, `routes/itineraries.ts`, `apps/mobile/src/utils/itineraryCardBadges.ts`, `apps/mobile/src/utils/itinerarySales.ts` | **corrigido e validado** |
+| SEC-03 (respostas) | `travelProofUrl`, `receiptUrl`, `approvalNote` e as URLs de `proofFiles` saem de toda resposta que não seja para dono ou admin, em qualquer profundidade, inclusive snapshots antigos de compra (`/:id/purchased`, `/route-customization/:id/snapshot`). `proofFiles` vira um marcador sem URL, para o cálculo de confiança dos custos seguir igual. | `lib/itineraryDto.ts`, `routes/itineraries.ts`, `routes/traveler-route-customization.ts` | **corrigido e validado** |
+| SEC-03 (armazenamento) | Comprovantes novos vão para `private_documents` (nunca para o bucket público) por `POST /api/private-docs`. Só abrem por link assinado de 30 min, emitido ao dono (`/:id/creator` e o próprio detalhe) e ao admin (pendentes, todos, detalhe, comprovantes de custo). Ao salvar o roteiro, o backend troca o link por `private-doc://<id>` e descarta comprovante de outra pessoa. O app manda os contextos `travelProof` e `costProof` para o endpoint privado. | `prisma/schema.prisma`, migration `20261029110000_private_documents`, `lib/privateDocs.ts`, `routes/private-docs.ts`, `routes/admin.ts`, `apps/mobile/src/utils/uploadFile.ts` | **corrigido e validado** (código). **Pendente de operação externa:** migrar os comprovantes já publicados |
+| SEC-04 | `/dashboard/stats` exige sessão e resolve o criador só pelo token; `?creatorId=` é ignorado | `routes/itineraries.ts` | **corrigido e validado** |
+| SEC-05 | A checagem de arquivo privado legado usa o mesmo caminho que o `express.static` serve: decodifica, normaliza barras e pontos, confere pelo nome do arquivo em qualquer subpasta e falha fechado em erro. `/uploads` só aceita GET/HEAD. | `app.ts` | **corrigido e validado**. O impacto real depende de existir arquivo legado no disco do Render, que é efêmero. |
+| NEW-04 | Nota interna do admin removida das respostas públicas e de comprador | `lib/itineraryDto.ts` | **corrigido e validado** |
+
+**Ferramenta de migração (não executada):** `scripts/migrate-proofs-to-private.ts`.
+- Sem argumento faz só a simulação: inventário com o id do roteiro, o campo e o hash do objeto, sem mostrar URL.
+- `--apply` copia cada comprovante do bucket público para `private_documents`, valida o formato, troca as referências e grava backup das referências antigas e cópia local dos arquivos em `scripts/backups/proofs-<data>/`.
+- `--apply --revoke` também apaga os objetos públicos. Enquanto isso não rodar, quem já tem o link público de um comprovante antigo ainda consegue abrir.
+
+**Mudança visível:** quem não comprou deixa de ver o conteúdo detalhado no detalhe do roteiro (o produto já dizia "desbloqueado após a compra"). Cards e resumo de custos continuam.
+
+---
+
 ## Fases seguintes
 
 (atualizado ao fim de cada fase)
