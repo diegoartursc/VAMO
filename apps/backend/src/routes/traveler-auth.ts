@@ -51,7 +51,19 @@ export interface TravelerAuthRequest extends Request {
 
 // Tentativas por IP + e-mail (força bruta / credential stuffing). Não pula
 // localhost: a proteção vale em qualquer ambiente.
+// Bloqueio por CONTA (independe do IP: IPv6 troca fácil): 20 erros por hora.
+const loginLimiterPerAccount = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    keyGenerator: (req) => `account|${String(req.body?.email ?? '').trim().toLowerCase().slice(0, 254)}`,
+    message: { error: 'Too many failed attempts for this account. Please wait and try again, or reset your password.' },
+});
+
 const loginLimiter = rateLimit({
+    skipSuccessfulRequests: true,
     windowMs: 15 * 60 * 1000,
     max: 10,
     standardHeaders: true,
@@ -147,7 +159,7 @@ router.post('/register', registerLimiter, async (req: Request, res: Response) =>
 });
 
 // ─── POST /api/auth/traveler/login ───
-router.post('/login', loginLimiter, async (req: Request, res: Response) => {
+router.post('/login', loginLimiterPerAccount, loginLimiter, async (req: Request, res: Response) => {
     try {
         const validatedData = travelerLoginSchema.parse(req.body);
 

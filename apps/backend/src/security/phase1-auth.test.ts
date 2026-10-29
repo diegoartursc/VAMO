@@ -170,20 +170,42 @@ test('SEC-07: refresh reutilizado é detectado e derruba a sessão inteira', asy
     const { refreshToken } = await login();
     const first = await call(base, 'POST', '/api/auth/traveler/refresh', { body: { refreshToken } });
     assert.equal(first.status, 200);
+    // Passou a janela de tolerância (R-A1): reuso agora é suspeito.
+    for (const row of sessions.rows) if (row.rotatedAt) row.rotatedAt = new Date(Date.now() - 60_000);
     const replay = await call(base, 'POST', '/api/auth/traveler/refresh', { body: { refreshToken } });
     assert.equal(replay.status, 401, 'refresh antigo foi aceito de novo');
     const afterReuse = await call(base, 'GET', '/api/auth/traveler/me', { token: first.json.accessToken });
     assert.equal(afterReuse.status, 401, 'reuso deveria encerrar a sessão');
 });
 
-test('SEC-07: refresh simultâneo com o mesmo token só gera uma sessão válida', async () => {
+test('SEC-07/R-A1: refresh simultâneo com o mesmo token não bifurca a sessão nem desloga', async () => {
     const { refreshToken } = await login();
     const [a, b] = await Promise.all([
         call(base, 'POST', '/api/auth/traveler/refresh', { body: { refreshToken } }),
         call(base, 'POST', '/api/auth/traveler/refresh', { body: { refreshToken } }),
     ]);
-    const ok = [a, b].filter((r) => r.status === 200);
-    assert.ok(ok.length <= 1, 'dois refresh do mesmo token foram aceitos');
+    assert.equal(a.status, 200);
+    assert.equal(b.status, 200, 'duas abas renovando juntas não podem deslogar');
+    const jti = (t: string) => JSON.parse(Buffer.from(t.split('.')[1], 'base64url').toString()).jti;
+    assert.equal(jti(a.json.refreshToken), jti(b.json.refreshToken), 'as duas respostas precisam do MESMO refresh atual');
+    assert.equal((await call(base, 'GET', '/api/auth/traveler/me', { token: b.json.accessToken })).status, 200);
+});
+
+test('R-A1: resposta de refresh perdida: reenviar o refresh antigo logo depois funciona', async () => {
+    const { refreshToken } = await login();
+    const first = await call(base, 'POST', '/api/auth/traveler/refresh', { body: { refreshToken } });
+    const retry = await call(base, 'POST', '/api/auth/traveler/refresh', { body: { refreshToken } });
+    assert.equal(first.status, 200);
+    assert.equal(retry.status, 200);
+});
+
+test('Banco fora do ar responde 503 (não "deslogado")', async () => {
+    const { accessToken } = await login();
+    const original = db.travelerSession.findUnique;
+    db.travelerSession.findUnique = async () => { throw new Error('db down'); };
+    const r = await call(base, 'GET', '/api/my-trips', { token: accessToken });
+    db.travelerSession.findUnique = original;
+    assert.equal(r.status, 503);
 });
 
 // ── SEC-06 / SEC-07 / SEC-10: admin ─────────────────────────────

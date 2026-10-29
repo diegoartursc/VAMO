@@ -16,6 +16,14 @@ import {
 
 export interface AuthenticatedTraveler { travelerId: string; email: string; sid: string }
 
+/** Banco indisponível ao validar a sessão: responder 503, nunca "deslogado". */
+export class SessionStoreUnavailableError extends Error {
+    constructor() { super('Session store unavailable'); this.name = 'SessionStoreUnavailableError'; }
+}
+
+/** Janela em que o refresh ANTERIOR ainda vale (duas abas, resposta perdida na rede). */
+export const REFRESH_GRACE_MS = 10_000;
+
 export async function startSession(traveler: { id: string; email: string }) {
     const jti = newTokenId();
     const session = await prisma.travelerSession.create({
@@ -28,7 +36,7 @@ export async function startSession(traveler: { id: string; email: string }) {
     };
 }
 
-/** Valida o Bearer de sessão (access) e a sessão no banco. Nunca lança. */
+/** Valida o Bearer de sessão (access) e a sessão no banco. Lança só se o banco falhar. */
 export async function authenticateTravelerRequest(req: Request): Promise<AuthenticatedTraveler | null> {
     const header = req.headers.authorization;
     if (typeof header !== 'string' || !header.startsWith('Bearer ')) return null;
@@ -43,7 +51,7 @@ export async function authenticateTravelerRequest(req: Request): Promise<Authent
         return claims;
     } catch (err: any) {
         console.error('[sessions] falha ao validar sessão:', err?.message || err);
-        return null;
+        throw new SessionStoreUnavailableError();
     }
 }
 
@@ -55,12 +63,24 @@ export async function rotateRefreshToken(rawRefreshToken: unknown): Promise<Refr
     const claims = verifyRefreshToken(rawRefreshToken);
     if (!claims) return { ok: false, reason: 'invalid' };
 
-    const session = await prisma.travelerSession.findUnique({
+    const load = () => prisma.travelerSession.findUnique({
         where: { id: claims.sid },
-        select: { id: true, travelerId: true, refreshJti: true, revokedAt: true, traveler: { select: { email: true } } },
+        select: { id: true, travelerId: true, refreshJti: true, prevRefreshJti: true, rotatedAt: true, revokedAt: true, traveler: { select: { email: true } } },
     });
+    const session = await load();
     if (!session || session.travelerId !== claims.travelerId) return { ok: false, reason: 'invalid' };
     if (session.revokedAt) return { ok: false, reason: 'revoked' };
+
+    // Refresh anterior dentro da janela de tolerância: não é roubo, é a outra aba
+    // ou um retry. Devolve o par ATUAL (sem bifurcar a sessão).
+    const withinGrace = (s: typeof session) => !!s && s.prevRefreshJti === claims.jti && !!s.rotatedAt
+        && Date.now() - new Date(s.rotatedAt).getTime() <= REFRESH_GRACE_MS;
+    const currentPair = (s: NonNullable<typeof session>): RefreshResult => ({
+        ok: true,
+        accessToken: generateAccessToken({ travelerId: claims.travelerId, email: s.traveler?.email ?? '', sid: s.id }),
+        refreshToken: generateRefreshToken({ travelerId: claims.travelerId, sid: s.id, jti: s.refreshJti }),
+    });
+    if (session.refreshJti !== claims.jti && withinGrace(session)) return currentPair(session);
 
     if (session.refreshJti !== claims.jti) {
         // Refresh já trocado sendo usado de novo: alguém tem uma cópia. Derruba tudo.
@@ -72,9 +92,13 @@ export async function rotateRefreshToken(rawRefreshToken: unknown): Promise<Refr
     // Troca condicional: em duas chamadas simultâneas com o mesmo refresh, só uma vence.
     const swapped = await prisma.travelerSession.updateMany({
         where: { id: session.id, refreshJti: claims.jti, revokedAt: null },
-        data: { refreshJti: nextJti, lastUsedAt: new Date() },
+        data: { refreshJti: nextJti, prevRefreshJti: claims.jti, rotatedAt: new Date(), lastUsedAt: new Date() },
     });
-    if (swapped.count !== 1) return { ok: false, reason: 'race' };
+    if (swapped.count !== 1) {
+        // Outra chamada com o mesmo refresh acabou de trocar: devolve o par atual.
+        const fresh = await load();
+        return fresh && !fresh.revokedAt && withinGrace(fresh) ? currentPair(fresh) : { ok: false, reason: 'race' };
+    }
 
     const email = session.traveler?.email ?? '';
     return {

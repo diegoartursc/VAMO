@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { authenticateTravelerRequest } from '../lib/sessions';
+import { authenticateTravelerRequest, SessionStoreUnavailableError } from '../lib/sessions';
 
 export interface AuthRequest extends Request {
     agency?: {
@@ -32,7 +32,9 @@ export const authMiddleware = (
             req.traveler = traveler;
             next();
         })
-        .catch(() => res.status(401).json({ error: 'Authentication failed' }));
+        .catch((err) => (err instanceof SessionStoreUnavailableError
+            ? res.status(503).json({ error: 'Service temporarily unavailable. Please try again.' })
+            : res.status(401).json({ error: 'Authentication failed' })));
 };
 
 /**

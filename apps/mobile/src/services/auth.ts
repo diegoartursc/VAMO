@@ -103,18 +103,22 @@ export function refreshAccessToken(refreshToken: string): Promise<RefreshedToken
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refreshToken }),
             });
+            // 5xx ou sem rede: erro temporário (lança), para a sessão não ser apagada.
+            if (res.status >= 500) throw new TemporaryAuthError(`server ${res.status}`);
             if (!res.ok) return null;
             const data = await res.json();
             if (!data?.accessToken || !data?.refreshToken) return null;
             return { accessToken: data.accessToken as string, refreshToken: data.refreshToken as string };
-        } catch {
-            return null;
+        } catch (err) {
+            if (err instanceof TemporaryAuthError) throw err;
+            throw new TemporaryAuthError('network');
         }
     })();
     const entry = { token: refreshToken, promise };
     inflightRefresh = entry;
     // Libera depois de terminar (falha de rede pode ser tentada de novo).
-    promise.finally(() => { if (inflightRefresh === entry) inflightRefresh = null; });
+    const clear = () => { if (inflightRefresh === entry) inflightRefresh = null; };
+    promise.then(clear, clear); // then(…, …) não gera rejeição solta
     return promise;
 }
 
@@ -131,16 +135,22 @@ export async function logoutRemote(accessToken: string | null | undefined): Prom
     }
 }
 
+/** Erro de servidor/rede (não é "sessão inválida"): quem chama não deve apagar a sessão. */
+export class TemporaryAuthError extends Error {}
+
+/** null = sessão inválida (401/403). Lança TemporaryAuthError em 5xx ou sem rede. */
 export async function fetchMe(accessToken: string): Promise<Pick<TravelerSession, 'traveler' | 'creator'> | null> {
+    let res: Response;
     try {
-        const res = await fetch(`${API_BASE_URL}/auth/traveler/me`, {
+        res = await fetch(`${API_BASE_URL}/auth/traveler/me`, {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
-        if (!res.ok) return null;
-        return await res.json();
     } catch {
-        return null;
+        throw new TemporaryAuthError('network');
     }
+    if (res.status === 401 || res.status === 403 || res.status === 404) return null;
+    if (!res.ok) throw new TemporaryAuthError(`server ${res.status}`);
+    return await res.json();
 }
 
 async function postPublic(path: string, body: unknown, fallbackError: string): Promise<{ message?: string }> {

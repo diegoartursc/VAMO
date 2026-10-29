@@ -21,7 +21,8 @@ export function collectConfigProblems(env: NodeJS.ProcessEnv = process.env): { f
     if (KNOWN_PUBLIC_SECRETS.has(sha256(secret))) {
         // Valor que já esteve publicado no repositório (.env.example): qualquer
         // pessoa conseguiria forjar tokens. Em produção, recusa subir.
-        (isProd ? fatal : warnings).push('JWT_SECRET é um valor publicado no repositório. Gere um novo (openssl rand -base64 48).');
+        // Fatal em QUALQUER ambiente: o backend local usa o banco de produção.
+        fatal.push('JWT_SECRET é um valor publicado no repositório. Gere um novo (openssl rand -base64 48).');
     }
 
     if (env.ALLOW_DEMO_PURCHASES === 'true' && env.NODE_ENV !== 'test') {

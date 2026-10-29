@@ -766,8 +766,10 @@ router.get('/:id/creator', optionalAuthMiddleware, async (req: AuthRequest, res:
         }
         if (!(await requireCreatorOwner(req, res, it.creatorId))) return;
 
+        // `approvedBy` é o id do admin: nunca sai para o criador.
+        const { approvedBy: _approvedBy, ...ownView } = it as any;
         res.json(await signDocRefs({
-            ...it,
+            ...ownView,
             images: it.images.map(img => img.url),
             creator: {
                 id: it.creator.id,

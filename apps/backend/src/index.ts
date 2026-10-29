@@ -15,7 +15,11 @@ process.on('unhandledRejection', (reason) => {
     console.error('[process] unhandledRejection:', (reason as any)?.message || reason);
 });
 
-app.listen(PORT, () => {
+// Fora de produção, só escuta na própria máquina (não expõe o backend local,
+// que usa o banco de produção, para a rede).
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : (process.env.HOST || '127.0.0.1');
+
+app.listen(Number(PORT), HOST, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
     startReviewRequestScheduler();
