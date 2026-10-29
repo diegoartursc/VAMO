@@ -32,6 +32,7 @@
 
 import { Response } from 'express';
 import { Router } from '../lib/router';
+import { ACTIVE_SALE_WHERE } from '../lib/money';
 import { toBuyerItinerary } from '../lib/itineraryDto';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import prisma from '../lib/prisma';
@@ -70,7 +71,7 @@ async function assertOwnership(
     itineraryId: string,
 ): Promise<OwnershipResult | null> {
     const sale = await prisma.itinerarySale.findFirst({
-        where: { itineraryId, travelerId },
+        where: { itineraryId, travelerId, ...ACTIVE_SALE_WHERE },
         select: { id: true },
     });
     if (!sale) return null;
@@ -292,7 +293,7 @@ router.get(
             const itineraryId = req.params.itineraryId as string;
 
             const sale = await prisma.itinerarySale.findFirst({
-                where: { itineraryId, travelerId },
+                where: { itineraryId, travelerId, ...ACTIVE_SALE_WHERE },
                 select: { id: true, price: true, createdAt: true, purchaseData: true },
             });
             if (!sale) return sendOwnershipError(res);
@@ -353,7 +354,7 @@ router.post(
             const itineraryId = req.params.itineraryId as string;
 
             const sale = await prisma.itinerarySale.findFirst({
-                where: { itineraryId, travelerId },
+                where: { itineraryId, travelerId, ...ACTIVE_SALE_WHERE },
                 select: { id: true, price: true, createdAt: true, purchaseData: true },
             });
             if (!sale) return sendOwnershipError(res);

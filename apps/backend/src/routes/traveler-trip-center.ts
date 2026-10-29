@@ -1,5 +1,6 @@
 import { Response, Request } from 'express';
 import { Router } from '../lib/router';
+import { ACTIVE_SALE_WHERE } from '../lib/money';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
@@ -49,7 +50,7 @@ const privateUpload = multer({
 
 async function assertOwnership(travelerId: string, itineraryId: string): Promise<OwnershipResult | null> {
     const sale = await prisma.itinerarySale.findFirst({
-        where: { itineraryId, travelerId },
+        where: { itineraryId, travelerId, ...ACTIVE_SALE_WHERE },
         orderBy: { createdAt: 'desc' },
         select: { id: true },
     });

@@ -727,6 +727,26 @@ model ItinerarySale {
   payoutTransferId     String?
   payoutTransferredAt  DateTime?
   payoutAmount         Float?
+  // ── Valores congelados do pagamento confirmado (SEC-13) ──
+  // Em unidades mínimas da moeda (centavos). Nulos em vendas antigas: nesse
+  // caso valem `price`/`commission` gravados na venda (nunca a taxa atual).
+  paymentIntentId      String?   @unique
+  paidAmountCents      Int?
+  paidCurrency         String?
+  commissionCents      Int?
+  creatorEarningCents  Int?
+  // ── Estado do pagamento (SEC-11/SEC-12) ──
+  // paid | partially_refunded | refunded | disputed | dispute_lost
+  paymentStatus        String    @default("paid")
+  refundedCents        Int       @default(0)
+  disputeStatus        String?
+  // ── Estado do repasse (SEC-15) ──
+  // null (aguardando) | transferred | on_hold | blocked | needs_attention
+  payoutStatus         String?
+  payoutAttempts       Int       @default(0)
+  payoutNextAttemptAt  DateTime?
+  payoutLastError      String?
+  payoutReversedCents  Int       @default(0)
   createdAt    DateTime @default(now())
 
   itinerary      Itinerary                        @relation(fields: [itineraryId], references: [id], onDelete: Restrict)
@@ -1213,4 +1233,14 @@ model PrivateDocument {
 
   @@index([ownerTravelerId])
   @@map("private_documents")
+}
+
+// Evento do webhook da Stripe já processado (idempotência, SEC-11).
+model StripeEvent {
+  id          String    @id
+  type        String
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@map("stripe_events")
 }

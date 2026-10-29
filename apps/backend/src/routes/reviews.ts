@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Router } from '../lib/router';
+import { ACTIVE_SALE_WHERE } from '../lib/money';
 import prisma from '../lib/prisma';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
@@ -164,7 +165,7 @@ router.post('/', optionalAuthMiddleware, async (req: AuthRequest, res: Response)
         // Apenas quem comprou o roteiro pode avaliá-lo. Conferimos via
         // ItinerarySale; sem registro de compra, recusamos a submissão.
         const purchase = await prisma.itinerarySale.findFirst({
-            where: { travelerId, itineraryId },
+            where: { travelerId, itineraryId, ...ACTIVE_SALE_WHERE },
             select: { id: true },
         });
         if (!purchase) {

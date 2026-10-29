@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Router } from '../lib/router';
+import { payoutDueCents } from '../lib/money';
 import type Stripe from 'stripe';
 import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
@@ -159,7 +160,7 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
                         id: true,
                         title: true,
                         sales: {
-                            select: { id: true, price: true, commission: true, createdAt: true, payoutTransferredAt: true },
+                            select: { id: true, price: true, commission: true, createdAt: true, payoutTransferredAt: true, paidAmountCents: true, creatorEarningCents: true, refundedCents: true, paymentStatus: true, paidCurrency: true },
                             orderBy: { createdAt: 'desc' },
                         },
                     },
@@ -179,9 +180,12 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
                 saleDate: sale.createdAt.toISOString(),
                 grossAmount: sale.price,
                 platformFee: sale.commission,
-                estimatedPayout: Math.max(0, sale.price - sale.commission),
-                currency: BASE_CURRENCY,
-                status: sale.payoutTransferredAt ? 'paid_out' : 'pending',
+                // Valor congelado na venda, proporcional ao que não foi devolvido (SEC-11/13).
+                estimatedPayout: payoutDueCents(sale) / 100,
+                currency: (sale.paidCurrency || BASE_CURRENCY).toUpperCase(),
+                status: sale.paymentStatus === 'refunded' || sale.paymentStatus === 'dispute_lost' ? 'refunded'
+                    : sale.paymentStatus === 'disputed' ? 'disputed'
+                    : sale.payoutTransferredAt ? 'paid_out' : 'pending',
             })),
         ).sort((a, b) => b.saleDate.localeCompare(a.saleDate));
 

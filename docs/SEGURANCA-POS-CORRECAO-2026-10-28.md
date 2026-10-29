@@ -113,6 +113,35 @@ Testes: `src/security/phase2-content.test.ts` (9) e `src/security/phase2-private
 
 ---
 
+## Fase 3 — Dinheiro (concluída no código)
+
+Teste: `src/security/phase3-money.test.ts` (15). Stripe e Prisma falsos, eventos assinados offline com segredo de teste. Nenhuma cobrança, estorno ou transferência real.
+
+**Antes** (código `0b36e54`): 13 testes, **1 passou e 12 falharam**. Exemplos:
+- Um refund de 1 centavo fez o sistema considerar o pagamento "devolvido".
+- `charge.refunded`, `charge.dispute.*` e `transfer.reversed` eram ignorados.
+- A venda e o repasse usavam o preço, a moeda e a comissão atuais.
+- 60 vendas inelegíveis no início da fila impediam o repasse da 61ª.
+
+**Depois:** 15 de 15, incluindo 2 testes ponta a ponta acrescentados depois. Suíte do backend: 111 de 111. O teste antigo `payments.refund.test.ts` teve as fixtures atualizadas para o formato real da Stripe (refunds com valor) e mantém as mesmas verificações.
+
+| ID | Mudança | Arquivos | Status |
+| --- | --- | --- | --- |
+| SEC-11 | Webhook registra cada evento em `stripe_events` e o marca como processado só depois de aplicar (replay = ignorado; falha = 500 e a Stripe reenvia). Trata `charge.refunded`, `charge.dispute.created/updated/closed` e `transfer.reversed` usando valores acumulados (eventos fora de ordem convergem). Política aplicada no servidor: estorno total e disputa perdida tiram o acesso (`/:id/purchased`, Central da Viagem, personalização, avaliação, "Meus roteiros"); estorno parcial e disputa aberta mantêm. Disputa aberta trava o repasse (`on_hold`); ganha libera; perdida reverte o repasse na proporção. Estorno depois do repasse reverte a transferência na proporção, com chave de idempotência por valor-alvo. Falha na reversão marca `needs_attention` e guarda o erro. Recompra depois de estorno reaproveita a venda e zera o estado. Tela de ganhos mostra "Refunded"/"Disputed". | `lib/paymentEvents.ts`, `lib/money.ts`, `routes/payments.ts`, `routes/itineraries.ts`, `routes/traveler-trip-center.ts`, `routes/traveler-route-customization.ts`, `routes/reviews.ts`, `routes/my-trips.ts`, `routes/creators.ts` | **corrigido e validado** (código) |
+| SEC-12 | O estorno automático soma os valores devolvidos (concluídos e pendentes; falhos não contam, com paginação) e devolve só o restante, com chave de idempotência que inclui o já devolvido. Estorno total pendente conta como iniciado e não gera outro nem retry. O e-mail ao comprador passou a dizer "We started your refund". | `routes/payments.ts`, `lib/mailer.ts`, `routes/payments.refund.test.ts` | **corrigido e validado** |
+| SEC-13 | A venda grava, a partir do pagamento confirmado pela Stripe, `paidAmountCents`, `paidCurrency`, `commissionCents`, `creatorEarningCents` e `paymentIntentId`. O repasse usa esses valores e a moeda do pagamento. Venda antiga usa preço e comissão gravados (15%), nunca a taxa atual. | `lib/money.ts`, `routes/payments.ts`, `jobs/payouts.ts`, migration `20261029120000_payment_state_and_payout_queue` | **corrigido e validado** (código). **Pendente de operação externa:** conciliar as vendas antigas |
+| SEC-15 | A fila filtra no banco só as vendas tentáveis agora. Motivo transitório (conta do roteirista não habilitada, erro da Stripe) agenda `payoutNextAttemptAt` com espera crescente (1 h a 2 dias). Motivo definitivo vira `blocked`; disputa vira `on_hold`. | `jobs/payouts.ts` | **corrigido e validado** |
+
+**Ferramenta de conciliação (não executada):** `scripts/reconcile-sales.ts`.
+- Sem argumento faz só a simulação: lê o banco e a Stripe e lista o valor pago, o estornado, o status e alertas (preço gravado diferente do pago, repasse já feito numa venda estornada).
+- `--apply` grava paymentIntentId, valores congelados e estado. Nunca cria estorno, transferência ou reversão: casos que pedem reversão manual aparecem no relatório.
+
+**Pendências:**
+- **Eventos novos no webhook (operação externa):** na Stripe, o destino do webhook precisa passar a enviar também `charge.refunded`, `charge.dispute.created`, `charge.dispute.updated`, `charge.dispute.closed` e `transfer.reversed`. Hoje escuta só 1 evento.
+- **Saldo insuficiente na conta do roteirista para reverter:** fica marcado `needs_attention` com o erro. Falta um alerta ativo ao admin (e-mail ou tela).
+
+---
+
 ## Fases seguintes
 
 (atualizado ao fim de cada fase)

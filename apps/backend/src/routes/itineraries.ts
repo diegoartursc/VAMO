@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Router } from '../lib/router';
+import { ACTIVE_SALE_WHERE } from '../lib/money';
 import { authMiddleware, optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
@@ -651,8 +652,9 @@ router.get('/:id/purchased', optionalAuthMiddleware, async (req: AuthRequest, re
         }
 
         const itineraryId = req.params.id as string;
+        // Estorno total e disputa perdida tiram o acesso (SEC-11).
         const sale = await prisma.itinerarySale.findFirst({
-            where: { itineraryId, travelerId },
+            where: { itineraryId, travelerId, ...ACTIVE_SALE_WHERE },
             select: { id: true, price: true, createdAt: true, purchaseData: true },
         });
         if (!sale) {

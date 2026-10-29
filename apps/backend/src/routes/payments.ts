@@ -6,7 +6,9 @@ import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/trave
 import { PURCHASED_ITINERARY_INCLUDE, buildPurchasedItineraryPayload, toJsonSafe } from './itineraries';
 import { isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 import { sendPurchaseConfirmationEmail, sendCreatorSaleEmail, sendPurchaseAutoRefundEmail } from '../lib/mailer';
-import { BASE_CURRENCY, computeCommission } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
+import { buildSaleAmounts, hasActiveAccess, ACTIVE_SALE_WHERE, PAYMENT_STATUS } from '../lib/money';
+import { beginStripeEvent, finishStripeEvent, applyPostSaleEvent } from '../lib/paymentEvents';
 
 const router = Router();
 
@@ -56,26 +58,45 @@ export async function refundPaymentIntentIfNeeded(
     stripe: Stripe,
     paymentIntentId: string,
     reason: string,
-): Promise<{ refunded: boolean; newlyCreated: boolean }> {
-    const existingRefunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 10 });
-    const alreadyRefunded = existingRefunds.data.some(
-        (r) => r.status === 'succeeded' || r.status === 'pending',
-    );
-    if (alreadyRefunded) return { refunded: true, newlyCreated: false };
+): Promise<{ refunded: boolean; newlyCreated: boolean; pending: boolean }> {
     try {
+        // SEC-12: compara VALORES. Um refund parcial (até de 1 centavo) não
+        // significa devolução total; refund que falhou não conta.
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        const total = (pi as any).amount_received || pi.amount || 0;
+        let committed = 0;
+        let pendingAmount = 0;
+        let startingAfter: string | undefined;
+        for (let page = 0; page < 10; page++) {
+            const list = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100, ...(startingAfter ? { starting_after: startingAfter } : {}) });
+            for (const r of list.data) {
+                if (r.status === 'succeeded' || r.status === 'pending' || r.status === 'requires_action') {
+                    committed += r.amount || 0;
+                    if (r.status !== 'succeeded') pendingAmount += r.amount || 0;
+                }
+            }
+            if (!list.has_more || list.data.length === 0) break;
+            startingAfter = list.data[list.data.length - 1].id;
+        }
+        const remaining = total - committed;
+        if (remaining <= 0) return { refunded: true, newlyCreated: false, pending: pendingAmount > 0 };
+
+        // A chave inclui o já devolvido: chamadas concorrentes no mesmo estado
+        // caem na mesma chave; um estado novo gera um refund só do restante.
         const refund = await stripe.refunds.create(
             {
                 payment_intent: paymentIntentId,
+                amount: remaining,
                 reason: 'requested_by_customer',
                 metadata: { vamoReason: reason },
             },
-            { idempotencyKey: `vamo-auto-refund-${paymentIntentId}` },
+            { idempotencyKey: `vamo-auto-refund-${paymentIntentId}-${committed}` },
         );
         const replayed = String((refund as any)?.lastResponse?.headers?.['idempotent-replayed'] ?? '') === 'true';
-        return { refunded: true, newlyCreated: !replayed };
+        return { refunded: true, newlyCreated: !replayed, pending: refund.status !== 'succeeded' || pendingAmount > 0 };
     } catch (err: any) {
         console.error('[payments] refund failed for', paymentIntentId, err?.message);
-        return { refunded: false, newlyCreated: false };
+        return { refunded: false, newlyCreated: false, pending: false };
     }
 }
 
@@ -216,9 +237,14 @@ async function fulfillItineraryPurchase(opts: {
 
     const existing = await prisma.itinerarySale.findFirst({
         where: { itineraryId, travelerId },
-        select: { id: true, purchaseData: true, itinerary: { select: { title: true, currency: true } } },
+        select: { id: true, purchaseData: true, paymentStatus: true, paymentIntentId: true, itinerary: { select: { title: true, currency: true } } },
     });
-    if (existing) {
+    // Venda antiga reembolsada/perdida em disputa + pagamento NOVO: é uma recompra.
+    // Reaproveita a linha (índice único itinerário+viajante) e zera o estado.
+    const isRepurchase = !!existing && !hasActiveAccess(existing)
+        && payment.provider === 'stripe' && !!payment.paymentIntentId
+        && payment.paymentIntentId !== (existing.paymentIntentId ?? savedPaymentIntentId(existing.purchaseData));
+    if (existing && !isRepurchase) {
         // Pagou de novo um roteiro que já é dele: devolve o dinheiro.
         if (isDuplicatePayment(savedPaymentIntentId(existing.purchaseData), payment.paymentIntentId)) {
             await refundDuplicatePayment(travelerId, existing.itinerary.title, existing.itinerary.currency, payment);
@@ -268,10 +294,47 @@ async function fulfillItineraryPurchase(opts: {
         );
     }
 
+    // SEC-13: valores da venda vêm do pagamento CONFIRMADO pela Stripe (valor,
+    // moeda), não do preço atual do roteiro; comissão e ganho ficam congelados.
+    const paidCents = payment.provider === 'stripe' && payment.amountTotal != null
+        ? Math.round(payment.amountTotal * 100)
+        : payment.provider === 'free' ? 0 : Math.round(itinerary.price * 100);
+    const amounts = buildSaleAmounts({
+        amountTotalCents: paidCents,
+        currency: (payment.currency || itinerary.currency || BASE_CURRENCY),
+    });
+    const saleValues = {
+        price: amounts.price,
+        commission: amounts.commission,
+        paidAmountCents: amounts.paidAmountCents,
+        paidCurrency: amounts.paidCurrency,
+        commissionCents: amounts.commissionCents,
+        creatorEarningCents: amounts.creatorEarningCents,
+        paymentIntentId: payment.paymentIntentId || null,
+        paymentStatus: PAYMENT_STATUS.paid,
+    };
+
     const snapshotPayload = toJsonSafe(buildPurchasedItineraryPayload(itinerary, {
-        price: itinerary.price,
+        price: amounts.price,
         createdAt: new Date(),
     }));
+
+    if (isRepurchase && existing) {
+        await prisma.itinerarySale.update({
+            where: { id: existing.id },
+            data: {
+                ...saleValues,
+                refundedCents: 0, disputeStatus: null,
+                payoutTransferId: null, payoutTransferredAt: null, payoutAmount: null, payoutStatus: null,
+                payoutAttempts: 0, payoutNextAttemptAt: null, payoutLastError: null, payoutReversedCents: 0,
+                createdAt: new Date(),
+                purchaseData: { routeSnapshot: snapshotPayload, payment: toJsonSafe(payment) },
+            },
+        });
+        notifySaleCreated(existing.id, payment)
+            .catch((e) => console.error('[payments] e-mails da recompra falharam:', e?.message || e));
+        return { saleId: existing.id, alreadyPurchased: false };
+    }
 
     try {
         const [sale] = await prisma.$transaction([
@@ -279,8 +342,7 @@ async function fulfillItineraryPurchase(opts: {
                 data: {
                     itineraryId,
                     travelerId,
-                    price: itinerary.price,
-                    commission: computeCommission(itinerary.price), // taxa única em packages/shared/itinerary/commission.ts
+                    ...saleValues,
                     purchaseData: {
                         routeSnapshot: snapshotPayload,
                         payment: toJsonSafe(payment),
@@ -342,9 +404,9 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
             return;
         }
 
-        // Idempotente: já comprado → não cobra de novo.
+        // Idempotente: já comprado (com acesso ativo) → não cobra de novo.
         const existing = await prisma.itinerarySale.findFirst({
-            where: { itineraryId, travelerId },
+            where: { itineraryId, travelerId, ...ACTIVE_SALE_WHERE },
             select: { id: true },
         });
         if (existing) {
@@ -538,6 +600,11 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
     }
 
     try {
+        // Evento já processado (reenvio da Stripe) → nada a fazer (SEC-11).
+        if (!(await beginStripeEvent(event))) {
+            res.json({ received: true, duplicate: true });
+            return;
+        }
         if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
             const session = event.data.object as Stripe.Checkout.Session;
             const itineraryId = session.metadata?.itineraryId;
@@ -575,7 +642,11 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
                     }
                 }
             }
+        } else {
+            // Estorno, disputa e reversão de repasse (lib/paymentEvents.ts).
+            await applyPostSaleEvent(stripe, event);
         }
+        await finishStripeEvent(event.id);
         res.json({ received: true });
     } catch (error) {
         console.error('Error processing Stripe webhook:', error);

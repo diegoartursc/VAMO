@@ -25,8 +25,8 @@ test('venda já repassada ou grátis não repassa', () => {
     assert.equal(isPayoutDue(sale(30, 0), now), false);
 });
 
-test('repasse é 80% do preço em centavos', () => {
-    assert.equal(payoutAmountCents(26.9), 2152);
-    assert.equal(payoutAmountCents(39.9), 3192);
-    assert.equal(payoutAmountCents(100), 8000);
+test('repasse é 80% do preço em centavos (venda sem valores congelados usa a comissão gravada)', () => {
+    assert.equal(payoutAmountCents({ price: 26.9, commission: 5.38 }), 2152);
+    assert.equal(payoutAmountCents({ price: 39.9, commission: 7.98 }), 3192);
+    assert.equal(payoutAmountCents({ price: 100, commission: 20 }), 8000);
 });

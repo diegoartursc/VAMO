@@ -51,23 +51,35 @@ export function createFakePrisma() {
 
 /** Tabela em memória mínima (igualdade simples no where) para modelos de estado. */
 export function memoryTable<T extends { id: string }>(rows: T[] = []) {
-    const matches = (row: any, where: any = {}) => Object.entries(where).every(([k, v]) => {
-        if (v && typeof v === 'object' && !(v instanceof Date)) {
-            const op = v as any;
-            if ('equals' in op) {
-                return op.mode === 'insensitive'
-                    ? String(row[k] ?? '').toLowerCase() === String(op.equals ?? '').toLowerCase()
-                    : row[k] === op.equals;
+    const OPS = ['equals', 'not', 'in', 'notIn', 'gt', 'gte', 'lt', 'lte', 'path'];
+    const matchValue = (cell: any, v: any): boolean => {
+        if (v && typeof v === 'object' && !(v instanceof Date) && !Array.isArray(v)) {
+            const keys = Object.keys(v);
+            if (keys.some((k) => OPS.includes(k))) {
+                const op = v as any;
+                if ('path' in op) return false; // filtro JSON: o teste define o handler se precisar
+                if ('equals' in op) {
+                    return op.mode === 'insensitive'
+                        ? String(cell ?? '').toLowerCase() === String(op.equals ?? '').toLowerCase()
+                        : cell === op.equals;
+                }
+                if ('not' in op) return op.not === null ? cell != null : (cell ?? null) !== op.not;
+                if ('in' in op) return op.in.includes(cell);
+                if ('notIn' in op) return !op.notIn.includes(cell);
+                if ('gt' in op) return cell != null && cell > op.gt;
+                if ('gte' in op) return cell != null && cell >= op.gte;
+                if ('lt' in op) return cell != null && cell < op.lt;
+                if ('lte' in op) return cell != null && cell <= op.lte;
             }
-            if ('not' in op) return (row[k] ?? null) !== op.not;
-            if ('in' in op) return op.in.includes(row[k]);
-            if ('gt' in op) return row[k] != null && row[k] > op.gt;
-            if ('gte' in op) return row[k] != null && row[k] >= op.gte;
-            if ('lt' in op) return row[k] != null && row[k] < op.lt;
-            if ('lte' in op) return row[k] != null && row[k] <= op.lte;
-            return false;
+            // Filtro por relação: desce no objeto aninhado.
+            return cell != null && typeof cell === 'object' && matches(cell, v);
         }
-        return (row[k] ?? null) === (v ?? null);
+        return (cell ?? null) === (v ?? null);
+    };
+    const matches = (row: any, where: any = {}): boolean => Object.entries(where || {}).every(([k, v]) => {
+        if (k === 'OR') return (v as any[]).some((w) => matches(row, w));
+        if (k === 'AND') return (v as any[]).every((w) => matches(row, w));
+        return matchValue(row[k], v);
     });
     let seq = 0;
     return {

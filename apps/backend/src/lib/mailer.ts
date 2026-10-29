@@ -146,7 +146,8 @@ export function sendPurchaseAutoRefundEmail(opts: {
     const first = firstName(opts.name);
     const amount = formatMoney(opts.amount, opts.currency);
     const html = layout({
-        title: 'Your payment was refunded',
+        // O estorno é INICIADO aqui; quem conclui é o banco (SEC-12).
+        title: 'We started your refund',
         body: P(`Hi ${escapeHtml(first)}. We received your payment${amount ? ` of <strong>${escapeHtml(amount)}</strong>` : ''} for the itinerary:`)
             + HIGHLIGHT(opts.itineraryTitle)
             + P('But the itinerary became unavailable before the purchase was completed. So VAMO <strong>started an automatic full refund</strong> — you don\'t need to do anything.')

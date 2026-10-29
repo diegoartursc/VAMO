@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { Router } from '../lib/router';
+import { ACTIVE_SALE_WHERE } from '../lib/money';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import prisma from '../lib/prisma';
 import { BASE_CURRENCY } from '@vamo/shared/itinerary';
@@ -19,7 +20,7 @@ router.get('/', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Re
     try {
         const travelerId = req.traveler!.travelerId;
         const itinerarySales = await prisma.itinerarySale.findMany({
-            where: { travelerId },
+            where: { travelerId, ...ACTIVE_SALE_WHERE },
             select: {
                 id: true,
                 price: true,
