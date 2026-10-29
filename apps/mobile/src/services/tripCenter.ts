@@ -91,10 +91,10 @@ async function tryRefreshSession(): Promise<string | null> {
     try {
         const session = await getSession();
         if (!session?.refreshToken) return null;
-        const newToken = await refreshAccessToken(session.refreshToken);
-        if (!newToken) return null;
-        await setSession({ ...session, accessToken: newToken });
-        return newToken;
+        const tokens = await refreshAccessToken(session.refreshToken);
+        if (!tokens) return null;
+        await setSession({ ...session, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+        return tokens.accessToken;
     } catch {
         return null;
     }

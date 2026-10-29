@@ -11,12 +11,14 @@ import React, {
     useState,
     useEffect,
     useCallback,
+    useRef,
     ReactNode,
 } from 'react';
 import {
     loginWithEmail,
     registerWithEmail,
     refreshAccessToken,
+    logoutRemote,
     fetchMe,
     type TravelerSession,
 } from '../services/auth';
@@ -69,6 +71,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
+    // Token atual também numa ref: o logout é estável (useCallback sem deps) e
+    // precisa do valor mais recente para revogar a sessão no servidor.
+    const accessTokenRef = useRef<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // ── Hidratar sessão salva no storage ─────────────────────
@@ -94,14 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 // Token expirou — tenta refresh
                 console.log('[auth] accessToken expirado, tentando refresh...');
-                const newToken = await refreshAccessToken(session.refreshToken);
-                if (newToken) {
-                    const updatedSession: TravelerSession = { ...session, accessToken: newToken };
+                const tokens = await refreshAccessToken(session.refreshToken);
+                if (tokens) {
+                    // Refresh é rotativo: o refreshToken antigo deixou de valer.
+                    const updatedSession: TravelerSession = { ...session, ...tokens };
                     await setStoredSession(updatedSession);
-                    const me2 = await fetchMe(newToken);
+                    const me2 = await fetchMe(tokens.accessToken);
                     if (me2) {
                         console.log('[auth] sessão renovada — usuário:', me2.traveler.email);
-                        applySession(newToken, session.refreshToken, me2.traveler, me2.creator);
+                        applySession(tokens.accessToken, tokens.refreshToken, me2.traveler, me2.creator);
                         return;
                     }
                 }
@@ -124,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         creator: TravelerSession['creator'],
     ) {
         setAccessToken(token);
+        accessTokenRef.current = token;
         setUser({
             travelerId: traveler.id,
             creatorId: creator?.id ?? null,
@@ -167,6 +174,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ── Logout ───────────────────────────────────────────────
     const logout = useCallback(async () => {
         console.log('[auth] logout — limpando sessão');
+        // Revoga no servidor antes de apagar o token local.
+        await logoutRemote(accessTokenRef.current);
+        accessTokenRef.current = null;
         await removeStoredSession();
         setUser(null);
         setAccessToken(null);

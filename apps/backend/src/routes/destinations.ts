@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { Router } from '../lib/router';
 import prisma from '../lib/prisma';
 
 const router = Router();

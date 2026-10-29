@@ -12,7 +12,8 @@
  *  - O próprio criador não pode perguntar no próprio roteiro.
  */
 
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { Router } from '../lib/router';
 import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { isPublicItineraryStatus } from '../lib/itineraryStatus';

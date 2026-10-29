@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { Router } from '../lib/router';
 import Stripe from 'stripe';
 import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
@@ -517,16 +518,19 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
     let event: Stripe.Event;
 
     try {
-        if (webhookSecret) {
-            const signature = req.headers['stripe-signature'] as string;
-            event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
-        } else if (process.env.NODE_ENV !== 'production') {
-            // Dev sem STRIPE_WEBHOOK_SECRET: aceita sem verificar assinatura.
-            event = JSON.parse(req.body.toString('utf8'));
-        } else {
-            res.status(500).json({ error: 'STRIPE_WEBHOOK_SECRET not configured' });
+        // Assinatura obrigatória em qualquer ambiente (SEC-06): sem segredo
+        // configurado, nenhum evento é processado. Em dev, use `stripe listen`,
+        // que fornece o segredo de assinatura local.
+        if (!webhookSecret) {
+            res.status(503).json({ error: 'STRIPE_WEBHOOK_SECRET not configured' });
             return;
         }
+        const signature = req.headers['stripe-signature'];
+        if (typeof signature !== 'string' || !Buffer.isBuffer(req.body)) {
+            res.status(400).json({ error: 'Invalid webhook signature' });
+            return;
+        }
+        event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
     } catch (error: any) {
         console.error('Stripe webhook signature verification failed:', error?.message);
         res.status(400).json({ error: 'Invalid webhook signature' });

@@ -30,7 +30,8 @@
  *    JWT autenticado.
  */
 
-import { Router, Response } from 'express';
+import { Response } from 'express';
+import { Router } from '../lib/router';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import prisma from '../lib/prisma';
 import {

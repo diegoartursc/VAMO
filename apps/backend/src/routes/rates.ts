@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { Router } from '../lib/router';
 import fs from 'fs';
 import path from 'path';
 import { adminAuthMiddleware } from '../middleware/admin-auth';

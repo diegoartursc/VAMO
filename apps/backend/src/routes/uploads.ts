@@ -1,4 +1,5 @@
 import express from 'express';
+import { Router } from '../lib/router';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -6,7 +7,7 @@ import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { isCloudStorageEnabled, uploadBufferToCloud, contentTypeForFilename } from '../lib/storage';
 import { hasValidFileSignature } from '../lib/file-signature';
 
-const router = express.Router();
+const router = Router();
 
 // Garante que o diretório exista (multer não cria recursivamente)
 const UPLOAD_DIR = path.join(process.cwd(), 'public/uploads/itineraries');

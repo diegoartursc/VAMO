@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { prefetchAdminData, clearAdminCache } from "./shared";
+import { API, prefetchAdminData, clearAdminCache } from "./shared";
 
 export const DOLLAR_RATE_KEY = "adminDollarRate";
 
@@ -108,6 +108,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const handleLogout = () => {
         clearAdminCache();
+        // Revoga o token no servidor (todos os logins deste admin caem).
+        const token = localStorage.getItem("adminToken");
+        if (token) {
+            fetch(`${API}/admin/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+        }
         localStorage.removeItem("adminToken");
         localStorage.removeItem("adminUser");
         router.push("/admin/login");

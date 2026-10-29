@@ -58,6 +58,36 @@ Ordem mantida (Fase 1 contas/admin → 2 conteúdo pago → 3 dinheiro → 4 upl
 
 ---
 
+## Fase 1 — Contas e admin (concluída no código)
+
+Teste: `src/security/phase1-auth.test.ts` (app Express real numa porta local, Prisma falso em memória, sem `.env` real nem rede externa) e `src/security/config.test.ts`.
+
+**Antes da correção** (código `030020f`): 21 testes, **3 passaram e 18 falharam ou travaram**. Exemplos: o token de arquivo abriu `/me` (200); refresh foi aceito como Bearer; o `/logout` não existia (404); o access antigo continuou valendo depois do reset de senha; `mock-admin-token` foi aceito; o login admin com `password: {}` travou a requisição até o tempo do teste esgotar (rejeição não tratada); 12 tentativas de login seguidas sem nenhum 429.
+**Depois:** 21 de 21 passam. Configuração: 5 de 5. Suíte inteira do backend: 79 de 79 antes do teste de configuração, 84 de 84 com ele. `tsc` do backend, do site e do mobile sem erros novos (o mobile tem 1 erro antigo em `VamoButton.tsx`).
+
+| ID | Causa | Mudança | Arquivos | Status |
+| --- | --- | --- | --- | --- |
+| SEC-01 | Um segredo e nenhum tipo para access, refresh, arquivo e admin | Chave derivada por finalidade (HMAC do `JWT_SECRET`), `typ`, `iss`, `aud`, só HS256, claims tipadas. Um verificador por finalidade; tokens legados sem `typ` deixam de valer. Middlewares e validadores manuais (`/me`, `PATCH /me`, avatar/capa, passport-stats) usam a mesma validação. | `lib/auth.ts`, `lib/sessions.ts`, `middleware/*.ts`, `routes/traveler-auth.ts`, `routes/admin.ts` | **corrigido e validado** (código local) |
+| SEC-06 | Atalhos de dev ativos fora de produção | Removido `mock-admin-token`; webhook exige assinatura em todo ambiente (sem segredo → 503); compra demo só com `NODE_ENV=test` e flag; `lib/config.ts` recusa subir com combinações inseguras; seed do admin exige `ADMIN_SEED_SECRET` sempre | `routes/admin.ts`, `routes/payments.ts`, `routes/itineraries.ts`, `lib/config.ts`, `index.ts`, `.env.example` | **corrigido e validado** |
+| SEC-07 | Sem revogação no servidor | Tabela `traveler_sessions`: toda requisição autenticada confere a sessão no banco. Refresh rotativo com detecção de reuso (reuso revoga a sessão). `POST /api/auth/traveler/logout`. Reset de senha (app e script) revoga todas as sessões. Admin: `sessionVersion` no token e no banco; script de reset e `POST /api/admin/logout` incrementam | `prisma/schema.prisma`, migration `20261029100000_sessions_and_admin_session_version`, `lib/sessions.ts`, `scripts/reset-password.ts`, `scripts/reset-admin-password.ts` | **corrigido e validado** (código); migration **pendente de operação externa** |
+| SEC-10 | Handlers async sem tratamento no Express 4 | `lib/router.ts` encaminha toda rejeição para o error handler (todas as rotas montadas usam); login/seed admin validam tipos e tamanhos com zod antes do Prisma/bcrypt; `index.ts` registra `unhandledRejection` sem derrubar o processo | `lib/router.ts`, `routes/*.ts`, `routes/admin.ts`, `index.ts` | **corrigido e validado** |
+| SEC-16 | Credencial no hook versionado | Removida do arquivo atual (`1bccf6d`). **O repositório no GitHub é público**: a senha antiga continua visível no histórico. A conta da Maria não existe mais no banco; a senha não deve ser reutilizada em lugar nenhum. | `.claude/settings.json`, `scripts/session-start-hook.sh` | **pendente de operação externa** (decidir se o repositório fica público) |
+| NEW-02 | Login sem limite próprio | Limite por IP + e-mail: 10 tentativas / 15 min no login de viajante e de admin; cadastro 20 / hora por IP | `routes/traveler-auth.ts`, `routes/admin.ts` | **corrigido e validado** |
+| NEW-08 | **Crítica, condicional.** O `JWT_SECRET` do `.env` local é igual ao valor de exemplo que esteve no `.env.example`, publicado num **repositório público** (commit `2e37e3f` em diante). Se o Render usar esse valor, qualquer pessoa forja login de qualquer conta, inclusive admin. Não dá para verificar o Render daqui. | Valor removido do `.env.example`; `lib/config.ts` recusa subir em produção com esse segredo (comparação por SHA-256, sem guardar o valor) e avisa fora de produção | `.env.example`, `lib/config.ts`, `src/security/config.test.ts` | **pendente de operação externa**: gerar um `JWT_SECRET` novo no Render (e outro no `.env` local) antes do deploy |
+
+**Clientes atualizados:**
+- App mobile: refresh rotativo com single-flight, para duas telas não queimarem o mesmo refresh. Salva o refresh novo no AuthContext e na Central da Viagem. O logout chama o servidor.
+- Painel admin: o "Sair" chama `/api/admin/logout`.
+
+**Efeito para os usuários no deploy:** todas as sessões atuais caem, porque os tokens antigos não têm `typ` nem `sid`. Todo mundo precisa entrar de novo, conforme decidido. Hoje são 2 viajantes e 1 admin.
+
+**Risco residual registrado:**
+- O backend local continua apontando para o banco de produção. Os atalhos perigosos foram removidos, mas qualquer ação local ainda grava em dados reais. O servidor agora avisa isso ao subir.
+- Access tokens seguem com 24 h, mas agora são revogáveis.
+- O app web guarda tokens em `localStorage` (NEW-07).
+
+---
+
 ## Fases seguintes
 
 (atualizado ao fim de cada fase)

@@ -1,114 +1,112 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
+import { Router } from '../lib/router';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
+import { adminAuthMiddleware } from '../middleware/admin-auth';
+import { generateAdminToken } from '../lib/auth';
 import prisma from '../lib/prisma';
 import { sendItineraryApprovedEmail, sendItineraryRejectedEmail, sendCreatorApprovedEmail } from '../lib/mailer';
 import { recalculateItineraryAndCreatorRating } from './reviews';
 
 const router = Router();
-const JWT_SECRET: string = process.env.JWT_SECRET || (() => {
-    throw new Error('FATAL: JWT_SECRET must be set for admin authentication.');
-})();
-let devAdminCache: any = null;
 
-// ─── Auth Middleware ────────────────────────────────────────────────────────
-async function verifyAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const auth = req.headers.authorization;
-    if (!auth?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Token required' });
-        return;
-    }
-    const token = auth.split(' ')[1];
+// Um só verificador de admin para todo o painel (middleware/admin-auth.ts):
+// token de finalidade `admin`, conta ativa e sessionVersion conferida no banco.
+// Não existe mais atalho de desenvolvimento (o antigo `mock-admin-token`).
+const verifyAdmin = adminAuthMiddleware;
 
-    // MVP "no-login" bypass: aceita o token fake usado pelo /admin/login do site
-    // em dev. Resolve (ou cria) um admin real no banco para que aprovações/rejeições
-    // tenham um approvedBy válido (FK).
-    if (process.env.NODE_ENV !== 'production' && token === 'mock-admin-token') {
-        if (devAdminCache) {
-            (req as any).admin = devAdminCache;
-            next();
-            return;
-        }
+const adminLoginSchema = z.object({
+    email: z.string().trim().toLowerCase().email().max(254),
+    password: z.string().min(1).max(200),
+});
 
-        let admin = await prisma.admin.findFirst({ where: { active: true } }).catch(() => null);
-        if (!admin) {
-            admin = await prisma.admin.create({
-                data: {
-                    name: 'Dev Admin',
-                    email: 'dev-admin@vamo.local',
-                    passwordHash: await bcrypt.hash('dev-only', 10),
-                    role: 'SUPER_ADMIN',
-                    active: true,
-                },
-            }).catch(() => null);
-        }
-        if (!admin) { res.status(500).json({ error: 'Failed to resolve dev admin' }); return; }
-        devAdminCache = admin;
-        (req as any).admin = admin;
-        next();
-        return;
-    }
+const adminSeedSchema = z.object({
+    name: z.string().trim().min(2).max(120),
+    email: z.string().trim().toLowerCase().email().max(254),
+    password: z.string().min(12).max(200),
+});
 
-    try {
-        const payload = jwt.verify(token, JWT_SECRET) as { adminId: string };
-        const admin = await prisma.admin.findUnique({ where: { id: payload.adminId } });
-        if (!admin || !admin.active) {
-            res.status(401).json({ error: 'Invalid admin' });
-            return;
-        }
-        (req as any).admin = admin;
-        next();
-    } catch {
-        res.status(401).json({ error: 'Invalid token' });
-    }
-}
+// Tentativas de login por IP + e-mail (força bruta / credential stuffing).
+const adminLoginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => `${req.ip}|${String(req.body?.email ?? '').trim().toLowerCase().slice(0, 254)}`,
+    message: { error: 'Too many login attempts. Please wait a few minutes and try again.' },
+});
 
 // POST /api/admin/login
-router.post('/login', async (req: Request, res: Response) => {
-    const { email, password } = req.body || {};
-    if (!email || !password) {
+router.post('/login', adminLoginLimiter, async (req: Request, res: Response) => {
+    const parsed = adminLoginSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
         res.status(400).json({ error: 'Email and password are required' });
         return;
     }
-    const admin = await prisma.admin.findUnique({ where: { email } });
-    if (!admin || !admin.active) {
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
+    const { email, password } = parsed.data;
+    try {
+        const admin = await prisma.admin.findUnique({ where: { email } });
+        if (!admin || !admin.active) {
+            res.status(401).json({ error: 'Invalid credentials' });
+            return;
+        }
+        const valid = await bcrypt.compare(password, admin.passwordHash);
+        if (!valid) {
+            res.status(401).json({ error: 'Invalid credentials' });
+            return;
+        }
+        const token = generateAdminToken({ adminId: admin.id, role: admin.role, sv: admin.sessionVersion ?? 0 });
+        res.json({ token, admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role } });
+    } catch (err: any) {
+        console.error('[admin.login] erro:', err?.message || err);
+        res.status(500).json({ error: 'Login failed' });
     }
-    const valid = await bcrypt.compare(password, admin.passwordHash);
-    if (!valid) {
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
+});
+
+// POST /api/admin/logout — derruba todos os tokens deste admin (sessionVersion + 1).
+router.post('/logout', verifyAdmin, async (req: Request, res: Response) => {
+    try {
+        await prisma.admin.update({
+            where: { id: (req as any).admin.id },
+            data: { sessionVersion: { increment: 1 } },
+        });
+        res.json({ ok: true });
+    } catch (err: any) {
+        console.error('[admin.logout] erro:', err?.message || err);
+        res.status(500).json({ error: 'Logout failed' });
     }
-    const token = jwt.sign({ adminId: admin.id, role: admin.role }, JWT_SECRET, { expiresIn: '8h' });
-    res.json({ token, admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role } });
 });
 
 // POST /api/admin/seed — create first super admin (only if none exist)
 router.post('/seed', async (req: Request, res: Response) => {
-    if (process.env.NODE_ENV === 'production') {
-        const configuredSecret = process.env.ADMIN_SEED_SECRET;
-        const providedSecret = req.header('x-admin-seed-secret');
-        if (!configuredSecret || providedSecret !== configuredSecret) {
-            res.status(403).json({ error: 'Admin bootstrap not authorized' });
+    const configuredSecret = process.env.ADMIN_SEED_SECRET;
+    const providedSecret = req.header('x-admin-seed-secret');
+    if (!configuredSecret || typeof providedSecret !== 'string' || providedSecret !== configuredSecret) {
+        res.status(403).json({ error: 'Admin bootstrap not authorized' });
+        return;
+    }
+    const parsed = adminSeedSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+        res.status(400).json({ error: 'name, email and password (12+ characters) are required' });
+        return;
+    }
+    try {
+        const count = await prisma.admin.count();
+        if (count > 0) {
+            res.status(409).json({ error: 'An admin already exists. Use the login endpoint.' });
             return;
         }
+        const { name, email, password } = parsed.data;
+        const passwordHash = await bcrypt.hash(password, 10);
+        const admin = await prisma.admin.create({
+            data: { name, email, passwordHash, role: 'SUPER_ADMIN' },
+        });
+        res.status(201).json({ id: admin.id, email: admin.email, role: admin.role });
+    } catch (err: any) {
+        console.error('[admin.seed] erro:', err?.message || err);
+        res.status(500).json({ error: 'Failed to create admin' });
     }
-    const count = await prisma.admin.count();
-    if (count > 0) {
-        res.status(409).json({ error: 'An admin already exists. Use the login endpoint.' });
-        return;
-    }
-    const { name, email, password } = req.body || {};
-    if (!name || !email || !password) {
-        res.status(400).json({ error: 'name, email and password are required' });
-        return;
-    }
-    const passwordHash = await bcrypt.hash(password, 10);
-    const admin = await prisma.admin.create({
-        data: { name, email, passwordHash, role: 'SUPER_ADMIN' },
-    });
-    res.status(201).json({ id: admin.id, email: admin.email, role: admin.role });
 });
 
 // GET /api/admin/travelers

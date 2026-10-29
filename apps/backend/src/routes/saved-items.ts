@@ -1,4 +1,5 @@
-import { Router, Response } from 'express';
+import { Response } from 'express';
+import { Router } from '../lib/router';
 import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
 import { PUBLIC_ITINERARY_WHERE } from '../lib/itineraryStatus';

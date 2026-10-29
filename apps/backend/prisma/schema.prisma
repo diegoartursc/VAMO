@@ -136,6 +136,8 @@ model Admin {
   passwordHash String
   role         AdminRole @default(MODERATOR)
   active       Boolean   @default(true)
+  // Incrementado ao trocar senha ou sair: invalida todo token de admin emitido antes.
+  sessionVersion Int     @default(0)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -223,6 +225,7 @@ model Traveler {
   tripFiles           TravelerFile[]
   routeCustomizations TravelerItineraryCustomization[]
   passwordResetTokens PasswordResetToken[]
+  sessions            TravelerSession[]
   reviewReports       ReviewReport[]
 
   @@map("travelers")
@@ -1171,4 +1174,22 @@ model TravelerFile {
   @@index([purchaseId])
   @@index([saleId])
   @@map("traveler_files")
+}
+
+// Sessão de login do viajante. O access e o refresh carregam o id da sessão
+// (`sid`); o servidor recusa tokens de sessão revogada. O refresh é rotativo:
+// só o `refreshJti` atual vale e reutilizar um antigo revoga a sessão inteira.
+model TravelerSession {
+  id            String    @id @default(cuid())
+  travelerId    String
+  refreshJti    String
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime  @default(now())
+  revokedAt     DateTime?
+  revokedReason String?
+
+  traveler Traveler @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+
+  @@index([travelerId])
+  @@map("traveler_sessions")
 }

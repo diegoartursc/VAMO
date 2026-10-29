@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { verifyAdminToken } from '../lib/auth';
 
 export interface AdminAuthRequest extends Request {
     admin?: {
@@ -11,33 +11,35 @@ export interface AdminAuthRequest extends Request {
     };
 }
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-export async function adminAuthMiddleware(
+/**
+ * Único verificador de admin (usado por /api/admin, auditoria e taxas).
+ * Exige token de finalidade `admin`, conta ativa e `sessionVersion` igual à do
+ * token: trocar a senha ou sair incrementa a versão e derruba tokens antigos.
+ */
+export function adminAuthMiddleware(
     req: AdminAuthRequest,
     res: Response,
     next: NextFunction
-): Promise<void> {
+): void {
     const auth = req.headers.authorization;
-    if (!auth?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Token required' });
+    const claims = typeof auth === 'string' && auth.startsWith('Bearer ')
+        ? verifyAdminToken(auth.slice(7).trim())
+        : null;
+    if (!claims) {
+        res.status(401).json({ error: 'Invalid token' });
         return;
     }
-    try {
-        const token = auth.split(' ')[1];
-        if (!JWT_SECRET) {
-            res.status(500).json({ error: 'Server configuration error' });
-            return;
-        }
-        const payload = jwt.verify(token, JWT_SECRET) as { adminId: string };
-        const admin = await prisma.admin.findUnique({ where: { id: payload.adminId } });
-        if (!admin || !admin.active) {
-            res.status(401).json({ error: 'Invalid admin' });
-            return;
-        }
-        req.admin = admin;
-        next();
-    } catch {
-        res.status(401).json({ error: 'Invalid token' });
-    }
+    prisma.admin.findUnique({ where: { id: claims.adminId } })
+        .then((admin) => {
+            if (!admin || !admin.active || (admin.sessionVersion ?? 0) !== claims.sv) {
+                res.status(401).json({ error: 'Invalid admin' });
+                return;
+            }
+            req.admin = admin;
+            next();
+        })
+        .catch((err) => {
+            console.error('[admin-auth] erro ao validar admin:', err?.message || err);
+            res.status(500).json({ error: 'Failed to validate admin' });
+        });
 }

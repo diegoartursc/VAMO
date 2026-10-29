@@ -86,18 +86,48 @@ export async function registerWithEmail(params: {
     };
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<string | null> {
+export interface RefreshedTokens { accessToken: string; refreshToken: string }
+
+// O refresh é rotativo no servidor: cada refresh só vale uma vez, e reusar um
+// antigo derruba a sessão. Por isso duas telas pedindo refresh ao mesmo tempo
+// precisam compartilhar a MESMA chamada (single-flight), e quem chama tem de
+// salvar o refreshToken novo.
+let inflightRefresh: { token: string; promise: Promise<RefreshedTokens | null> } | null = null;
+
+export function refreshAccessToken(refreshToken: string): Promise<RefreshedTokens | null> {
+    if (inflightRefresh && inflightRefresh.token === refreshToken) return inflightRefresh.promise;
+    const promise = (async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/traveler/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken }),
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (!data?.accessToken || !data?.refreshToken) return null;
+            return { accessToken: data.accessToken as string, refreshToken: data.refreshToken as string };
+        } catch {
+            return null;
+        }
+    })();
+    const entry = { token: refreshToken, promise };
+    inflightRefresh = entry;
+    // Libera depois de terminar (falha de rede pode ser tentada de novo).
+    promise.finally(() => { if (inflightRefresh === entry) inflightRefresh = null; });
+    return promise;
+}
+
+/** Encerra a sessão no servidor (access e refresh param de valer). Melhor esforço. */
+export async function logoutRemote(accessToken: string | null | undefined): Promise<void> {
+    if (!accessToken) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/auth/traveler/refresh`, {
+        await fetch(`${API_BASE_URL}/auth/traveler/logout`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken }),
+            headers: { Authorization: `Bearer ${accessToken}` },
         });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.accessToken ?? null;
     } catch {
-        return null;
+        // Sem rede: o token local é apagado mesmo assim e expira sozinho.
     }
 }
 

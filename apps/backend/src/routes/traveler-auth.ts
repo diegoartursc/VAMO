@@ -1,10 +1,13 @@
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { Router } from '../lib/router';
 import { z } from 'zod';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import prisma from '../lib/prisma';
-import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken } from '../lib/auth';
+import { hashPassword, comparePassword } from '../lib/auth';
+import { startSession, rotateRefreshToken, revokeSession, revokeAllSessions, authenticateTravelerRequest } from '../lib/sessions';
+import { travelerAuthMiddleware, TravelerAuthRequest as SessionRequest } from '../middleware/traveler-auth';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordChangedEmail, buildPasswordResetUrl } from '../lib/mailer';
@@ -45,8 +48,27 @@ export interface TravelerAuthRequest extends Request {
     };
 }
 
+// Tentativas por IP + e-mail (força bruta / credential stuffing). Não pula
+// localhost: a proteção vale em qualquer ambiente.
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => `${req.ip}|${String(req.body?.email ?? '').trim().toLowerCase().slice(0, 254)}`,
+    message: { error: 'Too many login attempts. Please wait a few minutes and try again.' },
+});
+
+const registerLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many sign-ups from this network. Please try again later.' },
+});
+
 // ─── POST /api/auth/traveler/register ───
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', registerLimiter, async (req: Request, res: Response) => {
     try {
         const validatedData = travelerRegisterSchema.parse(req.body);
 
@@ -93,15 +115,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
         const { traveler, creator } = result;
 
-        // Generate tokens
-        const accessToken = generateAccessToken({
-            travelerId: traveler.id,
-            email: traveler.email,
-        });
-        const refreshToken = generateRefreshToken({
-            travelerId: traveler.id,
-            email: traveler.email,
-        });
+        const { accessToken, refreshToken } = await startSession(traveler);
 
         console.log('[traveler-auth.register]', { travelerId: traveler.id, creatorId: creator?.id, email: traveler.email });
         void sendWelcomeEmail(traveler.email, traveler.name);
@@ -132,7 +146,7 @@ router.post('/register', async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/auth/traveler/login ───
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginLimiter, async (req: Request, res: Response) => {
     try {
         const validatedData = travelerLoginSchema.parse(req.body);
 
@@ -153,15 +167,7 @@ router.post('/login', async (req: Request, res: Response) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
-        // Generate tokens
-        const accessToken = generateAccessToken({
-            travelerId: traveler.id,
-            email: traveler.email,
-        });
-        const refreshToken = generateRefreshToken({
-            travelerId: traveler.id,
-            email: traveler.email,
-        });
+        const { accessToken, refreshToken } = await startSession(traveler);
 
         res.json({
             message: 'Login successful',
@@ -191,46 +197,34 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/auth/traveler/refresh ───
+// Refresh rotativo: devolve access E refresh novos; o refresh usado deixa de
+// valer. Reuso de um refresh antigo encerra a sessão (lib/sessions.ts).
 router.post('/refresh', async (req: Request, res: Response) => {
     try {
-        const { refreshToken } = req.body;
-        if (!refreshToken) {
+        const refreshToken = req.body?.refreshToken;
+        if (typeof refreshToken !== 'string' || !refreshToken) {
             return res.status(400).json({ error: 'Refresh token is required' });
         }
-
-        const decoded = verifyToken(refreshToken);
-        if (!decoded || typeof decoded === 'string') {
-            return res.status(401).json({ error: 'Invalid refresh token' });
-        }
-
-        // Check if traveler still exists
-        const traveler = await prisma.traveler.findUnique({
-            where: { id: (decoded as any).travelerId },
-        });
-
-        if (!traveler) {
-            return res.status(401).json({ error: 'Traveler not found' });
-        }
-
-        // Refresh emitido antes da última troca de senha não vale mais: sessões
-        // antigas caem quando o access token (24h) expira.
-        const issuedAt = (decoded as any).iat as number | undefined;
-        if (traveler.passwordChangedAt && (!issuedAt || issuedAt < Math.floor(traveler.passwordChangedAt.getTime() / 1000))) {
+        const result = await rotateRefreshToken(refreshToken);
+        if (!result.ok) {
             return res.status(401).json({ error: 'Session expired. Please log in again.' });
         }
-
-        // Generate new access token
-        const newAccessToken = generateAccessToken({
-            travelerId: traveler.id,
-            email: traveler.email,
-        });
-
-        res.json({
-            accessToken: newAccessToken,
-        });
-    } catch (error) {
-        console.error('Traveler refresh error:', error);
+        res.json({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+    } catch (error: any) {
+        console.error('Traveler refresh error:', error?.message || error);
         res.status(500).json({ error: 'Failed to refresh token' });
+    }
+});
+
+// ─── POST /api/auth/traveler/logout ───
+// Encerra a sessão no servidor: o access e o refresh dela param de valer na hora.
+router.post('/logout', travelerAuthMiddleware, async (req: SessionRequest, res: Response) => {
+    try {
+        if (req.traveler?.sid) await revokeSession(req.traveler.sid, 'logout');
+        res.json({ ok: true });
+    } catch (error: any) {
+        console.error('Traveler logout error:', error?.message || error);
+        res.status(500).json({ error: 'Failed to log out' });
     }
 });
 
@@ -357,6 +351,8 @@ router.post('/reset-password', resetPasswordLimiter, async (req: Request, res: R
                 select: { email: true, name: true },
             });
             await tx.passwordResetToken.deleteMany({ where: { travelerId: record.travelerId } });
+            // Troca de senha encerra todas as sessões abertas (access e refresh).
+            await revokeAllSessions(record.travelerId, 'password_reset', tx);
             return t;
         });
 
@@ -376,18 +372,13 @@ router.post('/reset-password', resetPasswordLimiter, async (req: Request, res: R
 // ─── GET /api/auth/traveler/me ───
 router.get('/me', async (req: Request, res: Response) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'No token provided' });
-        }
-        const token = authHeader.substring(7);
-        const decoded = verifyToken(token);
-        if (!decoded || typeof decoded === 'string' || !(decoded as any).travelerId) {
-            return res.status(401).json({ error: 'Invalid token' });
+        const auth = await authenticateTravelerRequest(req);
+        if (!auth) {
+            return res.status(401).json({ error: 'Invalid or expired session' });
         }
 
         const traveler = await prisma.traveler.findUnique({
-            where: { id: (decoded as any).travelerId },
+            where: { id: auth.travelerId },
             include: {
                 creator: { select: { id: true, verificationLevel: true } },
                 personalData: { select: { phone: true } },
@@ -423,7 +414,7 @@ router.get('/me', async (req: Request, res: Response) => {
 // concede XP; ela só agrega ações persistidas do próprio traveler.
 router.get('/passport-stats', async (req: Request, res: Response) => {
     try {
-        const travelerId = authTravelerIdFromHeader(req);
+        const travelerId = await authTravelerIdFromHeader(req);
         if (!travelerId) return res.status(401).json({ error: 'No token provided' });
 
         const traveler = await prisma.traveler.findUnique({
@@ -536,15 +527,11 @@ const updateTravelerSchema = z.object({
 
 router.patch('/me', async (req: Request, res: Response) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'No token provided' });
+        const auth = await authenticateTravelerRequest(req);
+        if (!auth) {
+            return res.status(401).json({ error: 'Invalid or expired session' });
         }
-        const decoded = verifyToken(authHeader.substring(7));
-        if (!decoded || typeof decoded === 'string' || !(decoded as any).travelerId) {
-            return res.status(401).json({ error: 'Invalid token' });
-        }
-        const travelerId = (decoded as any).travelerId as string;
+        const travelerId = auth.travelerId;
 
         const data = updateTravelerSchema.parse(req.body || {});
         // Filtra apenas chaves enviadas — evita sobrescrever com undefined.
@@ -720,13 +707,9 @@ async function persistProfileImage(
     return url;
 }
 
-function authTravelerIdFromHeader(req: Request): string | null {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-    const decoded = verifyToken(authHeader.substring(7));
-    if (!decoded || typeof decoded === 'string') return null;
-    const travelerId = (decoded as any).travelerId;
-    return typeof travelerId === 'string' ? travelerId : null;
+async function authTravelerIdFromHeader(req: Request): Promise<string | null> {
+    const auth = await authenticateTravelerRequest(req);
+    return auth?.travelerId ?? null;
 }
 
 function buildProfileImageHandler(kind: 'avatar' | 'cover') {
@@ -734,8 +717,8 @@ function buildProfileImageHandler(kind: 'avatar' | 'cover') {
     const upload = buildProfileImageUpload(maxBytes);
     const dbField = kind === 'avatar' ? 'avatar' : 'coverUrl';
 
-    return (req: Request, res: Response) => {
-        const travelerId = authTravelerIdFromHeader(req);
+    return async (req: Request, res: Response) => {
+        const travelerId = await authTravelerIdFromHeader(req);
         if (!travelerId) {
             res.status(401).json({ error: 'Authentication required' });
             return;

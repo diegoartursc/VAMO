@@ -3,6 +3,7 @@
  * Uso: npx tsx scripts/reset-password.ts <email> <nova-senha>
  * Senhas são bcrypt (irreversíveis) — este é o único jeito de recuperar acesso.
  * O hash antigo é salvo em scripts/backups/ para permitir desfazer.
+ * Encerra todas as sessões abertas do traveler (o access/refresh antigo para de valer).
  */
 import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
@@ -39,7 +40,16 @@ const prisma = new PrismaClient();
   fs.writeFileSync(backupFile, JSON.stringify({ id: traveler.id, email: traveler.email, passwordHash: traveler.passwordHash }, null, 2));
 
   const passwordHash = await hashPassword(newPassword);
-  await prisma.traveler.update({ where: { id: traveler.id }, data: { passwordHash } });
+  // Mesma regra do reset pelo app (SEC-07): grava a data da troca e encerra
+  // todas as sessões abertas, para tokens antigos pararem de valer na hora.
+  const changedAt = new Date();
+  await prisma.$transaction([
+    prisma.traveler.update({ where: { id: traveler.id }, data: { passwordHash, passwordChangedAt: changedAt } }),
+    prisma.travelerSession.updateMany({
+      where: { travelerId: traveler.id, revokedAt: null },
+      data: { revokedAt: changedAt, revokedReason: 'admin_password_reset' },
+    }),
+  ]);
 
   const fresh = await prisma.traveler.findUnique({ where: { id: traveler.id }, select: { passwordHash: true } });
   const ok = !!fresh?.passwordHash && (await comparePassword(newPassword, fresh.passwordHash));

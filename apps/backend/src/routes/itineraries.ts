@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { Router } from '../lib/router';
 import { authMiddleware, optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
@@ -1837,9 +1838,11 @@ router.post('/:id/purchase', travelerAuthMiddleware, async (req: TravelerAuthReq
         const { paymentMethod } = req.body || {};
         const travelerId = req.traveler!.travelerId;
 
-        if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_PURCHASES !== 'true') {
+        // Compra sem pagamento só existe em testes automatizados explícitos
+        // (SEC-06). Em qualquer ambiente real o acesso vem do Stripe Checkout.
+        if (process.env.NODE_ENV !== 'test' || process.env.ALLOW_DEMO_PURCHASES !== 'true') {
             res.status(503).json({
-                error: 'Online payment is not enabled yet. No charge or access was granted.',
+                error: 'Online payment is required. No charge or access was granted.',
             });
             return;
         }

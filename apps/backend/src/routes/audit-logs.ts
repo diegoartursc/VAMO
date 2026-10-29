@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { Router } from '../lib/router';
 import { adminAuthMiddleware, AdminAuthRequest } from '../middleware/admin-auth';
 import prisma from '../lib/prisma';
 
