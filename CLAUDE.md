@@ -181,4 +181,4 @@ Antes de criar lógica/UI nova, cheque se já existe. Padrão consolidado em 202
 
 ## 🔗 Memória persistente
 
-Memórias de longo prazo do usuário ficam em `~/.claude/projects/-Users-diegoartur-Documents-Diego-Artur--C-digos-VAMO/memory/`. Atualize quando algo mudar de tópico (deploy, modelo, etc.).
+Memórias de longo prazo do usuário ficam em `~/.claude/projects/-Users-diegoartur-Documents-Diego-Artur-C-digos-VAMO/memory/`. Atualize quando algo mudar de tópico (deploy, modelo, etc.).

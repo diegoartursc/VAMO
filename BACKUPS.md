@@ -9,7 +9,7 @@ Três regras simples:
 3. **Documentação útil pra outros devs / IA / GitHub** → `docs/` (versionado)
 
 ```
-[Códigos/
+Códigos/
 ├── VAMO/                       ← o projeto (limpo, ~3 GB)
 │   ├── apps/, packages/        ← código (versionado)
 │   ├── docs/                   ← docs visíveis no GitHub (versionado)
