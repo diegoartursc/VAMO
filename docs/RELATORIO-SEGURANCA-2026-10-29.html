@@ -1,0 +1,264 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Segurança VAMO — Outubro 2026</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: relatório de auditoria em coluna única, sumário no topo, tabelas por fase. */
+:root {
+  --bg: #f5f8fa;
+  --surface: #ffffff;
+  --fg: #142033;
+  --muted: #5b6b80;
+  --line: #dbe3ea;
+  --accent: #127a73;
+  --accent-soft: #e2f4f2;
+  --navy: #1a3263;
+  --ok: #1d7a3e; --ok-bg: #e3f4e8;
+  --warn: #8a5a00; --warn-bg: #fbf0d9;
+  --bad: #a4262c; --bad-bg: #fbe5e6;
+  --info: #2a4f9a; --info-bg: #e5ecfa;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151f; --surface: #152030; --fg: #e4ebf3; --muted: #93a3b8; --line: #263548;
+    --accent: #3fd0c5; --accent-soft: #123a3a; --navy: #9db6ec;
+    --ok: #6fd28f; --ok-bg: #14321f; --warn: #f0c060; --warn-bg: #3a2c0c;
+    --bad: #ff8a8f; --bad-bg: #3d1517; --info: #9db8f5; --info-bg: #17284a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151f; --surface: #152030; --fg: #e4ebf3; --muted: #93a3b8; --line: #263548;
+  --accent: #3fd0c5; --accent-soft: #123a3a; --navy: #9db6ec;
+  --ok: #6fd28f; --ok-bg: #14321f; --warn: #f0c060; --warn-bg: #3a2c0c;
+  --bad: #ff8a8f; --bad-bg: #3d1517; --info: #9db8f5; --info-bg: #17284a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15.5px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 40px 80px; display: flex; flex-direction: column; gap: 44px; }
+header { display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 28px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-size: clamp(30px, 5vw, 44px); line-height: 1.08; margin: 0; color: var(--navy); text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 26px; margin: 0 0 6px; color: var(--navy); text-wrap: balance; }
+h3 { font-family: var(--display); font-size: 18px; margin: 18px 0 6px; text-wrap: balance; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 14px; }
+.verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.vcard { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.vcard .k { font-family: var(--mono); font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.vcard .v { font-family: var(--display); font-size: 21px; }
+.vcard p { font-size: 14px; color: var(--muted); }
+.v.ok { color: var(--ok); } .v.warn { color: var(--warn); } .v.bad { color: var(--bad); }
+.stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.stat { font-family: var(--mono); font-size: 13px; background: var(--accent-soft); color: var(--fg); padding: 6px 10px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.id { font-family: var(--mono); font-size: 13px; white-space: nowrap; color: var(--navy); font-weight: 600; }
+code { font-family: var(--mono); font-size: .88em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.pill { display: inline-block; font-family: var(--mono); font-size: 11.5px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; font-weight: 600; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.pill.info { background: var(--info-bg); color: var(--info); }
+ol, ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; max-width: 78ch; }
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.phase .n { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.phase h3 { margin: 0; }
+.phase p { font-size: 14px; color: var(--muted); }
+.ba { display: flex; gap: 8px; flex-wrap: wrap; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.ba span { padding: 3px 8px; border-radius: 6px; }
+.ba .b { background: var(--bad-bg); color: var(--bad); }
+.ba .a { background: var(--ok-bg); color: var(--ok); }
+.note { border-left: 3px solid var(--warn); background: var(--warn-bg); padding: 12px 16px; border-radius: 0 8px 8px 0; color: var(--fg); max-width: 80ch; }
+.note.crit { border-left-color: var(--bad); background: var(--bad-bg); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.cols > div { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Relatório de segurança · VAMO</span>
+  <h1>Correção e reauditoria de segurança</h1>
+  <p class="lede">O que o prompt de segurança pedia, o que foi executado e o que falta para publicar. O trabalho foi feito localmente, numa branch separada, sem tocar na produção.</p>
+  <div class="meta">
+    <span>Branch: security-fixes-2026-10-28</span>
+    <span>Base: 4bc6f9e → último commit 0760ec2</span>
+    <span>Executor: Claude Opus 5.5 + revisor independente</span>
+    <span>28–29/10/2026</span>
+  </div>
+</header>
+
+<section>
+  <h2>Resumo</h2>
+  <div class="verdict">
+    <div class="vcard"><span class="k">Código local</span><span class="v ok">Aprovado nos testes</span><p>Os 16 achados originais e os achados da revisão estão corrigidos e cobertos por testes, com poucas exceções parciais listadas abaixo.</p></div>
+    <div class="vcard"><span class="k">Homologação</span><span class="v warn">Pendente</span><p>Não há ambiente de teste separado. Tudo foi validado com banco e Stripe simulados.</p></div>
+    <div class="vcard"><span class="k">Produção</span><span class="v bad">Não publicado</span><p>Nada foi para o ar. Publicar segue o checklist da Fase 6, com sua autorização a cada passo.</p></div>
+  </div>
+  <div class="stats">
+    <span class="stat">Backend: 138/138 testes</span>
+    <span class="stat">App: 216/216 testes</span>
+    <span class="stat">TypeScript: sem erro novo (backend, app, painel)</span>
+    <span class="stat">3 migrations, todas aditivas</span>
+    <span class="stat">Commits locais, sem push</span>
+  </div>
+  <div class="note crit"><strong>Ação urgente, independente desta branch:</strong> o <code>JWT_SECRET</code> do <code>.env</code> local é igual ao valor de exemplo que esteve publicado no repositório, e o repositório no GitHub é <strong>público</strong>. Se o Render usar o mesmo valor, qualquer pessoa consegue forjar login de qualquer conta, inclusive admin. Gere um segredo novo no Render e outro no <code>.env</code> local, e avalie deixar o repositório privado.</div>
+</section>
+
+<section>
+  <h2>1. O prompt</h2>
+  <p>O documento <code>docs/PROMPT-CLAUDE-CORRECAO-SEGURANCA-2026-10-28.md</code> partia da análise de 28/10 (<code>docs/ANALISE-SEGURANCA-2026-10-28.md</code>), que encontrou 16 achados (SEC-01 a SEC-16), e pedia três coisas:</p>
+  <ul>
+    <li><strong>Analisar:</strong> confirmar cada achado e investigar 12 áreas que a análise cobriu pouco (permissão por rota, rotas novas, painel admin, CORS e limites, e-mails, campos protegidos, fluxo de aprovação, tokens no app, storage, segredos e logs, dependências, privacidade).</li>
+    <li><strong>Corrigir:</strong> antes de cada correção, escrever um teste de ataque que falhe; depois da correção, o mesmo teste precisa passar, junto com os fluxos legítimos.</li>
+    <li><strong>Reauditar:</strong> uma revisão independente tentando derrubar as correções, e depois a publicação com autorização a cada passo.</li>
+  </ul>
+  <h3>Regras de segurança do trabalho</h3>
+  <ul>
+    <li>Boot automático desligado (<code>.claude/skip-boot</code>), para nenhum servidor local ligar no banco de produção.</li>
+    <li>Testes só com banco e Stripe simulados; sem rede externa; sem ler valores de <code>.env</code>.</li>
+    <li>Branch separada, commits locais, sem push nem deploy até a Fase 6.</li>
+    <li>Migrations só aditivas, geradas offline; nada de <code>migrate dev</code>, seed ou reset.</li>
+  </ul>
+  <h3>Decisões de produto já definidas no prompt</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Tema</th><th>Decisão</th></tr></thead>
+    <tbody>
+      <tr><td>Reembolso total</td><td>Perde o acesso ao conteúdo; a venda fica registrada como reembolsada</td></tr>
+      <tr><td>Reembolso parcial</td><td>Mantém o acesso</td></tr>
+      <tr><td>Disputa aberta</td><td>Mantém o acesso; repasse travado</td></tr>
+      <tr><td>Disputa perdida</td><td>Perde o acesso; reverte o repasse na proporção</td></tr>
+      <tr><td>Reembolso depois do repasse</td><td>Reverte a transferência na proporção; sem saldo, alerta o admin</td></tr>
+      <tr><td>Taxa da Stripe</td><td>Paga pela VAMO; o roteirista recebe 80% cheios</td></tr>
+      <tr><td>Prévia pública</td><td>Título, capa, descrição, preço, duração, módulos e contagens, resumo de custos. Dias, dicas, checklist, nomes, links e arquivos só para quem comprou</td></tr>
+      <tr><td>Troca do sistema de tokens</td><td>Pode exigir novo login de todos</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>2. O que foi executado, por fase</h2>
+  <div class="phases">
+    <div class="phase"><span class="n">Fase 0</span><h3>Análise</h3><p>Os 16 achados confirmados no código atual, mais 8 novos. O mais grave: segredo JWT publicado num repositório público (NEW-08). Também: exclusão de conta que não fazia nada (NEW-01) e login sem limite próprio de tentativas.</p></div>
+    <div class="phase"><span class="n">Fase 1</span><h3>Contas e admin</h3><p>Tokens separados por finalidade; sessões revogáveis no servidor; logout e troca de senha derrubam tudo; <code>mock-admin-token</code> removido; erros assíncronos tratados; limite de login.</p><div class="ba"><span class="b">antes 3/21</span><span class="a">depois 23/23</span></div></div>
+    <div class="phase"><span class="n">Fase 2</span><h3>Conteúdo pago e documentos</h3><p>Prévia pública sem conteúdo pago; comprovantes num armazenamento privado com link assinado; estatísticas de outro criador fechadas; truques de caminho em <code>/uploads</code> fechados.</p><div class="ba"><span class="b">antes 2/9</span><span class="a">depois 14/14</span></div></div>
+    <div class="phase"><span class="n">Fase 3</span><h3>Dinheiro</h3><p>Estorno, disputa e reversão conciliados pelo webhook; reembolso parcial correto; valores da venda congelados no pagamento; fila de repasse que não trava.</p><div class="ba"><span class="b">antes 1/13</span><span class="a">depois 15/15</span></div></div>
+    <div class="phase"><span class="n">Fase 4</span><h3>Upload, dependências e confiança</h3><p>Limites de upload sem estourar memória; Multer 2.5 e Express 4.22.3; destaque e selo de comprovante só pelo admin; exclusão de conta real; testes isolados da rede.</p><div class="ba"><span class="b">antes 2/9</span><span class="a">depois 17/17</span></div></div>
+    <div class="phase"><span class="n">Fase 5</span><h3>Reauditoria independente</h3><p>Um revisor com contexto novo reproduziu 6 falhas e confirmou outras por leitura. Todas foram corrigidas e ganharam testes de regressão.</p><div class="ba"><span class="a">6 testes novos + 7 ampliados</span></div></div>
+    <div class="phase"><span class="n">Fase 6</span><h3>Publicação</h3><p>Não iniciada. O checklist está pronto e cada passo depende da sua autorização.</p><div class="ba"><span class="b">pendente</span></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>3. Achados originais (SEC-01 a SEC-16)</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>Problema</th><th>O que foi feito</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="id">SEC-01</td><td>Token de arquivo/refresh servia como login</td><td>Chave, tipo e destino próprios por finalidade; tokens antigos invalidados</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-02</td><td>Conteúdo pago aberto na API pública</td><td>Prévia só com contagens e custos; conteúdo completo só para comprador ou dono</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-03</td><td>Comprovantes expostos</td><td>Removidos das respostas; uploads novos em armazenamento privado com link assinado de 30 min</td><td><span class="pill warn">código ok · migrar antigos</span></td></tr>
+      <tr><td class="id">SEC-04</td><td>Estatísticas de qualquer criador sem login</td><td>Exige login; criador vem só do token</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-05</td><td>Arquivos legados abertos por variação de caminho</td><td>Mesmo caminho canônico do servidor de arquivos, sem diferenciar maiúsculas</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-06</td><td>Atalhos de desenvolvimento ativos</td><td>Atalho de admin removido; webhook sempre assinado; compra demo só em teste; servidor recusa configuração insegura</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-07</td><td>Troca de senha não derrubava sessões</td><td>Sessões no banco; logout real; refresh rotativo com tolerância de 10 s; admin com versão de sessão</td><td><span class="pill warn">código ok · migration</span></td></tr>
+      <tr><td class="id">SEC-08</td><td>Upload podia estourar a memória</td><td>Recusa pelo tamanho antes de ler; arquivo temporário em disco; vagas e cota por conta; tempo máximo</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-09</td><td>Multer com falha conhecida</td><td>Multer 2.5.0; Express 4.22.3 (tira o aviso do <code>qs</code>)</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-10</td><td>Login admin malformado travava requisição</td><td>Validação de tipos; erros assíncronos encaminhados ao tratador</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-11</td><td>Estornos e disputas ignorados</td><td>Webhook com eventos idempotentes; política de acesso; reversão proporcional sobre o valor transferido</td><td><span class="pill warn">código ok · eventos na Stripe</span></td></tr>
+      <tr><td class="id">SEC-12</td><td>Estorno parcial tratado como total</td><td>Soma os valores e devolve só o restante; pendente conta como iniciado</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-13</td><td>Venda usava preço e comissão atuais</td><td>Valor, moeda, comissão e ganho congelados no pagamento</td><td><span class="pill warn">código ok · conciliar antigas</span></td></tr>
+      <tr><td class="id">SEC-14</td><td>Criador marcava destaque e aprovação</td><td>Destaque ignorado; status do comprovante recalculado pelo servidor, por item</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-15</td><td>Fila de repasse podia travar</td><td>Próxima tentativa agendada; bloqueio definitivo separado</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">SEC-16</td><td>Senha no hook versionado</td><td>Removida do arquivo; continua no histórico do repositório público</td><td><span class="pill warn">decidir repositório</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>4. Achados novos (análise própria e revisão)</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>Grav.</th><th>Achado</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="id">NEW-08</td><td>Crítica</td><td>Segredo JWT de exemplo publicado e usado no <code>.env</code> local; repositório público</td><td><span class="pill bad">trocar o segredo</span></td></tr>
+      <tr><td class="id">NEW-01</td><td>Alta</td><td>"Delete account" não fazia nada</td><td><span class="pill ok">exclusão real com senha</span></td></tr>
+      <tr><td class="id">NEW-02</td><td>Média</td><td>Login sem limite próprio de tentativas</td><td><span class="pill ok">por IP e por conta</span></td></tr>
+      <tr><td class="id">NEW-04/05</td><td>Baixa</td><td>Nota interna do admin exposta; <code>saleId</code> de compartilhamento sem dono</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">R-M1/M2</td><td>Alta</td><td>Reversão de repasse calculava valores errados</td><td><span class="pill ok">corrigido + teste</span></td></tr>
+      <tr><td class="id">R-M3/M4</td><td>Média</td><td>Evento atrasado de disputa; estorno antes da venda existir</td><td><span class="pill ok">corrigido + teste</span></td></tr>
+      <tr><td class="id">R-T1/T2</td><td>Média</td><td>Aprovação copiável entre itens; notas na prévia</td><td><span class="pill ok">corrigido + teste</span></td></tr>
+      <tr><td class="id">R-U1–U3</td><td>Média</td><td>Bloqueio de uploads por poucas contas; arquivo legado reaberto; maiúsculas</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">R-A1</td><td>Média</td><td>Duas abas renovando a sessão derrubavam o login</td><td><span class="pill ok">corrigido + teste</span></td></tr>
+      <tr><td class="id">—</td><td>Média</td><td>Banco fora do ar virava "deslogado"; recompra apagava reversão; cota de comprovantes</td><td><span class="pill ok">corrigido</span></td></tr>
+      <tr><td class="id">NEW-07</td><td>Média</td><td>Tokens do app web e do admin em <code>localStorage</code>, sem CSP</td><td><span class="pill info">registrado</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><strong>Falha no próprio teste, encontrada e corrigida:</strong> o cliente do Prisma carregava o <code>.env</code> real dentro dos testes. O bloqueio de rede impediu uma chamada ao Supabase, e não houve chamada real à Stripe nem envio de e-mail. O isolamento agora zera as chaves, bloqueia qualquer conexão externa e é verificado por teste próprio.</div>
+</section>
+
+<section>
+  <h2>5. O que falta</h2>
+  <div class="cols">
+    <div>
+      <h3>Depende de você</h3>
+      <ol>
+        <li>Gerar <code>JWT_SECRET</code> novo no Render e no <code>.env</code> local. Sem isso o backend local não sobe mais.</li>
+        <li>Decidir se o repositório do GitHub fica privado.</li>
+        <li>Na Stripe, acrescentar ao webhook: <code>charge.refunded</code>, <code>charge.dispute.created</code>, <code>.updated</code>, <code>.closed</code> e <code>transfer.reversed</code>.</li>
+        <li>No Render: <code>PUBLIC_BACKEND_URL</code> e conferir <code>STRIPE_WEBHOOK_SECRET</code> e <code>ALLOWED_ORIGINS</code>.</li>
+        <li>Autorizar a Fase 6, passo a passo.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Trabalho técnico restante</h3>
+      <ul>
+        <li>Migrar comprovantes antigos do bucket público (<code>migrate-proofs-to-private.ts</code>) e revogar os links.</li>
+        <li>Conciliar vendas antigas com a Stripe (<code>reconcile-sales.ts</code>).</li>
+        <li>Alerta ativo ao admin quando uma reversão falhar.</li>
+        <li>Exclusão de conta: texto de avaliações e imagens de perfil no bucket público.</li>
+        <li><code>zod</code> 4 no backend e atualização do SDK do Expo (avisos do <code>npm audit</code> de baixo alcance).</li>
+        <li>Uma segunda revisão independente depois das correções da Fase 5.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>6. Publicação (Fase 6)</h2>
+  <ol>
+    <li>Backup do banco.</li>
+    <li>Variáveis novas no Render e na Vercel (você cola, sem segredo no chat).</li>
+    <li>Merge da branch na <code>main</code>: o Render aplica 3 migrations aditivas e a Vercel publica. Todas as sessões caem e todos entram de novo.</li>
+    <li>Conferir <code>/health</code>, migrations e bundle novo.</li>
+    <li>Testes seguros em produção com a sua conta, incluindo os ataques de antes sendo recusados.</li>
+    <li>Migração dos comprovantes: simulação, aplicação e revogação, cada uma com autorização.</li>
+    <li>Conciliação das vendas: simulação e aplicação.</li>
+    <li>Painéis: RLS das tabelas novas, 2FA nas contas, repositório privado.</li>
+  </ol>
+  <p class="lede">Voltar o código para a versão anterior reabre todas as brechas. As migrations podem ficar no banco, porque são aditivas.</p>
+</section>
+
+<footer>
+  Documentos completos no repositório: <code>docs/SEGURANCA-POS-CORRECAO-2026-10-28.md</code> (relatório técnico com arquivos, linhas e testes), <code>docs/PROMPT-CLAUDE-CORRECAO-SEGURANCA-2026-10-28.md</code> (prompt) e <code>docs/ANALISE-SEGURANCA-2026-10-28.md</code> (análise original).
+</footer>
+
+</div>
+
+</body></html>
