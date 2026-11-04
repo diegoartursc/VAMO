@@ -7,8 +7,8 @@ const WEB = process.env.AUDIT_WEB || 'http://localhost:8091';
 export default defineConfig({
     testDir: '.',
     testMatch: /.*\.spec\.mjs/,
-    timeout: 60_000,
-    workers: 2,
+    timeout: 30_000,
+    workers: 4,
     reporter: [['list']],
     use: { baseURL: WEB, headless: true, viewport: { width: 1280, height: 800 } },
     webServer: process.env.AUDIT_WEB_DIR ? {

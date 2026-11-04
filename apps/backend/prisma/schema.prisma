@@ -526,6 +526,8 @@ model Itinerary {
   travelerFiles          TravelerFile[]
   travelerCustomizations TravelerItineraryCustomization[]
   shares                 ItineraryShare[]
+  // AUD-P3: índice da chave mais consultada (ver docs/performance).
+  @@index([creatorId])
 
   @@map("itineraries")
 }
@@ -579,6 +581,8 @@ model ItineraryImage {
   createdAt   DateTime @default(now())
 
   itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  // AUD-P3: índice da chave mais consultada (ver docs/performance).
+  @@index([itineraryId])
 
   @@map("itinerary_images")
 }
@@ -608,6 +612,8 @@ model ItineraryDay {
 
   itinerary  Itinerary           @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
   activities ItineraryActivity[]
+  // AUD-P3: índice da chave mais consultada (ver docs/performance).
+  @@index([itineraryId])
 
   @@map("itinerary_days")
 }
@@ -634,6 +640,8 @@ model ItineraryActivity {
   createdAt   DateTime @default(now())
 
   day ItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  // AUD-P3: índice da chave mais consultada (ver docs/performance).
+  @@index([dayId])
 
   @@map("itinerary_activities")
 }
@@ -761,6 +769,8 @@ model ItinerarySale {
   // contra corrida (checkout duplo, webhook + retorno quase simultâneos):
   // sem isso, o findFirst preventivo antes do create não é atômico.
   @@unique([itineraryId, travelerId])
+  // AUD-P3: índice da chave mais consultada (ver docs/performance).
+  @@index([travelerId])
   @@map("itinerary_sales")
 }
 
@@ -837,6 +847,8 @@ model Review {
   images    ReviewImage[]
   responses ReviewResponse[]
   reports   ReviewReport[]
+  // AUD-P3: índice da chave mais consultada (ver docs/performance).
+  @@index([itineraryId])
 
   @@map("reviews")
 }
@@ -1085,6 +1097,8 @@ model FaqQuestion {
   package   Package?    @relation(fields: [packageId], references: [id], onDelete: Cascade)
   itinerary Itinerary?  @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
   answers   FaqAnswer[]
+  // AUD-P3: índice da chave mais consultada (ver docs/performance).
+  @@index([itineraryId])
 
   @@map("faq_questions")
 }

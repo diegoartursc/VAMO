@@ -61,8 +61,8 @@ for (const [route, expected] of ROUTES) {
             const scan = () => { const t = document.body?.innerText || ''; for (const m of t.match(/(PAID|PRIVATE)-SECRET-[A-Z0-9-]+|@audit\.vamo\.test/g) || []) window.__seen.add(m); requestAnimationFrame(scan); };
             requestAnimationFrame(scan);
         });
-        const nav = await page.goto(route, { waitUntil: 'networkidle' });
-        await page.waitForTimeout(1500);
+        const nav = await page.goto(route, { waitUntil: 'load' });
+        await page.waitForTimeout(4000);
         const html = await page.content();
         for (const m of html.match(SECRET) || []) leaks.add(`dom:${m}`);
         for (const m of await page.evaluate(() => [...(window.__seen || [])])) leaks.add(`tela:${m}`);

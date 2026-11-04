@@ -26,6 +26,7 @@ import shareRoutes from './routes/shares';
 import privateDocsRoutes from './routes/private-docs';
 import prisma from './lib/prisma';
 import { LOCAL_UPLOADS_ROOT } from './lib/storage';
+import { clearPublicCache } from './lib/publicCache';
 
 const app = express();
 
@@ -107,6 +108,15 @@ app.use(cors({
 // Webhook do Stripe: registrado ANTES do express.json (a assinatura é
 // verificada sobre o corpo BRUTO) e antes do rate limiter (Stripe reenvia
 // eventos e não pode ser bloqueado por limite de IP).
+// Cache do catálogo público (lib/publicCache.ts): qualquer escrita
+// bem-sucedida (inclusive o webhook de pagamento) limpa o cache, para que
+// publicar, aprovar, editar, avaliar ou vender apareça na hora.
+app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+        res.on('finish', () => { if (res.statusCode < 400) clearPublicCache(); });
+    }
+    next();
+});
 app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), stripeWebhookHandler);
 
 app.use(express.json());

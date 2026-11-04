@@ -13,11 +13,16 @@ import { toListingModules, toPublicItineraryPreview, toBuyerItinerary } from '..
 import { canonicalizeDocRefs, signDocRefs, existingProofRefs } from '../lib/privateDocs';
 import { enforceProofStatus } from '../lib/costProofs';
 
+import { getPublicCache, setPublicCache, publicCacheKey } from '../lib/publicCache';
+
 const router = Router();
 
 // GET /api/itineraries - List all itineraries
 router.get('/', async (req: Request, res: Response) => {
     try {
+        const cacheKey = publicCacheKey('catalog', { destination: req.query.destination ?? '', featured: req.query.featured ?? '', sort: req.query.sort ?? '' });
+        const cached = getPublicCache(cacheKey);
+        if (cached) { res.setHeader('X-Cache', 'HIT'); res.json(cached); return; }
         const { destination, featured, sort } = req.query;
         // Vitrine pública: SOMENTE ACTIVE. APPROVED é "aprovado mas ainda não
         // publicado pelo criador" — nunca deve aparecer aqui (ver
@@ -102,6 +107,8 @@ router.get('/', async (req: Request, res: Response) => {
             ...toListingModules(it),
         }));
 
+        setPublicCache(cacheKey, result);
+        res.setHeader('X-Cache', 'MISS');
         res.json(result);
     } catch (error) {
         console.error('Error fetching itineraries:', error);
@@ -118,7 +125,10 @@ router.get('/featured', async (req: Request, res: Response) => {
     try {
         // Limite opcional (?limit=N). Default generoso pra "Ver todos".
         const parsedLimit = parseInt(String(req.query.limit ?? ''), 10);
-        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20;
+        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20;
+        const cacheKey = publicCacheKey('featured', { limit });
+        const cached = getPublicCache(cacheKey);
+        if (cached) { res.setHeader('X-Cache', 'HIT'); res.json(cached); return; }
 
         // Buscamos uma faixa AMPLA de candidatos válidos (status público), NÃO
         // só os com `featured: true`. O orderBy do banco aqui é só pra limitar
@@ -176,6 +186,8 @@ router.get('/featured', async (req: Request, res: Response) => {
         // Aplica pisos (reviews/rating) + ranking de confiança + limite final.
         const result = selectFeaturedRanked(mapped, limit);
 
+        setPublicCache(cacheKey, result);
+        res.setHeader('X-Cache', 'MISS');
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch featured itineraries' });

@@ -33,7 +33,7 @@ const prisma = new PrismaClient({ datasources: { db: { url } } });
 const bulkIdx = process.argv.indexOf('--bulk');
 const BULK = bulkIdx >= 0 ? Number(process.argv[bulkIdx + 1] || 300) : 0;
 const pw = () => `Audit-${crypto.randomBytes(9).toString('base64url')}`;
-const OUT = path.resolve(__dirname, '../../../../tests/security/.fixtures.local.json');
+const OUT = process.env.FIXTURES_OUT ? path.resolve(process.env.FIXTURES_OUT) : path.resolve(__dirname, '../../../../tests/security/.fixtures.local.json');
 
 const DESTS = [
     ['Lisbon', 'Portugal'], ['Kyoto', 'Japan'], ['Cusco', 'Peru'], ['Reykjavik', 'Iceland'], ['Cape Town', 'South Africa'],
