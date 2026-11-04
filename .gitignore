@@ -80,3 +80,7 @@ Thumbs.db
 
 # Desliga o boot automático do Claude (ver scripts/session-start-hook.sh)
 .claude/skip-boot
+
+# Auditoria de segurança: credenciais de teste e resultados locais
+tests/security/.fixtures.local.json
+tests/**/results/

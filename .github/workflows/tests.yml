@@ -1,0 +1,32 @@
+# Testes automáticos a cada push e PR. Não usam banco, Stripe, Supabase nem
+# rede externa (o setup bloqueia). Testes de carga NUNCA rodam aqui.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Prisma client
+        working-directory: apps/backend
+        run: npx prisma generate
+      - name: Backend (segurança + regras de negócio)
+        working-directory: apps/backend
+        run: npx tsx --import ./src/test/setup.ts --test $(find src -name '*.test.ts')
+      - name: App (regras compartilhadas e telas)
+        working-directory: apps/mobile
+        run: npx tsx --test $(find src app -name "*.test.ts" -o -name "*.test.tsx")

@@ -13,11 +13,16 @@ import { toListingModules, toPublicItineraryPreview, toBuyerItinerary } from '..
 import { canonicalizeDocRefs, signDocRefs, existingProofRefs } from '../lib/privateDocs';
 import { enforceProofStatus } from '../lib/costProofs';
 
+import { getPublicCache, setPublicCache, publicCacheKey } from '../lib/publicCache';
+
 const router = Router();
 
 // GET /api/itineraries - List all itineraries
 router.get('/', async (req: Request, res: Response) => {
     try {
+        const cacheKey = publicCacheKey('catalog', { destination: req.query.destination ?? '', featured: req.query.featured ?? '', sort: req.query.sort ?? '' });
+        const cached = getPublicCache(cacheKey);
+        if (typeof cached === 'string') { res.setHeader('X-Cache', 'HIT'); res.type('application/json').send(cached); return; }
         const { destination, featured, sort } = req.query;
         // Vitrine pública: SOMENTE ACTIVE. APPROVED é "aprovado mas ainda não
         // publicado pelo criador" — nunca deve aparecer aqui (ver
@@ -102,7 +107,12 @@ router.get('/', async (req: Request, res: Response) => {
             ...toListingModules(it),
         }));
 
-        res.json(result);
+        // Guarda o JSON já serializado: com milhares de roteiros, serializar
+        // de novo a cada pedido era o gargalo de CPU medido no k6 (AUD-P3).
+        const body = JSON.stringify(result);
+        setPublicCache(cacheKey, body);
+        res.setHeader('X-Cache', 'MISS');
+        res.type('application/json').send(body);
     } catch (error) {
         console.error('Error fetching itineraries:', error);
         res.status(500).json({ error: 'Failed to fetch itineraries' });
@@ -118,7 +128,10 @@ router.get('/featured', async (req: Request, res: Response) => {
     try {
         // Limite opcional (?limit=N). Default generoso pra "Ver todos".
         const parsedLimit = parseInt(String(req.query.limit ?? ''), 10);
-        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20;
+        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20;
+        const cacheKey = publicCacheKey('featured', { limit });
+        const cached = getPublicCache(cacheKey);
+        if (typeof cached === 'string') { res.setHeader('X-Cache', 'HIT'); res.type('application/json').send(cached); return; }
 
         // Buscamos uma faixa AMPLA de candidatos válidos (status público), NÃO
         // só os com `featured: true`. O orderBy do banco aqui é só pra limitar
@@ -176,7 +189,12 @@ router.get('/featured', async (req: Request, res: Response) => {
         // Aplica pisos (reviews/rating) + ranking de confiança + limite final.
         const result = selectFeaturedRanked(mapped, limit);
 
-        res.json(result);
+        // Guarda o JSON já serializado: com milhares de roteiros, serializar
+        // de novo a cada pedido era o gargalo de CPU medido no k6 (AUD-P3).
+        const body = JSON.stringify(result);
+        setPublicCache(cacheKey, body);
+        res.setHeader('X-Cache', 'MISS');
+        res.type('application/json').send(body);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch featured itineraries' });
     }
@@ -307,6 +325,11 @@ function buyerDisplayName(name?: string | null): string {
 // NOTE: registrar ANTES de /:id (catch-all de param).
 router.get('/dashboard/sales', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
+        // Mesma regra do /dashboard/stats: sem sessão é 401 (não um painel vazio).
+        if (!req.traveler?.travelerId) {
+            res.status(401).json({ error: 'Sign in to see your dashboard.' });
+            return;
+        }
         const creatorId = await resolveCreatorIdFromToken(req);
         const empty = {
             totalSales: 0, totalRevenue: 0, averageTicket: 0,
@@ -380,6 +403,11 @@ router.get('/dashboard/sales', optionalAuthMiddleware, async (req: AuthRequest, 
 // NOTE: registrar ANTES de /:id (catch-all de param).
 router.get('/dashboard/reviews', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
+        // Mesma regra do /dashboard/stats: sem sessão é 401 (não um painel vazio).
+        if (!req.traveler?.travelerId) {
+            res.status(401).json({ error: 'Sign in to see your dashboard.' });
+            return;
+        }
         const creatorId = await resolveCreatorIdFromToken(req);
         const empty = {
             averageRating: 0, totalReviews: 0, ratedItinerariesCount: 0,
