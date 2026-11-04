@@ -9,6 +9,10 @@
  *   npx tsx scripts/migrate-proofs-to-private.ts --apply    # copia e troca referências
  *   npx tsx scripts/migrate-proofs-to-private.ts --apply --revoke   # + apaga o objeto público
  *
+ * Se o --apply já foi feito antes (sem --revoke), use a lista do backup:
+ *   npx tsx scripts/migrate-proofs-to-private.ts --revoke-from scripts/backups/proofs-<data>          # simulação
+ *   npx tsx scripts/migrate-proofs-to-private.ts --revoke-from scripts/backups/proofs-<data> --apply  # apaga
+ *
  * Ordem segura: rodar backup do banco antes; --apply; conferir o painel admin
  * (comprovantes abrindo por link assinado); só então --revoke.
  * --apply é reversível pelo arquivo de backup gravado em scripts/backups/
@@ -49,7 +53,76 @@ function collectPublicRefs(itineraryId: string, where: string, value: unknown, r
     });
 }
 
+type ItineraryRefs = {
+    id: string; travelProofUrl: string | null; attractions: unknown; restaurants: unknown; extraSpendingItems: unknown; flightInfo: unknown;
+    accommodations: { id: string; cost: unknown }[]; transports: { id: string; cost: unknown }[];
+};
+function collectAllPublicRefs(itineraries: ItineraryRefs[]): Ref[] {
+    const refs: Ref[] = [];
+    for (const it of itineraries) {
+        collectPublicRefs(it.id, 'travelProofUrl', { travelProofUrl: it.travelProofUrl }, refs);
+        collectPublicRefs(it.id, 'attractions', it.attractions, refs);
+        collectPublicRefs(it.id, 'restaurants', it.restaurants, refs);
+        collectPublicRefs(it.id, 'extraSpendingItems', it.extraSpendingItems, refs);
+        collectPublicRefs(it.id, 'flightInfo', it.flightInfo, refs);
+        for (const a of it.accommodations) collectPublicRefs(it.id, `accommodation:${a.id}`, { cost: a.cost }, refs);
+        for (const t of it.transports) collectPublicRefs(it.id, `transport:${t.id}`, { cost: t.cost }, refs);
+    }
+    return refs;
+}
+
+/**
+ * Remoção dos objetos públicos DEPOIS de um --apply já feito (o --apply troca as
+ * referências, então rodar de novo não encontra mais nada no bucket público).
+ * Lê a lista do backup `references-before.json` e só apaga um objeto se:
+ *  - a cópia local dele existe na mesma pasta de backup;
+ *  - nenhum roteiro do banco ainda aponta para o link público dele.
+ * Simulação por padrão; apaga só com --apply.
+ */
+async function revokeFromBackup(backupDir: string) {
+    const refFile = path.join(backupDir, 'references-before.json');
+    if (!fs.existsSync(refFile)) throw new Error(`Não achei ${refFile}.`);
+    const backed: ItineraryRefs[] = JSON.parse(fs.readFileSync(refFile, 'utf8'));
+    const paths = Array.from(new Set(collectAllPublicRefs(backed).map((r) => r.storagePath)));
+
+    const current = await prisma.itinerary.findMany({
+        select: {
+            id: true, travelProofUrl: true, attractions: true, restaurants: true, extraSpendingItems: true, flightInfo: true,
+            accommodations: { select: { id: true, cost: true } }, transports: { select: { id: true, cost: true } },
+        },
+    });
+    const stillReferenced = new Set(collectAllPublicRefs(current).map((r) => r.storagePath));
+
+    const ready: string[] = [];
+    for (const p of paths) {
+        const local = path.join(backupDir, `${redact(p)}${path.extname(p).toLowerCase()}`);
+        const hasCopy = fs.existsSync(local) && fs.statSync(local).size > 0;
+        const inUse = stillReferenced.has(p);
+        const status = inUse ? 'MANTIDO (roteiro ainda usa o link público)' : !hasCopy ? 'MANTIDO (sem cópia local)' : 'pode apagar';
+        console.log(`  - objeto #${redact(p)} (${path.extname(p) || 'sem extensão'}): ${status}`);
+        if (!inUse && hasCopy) ready.push(p);
+    }
+    console.log(`\nNo backup: ${paths.length} objeto(s). Prontos para apagar: ${ready.length}.`);
+    if (!APPLY) {
+        console.log('Simulação: nada foi apagado. Rode com --apply para apagar do bucket público.');
+        return;
+    }
+    if (!ready.length) return;
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY ausentes.');
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+    const { data, error } = await supabase.storage.from(BUCKET).remove(ready);
+    console.log(error ? `Falha ao remover: ${error.message}` : `Removidos ${data?.length ?? 0} objeto(s) do bucket público.`);
+}
+
 (async () => {
+    const revokeFromIdx = process.argv.indexOf('--revoke-from');
+    if (revokeFromIdx >= 0) {
+        const dir = process.argv[revokeFromIdx + 1];
+        if (!dir) throw new Error('Uso: --revoke-from <pasta scripts/backups/proofs-...> [--apply]');
+        await revokeFromBackup(path.resolve(dir));
+        await prisma.$disconnect();
+        return;
+    }
     if (REVOKE && !APPLY) throw new Error('--revoke só junto com --apply.');
     const itineraries = await prisma.itinerary.findMany({
         select: {
