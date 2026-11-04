@@ -8,8 +8,9 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const here = path.dirname(new URL(import.meta.url).pathname);
+const here = path.dirname(fileURLToPath(import.meta.url));
 const F = JSON.parse(fs.readFileSync(path.join(here, '../security/.fixtures.local.json'), 'utf8'));
 const I = F.itineraries;
 const API = process.env.AUDIT_API || 'http://localhost:4333';

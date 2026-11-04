@@ -25,6 +25,7 @@ const profiles = {
     stress: { executor: 'ramping-vus', startVUs: 0, stages: [5, 20, 50, 100, 150, 200].flatMap((t) => [{ duration: '30s', target: Math.min(t, PEAK * 10) }, { duration: '45s', target: Math.min(t, PEAK * 10) }]).concat([{ duration: '20s', target: 0 }]) },
     spike: { executor: 'ramping-vus', startVUs: 0, stages: [{ duration: '20s', target: 5 }, { duration: '10s', target: PEAK * 5 }, { duration: '40s', target: PEAK * 5 }, { duration: '10s', target: 5 }, { duration: '30s', target: 5 }] },
     soak: { executor: 'constant-vus', vus: PEAK, duration: __ENV.DURATION || '20m' },
+    step: { executor: 'constant-vus', vus: PEAK, duration: __ENV.DURATION || '45s' },
 };
 
 export const options = {
@@ -46,12 +47,12 @@ const byEndpoint = Object.fromEntries(NAMES.map((n) => [n, new Trend(`ep_${n}`, 
 const trend = (name) => byEndpoint[name];
 
 let ipCounter = 0;
-function req(name, method, path, { token, body, expect = [200], critical = true } = {}) {
+function req(name, method, path, { token, body, expect = [200], critical = true, discard = false } = {}) {
     // Cada VU como um cliente diferente (o limite por IP é medido à parte).
     const headers = { 'x-forwarded-for': `10.${__VU % 250}.${(ipCounter++) % 250}.1`, 'x-request-id': `k6-${__VU}-${__ITER}-${name}` };
     if (token) headers.authorization = `Bearer ${token}`;
     if (body) headers['content-type'] = 'application/json';
-    const res = http.request(method, API + path, body ? JSON.stringify(body) : null, { headers, tags: { name, critical: critical ? 'yes' : 'no' } });
+    const res = http.request(method, API + path, body ? JSON.stringify(body) : null, { headers, tags: { name, critical: critical ? 'yes' : 'no' }, ...(discard ? { responseType: 'none' } : {}) });
     trend(name).add(res.timings.duration);
     const ok = expect.includes(res.status);
     unexpected.add(!ok);
@@ -80,11 +81,11 @@ export default function ({ tokens }) {
     const r = Math.random();
     if (r < 0.55) {
         group('visitante', () => {
-            req('home_featured', 'GET', '/api/itineraries/featured?limit=12');
-            req('catalog', 'GET', '/api/itineraries');
+            req('home_featured', 'GET', '/api/itineraries/featured?limit=12', { discard: true });
+            req('catalog', 'GET', '/api/itineraries', { discard: true });
             const d = DESTS[Math.floor(Math.random() * DESTS.length)];
             const s = SORTS[Math.floor(Math.random() * SORTS.length)];
-            req('search_filter', 'GET', `/api/itineraries?destination=${d}${s ? `&sort=${s}` : ''}`);
+            req('search_filter', 'GET', `/api/itineraries?destination=${d}${s ? `&sort=${s}` : ''}`, { discard: true });
             req('detail', 'GET', `/api/itineraries/${Math.random() < 0.5 ? I.A1 : I.B1}`);
             req('creator_profile', 'GET', `/api/creators/${F.creatorA.creatorId}`, { critical: false });
             req('reviews_public', 'GET', `/api/reviews?itineraryId=${I.B1}`, { critical: false });
