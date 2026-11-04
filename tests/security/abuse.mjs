@@ -94,6 +94,14 @@ check('API envia cabeçalhos de segurança (helmet)', !!h.get('x-content-type-op
 r = await req('OPTIONS', '/api/itineraries', { headers: { origin: 'https://evil.example', 'access-control-request-method': 'GET' } });
 check('CORS recusa origem desconhecida', !r.headers.get('access-control-allow-origin'), `status ${r.status} allow-origin=${r.headers.get('access-control-allow-origin')}`);
 
+// Logout derruba a sessão na hora (token de acesso e de renovação)
+const L = JSON.parse((await req('POST', '/api/auth/traveler/login', { body: { email: F.creatorA.email, password: F.creatorA.password } })).text);
+const meBefore = await req('GET', '/api/auth/traveler/me', { token: L.accessToken });
+await req('POST', '/api/auth/traveler/logout', { token: L.accessToken, body: { refreshToken: L.refreshToken } });
+const meAfter = await req('GET', '/api/auth/traveler/me', { token: L.accessToken });
+const refreshAfter = await req('POST', '/api/auth/traveler/refresh', { body: { refreshToken: L.refreshToken } });
+check('Depois do logout o token antigo não abre a conta', meBefore.status === 200 && meAfter.status === 401 && refreshAfter.status === 401, `antes ${meBefore.status} · depois ${meAfter.status} · refresh ${refreshAfter.status}`);
+
 const outDir = path.join(here, 'results'); fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, 'abuse.json'), JSON.stringify({ ranAt: new Date().toISOString(), results }, null, 2));
 process.exit(results.every((x) => x.ok) ? 0 : 1);

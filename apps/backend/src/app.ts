@@ -108,6 +108,25 @@ app.use(cors({
 // Webhook do Stripe: registrado ANTES do express.json (a assinatura é
 // verificada sobre o corpo BRUTO) e antes do rate limiter (Stripe reenvia
 // eventos e não pode ser bloqueado por limite de IP).
+// Pedidos lentos (AUD-OBS): uma linha JSON por pedido acima de
+// SLOW_REQUEST_MS (padrão 1000 ms), sem query string, corpo ou dado pessoal.
+// Os ids no caminho viram ':id'. O x-request-id do cliente (ou um gerado)
+// volta na resposta para correlacionar com o log.
+const SLOW_MS = Number(process.env.SLOW_REQUEST_MS) > 0 ? Number(process.env.SLOW_REQUEST_MS) : 1000;
+app.use((req, res, next) => {
+    const started = process.hrtime.bigint();
+    const incoming = req.header('x-request-id');
+    const requestId = incoming && /^[A-Za-z0-9._-]{1,64}$/.test(incoming) ? incoming : Math.random().toString(36).slice(2, 12);
+    res.setHeader('X-Request-Id', requestId);
+    res.on('finish', () => {
+        const ms = Number(process.hrtime.bigint() - started) / 1e6;
+        if (ms < SLOW_MS) return;
+        const route = req.originalUrl.split('?')[0].replace(/\/c[a-z0-9]{20,}(?=\/|$)/g, '/:id').slice(0, 200);
+        console.warn(JSON.stringify({ evt: 'slow_request', method: req.method, route, status: res.statusCode, ms: Math.round(ms), requestId }));
+    });
+    next();
+});
+
 // Cache do catálogo público (lib/publicCache.ts): qualquer escrita
 // bem-sucedida (inclusive o webhook de pagamento) limpa o cache, para que
 // publicar, aprovar, editar, avaliar ou vender apareça na hora.

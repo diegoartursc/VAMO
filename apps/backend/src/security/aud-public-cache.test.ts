@@ -54,3 +54,10 @@ test('AUD-P3: rota privada nunca é servida do cache', async () => {
     const r = await fetch(base + '/api/itineraries/it_1/purchased');
     assert.equal(r.headers.get('x-cache'), null);
 });
+
+test('AUD-OBS: toda resposta traz X-Request-Id (o do cliente, se válido)', async () => {
+    const own = await fetch(base + '/api/itineraries', { headers: { 'x-request-id': 'k6-1-2-catalog' } });
+    assert.equal(own.headers.get('x-request-id'), 'k6-1-2-catalog');
+    const bad = await fetch(base + '/api/itineraries', { headers: { 'x-request-id': 'bad id <script>' } });
+    assert.match(bad.headers.get('x-request-id') || '', /^[a-z0-9]{1,12}$/);
+});
