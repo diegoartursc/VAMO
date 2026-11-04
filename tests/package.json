@@ -1,0 +1,13 @@
+{
+  "name": "vamo-audit-tests",
+  "private": true,
+  "type": "module",
+  "description": "Testes de segurança (navegador anônimo, API, abuso) e carga (k6) da auditoria. Rodam só contra o ambiente isolado local.",
+  "scripts": {
+    "security:api": "node security/api-authz.mjs && node security/mass-assignment.mjs && node security/abuse.mjs",
+    "security:browser": "playwright test -c e2e/playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.2"
+  }
+}

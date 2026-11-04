@@ -29,10 +29,16 @@ import { LOCAL_UPLOADS_ROOT } from './lib/storage';
 
 const app = express();
 
-// Atrás de proxy (Render/Vercel/etc.): confia no primeiro hop para que o
-// express-rate-limit leia o IP real via X-Forwarded-For sem disparar o
-// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
-app.set('trust proxy', 1);
+// Atrás de proxy: quantos saltos de proxy CONFIÁVEIS existem antes do app.
+// O IP do visitante (usado por todos os limites de tentativas) é o primeiro
+// endereço do X-Forwarded-For depois de pular esses saltos. Valor errado:
+//  - baixo demais → o app enxerga o IP do proxy (limites compartilhados entre
+//    visitantes e fracos contra ataques). Foi o caso medido no Render, que fica
+//    atrás da Cloudflare (AUD-03: contador oscilando com o mesmo IP de origem);
+//  - alto demais → o visitante escolhe o próprio IP mandando X-Forwarded-For.
+// Ver docs/security/README.md (verificação depois de mudar TRUST_PROXY_HOPS).
+const trustProxyHops = process.env.TRUST_PROXY_HOPS ? Number(process.env.TRUST_PROXY_HOPS) : NaN;
+app.set('trust proxy', Number.isInteger(trustProxyHops) && trustProxyHops >= 0 && trustProxyHops <= 5 ? trustProxyHops : 1);
 
 // Security headers. A API serve JSON e imagens de /uploads consumidas por
 // outras origens (Expo web em :8081, site dashboard), então liberamos
@@ -51,7 +57,9 @@ app.use(helmet({
 const isDev = process.env.NODE_ENV !== 'production';
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDev ? 5000 : 100,
+    // AUD-03: 100 chamadas/15 min por IP era pouco para o app (cada tela faz
+    // várias chamadas). Ajustável sem deploy de código via RATE_LIMIT_MAX.
+    max: isDev ? 5000 : (Number(process.env.RATE_LIMIT_MAX) > 0 ? Number(process.env.RATE_LIMIT_MAX) : 300),
     standardHeaders: true,
     legacyHeaders: false,
     // Em dev, pula completamente localhost (evita falsos positivos por HMR/loops)
@@ -179,6 +187,20 @@ app.use('/api/private-docs', privateDocsRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // Erros do cliente não são falha do servidor (AUD-02): corpo grande demais,
+    // JSON inválido e origem recusada pelo CORS respondiam 500 e poluíam o log.
+    if (err?.type === 'entity.too.large') {
+        res.status(413).json({ error: 'Request body too large.' });
+        return;
+    }
+    if (err?.type === 'entity.parse.failed') {
+        res.status(400).json({ error: 'Invalid JSON body.' });
+        return;
+    }
+    if (typeof err?.message === 'string' && err.message.endsWith('not allowed by CORS')) {
+        res.status(403).json({ error: 'Origin not allowed.' });
+        return;
+    }
     console.error(err.stack);
     res.status(500).json({
         error: 'Something went wrong!',

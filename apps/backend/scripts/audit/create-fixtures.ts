@@ -119,8 +119,9 @@ async function itinerary(creatorId: string, tag: string, status: string, i = 0, 
     const file = await prisma.travelerFile.create({ data: { travelerId: creds.buyerB.travelerId, itineraryId: B1.id, saleId: sB1.id, category: 'voos', title: 'PRIVATE-SECRET-FILE-B', url: 'db://private', mimeType: 'application/pdf', sizeBytes: 5, content: Buffer.from('%PDF-') } });
     const doc = await prisma.privateDocument.create({ data: { ownerTravelerId: creds.creatorB.travelerId, purpose: 'travelProof', mimeType: 'application/pdf', originalFileName: 'proof.pdf', sizeBytes: 5, content: Buffer.from('%PDF-') } });
     await prisma.itinerary.update({ where: { id: B1.id }, data: { travelProofUrl: `private-doc://${doc.id}` } });
+    const docA = await prisma.privateDocument.create({ data: { ownerTravelerId: creds.creatorA.travelerId, purpose: 'travelProof', mimeType: 'application/pdf', originalFileName: 'proofA.pdf', sizeBytes: 5, content: Buffer.from('%PDF-') } });
     const review = await prisma.review.create({ data: { itineraryId: B1.id, travelerId: creds.buyerB.travelerId, rating: 5, comment: 'Great trip' } as any }).catch((e: any) => { console.warn('review não criada:', e.message.split('\n').pop()); return null; });
-    creds.privateObjects = { checklistItemB: item.id, travelerFileB: file.id, privateDocB: doc.id, reviewB: review?.id ?? null };
+    creds.privateObjects = { checklistItemB: item.id, travelerFileB: file.id, privateDocB: doc.id, privateDocA: docA.id, reviewB: review?.id ?? null };
 
     if (BULK) {
         for (let i = 0; i < BULK; i++) await itinerary(i % 2 ? creds.creatorA.creatorId : creds.creatorB.creatorId, `BULK-${i}`, 'ACTIVE', i);

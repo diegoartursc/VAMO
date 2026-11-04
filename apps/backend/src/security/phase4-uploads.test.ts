@@ -119,3 +119,13 @@ test('R-U1: cota por conta (pedidos por hora) recusa o excesso', async () => {
     delete process.env.UPLOAD_MAX_PER_HOUR;
     assert.equal(status, 429);
 });
+
+test('AUD-02: corpo grande, JSON inválido e origem recusada não viram erro 500', async () => {
+    const big = await fetch(base + '/api/auth/traveler/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'a'.repeat(300_000), password: 'x' }) });
+    assert.equal(big.status, 413, `corpo grande → ${big.status}`);
+    const bad = await fetch(base + '/api/auth/traveler/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"email":' });
+    assert.equal(bad.status, 400, `JSON inválido → ${bad.status}`);
+    const cors = await fetch(base + '/api/itineraries', { method: 'OPTIONS', headers: { origin: 'https://evil.example', 'access-control-request-method': 'GET' } });
+    assert.equal(cors.status, 403, `origem recusada → ${cors.status}`);
+    assert.equal(cors.headers.get('access-control-allow-origin'), null);
+});
