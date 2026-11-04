@@ -307,6 +307,11 @@ function buyerDisplayName(name?: string | null): string {
 // NOTE: registrar ANTES de /:id (catch-all de param).
 router.get('/dashboard/sales', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
+        // Mesma regra do /dashboard/stats: sem sessão é 401 (não um painel vazio).
+        if (!req.traveler?.travelerId) {
+            res.status(401).json({ error: 'Sign in to see your dashboard.' });
+            return;
+        }
         const creatorId = await resolveCreatorIdFromToken(req);
         const empty = {
             totalSales: 0, totalRevenue: 0, averageTicket: 0,
@@ -380,6 +385,11 @@ router.get('/dashboard/sales', optionalAuthMiddleware, async (req: AuthRequest, 
 // NOTE: registrar ANTES de /:id (catch-all de param).
 router.get('/dashboard/reviews', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
     try {
+        // Mesma regra do /dashboard/stats: sem sessão é 401 (não um painel vazio).
+        if (!req.traveler?.travelerId) {
+            res.status(401).json({ error: 'Sign in to see your dashboard.' });
+            return;
+        }
         const creatorId = await resolveCreatorIdFromToken(req);
         const empty = {
             averageRating: 0, totalReviews: 0, ratedItinerariesCount: 0,

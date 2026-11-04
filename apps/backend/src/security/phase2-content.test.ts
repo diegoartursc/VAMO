@@ -193,6 +193,13 @@ test('SEC-04: estatísticas do criador exigem login e ignoram creatorId de terce
     assert.ok(owner.text.includes('California'), 'dono deve ver as próprias estatísticas');
 });
 
+test('AUD-01: painéis de vendas e avaliações do criador exigem login', async () => {
+    for (const p of ['/api/itineraries/dashboard/sales', '/api/itineraries/dashboard/reviews']) {
+        const anon = await call(base, 'GET', p);
+        assert.equal(anon.status, 401, `${p} anônimo → ${anon.status}`);
+    }
+});
+
 // ── SEC-05 ───────────────────────────────────────────────────────
 
 test('SEC-05: arquivo privado legado não abre por variações de caminho', async () => {
