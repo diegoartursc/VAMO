@@ -60,7 +60,18 @@ beforeEach(() => {
     events = memoryTable<any>([]);
     Object.assign(db.itinerarySale, sales);
     Object.assign(db.stripeEvent, events);
+    Object.assign(db.traveler, memoryTable<any>([{ id: 'trav_buyer', email: 'buyer@x.test', name: 'Ana Buyer' }]));
+    Object.assign(db.itinerary, memoryTable<any>([{ id: 'it_1', title: 'Kyoto in 5 days', currency: 'USD' }]));
 });
+
+// E-mails de reembolso capturados (nenhum envio real).
+const refundMails: any[] = [];
+async function captureRefundMails() {
+    const { refundNotifier } = await import('../lib/paymentEvents');
+    refundMails.length = 0;
+    refundNotifier.send = async (m: any) => { refundMails.push(m); return true; };
+}
+const flush = () => new Promise((r) => setTimeout(r, 0));
 
 // ── SEC-12 ───────────────────────────────────────────────────────
 
@@ -283,4 +294,47 @@ test('SEC-11: comprador com estorno total perde o acesso ao conteúdo comprado; 
     } finally {
         await close();
     }
+});
+
+
+// ── Aviso de reembolso ao comprador ─────────────────────────────
+
+test('reembolso total pelo painel: um e-mail ao comprador, avisando que o acesso acabou; evento repetido não reenvia', async () => {
+    const { handleStripeEvent } = await import('../lib/paymentEvents');
+    await captureRefundMails();
+    sales.rows.push(sale({ id: 's1' }));
+    const e = ev('evt_mail_1', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount: 2690, amount_refunded: 2690 });
+    await handleStripeEvent(fakeStripe(), e);
+    await handleStripeEvent(fakeStripe(), e);
+    await handleStripeEvent(fakeStripe(), ev('evt_mail_1b', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount: 2690, amount_refunded: 2690 }));
+    await flush();
+    assert.equal(refundMails.length, 1);
+    assert.equal(refundMails[0].to, 'buyer@x.test');
+    assert.equal(refundMails[0].itineraryTitle, 'Kyoto in 5 days');
+    assert.equal(refundMails[0].amount, 26.9);
+    assert.equal(refundMails[0].currency, 'usd');
+    assert.equal(refundMails[0].full, true);
+});
+
+test('reembolso parcial e depois o restante: dois e-mails com o valor de cada um; evento atrasado não reenvia', async () => {
+    const { handleStripeEvent } = await import('../lib/paymentEvents');
+    await captureRefundMails();
+    sales.rows.push(sale({ id: 's1' }));
+    await handleStripeEvent(fakeStripe(), ev('evt_pa', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount: 2690, amount_refunded: 1000 }));
+    await handleStripeEvent(fakeStripe(), ev('evt_pb', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount: 2690, amount_refunded: 2690 }));
+    await handleStripeEvent(fakeStripe(), ev('evt_pa_late', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount: 2690, amount_refunded: 1000 }));
+    await flush();
+    assert.deepEqual(refundMails.map((m) => [m.amount, m.full]), [[10, false], [16.9, true]]);
+    assert.equal(sales.rows[0].refundedCents, 2690);
+    assert.equal(sales.rows[0].paymentStatus, 'refunded');
+});
+
+test('estorno automático de pagamento duplicado (sem venda própria) não manda este e-mail', async () => {
+    const { handleStripeEvent } = await import('../lib/paymentEvents');
+    await captureRefundMails();
+    sales.rows.push(sale({ id: 's1' }));
+    await handleStripeEvent(fakeStripe(), ev('evt_dup', 'charge.refunded', { id: 'ch_9', payment_intent: 'pi_duplicate', amount: 2690, amount_refunded: 2690 }));
+    await flush();
+    assert.equal(refundMails.length, 0);
+    assert.equal(sales.rows[0].paymentStatus, 'paid');
 });

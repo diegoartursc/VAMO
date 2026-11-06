@@ -7,7 +7,7 @@
 
 | Canal | Situação |
 |---|---|
-| **E-mail do VAMO** (Gmail `vamoappviagens@gmail.com`, SMTP) | ✅ **13 e-mails** implementados e testados localmente, com proteção contra envio duplicado. Envio em produção funcionando (Render Starter). |
+| **E-mail do VAMO** (Gmail `vamoappviagens@gmail.com`, SMTP) | ✅ **14 e-mails** implementados e testados localmente, com proteção contra envio duplicado. Envio em produção funcionando (Render Starter). |
 | **E-mails do Stripe** (recibos) | ✅ Configurados. Só são enviados no **modo real**; no modo teste o Stripe não manda recibo, e isso não é bug. |
 | **Avisos dentro do app** (tabela `notifications`) | ⚠️ Gravados em 3 eventos (nova pergunta, pergunta respondida, nova avaliação), mas **nenhuma tela mostra** ainda. |
 | **Sininho da Home** | ✅ Honesto: abre o modal do VAMO dizendo que os avisos importantes chegam por e-mail e que a central no app vem em breve. Antes era falso e não funcionava na web. |
@@ -33,6 +33,7 @@
 | K | Nova avaliação | Roteirista | `POST /api/reviews` (**não** no `PUT`, que é edição) | `sendNewReviewEmail` | Nova avaliação (*n*/5): *título* | 1 por avaliação criada | Local ✅ (editar não envia) · Prod entrega ✅ |
 | L | Roteirista aprovado | Roteirista | `POST /api/admin/creators/:id/approve` | `sendCreatorApprovedEmail` | Seu perfil de roteirista foi aprovado | Só na transição atômica BASIC → TRUSTED ("Roteirista Recomendado" no app) | Local ✅ · Prod entrega ✅ |
 | M | Estorno automático | Comprador | `payments.ts` → compra bloqueada (roteiro pausado ou arquivado durante o pagamento) | `sendPurchaseAutoRefundEmail` | Estorno do seu pagamento: *título* | Só se o estorno foi criado **agora** (`newlyCreated`: listagem prévia + idempotency key + cabeçalho `Idempotent-Replayed`) | Local ✅ com Stripe **modo teste real** (3 webhooks, 2 simultâneos → 1 estorno, 1 e-mail) · Prod entrega ✅ |
+| N | Reembolso feito pela VAMO (painel da Stripe) | Comprador | webhook `charge.refunded` → `paymentEvents.ts` (`onChargeRefunded`) | `sendPurchaseRefundedEmail` | Refund issued: *título* | Transição atômica: só a gravação que **aumenta** `refundedCents` envia (evento repetido ou atrasado não reenvia). Estorno automático de duplicado (sem venda própria) não dispara | Local ✅ (testes) |
 
 **O que cada e-mail diz** (todos em português, com layout do VAMO, versão texto e links via `APP_BASE_URL`):
 - **A · Boas-vindas:** conta pronta; botão *Explorar roteiros*.
@@ -48,6 +49,7 @@
 - **K · Avaliação:** título, estrelas (*n*/5) e comentário. Botão *Ver avaliações*.
 - **L · Roteirista aprovado:** novo nível "Roteirista Recomendado" com selo. Botão *Abrir Portal do Roteirista*.
 - **M · Estorno:** pagamento recebido, roteiro ficou indisponível, estorno integral já iniciado, prazo depende da operadora (normalmente 5 a 10 dias úteis).
+- **N · Reembolso:** valor devolvido neste reembolso; total → avisa que o acesso acabou (botão *Browse other itineraries*); parcial → acesso continua (botão *Open My Itineraries*). Crédito no cartão em 5 a 10 dias úteis.
 
 **Regras gerais**
 - A ação principal sempre é gravada **antes** do envio, e nenhuma função do mailer lança erro: falha de Gmail vira log `[mailer] falha…` e a venda, aprovação ou resposta segue normalmente.
