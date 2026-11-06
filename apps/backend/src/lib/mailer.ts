@@ -239,8 +239,12 @@ export function sendCreatorSaleEmail(opts: {
     price: number;
     commission: number;
     currency?: string | null;
+    /** false = ainda sem conta de recebimento: o e-mail pede o cadastro. */
+    payoutsReady?: boolean;
 }): Promise<boolean> {
     const first = firstName(opts.name, 'creator');
+    const needsSetup = opts.payoutsReady === false;
+    const earningsUrl = appLink('/creator-earnings');
     const price = formatMoney(opts.price, opts.currency);
     const commission = formatMoney(opts.commission, opts.currency);
     const net = formatMoney(opts.price - opts.commission, opts.currency);
@@ -255,14 +259,18 @@ export function sendCreatorSaleEmail(opts: {
                 [`VAMO commission${pct != null ? ` (${pct}%)` : ''}`, commission],
                 ['Estimated net amount', net],
             ])
+            + (needsSetup
+                ? P(`<strong>Set up payouts to receive this money.</strong> You don't have a payout account yet, so your ${escapeHtml(net || 'earnings')} will wait safely with VAMO until you add one. It takes about 10 minutes with Stripe, our payment partner.`)
+                : '')
             + FOOTNOTE('The net amount is an estimate based on the commission recorded for the sale. Payment fees and the payout date follow the Creator Terms.'),
-        cta: { label: 'View my sales', url },
+        cta: needsSetup ? { label: 'Set up payouts', url: earningsUrl } : { label: 'View my sales', url },
     });
     return send(opts.to, `You sold: ${opts.itineraryTitle}`, html, textOf(
         `Congrats, ${first}! Someone bought "${opts.itineraryTitle}".`,
         price && `Sale amount: ${price}`,
         commission && `VAMO commission: ${commission}`,
         net && `Estimated net amount: ${net}`,
+        needsSetup && `Set up payouts to receive this money (about 10 minutes with Stripe): ${earningsUrl}`,
         `View sales: ${url}`,
     ));
 }

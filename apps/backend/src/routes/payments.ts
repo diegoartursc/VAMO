@@ -183,7 +183,7 @@ async function notifySaleCreated(saleId: string, payment: { amountTotal?: number
                     id: true,
                     title: true,
                     currency: true,
-                    creator: { select: { traveler: { select: { email: true, name: true } } } },
+                    creator: { select: { stripeAccountId: true, traveler: { select: { email: true, name: true } } } },
                 },
             },
         },
@@ -207,6 +207,7 @@ async function notifySaleCreated(saleId: string, payment: { amountTotal?: number
                 price: sale.price,
                 commission: sale.commission,
                 currency: sale.itinerary.currency,
+                payoutsReady: Boolean(sale.itinerary.creator.stripeAccountId),
             })
             : Promise.resolve(false),
     ]);

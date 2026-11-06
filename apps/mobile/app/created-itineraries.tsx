@@ -32,6 +32,7 @@ import { CreatorQuickActions, QuickAction } from '../src/features/creator/dashbo
 import { CreatorItineraryCard } from '../src/features/creator/dashboard/CreatorItineraryCard';
 import { CreatorEmptyState } from '../src/features/creator/dashboard/CreatorEmptyState';
 import { shareItineraryImperative } from '../src/hooks/useShareItinerary';
+import { PayoutWaitingBanner } from '../src/features/creator/earnings/components/PayoutWaitingBanner';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
@@ -397,6 +398,9 @@ export default function CreatedItinerariesScreen() {
                         onCreate={() => { haptics.medium(); router.push('/new-itinerary'); }}
                         onSeeList={showAllAndScroll}
                     />
+
+                    {/* Ganhos esperando o cadastro de recebimento (some quando não há) */}
+                    <PayoutWaitingBanner />
 
                     {/* Resumo — sempre presente (cards zerados quando sem dados) */}
                     <Text style={s.sectionLabel}>Summary</Text>

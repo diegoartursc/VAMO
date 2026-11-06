@@ -24,6 +24,7 @@ import { openExternalUrl } from '../../../utils/externalLinks';
 import { EarningsBalanceCard } from './components/EarningsBalanceCard';
 import { EarningsMetricCard } from './components/EarningsMetricCard';
 import { PayoutSetupCard } from './components/PayoutSetupCard';
+import { PayoutWaitingBanner } from './components/PayoutWaitingBanner';
 import { PayoutExplanationCard } from './components/PayoutExplanationCard';
 import { EarningsTransactionItem } from './components/EarningsTransactionItem';
 import { EarningsEmptyState } from './components/EarningsEmptyState';
@@ -149,6 +150,11 @@ export default function EarningsScreen() {
                         />
                     }
                 >
+                    {/* 0. Dinheiro esperando cadastro de recebimento */}
+                    <View style={styles.heroWrap}>
+                        <PayoutWaitingBanner onSetup={onPayoutSetup} />
+                    </View>
+
                     {/* 1. Hero balance */}
                     {summary && (
                         <View style={styles.heroWrap}>
