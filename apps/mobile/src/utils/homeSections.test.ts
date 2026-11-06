@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {
     selectFeatured,
     calculateFeaturedRankScore,
+    selectHeroImages,
 } from './homeSections';
 
 /** Fixture válida pra isShowcaseItinerary (status/título/preço/criador). */
@@ -120,4 +121,45 @@ test('respeita o limit', () => {
         makeRoute({ id: `r${i}`, rating: 4.6, reviewCount: 10 + i, salesCount: 10 + i }),
     );
     assert.equal(selectFeatured(rotas, 3).length, 3);
+});
+
+// ─── Capa da Home ────────────────────────────────────────────────
+const pics = (id: string, n: number) => Array.from({ length: n }, (_, i) => `https://img.test/${id}-${i + 1}.jpg`);
+const owner = (url: string) => url.split('/').pop()!.split('-')[0];
+
+test('capa: intercala roteiros (nunca duas fotos seguidas do mesmo, nem na volta do loop)', () => {
+    const list = [
+        makeRoute({ id: 'a', images: pics('a', 3), salesCount: 5 }),
+        makeRoute({ id: 'b', images: pics('b', 3), salesCount: 9 }),
+        makeRoute({ id: 'c', images: pics('c', 1), salesCount: 1 }),
+    ];
+    const out = selectHeroImages(list);
+    assert.deepEqual(out.map(owner), ['b', 'a', 'c', 'b', 'a', 'b', 'a']);
+    for (let i = 0; i < out.length; i++) assert.notEqual(owner(out[i]), owner(out[(i + 1) % out.length]));
+});
+
+test('capa: destaques vêm antes dos mais vendidos', () => {
+    const list = [
+        makeRoute({ id: 'vendido', images: pics('vendido', 1), salesCount: 50 }),
+        makeRoute({ id: 'destaque', images: pics('destaque', 1), reviewCount: 3, rating: 4.9, averageRating: 4.9 }),
+    ];
+    assert.deepEqual(selectHeroImages(list).map(owner), ['destaque', 'vendido']);
+});
+
+test('capa: ignora roteiro fora do ar, sem foto ou com URL inválida; respeita os limites', () => {
+    const list = [
+        makeRoute({ id: 'x', images: pics('x', 2), status: 'paused' }),
+        makeRoute({ id: 'y', images: [] }),
+        makeRoute({ id: 'z', images: ['not-a-url', '', null] }),
+        ...Array.from({ length: 10 }, (_, i) => makeRoute({ id: `r${i}`, images: pics(`r${i}`, 3), salesCount: 10 - i })),
+    ];
+    const out = selectHeroImages(list, { maxItineraries: 4, perItinerary: 2, max: 7 });
+    assert.equal(out.length, 7);
+    assert.ok(out.every((u) => !/\/(x|y|z)-/.test(u)));
+    assert.deepEqual([...new Set(out.map(owner))], ['r0', 'r1', 'r2', 'r3']);
+});
+
+test('capa: um roteiro só mostra uma foto; nenhum roteiro devolve lista vazia', () => {
+    assert.equal(selectHeroImages([makeRoute({ id: 'solo', images: pics('solo', 3) })]).length, 1);
+    assert.deepEqual(selectHeroImages([]), []);
 });

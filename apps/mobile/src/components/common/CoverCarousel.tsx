@@ -56,6 +56,11 @@ interface CoverCarouselProps {
      *  compatibilidade). Cards que já têm outro badge no canto inferior
      *  direito (ex.: duração) devem passar false para evitar sobreposição. */
     showCounter?: boolean;
+    /** Mostra as bolinhas de paginação. Default true. */
+    showDots?: boolean;
+    /** Ocupa todo o pai (posição absoluta, altura 100%) em vez de altura fixa.
+     *  Usado como fundo animado (ex.: capa da Home), onde a altura vem do conteúdo. */
+    fillParent?: boolean;
 }
 
 // ── Timing ──
@@ -244,15 +249,20 @@ const CoverCarouselInner = ({
     panEnabled = true,
     coverMode = 'cover',
     showCounter = true,
+    showDots = true,
+    fillParent = false,
 }: CoverCarouselProps) => {
     const { width: windowWidth } = useWindowDimensions();
     const [activeIndex, setActiveIndex] = useState(0);
     const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
     const containerWidth = width || windowWidth;
 
-    const resolvedHeight = aspectRatio
-        ? containerWidth / aspectRatio
-        : (height ?? 200);
+    // Em fillParent a altura é a do pai ('100%'); o tipo number é só para os cálculos abaixo.
+    const resolvedHeight: number = fillParent
+        ? ('100%' as unknown as number)
+        : aspectRatio
+            ? containerWidth / aspectRatio
+            : (height ?? 200);
     const fx = focalPoint?.x ?? 0.5;
     const fy = focalPoint?.y ?? 0.5;
     const webImagePositionStyle = React.useMemo(
@@ -358,7 +368,7 @@ const CoverCarouselInner = ({
                 colors={['#1A3263', '#28C9BF']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={[styles.placeholder, { height: resolvedHeight, borderRadius }]}
+                style={[styles.placeholder, fillParent ? StyleSheet.absoluteFillObject : { height: resolvedHeight }, { borderRadius }]}
             >
                 <Ionicons name="images-outline" size={36} color="rgba(255,255,255,0.6)" />
                 <Text style={styles.placeholderText}>Image unavailable</Text>
@@ -370,7 +380,8 @@ const CoverCarouselInner = ({
         <View
             style={[
                 styles.container,
-                { height: resolvedHeight, borderRadius, overflow: 'hidden' },
+                fillParent ? StyleSheet.absoluteFillObject : { height: resolvedHeight },
+                { borderRadius, overflow: 'hidden' },
             ]}
         >
             {validImages.map((uri, i) => {
@@ -424,7 +435,7 @@ const CoverCarouselInner = ({
                     )}
 
                     {/* Pagination Dots */}
-                    {validImages.length <= 6 && (
+                    {showDots && validImages.length <= 6 && (
                         <View style={[styles.dotsContainer, { bottom: dotsBottom }]}>
                             {validImages.map((_, idx) => (
                                 <View

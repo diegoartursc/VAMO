@@ -5,7 +5,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Image,
     Dimensions,
     Platform,
     StatusBar,
@@ -30,7 +29,8 @@ import { DestinationImageCarousel } from '../../src/components/home/DestinationI
 import { CTACarousel } from '../../src/components/home/CTACarousel';
 import WhyDifferent from '../../src/components/common/WhyDifferent';
 import { HomeItinerarySection } from '../../src/components/home/HomeItinerarySection';
-import { selectContinueSearch, selectFeatured, selectNew, selectUnforgettable } from '../../src/utils/homeSections';
+import { selectContinueSearch, selectFeatured, selectHeroImages, selectNew, selectUnforgettable } from '../../src/utils/homeSections';
+import { CoverCarousel } from '../../src/components/common/CoverCarousel';
 
 
 const { width } = Dimensions.get('window');
@@ -41,10 +41,16 @@ const isPublicItinerary = (itinerary: any) => {
 };
 
 // ─── HERO SECTION COMPONENT ──────────────────────────────
+/** Foto usada enquanto não há roteiros com fotos (ou se elas não carregarem). */
+const HERO_DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=2073&auto=format&fit=crop';
+
 const HeroHeader = ({
+    images,
     onSearchPress,
     onShortcutPress,
 }: {
+    /** Fotos dos roteiros em destaque/mais vendidos, já intercaladas (selectHeroImages). */
+    images: string[];
     onSearchPress: () => void;
     onShortcutPress: (params?: Record<string, string>) => void;
 }) => {
@@ -57,11 +63,15 @@ const HeroHeader = ({
 
     return (
         <View style={styles.heroContainer}>
-            <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=2073&auto=format&fit=crop' }}
-                style={[StyleSheet.absoluteFillObject, Platform.OS === 'web' ? ({ objectFit: 'cover' as any }) : {}]}
-                resizeMode="cover"
-            />
+            {/* Fundo animado: mesmo crossfade + Ken Burns das capas dos roteiros. Só visual. */}
+            <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                <CoverCarousel
+                    images={images.length > 0 ? images : [HERO_DEFAULT_PHOTO]}
+                    fillParent
+                    showCounter={false}
+                    showDots={false}
+                />
+            </View>
             <LinearGradient
                 colors={['rgba(26,50,99,0.6)', 'rgba(26,50,99,0.9)']}
                 style={StyleSheet.absoluteFillObject}
@@ -148,6 +158,8 @@ export default function HomeScreen() {
     // por um ranking de CONFIANÇA (nota ponderada por volume de reviews + vendas
     // reais + qualidade — não rating puro). Lógica central em selectFeatured.
     const featuredItineraries = useMemo(() => selectFeatured(publicItineraries, 5), [publicItineraries]);
+    // Fundo da capa: fotos de destaques e mais vendidos, intercaladas entre roteiros.
+    const heroImages = useMemo(() => selectHeroImages(publicItineraries), [publicItineraries]);
 
     // "Continue your search": só ganha itens quando há histórico real de intenção
     // e existem roteiros relacionados a ele. Sem isso, devolve [] e a seção some.
@@ -264,6 +276,7 @@ export default function HomeScreen() {
             >
                 {/* 1. Institutional Header */}
                 <HeroHeader
+                    images={heroImages}
                     onSearchPress={() => setSearchModalVisible(true)}
                     onShortcutPress={goToItineraries}
                 />
