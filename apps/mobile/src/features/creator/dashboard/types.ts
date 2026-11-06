@@ -36,7 +36,10 @@ export interface CreatorItinerary {
 export interface DashboardStats {
     isCreator?: boolean;
     creator?: { id: string; verificationLevel?: string };
+    /** Soma do preço das vendas (o que os compradores pagaram). */
     totalRevenue: number;
+    /** Ganho do roteirista: 80% das vendas, sem reembolsos (mesma conta da tela de ganhos). */
+    totalEarnings?: number;
     totalSales: number;
     averageRating: number;
     totalReviews: number;

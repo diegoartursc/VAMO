@@ -65,6 +65,7 @@ interface CreatorStatsSummary {
     rejectedItineraries: number;
     totalSales: number;
     totalRevenue: number;
+    totalEarnings: number;
     averageRating: number;
     averageQualityScore: number | null;
     itineraries: CreatorItinerarySummary[];
@@ -141,6 +142,7 @@ export default function ProfileScreen() {
                 rejectedItineraries,
                 totalSales: data.totalSales ?? 0,
                 totalRevenue: data.totalRevenue ?? 0,
+                totalEarnings: data.totalEarnings ?? 0,
                 averageRating: data.averageRating ?? 0,
                 averageQualityScore: avgQuality,
                 itineraries,
@@ -545,6 +547,7 @@ export default function ProfileScreen() {
                         totalItineraries: creatorStats.totalItineraries,
                         totalSales: creatorStats.totalSales,
                         totalRevenue: creatorStats.totalRevenue,
+                        totalEarnings: creatorStats.totalEarnings,
                     } : null}
                     onEnterPortal={() => { haptics.light(); router.push('/created-itineraries'); }}
                     onCreate={() => {

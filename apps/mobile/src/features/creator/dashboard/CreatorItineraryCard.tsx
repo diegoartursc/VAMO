@@ -159,7 +159,7 @@ export function CreatorItineraryCard({
                     {updated && (
                         <>
                             <Text style={card.dot}>·</Text>
-                            <Text style={card.meta}>atualizado {updated}</Text>
+                            <Text style={card.meta}>updated {updated}</Text>
                         </>
                     )}
                 </View>
@@ -168,10 +168,10 @@ export function CreatorItineraryCard({
                 <View style={card.metricsRow}>
                     <Metric value={formatMoney(item.price)} label="price" />
                     {item.sales > 0 && <Metric value={String(item.sales)} label="sales" />}
-                    {item.revenue > 0 && <Metric value={formatMoney(item.revenue)} label="receita" color={theme.colors.success} />}
-                    {item.rating > 0 && <Metric value={`★ ${item.rating.toFixed(1)}`} label={`${item.reviewCount} aval.`} color="#F59E0B" />}
+                    {item.revenue > 0 && <Metric value={formatMoney(item.revenue)} label="in sales" color={theme.colors.success} />}
+                    {item.rating > 0 && <Metric value={`★ ${item.rating.toFixed(1)}`} label={`${item.reviewCount} review${item.reviewCount === 1 ? '' : 's'}`} color="#F59E0B" />}
                     {typeof item.qualityScore === 'number' && item.qualityScore > 0 && (
-                        <Metric value={`${item.qualityScore}%`} label="qualidade" />
+                        <Metric value={`${item.qualityScore}%`} label="quality" />
                     )}
 
                     {/* Web: ações à direita na mesma linha das métricas */}

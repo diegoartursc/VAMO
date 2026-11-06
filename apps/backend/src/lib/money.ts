@@ -2,7 +2,7 @@
  * Regras de dinheiro de uma venda (SEC-11/12/13). Tudo em unidades mínimas
  * (centavos) e a partir do pagamento CONFIRMADO, nunca do preço atual.
  */
-import { computeCommission } from '@vamo/shared/itinerary';
+import { computeCommission, PAYOUT_HOLD_DAYS } from '@vamo/shared/itinerary';
 
 export const PAYMENT_STATUS = {
     paid: 'paid',
@@ -75,3 +75,57 @@ export function hasActiveAccess(s: { paymentStatus?: string | null }): boolean {
 
 /** Filtro Prisma das vendas que dão acesso ao conteúdo. */
 export const ACTIVE_SALE_WHERE = { paymentStatus: { notIn: [PAYMENT_STATUS.refunded, PAYMENT_STATUS.disputeLost] } };
+
+// ─── Ganhos do roteirista: uma conta só para Portal, tela de ganhos e aviso ───
+
+const HOLD_MS = PAYOUT_HOLD_DAYS * 24 * 60 * 60 * 1000;
+
+export type EarningStatus = 'pending' | 'available' | 'paid_out' | 'refunded' | 'disputed';
+
+type SaleForEarnings = SaleMoney & {
+    createdAt: Date;
+    payoutTransferredAt?: Date | null;
+};
+
+/**
+ * Situação do ganho (80%) de uma venda:
+ * - pending: dentro dos 7 dias de garantia; libera em `releaseAt`;
+ * - available: já liberado, aguardando ser enviado (cadastro de recebimento ou próximo envio);
+ * - paid_out: já transferido ao roteirista;
+ * - disputed: contestação aberta, travado até a decisão;
+ * - refunded: reembolso total ou contestação perdida (ganho zero).
+ */
+export function earningOf(sale: SaleForEarnings, now: Date = new Date()): { status: EarningStatus; amount: number; releaseAt: Date } {
+    // Sem data válida (dado legado), conta como venda de agora: fica pendente, nunca liberada antes da hora.
+    const created = sale.createdAt ? new Date(sale.createdAt).getTime() : NaN;
+    const releaseAt = new Date((Number.isFinite(created) ? created : now.getTime()) + HOLD_MS);
+    if (!hasActiveAccess(sale)) return { status: 'refunded', amount: 0, releaseAt };
+    const amount = payoutDueCents(sale) / 100;
+    if (sale.payoutTransferredAt) return { status: 'paid_out', amount, releaseAt };
+    if (sale.paymentStatus === PAYMENT_STATUS.disputed) return { status: 'disputed', amount, releaseAt };
+    if (now.getTime() < releaseAt.getTime()) return { status: 'pending', amount, releaseAt };
+    return { status: 'available', amount, releaseAt };
+}
+
+/** Totais do roteirista (valores em unidades da moeda, já com os 80%). */
+export function summarizeEarnings(sales: SaleForEarnings[], now: Date = new Date()) {
+    let pending = 0, available = 0, paidOut = 0, onHold = 0;
+    let nextReleaseAt: Date | null = null;
+    for (const sale of sales) {
+        const e = earningOf(sale, now);
+        if (e.status === 'pending') {
+            pending += e.amount;
+            if (!nextReleaseAt || e.releaseAt < nextReleaseAt) nextReleaseAt = e.releaseAt;
+        } else if (e.status === 'available') available += e.amount;
+        else if (e.status === 'paid_out') paidOut += e.amount;
+        else if (e.status === 'disputed') onHold += e.amount;
+    }
+    const round = (n: number) => Math.round(n * 100) / 100;
+    return {
+        pending: round(pending + onHold),
+        available: round(available),
+        paidOut: round(paidOut),
+        totalEarned: round(pending + onHold + available + paidOut),
+        nextReleaseAt: nextReleaseAt ? nextReleaseAt.toISOString() : null,
+    };
+}
