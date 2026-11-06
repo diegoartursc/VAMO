@@ -77,3 +77,12 @@ test('F: itinerario ativo com dia incompleto → backend rejeita, como o fronten
     assert.ok((await backendIssues(form)).length > 0);
     assert.ok(validateForSubmission(form).length > 0);
 });
+
+test('preço mínimo US$ 5: app e backend rejeitam abaixo; aceitam em US$ 5; rascunho não é afetado', async () => {
+    const low = baseForm({ price: 1 });
+    assert.match((await backendIssues(low)).join(' '), /minimum price is \$5\.00/);
+    assert.ok(validateForSubmission(low).some((i) => /minimum price is \$5\.00/.test(i.message) && i.section === 'commerce'));
+    const ok = baseForm({ price: 5 });
+    assert.deepEqual(await backendIssues(ok), []);
+    assert.deepEqual(validateForSubmission(ok), []);
+});

@@ -20,6 +20,7 @@ import {
     MIN_CHECKLIST,
     MIN_CATEGORIES,
 } from "./constants";
+import { minPriceIssue } from "./commission";
 
 /**
  * Checa se um `ModuleCostInfo` está em estado inconsistente: marcado como
@@ -193,6 +194,9 @@ export function validateForSubmission(form: ItineraryFormState): ValidationIssue
     }
     if (!Number.isFinite(form.price) || form.price <= 0) {
         issues.push({ section: "commerce", message: "Set a valid sale price" });
+    } else {
+        const tooLow = minPriceIssue(form.price, form.currency);
+        if (tooLow) issues.push({ section: "commerce", message: tooLow });
     }
     if (!Number.isFinite(form.duration) || form.duration < 1) {
         issues.push({ section: "identity", message: "The duration must be at least 1 day" });

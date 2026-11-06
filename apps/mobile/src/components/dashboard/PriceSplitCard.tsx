@@ -10,6 +10,7 @@ import {
     BASE_CURRENCY,
     CREATOR_SHARE_PERCENT,
     PAYOUT_HOLD_DAYS,
+    minPriceIssue,
     PLATFORM_COMMISSION_PERCENT,
     formatMoney,
     splitPrice,
@@ -45,6 +46,10 @@ export default function PriceSplitCard({ price, currency, compact }: Props) {
                 </View>
             ) : (
                 <Text style={styles.hint}>Enter a price to see how much you will receive.</Text>
+            )}
+
+            {minPriceIssue(price, cur) && (
+                <Text style={styles.minWarn}>{minPriceIssue(price, cur)} Lower prices would not cover card fees.</Text>
             )}
 
             {!compact && (
@@ -83,5 +88,6 @@ const styles = StyleSheet.create({
     rowValue: { fontSize: 14, color: theme.colors.text.secondary },
     strong: { fontWeight: '800', color: theme.colors.text.primary, fontSize: 15 },
     hint: { fontSize: 13, color: theme.colors.text.secondary },
+    minWarn: { fontSize: 13, fontWeight: '600', color: '#B45309' },
     note: { fontSize: 12, lineHeight: 17, color: theme.colors.text.secondary },
 });

@@ -8,7 +8,7 @@ import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/trave
 import { selectFeaturedRanked } from '../utils/featuredRanking';
 import { PUBLIC_ITINERARY_WHERE, isPublicItineraryStatus, isPurchasableItineraryStatus } from '../lib/itineraryStatus';
 import { sendItinerarySubmittedForReviewEmail } from '../lib/mailer';
-import { BASE_CURRENCY, computeCommission } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY, computeCommission, minPriceIssue } from '@vamo/shared/itinerary';
 import { toListingModules, toPublicItineraryPreview, toBuyerItinerary } from '../lib/itineraryDto';
 import { canonicalizeDocRefs, signDocRefs, existingProofRefs } from '../lib/privateDocs';
 import { enforceProofStatus } from '../lib/costProofs';
@@ -1199,6 +1199,11 @@ export function validateItinerarySubmission(data: any): string[] {
     if (!String(data.description || '').trim()) issues.push('Write a description for your itinerary.');
     if (!Array.isArray(data.categories) || data.categories.filter(Boolean).length < 1) issues.push('Select at least 1 category.');
     if (!Number.isFinite(parseDecimalInput(data.price)) || parseDecimalInput(data.price) <= 0) issues.push('Set a valid sale price.');
+    else {
+        // Preço mínimo (a VAMO paga a taxa do cartão com os 20% dela). Só vale ao enviar para revisão.
+        const tooLow = minPriceIssue(parseDecimalInput(data.price), data.currency);
+        if (tooLow) issues.push(tooLow);
+    }
     if (!Number.isFinite(duration) || duration < 1) issues.push('The duration must be at least 1 day.');
     if (!String(data.travelProofUrl || '').trim()) issues.push('Attach your proof of travel.');
     if (activeModules.length < 1) issues.push('Turn on at least 1 module.');

@@ -7,6 +7,8 @@
  * Decisão do Diego em 2026-10-27: 20% VAMO / 80% roteirista (taxas da Stripe: ver docs/LANCAMENTO-TASKS.md, bloco A).
  */
 
+import { BASE_CURRENCY, BASE_CURRENCY_SYMBOL, DEFAULT_RATES_TO_BASE } from "./market";
+
 /** Fração do preço que fica com a VAMO (0.20 = 20%). */
 export const PLATFORM_COMMISSION_RATE = 0.20;
 
@@ -39,4 +41,30 @@ export function computeCreatorEarning(price: number, rate: number = PLATFORM_COM
 export function splitPrice(price: number, rate: number = PLATFORM_COMMISSION_RATE): { price: number; creatorEarning: number; commission: number } {
     const valid = Number.isFinite(price) && price > 0 ? price : 0;
     return { price: valid, creatorEarning: computeCreatorEarning(valid, rate), commission: computeCommission(valid, rate) };
+}
+
+/**
+ * Preço mínimo de um roteiro, na moeda-base (decisão do Diego em 2026-11-06).
+ * Motivo: a VAMO paga a taxa do cartão com os 20% dela (cerca de US$ 0,30 fixos + ~3%),
+ * então abaixo de ~US$ 2 cada venda dá prejuízo. Vale só para enviar para revisão; roteiros
+ * já publicados abaixo disso continuam à venda.
+ */
+export const MIN_ITINERARY_PRICE = 5;
+
+/** Mínimo na moeda do roteiro (roteiros em outra moeda usam as taxas padrão para a moeda-base). */
+export function minItineraryPriceIn(currency?: string | null): number {
+    const code = (currency || BASE_CURRENCY).toUpperCase();
+    if (code === BASE_CURRENCY) return MIN_ITINERARY_PRICE;
+    const rate = DEFAULT_RATES_TO_BASE[code];
+    return rate && rate > 0 ? Math.ceil((MIN_ITINERARY_PRICE / rate) * 100) / 100 : MIN_ITINERARY_PRICE;
+}
+
+/** Mensagem de problema se o preço é positivo mas abaixo do mínimo; null se estiver ok (ou inválido, que outra regra pega). */
+export function minPriceIssue(price: number, currency?: string | null): string | null {
+    if (!Number.isFinite(price) || price <= 0) return null;
+    const code = (currency || BASE_CURRENCY).toUpperCase();
+    const min = minItineraryPriceIn(code);
+    if (price + 1e-9 >= min) return null;
+    const shown = code === BASE_CURRENCY ? `${BASE_CURRENCY_SYMBOL}${min.toFixed(2)}` : `${min.toFixed(2)} ${code}`;
+    return `The minimum price is ${shown}.`;
 }
