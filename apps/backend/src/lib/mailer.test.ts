@@ -36,6 +36,16 @@ test('confirmação de compra: valor correto e link do roteiro comprado', async 
     assert.match(last().text, /\$29\.90/);
 });
 
+test('venda sem conta de recebimento: e-mail do roteirista pede o cadastro e leva à tela de ganhos', async () => {
+    const m = await load();
+    await m.sendCreatorSaleEmail({ to: 'c@x.test', name: 'Diego', itineraryTitle: 'Teste', price: 1, commission: 0.2, currency: 'usd', payoutsReady: false });
+    assert.match(last().html, /Set up payouts to receive this money/);
+    assert.ok(last().html.includes('https://app.exemplo.test/creator-earnings'));
+    assert.match(last().text, /Set up payouts/);
+    await m.sendCreatorSaleEmail({ to: 'c@x.test', name: 'Diego', itineraryTitle: 'Teste', price: 1, commission: 0.2, currency: 'usd', payoutsReady: true });
+    assert.ok(!/Set up payouts/.test(last().html));
+});
+
 test('conteúdo vindo do usuário é escapado no HTML', async () => {
     const m = await load();
     await m.sendItineraryRejectedEmail({ to: 'c@x.test', name: 'Carla', itineraryId: 'it_2', itineraryTitle: '<script>x</script>', reason: 'Faltam <b>fotos</b> & "custos"' });
