@@ -20,6 +20,8 @@ export interface CreatorEntryMicroStats {
     totalItineraries: number;
     totalSales: number;
     totalRevenue: number;
+    /** Ganho do roteirista (80%, sem reembolsos). */
+    totalEarnings: number;
 }
 
 export function CreatorPortalEntryCard({
@@ -66,8 +68,8 @@ export function CreatorPortalEntryCard({
                         </View>
                         <View style={s.microDivider} />
                         <View style={s.microItem}>
-                            <Text style={s.microValue}>{formatMoney(Math.round(stats!.totalRevenue))}</Text>
-                            <Text style={s.microLabel}>recebido</Text>
+                            <Text style={s.microValue}>{formatMoney(stats!.totalEarnings)}</Text>
+                            <Text style={s.microLabel}>earned</Text>
                         </View>
                     </View>
                 )}

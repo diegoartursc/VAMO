@@ -339,14 +339,14 @@ export default function CreatedItinerariesScreen() {
         {
             key: 'routes', icon: 'briefcase-outline', tone: theme.colors.primary,
             value: String(published), label: 'Active itineraries',
-            hint: `${stats.totalItineraries} no total`,
+            hint: `${stats.totalItineraries} in total`,
             empty: stats.totalItineraries === 0, emptyHint: 'No itineraries yet',
             onPress: showAllAndScroll,
         },
         {
             key: 'sales', icon: 'receipt-outline', tone: theme.colors.secondary,
             value: String(stats.totalSales), label: 'Total sales',
-            hint: `${formatMoney(Math.round(stats.totalRevenue))} in revenue`, empty: stats.totalSales === 0,
+            hint: `${formatMoney(stats.totalRevenue)} in sales`, empty: stats.totalSales === 0,
             emptyHint: 'No sales yet', onPress: goToSales,
         },
         {
@@ -414,6 +414,7 @@ export default function CreatedItinerariesScreen() {
                     {stats && (
                         <CreatorRevenueCard
                             totalRevenue={stats.totalRevenue}
+                            totalEarnings={stats.totalEarnings ?? 0}
                             totalSales={stats.totalSales}
                             onPress={goToEarnings}
                         />

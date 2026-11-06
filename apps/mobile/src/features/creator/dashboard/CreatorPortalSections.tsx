@@ -11,7 +11,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme/theme';
-import { formatMoney } from '@vamo/shared/itinerary';
+import { CREATOR_SHARE_PERCENT, formatMoney } from '@vamo/shared/itinerary';
 
 /** Hero azul institucional do portal: saudação + CTAs. */
 export function CreatorPortalHero({
@@ -51,24 +51,29 @@ export function CreatorPortalHero({
     );
 }
 
-/** Card "Total recebido" — destaque de receita acumulada. Tappable → ganhos. */
+/**
+ * Card "Your earnings": o que é do roteirista (80% das vendas, sem reembolsos),
+ * a mesma conta da tela de ganhos. O valor bruto das vendas aparece só como referência.
+ */
 export function CreatorRevenueCard({
     totalRevenue,
+    totalEarnings,
     totalSales,
     onPress,
 }: {
     totalRevenue: number;
+    totalEarnings: number;
     totalSales: number;
     onPress?: () => void;
 }) {
     const body = (
         <>
             <View style={{ flex: 1 }}>
-                <Text style={s.revLabel}>Total received</Text>
-                <Text style={s.revValue}>{formatMoney(Math.round(totalRevenue))}</Text>
+                <Text style={s.revLabel}>Your earnings ({CREATOR_SHARE_PERCENT}%)</Text>
+                <Text style={s.revValue}>{formatMoney(totalEarnings)}</Text>
                 <Text style={s.revSub}>
                     {totalSales > 0
-                        ? `${totalSales} completed sale${totalSales === 1 ? '' : 's'}`
+                        ? `${CREATOR_SHARE_PERCENT}% of ${formatMoney(totalRevenue)} in sales · ${totalSales} sale${totalSales === 1 ? '' : 's'}`
                         : 'Waiting for your first sale'}
                 </Text>
             </View>

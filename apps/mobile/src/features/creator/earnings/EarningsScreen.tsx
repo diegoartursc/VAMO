@@ -174,15 +174,15 @@ export default function EarningsScreen() {
                                 iconBg="#F59E0B1F"
                                 label="Pending balance"
                                 value={formatBaseCurrency(summary.pendingBalance)}
-                                subtext="Sales under review or still within the protection period."
+                                subtext="Your 80% of recent sales. Released 7 days after each purchase (refund window)."
                             />
                             <EarningsMetricCard
                                 icon="calendar"
                                 iconColor={theme.colors.info}
                                 iconBg={theme.colors.info + '14'}
-                                label="Next payout"
+                                label="Next release"
                                 value={formatShortDate(summary.nextPayoutDate)}
-                                subtext="Estimated bank payout date."
+                                subtext="When your next pending earnings become available."
                             />
                         </View>
                     )}
@@ -195,7 +195,7 @@ export default function EarningsScreen() {
                                 iconBg="#22C55E1F"
                                 label="Total earned"
                                 value={formatBaseCurrency(summary.totalEarned)}
-                                subtext="Since joining VAMO."
+                                subtext="Your 80% of every sale since joining VAMO, after refunds."
                             />
                             <EarningsMetricCard
                                 icon="briefcase"

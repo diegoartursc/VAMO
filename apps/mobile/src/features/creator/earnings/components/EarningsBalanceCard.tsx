@@ -28,7 +28,7 @@ export function EarningsBalanceCard({ availableBalance, onManagePayouts }: Props
 
             <Text style={styles.value}>{formatBaseCurrency(availableBalance)}</Text>
 
-            <Text style={styles.subtext}>Ready for your next payout</Text>
+            <Text style={styles.subtext}>Released earnings (after the 7-day refund window), sent to your bank automatically once payouts are set up</Text>
 
             <TouchableOpacity
                 style={styles.cta}

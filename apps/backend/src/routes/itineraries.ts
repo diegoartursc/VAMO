@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Router } from '../lib/router';
-import { ACTIVE_SALE_WHERE } from '../lib/money';
+import { ACTIVE_SALE_WHERE, summarizeEarnings } from '../lib/money';
 import { authMiddleware, optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
 import { createAuditMiddleware } from '../middleware/audit';
 import prisma from '../lib/prisma';
@@ -221,7 +221,8 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
         if (!creatorId) {
             console.log('[dashboard/stats] no creatorId resolved — returning empty stats');
             res.json({
-                totalRevenue: 0, totalSales: 0, averageRating: 0, totalReviews: 0,
+                totalRevenue: 0, totalEarnings: 0, earningsPending: 0, earningsAvailable: 0, earningsPaidOut: 0,
+                totalSales: 0, averageRating: 0, totalReviews: 0,
                 activeItineraries: 0, totalItineraries: 0, itineraries: [],
             });
             return;
@@ -232,7 +233,7 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
         const itineraries = await prisma.itinerary.findMany({
             where,
             include: {
-                sales: { where: ACTIVE_SALE_WHERE, select: { id: true, price: true } },
+                sales: { where: ACTIVE_SALE_WHERE, select: { id: true, price: true, commission: true, createdAt: true, payoutTransferredAt: true, paidAmountCents: true, creatorEarningCents: true, refundedCents: true, disputeLostCents: true, paymentStatus: true } },
                 reviews: { where: { hidden: false }, select: { id: true, rating: true } },
             },
         });
@@ -240,6 +241,8 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
         const totalSales = itineraries.reduce((sum, it) => sum + it.sales.length, 0);
         const totalRevenue = itineraries.reduce((sum, it) =>
             sum + it.sales.reduce((s, sale) => s + sale.price, 0), 0);
+        // Ganho do roteirista (80%, já sem reembolsos), na mesma conta da tela de ganhos.
+        const earnings = summarizeEarnings(itineraries.flatMap((it) => it.sales));
         const allReviews = itineraries.flatMap(it => it.reviews);
         const averageRating = allReviews.length > 0
             ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
@@ -260,6 +263,10 @@ router.get('/dashboard/stats', optionalAuthMiddleware, async (req: AuthRequest, 
 
         res.json({
             totalRevenue,
+            totalEarnings: earnings.totalEarned,
+            earningsPending: earnings.pending,
+            earningsAvailable: earnings.available,
+            earningsPaidOut: earnings.paidOut,
             totalSales,
             averageRating: Math.round(averageRating * 10) / 10,
             averageQualityScore,

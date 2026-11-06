@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Router } from '../lib/router';
-import { payoutDueCents } from '../lib/money';
+import { earningOf, summarizeEarnings } from '../lib/money';
 import type Stripe from 'stripe';
 import prisma from '../lib/prisma';
 import { travelerAuthMiddleware, TravelerAuthRequest } from '../middleware/traveler-auth';
@@ -154,13 +154,12 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
         const creator = await prisma.creator.findUnique({
             where: { travelerId: req.traveler!.travelerId },
             include: {
-                balance: true,
                 itineraries: {
                     select: {
                         id: true,
                         title: true,
                         sales: {
-                            select: { id: true, price: true, commission: true, createdAt: true, payoutTransferredAt: true, paidAmountCents: true, creatorEarningCents: true, refundedCents: true, paymentStatus: true, paidCurrency: true },
+                            select: { id: true, price: true, commission: true, createdAt: true, payoutTransferredAt: true, paidAmountCents: true, creatorEarningCents: true, refundedCents: true, disputeLostCents: true, paymentStatus: true, paidCurrency: true },
                             orderBy: { createdAt: 'desc' },
                         },
                     },
@@ -172,33 +171,36 @@ router.get('/me/earnings', travelerAuthMiddleware, async (req: TravelerAuthReque
             return;
         }
 
-        const transactions = creator.itineraries.flatMap((itinerary) =>
-            itinerary.sales.map((sale) => ({
+        const now = new Date();
+        const allSales = creator.itineraries.flatMap((itinerary) => itinerary.sales.map((sale) => ({ itinerary, sale })));
+        const transactions = allSales.map(({ itinerary, sale }) => {
+            const e = earningOf(sale, now);
+            return {
                 id: sale.id,
                 itineraryId: itinerary.id,
                 itineraryTitle: itinerary.title,
                 saleDate: sale.createdAt.toISOString(),
                 grossAmount: sale.price,
                 platformFee: sale.commission,
-                // Valor congelado na venda, proporcional ao que não foi devolvido (SEC-11/13).
-                estimatedPayout: payoutDueCents(sale) / 100,
+                // Ganho de 80% congelado na venda, proporcional ao que não foi devolvido (SEC-11/13).
+                estimatedPayout: e.amount,
                 currency: (sale.paidCurrency || BASE_CURRENCY).toUpperCase(),
-                status: sale.paymentStatus === 'refunded' || sale.paymentStatus === 'dispute_lost' ? 'refunded'
-                    : sale.paymentStatus === 'disputed' ? 'disputed'
-                    : sale.payoutTransferredAt ? 'paid_out' : 'pending',
-            })),
-        ).sort((a, b) => b.saleDate.localeCompare(a.saleDate));
+                status: e.status,
+                releaseDate: e.releaseAt.toISOString(),
+            };
+        }).sort((a, b) => b.saleDate.localeCompare(a.saleDate));
 
-        const totalEarned = transactions.reduce((sum, t) => sum + t.estimatedPayout, 0);
-        const paidOut = transactions.filter((t) => t.status === 'paid_out').reduce((sum, t) => sum + t.estimatedPayout, 0);
-        const pendingFromSales = totalEarned - paidOut;
+        // Uma conta só (lib/money.ts): pendente = dentro dos 7 dias; disponível = liberado e
+        // ainda não enviado; pago = já transferido. A tabela creator_balances não é usada.
+        const totals = summarizeEarnings(allSales.map((x) => x.sale), now);
         res.json({
             summary: {
                 currency: BASE_CURRENCY,
-                availableBalance: creator.balance?.availableBalance ?? 0,
-                pendingBalance: creator.balance?.pendingBalance ?? pendingFromSales,
-                totalEarned,
-                paidOut,
+                availableBalance: totals.available,
+                pendingBalance: totals.pending,
+                nextPayoutDate: totals.nextReleaseAt ?? undefined,
+                totalEarned: totals.totalEarned,
+                paidOut: totals.paidOut,
                 payoutAccountStatus: creator.stripeAccountId ? 'pending' : 'not_started',
             },
             transactions,

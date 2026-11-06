@@ -16,8 +16,8 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { createCreatorOnboardingLink, getCreatorEarnings, getCreatorPayoutStatus } from '../../../../services/api';
 import { notify } from '../../../../utils/notify';
 import { openExternalUrl } from '../../../../utils/externalLinks';
-import { formatBaseCurrency } from '../utils';
-import { shouldShowPayoutWaiting } from '../payoutWaiting';
+import { formatBaseCurrency, formatShortDate } from '../utils';
+import { payoutWaitingCopy, shouldShowPayoutWaiting } from '../payoutWaiting';
 
 interface Props {
     /** Sem `onSetup`, o próprio aviso abre o cadastro de recebimento da Stripe. */
@@ -26,7 +26,7 @@ interface Props {
 
 export function PayoutWaitingBanner({ onSetup }: Props) {
     const { accessToken } = useAuth();
-    const [waiting, setWaiting] = useState<number | null>(null);
+    const [waiting, setWaiting] = useState<{ available: number; pending: number; next: string | null } | null>(null);
     const [busy, setBusy] = useState(false);
 
     const openSetup = useCallback(async () => {
@@ -49,8 +49,10 @@ export function PayoutWaitingBanner({ onSetup }: Props) {
             Promise.all([getCreatorEarnings(accessToken), getCreatorPayoutStatus(accessToken).catch(() => null)])
                 .then(([earnings, payout]) => {
                     if (!alive) return;
+                    const available = earnings.summary.availableBalance ?? 0;
                     const pending = earnings.summary.pendingBalance ?? 0;
-                    setWaiting(shouldShowPayoutWaiting(pending, payout?.status) ? pending : null);
+                    const next = earnings.summary.nextPayoutDate ? formatShortDate(earnings.summary.nextPayoutDate) : null;
+                    setWaiting(shouldShowPayoutWaiting(available + pending, payout?.status) ? { available, pending, next } : null);
                 })
                 .catch(() => { if (alive) setWaiting(null); });
             return () => { alive = false; };
@@ -58,6 +60,7 @@ export function PayoutWaitingBanner({ onSetup }: Props) {
     );
 
     if (waiting == null) return null;
+    const copy = payoutWaitingCopy(waiting.available, waiting.pending, waiting.next, formatBaseCurrency);
 
     return (
         <View style={styles.card} accessibilityRole="alert">
@@ -66,10 +69,8 @@ export function PayoutWaitingBanner({ onSetup }: Props) {
                     <Icon name="card" size={18} color="#A16207" />
                 </View>
                 <View style={styles.textWrap}>
-                    <Text style={styles.title}>{formatBaseCurrency(waiting)} is waiting for you</Text>
-                    <Text style={styles.body}>
-                        Set up payouts to receive your earnings. It takes about 10 minutes with Stripe, our payment partner. Your money stays safe with VAMO until then.
-                    </Text>
+                    <Text style={styles.title}>{copy.title}</Text>
+                    <Text style={styles.body}>{copy.body}</Text>
                 </View>
             </View>
             <VamoButton label="Set up payouts" onPress={openSetup} loading={busy} size="md" />
