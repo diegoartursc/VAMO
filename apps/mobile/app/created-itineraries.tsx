@@ -400,7 +400,7 @@ export default function CreatedItinerariesScreen() {
                     />
 
                     {/* Ganhos esperando o cadastro de recebimento (some quando não há) */}
-                    <PayoutWaitingBanner />
+                    <PayoutWaitingBanner style={{ marginTop: 16 }} />
 
                     {/* Resumo — sempre presente (cards zerados quando sem dados) */}
                     <Text style={s.sectionLabel}>Summary</Text>
