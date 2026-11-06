@@ -1263,3 +1263,16 @@ model StripeEvent {
 
   @@map("stripe_events")
 }
+
+// Taxas de câmbio em uso (uma linha só, id "current"). Atualizadas por job diário
+// (API pública de câmbio) e editáveis pelo admin. Formato: 1 unidade da moeda = X `base`.
+model CurrencyRates {
+  id        String   @id @default("current")
+  base      String
+  rates     Json
+  source    String
+  fetchedAt DateTime
+  updatedAt DateTime @updatedAt
+
+  @@map("currency_rates")
+}

@@ -11,6 +11,7 @@ const CURRENCY_INFO: Record<string, { name: string; emoji: string }> = {
     ARS: { name: "Peso Argentino", emoji: "🇦🇷" },
     AUD: { name: "Dólar Australiano", emoji: "🇦🇺" },
     BOB: { name: "Boliviano", emoji: "🇧🇴" },
+    BRL: { name: "Real Brasileiro", emoji: "🇧🇷" },
     CAD: { name: "Dólar Canadense", emoji: "🇨🇦" },
     CHF: { name: "Franco Suíço", emoji: "🇨🇭" },
     CLP: { name: "Peso Chileno", emoji: "🇨🇱" },
@@ -44,11 +45,23 @@ const CURRENCY_INFO: Record<string, { name: string; emoji: string }> = {
     ZAR: { name: "Rand Sul-africano", emoji: "🇿🇦" },
 };
 
+/** Texto curto: de onde vieram as taxas em uso e quando. */
+function describeRatesMeta(meta: { source: string; fetchedAt: string | null } | null): string {
+    if (!meta) return "";
+    const when = meta.fetchedAt
+        ? new Date(meta.fetchedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+        : null;
+    if (meta.source.startsWith("api:")) return `Última atualização: ${when}.`;
+    if (meta.source === "admin") return `Última alteração: manual, em ${when}.`;
+    return "Ainda sem cotação do dia: usando as taxas padrão do sistema.";
+}
+
 // Obter as chaves em ordem alfabética
 const CURRENCY_KEYS = Object.keys(CURRENCY_INFO).sort();
 
 export default function ConversaoMoedasPage() {
-    const { rates } = useDollarRate();
+    const { rates, meta } = useDollarRate();
+    const [refreshing, setRefreshing] = useState(false);
     const [draftRates, setDraftRates] = useState<Record<string, string>>({});
     const [hasChanges, setHasChanges] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -125,10 +138,36 @@ export default function ConversaoMoedasPage() {
 
         // Atualiza o cache do site somente depois da confirmação do backend.
         localStorage.setItem(CURRENCY_RATES_KEY, JSON.stringify(newRates));
-        window.dispatchEvent(new CustomEvent("currencyRatesUpdated", { detail: { rates: newRates } }));
+        window.dispatchEvent(new CustomEvent("currencyRatesUpdated", {
+            detail: { rates: newRates, meta: { source: "admin", fetchedAt: new Date().toISOString() } },
+        }));
 
         setHasChanges(false);
         setToast({ msg: "Cotações atualizadas com sucesso!", type: "success" });
+    };
+
+    // Busca a cotação do dia agora (o servidor já faz isso sozinho 1x por dia).
+    const handleRefreshNow = async () => {
+        setRefreshing(true);
+        try {
+            const token = localStorage.getItem("adminToken");
+            if (!token) throw new Error("Sessão de administrador expirada.");
+            const response = await fetch(`${API}/rates/refresh`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const body = await response.json().catch(() => null);
+            if (!response.ok || !body?.rates) throw new Error("Não foi possível buscar a cotação agora. As taxas anteriores continuam valendo.");
+            localStorage.setItem(CURRENCY_RATES_KEY, JSON.stringify(body.rates));
+            window.dispatchEvent(new CustomEvent("currencyRatesUpdated", {
+                detail: { rates: body.rates, meta: { source: body.source, fetchedAt: body.fetchedAt } },
+            }));
+            setToast({ msg: `Cotação do dia aplicada (${body.updated} moedas).`, type: "success" });
+        } catch (err) {
+            setToast({ msg: err instanceof Error ? err.message : "Falha ao buscar a cotação.", type: "error" });
+        } finally {
+            setRefreshing(false);
+        }
     };
 
     useEffect(() => {
@@ -160,6 +199,31 @@ export default function ConversaoMoedasPage() {
                     </button>
                 )}
             </header>
+
+            <div style={{
+                marginBottom: 20, padding: "14px 18px", borderRadius: 12, background: "#F0FDFA",
+                border: "1px solid #99F6E4", display: "flex", gap: 16, alignItems: "center",
+                justifyContent: "space-between", flexWrap: "wrap", fontSize: 14, color: "#134E4A",
+            }}>
+                <div>
+                    <strong>Atualização automática:</strong> o sistema busca a cotação do dia 1x por dia
+                    (fonte: ExchangeRate-API, com reserva). {describeRatesMeta(meta)}
+                    <div style={{ fontSize: 12, color: "#0F766E", marginTop: 4 }}>
+                        Uma correção manual vale até a próxima atualização automática (cerca de 24h).
+                    </div>
+                </div>
+                <button
+                    onClick={handleRefreshNow}
+                    disabled={refreshing}
+                    style={{
+                        background: "#0F766E", color: "#fff", border: "none", borderRadius: 10,
+                        padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: refreshing ? "wait" : "pointer",
+                        opacity: refreshing ? 0.7 : 1,
+                    }}
+                >
+                    {refreshing ? "Buscando…" : "Atualizar agora"}
+                </button>
+            </div>
 
             {toast && (
                 <div style={{

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import app from './app';
 import { startReviewRequestScheduler } from './jobs/reviewRequests';
 import { startPayoutScheduler } from './jobs/payouts';
+import { startCurrencyRatesScheduler } from './lib/currencyRates';
 import { assertSafeConfig } from './lib/config';
 
 const PORT = process.env.PORT || 3333;
@@ -24,6 +25,7 @@ app.listen(Number(PORT), HOST, () => {
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
     startReviewRequestScheduler();
     startPayoutScheduler();
+    startCurrencyRatesScheduler();
 });
 
 export default app;

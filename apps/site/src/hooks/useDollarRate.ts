@@ -17,8 +17,14 @@ export const DEFAULT_RATES: CurrencyRates = DEFAULT_RATES_TO_BASE;
  * Mantemos o nome `useDollarRate` para não quebrar componentes existentes,
  * mas ele agora expõe todas as `rates` e realiza a conversão dinâmica.
  */
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
+
+/** De onde vieram as taxas em uso no servidor e quando. */
+export type RatesMeta = { source: string; fetchedAt: string | null };
+
 export function useDollarRate() {
     const [rates, setRates] = useState<CurrencyRates>(DEFAULT_RATES);
+    const [meta, setMeta] = useState<RatesMeta | null>(null);
 
     useEffect(() => {
         const load = () => {
@@ -33,14 +39,30 @@ export function useDollarRate() {
         };
         load();
 
+        // Fonte de verdade: as taxas do servidor (atualizadas 1x por dia).
+        // O localStorage só serve para mostrar algo enquanto a resposta chega.
+        let alive = true;
+        fetch(`${API}/rates/info`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((info) => {
+                if (!alive || !info?.rates) return;
+                setRates(info.rates);
+                setMeta({ source: info.source, fetchedAt: info.fetchedAt });
+                try { localStorage.setItem(CURRENCY_RATES_KEY, JSON.stringify(info.rates)); } catch { /* sem storage */ }
+            })
+            .catch(() => { /* mantém o cache/padrão */ });
+
         const handler = (e: Event) => {
             const detail = (e as CustomEvent).detail;
             if (detail?.rates) {
                 setRates(detail.rates);
             }
+            if (detail?.meta) {
+                setMeta(detail.meta);
+            }
         };
         window.addEventListener("currencyRatesUpdated", handler);
-        return () => window.removeEventListener("currencyRatesUpdated", handler);
+        return () => { alive = false; window.removeEventListener("currencyRatesUpdated", handler); };
     }, []);
 
     /** Converte um valor de qualquer moeda para a moeda base do mercado. */
@@ -65,5 +87,5 @@ export function useDollarRate() {
         maximumFractionDigits: 4,
     });
 
-    return { dollarRate, formattedRate, convertToBase, convertToBRL, rates };
+    return { dollarRate, formattedRate, convertToBase, convertToBRL, rates, meta };
 }

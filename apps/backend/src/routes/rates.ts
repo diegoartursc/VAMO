@@ -1,72 +1,60 @@
 import { Request, Response } from 'express';
 import { Router } from '../lib/router';
-import fs from 'fs';
-import path from 'path';
 import { adminAuthMiddleware } from '../middleware/admin-auth';
-import { BASE_CURRENCY, DEFAULT_RATES_TO_BASE } from '@vamo/shared/itinerary';
+import { BASE_CURRENCY } from '@vamo/shared/itinerary';
+import { getCurrentRates, refreshCurrencyRates, saveRates, SUPPORTED_CURRENCIES } from '../lib/currencyRates';
 
 const router = Router();
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const RATES_FILE = path.join(DATA_DIR, 'currency-rates.json');
-
 /**
- * Taxas padrão com base na moeda-base do mercado (1 unidade da moeda = X moeda-base).
- * Fonte única: DEFAULT_RATES_TO_BASE em packages/shared/itinerary/market.ts.
- * O arquivo salvo pelo admin só vale se declarar a mesma base (formato
- * { base, rates }); arquivos antigos (sem base, relativos a AUD/BRL) são ignorados.
+ * Taxas de câmbio (1 unidade da moeda = X moeda-base). Guardadas no banco e
+ * atualizadas 1x por dia por `src/lib/currencyRates.ts`; ver lá a fonte e as regras.
  */
-const DEFAULT_RATES: Record<string, number> = DEFAULT_RATES_TO_BASE;
 
-function loadRates(): Record<string, number> {
-    try {
-        if (fs.existsSync(RATES_FILE)) {
-            const raw = fs.readFileSync(RATES_FILE, 'utf-8');
-            const saved = JSON.parse(raw);
-            // Só aceita o arquivo se foi salvo na base atual do mercado.
-            if (saved && saved.base === BASE_CURRENCY && saved.rates && typeof saved.rates === 'object') {
-                // Mescla defaults com as taxas salvas (salvas têm prioridade)
-                return { ...DEFAULT_RATES, ...saved.rates, [BASE_CURRENCY]: 1 };
-            }
-        }
-    } catch (err) {
-        console.error('[rates] Erro ao carregar rates.json:', err);
-    }
-    return DEFAULT_RATES;
-}
-
-// GET /api/rates — público, retorna taxas atuais
-router.get('/', (req: Request, res: Response) => {
-    res.json(loadRates());
+// GET /api/rates — público. Mesmo formato de sempre: { "CHF": 1.12, ... }
+router.get('/', async (_req: Request, res: Response) => {
+    res.json((await getCurrentRates()).rates);
 });
 
-// PUT /api/rates — salva taxas atualizadas pelo admin
-router.put('/', adminAuthMiddleware, (req: Request, res: Response) => {
-    const { rates } = req.body;
+// GET /api/rates/info — público. Taxas + de onde vieram e quando.
+router.get('/info', async (_req: Request, res: Response) => {
+    res.json(await getCurrentRates());
+});
 
+// PUT /api/rates — correção manual do admin (vale até a próxima atualização automática).
+router.put('/', adminAuthMiddleware, async (req: Request, res: Response) => {
+    const { rates } = req.body || {};
     if (!rates || typeof rates !== 'object' || Array.isArray(rates)) {
         res.status(400).json({ error: 'Body must contain a "rates" object with currency → value pairs.' });
         return;
     }
-
-    // Valida que todos os valores são números positivos
+    const clean: Record<string, number> = {};
     for (const [code, val] of Object.entries(rates)) {
-        if (typeof val !== 'number' || val <= 0) {
+        if (!SUPPORTED_CURRENCIES.includes(code)) continue; // ignora moeda desconhecida
+        if (typeof val !== 'number' || !Number.isFinite(val) || val <= 0) {
             res.status(400).json({ error: `Invalid rate for ${code}: ${val}` });
             return;
         }
+        clean[code] = val;
     }
-
     try {
-        if (!fs.existsSync(DATA_DIR)) {
-            fs.mkdirSync(DATA_DIR, { recursive: true });
-        }
-        fs.writeFileSync(RATES_FILE, JSON.stringify({ base: BASE_CURRENCY, rates }, null, 2), 'utf-8');
-        res.json({ success: true, rates });
+        const current = await getCurrentRates();
+        const saved = await saveRates({ ...current.rates, ...clean, [BASE_CURRENCY]: 1 }, 'admin');
+        res.json({ success: true, ...saved });
     } catch (err: any) {
-        console.error('[rates] Erro ao salvar rates.json:', err);
-        res.status(500).json({ error: 'Failed to save rates.', detail: err.message });
+        console.error('[rates] erro ao salvar taxas:', err?.message || err);
+        res.status(500).json({ error: 'Failed to save rates.' });
     }
+});
+
+// POST /api/rates/refresh — admin pede a cotação do dia agora.
+router.post('/refresh', adminAuthMiddleware, async (_req: Request, res: Response) => {
+    const result = await refreshCurrencyRates();
+    if (!result.ok) {
+        res.status(502).json({ error: 'Could not fetch today\'s rates right now. The previous rates are still in use.' });
+        return;
+    }
+    res.json({ success: true, ...(await getCurrentRates()), updated: result.updated });
 });
 
 export default router;
