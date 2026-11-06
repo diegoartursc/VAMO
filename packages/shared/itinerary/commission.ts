@@ -34,3 +34,9 @@ export function computeCreatorEarning(price: number, rate: number = PLATFORM_COM
     if (!Number.isFinite(price) || price <= 0) return 0;
     return (Math.round(price * 100) - commissionCents(price, rate)) / 100;
 }
+
+/** Divisão de um preço para mostrar ao roteirista: o comprador paga `price`; ele recebe `creatorEarning`. */
+export function splitPrice(price: number, rate: number = PLATFORM_COMMISSION_RATE): { price: number; creatorEarning: number; commission: number } {
+    const valid = Number.isFinite(price) && price > 0 ? price : 0;
+    return { price: valid, creatorEarning: computeCreatorEarning(valid, rate), commission: computeCommission(valid, rate) };
+}

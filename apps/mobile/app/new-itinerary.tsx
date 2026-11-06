@@ -55,6 +55,7 @@ import { notify } from '../src/utils/notify';
 import { confirm } from '../src/utils/confirm';
 import FormInput from '../src/components/dashboard/FormInput';
 import MoneyInput from '../src/components/dashboard/MoneyInput';
+import PriceSplitCard from '../src/components/dashboard/PriceSplitCard';
 import VamoTimePicker from '../src/components/dashboard/VamoTimePicker';
 import EditableList from '../src/components/dashboard/EditableList';
 import CostBlock, { costToLegacySpending } from '../src/components/dashboard/CostBlock';
@@ -1507,6 +1508,9 @@ function StepCommerce({ form, update }: StepProps) {
                 onChangeNumber={n => update('price', Math.max(0, n))}
             />
 
+            {/* Quanto o roteirista recebe (80/20), ao vivo conforme digita */}
+            <PriceSplitCard price={form.price} currency={form.currency} />
+
             {/* Aviso automático — produto digital */}
             <View style={s.commerceWarningCard}>
                 <Ionicons name="warning-outline" size={16} color="#ea580c" style={{ marginTop: 1 }} />
@@ -2787,6 +2791,8 @@ function StepReview({ form, onPreview, onFixIssue }: { form: ItineraryFormState;
     return (
         <View>
             <SectionHeader title="Final review" subtitle="Check everything before submitting for review." />
+
+            {form.price > 0 && <PriceSplitCard price={form.price} currency={form.currency} compact />}
 
             <View style={s.scoreCard}>
                 <Text style={s.scoreLabel}>Itinerary strength</Text>
