@@ -31,7 +31,7 @@ const BLOCKS: Block[] = [
         title: `You keep ${CREATOR_SHARE_PERCENT}% of every sale`,
         paragraphs: [
             `VAMO's commission is ${PLATFORM_COMMISSION_PERCENT}% of the itinerary price. The rest is yours.`,
-            `Example: on a ${formatMoney(EXAMPLE_PRICE)} itinerary, VAMO's commission is ${formatMoney(computeCommission(EXAMPLE_PRICE))} and you earn ${formatMoney(computeCreatorEarning(EXAMPLE_PRICE))}, before card processing fees.`,
+            `Example: on a ${formatMoney(EXAMPLE_PRICE)} itinerary, VAMO's commission is ${formatMoney(computeCommission(EXAMPLE_PRICE))} and you earn ${formatMoney(computeCreatorEarning(EXAMPLE_PRICE))}. Card processing fees are not taken out of your share.`,
             'Every sale shows its price, commission and your earnings in Creator Portal → My sales.',
         ],
     },
@@ -64,7 +64,7 @@ const BLOCKS: Block[] = [
         icon: 'file',
         title: 'Fees and taxes',
         paragraphs: [
-            'Card processing fees are charged by Stripe and are shown in your earnings.',
+            'Card processing fees are charged by Stripe and paid by VAMO out of its commission. They are never deducted from your earnings.',
             'You are responsible for reporting and paying your own taxes on what you earn. Stripe may send you tax forms (such as a Form 1099) where required. Talk to a tax professional if you are not sure what applies to you.',
         ],
     },

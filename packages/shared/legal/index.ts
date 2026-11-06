@@ -6,7 +6,7 @@
  * Bump LEGAL_VERSION whenever any document changes (used later to record acceptance).
  */
 
-export const LEGAL_VERSION = "2026-10-27";
+export const LEGAL_VERSION = "2026-11-06";
 export const LEGAL_LAST_UPDATED = "October 27, 2026";
 
 export const LEGAL_PLACEHOLDERS = {
@@ -317,7 +317,7 @@ const CREATORS: LegalDoc = {
         {
             heading: "5. Price, commission and payouts",
             paragraphs: [
-                "You set the price of your itinerary within the limits shown in the app. VAMO keeps a platform commission of 20% of the itinerary price on each sale, and you receive the remaining 80%, before payment-processing fees where they apply. Your price, commission and earnings for every sale are shown in your Creator dashboard, and we will give notice before changing the rate for future sales. Payment-processing fees and refunds are handled as shown in the dashboard.",
+                "You set the price of your itinerary within the limits shown in the app. VAMO keeps a platform commission of 20% of the itinerary price on each sale, and you receive the remaining 80%. VAMO pays the card payment-processing fees from its commission, so they are not deducted from your 80%. Your price, commission and earnings for every sale are shown in your Creator dashboard, and we will give notice before changing the rate for future sales. If a sale is refunded or lost in a dispute, your earnings from that sale are reduced or reversed in proportion, as described in the Refund Policy.",
                 "Payouts, when enabled, are made through our payment provider after you complete its identity and tax onboarding. You are responsible for reporting and paying your own taxes. VAMO may withhold or reverse earnings for refunded sales, fraud or breach of these terms. Until automated payouts are available, we will tell you how and when earnings are paid.",
             ],
         },
