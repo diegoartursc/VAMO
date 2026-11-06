@@ -7,7 +7,7 @@
  * conta está verificada ou não há nada pendente. Falha silenciosa.
  */
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { theme } from '../../../../theme/theme';
 import { Icon } from '../../../../components/common/Icons';
@@ -22,9 +22,11 @@ import { payoutWaitingCopy, shouldShowPayoutWaiting } from '../payoutWaiting';
 interface Props {
     /** Sem `onSetup`, o próprio aviso abre o cadastro de recebimento da Stripe. */
     onSetup?: () => void;
+    /** Espaçamento externo de quem usa (ex.: afastar do bloco azul do Portal). */
+    style?: StyleProp<ViewStyle>;
 }
 
-export function PayoutWaitingBanner({ onSetup }: Props) {
+export function PayoutWaitingBanner({ onSetup, style }: Props) {
     const { accessToken } = useAuth();
     const [waiting, setWaiting] = useState<{ available: number; pending: number; next: string | null } | null>(null);
     const [busy, setBusy] = useState(false);
@@ -63,7 +65,7 @@ export function PayoutWaitingBanner({ onSetup }: Props) {
     const copy = payoutWaitingCopy(waiting.available, waiting.pending, waiting.next, formatBaseCurrency);
 
     return (
-        <View style={styles.card} accessibilityRole="alert">
+        <View style={[styles.card, style]} accessibilityRole="alert">
             <View style={styles.row}>
                 <View style={styles.iconWrap}>
                     <Icon name="card" size={18} color="#A16207" />
