@@ -3,7 +3,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeCommission, computeCreatorEarning, PLATFORM_COMMISSION_RATE, PLATFORM_COMMISSION_PERCENT, CREATOR_SHARE_PERCENT } from './commission';
+import { splitPrice, computeCommission, computeCreatorEarning, PLATFORM_COMMISSION_RATE, PLATFORM_COMMISSION_PERCENT, CREATOR_SHARE_PERCENT } from './commission';
 
 test('comissão e ganho do roteirista somam o preço (sem perder centavo)', () => {
     for (const price of [0.99, 9.9, 13.9, 26.9, 29.9, 39.9, 100, 1234.56]) {
@@ -30,4 +30,11 @@ test('preço inválido ou grátis não gera comissão', () => {
 test('percentuais exibidos batem com a taxa', () => {
     assert.equal(PLATFORM_COMMISSION_PERCENT, Math.round(PLATFORM_COMMISSION_RATE * 100));
     assert.equal(PLATFORM_COMMISSION_PERCENT + CREATOR_SHARE_PERCENT, 100);
+});
+
+test('splitPrice: o comprador paga o preço do roteirista; ele recebe 80% e a VAMO 20%', () => {
+    assert.deepEqual(splitPrice(10), { price: 10, creatorEarning: 8, commission: 2 });
+    assert.deepEqual(splitPrice(26.9), { price: 26.9, creatorEarning: 21.52, commission: 5.38 });
+    assert.deepEqual(splitPrice(0), { price: 0, creatorEarning: 0, commission: 0 });
+    assert.deepEqual(splitPrice(NaN), { price: 0, creatorEarning: 0, commission: 0 });
 });
