@@ -161,6 +161,40 @@ export function sendPurchaseAutoRefundEmail(opts: {
     ));
 }
 
+/**
+ * Reembolso feito pela VAMO (painel da Stripe) depois de uma venda concluída.
+ * `amount` é o valor devolvido NESTE reembolso, em unidades da moeda.
+ * Total: o acesso ao roteiro termina. Parcial: o acesso continua.
+ */
+export function sendPurchaseRefundedEmail(opts: {
+    to: string;
+    name: string;
+    itineraryTitle: string;
+    amount?: number | null;
+    currency?: string | null;
+    full: boolean;
+}): Promise<boolean> {
+    const first = firstName(opts.name);
+    const amount = formatMoney(opts.amount, opts.currency);
+    const accessLine = opts.full
+        ? 'Because this was a full refund, your access to this itinerary has ended and it no longer appears in My Itineraries.'
+        : 'This was a partial refund, so you keep full access to the itinerary in My Itineraries.';
+    const html = layout({
+        title: opts.full ? 'Your refund is on its way' : 'Your partial refund is on its way',
+        body: P(`Hi ${escapeHtml(first)}. We issued a ${opts.full ? 'full' : 'partial'} refund${amount ? ` of <strong>${escapeHtml(amount)}</strong>` : ''} for the itinerary:`)
+            + HIGHLIGHT(opts.itineraryTitle)
+            + P(escapeHtml(accessLine))
+            + P('The money goes back to the card you paid with. How long it takes to show up depends on your card issuer (usually 5 to 10 business days).'),
+        cta: opts.full ? { label: 'Browse other itineraries', url: appLink('/') } : { label: 'Open My Itineraries', url: appLink('/my-trips') },
+    });
+    return send(opts.to, `Refund issued: ${opts.itineraryTitle}`, html, textOf(
+        `Hi ${first}. We issued a ${opts.full ? 'full' : 'partial'} refund${amount ? ` of ${amount}` : ''} for the itinerary "${opts.itineraryTitle}".`,
+        accessLine,
+        'The money goes back to the card you paid with (usually 5 to 10 business days, depending on your card issuer).',
+        `Questions: ${supportEmail()}`,
+    ));
+}
+
 export function buildPasswordResetUrl(rawToken: string): string {
     return appLink(`/reset-password?token=${encodeURIComponent(rawToken)}`);
 }

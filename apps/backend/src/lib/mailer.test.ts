@@ -87,3 +87,14 @@ test('sem SMTP configurado: não lança, só retorna false', async () => {
         process.env.SMTP_PASS = pass;
     }
 });
+
+test('reembolso: total avisa fim do acesso, parcial mantém; valor em unidades da moeda', async () => {
+    const m = await load();
+    await m.sendPurchaseRefundedEmail({ to: 'a@x.test', name: 'Ana Paula', itineraryTitle: 'Kyoto <b>', amount: 26.9, currency: 'usd', full: true });
+    assert.match(last().html, /\$26\.90/);
+    assert.match(last().html, /access to this itinerary has ended/);
+    assert.ok(!last().html.includes('Kyoto <b>'), 'título precisa ser escapado');
+    await m.sendPurchaseRefundedEmail({ to: 'a@x.test', name: 'Ana Paula', itineraryTitle: 'Kyoto', amount: 10, currency: 'usd', full: false });
+    assert.match(last().text, /keep full access/);
+    assert.ok(last().html.includes('https://app.exemplo.test/my-trips'));
+});

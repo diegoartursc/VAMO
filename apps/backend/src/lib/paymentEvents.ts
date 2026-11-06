@@ -13,6 +13,7 @@
 import type Stripe from 'stripe';
 import prisma from './prisma';
 import { PAYMENT_STATUS, paidCentsOf, reversalTargetCents } from './money';
+import { sendPurchaseRefundedEmail } from './mailer';
 
 type SaleRow = Awaited<ReturnType<typeof prisma.itinerarySale.findFirst>> & Record<string, any>;
 
@@ -64,15 +65,45 @@ async function onChargeRefunded(stripe: Stripe, charge: any) {
     const paid = sale.paidAmountCents ?? (Number(charge.amount) || paidCentsOf(sale as any));
     const full = refunded >= paid;
     const keepLost = sale.paymentStatus === PAYMENT_STATUS.disputeLost;
-    await prisma.itinerarySale.update({
-        where: { id: sale.id },
-        data: {
-            refundedCents: refunded,
-            paymentStatus: keepLost ? sale.paymentStatus : full ? PAYMENT_STATUS.refunded : PAYMENT_STATUS.partiallyRefunded,
-            payoutStatus: full && !sale.payoutTransferId ? 'blocked' : sale.payoutStatus,
-        },
-    });
+    const previous = sale.refundedCents ?? 0;
+    const data = {
+        refundedCents: refunded,
+        paymentStatus: keepLost ? sale.paymentStatus : full ? PAYMENT_STATUS.refunded : PAYMENT_STATUS.partiallyRefunded,
+        payoutStatus: full && !sale.payoutTransferId ? 'blocked' : sale.payoutStatus,
+    };
+    // Grava primeiro, com transição atômica: só quem AUMENTOU o valor devolvido
+    // avisa o comprador. Evento repetido ou fora de ordem não reenvia o e-mail.
+    const grew = refunded > previous
+        ? (await prisma.itinerarySale.updateMany({
+            where: { id: sale.id, refundedCents: { lt: refunded } },
+            data,
+        })).count === 1
+        : false;
+    if (!grew) await prisma.itinerarySale.update({ where: { id: sale.id }, data });
+    if (grew && !keepLost) {
+        notifyBuyerOfRefund(sale, refunded - previous, full)
+            .catch((e) => console.error('[payments] refund email failed:', e?.message || e));
+    }
     if (sale.payoutTransferId) await reverseTransfer(stripe, { ...sale, refundedCents: refunded }, 'refund');
+}
+
+/** Aviso ao comprador de um reembolso feito pela VAMO. Teste pode trocar `send`. */
+export const refundNotifier = { send: sendPurchaseRefundedEmail };
+
+async function notifyBuyerOfRefund(sale: SaleRow, refundedNowCents: number, full: boolean) {
+    const [traveler, itinerary] = await Promise.all([
+        prisma.traveler.findUnique({ where: { id: sale.travelerId }, select: { email: true, name: true } }),
+        prisma.itinerary.findUnique({ where: { id: sale.itineraryId }, select: { title: true, currency: true } }),
+    ]);
+    if (!traveler?.email) return;
+    await refundNotifier.send({
+        to: traveler.email,
+        name: traveler.name,
+        itineraryTitle: itinerary?.title || 'your itinerary',
+        amount: refundedNowCents / 100,
+        currency: sale.paidCurrency || itinerary?.currency,
+        full,
+    });
 }
 
 async function onDispute(stripe: Stripe, dispute: any, closed: boolean) {
