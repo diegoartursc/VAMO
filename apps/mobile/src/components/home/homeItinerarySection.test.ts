@@ -125,9 +125,9 @@ test('25. imports que só serviam ao mini card foram removidos', () => {
     for (const orfao of ['useFavorites', 'getCoverImages', 'formatMoney', 'getRouteRatingDisplay', 'FALLBACK_IMAGE', 'getPrimaryImage', 'formatPrice']) {
         assert.ok(!home.includes(orfao), `"${orfao}" ficou órfão na Home`);
     }
-    // Image continua em uso pelo Hero — não pode ter sido removido junto.
-    assert.ok(home.includes('<Image'), 'o Hero ainda usa Image');
-    assert.ok(/^\s+Image,$/m.test(home), 'o import de Image precisa continuar');
+    // A capa (Hero) agora é um fundo animado com as fotos dos roteiros (CoverCarousel).
+    assert.ok(home.includes('<CoverCarousel'), 'o Hero usa o CoverCarousel como fundo');
+    assert.ok(home.includes('selectHeroImages'), 'as fotos do Hero vêm de selectHeroImages');
 });
 
 test('26. estilos mortos removidos, estilos ainda usados preservados', () => {

@@ -371,3 +371,51 @@ function publishedTime(it: any): number {
     const t = new Date(candidate).getTime();
     return Number.isFinite(t) ? t : 0;
 }
+
+// ─── Capa da Home (fundo animado) ───────────────────────────────
+/**
+ * Fotos do fundo da capa da Home: roteiros em destaque primeiro, depois os
+ * mais vendidos (e, se faltar, os de melhor qualidade). As fotos são
+ * INTERCALADAS entre roteiros (1ª de cada, depois 2ª de cada…), então duas
+ * fotos seguidas nunca são do mesmo roteiro enquanto houver mais de um.
+ * Só visual: a capa não é clicável.
+ */
+export function selectHeroImages(
+    itineraries: any[],
+    opts: { maxItineraries?: number; perItinerary?: number; max?: number } = {},
+): string[] {
+    const { maxItineraries = 6, perItinerary = 3, max = 12 } = opts;
+    if (!Array.isArray(itineraries)) return [];
+    const photosOf = (it: any): string[] =>
+        (Array.isArray(it?.images) ? it.images : [])
+            .filter((u: unknown): u is string => typeof u === 'string' && /^https?:\/\//.test(u));
+
+    const featured = selectFeatured(itineraries, maxItineraries);
+    const featuredIds = new Set(featured.map((it) => it.id));
+    const rest = itineraries
+        .filter(isShowcaseItinerary)
+        .filter((it) => !featuredIds.has(it.id))
+        .sort((a, b) =>
+            (Number(b.salesCount) || 0) - (Number(a.salesCount) || 0)
+            || (Number(b.qualityScore) || 0) - (Number(a.qualityScore) || 0)
+            || publishedTime(b) - publishedTime(a));
+
+    const chosen = [...featured, ...rest]
+        .map((it) => photosOf(it).slice(0, perItinerary))
+        .filter((photos) => photos.length > 0)
+        .slice(0, maxItineraries);
+
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (let round = 0; round < perItinerary && out.length < max; round++) {
+        const inRound = chosen.filter((photos) => photos[round]);
+        // Com um único roteiro restante, parar evita fotos seguidas do mesmo lugar.
+        if (round > 0 && inRound.length < 2) break;
+        for (const photos of inRound) {
+            const url = photos[round];
+            if (!seen.has(url)) { seen.add(url); out.push(url); }
+            if (out.length >= max) break;
+        }
+    }
+    return out;
+}
