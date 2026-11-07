@@ -1,6 +1,7 @@
 /**
  * Comprovantes privados (SEC-03).
  *   POST /api/private-docs            — envia um comprovante (criador logado)
+ *   GET  /api/private-docs/link/:id   — link assinado novo (só o dono)
  *   GET  /api/private-docs/:id/:name  — abre com link assinado (dono/admin)
  */
 import { Request, Response } from 'express';
@@ -103,6 +104,20 @@ async function handleUpload(req: TravelerAuthRequest, res: Response, err: any) {
         mediaType: doc.mimeType === 'application/pdf' ? 'document' : 'image',
     });
 }
+
+// Link assinado NOVO para o dono (o que veio com o roteiro vence em 30 min).
+// Fica antes de '/:id/:name' e com o prefixo fixo para não colidir com ele.
+router.get('/link/:id', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
+    const doc = await prisma.privateDocument.findFirst({
+        where: { id: String(req.params.id), ownerTravelerId: req.traveler!.travelerId },
+        select: { id: true, originalFileName: true },
+    });
+    if (!doc) {
+        res.status(404).json({ error: 'File not found' });
+        return;
+    }
+    res.json({ url: signedDocUrl(req, doc.id, doc.originalFileName) });
+});
 
 router.get('/:id/:name', async (req: Request, res: Response) => {
     const claims = verifyDocumentToken(req.query.token);

@@ -8,6 +8,27 @@ import { BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
 
 export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api";
 
+/* Comprovantes privados: o link assinado que vem com os dados vence em 30 min e o
+   painel guarda os dados em cache. No clique, pede um link novo ao backend e abre
+   esse; se não der, abre o original. Use como onClick de qualquer <a> de comprovante. */
+const PRIVATE_DOC_PATH = /\/api\/private-docs\/([A-Za-z0-9_-]{5,64})\//;
+export function openPrivateDoc(e: React.MouseEvent, url: string) {
+    const id = PRIVATE_DOC_PATH.exec(url)?.[1];
+    const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+    if (!id || !token) return; // segue o href normal
+    e.preventDefault();
+    const win = window.open("about:blank", "_blank"); // abre já no clique (evita bloqueio de pop-up)
+    if (win) win.opener = null;
+    fetch(`${API}/admin/private-docs/link/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
+        .then(r => (r.ok ? r.json() : null))
+        .catch(() => null)
+        .then((d: { url?: string } | null) => {
+            const target = d?.url || url;
+            if (win) win.location.href = target;
+            else window.open(target, "_blank", "noopener,noreferrer");
+        });
+}
+
 /* ═══════════════════════════════════════════════════
    TYPES
    ═══════════════════════════════════════════════════ */
@@ -322,6 +343,7 @@ export function ItemList({ items, type, onApprove, onReject, onCostProofs, empty
                                 {type === "itineraries" && item.travelProofUrl && (
                                     <a
                                         href={item.travelProofUrl}
+                                        onClick={e => openPrivateDoc(e, item.travelProofUrl)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         style={{
