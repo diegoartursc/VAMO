@@ -1,5 +1,7 @@
 # Segurança pós-correção — VAMO (relatório vivo)
 
+> **Revisão posterior em 07/11/2026:** a [verificação independente da execução do plano](VERIFICACAO-PLANO-SEGURANCA-2026-11-07.md) confirmou as implementações e encontrou falhas remanescentes, inclusive financeiras com PostgreSQL descartável. Os estados e pareceres abaixo registram a revisão histórica; consulte o documento novo para a conclusão atual.
+
 Branch: `security-fixes-2026-10-28` (criada a partir de `4bc6f9e`, sem push).
 Executor: Claude Opus 5.5, seguindo `docs/PROMPT-CLAUDE-CORRECAO-SEGURANCA-2026-10-28.md`.
 Ambiente: `.claude/skip-boot` presente; nenhum servidor local ligado (3333, 8081 e 3034 livres); nenhum acesso a banco, Stripe, SMTP ou storage reais.

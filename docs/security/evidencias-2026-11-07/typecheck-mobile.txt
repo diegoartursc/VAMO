@@ -1,0 +1,4 @@
+apps/mobile/src/components/common/VamoButton.tsx(91,17): error TS2322: Type '{ minHeight: number; paddingVertical: number; paddingHorizontal: number; borderRadius: number; backgroundColor: string; borderColor: string | null; borderWidth: number; }' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Types of property 'borderColor' are incompatible.
+    Type 'string | null' is not assignable to type 'ColorValue | undefined'.
+      Type 'null' is not assignable to type 'ColorValue | undefined'.

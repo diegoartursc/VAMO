@@ -1,0 +1,451 @@
+# Subtest: 13. o selo de verificação aparece UMA vez só (saiu de cima da imagem)
+ok 1 - 13. o selo de verificação aparece UMA vez só (saiu de cima da imagem)
+# Subtest: a localização não ocupa mais uma linha isolada no rodapé
+ok 2 - a localização não ocupa mais uma linha isolada no rodapé
+# Subtest: 3. a descrição é limitada a uma linha com ellipsis
+ok 3 - 3. a descrição é limitada a uma linha com ellipsis
+# Subtest: 1. o título continua com no máximo duas linhas
+ok 4 - 1. o título continua com no máximo duas linhas
+# Subtest: as duas linhas do painel são rotuladas e semanticamente separadas
+ok 5 - as duas linhas do painel são rotuladas e semanticamente separadas
+# Subtest: o painel não usa flexWrap (altura previsível) nem rolagem horizontal
+ok 6 - o painel não usa flexWrap (altura previsível) nem rolagem horizontal
+# Subtest: 11. sem categorias E sem módulos o painel inteiro não renderiza
+ok 7 - 11. sem categorias E sem módulos o painel inteiro não renderiza
+# Subtest: os pills usam ícones Lucide, sem emoji
+ok 8 - os pills usam ícones Lucide, sem emoji
+# Subtest: altura e tipografia dos pills ficam na faixa compacta especificada
+ok 9 - altura e tipografia dos pills ficam na faixa compacta especificada
+# Subtest: 14/15. favoritar e carrinho não abrem o roteiro (stopPropagation)
+ok 10 - 14/15. favoritar e carrinho não abrem o roteiro (stopPropagation)
+# Subtest: 17. o gate de compra continua intacto (carrinho, dono, disponibilidade)
+ok 11 - 17. o gate de compra continua intacto (carrinho, dono, disponibilidade)
+# Subtest: 16. o CTA abre os detalhes e o botão do carrinho mantém 44x44
+ok 12 - 16. o CTA abre os detalhes e o botão do carrinho mantém 44x44
+# Subtest: 18. estados acessíveis nos botões de ação
+ok 13 - 18. estados acessíveis nos botões de ação
+# Subtest: 12. o card não reserva espaço para seções ausentes (marginTop, não marginBottom)
+ok 14 - 12. o card não reserva espaço para seções ausentes (marginTop, não marginBottom)
+# Subtest: a origem dos dados continua centralizada em itineraryCardBadges
+ok 15 - a origem dos dados continua centralizada em itineraryCardBadges
+# Subtest: nenhum nome de categoria ou módulo está hardcoded no card ou no painel
+ok 16 - nenhum nome de categoria ou módulo está hardcoded no card ou no painel
+# Subtest: 2. a linha do carrossel estica todos os slides (alignItems: stretch)
+ok 17 - 2. a linha do carrossel estica todos os slides (alignItems: stretch)
+# Subtest: 4. o wrapper aceita a altura da linha e o gradiente PREENCHE o wrapper
+ok 18 - 4. o wrapper aceita a altura da linha e o gradiente PREENCHE o wrapper
+# Subtest: minHeight continua como piso de segurança, não como altura fixa
+ok 19 - minHeight continua como piso de segurança, não como altura fixa
+# Subtest: 3/4. nenhuma altura é definida por slide, id, cor ou posição
+ok 20 - 3/4. nenhuma altura é definida por slide, id, cor ou posição
+# Subtest: 5. todos os slides usam o MESMO objeto de estilo (sem variantes)
+ok 21 - 5. todos os slides usam o MESMO objeto de estilo (sem variantes)
+# Subtest: 7. o CTA fica ancorado no rodapé, igual em todos os cards
+ok 22 - 7. o CTA fica ancorado no rodapé, igual em todos os cards
+# Subtest: 7. a ordem interna é ícone → texto → CTA
+ok 23 - 7. a ordem interna é ícone → texto → CTA
+# Subtest: 9. o CTA continua renderizado em todos os slides
+ok 24 - 9. o CTA continua renderizado em todos os slides
+# Subtest: 7/8. título em 2 linhas e subtítulo em 3, sempre com reticências
+ok 25 - 7/8. título em 2 linhas e subtítulo em 3, sempre com reticências
+# Subtest: 8. a área reservada do título é derivada do lineHeight (não número solto)
+ok 26 - 8. a área reservada do título é derivada do lineHeight (não número solto)
+# Subtest: 9. largura, snap e paddings continuam como estavam
+ok 27 - 9. largura, snap e paddings continuam como estavam
+# Subtest: 9. a largura continua vindo do container medido, não da tela
+ok 28 - 9. a largura continua vindo do container medido, não da tela
+# Subtest: 10/13. autoplay e paginação continuam derivando de slides.length
+ok 29 - 10/13. autoplay e paginação continuam derivando de slides.length
+# Subtest: 13. um slide novo não exige nenhuma alteração de estilo
+ok 30 - 13. um slide novo não exige nenhuma alteração de estilo
+# Subtest: 12. o card inteiro é uma ação acessível com nome descritivo
+ok 31 - 12. o card inteiro é uma ação acessível com nome descritivo
+# Subtest: 16/17. Home e tela de roteiros renderizam o mesmo componente
+ok 32 - 16/17. Home e tela de roteiros renderizam o mesmo componente
+# Subtest: 18. nenhuma tela passa altura ou corrige o carrossel por fora
+ok 33 - 18. nenhuma tela passa altura ou corrige o carrossel por fora
+# Subtest: 14. os textos dos slides não foram encurtados para "caber"
+ok 34 - 14. os textos dos slides não foram encurtados para "caber"
+# Subtest: os gradientes originais foram preservados
+ok 35 - os gradientes originais foram preservados
+# Subtest: 6. largura padrão é 320 sempre que couber
+ok 36 - 6. largura padrão é 320 sempre que couber
+# Subtest: em tela estreita o card encolhe e não encosta nas bordas
+ok 37 - em tela estreita o card encolhe e não encosta nas bordas
+# Subtest: largura inválida cai no padrão, sem quebrar
+ok 38 - largura inválida cai no padrão, sem quebrar
+# Subtest: 7/8. gap e padding do carrossel têm um valor único
+ok 39 - 7/8. gap e padding do carrossel têm um valor único
+# Subtest: 1-4. a seção renderiza o ItineraryCard oficial (não uma cópia)
+ok 40 - 1-4. a seção renderiza o ItineraryCard oficial (não uma cópia)
+# Subtest: a seção usa a mesma largura calculada para todos os cards
+ok 41 - a seção usa a mesma largura calculada para todos os cards
+# Subtest: a largura responde ao redimensionamento (useWindowDimensions)
+ok 42 - a largura responde ao redimensionamento (useWindowDimensions)
+# Subtest: 24. seção sem roteiros e sem fallback não renderiza
+ok 43 - 24. seção sem roteiros e sem fallback não renderiza
+# Subtest: 5. HomeMiniItineraryCard não existe mais
+ok 44 - 5. HomeMiniItineraryCard não existe mais
+# Subtest: 1-4. as quatro seções de roteiros usam HomeItinerarySection
+ok 45 - 1-4. as quatro seções de roteiros usam HomeItinerarySection
+# Subtest: a Home não renderiza mais nenhum card de roteiro por conta própria
+ok 46 - a Home não renderiza mais nenhum card de roteiro por conta própria
+# Subtest: 7/8. não há mais contentContainerStyle inline com padding/gap de carrossel
+ok 47 - 7/8. não há mais contentContainerStyle inline com padding/gap de carrossel
+# Subtest: 25. imports que só serviam ao mini card foram removidos
+ok 48 - 25. imports que só serviam ao mini card foram removidos
+# Subtest: 26. estilos mortos removidos, estilos ainda usados preservados
+ok 49 - 26. estilos mortos removidos, estilos ainda usados preservados
+# Subtest: 22/23. cada seção mantém seu seletor e seu limite
+ok 50 - 22/23. cada seção mantém seu seletor e seu limite
+# Subtest: 21. o "Ver todos" de cada seção mantém o destino original
+ok 51 - 21. o "Ver todos" de cada seção mantém o destino original
+# Subtest: 16. a origem da seção vai para o analytics, sem evento duplicado
+ok 52 - 16. a origem da seção vai para o analytics, sem evento duplicado
+# Subtest: 19. o Slider não é mais renderizado nem importado no SearchModal
+ok 53 - 19. o Slider não é mais renderizado nem importado no SearchModal
+# Subtest: 20. os textos "1 dia" e "30 dias" do slider não aparecem mais
+ok 54 - 20. os textos "1 dia" e "30 dias" do slider não aparecem mais
+# Subtest: o componente DurationSlider foi removido do projeto
+ok 55 - o componente DurationSlider foi removido do projeto
+# Subtest: o modal não guarda mais duração como número único
+ok 56 - o modal não guarda mais duração como número único
+# Subtest: as opções de duração vêm da constante compartilhada, não de literais locais
+ok 57 - as opções de duração vêm da constante compartilhada, não de literais locais
+# Subtest: 24. todos os cabeçalhos de seção usam a mesma estrutura de ícone
+ok 58 - 24. todos os cabeçalhos de seção usam a mesma estrutura de ícone
+# Subtest: cabeçalhos não usam emoji
+ok 59 - cabeçalhos não usam emoji
+# Subtest: a prévia de contagem usa a função pura compartilhada
+ok 60 - a prévia de contagem usa a função pura compartilhada
+# Subtest: aviso: só com ganho a receber e conta não verificada
+ok 61 - aviso: só com ganho a receber e conta não verificada
+# Subtest: só pendente (dentro dos 7 dias): não diz que está disponível; mostra quando libera
+ok 62 - só pendente (dentro dos 7 dias): não diz que está disponível; mostra quando libera
+# Subtest: já liberado: diz que está pronto e depende só do cadastro
+ok 63 - já liberado: diz que está pronto e depende só do cadastro
+# Subtest: resolveGeneralTipText: string crua (shape canônico de generalTips)
+ok 64 - resolveGeneralTipText: string crua (shape canônico de generalTips)
+# Subtest: resolveGeneralTipText: objeto { text } (overlay do viajante)
+ok 65 - resolveGeneralTipText: objeto { text } (overlay do viajante)
+# Subtest: resolveGeneralTipText: trims espaços em ambos os shapes
+ok 66 - resolveGeneralTipText: trims espaços em ambos os shapes
+# Subtest: resolveGeneralTipText: string só de espaços vira vazia
+ok 67 - resolveGeneralTipText: string só de espaços vira vazia
+# Subtest: resolveGeneralTipText: null/undefined/objeto sem campo de texto vira vazia
+ok 68 - resolveGeneralTipText: null/undefined/objeto sem campo de texto vira vazia
+# Subtest: resolveGeneralTipText: nunca produz "[object Object]"
+ok 69 - resolveGeneralTipText: nunca produz "[object Object]"
+# Subtest: applyPatch: patch sobre string crua não espalha caracteres em índices numéricos
+ok 70 - applyPatch: patch sobre string crua não espalha caracteres em índices numéricos
+# Subtest: applyPatch: patch sobre objeto continua fazendo merge normal
+ok 71 - applyPatch: patch sobre objeto continua fazendo merge normal
+# Subtest: applyPatch: valor null no patch remove o campo
+ok 72 - applyPatch: valor null no patch remove o campo
+# Subtest: merge: dicas originais (string[]) aparecem como source original
+ok 73 - merge: dicas originais (string[]) aparecem como source original
+# Subtest: merge: dica adicionada pelo viajante aparece com source added
+ok 74 - merge: dica adicionada pelo viajante aparece com source added
+# Subtest: merge: dica editada reflete o novo texto, não o original
+ok 75 - merge: dica editada reflete o novo texto, não o original
+# Subtest: merge: dica excluída não é restaurada a partir do snapshot
+ok 76 - merge: dica excluída não é restaurada a partir do snapshot
+# Subtest: merge: sem alterações do viajante, dicas originais permanecem intactas
+ok 77 - merge: sem alterações do viajante, dicas originais permanecem intactas
+# Subtest: merge: roteiro sem generalTips retorna array vazio (sem lançar erro)
+ok 78 - merge: roteiro sem generalTips retorna array vazio (sem lançar erro)
+# Subtest: original: dicas do criador (string[]) aparecem com o texto visível
+ok 79 - original: dicas do criador (string[]) aparecem com o texto visível
+# Subtest: original: roteiro sem dicas não renderiza título nem seção
+ok 80 - original: roteiro sem dicas não renderiza título nem seção
+# Subtest: original: generalTips ausente (undefined) não quebra e não renderiza seção
+ok 81 - original: generalTips ausente (undefined) não quebra e não renderiza seção
+# Subtest: dica só com espaços é tratada como vazia — não vira card nem "esconde" a seção inteira indevidamente
+ok 82 - dica só com espaços é tratada como vazia — não vira card nem "esconde" a seção inteira indevidamente
+# Subtest: todas as dicas em branco: seção inteira some (sem título nem caixas vazias)
+ok 83 - todas as dicas em branco: seção inteira some (sem título nem caixas vazias)
+# Subtest: nenhum card renderizado tem parágrafo de texto vazio
+ok 84 - nenhum card renderizado tem parágrafo de texto vazio
+# Subtest: personalizado sem alterações: dicas originais permanecem visíveis
+ok 85 - personalizado sem alterações: dicas originais permanecem visíveis
+# Subtest: personalizado com dica adicionada: original + nova aparecem, nova com badge "Adicionado"
+ok 86 - personalizado com dica adicionada: original + nova aparecem, nova com badge "Adicionado"
+# Subtest: personalizado com dica editada: mostra o texto novo, não o antigo
+ok 87 - personalizado com dica editada: mostra o texto novo, não o antigo
+# Subtest: personalizado com dica excluída: não é restaurada a partir do snapshot original
+ok 88 - personalizado com dica excluída: não é restaurada a partir do snapshot original
+# Subtest: personalizado sem nenhuma dica válida: seção não aparece
+ok 89 - personalizado sem nenhuma dica válida: seção não aparece
+# Subtest: formato legado (string[]) e formato objeto ({text}) coexistem sem duplicar nem quebrar
+ok 90 - formato legado (string[]) e formato objeto ({text}) coexistem sem duplicar nem quebrar
+# Subtest: dica de restaurante não duplica na seção geral "Dicas"
+ok 91 - dica de restaurante não duplica na seção geral "Dicas"
+# Subtest: nunca renderiza "[object Object]" mesmo com item malformado
+ok 92 - nunca renderiza "[object Object]" mesmo com item malformado
+# Subtest: usuário novo: Explorer, nenhuma missão concluída, XP 0
+ok 93 - usuário novo: Explorer, nenhuma missão concluída, XP 0
+# Subtest: perfil completo: "profile_ready" concluída e +40 XP
+ok 94 - perfil completo: "profile_ready" concluída e +40 XP
+# Subtest: 3 salvos: first_saved + three_saved concluídas, progresso 3/3
+ok 95 - 3 salvos: first_saved + three_saved concluídas, progresso 3/3
+# Subtest: 1 salvo: three_saved mostra progresso 1/3 e não concluída
+ok 96 - 1 salvo: three_saved mostra progresso 1/3 e não concluída
+# Subtest: 1 compra: first_purchase concluída, second_purchase não
+ok 97 - 1 compra: first_purchase concluída, second_purchase não
+# Subtest: 2 compras: second_purchase concluída, three_purchases não
+ok 98 - 2 compras: second_purchase concluída, three_purchases não
+# Subtest: 3 compras: three_purchases concluída, five_purchases não
+ok 99 - 3 compras: three_purchases concluída, five_purchases não
+# Subtest: qualityScore 80: quality_80 concluída, quality_90 não
+ok 100 - qualityScore 80: quality_80 concluída, quality_90 não
+# Subtest: qualityScore 90: quality_80 e quality_90 concluídas
+ok 101 - qualityScore 90: quality_80 e quality_90 concluídas
+# Subtest: 1 venda: first_creator_sale concluída, five_creator_sales não
+ok 102 - 1 venda: first_creator_sale concluída, five_creator_sales não
+# Subtest: cada missão tem key única (sem duplicidade)
+ok 103 - cada missão tem key única (sem duplicidade)
+# Subtest: cada nível tem exatamente 4 missões próprias
+ok 104 - cada nível tem exatamente 4 missões próprias
+# Subtest: não existem missões proibidas ou dependentes de terceiros
+ok 105 - não existem missões proibidas ou dependentes de terceiros
+# Subtest: compra aparece como missões distintas, não repetida com outro nome
+ok 106 - compra aparece como missões distintas, não repetida com outro nome
+# Subtest: 30 salvos não geram XP infinito: só as missões de salvar pontuam
+ok 107 - 30 salvos não geram XP infinito: só as missões de salvar pontuam
+# Subtest: 10 compras liberam exatamente 1ª/2ª/3/5/10 — não "10× compra"
+ok 108 - 10 compras liberam exatamente 1ª/2ª/3/5/10 — não "10× compra"
+# Subtest: thresholds e nível 4 = Viajante Criador (key backpacker)
+ok 109 - thresholds e nível 4 = Viajante Criador (key backpacker)
+# Subtest: visíveis = nível atual + prévia bloqueada; não as 28
+ok 110 - visíveis = nível atual + prévia bloqueada; não as 28
+# Subtest: 1 share: missão first_itinerary_shared concluída e +30 XP da missão
+ok 111 - 1 share: missão first_itinerary_shared concluída e +30 XP da missão
+# Subtest: 100 shares NÃO geram XP infinito: só a missão única pontua
+ok 112 - 100 shares NÃO geram XP infinito: só a missão única pontua
+# Subtest: stats.xp do backend sobrescreve cálculo local de shared XP
+ok 113 - stats.xp do backend sobrescreve cálculo local de shared XP
+# Subtest: subtítulo muda conforme a fase do progresso
+ok 114 - subtítulo muda conforme a fase do progresso
+# Subtest: usa o id REAL do criador vinculado ao roteiro (creator.id)
+ok 115 - usa o id REAL do criador vinculado ao roteiro (creator.id)
+# Subtest: a rota segue o prefixo do perfil público existente
+ok 116 - a rota segue o prefixo do perfil público existente
+# Subtest: funciona para qualquer criador — nada hardcoded
+ok 117 - funciona para qualquer criador — nada hardcoded
+# Subtest: aceita os aliases creatorId / authorId quando creator não vem embutido
+ok 118 - aceita os aliases creatorId / authorId quando creator não vem embutido
+# Subtest: creator.id tem precedência sobre os aliases
+ok 119 - creator.id tem precedência sobre os aliases
+# Subtest: nunca gera rota com undefined/null/vazio
+ok 120 - nunca gera rota com undefined/null/vazio
+# Subtest: id com espaços em volta é normalizado, não quebra a rota
+ok 121 - id com espaços em volta é normalizado, não quebra a rota
+# Subtest: id com caracteres especiais é escapado (rota sempre válida)
+ok 122 - id com caracteres especiais é escapado (rota sempre válida)
+# Subtest: carrega o caminho de volta para os detalhes do roteiro
+ok 123 - carrega o caminho de volta para os detalhes do roteiro
+# Subtest: sem `from` a rota continua limpa
+ok 124 - sem `from` a rota continua limpa
+# Subtest: `from` só aceita caminho interno (nada de redirect pra fora)
+ok 125 - `from` só aceita caminho interno (nada de redirect pra fora)
+# Subtest: `from` inválido não impede a navegação para o perfil
+ok 126 - `from` inválido não impede a navegação para o perfil
+# Subtest: B (4.9, 300 reviews/vendas) fica acima de A (5.0, 10 reviews/vendas)
+ok 127 - B (4.9, 300 reviews/vendas) fica acima de A (5.0, 10 reviews/vendas)
+# Subtest: mesmo 5.0: 200 reviews/vendas fica acima de 3 reviews/vendas
+ok 128 - mesmo 5.0: 200 reviews/vendas fica acima de 3 reviews/vendas
+# Subtest: 4.7 com 500 reviews/vendas pode superar 5.0 com 5 reviews/vendas
+ok 129 - 4.7 com 500 reviews/vendas pode superar 5.0 com 5 reviews/vendas
+# Subtest: roteiro sem reviewCount mínimo não entra em Destaque
+ok 130 - roteiro sem reviewCount mínimo não entra em Destaque
+# Subtest: roteiro com rating abaixo de 4.5 não entra em Destaque
+ok 131 - roteiro com rating abaixo de 4.5 não entra em Destaque
+# Subtest: empate de score: desempata por reviewCount → salesCount → rating → qualityScore → featured → recência
+ok 132 - empate de score: desempata por reviewCount → salesCount → rating → qualityScore → featured → recência
+# Subtest: calculateFeaturedRankScore é monotônica em volume com rating fixo
+ok 133 - calculateFeaturedRankScore é monotônica em volume com rating fixo
+# Subtest: respeita o limit
+ok 134 - respeita o limit
+# Subtest: capa: intercala roteiros (nunca duas fotos seguidas do mesmo, nem na volta do loop)
+ok 135 - capa: intercala roteiros (nunca duas fotos seguidas do mesmo, nem na volta do loop)
+# Subtest: capa: destaques vêm antes dos mais vendidos
+ok 136 - capa: destaques vêm antes dos mais vendidos
+# Subtest: capa: ignora roteiro fora do ar, sem foto ou com URL inválida; respeita os limites
+ok 137 - capa: ignora roteiro fora do ar, sem foto ou com URL inválida; respeita os limites
+# Subtest: capa: um roteiro só mostra uma foto; nenhum roteiro devolve lista vazia
+ok 138 - capa: um roteiro só mostra uma foto; nenhum roteiro devolve lista vazia
+# Subtest: 2. destino combina cidades e país em uma linha
+ok 139 - 2. destino combina cidades e país em uma linha
+# Subtest: 2b. destino sem país, e país sem cidade, continuam válidos
+ok 140 - 2b. destino sem país, e país sem cidade, continuam válidos
+# Subtest: 2c. nunca produz "undefined, undefined" — sem dado devolve null
+ok 141 - 2c. nunca produz "undefined, undefined" — sem dado devolve null
+# Subtest: 2d. não repete o país quando ele também está como cidade
+ok 142 - 2d. não repete o país quando ele também está como cidade
+# Subtest: 6. no máximo 2 estilos, mesmo com largura de sobra
+ok 143 - 6. no máximo 2 estilos, mesmo com largura de sobra
+# Subtest: 7. no máximo 3 inclusos, mesmo com largura de sobra
+ok 144 - 7. no máximo 3 inclusos, mesmo com largura de sobra
+# Subtest: 8. "+X" conta exatamente o que ficou de fora (cenário do enunciado)
+ok 145 - 8. "+X" conta exatamente o que ficou de fora (cenário do enunciado)
+# Subtest: sem itens escondidos, hidden é 0 (nenhum "+X" é renderizado)
+ok 146 - sem itens escondidos, hidden é 0 (nenhum "+X" é renderizado)
+# Subtest: lista vazia não devolve nada (a linha não é renderizada)
+ok 147 - lista vazia não devolve nada (a linha não é renderizada)
+# Subtest: o conteúdo escolhido nunca ultrapassa a largura disponível
+ok 148 - o conteúdo escolhido nunca ultrapassa a largura disponível
+# Subtest: card estreito mostra menos itens que card largo (redução automática)
+ok 149 - card estreito mostra menos itens que card largo (redução automática)
+# Subtest: largura ainda desconhecida cai no limite máximo, sem quebrar
+ok 150 - largura ainda desconhecida cai no limite máximo, sem quebrar
+# Subtest: largura minúscula ainda mostra 1 item (nunca linha vazia)
+ok 151 - largura minúscula ainda mostra 1 item (nunca linha vazia)
+# Subtest: 18. rótulo acessível nomeia TODOS os itens reais, não "mais 2"
+ok 152 - 18. rótulo acessível nomeia TODOS os itens reais, não "mais 2"
+# Subtest: rótulo acessível omite a parte que não existe
+ok 153 - rótulo acessível omite a parte que não existe
+# Subtest: 4/5. Estilo vem de getCategoryChips e Inclui de getModuleBadges
+ok 154 - 4/5. Estilo vem de getCategoryChips e Inclui de getModuleBadges
+# Subtest: 9/10/11. sem categorias e/ou sem módulos, as linhas somem
+ok 155 - 9/10/11. sem categorias e/ou sem módulos, as linhas somem
+# Subtest: módulo ativo mas VAZIO não vira "Inclui" (não prometemos o que não existe)
+ok 156 - módulo ativo mas VAZIO não vira "Inclui" (não prometemos o que não existe)
+# Subtest: cada marcador estrutural existe exatamente uma vez no arquivo
+ok 157 - cada marcador estrutural existe exatamente uma vez no arquivo
+# Subtest: a hierarquia de seções segue a jornada de decisão de compra
+ok 158 - a hierarquia de seções segue a jornada de decisão de compra
+# Subtest: o preço/CTA aparece só depois da construção de valor (não no topo, não no fim)
+ok 159 - o preço/CTA aparece só depois da construção de valor (não no topo, não no fim)
+# Subtest: avaliações (reviews) aparecem depois da descrição do roteiro, não no início
+ok 160 - avaliações (reviews) aparecem depois da descrição do roteiro, não no início
+# Subtest: criador aparece depois do título/destino, mas antes da oferta
+ok 161 - criador aparece depois do título/destino, mas antes da oferta
+# Subtest: 1/2/3. o card de compra mostra o preço total, sem 12x nem "sem juros"
+ok 162 - 1/2/3. o card de compra mostra o preço total, sem 12x nem "sem juros"
+# Subtest: 4. nenhum cálculo de valor parcelado sobrou
+ok 163 - 4. nenhum cálculo de valor parcelado sobrou
+# Subtest: 5/6/7. o card segue íntegro: acesso imediato, Adicionar e Comprar agora
+ok 164 - 5/6/7. o card segue íntegro: acesso imediato, Adicionar e Comprar agora
+# Subtest: 8. o rodapé mostra o total real
+ok 165 - 8. o rodapé mostra o total real
+# Subtest: 9/10/11/12. installment, footerInstallment e "sem juros" não existem mais
+ok 166 - 9/10/11/12. installment, footerInstallment e "sem juros" não existem mais
+# Subtest: 13. Pix não existe no fluxo australiano (nem oculto no estado)
+ok 167 - 13. Pix não existe no fluxo australiano (nem oculto no estado)
+# Subtest: 14. nenhum BNPL na tela de pagamento
+ok 168 - 14. nenhum BNPL na tela de pagamento
+# Subtest: 15. segue redirecionando para o Checkout hospedado da Stripe
+ok 169 - 15. segue redirecionando para o Checkout hospedado da Stripe
+# Subtest: 16. compra gratuita continua liberando sem passar pela Stripe
+ok 170 - 16. compra gratuita continua liberando sem passar pela Stripe
+# Subtest: 17. erros da Stripe continuam tratados
+ok 171 - 17. erros da Stripe continuam tratados
+# Subtest: 18. a Checkout Session declara explicitamente os meios permitidos
+ok 172 - 18. a Checkout Session declara explicitamente os meios permitidos
+# Subtest: 19/20/21. Afterpay, Klarna e qualquer outro BNPL ficam de fora
+ok 173 - 19/20/21. Afterpay, Klarna e qualquer outro BNPL ficam de fora
+# Subtest: 22. moeda e valor total continuam corretos (nada de fração de parcela)
+ok 174 - 22. moeda e valor total continuam corretos (nada de fração de parcela)
+# Subtest: 23/24. success_url e cancel_url preservadas
+ok 175 - 23/24. success_url e cancel_url preservadas
+# Subtest: 25. metadata mantém o necessário e não grava mais escolha cosmética de UI
+ok 176 - 25. metadata mantém o necessário e não grava mais escolha cosmética de UI
+# Subtest: fulfillment e webhook seguem intactos
+ok 177 - fulfillment e webhook seguem intactos
+# Subtest: 26. ItineraryFormState não conhece parcelamento
+ok 178 - 26. ItineraryFormState não conhece parcelamento
+# Subtest: 27. o payload compartilhado não envia installments
+ok 179 - 27. o payload compartilhado não envia installments
+# Subtest: 28. ItineraryDetail (API mobile) não expõe installments
+ok 180 - 28. ItineraryDetail (API mobile) não expõe installments
+# Subtest: 29. o Zod do backend não aceita mais o campo
+ok 181 - 29. o Zod do backend não aceita mais o campo
+# Subtest: 30. as rotas de roteiro não serializam nem gravam installments
+ok 182 - 30. as rotas de roteiro não serializam nem gravam installments
+# Subtest: o formulário do wizard não cria mais o campo
+ok 183 - o formulário do wizard não cria mais o campo
+# Subtest: 31. nenhuma fórmula de score referencia installments
+ok 184 - 31. nenhuma fórmula de score referencia installments
+# Subtest: 32. remover parcelamento não reduziu o score máximo (backend continua 100)
+ok 185 - 32. remover parcelamento não reduziu o score máximo (backend continua 100)
+# Subtest: 32b. um roteiro sem promoção atinge 100 no score compartilhado
+ok 186 - 32b. um roteiro sem promoção atinge 100 no score compartilhado
+# Subtest: 33. o bloco comercial do shared depende só do preço de venda
+ok 187 - 33. o bloco comercial do shared depende só do preço de venda
+# Subtest: 34/35. a tela "Como funciona" não menciona parcelamento
+ok 188 - 34/35. a tela "Como funciona" não menciona parcelamento
+# Subtest: 36. varredura global: nenhum arquivo de produção oferece parcelamento
+ok 189 - 36. varredura global: nenhum arquivo de produção oferece parcelamento
+# Subtest: 36b. nenhum BNPL foi introduzido como "alternativa" ao parcelamento
+ok 190 - 36b. nenhum BNPL foi introduzido como "alternativa" ao parcelamento
+# Subtest: 36c. o legado de Package continua desligado (se religar, revisitar parcelamento)
+ok 191 - 36c. o legado de Package continua desligado (se religar, revisitar parcelamento)
+# Subtest: 1. digitar "ja" retorna Japão quando existem roteiros relacionados
+ok 192 - 1. digitar "ja" retorna Japão quando existem roteiros relacionados
+# Subtest: 2. digitar "japao" (sem acento) também retorna Japão
+ok 193 - 2. digitar "japao" (sem acento) também retorna Japão
+# Subtest: 3. com ou sem acento, maiúsculas ou não, o resultado é o mesmo
+ok 194 - 3. com ou sem acento, maiúsculas ou não, o resultado é o mesmo
+# Subtest: 4. cidade e país são pesquisáveis (inclusive cidades extras)
+ok 195 - 4. cidade e país são pesquisáveis (inclusive cidades extras)
+# Subtest: 4b. alias em inglês encontra o destino cadastrado em português
+ok 196 - 4b. alias em inglês encontra o destino cadastrado em português
+# Subtest: 5. sugestões duplicadas são removidas e a contagem é acumulada
+ok 197 - 5. sugestões duplicadas são removidas e a contagem é acumulada
+# Subtest: 6. a sugestão carrega um searchValue que casa com os campos filtrados
+ok 198 - 6. a sugestão carrega um searchValue que casa com os campos filtrados
+# Subtest: 7. campo vazio não filtra nada (limpar o destino remove o filtro)
+ok 199 - 7. campo vazio não filtra nada (limpar o destino remove o filtro)
+# Subtest: 8. destino sem roteiro disponível não vira sugestão
+ok 200 - 8. destino sem roteiro disponível não vira sugestão
+# Subtest: 8b. query sem correspondência devolve lista vazia (estado "nenhum destino")
+ok 201 - 8b. query sem correspondência devolve lista vazia (estado "nenhum destino")
+# Subtest: autocomplete prioriza quem começa com o termo e respeita o limite
+ok 202 - autocomplete prioriza quem começa com o termo e respeita o limite
+# Subtest: busca por país acha o roteiro mesmo quando só a cidade está no destino
+ok 203 - busca por país acha o roteiro mesmo quando só a cidade está no destino
+# Subtest: campos de localização em formatos variados não quebram
+ok 204 - campos de localização em formatos variados não quebram
+# Subtest: título só é usado quando NÃO há campo estruturado de localização
+ok 205 - título só é usado quando NÃO há campo estruturado de localização
+# Subtest: 10. "Qualquer" não aplica limite algum
+ok 206 - 10. "Qualquer" não aplica limite algum
+# Subtest: 11. "Fim de semana" aceita 2 e 3 dias
+ok 207 - 11. "Fim de semana" aceita 2 e 3 dias
+# Subtest: 12. "Fim de semana" rejeita 1 e 4 dias
+ok 208 - 12. "Fim de semana" rejeita 1 e 4 dias
+# Subtest: 13. "Até 7 dias" aceita 7 e rejeita 8
+ok 209 - 13. "Até 7 dias" aceita 7 e rejeita 8
+# Subtest: 14. "Até 15 dias" aceita 15 e rejeita 16
+ok 210 - 14. "Até 15 dias" aceita 15 e rejeita 16
+# Subtest: 15. "+20 dias" aceita 20, 30 e 45 (sem teto artificial)
+ok 211 - 15. "+20 dias" aceita 20, 30 e 45 (sem teto artificial)
+# Subtest: 16. "+20 dias" rejeita 19
+ok 212 - 16. "+20 dias" rejeita 19
+# Subtest: 16b. roteiros de 16 a 19 dias só aparecem em "Qualquer"
+ok 213 - 16b. roteiros de 16 a 19 dias só aparecem em "Qualquer"
+# Subtest: 17. duração inválida ou ausente não quebra a aplicação
+ok 214 - 17. duração inválida ou ausente não quebra a aplicação
+# Subtest: 17b. duração é lida de duration, durationDays, totalDays ou days[]
+ok 215 - 17b. duração é lida de duration, durationDays, totalDays ou days[]
+# Subtest: 18. o filtro usa a faixa, nunca a média do intervalo
+ok 216 - 18. o filtro usa a faixa, nunca a média do intervalo
+# Subtest: preset ↔ faixa é reversível e o padrão é "Qualquer"
+ok 217 - preset ↔ faixa é reversível e o padrão é "Qualquer"
+# Subtest: as 5 opções pedidas existem, nessa ordem
+ok 218 - as 5 opções pedidas existem, nessa ordem
+# Subtest: 26. destino + duração combinam (AND, não OR)
+ok 219 - 26. destino + duração combinam (AND, não OR)
+# Subtest: 27. categoria e intenção continuam funcionando junto com os demais filtros
+ok 220 - 27. categoria e intenção continuam funcionando junto com os demais filtros
+# Subtest: 29. limpar filtros não deixa restrição invisível
+ok 221 - 29. limpar filtros não deixa restrição invisível
+# Subtest: a contagem do modal usa o MESMO corte de disponibilidade da listagem
+ok 222 - a contagem do modal usa o MESMO corte de disponibilidade da listagem
+# Subtest: contagem reflete cada mudança local (destino → duração → categoria)
+ok 223 - contagem reflete cada mudança local (destino → duração → categoria)
+# tests 223
+# pass 223
+# fail 0
+# skipped 0
+# duration_ms 2587.466042

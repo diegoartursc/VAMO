@@ -1,5 +1,7 @@
 # Suíte de segurança e carga da VAMO
 
+**Revisão mais recente (07/11/2026):** [verificação da execução do plano](../VERIFICACAO-PLANO-SEGURANCA-2026-11-07.md), com matriz SEC-01 a SEC-16, 441 testes existentes e reproduções adicionais. Foram encontradas falhas remanescentes; o parecer anterior de lançamento não deve ser usado como aprovação atual. [Resultados e comandos isolados](evidencias-2026-11-07/README.md).
+
 Tudo aqui roda num **ambiente isolado no Mac**. Nada toca a produção:
 
 - banco local `vamo_audit`, com dados fictícios;

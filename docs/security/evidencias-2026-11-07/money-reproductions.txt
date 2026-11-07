@@ -1,0 +1,11 @@
+REPRODUCED 1: concurrent full+partial refund events roll full refund back to 1000, restore paid-content access
+[payments] não consegui conferir o estado da cobrança no fulfillment: synthetic provider timeout
+REPRODUCED 2: refund before sale acknowledged; provider timeout swallowed; sale born paid with active access and refund event finalized
+[payments] e-mails da venda falharam: Cannot read properties of undefined (reading 'email')
+[payouts] venda sale1 não repassada: synthetic response lost after provider committed transfer
+REPRODUCED 3: transfer committed/provider response lost + refund leaves actual transfer unreversed and sale permanently out of payout sweep
+REPRODUCED 4: refund object status=failed returns refunded:true/pending:true; refund.failed event marked processed without action
+VALIDATED 5: SEC-15 real take=50/backoff filter lets 51st eligible sale transfer on next sweep
+REPRODUCED 6: overlapping refund events reverse 2400 cents; maximum actually due is 1600 (distinct target idempotency keys)
+REPRODUCED 7: two concurrent paid repurchases produce one recorded payment and zero duplicate refunds
+[payments] e-mails da recompra falharam: Cannot read properties of undefined (reading 'email')

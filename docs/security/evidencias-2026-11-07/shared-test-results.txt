@@ -1,0 +1,115 @@
+# Subtest: configuração tem exatamente 5 níveis (canônico, não 6)
+ok 1 - configuração tem exatamente 5 níveis (canônico, não 6)
+# Subtest: todo nível calculável existe na config (CREATOR_REPUTATION_BY_KEY)
+ok 2 - todo nível calculável existe na config (CREATOR_REPUTATION_BY_KEY)
+# Subtest: ordem dos níveis é estável e determinística
+ok 3 - ordem dos níveis é estável e determinística
+# Subtest: criador sem nenhuma métrica fica em verified_creator
+ok 4 - criador sem nenhuma métrica fica em verified_creator
+# Subtest: nota 5,0 com 1 avaliação NÃO alcança "Recomendado" (piso de amostra)
+ok 5 - nota 5,0 com 1 avaliação NÃO alcança "Recomendado" (piso de amostra)
+# Subtest: confidenceRating: 5,0 com 1 avaliação fica bem abaixo de 4,9 com 120
+ok 6 - confidenceRating: 5,0 com 1 avaliação fica bem abaixo de 4,9 com 120
+# Subtest: 3 roteiros ativos + 5 vendas + nota alta + amostra suficiente => recommended_creator
+ok 7 - 3 roteiros ativos + 5 vendas + nota alta + amostra suficiente => recommended_creator
+# Subtest: quase lá (faltam vendas) continua verified_creator
+ok 8 - quase lá (faltam vendas) continua verified_creator
+# Subtest: 10 ativos + 30 vendas + nota alta + resposta boa => travel_curator
+ok 9 - 10 ativos + 30 vendas + nota alta + resposta boa => travel_curator
+# Subtest: sem taxa de resposta real (undefined) NÃO alcança curator mesmo com o resto ok
+ok 10 - sem taxa de resposta real (undefined) NÃO alcança curator mesmo com o resto ok
+# Subtest: 20 ativos + 100 vendas + nota altíssima + amostra grande => top_creator
+ok 11 - 20 ativos + 100 vendas + nota altíssima + amostra grande => top_creator
+# Subtest: muitas vendas mas nota ruim NÃO chega em top_creator nem recommended
+ok 12 - muitas vendas mas nota ruim NÃO chega em top_creator nem recommended
+# Subtest: manualAmbassador=true força vamo_ambassador mesmo sem nenhuma métrica
+ok 13 - manualAmbassador=true força vamo_ambassador mesmo sem nenhuma métrica
+# Subtest: critérios automáticos de top_creator NÃO promovem a embaixador sozinhos
+ok 14 - critérios automáticos de top_creator NÃO promovem a embaixador sozinhos
+# Subtest: manualAmbassador=false volta a calcular pelo critério automático
+ok 15 - manualAmbassador=false volta a calcular pelo critério automático
+# Subtest: resultado sempre referencia um level presente em CREATOR_REPUTATION_ORDER
+ok 16 - resultado sempre referencia um level presente em CREATOR_REPUTATION_ORDER
+# Subtest: nextLevel é sempre o próximo da ordem, e null no topo (embaixador)
+ok 17 - nextLevel é sempre o próximo da ordem, e null no topo (embaixador)
+# Subtest: comissão e ganho do roteirista somam o preço (sem perder centavo)
+ok 18 - comissão e ganho do roteirista somam o preço (sem perder centavo)
+# Subtest: roteiro de 26.90 com a taxa atual (20% VAMO / 80% roteirista)
+ok 19 - roteiro de 26.90 com a taxa atual (20% VAMO / 80% roteirista)
+# Subtest: preço inválido ou grátis não gera comissão
+ok 20 - preço inválido ou grátis não gera comissão
+# Subtest: percentuais exibidos batem com a taxa
+ok 21 - percentuais exibidos batem com a taxa
+# Subtest: splitPrice: o comprador paga o preço do roteirista; ele recebe 80% e a VAMO 20%
+ok 22 - splitPrice: o comprador paga o preço do roteirista; ele recebe 80% e a VAMO 20%
+# Subtest: preço mínimo: US$ 5 na moeda-base; abaixo dele vira problema ao enviar; preço inválido é de outra regra
+ok 23 - preço mínimo: US$ 5 na moeda-base; abaixo dele vira problema ao enviar; preço inválido é de outra regra
+# Subtest: soma múltiplos itens da mesma categoria (hospedagem) corretamente
+ok 24 - soma múltiplos itens da mesma categoria (hospedagem) corretamente
+# Subtest: categoria agregada nunca expõe título/nome de item individual
+ok 25 - categoria agregada nunca expõe título/nome de item individual
+# Subtest: custo individual (sharedByPeople=1) não gera "Base"
+ok 26 - custo individual (sharedByPeople=1) não gera "Base"
+# Subtest: custo compartilhado (sharedByPeople>1) gera "Base" com total e pessoas
+ok 27 - custo compartilhado (sharedByPeople>1) gera "Base" com total e pessoas
+# Subtest: categoria com múltiplos itens não expõe "Base" única (ambígua)
+ok 28 - categoria com múltiplos itens não expõe "Base" única (ambígua)
+# Subtest: status verified: todos os itens da categoria comprovados
+ok 29 - status verified: todos os itens da categoria comprovados
+# Subtest: status estimated: todos os itens da categoria estimados
+ok 30 - status estimated: todos os itens da categoria estimados
+# Subtest: status mixed: categoria com um item comprovado e outro estimado
+ok 31 - status mixed: categoria com um item comprovado e outro estimado
+# Subtest: categoria ativa sem nenhum custo aparece em missingCategories
+ok 32 - categoria ativa sem nenhum custo aparece em missingCategories
+# Subtest: módulo NÃO ativo no roteiro nunca aparece como "sem valor"
+ok 33 - módulo NÃO ativo no roteiro nunca aparece como "sem valor"
+# Subtest: percentuais são calculados pelo VALOR monetário, não pela quantidade de itens
+ok 34 - percentuais são calculados pelo VALOR monetário, não pela quantidade de itens
+# Subtest: percentuais sempre somam exatamente 100 (nunca 99 ou 101)
+ok 35 - percentuais sempre somam exatamente 100 (nunca 99 ou 101)
+# Subtest: total zero: percentuais ficam 0 e 0, sem divisão por zero (NaN/Infinity)
+ok 36 - total zero: percentuais ficam 0 e 0, sem divisão por zero (NaN/Infinity)
+# Subtest: categoria com moeda única preserva moeda original + equivalente AUD
+ok 37 - categoria com moeda única preserva moeda original + equivalente AUD
+# Subtest: categoria com moedas MISTAS não inventa uma moeda original única
+ok 38 - categoria com moedas MISTAS não inventa uma moeda original única
+# Subtest: agregado nunca soma moedas diferentes cruas (bug do total "dominante")
+ok 39 - agregado nunca soma moedas diferentes cruas (bug do total "dominante")
+# Subtest: moeda sem taxa cadastrada: categoria continua existindo, marca hasConversionGap
+ok 40 - moeda sem taxa cadastrada: categoria continua existindo, marca hasConversionGap
+# Subtest: falha de conversão numa categoria não quebra o total das demais
+ok 41 - falha de conversão numa categoria não quebra o total das demais
+# Subtest: valor por pessoa é a fonte canônica pro simulador (não duplica divisão)
+ok 42 - valor por pessoa é a fonte canônica pro simulador (não duplica divisão)
+# Subtest: formatMoney formata AUD com prefixo A$
+ok 43 - formatMoney formata AUD com prefixo A$
+# Subtest: moeda-base do mercado é USD e vale 1 na tabela de taxas
+ok 44 - moeda-base do mercado é USD e vale 1 na tabela de taxas
+# Subtest: todas as taxas padrão são números positivos e AUD vale menos que 1 USD
+ok 45 - todas as taxas padrão são números positivos e AUD vale menos que 1 USD
+# Subtest: formatMoney sem moeda usa a moeda-base; roteiros antigos em AUD continuam com A$
+ok 46 - formatMoney sem moeda usa a moeda-base; roteiros antigos em AUD continuam com A$
+# Subtest: A: itinerario desativado, 12 dias e days vazio → sem pendência de itinerário
+ok 47 - A: itinerario desativado, 12 dias e days vazio → sem pendência de itinerário
+# Subtest: B: itinerario ativo com só 5 dias completos → bloqueia, sem mensagem duplicada
+ok 48 - B: itinerario ativo com só 5 dias completos → bloqueia, sem mensagem duplicada
+# Subtest: B2: itinerario ativo com 12 dias, alguns incompletos → aponta os dias
+ok 49 - B2: itinerario ativo com 12 dias, alguns incompletos → aponta os dias
+# Subtest: B3: itinerario ativo e completo → envia
+ok 50 - B3: itinerario ativo e completo → envia
+# Subtest: C: ativa, preenche parcialmente e desativa → sem pendência de dias, dados preservados
+ok 51 - C: ativa, preenche parcialmente e desativa → sem pendência de dias, dados preservados
+# Subtest: D: links inválidos em módulos desativados não bloqueiam
+ok 52 - D: links inválidos em módulos desativados não bloqueiam
+# Subtest: E: links inválidos em módulo ativo continuam bloqueando
+ok 53 - E: links inválidos em módulo ativo continuam bloqueando
+# Subtest: regressão: demais módulos opcionais desativados com dados vazios/incompletos não geram pendência
+ok 54 - regressão: demais módulos opcionais desativados com dados vazios/incompletos não geram pendência
+# Subtest: regressão: módulo ativo continua exigindo o próprio conteúdo
+ok 55 - regressão: módulo ativo continua exigindo o próprio conteúdo
+# tests 55
+# pass 55
+# fail 0
+# skipped 0
+# duration_ms 1883.722292

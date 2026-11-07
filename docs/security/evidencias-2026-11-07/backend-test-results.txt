@@ -1,0 +1,331 @@
+# Subtest: antes de 7 dias não repassa
+ok 1 - antes de 7 dias não repassa
+# Subtest: com 7+ dias repassa
+ok 2 - com 7+ dias repassa
+# Subtest: venda já repassada ou grátis não repassa
+ok 3 - venda já repassada ou grátis não repassa
+# Subtest: repasse é 80% do preço em centavos (venda sem valores congelados usa a comissão gravada)
+ok 4 - repasse é 80% do preço em centavos (venda sem valores congelados usa a comissão gravada)
+# Subtest: compra recente (< 3 dias) não recebe nada
+ok 5 - compra recente (< 3 dias) não recebe nada
+# Subtest: 3 dias depois da compra, sem avaliação → convite
+ok 6 - 3 dias depois da compra, sem avaliação → convite
+# Subtest: quem já avaliou nunca recebe convite nem lembrete
+ok 7 - quem já avaliou nunca recebe convite nem lembrete
+# Subtest: convite já enviado há menos de 7 dias → espera
+ok 8 - convite já enviado há menos de 7 dias → espera
+# Subtest: convite enviado há 7+ dias, sem avaliação → um lembrete
+ok 9 - convite enviado há 7+ dias, sem avaliação → um lembrete
+# Subtest: depois do lembrete não manda mais nada
+ok 10 - depois do lembrete não manda mais nada
+# Subtest: venda com mais de 60 dias nunca dispara e-mail
+ok 11 - venda com mais de 60 dias nunca dispara e-mail
+# Subtest: converte "1 USD = X moeda" para "1 moeda = Y USD"
+ok 12 - converte "1 USD = X moeda" para "1 moeda = Y USD"
+# Subtest: sem nada no banco, usa as taxas padrão do código
+ok 13 - sem nada no banco, usa as taxas padrão do código
+# Subtest: atualização grava no banco com a fonte e a data; CHF reflete a cotação do dia
+ok 14 - atualização grava no banco com a fonte e a data; CHF reflete a cotação do dia
+# Subtest: primeira API fora do ar: usa a reserva
+ok 15 - primeira API fora do ar: usa a reserva
+# Subtest: resposta quebrada (poucas moedas ou salto absurdo) não é gravada; taxas anteriores continuam
+ok 16 - resposta quebrada (poucas moedas ou salto absurdo) não é gravada; taxas anteriores continuam
+# Subtest: primeira busca substitui as taxas padrão (desatualizadas) sem ser barrada pela trava de salto
+ok 17 - primeira busca substitui as taxas padrão (desatualizadas) sem ser barrada pela trava de salto
+# Subtest: rede caída nas duas APIs: não lança erro e mantém as taxas
+ok 18 - rede caída nas duas APIs: não lança erro e mantém as taxas
+# Subtest: busca no máximo 1x por dia; correção do admin vale até a próxima busca diária
+ok 19 - busca no máximo 1x por dia; correção do admin vale até a próxima busca diária
+# Subtest: formatMoney usa unidades da moeda, não centavos
+ok 20 - formatMoney usa unidades da moeda, não centavos
+# Subtest: confirmação de compra: valor correto e link do roteiro comprado
+ok 21 - confirmação de compra: valor correto e link do roteiro comprado
+# Subtest: venda sem conta de recebimento: e-mail do roteirista pede o cadastro e leva à tela de ganhos
+ok 22 - venda sem conta de recebimento: e-mail do roteirista pede o cadastro e leva à tela de ganhos
+# Subtest: conteúdo vindo do usuário é escapado no HTML
+ok 23 - conteúdo vindo do usuário é escapado no HTML
+# Subtest: venda ao roteirista: comissão e líquido
+ok 24 - venda ao roteirista: comissão e líquido
+# Subtest: e-mail ao admin vai para ADMIN_NOTIFICATION_EMAIL
+ok 25 - e-mail ao admin vai para ADMIN_NOTIFICATION_EMAIL
+# Subtest: senha alterada nunca inclui senha e orienta o suporte
+ok 26 - senha alterada nunca inclui senha e orienta o suporte
+# Subtest: todo e-mail tem HTML e texto, e nenhum link aponta para localhost
+ok 27 - todo e-mail tem HTML e texto, e nenhum link aponta para localhost
+# Subtest: sem SMTP configurado: não lança, só retorna false
+ok 28 - sem SMTP configurado: não lança, só retorna false
+# Subtest: reembolso: total avisa fim do acesso, parcial mantém; valor em unidades da moeda
+ok 29 - reembolso: total avisa fim do acesso, parcial mantém; valor em unidades da moeda
+# Subtest: venda de US$ 1 de ontem: US$ 0,80 pendente até 7 dias depois da compra; nada disponível ainda
+ok 30 - venda de US$ 1 de ontem: US$ 0,80 pendente até 7 dias depois da compra; nada disponível ainda
+# Subtest: depois de 7 dias vira disponível; depois do envio, pago
+ok 31 - depois de 7 dias vira disponível; depois do envio, pago
+# Subtest: reembolso total zera o ganho; parcial reduz na proporção; contestação aberta fica pendente
+ok 32 - reembolso total zera o ganho; parcial reduz na proporção; contestação aberta fica pendente
+# Subtest: totais somam pendente + disponível + pago, sem reembolsados
+ok 33 - totais somam pendente + disponível + pago, sem reembolsados
+# Subtest: F: itinerario desativado e sem dias → backend aceita (POST/PUT PENDING_REVIEW)
+ok 34 - F: itinerario desativado e sem dias → backend aceita (POST/PUT PENDING_REVIEW)
+# Subtest: F: itinerario desativado após preencher parcialmente → backend aceita
+ok 35 - F: itinerario desativado após preencher parcialmente → backend aceita
+# Subtest: F: itinerario ativo com 5 de 12 dias → backend rejeita, uma única mensagem de dias
+ok 36 - F: itinerario ativo com 5 de 12 dias → backend rejeita, uma única mensagem de dias
+# Subtest: F: itinerario ativo com os 12 dias completos → backend aceita
+ok 37 - F: itinerario ativo com os 12 dias completos → backend aceita
+# Subtest: F: itinerario ativo com dia incompleto → backend rejeita, como o frontend
+ok 38 - F: itinerario ativo com dia incompleto → backend rejeita, como o frontend
+# Subtest: preço mínimo US$ 5: app e backend rejeitam abaixo; aceitam em US$ 5; rascunho não é afetado
+ok 39 - preço mínimo US$ 5: app e backend rejeitam abaixo; aceitam em US$ 5; rascunho não é afetado
+# Subtest: cria estorno novo → newlyCreated true, com idempotency key por pagamento
+ok 40 - cria estorno novo → newlyCreated true, com idempotency key por pagamento
+# Subtest: estorno já existente (retry do webhook) → newlyCreated false, sem nova chamada
+ok 41 - estorno já existente (retry do webhook) → newlyCreated false, sem nova chamada
+# Subtest: chamada concorrente recebe resposta repetida do Stripe → newlyCreated false
+ok 42 - chamada concorrente recebe resposta repetida do Stripe → newlyCreated false
+# Subtest: falha ao estornar → refunded false, sem e-mail
+ok 43 - falha ao estornar → refunded false, sem e-mail
+# Subtest: mesmo comprador + mesmo roteiro na mesma janela → mesma chave de idempotência
+ok 44 - mesmo comprador + mesmo roteiro na mesma janela → mesma chave de idempotência
+# Subtest: chaves diferentes para outro comprador, outro roteiro ou nova tentativa
+ok 45 - chaves diferentes para outro comprador, outro roteiro ou nova tentativa
+# Subtest: mesmo pagamento chegando de novo (webhook + tela de retorno) NÃO é duplicidade
+ok 46 - mesmo pagamento chegando de novo (webhook + tela de retorno) NÃO é duplicidade
+# Subtest: segundo pagamento (outro PaymentIntent) de um roteiro já comprado É duplicidade
+ok 47 - segundo pagamento (outro PaymentIntent) de um roteiro já comprado É duplicidade
+# Subtest: sem PaymentIntent no pagamento recebido (grátis/legado) nunca estorna
+ok 48 - sem PaymentIntent no pagamento recebido (grátis/legado) nunca estorna
+# Subtest: AUD-03: o limite segue o visitante mesmo com o IP da Cloudflare mudando
+ok 49 - AUD-03: o limite segue o visitante mesmo com o IP da Cloudflare mudando
+# Subtest: AUD-03: X-Forwarded-For forjado pelo visitante não troca o IP usado no limite
+ok 50 - AUD-03: X-Forwarded-For forjado pelo visitante não troca o IP usado no limite
+# Subtest: AUD-P3: catálogo público vem do cache e é invalidado por escrita bem-sucedida
+ok 51 - AUD-P3: catálogo público vem do cache e é invalidado por escrita bem-sucedida
+# Subtest: AUD-P3: rota privada nunca é servida do cache
+ok 52 - AUD-P3: rota privada nunca é servida do cache
+# Subtest: AUD-OBS: toda resposta traz X-Request-Id (o do cliente, se válido)
+ok 53 - AUD-OBS: toda resposta traz X-Request-Id (o do cliente, se válido)
+# Subtest: produção com segredo publicado no repositório não sobe
+ok 54 - produção com segredo publicado no repositório não sobe
+# Subtest: segredo curto não sobe em nenhum ambiente
+ok 55 - segredo curto não sobe em nenhum ambiente
+# Subtest: compra demonstrativa ligada fora de teste não sobe
+ok 56 - compra demonstrativa ligada fora de teste não sobe
+# Subtest: Stripe sem segredo de webhook em produção não sobe; chave live fora de produção não sobe
+ok 57 - Stripe sem segredo de webhook em produção não sobe; chave live fora de produção não sobe
+# Subtest: configuração de produção correta sobe sem erro
+ok 58 - configuração de produção correta sobe sem erro
+# Subtest: chaves reais nunca ficam disponíveis, mesmo depois de importar o Prisma e o app
+ok 59 - chaves reais nunca ficam disponíveis, mesmo depois de importar o Prisma e o app
+# Subtest: conexão de rede externa é bloqueada (fetch, https e tls)
+ok 60 - conexão de rede externa é bloqueada (fetch, https e tls)
+# Subtest: login → /me funciona com o access token
+ok 61 - login → /me funciona com o access token
+# Subtest: refresh válido devolve novo access E novo refresh (rotação)
+ok 62 - refresh válido devolve novo access E novo refresh (rotação)
+# Subtest: SEC-01: token de arquivo NÃO serve como sessão (Bearer)
+ok 63 - SEC-01: token de arquivo NÃO serve como sessão (Bearer)
+# Subtest: SEC-01: refresh token NÃO serve como access token
+ok 64 - SEC-01: refresh token NÃO serve como access token
+# Subtest: SEC-01: access token e token de arquivo NÃO renovam sessão no /refresh
+ok 65 - SEC-01: access token e token de arquivo NÃO renovam sessão no /refresh
+# Subtest: SEC-01: token legado sem finalidade, segredo errado e alg none são recusados
+ok 66 - SEC-01: token legado sem finalidade, segredo errado e alg none são recusados
+# Subtest: SEC-01: token de viajante não acessa admin e token de admin não acessa conta de viajante
+ok 67 - SEC-01: token de viajante não acessa admin e token de admin não acessa conta de viajante
+# Subtest: SEC-01: link de arquivo abre só o próprio arquivo
+ok 68 - SEC-01: link de arquivo abre só o próprio arquivo
+# Subtest: SEC-07: logout revoga o access e o refresh no servidor
+ok 69 - SEC-07: logout revoga o access e o refresh no servidor
+# Subtest: SEC-07: redefinir senha derruba access e refresh emitidos antes
+ok 70 - SEC-07: redefinir senha derruba access e refresh emitidos antes
+# Subtest: SEC-07: refresh reutilizado é detectado e derruba a sessão inteira
+ok 71 - SEC-07: refresh reutilizado é detectado e derruba a sessão inteira
+# Subtest: SEC-07/R-A1: refresh simultâneo com o mesmo token não bifurca a sessão nem desloga
+ok 72 - SEC-07/R-A1: refresh simultâneo com o mesmo token não bifurca a sessão nem desloga
+# Subtest: R-A1: resposta de refresh perdida: reenviar o refresh antigo logo depois funciona
+ok 73 - R-A1: resposta de refresh perdida: reenviar o refresh antigo logo depois funciona
+# Subtest: Banco fora do ar responde 503 (não "deslogado")
+ok 74 - Banco fora do ar responde 503 (não "deslogado")
+# Subtest: SEC-06: mock-admin-token não é aceito em nenhum ambiente
+ok 75 - SEC-06: mock-admin-token não é aceito em nenhum ambiente
+# Subtest: SEC-10: login admin com tipos errados responde 400 e não gera rejeição solta
+ok 76 - SEC-10: login admin com tipos errados responde 400 e não gera rejeição solta
+# Subtest: SEC-10: falha do banco no login admin vira 500 tratado
+ok 77 - SEC-10: falha do banco no login admin vira 500 tratado
+# Subtest: SEC-07: troca de senha do admin (sessionVersion) derruba o token emitido antes
+ok 78 - SEC-07: troca de senha do admin (sessionVersion) derruba o token emitido antes
+# Subtest: SEC-07: logout do admin invalida o token
+ok 79 - SEC-07: logout do admin invalida o token
+# Subtest: SEC-06: webhook sem assinatura é recusado fora de produção também
+ok 80 - SEC-06: webhook sem assinatura é recusado fora de produção também
+# Subtest: SEC-06: compra demonstrativa não libera roteiro fora de teste explícito
+ok 81 - SEC-06: compra demonstrativa não libera roteiro fora de teste explícito
+# Subtest: NEW-02: login de viajante limita tentativas erradas por e-mail
+ok 82 - NEW-02: login de viajante limita tentativas erradas por e-mail
+# Subtest: NEW-02: login de admin limita tentativas erradas
+ok 83 - NEW-02: login de admin limita tentativas erradas
+# Subtest: SEC-02: detalhe público (anônimo e usuário sem compra) não entrega conteúdo pago
+ok 84 - SEC-02: detalhe público (anônimo e usuário sem compra) não entrega conteúdo pago
+# Subtest: SEC-02: prévia continua útil (título, preço, módulos, contagens e custos)
+ok 85 - SEC-02: prévia continua útil (título, preço, módulos, contagens e custos)
+# Subtest: SEC-02: listagem e destaque não entregam conteúdo pago
+ok 86 - SEC-02: listagem e destaque não entregam conteúdo pago
+# Subtest: SEC-02: comprador recebe o conteúdo completo; dono também
+ok 87 - SEC-02: comprador recebe o conteúdo completo; dono também
+# Subtest: SEC-03: comprovantes e nota interna não saem para anônimo, outro usuário nem comprador
+ok 88 - SEC-03: comprovantes e nota interna não saem para anônimo, outro usuário nem comprador
+# Subtest: SEC-03: snapshot antigo (com comprovante congelado) também sai limpo para o comprador
+ok 89 - SEC-03: snapshot antigo (com comprovante congelado) também sai limpo para o comprador
+# Subtest: SEC-04: estatísticas do criador exigem login e ignoram creatorId de terceiros
+ok 90 - SEC-04: estatísticas do criador exigem login e ignoram creatorId de terceiros
+# Subtest: AUD-01: painéis de vendas e avaliações do criador exigem login
+ok 91 - AUD-01: painéis de vendas e avaliações do criador exigem login
+# Subtest: SEC-05: arquivo privado legado não abre por variações de caminho
+ok 92 - SEC-05: arquivo privado legado não abre por variações de caminho
+# Subtest: R-U3: nome em maiúsculas não burla a checagem (disco que não diferencia maiúsculas)
+ok 93 - R-U3: nome em maiúsculas não burla a checagem (disco que não diferencia maiúsculas)
+# Subtest: SEC-05: arquivo público legítimo continua abrindo
+ok 94 - SEC-05: arquivo público legítimo continua abrindo
+# Subtest: SEC-03: upload de comprovante exige login e vai para o armazenamento privado
+ok 95 - SEC-03: upload de comprovante exige login e vai para o armazenamento privado
+# Subtest: SEC-03: comprovante só abre com link assinado válido e do mesmo documento
+ok 96 - SEC-03: comprovante só abre com link assinado válido e do mesmo documento
+# Subtest: SEC-03: ao salvar roteiro, comprovante de outra pessoa é descartado e o próprio vira referência canônica
+ok 97 - SEC-03: ao salvar roteiro, comprovante de outra pessoa é descartado e o próprio vira referência canônica
+# Subtest: Cota de armazenamento de comprovantes por dono
+ok 98 - Cota de armazenamento de comprovantes por dono
+# Subtest: SEC-12: refund parcial existente (1 centavo) NÃO conta como devolução total; devolve o restante
+ok 99 - SEC-12: refund parcial existente (1 centavo) NÃO conta como devolução total; devolve o restante
+# Subtest: SEC-12: refund total pendente é iniciação válida: não cria outro nem pede retry
+ok 100 - SEC-12: refund total pendente é iniciação válida: não cria outro nem pede retry
+# Subtest: SEC-12: refund que falhou não conta como devolvido
+ok 101 - SEC-12: refund que falhou não conta como devolvido
+# Subtest: SEC-13: venda grava o valor PAGO, não o preço atual do roteiro
+ok 102 - SEC-13: venda grava o valor PAGO, não o preço atual do roteiro
+# Subtest: SEC-13: repasse usa valores congelados mesmo se moeda/comissão do roteiro mudarem; venda antiga usa a comissão gravada
+ok 103 - SEC-13: repasse usa valores congelados mesmo se moeda/comissão do roteiro mudarem; venda antiga usa a comissão gravada
+# Subtest: SEC-15: 60 vendas inelegíveis antigas não impedem o repasse de uma elegível mais nova
+ok 104 - SEC-15: 60 vendas inelegíveis antigas não impedem o repasse de uma elegível mais nova
+# Subtest: SEC-11/15: venda reembolsada ou em disputa não recebe repasse
+ok 105 - SEC-11/15: venda reembolsada ou em disputa não recebe repasse
+# Subtest: SEC-11: estorno total antes do repasse bloqueia o repasse e corta o acesso
+ok 106 - SEC-11: estorno total antes do repasse bloqueia o repasse e corta o acesso
+# Subtest: SEC-11: estorno parcial mantém acesso e reduz o repasse na proporção
+ok 107 - SEC-11: estorno parcial mantém acesso e reduz o repasse na proporção
+# Subtest: SEC-11: estorno depois do repasse reverte a transferência proporcionalmente, uma vez só
+ok 108 - SEC-11: estorno depois do repasse reverte a transferência proporcionalmente, uma vez só
+# Subtest: SEC-11: falha ao reverter fica registrada para intervenção e não some
+ok 109 - SEC-11: falha ao reverter fica registrada para intervenção e não some
+# Subtest: SEC-11: disputa aberta trava o repasse e mantém o acesso; perdida corta acesso e reverte; ganha libera
+ok 110 - SEC-11: disputa aberta trava o repasse e mantém o acesso; perdida corta acesso e reverte; ganha libera
+# Subtest: SEC-11: webhook HTTP real com assinatura válida processa estorno e ignora replay
+ok 111 - SEC-11: webhook HTTP real com assinatura válida processa estorno e ignora replay
+# Subtest: SEC-13: checkout pago a 26,90 com preço do roteiro alterado para 99 → venda grava 26,90 e comissão sobre 26,90
+ok 112 - SEC-13: checkout pago a 26,90 com preço do roteiro alterado para 99 → venda grava 26,90 e comissão sobre 26,90
+# Subtest: SEC-11: comprador com estorno total perde o acesso ao conteúdo comprado; parcial mantém
+ok 113 - SEC-11: comprador com estorno total perde o acesso ao conteúdo comprado; parcial mantém
+# Subtest: reembolso total pelo painel: um e-mail ao comprador, avisando que o acesso acabou; evento repetido não reenvia
+ok 114 - reembolso total pelo painel: um e-mail ao comprador, avisando que o acesso acabou; evento repetido não reenvia
+# Subtest: reembolso parcial e depois o restante: dois e-mails com o valor de cada um; evento atrasado não reenvia
+ok 115 - reembolso parcial e depois o restante: dois e-mails com o valor de cada um; evento atrasado não reenvia
+# Subtest: estorno automático de pagamento duplicado (sem venda própria) não manda este e-mail
+ok 116 - estorno automático de pagamento duplicado (sem venda própria) não manda este e-mail
+# Subtest: NEW-01: exclusão exige login e a senha correta
+ok 117 - NEW-01: exclusão exige login e a senha correta
+# Subtest: NEW-01: conta de criador vai para o suporte (não apaga sozinha)
+ok 118 - NEW-01: conta de criador vai para o suporte (não apaga sozinha)
+# Subtest: NEW-01: viajante é anonimizado, dados pessoais apagados, sessão encerrada e login antigo deixa de funcionar
+ok 119 - NEW-01: viajante é anonimizado, dados pessoais apagados, sessão encerrada e login antigo deixa de funcionar
+# Subtest: SEC-14: criador não consegue se colocar em destaque nem aprovar o próprio comprovante ao criar
+ok 120 - SEC-14: criador não consegue se colocar em destaque nem aprovar o próprio comprovante ao criar
+# Subtest: SEC-14: edição sem mudar valor nem arquivo mantém a aprovação do admin; mudar o valor invalida
+ok 121 - SEC-14: edição sem mudar valor nem arquivo mantém a aprovação do admin; mudar o valor invalida
+# Subtest: SEC-14: sem arquivo de comprovante o status é sempre none
+ok 122 - SEC-14: sem arquivo de comprovante o status é sempre none
+# Subtest: R-T1: copiar o bloco aprovado para outro item, duplicar ou renomear o hotel volta para revisão
+ok 123 - R-T1: copiar o bloco aprovado para outro item, duplicar ou renomear o hotel volta para revisão
+# Subtest: SEC-09: Multer instalado é 2.x (sem a falha de encerramento do processo)
+ok 124 - SEC-09: Multer instalado é 2.x (sem a falha de encerramento do processo)
+# Subtest: SEC-08: pedido maior que o teto é recusado antes de ler o corpo (Content-Length)
+ok 125 - SEC-08: pedido maior que o teto é recusado antes de ler o corpo (Content-Length)
+# Subtest: SEC-08: upload sem Content-Length (chunked) é recusado
+ok 126 - SEC-08: upload sem Content-Length (chunked) é recusado
+# Subtest: SEC-08: muitos arquivos num pedido e arquivo acima do limite são recusados
+ok 127 - SEC-08: muitos arquivos num pedido e arquivo acima do limite são recusados
+# Subtest: SEC-08: o mesmo usuário não abre uploads simultâneos acima do limite
+ok 128 - SEC-08: o mesmo usuário não abre uploads simultâneos acima do limite
+# Subtest: SEC-08: conexão lenta que nunca termina perde a vaga depois do tempo máximo
+ok 129 - SEC-08: conexão lenta que nunca termina perde a vaga depois do tempo máximo
+# Subtest: SEC-08: upload legítimo pequeno continua funcionando e o servidor segue vivo
+ok 130 - SEC-08: upload legítimo pequeno continua funcionando e o servidor segue vivo
+# Subtest: R-U1: cota por conta (pedidos por hora) recusa o excesso
+ok 131 - R-U1: cota por conta (pedidos por hora) recusa o excesso
+# Subtest: AUD-02: corpo grande, JSON inválido e origem recusada não viram erro 500
+ok 132 - AUD-02: corpo grande, JSON inválido e origem recusada não viram erro 500
+# Subtest: R-M1: estorno de 30 antes do repasse (repasse 56) e total de 50 depois → reverte só 16 (roteirista fica com 40)
+ok 133 - R-M1: estorno de 30 antes do repasse (repasse 56) e total de 50 depois → reverte só 16 (roteirista fica com 40)
+# Subtest: R-M2: repasse 80, estorno de 30 (reverte 24) e disputa perdida dos 70 restantes → reverte os 80 no total
+ok 134 - R-M2: repasse 80, estorno de 30 (reverte 24) e disputa perdida dos 70 restantes → reverte os 80 no total
+# Subtest: R-M3: disputa ganha seguida de evento atrasado "created" não congela o repasse
+ok 135 - R-M3: disputa ganha seguida de evento atrasado "created" não congela o repasse
+# Subtest: R-M4: estorno total que chegou antes da venda → venda nasce estornada (sem acesso, sem repasse)
+ok 136 - R-M4: estorno total que chegou antes da venda → venda nasce estornada (sem acesso, sem repasse)
+# Subtest: Recompra de venda que já teve repasse é bloqueada e o pagamento novo é estornado (registro preservado)
+ok 137 - Recompra de venda que já teve repasse é bloqueada e o pagamento novo é estornado (registro preservado)
+# Subtest: Corrida: estorno gravado durante a transferência é revertido logo depois
+ok 138 - Corrida: estorno gravado durante a transferência é revertido logo depois
+# Subtest: criador com 500 vendas e nota 3.0 fica ATRÁS de um com evidência de qualidade
+ok 139 - criador com 500 vendas e nota 3.0 fica ATRÁS de um com evidência de qualidade
+# Subtest: 5,0 com 1 avaliação não supera 4,9 com 120 avaliações no score
+ok 140 - 5,0 com 1 avaliação não supera 4,9 com 120 avaliações no score
+# Subtest: criador sem nenhum roteiro ACTIVE nunca é elegível, mesmo com histórico
+ok 141 - criador sem nenhum roteiro ACTIVE nunca é elegível, mesmo com histórico
+# Subtest: criador só com DRAFT não é elegível
+ok 142 - criador só com DRAFT não é elegível
+# Subtest: criador com roteiro ativo no destino pesquisado recebe bônus contextual
+ok 143 - criador com roteiro ativo no destino pesquisado recebe bônus contextual
+# Subtest: bônus contextual não torna elegível quem não bate o piso de reputação
+ok 144 - bônus contextual não torna elegível quem não bate o piso de reputação
+# Subtest: sem nenhum candidato elegível, rankRecommendationCandidates retorna []
+ok 145 - sem nenhum candidato elegível, rankRecommendationCandidates retorna []
+# Subtest: rankRecommendationCandidates respeita o limit
+ok 146 - rankRecommendationCandidates respeita o limit
+# Subtest: totalSales vem da soma de _count.sales dos roteiros, não de um campo externo
+ok 147 - totalSales vem da soma de _count.sales dos roteiros, não de um campo externo
+# Subtest: vendas de roteiro ARCHIVED continuam contando no histórico comercial
+ok 148 - vendas de roteiro ARCHIVED continuam contando no histórico comercial
+# Subtest: empate exato de score é resolvido por vendas, depois reviews, depois id (determinístico)
+ok 149 - empate exato de score é resolvido por vendas, depois reviews, depois id (determinístico)
+# Subtest: reason nunca lista mais de 3 evidências
+ok 150 - reason nunca lista mais de 3 evidências
+# Subtest: primaryReason sempre presente quando elegível; secondaryReason só quando há 2ª evidência real
+ok 151 - primaryReason sempre presente quando elegível; secondaryReason só quando há 2ª evidência real
+# Subtest: sem evidências fortes, primaryReason cai pro criteriaSummary do nível (nunca vazio)
+ok 152 - sem evidências fortes, primaryReason cai pro criteriaSummary do nível (nunca vazio)
+# Subtest: topItineraries só inclui roteiros ACTIVE com imagem real, no máximo 3
+ok 153 - topItineraries só inclui roteiros ACTIVE com imagem real, no máximo 3
+# Subtest: classifyRecommendationResult: contextual quando há filtro E algum match real
+ok 154 - classifyRecommendationResult: contextual quando há filtro E algum match real
+# Subtest: classifyRecommendationResult: global_fallback quando há filtro mas nenhum match real
+ok 155 - classifyRecommendationResult: global_fallback quando há filtro mas nenhum match real
+# Subtest: classifyRecommendationResult: global_fallback quando não havia filtro nenhum
+ok 156 - classifyRecommendationResult: global_fallback quando não havia filtro nenhum
+# Subtest: volume vence rating puro: B(4.9,300) acima de A(5.0,10)
+ok 157 - volume vence rating puro: B(4.9,300) acima de A(5.0,10)
+# Subtest: mesmo 5.0: mais volume vence
+ok 158 - mesmo 5.0: mais volume vence
+# Subtest: piso de reviews: 0 reviews não entra
+ok 159 - piso de reviews: 0 reviews não entra
+# Subtest: piso de rating: < 4.5 não entra
+ok 160 - piso de rating: < 4.5 não entra
+# Subtest: usa salesCount do roteiro (top-level), não cai no creator quando presente
+ok 161 - usa salesCount do roteiro (top-level), não cai no creator quando presente
+# Subtest: aceita averageRating como alias de rating
+ok 162 - aceita averageRating como alias de rating
+# Subtest: respeita o limit
+ok 163 - respeita o limit
+# tests 163
+# pass 163
+# fail 0
+# skipped 0
+# duration_ms 8037.880291

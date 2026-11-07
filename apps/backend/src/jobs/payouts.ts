@@ -8,7 +8,10 @@
  *  - fila sem travamento (SEC-15): venda inelegível por motivo transitório (conta do roteirista
  *    ainda não habilitada, erro da Stripe) ganha `payoutNextAttemptAt` com espera crescente;
  *    motivo definitivo vira `payoutStatus = blocked`. As próximas da fila seguem sendo pagas;
- *  - uma transferência por venda: chave de idempotência da Stripe + gravação do `payoutTransferId`.
+ *  - uma transferência por venda: chave de idempotência da Stripe + gravação do `payoutTransferId`;
+ *  - resultado incerto (R-04): a venda vira `transferring` ANTES de chamar a Stripe. Se a resposta
+ *    se perder (rede, processo reiniciado), `recoverUncertainTransfers` procura a transferência na
+ *    Stripe pelo `transfer_group` e grava o ID; se ela existir e houve estorno, a reversão acontece.
  */
 import type Stripe from 'stripe';
 import prisma from '../lib/prisma';
@@ -63,9 +66,71 @@ async function block(saleId: string, reason: string) {
     await prisma.itinerarySale.update({ where: { id: saleId }, data: { payoutStatus: 'blocked', payoutLastError: reason.slice(0, 500) } });
 }
 
+/** Grupo da transferência na Stripe: permite achá-la sem o ID (recuperação, R-04). */
+export const transferGroupOf = (saleId: string) => `sale_${saleId}`;
+
+/**
+ * Vendas presas em `transferring` (a Stripe pode ter feito a transferência e a resposta
+ * se perdeu). Achou na Stripe → grava o ID e reverte o que for devido. Não achou → nada
+ * foi transferido: volta para a fila normal (mesma chave de idempotência) ou bloqueia,
+ * se a venda deixou de ser elegível (estorno/disputa).
+ */
+export async function recoverUncertainTransfers(stripe: Stripe, now: Date = new Date()): Promise<{ recovered: number; released: number }> {
+    const stuck = await prisma.itinerarySale.findMany({
+        where: {
+            payoutStatus: 'transferring',
+            payoutTransferId: null,
+            OR: [{ payoutNextAttemptAt: null }, { payoutNextAttemptAt: { lte: now } }],
+        },
+        orderBy: { createdAt: 'asc' },
+        take: BATCH,
+        select: { id: true, paymentStatus: true, payoutAttempts: true },
+    });
+    let recovered = 0;
+    let released = 0;
+    for (const sale of stuck as any[]) {
+        try {
+            const list = await stripe.transfers.list({ transfer_group: transferGroupOf(sale.id), limit: 10 });
+            const found = (list.data || []).find((t: any) => t?.metadata?.saleId === sale.id) || (list.data || [])[0];
+            if (found) {
+                await prisma.itinerarySale.updateMany({
+                    where: { id: sale.id, payoutTransferId: null },
+                    data: {
+                        payoutTransferId: found.id,
+                        payoutTransferredAt: found.created ? new Date(found.created * 1000) : now,
+                        payoutAmount: found.amount / 100,
+                        payoutStatus: 'transferred',
+                        payoutLastError: null,
+                    },
+                });
+                recovered++;
+                await reconcileReversalForSale(stripe, sale.id);
+                continue;
+            }
+            const stillEligible = sale.paymentStatus === PAYMENT_STATUS.paid || sale.paymentStatus === PAYMENT_STATUS.partiallyRefunded;
+            await prisma.itinerarySale.updateMany({
+                where: { id: sale.id, payoutStatus: 'transferring', payoutTransferId: null },
+                data: {
+                    payoutStatus: stillEligible ? null : sale.paymentStatus === PAYMENT_STATUS.disputed ? 'on_hold' : 'blocked',
+                    payoutLastError: stillEligible ? 'uncertain transfer not found at Stripe; retrying' : 'uncertain transfer not found; sale no longer eligible',
+                },
+            });
+            released++;
+        } catch (e: any) {
+            console.error(`[payouts] recuperação da venda ${sale.id} falhou:`, e?.message || e);
+            await postpone(sale.id, sale.payoutAttempts ?? 0, now, `recovery failed: ${e?.message || e}`).catch(() => {});
+        }
+    }
+    return { recovered, released };
+}
+
 export async function runPayoutSweep(now: Date = new Date(), stripeClient?: Stripe | null): Promise<{ transferred: number; skipped: number }> {
     const stripe = stripeClient ?? getStripe();
     if (!stripe) return { transferred: 0, skipped: 0 };
+
+    // Primeiro resolve transferências de resultado incerto (R-04).
+    await recoverUncertainTransfers(stripe, now).catch((e) =>
+        console.error('[payouts] recuperação de transferências falhou:', e?.message || e));
 
     const candidates = await prisma.itinerarySale.findMany({
         where: {
@@ -99,6 +164,7 @@ export async function runPayoutSweep(now: Date = new Date(), stripeClient?: Stri
         if (!isPayoutDue(sale, now) || !accountId) { skipped++; continue; }
         if (!paymentIntentId) { await block(sale.id, 'sale without a Stripe payment'); skipped++; continue; }
 
+        let claimed = false;
         try {
             if (!accountOk.has(accountId)) {
                 const account = await stripe.accounts.retrieve(accountId);
@@ -125,12 +191,20 @@ export async function runPayoutSweep(now: Date = new Date(), stripeClient?: Stri
             if (amount <= 0) { await block(sale.id, 'nothing to pay out'); skipped++; continue; }
             const currency = paidCurrencyOf(sale) || charge.currency;
 
+            // Marca ANTES do efeito externo (R-04): se a resposta se perder, a recuperação acha.
+            const claim = await prisma.itinerarySale.updateMany({
+                where: { id: sale.id, payoutTransferId: null, payoutStatus: null },
+                data: { payoutStatus: 'transferring', payoutLastError: null },
+            });
+            if (claim.count !== 1) { skipped++; continue; }
+            claimed = true;
+
             const transfer = await stripe.transfers.create({
                 amount,
                 currency,
                 destination: accountId,
                 source_transaction: charge.id,
-                transfer_group: `sale_${sale.id}`,
+                transfer_group: transferGroupOf(sale.id),
                 metadata: { saleId: sale.id, creatorId: sale.itinerary.creator.id },
             }, { idempotencyKey: `payout-sale-${sale.id}` });
 
@@ -149,7 +223,9 @@ export async function runPayoutSweep(now: Date = new Date(), stripeClient?: Stri
             skipped++;
             const message = String(e?.message || e);
             console.error(`[payouts] venda ${sale.id} não repassada:`, message);
-            await postpone(sale.id, sale.payoutAttempts ?? 0, now, message).catch(() => {});
+            // Se já estava em `transferring`, continua assim: a recuperação confere na Stripe
+            // se a transferência aconteceu antes de tentar de novo.
+            await postpone(sale.id, sale.payoutAttempts ?? 0, now, claimed ? `uncertain transfer: ${message}` : message).catch(() => {});
         }
     }
     return { transferred, skipped };
