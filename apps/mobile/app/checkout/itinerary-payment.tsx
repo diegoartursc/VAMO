@@ -9,7 +9,6 @@ import {
     Pressable,
     ActivityIndicator,
     Platform,
-    Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { safeBack } from '../../src/utils/navigation';
@@ -20,6 +19,7 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { useCart } from '../../src/hooks/useCart';
 import { formatMoney } from '@vamo/shared/itinerary';
 import { features } from '../../src/config/features';
+import { openStripePageInApp, stripeReturnTarget } from '../../src/utils/nativeAppReturn';
 
 
 const getParam = (value: string | string[] | undefined): string => {
@@ -152,7 +152,7 @@ export default function ItineraryPaymentScreen() {
             console.log('[checkout] criando sessão Stripe', { itineraryId });
             // Sem meio de pagamento local: quem apresenta e decide os meios
             // (cartão e wallets elegíveis) é o Checkout hospedado da Stripe.
-            const result = await createCheckoutSession(itineraryId, { source }, accessToken);
+            const result = await createCheckoutSession(itineraryId, { source, returnTo: stripeReturnTarget }, accessToken);
 
             // Grátis ou já comprado: backend liberou direto, sem cobrança.
             if (result.alreadyPurchased || result.freePurchase) {
@@ -179,8 +179,15 @@ export default function ItineraryPaymentScreen() {
                 // Mantém o spinner ativo enquanto o navegador troca de página.
                 return;
             }
-            await Linking.openURL(result.url);
+            // App nativo: a Stripe abre numa aba presa ao app e volta por
+            // vamo://checkout/itinerary-confirm (ver utils/nativeAppReturn).
+            const returned = await openStripePageInApp(result.url, 'checkout/itinerary-confirm');
             setProcessing(false);
+            if (returned) {
+                const query = returned.split('?')[1] || '';
+                const params = Object.fromEntries(new URLSearchParams(query).entries());
+                router.replace({ pathname: '/checkout/itinerary-confirm' as any, params });
+            }
         } catch (err: any) {
             const msg = err?.message || 'We couldn\'t complete the purchase right now. Please try again.';
             console.warn('[checkout] erro:', msg);

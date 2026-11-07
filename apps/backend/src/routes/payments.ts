@@ -462,7 +462,7 @@ async function fulfillItineraryPurchase(opts: {
 // Roteiro grátis (price <= 0) é liberado direto, sem passar pelo Stripe.
 router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAuthRequest, res: Response) => {
     try {
-        const { itineraryId, source } = req.body || {};
+        const { itineraryId, source, returnTo } = req.body || {};
         const travelerId = req.traveler!.travelerId;
 
         if (!itineraryId || typeof itineraryId !== 'string') {
@@ -515,6 +515,8 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
 
         const destinationLabel = [itinerary.destination, itinerary.country].filter(Boolean).join(', ');
         const sourceParam = typeof source === 'string' && source ? `&source=${encodeURIComponent(source)}` : '';
+        // Compra iniciada no app Android/iOS: a página de retorno (web) devolve a pessoa ao app.
+        const appParam = returnTo === 'app' ? '&app=1' : '';
 
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
             mode: 'payment',
@@ -549,8 +551,8 @@ router.post('/checkout-session', travelerAuthMiddleware, async (req: TravelerAut
             customer_email: traveler?.email || undefined,
             metadata: { itineraryId, travelerId, source: source || '' },
             payment_intent_data: { metadata: { itineraryId, travelerId } },
-            success_url: `${APP_BASE_URL}/checkout/itinerary-confirm?session_id={CHECKOUT_SESSION_ID}&itineraryId=${encodeURIComponent(itineraryId)}${sourceParam}`,
-            cancel_url: `${APP_BASE_URL}/checkout/itinerary-confirm?canceled=true&itineraryId=${encodeURIComponent(itineraryId)}${sourceParam}`,
+            success_url: `${APP_BASE_URL}/checkout/itinerary-confirm?session_id={CHECKOUT_SESSION_ID}&itineraryId=${encodeURIComponent(itineraryId)}${sourceParam}${appParam}`,
+            cancel_url: `${APP_BASE_URL}/checkout/itinerary-confirm?canceled=true&itineraryId=${encodeURIComponent(itineraryId)}${sourceParam}${appParam}`,
         };
 
         // Mesma chave dentro da janela => mesma sessão (sem cobrança dupla por duplo clique).

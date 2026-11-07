@@ -125,10 +125,12 @@ router.post('/me/stripe/onboarding-link', travelerAuthMiddleware, async (req: Tr
             await prisma.creator.update({ where: { id: creator.id }, data: { stripeAccountId: account.id } });
         }
 
+        // Cadastro iniciado no app Android/iOS: a página de retorno (web) devolve a pessoa ao app.
+        const appParam = req.body?.returnTo === 'app' ? '&app=1' : '';
         const link = await stripe.accountLinks.create({
             account: account.id,
-            refresh_url: `${APP_BASE_URL}/creator-earnings?stripe=refresh`,
-            return_url: `${APP_BASE_URL}/creator-earnings?stripe=return`,
+            refresh_url: `${APP_BASE_URL}/creator-earnings?stripe=refresh${appParam}`,
+            return_url: `${APP_BASE_URL}/creator-earnings?stripe=return${appParam}`,
             type: 'account_onboarding',
         });
 

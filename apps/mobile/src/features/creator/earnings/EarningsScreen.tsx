@@ -21,6 +21,7 @@ import { getCreatorEarnings, getCreatorPayoutStatus, createCreatorOnboardingLink
 import { useAuth } from '../../../contexts/AuthContext';
 import { notify } from '../../../utils/notify';
 import { openExternalUrl } from '../../../utils/externalLinks';
+import { openStripePageInApp, stripeReturnTarget } from '../../../utils/nativeAppReturn';
 import { EarningsBalanceCard } from './components/EarningsBalanceCard';
 import { EarningsMetricCard } from './components/EarningsMetricCard';
 import { PayoutSetupCard } from './components/PayoutSetupCard';
@@ -101,8 +102,14 @@ export default function EarningsScreen() {
         setPayoutBusy(true);
         haptics.medium();
         try {
-            const { url } = await createCreatorOnboardingLink(accessToken);
-            await openExternalUrl(url, { fallbackMessage: 'We couldn\'t open payout setup right now.' });
+            const { url } = await createCreatorOnboardingLink(accessToken, stripeReturnTarget);
+            if (stripeReturnTarget === 'app') {
+                // App nativo: a Stripe abre numa aba presa ao app; ao fechar, atualiza o status.
+                await openStripePageInApp(url, 'creator-earnings');
+                loadPayoutStatus();
+            } else {
+                await openExternalUrl(url, { fallbackMessage: 'We couldn\'t open payout setup right now.' });
+            }
         } catch (e: any) {
             haptics.error?.();
             notify({
@@ -113,7 +120,7 @@ export default function EarningsScreen() {
         } finally {
             setPayoutBusy(false);
         }
-    }, [accessToken, payoutBusy]);
+    }, [accessToken, payoutBusy, loadPayoutStatus]);
 
     const onPayoutSetup = startPayoutSetup;
     const onManagePayouts = startPayoutSetup;

@@ -12,6 +12,8 @@ import { getCheckoutSessionStatus } from '../../src/services/api';
 import { theme } from '../../src/theme/theme';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useCart } from '../../src/hooks/useCart';
+import { nativeReturnUrlFromWeb } from '../../src/utils/nativeAppReturn';
+import { ReturnToAppScreen } from '../../src/components/common/ReturnToAppScreen';
 
 const getParam = (value: string | string[] | undefined): string => {
     if (Array.isArray(value)) return value[0] || '';
@@ -26,6 +28,14 @@ const RETRY_DELAY_MS = 1500;
 type ConfirmState = 'checking' | 'canceled' | 'pending' | 'error';
 
 export default function ItineraryConfirmScreen() {
+    // Compra começou no app Android/iOS: o site só devolve a pessoa para o app,
+    // que confirma o pagamento com a própria sessão (ver utils/nativeAppReturn).
+    const [appUrl] = useState(nativeReturnUrlFromWeb);
+    if (appUrl) return <ReturnToAppScreen appUrl={appUrl} />;
+    return <ItineraryConfirmContent />;
+}
+
+function ItineraryConfirmContent() {
     const router = useRouter();
     const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
     const { removeFromCart } = useCart();

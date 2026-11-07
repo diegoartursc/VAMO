@@ -93,10 +93,10 @@ test('14. nenhum BNPL na tela de pagamento', () => {
 });
 
 test('15. segue redirecionando para o Checkout hospedado da Stripe', () => {
-    assert.ok(/createCheckoutSession\(itineraryId, \{ source \}, accessToken\)/.test(pagamento),
+    assert.ok(/createCheckoutSession\(itineraryId, \{ source, returnTo: stripeReturnTarget \}, accessToken\)/.test(pagamento),
         'a sessão é criada sem meio de pagamento local');
     assert.ok(/window\.location\.assign\(result\.url\)/.test(pagamento), 'redirect web preservado');
-    assert.ok(/Linking\.openURL\(result\.url\)/.test(pagamento), 'redirect nativo preservado');
+    assert.ok(/openStripePageInApp\(result\.url, 'checkout\/itinerary-confirm'\)/.test(pagamento), 'redirect nativo (aba presa ao app) preservado');
     assert.ok(/You'll be redirected to Stripe/.test(pagamento), 'copy explica o redirect');
 });
 
