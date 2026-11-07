@@ -1565,6 +1565,7 @@ router.put('/:id', optionalAuthMiddleware, createAuditMiddleware('UPDATE'), asyn
                 where: { id: req.params.id as string },
                 select: {
                     travelProofUrl: true, attractions: true, restaurants: true, extraSpendingItems: true, flightInfo: true,
+                    estimatedSpending: true,
                     accommodations: { select: { cost: true } }, transports: { select: { cost: true } },
                 },
             });

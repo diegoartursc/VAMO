@@ -54,6 +54,29 @@ export async function uploadFile(file: File): Promise<string> {
     return data.url as string;
 }
 
+/**
+ * Comprovantes (de viagem e recibos de gastos) NUNCA vão para o upload público:
+ * vão para o armazenamento privado e voltam como link assinado de curta duração.
+ * Ao salvar o roteiro, o backend troca o link por `private-doc://<id>` (R-05/SEC-03).
+ */
+export async function uploadPrivateDoc(file: File, purpose: 'travelProof' | 'costProof'): Promise<string> {
+    const prepared = await convertHeicIfNeeded(file);
+    const fd = new FormData();
+    fd.append('purpose', purpose);
+    fd.append('file', prepared);
+    const res = await fetch(`${API_BASE_URL}/private-docs`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: fd,
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Falha no upload' }));
+        throw new Error(friendlyUploadError(res.status, err.error));
+    }
+    const data = await res.json();
+    return data.url as string;
+}
+
 export async function uploadFiles(files: File[]): Promise<string[]> {
     const prepared = await Promise.all(files.map(f => convertHeicIfNeeded(f)));
     const fd = new FormData();

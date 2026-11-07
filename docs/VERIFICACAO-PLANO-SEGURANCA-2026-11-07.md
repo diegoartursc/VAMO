@@ -114,6 +114,8 @@ Em `routes/payments.ts:371–384`, duas recompras após estorno leem a mesma ven
 
 ### R-05 — Alta: o site continua publicando comprovantes; migração não cobre recibos
 
+> **Status 07/11/2026 — corrigido no código (PR fix-docs-auth-review):** o site envia comprovante de viagem e recibos por `uploadPrivateDoc` (`/private-docs`); `receiptUrl` entra em `mapDocRefs` (canonicalização, assinatura e legado); a migração lê `estimatedSpending`. **Pendente:** rodar `migrate-proofs-to-private.ts` (simulação primeiro) para recibos antigos já públicos.
+
 O mobile envia os contextos de comprovante a `/private-docs`, mas o site não foi alinhado:
 
 - `apps/site/src/app/dashboard/roteiro/[id]/page.tsx:1225` envia comprovante de viagem usando `uploadFile(prepared)`;
@@ -136,6 +138,8 @@ O mobile envia os contextos de comprovante a `/private-docs`, mas o site não fo
 
 ### R-07 — Média: logout do site só limpa o navegador
 
+> **Status 07/11/2026 — corrigido:** `logout()` do site chama `POST /auth/traveler/logout` antes de limpar o navegador (falha de rede: limpa mesmo assim e avisa no console); o admin legado chama `/admin/logout`. Renovação de sessão do site segue pendente.
+
 `apps/site/src/lib/auth.ts:418–423` remove localStorage e redireciona, sem chamar `/auth/traveler/logout`. O admin principal foi atualizado, mas o admin legado em `app/dashboard/admin/page.tsx:222` também só remove storage.
 
 **Confirmação:** chamando `logout()` real do site, token local foi removido e houve zero chamadas de revogação; o mesmo Bearer continuou abrindo `/me` com 200. O backend oferece revogação, mas esse cliente não a solicita.
@@ -143,6 +147,8 @@ O mobile envia os contextos de comprovante a `/private-docs`, mas o site não fo
 **Correção necessária:** ligar logout dos clientes ativos ao servidor, tratar falha de rede de maneira explícita e testar token antigo após sair. Verificar também refresh/expiração do site, que segue sem o fluxo central de renovação observado no mobile.
 
 ### R-08 — Média: erro de banco no upload privado escapa ao wrapper
+
+> **Status 07/11/2026 — corrigido:** o callback do Multer delega a `handleUpload` com `.catch` → 500 tratado. Teste: falha de `aggregate` e de `create` respondem 500 sem rejeição solta.
 
 `routes/private-docs.ts:37–94` usa callback `async` do Multer com `await aggregate/create` sem `try/catch`. O handler externo retorna `undefined`, portanto o wrapper de Router não recebe a Promise desse callback.
 
@@ -187,6 +193,8 @@ Confirmado por leitura; não foi simulada mudança de moeda em produção. **Cor
 **Correção necessária:** modo de teste com destino dedicado validado, isolamento operacional e falha fechada nas combinações perigosas; não depender exclusivamente do nome de uma variável.
 
 ### R-13 — Alta, condicional ao legado: exclusão pode tornar arquivo privado público
+
+> **Status 07/11/2026 — corrigido:** a cópia legada sai do disco ANTES do registro; se a remoção falhar, o registro fica (o guard segue bloqueando) e a rota responde 500. Vale para exclusão de arquivo e de conta. Teste com `EACCES` simulado.
 
 `traveler-trip-center.ts:337–340` apaga o registro antes de remover a cópia legada. `lib/storage.ts:145–149` suprime falhas de remoção. Sem registro, o guard de `/uploads` não reconhece mais aquele arquivo como privado.
 

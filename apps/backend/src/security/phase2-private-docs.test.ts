@@ -104,3 +104,46 @@ test('Cota de armazenamento de comprovantes por dono', async () => {
     const r = await uploadPdf(await tokenFor('other@test.local'), 'over.pdf');
     assert.equal(r.status, 413);
 });
+
+test('R-08: falha do banco no upload privado responde 500 (sem rejeição solta)', async () => {
+    const token = await tokenFor('creator@test.local');
+    const unhandled: unknown[] = [];
+    const onUnhandled = (e: unknown) => unhandled.push(e);
+    process.on('unhandledRejection', onUnhandled);
+    const original = { aggregate: db.privateDocument.aggregate, create: db.privateDocument.create };
+    try {
+        db.privateDocument.aggregate = async () => { throw new Error('synthetic aggregate failure'); };
+        assert.equal((await uploadPdf(token, 'agg.pdf')).status, 500);
+        db.privateDocument.aggregate = original.aggregate;
+        db.privateDocument.create = async () => { throw new Error('synthetic create failure'); };
+        const before = docs.rows.length;
+        assert.equal((await uploadPdf(token, 'create.pdf')).status, 500);
+        assert.equal(docs.rows.length, before);
+        await new Promise((r) => setImmediate(r));
+        assert.equal(unhandled.length, 0, 'nenhuma rejeição não tratada');
+    } finally {
+        Object.assign(db.privateDocument, original);
+        process.off('unhandledRejection', onUnhandled);
+    }
+    assert.equal((await uploadPdf(token, 'after.pdf')).status, 201, 'upload volta a funcionar');
+});
+
+test('R-05: recibo dos gastos manuais também é comprovante privado', async () => {
+    const { canonicalizeDocRefs, existingProofRefs } = await import('../lib/privateDocs');
+    const mine = await uploadPdf(await tokenFor('creator@test.local'), 'receipt.pdf');
+    const body = {
+        estimatedSpending: {
+            manualEntries: [
+                { label: 'Taxi', receiptUrl: mine.json.url },
+                { label: 'Museum', receiptUrl: 'https://bucket.example/public/receipt.jpg' },
+                { label: 'Lunch', receiptUrl: '' },
+            ],
+        },
+    };
+    const out: any = await canonicalizeDocRefs(body, 'trav_creator');
+    assert.deepEqual(out.estimatedSpending.manualEntries.map((e: any) => e.receiptUrl), [mine.json.ref, '', '']);
+    // Recibo público já gravado continua só até a migração.
+    const stored = existingProofRefs({ estimatedSpending: body.estimatedSpending });
+    const legacy: any = await canonicalizeDocRefs(body, 'trav_creator', stored);
+    assert.equal(legacy.estimatedSpending.manualEntries[1].receiptUrl, 'https://bucket.example/public/receipt.jpg');
+});

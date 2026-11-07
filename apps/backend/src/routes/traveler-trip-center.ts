@@ -334,10 +334,13 @@ router.delete('/:itineraryId/files/:fileId', travelerAuthMiddleware, async (req:
             where: { id: fileId, travelerId, itineraryId, saleId: ownership.saleId },
             select: { url: true },
         });
+        if (!target) return void res.status(404).json({ error: 'File not found' });
+        // Primeiro o disco, depois o registro (R-13): se a remoção falhar, o registro
+        // fica e o guard de /uploads segue bloqueando a cópia legada.
+        await removeLegacyLocalFile(target.url);
         const deleted = await prisma.travelerFile.deleteMany({
             where: { id: fileId, travelerId, itineraryId, saleId: ownership.saleId },
         });
-        if (deleted.count) await removeLegacyLocalFile(target?.url);
         if (!deleted.count) return void res.status(404).json({ error: 'File not found' });
         res.json({ ok: true });
     } catch (error) {

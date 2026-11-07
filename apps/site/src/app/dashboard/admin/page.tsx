@@ -219,7 +219,15 @@ export default function AdminDashboardPage() {
         finally { setActionLoading(false); }
     };
 
-    const logout = () => { localStorage.removeItem("adminToken"); localStorage.removeItem("adminUser"); router.push("/dashboard/admin/login"); };
+    // Encerra no servidor antes de limpar o navegador (R-07), igual ao /admin.
+    const logout = async () => {
+        const token = getToken();
+        if (token) {
+            await fetch(`${API}/admin/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, keepalive: true })
+                .catch(() => console.warn("[admin] não foi possível encerrar a sessão no servidor"));
+        }
+        localStorage.removeItem("adminToken"); localStorage.removeItem("adminUser"); router.push("/dashboard/admin/login");
+    };
 
     const getBadge = (key: string) => {
         if (!stats) return 0;
