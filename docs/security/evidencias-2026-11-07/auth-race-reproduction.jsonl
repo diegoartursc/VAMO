@@ -1,0 +1,3 @@
+[reset-password] senha redefinida (traveler race-user)
+[mailer] SMTP não configurado — e-mail "Your VAMO password was changed" para race@example.invalid não enviado
+{"proof":"stale-login-after-password-reset","resetStatus":200,"initialAccessStatus":401,"pendingLoginUsingOldPasswordStatus":200,"pendingLoginAccessAfterResetStatus":200,"freshLoginUsingOldPasswordStatus":401,"stubbedDatabaseOnly":true,"externalServices":false}

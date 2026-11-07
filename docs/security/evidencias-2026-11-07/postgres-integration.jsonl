@@ -1,0 +1,5 @@
+{"check":"postgres-concurrent-refund-rollback","refundedCents":1000,"activeAccess":true,"database":"disposable-local-postgres","provider":"simulated"}
+{"check":"postgres-concurrent-reversal","actualProviderRequestsCents":2400,"correctTargetCents":1600,"databaseRefundedCents":1000,"database":"disposable-local-postgres","provider":"simulated"}
+{"check":"postgres-concurrent-repurchase","newPaymentsSimulated":2,"acceptedPayments":1,"duplicateRefundRequests":0,"database":"disposable-local-postgres","provider":"simulated"}
+[mailer] SMTP não configurado — e-mail "Your itinerary is ready: Synthetic only" para buyer@reaudit.invalid não enviado
+[mailer] SMTP não configurado — e-mail "You sold: Synthetic only" para creator@reaudit.invalid não enviado

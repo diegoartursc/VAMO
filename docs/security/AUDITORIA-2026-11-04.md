@@ -1,5 +1,7 @@
 # Auditoria de segurança, invasão controlada e escalabilidade — VAMO
 
+> **Revisão posterior em 07/11/2026:** a [verificação independente do plano](../VERIFICACAO-PLANO-SEGURANCA-2026-11-07.md) encontrou problemas altos em cenários adicionais de concorrência, recuperação e documentos. O parecer “apto com ressalvas” abaixo é histórico e não substitui a conclusão atual. As medições de 04/11 foram preservadas como evidência daquela execução.
+
 - **Data:** 04/11/2026
 - **Branch:** `security-audit-2026-11-04`, criada a partir de `main` em `439613a`. A `main` não foi alterada.
 - **Ambiente:** tudo foi testado num ambiente **isolado** no Mac:

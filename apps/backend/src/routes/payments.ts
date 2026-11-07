@@ -19,6 +19,18 @@ const router = Router();
  * webhook) tratam esse erro separado de uma falha genérica — não é um erro
  * transiente pra retry, é uma decisão de produto definitiva.
  */
+/**
+ * Não foi possível conferir na Stripe o estado atual da cobrança (R-03). A venda
+ * NÃO é criada: o webhook responde 500 (a Stripe reenvia) e a tela de retorno
+ * mostra "processando" e tenta de novo.
+ */
+export class PaymentVerificationPendingError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'PaymentVerificationPendingError';
+    }
+}
+
 export class PurchaseBlockedError extends Error {
     constructor(message: string, public readonly refunded: boolean) {
         super(message);
@@ -343,7 +355,9 @@ async function fulfillItineraryPurchase(opts: {
                     if (full) saleValues.payoutStatus = 'blocked';
                 }
             } catch (err: any) {
-                console.error('[payments] não consegui conferir o estado da cobrança no fulfillment:', err?.message || err);
+                // R-03: sem confirmar o estado real (pode já ter sido estornada), não cria venda paga.
+                console.error('[payments] não consegui conferir o estado da cobrança no fulfillment; venda adiada:', err?.message || err);
+                throw new PaymentVerificationPendingError('Could not verify the payment with Stripe yet.');
             }
         }
     }
@@ -381,7 +395,19 @@ async function fulfillItineraryPurchase(opts: {
                 purchaseData: { routeSnapshot: snapshotPayload, payment: toJsonSafe(payment) },
             },
         });
-        if (reopened.count !== 1) return { saleId: existing.id, alreadyPurchased: true };
+        if (reopened.count !== 1) {
+            // Outra chamada reabriu a venda primeiro (R-02). Se foi com OUTRO pagamento,
+            // este pagamento sobrou: devolve (idempotente por PaymentIntent).
+            const winner = await prisma.itinerarySale.findFirst({
+                where: { id: existing.id },
+                select: { paymentIntentId: true, purchaseData: true },
+            });
+            const winnerPi = winner?.paymentIntentId ?? savedPaymentIntentId(winner?.purchaseData);
+            if (payment.paymentIntentId && winnerPi && winnerPi !== payment.paymentIntentId) {
+                await refundDuplicatePayment(travelerId, existing.itinerary.title, existing.itinerary.currency, payment);
+            }
+            return { saleId: existing.id, alreadyPurchased: true };
+        }
         notifySaleCreated(existing.id, payment)
             .catch((e) => console.error('[payments] e-mails da recompra falharam:', e?.message || e));
         return { saleId: existing.id, alreadyPurchased: false };
@@ -605,6 +631,10 @@ router.get('/checkout-session/:sessionId', travelerAuthMiddleware, async (req: T
             } catch (err) {
                 if (err instanceof PurchaseBlockedError) {
                     res.status(409).json({ status: 'blocked', itineraryId, error: err.message, refunded: err.refunded });
+                    return;
+                }
+                if (err instanceof PaymentVerificationPendingError) {
+                    res.json({ status: 'processing', itineraryId });
                     return;
                 }
                 throw err;

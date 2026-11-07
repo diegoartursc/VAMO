@@ -1,0 +1,41 @@
+[
+  {
+    "name": "backend",
+    "command": [
+      "node_modules/.bin/tsc",
+      "--noEmit",
+      "--incremental",
+      "false",
+      "-p",
+      "apps/backend/tsconfig.json"
+    ],
+    "exit_code": 0,
+    "seconds": 7.66
+  },
+  {
+    "name": "mobile",
+    "command": [
+      "node_modules/.bin/tsc",
+      "--noEmit",
+      "--incremental",
+      "false",
+      "-p",
+      "apps/mobile/tsconfig.json"
+    ],
+    "exit_code": 2,
+    "seconds": 10.01
+  },
+  {
+    "name": "site",
+    "command": [
+      "node_modules/.bin/tsc",
+      "--noEmit",
+      "--incremental",
+      "false",
+      "-p",
+      "apps/site/tsconfig.json"
+    ],
+    "exit_code": 0,
+    "seconds": 8.87
+  }
+]

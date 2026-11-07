@@ -1,5 +1,7 @@
 # Relatório de segurança — VAMO (correção e reauditoria, 28–29/10/2026)
 
+> **Atualização de 07/11/2026:** há uma [nova verificação do plano e conclusão atual](VERIFICACAO-PLANO-SEGURANCA-2026-11-07.md). Foram reproduzidas falhas remanescentes; a aprovação histórica deste relatório não deve ser tomada como aprovação do código atual.
+
 > Resumo executivo do prompt de segurança, do que foi executado e do que falta para publicar.
 > Relatório técnico completo (arquivos, linhas, testes): [SEGURANCA-POS-CORRECAO-2026-10-28.md](SEGURANCA-POS-CORRECAO-2026-10-28.md).
 > Prompt: [PROMPT-CLAUDE-CORRECAO-SEGURANCA-2026-10-28.md](PROMPT-CLAUDE-CORRECAO-SEGURANCA-2026-10-28.md) · Análise original: [ANALISE-SEGURANCA-2026-10-28.md](ANALISE-SEGURANCA-2026-10-28.md).

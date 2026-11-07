@@ -1,0 +1,6 @@
+{"check":"site-proof-upload-public","siteUploadEndpoint":"/api/uploads","anonymousDownloadStatus":200,"saveRemovesTravelProof":true,"receiptUrlStillAccepted":true,"data":"synthetic-only","storage":"temporary-local"}
+{"check":"site-logout-server-revocation","browserTokenCleared":true,"logoutNetworkCalls":0,"oldBearerAfterSiteLogout":200,"data":"synthetic-only"}
+{"check":"private-doc-db-error","failure":"aggregate","unhandledRejections":1,"responseStatus":null,"requestTimedOut":true,"healthAfter":200,"data":"synthetic-only"}
+{"check":"private-doc-db-error","failure":"create","unhandledRejections":1,"responseStatus":null,"requestTimedOut":true,"healthAfter":200,"data":"synthetic-only"}
+{"check":"demo-test-remote-config","fatalErrors":0,"warnings":1,"remoteConnectionAttempted":false}
+{"check":"legacy-delete-removal-failure","anonymousBeforeDelete":404,"deleteStatus":200,"simulatedRemovalError":"EACCES","anonymousAfterDelete":200,"data":"synthetic-only"}

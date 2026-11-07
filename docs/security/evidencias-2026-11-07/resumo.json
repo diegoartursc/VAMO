@@ -1,0 +1,159 @@
+{
+  "client_date": "2026-11-07",
+  "started_on": "2026-11-06",
+  "commit": "b83a959608d7982d15b10593a6d3869e0a2c9a38",
+  "branch": "home-hero-slideshow",
+  "test_environment": "external network blocked; .env reads intercepted; synthetic identities; local disposable PostgreSQL only for 3 integration scenarios",
+  "suites": {
+    "backend": {
+      "tests": 163,
+      "pass": 163,
+      "fail": 0,
+      "skipped": 0,
+      "test_files": 22,
+      "seconds": 8.46,
+      "exit_code": 0,
+      "files": [
+        "src/routes/payments.refund.test.ts",
+        "src/routes/itineraries.submission.test.ts",
+        "src/routes/payments.security.test.ts",
+        "src/utils/creatorRecommendation.test.ts",
+        "src/utils/featuredRanking.test.ts",
+        "src/jobs/payouts.test.ts",
+        "src/jobs/reviewRequests.test.ts",
+        "src/security/aud-public-cache.test.ts",
+        "src/security/config.test.ts",
+        "src/security/phase4-uploads.test.ts",
+        "src/security/phase4-trust.test.ts",
+        "src/security/phase1-auth.test.ts",
+        "src/security/phase3-money.test.ts",
+        "src/security/phase4-account.test.ts",
+        "src/security/phase2-private-docs.test.ts",
+        "src/security/phase5-money.test.ts",
+        "src/security/isolation.test.ts",
+        "src/security/aud-proxy-ip.test.ts",
+        "src/security/phase2-content.test.ts",
+        "src/lib/mailer.test.ts",
+        "src/lib/money.earnings.test.ts",
+        "src/lib/currencyRates.test.ts"
+      ]
+    },
+    "mobile": {
+      "tests": 223,
+      "pass": 223,
+      "fail": 0,
+      "skipped": 0,
+      "test_files": 14,
+      "seconds": 3.12,
+      "exit_code": 0,
+      "files": [
+        "src/utils/itineraryCardSummary.test.ts",
+        "src/utils/searchUtils.test.ts",
+        "src/utils/itineraryDetailSectionOrder.test.ts",
+        "src/utils/noInstallments.test.ts",
+        "src/utils/homeSections.test.ts",
+        "src/utils/creatorProfile.test.ts",
+        "src/components/cards/itineraryCard.contract.test.ts",
+        "src/features/route-versioning/pdfTemplate.test.ts",
+        "src/features/route-versioning/mergeEngine.test.ts",
+        "src/components/home/ctaCarousel.contract.test.ts",
+        "src/components/home/homeItinerarySection.test.ts",
+        "src/gamification/travelerMissions.test.ts",
+        "src/components/search/searchModal.contract.test.ts",
+        "src/features/creator/earnings/payoutWaiting.test.ts"
+      ]
+    },
+    "shared": {
+      "tests": 55,
+      "pass": 55,
+      "fail": 0,
+      "skipped": 0,
+      "test_files": 5,
+      "seconds": 2.37,
+      "exit_code": 0,
+      "files": [
+        "packages/shared/itinerary/validation.test.ts",
+        "packages/shared/itinerary/cost.test.ts",
+        "packages/shared/itinerary/commission.test.ts",
+        "packages/shared/itinerary/market.test.ts",
+        "packages/shared/gamification/creatorReputation.test.ts"
+      ]
+    }
+  },
+  "typechecks": [
+    {
+      "name": "backend",
+      "command": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false",
+        "-p",
+        "apps/backend/tsconfig.json"
+      ],
+      "exit_code": 0,
+      "seconds": 7.66
+    },
+    {
+      "name": "mobile",
+      "command": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false",
+        "-p",
+        "apps/mobile/tsconfig.json"
+      ],
+      "exit_code": 2,
+      "seconds": 10.01
+    },
+    {
+      "name": "site",
+      "command": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false",
+        "-p",
+        "apps/site/tsconfig.json"
+      ],
+      "exit_code": 0,
+      "seconds": 8.87
+    }
+  ],
+  "postgres": {
+    "cluster": "disposable-local-only",
+    "port": 64395,
+    "migrations": 20,
+    "integration_exit_code": 0,
+    "stopped": true,
+    "temporary_cluster_removed": true
+  },
+  "existing_tests_total": 441,
+  "audit": {
+    "all": {
+      "info": 0,
+      "low": 1,
+      "moderate": 12,
+      "high": 7,
+      "critical": 0,
+      "total": 20
+    },
+    "backend": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    }
+  },
+  "scripts_sha256": {
+    "vamo-reaudit-20261106-auth-isolate.ts": "67cdcb912473ec7c5fbfd23e5f934682cfd4cfad043fce010f429dd1467c2f43",
+    "vamo-reaudit-20261106-auth-race.ts": "2da2f92da98d741fddb5d2dc7bdbc6386b92494998bb0549aa934065bdf16f18",
+    "vamo-reaudit-20261106-client-docs.ts": "c70324a6bc0c271fd67280b038c260e9ebe77e3ebb0dbc6cd4c265c7f0b90268",
+    "vamo-reaudit-20261106-money.ts": "07968851e11a9f19987756e401b878d715a5636675cbe3f6a6b9b7b027506d3d",
+    "vamo-reaudit-20261106-postgres.ts": "10a23579e91ea0da5674aa0bb95cb636d9917ab551fa9c32a2f44bbe5706db4a",
+    "vamo-reaudit-20261106-run-postgres.py": "4a1e86e7d494140e0ff85b62e9a3fba6df4530310bd620491937f37647d5f695"
+  }
+}

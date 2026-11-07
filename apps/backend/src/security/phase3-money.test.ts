@@ -251,6 +251,11 @@ test('SEC-13: checkout pago a 26,90 com preço do roteiro alterado para 99 → v
         images: [], days: [], files: [], accommodations: [], transports: [], checklists: [], reviews: [], _count: { sales: 0 },
     });
     db.creator.update = async () => ({});
+    // Stripe simulada que RESPONDE à conferência da cobrança (R-03: sem resposta, a venda não nasce).
+    const { setStripeClientForTests } = await import('../routes/payments');
+    const client: any = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    client.paymentIntents = { retrieve: async () => ({ id: 'pi_new', latest_charge: { id: 'ch_new', amount: 2690, amount_refunded: 0, disputed: false } }) };
+    setStripeClientForTests(client);
     const app = (await import('../app')).default;
     const { base, close } = await startApp(app);
     try {
@@ -269,6 +274,7 @@ test('SEC-13: checkout pago a 26,90 com preço do roteiro alterado para 99 → v
         assert.equal(created.creatorEarningCents, 2152);
         assert.equal(created.paidCurrency, 'usd');
     } finally {
+        setStripeClientForTests(null);
         await close();
         delete process.env.STRIPE_SECRET_KEY;
         delete process.env.STRIPE_WEBHOOK_SECRET;

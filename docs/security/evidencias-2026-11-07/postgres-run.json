@@ -1,0 +1,8 @@
+{
+  "cluster": "disposable-local-only",
+  "port": 64395,
+  "migrations": 20,
+  "integration_exit_code": 0,
+  "stopped": true,
+  "temporary_cluster_removed": true
+}
