@@ -54,7 +54,7 @@ function collectPublicRefs(itineraryId: string, where: string, value: unknown, r
 }
 
 type ItineraryRefs = {
-    id: string; travelProofUrl: string | null; attractions: unknown; restaurants: unknown; extraSpendingItems: unknown; flightInfo: unknown;
+    id: string; travelProofUrl: string | null; attractions: unknown; restaurants: unknown; extraSpendingItems: unknown; flightInfo: unknown; estimatedSpending: unknown;
     accommodations: { id: string; cost: unknown }[]; transports: { id: string; cost: unknown }[];
 };
 function collectAllPublicRefs(itineraries: ItineraryRefs[]): Ref[] {
@@ -65,6 +65,7 @@ function collectAllPublicRefs(itineraries: ItineraryRefs[]): Ref[] {
         collectPublicRefs(it.id, 'restaurants', it.restaurants, refs);
         collectPublicRefs(it.id, 'extraSpendingItems', it.extraSpendingItems, refs);
         collectPublicRefs(it.id, 'flightInfo', it.flightInfo, refs);
+        collectPublicRefs(it.id, 'estimatedSpending', it.estimatedSpending, refs); // recibos (R-05)
         for (const a of it.accommodations) collectPublicRefs(it.id, `accommodation:${a.id}`, { cost: a.cost }, refs);
         for (const t of it.transports) collectPublicRefs(it.id, `transport:${t.id}`, { cost: t.cost }, refs);
     }
@@ -87,7 +88,7 @@ async function revokeFromBackup(backupDir: string) {
 
     const current = await prisma.itinerary.findMany({
         select: {
-            id: true, travelProofUrl: true, attractions: true, restaurants: true, extraSpendingItems: true, flightInfo: true,
+            id: true, travelProofUrl: true, attractions: true, restaurants: true, extraSpendingItems: true, flightInfo: true, estimatedSpending: true,
             accommodations: { select: { id: true, cost: true } }, transports: { select: { id: true, cost: true } },
         },
     });
@@ -126,7 +127,7 @@ async function revokeFromBackup(backupDir: string) {
     if (REVOKE && !APPLY) throw new Error('--revoke só junto com --apply.');
     const itineraries = await prisma.itinerary.findMany({
         select: {
-            id: true, travelProofUrl: true, attractions: true, restaurants: true, extraSpendingItems: true, flightInfo: true,
+            id: true, travelProofUrl: true, attractions: true, restaurants: true, extraSpendingItems: true, flightInfo: true, estimatedSpending: true,
             creator: { select: { travelerId: true } },
             accommodations: { select: { id: true, cost: true } },
             transports: { select: { id: true, cost: true } },
@@ -140,6 +141,7 @@ async function revokeFromBackup(backupDir: string) {
         collectPublicRefs(it.id, 'restaurants', it.restaurants, refs);
         collectPublicRefs(it.id, 'extraSpendingItems', it.extraSpendingItems, refs);
         collectPublicRefs(it.id, 'flightInfo', it.flightInfo, refs);
+        collectPublicRefs(it.id, 'estimatedSpending', it.estimatedSpending, refs); // recibos (R-05)
         for (const a of it.accommodations) collectPublicRefs(it.id, `accommodation:${a.id}`, { cost: a.cost }, refs);
         for (const t of it.transports) collectPublicRefs(it.id, `transport:${t.id}`, { cost: t.cost }, refs);
     }
@@ -194,6 +196,7 @@ async function revokeFromBackup(backupDir: string) {
                     travelProofUrl: swap({ travelProofUrl: it.travelProofUrl }).travelProofUrl,
                     attractions: swap(it.attractions) as any, restaurants: swap(it.restaurants) as any,
                     extraSpendingItems: swap(it.extraSpendingItems) as any, flightInfo: swap(it.flightInfo) as any,
+                    estimatedSpending: swap(it.estimatedSpending) as any,
                 },
             }),
             ...it.accommodations.map((a) => prisma.itineraryAccommodation.update({ where: { id: a.id }, data: { cost: swap({ cost: a.cost }).cost as any } })),

@@ -2,8 +2,9 @@
  * Comprovantes privados (SEC-03).
  *
  * - Guardados em `private_documents` (nunca no bucket público).
- * - No roteiro ficam como `private-doc://<id>` (em `travelProofUrl` e em
- *   `cost.proofFiles[].url`, em qualquer profundidade).
+ * - No roteiro ficam como `private-doc://<id>` (em `travelProofUrl`, em
+ *   `receiptUrl` dos gastos manuais e em `cost.proofFiles[].url`, em qualquer
+ *   profundidade).
  * - Só o dono e o admin recebem link assinado de curta duração
  *   (`/api/private-docs/<id>/<nome>?token=`). Quem salva o roteiro só pode
  *   referenciar documentos próprios; referência alheia é descartada.
@@ -34,8 +35,8 @@ export function safeDocName(name: string | null | undefined): string {
 type RefMapper = (url: string) => string | null;
 
 /**
- * Aplica `fn` a cada referência de comprovante (`travelProofUrl` e
- * `proofFiles[].url`) em qualquer profundidade. `null` remove: o comprovante
+ * Aplica `fn` a cada referência de comprovante (`travelProofUrl`, `receiptUrl`
+ * e `proofFiles[].url`) em qualquer profundidade. `null` remove: o comprovante
  * vira '' e o arquivo sai da lista.
  */
 export function mapDocRefs<T>(value: T, fn: RefMapper): T {
@@ -43,7 +44,7 @@ export function mapDocRefs<T>(value: T, fn: RefMapper): T {
     if (!value || typeof value !== 'object' || value instanceof Date || Buffer.isBuffer(value)) return value;
     const out: Record<string, unknown> = {};
     for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
-        if (key === 'travelProofUrl' && typeof v === 'string') {
+        if ((key === 'travelProofUrl' || key === 'receiptUrl') && typeof v === 'string') {
             out[key] = v ? fn(v) ?? '' : v;
         } else if (key === 'proofFiles' && Array.isArray(v)) {
             out[key] = v

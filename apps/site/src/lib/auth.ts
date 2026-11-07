@@ -415,7 +415,36 @@ export function getCurrentUserName(): string | null {
     return null;
 }
 
-export function logout() {
+/**
+ * Encerra a sessão NO SERVIDOR (R-07) e depois limpa o navegador. Sem a chamada,
+ * o token copiado antes de sair continuava abrindo a conta até expirar.
+ * Se a rede falhar, o navegador é limpo mesmo assim (quem clicou quer sair) e o
+ * aviso fica no console; o token expira sozinho em até 24h.
+ */
+export async function revokeServerSession(): Promise<boolean> {
+    const token = getToken();
+    if (!token || typeof window === 'undefined') return true;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    try {
+        const res = await fetch(`${API_BASE_URL}/auth/traveler/logout`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            keepalive: true,
+            signal: controller.signal,
+        });
+        // 401 = sessão já não valia (expirada ou revogada): nada a revogar.
+        return res.ok || res.status === 401;
+    } catch {
+        return false;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+export async function logout() {
+    const revoked = await revokeServerSession();
+    if (!revoked) console.warn('[auth] não foi possível encerrar a sessão no servidor; ela expira sozinha em até 24h.');
     clearAllSession();
     if (typeof window !== 'undefined') {
         window.location.replace('/login');

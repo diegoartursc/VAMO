@@ -140,11 +140,15 @@ export async function deleteUpload(storagePath: string): Promise<void> {
 /**
  * Apaga do disco a cópia LEGADA de um arquivo privado da Central da Viagem
  * (fluxo antigo gravava em public/uploads/itineraries). Sem isso, apagar o
- * registro tornava o arquivo público de novo (R-U2). Melhor esforço.
+ * registro tornava o arquivo público de novo (R-U2).
+ *
+ * LANÇA erro se a remoção falhar (arquivo inexistente não é erro). Quem chama
+ * deve remover o arquivo ANTES de apagar o registro: enquanto o registro
+ * existe, o guard de /uploads continua bloqueando a URL (R-13).
  */
 export async function removeLegacyLocalFile(url: string | null | undefined): Promise<void> {
     if (!url || !url.includes('/uploads/itineraries/')) return;
     const name = path.basename(new URL(url, 'http://local').pathname);
     if (!name || name.startsWith('.')) return;
-    await fs.promises.rm(path.join(LOCAL_UPLOADS_ROOT, 'itineraries', name), { force: true }).catch(() => {});
+    await fs.promises.rm(path.join(LOCAL_UPLOADS_ROOT, 'itineraries', name), { force: true });
 }

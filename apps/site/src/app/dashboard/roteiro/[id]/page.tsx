@@ -13,7 +13,7 @@ import {
     HelpCircle,
 } from "lucide-react";
 import { BUDGET_STYLE_GUIDE, BUDGET_STYLE_KEYS, BUDGET_STYLE_GENERAL_NOTE, BUDGET_STYLE_CREATOR_SUBTITLE, getBudgetStyleGuide, getPrimaryBudgetStyle, toHotelStars, BASE_CURRENCY_SYMBOL, BASE_LOCALE } from "@vamo/shared/itinerary";
-import { getItineraryById, createItinerary, updateItinerary, uploadFile, uploadFiles } from "../../../../lib/api";
+import { getItineraryById, createItinerary, updateItinerary, uploadFile, uploadFiles, uploadPrivateDoc } from "../../../../lib/api";
 import {
     acceptAttributeFor,
     validateUploadFile,
@@ -1222,7 +1222,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                             return;
                                         }
                                         const prepared = await prepareUploadFile(file, 'travelProof');
-                                        const url = await uploadFile(prepared);
+                                        const url = await uploadPrivateDoc(prepared, 'travelProof');
                                         setTravelProofUrl(url); markDirty();
                                     } catch (err: any) {
                                         setToast({ msg: `Erro no upload: ${err.message}`, type: "error" });
@@ -1983,7 +1983,7 @@ export default function RoteiroEditorPage({ params }: { params: Promise<{ id: st
                                                                 return;
                                                             }
                                                             const prepared = await prepareUploadFile(file, 'costProof');
-                                                            const url = await uploadFile(prepared);
+                                                            const url = await uploadPrivateDoc(prepared, 'costProof');
                                                             const u = [...spendingEntries];
                                                             u[i].receiptUrl = url;
                                                             setSpendingEntries(u); markDirty();

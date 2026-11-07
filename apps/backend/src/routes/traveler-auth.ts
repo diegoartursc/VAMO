@@ -275,7 +275,15 @@ router.post('/delete-account', deleteAccountLimiter, travelerAuthMiddleware, asy
         });
     }
 
+    // Cópias legadas saem do disco ANTES de apagar os registros (R-13): se alguma
+    // remoção falhar, nada é apagado e o guard de /uploads segue bloqueando.
     const legacyFiles = await prisma.travelerFile.findMany({ where: { travelerId }, select: { url: true } });
+    try {
+        for (const f of legacyFiles) await removeLegacyLocalFile(f.url);
+    } catch (e: any) {
+        console.error(`[delete-account] falha ao remover arquivo legado (traveler ${travelerId}): ${e?.message || e}`);
+        return res.status(500).json({ error: 'We couldn\'t delete your account right now. Please try again.' });
+    }
     const now = new Date();
     await prisma.$transaction(async (tx) => {
         await tx.traveler.update({
@@ -307,7 +315,6 @@ router.post('/delete-account', deleteAccountLimiter, travelerAuthMiddleware, asy
         await tx.purchaseHistory.updateMany({ where: { travelerId }, data: { contactName: null, contactEmail: null } as any });
         await revokeAllSessions(travelerId, 'account_deleted', tx);
     });
-    for (const f of legacyFiles) await removeLegacyLocalFile(f.url);
     console.log(`[delete-account] conta anonimizada (traveler ${travelerId})`);
     res.json({ ok: true });
 });
