@@ -5,7 +5,7 @@ import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { adminAuthMiddleware } from '../middleware/admin-auth';
 import { generateAdminToken } from '../lib/auth';
-import { signDocRefs } from '../lib/privateDocs';
+import { signDocRefs, signedDocUrl } from '../lib/privateDocs';
 import prisma from '../lib/prisma';
 import { sendItineraryApprovedEmail, sendItineraryRejectedEmail, sendCreatorApprovedEmail } from '../lib/mailer';
 import { recalculateItineraryAndCreatorRating } from './reviews';
@@ -123,6 +123,20 @@ router.post('/seed', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/travelers
+// GET /api/admin/private-docs/link/:id — link assinado NOVO de um comprovante.
+// O link que vem junto dos dados vence em 30 min; o painel pede um novo no clique.
+router.get('/private-docs/link/:id', verifyAdmin, async (req: Request, res: Response) => {
+    const doc = await prisma.privateDocument.findUnique({
+        where: { id: String(req.params.id) },
+        select: { id: true, originalFileName: true },
+    });
+    if (!doc) {
+        res.status(404).json({ error: 'File not found' });
+        return;
+    }
+    res.json({ url: signedDocUrl(req, doc.id, doc.originalFileName) });
+});
+
 router.get('/travelers', verifyAdmin, async (_req: Request, res: Response) => {
     try {
         const travelers = await prisma.traveler.findMany({

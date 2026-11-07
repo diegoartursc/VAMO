@@ -16,6 +16,7 @@ const PASSWORD = 'correct-horse-battery';
 const travelers = memoryTable<any>([]);
 const sessions = memoryTable<any>([]);
 const docs = memoryTable<any>([]);
+const admins = memoryTable<any>([]);
 let base = '';
 let close: () => Promise<void>;
 
@@ -27,6 +28,8 @@ before(async () => {
     );
     Object.assign(db.traveler, { findFirst: travelers.findFirst, findUnique: travelers.findUnique });
     Object.assign(db.travelerSession, sessions);
+    admins.rows.push({ id: 'adm_1', email: 'admin@test.local', name: 'Admin', passwordHash: hash, role: 'SUPER_ADMIN', active: true, sessionVersion: 0 });
+    Object.assign(db.admin, admins, { count: async () => admins.rows.length });
     Object.assign(db.privateDocument, docs, {
         aggregate: async ({ where }: any) => {
             const mine = docs.rows.filter((d) => d.ownerTravelerId === where.ownerTravelerId);
@@ -146,4 +149,32 @@ test('R-05: recibo dos gastos manuais também é comprovante privado', async () 
     const stored = existingProofRefs({ estimatedSpending: body.estimatedSpending });
     const legacy: any = await canonicalizeDocRefs(body, 'trav_creator', stored);
     assert.equal(legacy.estimatedSpending.manualEntries[1].receiptUrl, 'https://bucket.example/public/receipt.jpg');
+});
+
+test('Link novo do comprovante: só o dono recebe, e o link abre o arquivo', async () => {
+    db.privateDocument.findFirst = docs.findFirst;
+    const owner = await tokenFor('creator@test.local');
+    const up = await uploadPdf(owner, 'fresh.pdf');
+    const id = up.json.ref.replace('private-doc://', '');
+    assert.equal((await call(base, 'GET', `/api/private-docs/link/${id}`)).status, 401);
+    assert.equal((await call(base, 'GET', `/api/private-docs/link/${id}`, { token: await tokenFor('other@test.local') })).status, 404);
+    const r = await call(base, 'GET', `/api/private-docs/link/${id}`, { token: owner });
+    assert.equal(r.status, 200);
+    const fresh = new URL(r.json.url);
+    const open = await call(base, 'GET', fresh.pathname + fresh.search);
+    assert.equal(open.status, 200);
+    assert.ok(open.text.includes('synthetic boarding pass'));
+});
+
+test('Link novo do comprovante pelo painel admin: exige admin', async () => {
+    const up = await uploadPdf(await tokenFor('creator@test.local'), 'admin-view.pdf');
+    const id = up.json.ref.replace('private-doc://', '');
+    const traveler = await tokenFor('creator@test.local');
+    assert.equal((await call(base, 'GET', `/api/admin/private-docs/link/${id}`, { token: traveler })).status, 401);
+    const admin = (await call(base, 'POST', '/api/admin/login', { body: { email: 'admin@test.local', password: PASSWORD } })).json.token as string;
+    assert.equal((await call(base, 'GET', '/api/admin/private-docs/link/doc_missing', { token: admin })).status, 404);
+    const r = await call(base, 'GET', `/api/admin/private-docs/link/${id}`, { token: admin });
+    assert.equal(r.status, 200, r.text);
+    const fresh = new URL(r.json.url);
+    assert.equal((await call(base, 'GET', fresh.pathname + fresh.search)).status, 200);
 });

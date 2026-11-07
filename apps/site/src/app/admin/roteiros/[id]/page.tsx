@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AdminDataProvider, useAdmin, ApproveRejectModal, API, STATUS_LABEL, STATUS_COLOR, Status } from "../../shared";
+import { AdminDataProvider, useAdmin, ApproveRejectModal, API, STATUS_LABEL, STATUS_COLOR, Status, openPrivateDoc } from "../../shared";
 import CostProofsModal from "../../CostProofsModal";
 import { hotelStarsText } from "@vamo/shared/itinerary";
 import ScoreBreakdownModal from "../../ScoreBreakdownModal";
@@ -114,7 +114,7 @@ function DetailContent() {
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {it.travelProofUrl
-                        ? <a href={it.travelProofUrl} target="_blank" rel="noopener noreferrer" style={btn("#fff", "#1A3263", "#E2E8F0")}>📎 Comprovante de viagem</a>
+                        ? <a href={it.travelProofUrl} onClick={e => openPrivateDoc(e, it.travelProofUrl)} target="_blank" rel="noopener noreferrer" style={btn("#fff", "#1A3263", "#E2E8F0")}>📎 Comprovante de viagem</a>
                         : <span style={{ fontSize: 12, color: "#DC2626", fontWeight: 700, alignSelf: "center" }}>⚠️ Sem comprovante de viagem</span>}
                     <button onClick={() => setProofsOpen(true)} style={btn("rgba(40,201,191,0.08)", "#1FA89F", "rgba(40,201,191,0.25)")}>🛡️ Comprovantes de custo</button>
                     {isPending && <>

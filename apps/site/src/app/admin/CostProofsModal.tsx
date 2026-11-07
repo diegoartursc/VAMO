@@ -1,4 +1,5 @@
 "use client";
+import { openPrivateDoc } from "./shared";
 
 /**
  * CostProofsModal — modal admin para revisar comprovantes de custo
@@ -285,6 +286,7 @@ export default function CostProofsModal({ itineraryId, getToken, onClose, onToas
                                                 <a
                                                     key={i}
                                                     href={f.url}
+                                                    onClick={e => openPrivateDoc(e, f.url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     style={{
