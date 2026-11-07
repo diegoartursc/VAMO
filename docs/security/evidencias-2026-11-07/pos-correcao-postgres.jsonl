@@ -1,0 +1,3 @@
+{"check":"postgres-concurrent-refund-monotonic","refundedCents":10000,"activeAccess":false,"database":"disposable-local-postgres","provider":"simulated"}
+{"check":"postgres-concurrent-reversal","actualProviderRequestsCents":1600,"correctTargetCents":1600,"databaseRefundedCents":2000,"database":"disposable-local-postgres","provider":"simulated"}
+{"check":"postgres-concurrent-repurchase","newPaymentsSimulated":2,"acceptedPayments":1,"duplicateRefundRequests":1,"database":"disposable-local-postgres","provider":"simulated"}
