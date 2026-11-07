@@ -16,6 +16,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { createCreatorOnboardingLink, getCreatorEarnings, getCreatorPayoutStatus } from '../../../../services/api';
 import { notify } from '../../../../utils/notify';
 import { openExternalUrl } from '../../../../utils/externalLinks';
+import { openStripePageInApp, stripeReturnTarget } from '../../../../utils/nativeAppReturn';
 import { formatBaseCurrency, formatShortDate } from '../utils';
 import { payoutWaitingCopy, shouldShowPayoutWaiting } from '../payoutWaiting';
 
@@ -36,8 +37,13 @@ export function PayoutWaitingBanner({ onSetup, style }: Props) {
         if (busy) return;
         setBusy(true);
         try {
-            const { url } = await createCreatorOnboardingLink(accessToken);
-            await openExternalUrl(url, { fallbackMessage: 'We couldn\'t open payout setup right now.' });
+            const { url } = await createCreatorOnboardingLink(accessToken, stripeReturnTarget);
+            if (stripeReturnTarget === 'app') {
+                // App nativo: a Stripe abre numa aba presa ao app; ao fechar, atualiza o status.
+                await openStripePageInApp(url, 'creator-earnings');
+            } else {
+                await openExternalUrl(url, { fallbackMessage: 'We couldn\'t open payout setup right now.' });
+            }
         } catch (e: any) {
             notify({ title: 'Payout setup', message: e?.message || 'We couldn\'t start right now. Please try again in a moment.', variant: 'error' });
         } finally {

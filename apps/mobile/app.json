@@ -10,18 +10,23 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0057E7"
+      "backgroundColor": "#1A3263"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vamo.app"
     },
     "android": {
+      "package": "app.vamo.travel",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0057E7"
+        "backgroundImage": "./assets/adaptive-background.png",
+        "backgroundColor": "#1A3263"
       },
-      "package": "com.vamo.app"
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -29,7 +34,18 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "VAMO uses your photos so you can add pictures to your itineraries and profile.",
+          "cameraPermission": "VAMO uses your camera so you can take pictures for your itineraries and profile.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "scheme": "vamo"
   }

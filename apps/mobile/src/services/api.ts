@@ -636,12 +636,12 @@ export interface CheckoutSessionResult {
 /** Cria a sessão de pagamento no Stripe e devolve a URL do checkout hospedado. */
 export async function createCheckoutSession(
     itineraryId: string,
-    opts: { source?: string } = {},
+    opts: { source?: string; returnTo?: 'app' } = {},
     accessToken?: string | null,
 ): Promise<CheckoutSessionResult> {
     return request('/payments/checkout-session', {
         method: 'POST',
-        body: { itineraryId, source: opts.source },
+        body: { itineraryId, source: opts.source, returnTo: opts.returnTo },
         accessToken,
     });
 }
@@ -966,8 +966,11 @@ export async function getCreatorPayoutStatus(accessToken?: string | null): Promi
 }
 
 /** Cria/recupera a conta Connect e devolve o link de onboarding hospedado da Stripe. */
-export async function createCreatorOnboardingLink(accessToken?: string | null): Promise<{ url: string; accountId: string }> {
-    return request('/creators/me/stripe/onboarding-link', { method: 'POST', accessToken });
+export async function createCreatorOnboardingLink(
+    accessToken?: string | null,
+    returnTo?: 'app',
+): Promise<{ url: string; accountId: string }> {
+    return request('/creators/me/stripe/onboarding-link', { method: 'POST', body: { returnTo }, accessToken });
 }
 
 // ─── Questions (FAQ Q&A) ───
